@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2023 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -14,6 +15,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
+
 import argparse
 import copy
 import os
@@ -24,42 +26,10 @@ from substrateinterface import SubstrateInterface
 from torch.cuda import is_available as is_cuda_available
 
 from bittensor.utils import strtobool_with_default
-
+from .naka_subtensor_impl import Subtensor as Nakamoto_subtensor
 from . import subtensor_impl, subtensor_mock
 
 logger = logger.opt(colors=True)
-
-__type_registery__ = {
-    "runtime_id": 2,
-    "types": {
-        "Balance": "u64",
-        "NeuronMetadataOf": {
-            "type": "struct",
-            "type_mapping": [
-                ["version", "u32"],
-                ["ip", "u128"], 
-                ["port", "u16"], 
-                ["ip_type", "u8"], 
-                ["uid", "u32"], 
-                ["modality", "u8"], 
-                ["hotkey", "AccountId"], 
-                ["coldkey", "AccountId"], 
-                ["active", "u32"],
-                ["last_update", "u64"],
-                ["priority", "u64"],
-                ["stake", "u64"],
-                ["rank", "u64"],
-                ["trust", "u64"],
-                ["consensus", "u64"],
-                ["incentive", "u64"],
-                ["dividends", "u64"],
-                ["emission", "u64"],
-                ["bonds", "Vec<(u32, u64)>"],
-                ["weights", "Vec<(u32, u32)>"]
-            ]
-        }
-    }
-}
 
 GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = 'node-subtensor'
 
@@ -85,8 +55,7 @@ class subtensor:
                 network (default='local', type=str)
                     The subtensor network flag. The likely choices are:
                             -- local (local running network)
-                            -- nakamoto (main network)
-                            -- nobunaga (staging network)
+                            -- finney (main network)
                             -- mock (mock network for testing.)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
@@ -111,7 +80,10 @@ class subtensor:
         # Select using chain_endpoint arg.
         if chain_endpoint != None:
             config.subtensor.chain_endpoint = chain_endpoint
-            config.subtensor.network = network
+            if network != None:
+                config.subtensor.network = network
+            else:
+                config.subtensor.network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
             
         # Select using network arg.
         elif network != None:
@@ -136,26 +108,31 @@ class subtensor:
         # make sure it's wss:// or ws://
         # If it's bellagene (parachain testnet) then it has to be wss
         endpoint_url: str = config.subtensor.chain_endpoint
-        if endpoint_url[0:6] != "wss://" and endpoint_url[0:5] != "ws://":
-            if config.subtensor.network == "bellagene":
-                endpoint_url = "wss://{}".format(endpoint_url)
-            else:
-                endpoint_url = "ws://{}".format(endpoint_url)
+        
+        # make sure formatting is good
+        endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
         
         substrate = SubstrateInterface(
             ss58_format = bittensor.__ss58_format__,
-            type_registry_preset='substrate-node-template',
-            type_registry = __type_registery__,
+            use_remote_preset=True,
             url = endpoint_url,
-            use_remote_preset=True
         )
 
         subtensor.check_config( config )
-        return subtensor_impl.Subtensor( 
-            substrate = substrate,
-            network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
-            chain_endpoint = config.subtensor.chain_endpoint,
-        )
+        network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
+        if network == 'nakamoto':
+            # Use nakamoto-specific subtensor.
+            return Nakamoto_subtensor( 
+                substrate = substrate,
+                network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
+                chain_endpoint = config.subtensor.chain_endpoint,
+            )
+        else:
+            return subtensor_impl.Subtensor( 
+                substrate = substrate,
+                network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
+                chain_endpoint = config.subtensor.chain_endpoint,
+            )
 
     @staticmethod   
     def config() -> 'bittensor.Config':
@@ -178,8 +155,7 @@ class subtensor:
         try:
             parser.add_argument('--' + prefix_str + 'subtensor.network', default = bittensor.defaults.subtensor.network, type=str,
                                 help='''The subtensor network flag. The likely choices are:
-                                        -- nobunaga (staging network)
-                                        -- nakamoto (master network)
+                                        -- finney (main network)
                                         -- local (local running network)
                                         -- mock (creates a mock connection (for testing))
                                     If this option is set it overloads subtensor.chain_endpoint with 
@@ -202,6 +178,7 @@ class subtensor:
             parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.dev_id', '--' + prefix_str + 'cuda.dev_id',  type=int, nargs='+', default=argparse.SUPPRESS, help='''Set the CUDA device id(s). Goes by the order of speed. (i.e. 0 is the fastest).''', required=False )
             parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.TPB', '--' + prefix_str + 'cuda.TPB', type=int, default=bittensor.defaults.subtensor.register.cuda.TPB, help='''Set the number of Threads Per Block for CUDA.''', required=False )
 
+            parser.add_argument('--netuid', type=int, help='netuid for subnet to serve this neuron on', default=argparse.SUPPRESS)        
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -211,7 +188,7 @@ class subtensor:
         """ Adds parser defaults to object from enviroment variables.
         """
         defaults.subtensor = bittensor.Config()
-        defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'nakamoto'
+        defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'finney'
         defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else None
         defaults.subtensor._mock = os.getenv('BT_SUBTENSOR_MOCK') if os.getenv('BT_SUBTENSOR_MOCK') != None else False
 
@@ -250,6 +227,9 @@ class subtensor:
         if network == "nakamoto":
             # Main network.
             return bittensor.__nakamoto_entrypoint__
+        elif network == "finney": 
+            # Kiru Finney stagin network.
+            return bittensor.__finney_entrypoint__
         elif network == "nobunaga": 
             # Staging network.
             return bittensor.__nobunaga_entrypoint__

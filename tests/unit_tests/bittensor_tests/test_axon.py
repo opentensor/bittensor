@@ -32,7 +32,7 @@ import concurrent
 from concurrent.futures import ThreadPoolExecutor
 
 wallet = bittensor.wallet.mock()
-axon = bittensor.axon(wallet = wallet)
+axon = bittensor.axon( netuid = -1, wallet = wallet)
 
 sender_wallet = bittensor.wallet.mock()
 
@@ -66,19 +66,6 @@ def test_sign_v1():
 def test_sign_v2():
     sign_v2(sender_wallet, wallet)
 
-def test_forward_wandb():
-    inputs_raw = torch.rand(3, 3, bittensor.__network_dim__)
-    serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
-    inputs_serialized = serializer.serialize(inputs_raw, modality = bittensor.proto.Modality.TENSOR, from_type = bittensor.proto.TensorType.TORCH)
-    request = bittensor.proto.TensorMessage(
-        version = bittensor.__version_as_int__,
-        tensors=[inputs_serialized]
-    )
-    response, code, synapses = axon._forward( request )
-    #axon.update_stats_for_request( request, response, call_time, code )
-    print( axon.to_wandb() )
-
-
 def test_forward_not_implemented():
     inputs_raw = torch.rand(3, 3)
     serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
@@ -95,6 +82,7 @@ def test_forward_not_implemented():
     assert synapses[0].return_code == bittensor.proto.ReturnCode.NotImplemented
 
 def test_forward_last_hidden_success():
+    bittensor.logging(debug = True)
     def forward( inputs_x: torch.FloatTensor, synapse , model_output = None):
         return None, dict(), torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
@@ -704,9 +692,10 @@ def test_backward_grads_shape_error():
 
 
 def test_backward_response_success_hidden():
-    def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):
-        return None, dict(), torch.zeros( [1, 1, bittensor.__network_dim__], requires_grad=True)
-    axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
+    def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses):
+        return [], [1], ['success']
+
+    axon.attach_backward_callback(backward)
     inputs_raw = torch.ones(1, 1)
     grads_raw = torch.zeros(1, 1, bittensor.__network_dim__)
     synapses = [bittensor.synapse.TextLastHiddenState()]
@@ -723,10 +712,10 @@ def test_backward_response_success_hidden():
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_backward_response_success_causal_lm():
-    def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):
-        return None, dict(), torch.zeros( [1, 1, bittensor.__vocab_size__], requires_grad=True)
+    def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses):
+        return [], [1], ['success']
 
-    axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM)
+    axon.attach_backward_callback( backward)
     inputs_raw = torch.ones(1, 1)
     grads_raw = torch.zeros(1, 1, bittensor.__vocab_size__)
     synapses = [bittensor.synapse.TextCausalLM()]
@@ -743,10 +732,10 @@ def test_backward_response_success_causal_lm():
     assert code == bittensor.proto.ReturnCode.Success
 
 def test_backward_response_success_causal_lm_next():
-    def forward(inputs_x: torch.FloatTensor, synapse, model_output=None):  # [batch_size, (topk + 1), max_len]
-        return None, dict(), torch.zeros([1, (synapses[0].topk + 1), 1 + 1], requires_grad=True)
+    def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses):
+        return [], [1], ['success']
 
-    axon.attach_synapse_callback(forward, synapse_type=bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM_NEXT)
+    axon.attach_backward_callback( backward)
     synapses = [bittensor.synapse.TextCausalLMNext()]
 
     inputs_raw = torch.ones(1, 1)
@@ -810,7 +799,7 @@ def test_forward_tensor_success_priority():
     def priority(pubkey:str, request_type:str, inputs_x):
         return 100
 
-    axon = bittensor.axon(wallet = wallet, priority= priority)
+    axon = bittensor.axon( netuid = -1, wallet = wallet, priority= priority)
 
     def forward( inputs_x: torch.FloatTensor, synapses , model_output = None):
         return None, dict(), torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
@@ -836,7 +825,7 @@ def test_forward_priority_timeout():
     def forward( inputs_x: torch.FloatTensor, synapses, hotkey):
         time.sleep(15)
 
-    axon = bittensor.axon(wallet = wallet, priority= priority, forward_timeout = 5)
+    axon = bittensor.axon( netuid = -1, wallet = wallet, priority= priority, forward_timeout = 5)
     axon.attach_forward_callback(forward)
 
     inputs_raw = torch.rand(1,1)
@@ -859,7 +848,7 @@ def test_forward_priority_2nd_request_timeout():
     def priority(pubkey:str, request_type:str, inputs_x):
         return 100
 
-    axon = bittensor.axon(wallet = wallet, priority= priority, priority_threadpool = bittensor.prioritythreadpool(max_workers = 1))
+    axon = bittensor.axon( netuid = -1, wallet = wallet, priority= priority, priority_threadpool = bittensor.prioritythreadpool(max_workers = 1))
 
     def forward( inputs_x: torch.FloatTensor, synapses , model_output = None):
         time.sleep(2)
@@ -884,7 +873,7 @@ def test_forward_priority_2nd_request_timeout():
     assert code == bittensor.proto.ReturnCode.Success
     
     try: 
-        response2, code2, synapses2 = future2.result(timeout = 1 - (time.time() - start_time))
+        future2.result(timeout = 1)
     except concurrent.futures.TimeoutError:
         pass
     else:
@@ -897,7 +886,7 @@ def test_backward_response_success_text_priority():
     def priority(pubkey:str, request_type:str, inputs_x):
         return 100
 
-    axon = bittensor.axon(wallet = wallet, priority= priority)
+    axon = bittensor.axon( netuid = -1, wallet = wallet, priority= priority)
 
     def forward( inputs_x: torch.FloatTensor, synapses, model_output = None):
         return None, dict(), torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
@@ -924,6 +913,7 @@ def run_test_grpc_forward_works(receiver_version):
     def forward( inputs_x:torch.FloatTensor, synapse , model_output = None):
         return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
+        netuid = -1,
         port = 7084,
         ip = '127.0.0.1',
         wallet = wallet,
@@ -966,15 +956,16 @@ def test_grpc_forward_works():
         run_test_grpc_forward_works(receiver_version)
 
 def run_test_grpc_backward_works(receiver_version):
-    def forward( inputs_x:torch.FloatTensor, synapse , model_output = None):
-        return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__], requires_grad=True)
+    def backward( inputs_x:torch.FloatTensor, grads_dy:torch.FloatTensor, synapses):
+        return [], [1], ['success']
 
     axon = bittensor.axon (
+        netuid = -1,
         port = 7086,
         ip = '127.0.0.1',
         wallet = wallet,
     )
-    axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
+    axon.attach_backward_callback( backward)
     axon.start()
 
     channel = grpc.insecure_channel(
@@ -1011,6 +1002,7 @@ def test_grpc_forward_fails():
     def forward( inputs_x:torch.FloatTensor, synapse, model_output = None):
         return None, dict(), torch.zeros( [3, 3, bittensor.__network_dim__])
     axon = bittensor.axon (
+        netuid = -1,
         port = 7084,
         ip = '127.0.0.1',
         wallet = wallet,
@@ -1049,6 +1041,7 @@ def test_grpc_backward_fails():
         return torch.zeros( [3, 3, bittensor.__network_dim__], requires_grad=True)
 
     axon = bittensor.axon (
+        netuid = -1,
         port = 7086,
         ip = '127.0.0.1',
         wallet = wallet,
@@ -1094,7 +1087,7 @@ def is_port_in_use(port):
 def test_axon_is_destroyed():
     port = get_random_unused_port()
     assert is_port_in_use( port ) == False
-    axon = bittensor.axon ( port = port )
+    axon = bittensor.axon ( netuid = -1, port = port )
     assert is_port_in_use( port ) == True
     axon.start()
     assert is_port_in_use( port ) == True
@@ -1105,7 +1098,7 @@ def test_axon_is_destroyed():
 
     port = get_random_unused_port()
     assert is_port_in_use( port ) == False
-    axon2 = bittensor.axon ( port = port )
+    axon2 = bittensor.axon ( netuid = -1, port = port )
     assert is_port_in_use( port ) == True
     axon2.start()
     assert is_port_in_use( port ) == True
@@ -1114,9 +1107,9 @@ def test_axon_is_destroyed():
 
     port_3 = get_random_unused_port()
     assert is_port_in_use( port_3 ) == False
-    axonA = bittensor.axon ( port = port_3 )
+    axonA = bittensor.axon ( netuid = -1, port = port_3 )
     assert is_port_in_use( port_3 ) == True
-    axonB = bittensor.axon ( port = port_3 )
+    axonB = bittensor.axon ( netuid = -1, port = port_3 )
     assert axonA.server != axonB.server
     assert is_port_in_use( port_3 ) == True
     axonA.start()
@@ -1149,7 +1142,7 @@ class TestExternalAxon(unittest.TestCase):
 
         mock_config = bittensor.axon.config()
 
-        axon = bittensor.axon ( ip = 'fake_ip', server=mock_server, config=mock_config )
+        axon = bittensor.axon ( netuid = -1, ip = 'fake_ip', server=mock_server, config=mock_config )
         assert axon.external_ip != axon.ip # should be different
         assert axon.external_ip is None # should be None
 
@@ -1157,8 +1150,19 @@ class TestExternalAxon(unittest.TestCase):
         # Verify that not setting the external port arg will default to the internal axon port
         mock_config = bittensor.axon.config()
 
-        axon = bittensor.axon ( port = 1234, config=mock_config )
-        assert axon.external_port == axon.port
+        mock_wallet = mock.MagicMock(
+            hotkey = mock.MagicMock(
+                ss58_address = 'fake_hotkey_address',
+                spec = bittensor.Keypair
+            ),
+            spec = bittensor.Wallet
+        )
+
+        with mock.patch('bittensor.wallet') as mock_create_wallet:
+            mock_create_wallet.return_value = mock_wallet
+
+            axon = bittensor.axon ( netuid = -1, port = 1234, config=mock_config )
+            assert axon.external_port == axon.port
 
     def test_external_port_set_full_address_internal(self):
         internal_port = 1234
@@ -1171,7 +1175,7 @@ class TestExternalAxon(unittest.TestCase):
         
         mock_config = bittensor.axon.config()
 
-        _ = bittensor.axon( port=internal_port, external_port=external_port, server=mock_server, config=mock_config )
+        _ = bittensor.axon( netuid = -1, port=internal_port, external_port=external_port, server=mock_server, config=mock_config )
         
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
@@ -1187,7 +1191,7 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.port = internal_port
         mock_config.axon.external_port = external_port
 
-        _ = bittensor.axon( config=mock_config, server=mock_server )
+        _ = bittensor.axon( netuid = -1, config=mock_config, server=mock_server )
         
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
@@ -1207,7 +1211,7 @@ class TestExternalAxon(unittest.TestCase):
 
         mock_config = bittensor.axon.config()
 
-        _ = bittensor.axon( ip=internal_ip, external_ip=external_ip, server=mock_server, config=mock_config )
+        _ = bittensor.axon( netuid = -1, ip=internal_ip, external_ip=external_ip, server=mock_server, config=mock_config )
         
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
@@ -1222,7 +1226,7 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.external_ip = external_ip
         mock_config.axon.ip = internal_ip
 
-        _ = bittensor.axon( config=mock_config, server=mock_server )
+        _ = bittensor.axon( netuid = -1, config=mock_config, server=mock_server )
         
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
@@ -1244,7 +1248,7 @@ class TestExternalAxon(unittest.TestCase):
 
         mock_config = bittensor.axon.config()
 
-        _ = bittensor.axon( ip=internal_ip, external_ip=external_ip, port=internal_port, external_port=external_port, server=mock_server, config=mock_config )
+        _ = bittensor.axon( netuid = -1, ip=internal_ip, external_ip=external_ip, port=internal_port, external_port=external_port, server=mock_server, config=mock_config )
         
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
@@ -1262,7 +1266,7 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.port = internal_port
         mock_config.axon.external_port = external_port
 
-        _ = bittensor.axon( config=mock_config, server=mock_server )
+        _ = bittensor.axon( netuid = -1, config=mock_config, server=mock_server )
         
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
@@ -1273,8 +1277,9 @@ class TestExternalAxon(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    unittest.main()
     # test_forward_joint_success()
     # test_forward_joint_missing_synapse()
     # test_forward_priority_timeout()
-    test_forward_priority_2nd_request_timeout()
+    #test_forward_priority_2nd_request_timeout()
     # test_forward_joint_faulty_synapse()

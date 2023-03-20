@@ -55,6 +55,7 @@ PROM_prometheus_latency_per_uid = Summary('dendrite_latency_per_uid', 'dendrite_
 PROM_prometheus_successes_per_uid = Counter('dendrite_successes_per_uid', 'dendrite_successes_per_uid', ['wallet', 'identifier', 'uid'])
 PROM_prometheus_failures_per_uid = Counter('dendrite_failures_per_uid', 'dendrite_failures_per_uid', ['wallet', 'identifier', 'uid'])
 
+
 class Dendrite(torch.autograd.Function):
     r""" This is the implementation class for a bittensor.dendrite(). The dendrite class operates as a normal torch autograd friendly operation
     which accepts a list of bittensor.endpoints and a list of torch tensors. The passed endpoints are queried with the passed inputs and either return
@@ -576,7 +577,7 @@ class Dendrite(torch.autograd.Function):
                         times per call.
         """
         if synapse.synapse_type != bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM:
-            raise ValueError( "Passed synapse must have type: {} got {} instead".formate( bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM, synapses.synapse_type ) )
+            raise ValueError( "Passed synapse must have type: {} got {} instead".format( bittensor.proto.Synapse.SynapseType.TEXT_CAUSAL_LM, synapses.synapse_type ) )
 
         # Format inputs.
         formatted_endpoints, formatted_inputs = self.format_text_inputs ( 
@@ -674,7 +675,8 @@ class Dendrite(torch.autograd.Function):
             self,
             endpoints: Union[ torch.LongTensor, List[torch.LongTensor], List['bittensor.Endpoint'], 'bittensor.Endpoint' ],
             inputs: Union[str, List[str], List[torch.LongTensor], torch.LongTensor],
-            synapse: Optional[ 'bittensor.synapse.TextLastHiddenState' ] = synapse.TextLastHiddenState(),
+            mask: Optional[ Union[int, List[int]] ] = None,
+            synapse: Optional[ 'bittensor.synapse.TextLastHiddenState' ] = None,
             timeout: int = None,
             requires_grad: bool = None,
     ) -> Tuple[Union[List[torch.FloatTensor], torch.FloatTensor], torch.LongTensor, torch.FloatTensor]:
@@ -697,6 +699,13 @@ class Dendrite(torch.autograd.Function):
                             - a tensor with shape [n, batch_size, sequence_len], the operation will unbind the tensor and pass inputs to endpoints.
                         If inputs are tensors they will be cast to int64 format before sending on the wire.
 
+                    mask (:obj:`Union[int,  List[int]]` of shape :obj:`-1`, default = [], `optional`):
+                        A mask used to select which hidden states of the sequence are to be returned by the query.
+                            - None or empty: none of the sequences are masked.
+                            - a single int: referring to a single sequence index across all batches i.e 0 (first), 5(fifth), -1 (last)
+                            - a list of ints: referring to a set of sequence indices across all batches to return. [ 0 (first), 5(fifth), -1 ( and last)]
+                        The mask determines which items are non zero in the response.
+
                     synapse (:type:`'bittensor.synapse.TextLastHiddenState'`, default = bittensor.synapse.TextLastHiddenState(), `optional`):
                         Synapse axon function call which defaults to bittensor.synapse.TextLastHiddenState().
 
@@ -717,8 +726,22 @@ class Dendrite(torch.autograd.Function):
                     times (:obj:`torch.FloatTensor` of shape :obj:`[ num_endpoints ]`, `required`):
                         times per call.
         """
-        if synapse.synapse_type != bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
-            raise ValueError( "Passed synapse must have type:{} got:{} instead".formate( bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE, synapses.synapse_type ) )
+        # If the synapse is None, create it.
+        if synapse == None:
+            synapse = bittensor.synapse.TextLastHiddenState()
+        
+        # Check past synapse.
+        elif synapse.synapse_type != bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
+            raise ValueError( "Passed synapse must have type:{} got:{} instead".format( bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE, synapses.synapse_type ) )
+        
+        # Set the synapse mask.
+        if mask != None:
+            if isinstance(mask, int):
+                synapse.mask = [mask]
+            elif isinstance(mask, list):
+                synapse.mask = mask
+            else:
+                raise ValueError( "Passed mask must have type: int or List[int] got:{} instead".format( type( mask) ) )
 
         # Format inputs.
         formatted_endpoints, formatted_inputs = self.format_text_inputs ( 
@@ -726,6 +749,7 @@ class Dendrite(torch.autograd.Function):
             inputs = inputs
         )
         synapses = [ synapse ]
+
         # Make calls.
         outputs, codes, times = self._forward (
             endpoints = formatted_endpoints,

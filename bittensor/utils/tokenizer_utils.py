@@ -1412,7 +1412,7 @@ def prep_tokenizer(tokenizer, std_tokenizer=None):
 
     # Define PAD Token = EOS Token (GPT2 generate convention, when PAD Token is None)
     # https://github.com/huggingface/transformers/blob/49c8c67fb815a277405f84dea4a66353e19fb347/tests/models/gpt2/test_modeling_gpt2.py#L532
-    if tokenizer.pad_token is None and tokenizer.eos_token is not None:
+    if tokenizer.pad_token_id is None and tokenizer.eos_token_id is not None:
         tokenizer.pad_token = tokenizer.eos_token
     set_vocab_len(tokenizer)
     set_whitespace_preserving(tokenizer)

@@ -25,6 +25,7 @@ from typing import Optional
 from pathlib import Path
 
 from ansible_vault import Vault
+from ansible.parsing.vault import AnsibleVaultError
 from cryptography.exceptions import InvalidSignature, InvalidKey
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
@@ -51,7 +52,11 @@ def serialized_keypair_to_keyfile_data( keypair: 'bittensor.Keypair' ):
         'accountId': "0x" + keypair.public_key.hex() if keypair.public_key != None else None,
         'publicKey': "0x" + keypair.public_key.hex()  if keypair.public_key != None else None,
         'secretPhrase': keypair.mnemonic if keypair.mnemonic != None else None,
-        'secretSeed': "0x" + keypair.seed_hex if keypair.seed_hex != None else None,
+        'secretSeed': "0x" + \
+            # If bytes -> str
+            ( keypair.seed_hex if isinstance(keypair.seed_hex, str) else keypair.seed_hex.hex() ) 
+                # If None -> None
+                if keypair.seed_hex != None else None,
         'ss58Address': keypair.ss58_address if keypair.ss58_address != None else None
     }
     data = json.dumps( json_data ).encode()
@@ -225,7 +230,10 @@ def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name
             # Ansible decrypt.
             if keyfile_data_is_encrypted_ansible( keyfile_data ):
                 vault = Vault( password )
-                decrypted_keyfile_data = vault.load( keyfile_data )
+                try:
+                    decrypted_keyfile_data = vault.load( keyfile_data )
+                except AnsibleVaultError:
+                    raise KeyFileError('Invalid password')
             # Legacy decrypt.
             elif keyfile_data_is_encrypted_legacy( keyfile_data ):
                 __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"

@@ -34,7 +34,8 @@ def test_create_endpoint():
         port = 12345,
         hotkey = test_wallet.hotkey.ss58_address,
         coldkey = test_wallet.coldkey.ss58_address,
-        modality = 0
+        modality = 0,
+        protocol = 0,
     )
     assert endpoint.check_format() == True
     endpoint.assert_format()
@@ -57,7 +58,8 @@ def test_endpoint_fails_checks():
             port = 12345,
             hotkey = test_wallet.hotkey.ss58_address,
             coldkey = test_wallet.coldkey.ss58_address,
-            modality = 0
+            modality = 0,
+            protocol = 0,
         )
         assert test_endpoint.check_format() == False
             
@@ -138,7 +140,8 @@ def test_endpoint_to_tensor():
         port = get_random_unused_port(),
         hotkey = test_wallet.hotkey.ss58_address,
         coldkey = test_wallet.coldkey.ss58_address,
-        modality = 0
+        modality = 0,
+        protocol = 0,
     )
     tensor_endpoint = endpoint.to_tensor()
     assert list(tensor_endpoint.shape) == [250]
@@ -158,7 +161,8 @@ def test_thrash_equality_of_endpoint():
             port = random.randint(0,64000),
             hotkey = test_wallet.hotkey.ss58_address,
             coldkey = test_wallet.coldkey.ss58_address,
-            modality = 0
+            modality = 0,
+            protocol = 0,
         )
         assert new_endpoint.check_format() == True
         tensor_endpoint = new_endpoint.to_tensor()

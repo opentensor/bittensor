@@ -49,6 +49,7 @@ class axon:
 
     def __new__(
             cls,
+            netuid: int,
             config: Optional['bittensor.config'] = None,
             wallet: Optional['bittensor.Wallet'] = None,
             forward_text: Optional['Callable'] = None,
@@ -70,6 +71,7 @@ class axon:
             ip: Optional[str] = None,
             external_ip: Optional[str] = None,
             external_port: Optional[int] = None,
+            protocol: Optional[int] = None,
             max_workers: Optional[int] = None, 
             maximum_concurrent_rpcs: Optional[int] = None,
             blacklist: Optional['Callable'] = None,
@@ -80,6 +82,8 @@ class axon:
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
+                netuid (:obj:`int`, `required`):
+                    The netuid of the subent this axon is serving on.
                 config (:obj:`Optional[bittensor.Config]`, `optional`): 
                     bittensor.axon.config()
                 wallet (:obj:`Optional[bittensor.Wallet]`, `optional`):
@@ -110,6 +114,8 @@ class axon:
                     The external ip of the server to broadcast to the network.
                 external_port (:type:`Optional[int]`, `optional`):
                     The external port of the server to broadcast to the network.
+                protocol (:type:`Optional[int]`, `optional`):
+                    The protocol of the server to broadcast to the network.
                 max_workers (:type:`Optional[int]`, `optional`):
                     Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
                 maximum_concurrent_rpcs (:type:`Optional[int]`, `optional`):
@@ -123,7 +129,6 @@ class axon:
                 backward_timeout (:type:`Optional[int]`, `optional`):
                     timeout on the backward requests.              
         """   
-
         if config == None: 
             config = axon.config()
         config = copy.deepcopy(config)
@@ -131,6 +136,7 @@ class axon:
         config.axon.ip = ip if ip != None else config.axon.ip
         config.axon.external_ip = external_ip if external_ip != None else config.axon.external_ip
         config.axon.external_port = external_port if external_port != None else config.axon.external_port
+        config.axon.protocol = protocol if protocol != None else config.axon.protocol
         config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
         config.axon.maximum_concurrent_rpcs = maximum_concurrent_rpcs if maximum_concurrent_rpcs != None else config.axon.maximum_concurrent_rpcs
         config.axon.forward_timeout = forward_timeout if forward_timeout != None else config.axon.forward_timeout
@@ -160,7 +166,9 @@ class axon:
                                   interceptors=(AuthInterceptor(receiver_hotkey=receiver_hotkey, blacklist=blacklist),),
                                   maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
                                   options = [('grpc.keepalive_time_ms', 100000),
-                                             ('grpc.keepalive_timeout_ms', 500000)]
+                                             ('grpc.keepalive_timeout_ms', 500000),
+                                             ('grpc.max_receive_message_length', config.axon.maximum_message_length)
+                                             ]
                                 )
 
         synapses = {}
@@ -188,6 +196,7 @@ class axon:
             port = config.axon.port,
             external_ip=config.axon.external_ip, # don't use internal ip if it is None, we will try to find it later
             external_port=config.axon.external_port or config.axon.port, # default to internal port if external port is not set
+            protocol = config.axon.protocol,
             forward = forward_text,
             backward = backward_text,
             synapses = synapses,
@@ -197,7 +206,8 @@ class axon:
             priority_threadpool = priority_threadpool,
             forward_timeout = config.axon.forward_timeout,
             backward_timeout = config.axon.backward_timeout,
-            prometheus_level = config.axon.prometheus.level
+            prometheus_level = config.axon.prometheus.level,
+            netuid = netuid,
         )
         bittensor.grpc.add_BittensorServicer_to_server( axon_instance, server )
         full_address = str( config.axon.ip ) + ":" + str( config.axon.port )
@@ -236,6 +246,8 @@ class axon:
                     help='''The public port this axon broadcasts to the network. i.e. 8091''', default = bittensor.defaults.axon.external_port)
             parser.add_argument('--' + prefix_str + 'axon.external_ip', type=str, required=False,
                 help='''The external ip this axon broadcasts to the network to. ie. [::]''', default = bittensor.defaults.axon.external_ip)
+            parser.add_argument('--' + prefix_str + 'axon.protocol', type=int, required=False,
+                    help='''The protocol this axon broadcasts to the network. i.e. 0''', default = bittensor.defaults.axon.protocol)
             parser.add_argument('--' + prefix_str + 'axon.max_workers', type=int, 
                 help='''The maximum number connection handler threads working simultaneously on this endpoint. 
                         The grpc server distributes new worker threads to service requests up to this number.''', default = bittensor.defaults.axon.max_workers)
@@ -259,6 +271,8 @@ class axon:
             help='Timeout for causallmnext synapse', default= bittensor.__blocktime__)
             parser.add_argument('--' +  prefix_str + 'axon.seq2seq_timeout', type = int, 
             help='Timeout for seq2seq synapse', default= 3*bittensor.__blocktime__)
+            parser.add_argument('--' +  prefix_str + 'axon.maximum_message_length', type = int, 
+            help='Maximum message length for requestion', default= 4*1024*1024)
             parser.add_argument('--' + prefix_str + 'axon.prometheus.level', 
                 required = False, 
                 type = str, 
@@ -278,6 +292,7 @@ class axon:
         defaults.axon = bittensor.Config()
         defaults.axon.port = os.getenv('BT_AXON_PORT') if os.getenv('BT_AXON_PORT') != None else 8091
         defaults.axon.ip = os.getenv('BT_AXON_IP') if os.getenv('BT_AXON_IP') != None else '[::]'
+        defaults.axon.protocol = os.getenv('BT_AXON_PROTOCOL') if os.getenv('BT_AXON_PROTOCOL') != None else 0
         defaults.axon.external_port = os.getenv('BT_AXON_EXTERNAL_PORT') if os.getenv('BT_AXON_EXTERNAL_PORT') != None else None
         defaults.axon.external_ip = os.getenv('BT_AXON_EXTERNAL_IP') if os.getenv('BT_AXON_EXTERNAL_IP') != None else None
         defaults.axon.max_workers = os.getenv('BT_AXON_MAX_WORERS') if os.getenv('BT_AXON_MAX_WORERS') != None else 10

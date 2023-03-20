@@ -278,6 +278,7 @@ class server(torch.nn.Module):
                                                     attention_mask=tokens['attention_mask'],
                                                     output_hidden_states=True)
 
+            self.model_output_check(model_output)
         return None, model_output, model_output.logits
     
     def encode_forward(self,inputs,tokenizer=None, model_output = None):
@@ -316,6 +317,7 @@ class server(torch.nn.Module):
                                                     attention_mask=tokens['attention_mask'],
                                                     output_hidden_states=True)
 
+        self.model_output_check(model_output)
         pre_hidden = model_output.hidden_states[-1]
 
         if self.interpolate and sen_len[1] != pre_hidden.size()[1]:
@@ -367,8 +369,8 @@ class server(torch.nn.Module):
                 _model_output = self.pre_model(input_ids=tokens['input_ids'],
                                                 #attention_mask=tokens['attention_mask'],
                                                output_hidden_states=True)
+                self.model_output_check(_model_output)
             pre_logits = _model_output.logits  # [batch_size, sequence_len, self.tokenizer.vocab_len]
-
             probs_std = translate_logits_to_probs_std(pre_logits,
                                                       tokens['offset_mapping'], tokens['offset_mapping_std'],
                                                       self.tokenizer, self.std_tokenizer,
@@ -377,7 +379,6 @@ class server(torch.nn.Module):
                                                       tokens['input_ids'], token_batch)
             probs_std = probs_std.to(self.device)
             logits_std = torch.log(probs_std + 1e-40)
-
             #removing the loss calculation for stablity testing
             original_loss = self.get_loss_fct(pre_logits, tokens['input_ids']).item()
             translated_loss = self.get_loss_fct(logits_std, token_batch).item()
@@ -439,7 +440,7 @@ class server(torch.nn.Module):
                 _model_output = self.pre_model(input_ids=tokens['input_ids'],
                                                attention_mask=tokens['attention_mask'],
                                                output_hidden_states=True)
-
+                self.model_output_check(_model_output)
             # model_output.logits: [batch_size, sequence_len, server_vocab_size]
             last_logits = _model_output.logits[:, -1, :]  # [batch_size] server prediction of continuation, right-aligned
 
@@ -448,6 +449,7 @@ class server(torch.nn.Module):
             topk_tensor = topk_token_phrases(last_logits, self.tokenizer, topk=topk)  # [batch_size, (topk + 1), max_len]
 
             original_loss = self.get_loss_fct(_model_output.logits, tokens['input_ids']).item()
+
             message = f'Loss: {original_loss:.2f}'
 
             _model_output.loss = original_loss
@@ -458,6 +460,26 @@ class server(torch.nn.Module):
 
         with torch.no_grad():
             return _forward()  # no gradients
+
+    def model_output_check(self, model_output: transformers.modeling_outputs.CausalLMOutputWithPast):
+        """
+            Verify the model has been ran correctly with valid output.
+
+            Args:
+                model_output (:obj:`transformers.modeling_outputs.CausalLMOutputWithPast`, required):
+                    The output of transformers AutoModel.
+
+            Returns:
+                check_status (:type: `bool`):
+                    True if the model_output is valid.
+        """
+        if hasattr(model_output, 'hidden_states') and model_output.hidden_states[-1].isnan().sum() > 0:
+            raise ValueError("Got nan value from model last hidden state. If you are using cuda with autocast, try remove setting --neuron.autocast.")
+
+        if model_output.logits.isnan().sum() > 0:
+            raise ValueError("Got nan value from model logits. If you are using cuda with autocast, try remove setting --neuron.autocast.")
+
+        return True
 
     def get_loss_fct(self, logits: torch.FloatTensor, labels: torch.LongTensor) -> torch.FloatTensor:
         """
@@ -553,6 +575,9 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.disable_blacklist', action='store_true', help='Turns off blacklisting', default=False)
         parser.add_argument('--neuron.disable_priority', action='store_true', help='Turns off priority threadpool', default=False)
         parser.add_argument('--neuron.num_remote_loss', type=int, help='Number of past remote loss to keep in stat.', default=20)
+        parser.add_argument('--neuron.max_batch_size', type=int, help='The maximum batch size for forward requests.', default=-1)
+        parser.add_argument('--neuron.max_sequence_len', type=int, help='The maximum sequence length for forward requests.', default=-1)
+        parser.add_argument('--neuron.blacklist.hotkeys', type=str, required=False, nargs='*', action='store', help='To blacklist certain hotkeys', default=[])
 
         # Synapse Arguements
         parser.add_argument('--neuron.lasthidden', action='store_false', help='To turn off last hidden synapse', default=True)
@@ -564,6 +589,8 @@ class server(torch.nn.Module):
         parser.add_argument('--neuron.causallmnext_stake', type=float, help='the amount of stake to run causallmnext synapse', default=0)
         parser.add_argument('--neuron.seq2seq_stake',  type = float, help='the amount of stake to run seq2seq synapse',default=0)
 
+        # Netuid Arg
+        parser.add_argument('--netuid', type=int , help='Subnet netuid', default=1)
 
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )

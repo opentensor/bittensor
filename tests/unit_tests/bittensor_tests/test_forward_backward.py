@@ -39,7 +39,7 @@ endpoint = bittensor.endpoint(
     ip = '0.0.0.0', 
     ip_type = 4, 
     port = 8080, 
-    modality = 0, 
+    protocol = 0, 
     coldkey = wallet.coldkey.ss58_address
 )
 
@@ -220,6 +220,7 @@ def test_axon_receptor_forward_works():
         port = axon_port,
         ip = '0.0.0.0',
         wallet = wallet,
+        netuid = -1,
     )
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
     axon.start()
@@ -231,7 +232,8 @@ def test_axon_receptor_forward_works():
         ip_type = 4,
         port = axon_port,
         modality = 2,
-        coldkey = wallet.coldkey.ss58_address
+        coldkey = wallet.coldkey.ss58_address,
+        protocol = 0,
     )
     endpoints = [endpoint]
     x = torch.zeros(3, 3)
@@ -256,6 +258,7 @@ def test_dendrite_call_time():
         port = axon_port,
         ip = '0.0.0.0',
         wallet = wallet,
+        netuid = -1,
     )
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
     axon.start()
@@ -270,7 +273,8 @@ def test_dendrite_call_time():
             ip_type = 4, 
             port = axon_port,
             modality = 2, 
-            coldkey = wallet.coldkey.ss58_address
+            coldkey = wallet.coldkey.ss58_address,
+            protocol = 0,
         )
         endpoints += [endpoint]
     x = torch.zeros(3, 3)

@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 from typing import Union
 
+import bittensor
 
 class Balance:
     """
@@ -26,8 +27,8 @@ class Balance:
     Note: In operations between Balance and int/float, the other value is assumed to be in rao
     """
 
-    unit: str = "\u03C4" # This is the tao unit
-    rao_unit: str = "\u03C1" # This is the rao unit
+    unit: str = bittensor.__tao_symbol__ # This is the tao unit
+    rao_unit: str = bittensor.__rao_symbol__ # This is the rao unit
     rao: int
     tao: float
 

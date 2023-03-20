@@ -22,6 +22,7 @@ import json
 import os
 import random
 import time
+import warnings
 from multiprocessing import cpu_count
 from typing import Union
 
@@ -106,7 +107,6 @@ class Dataset:
                 response = self.requests_retry_session(session=session).get(address, timeout=timeout)
             elif action == 'post':
                 response = self.requests_retry_session(session=session).post(address, timeout=timeout)
-            logger.success("Loaded from IPFS:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
 
         except Exception as E:
             logger.error(f"Failed to get from IPFS {file_meta['Name']} {E}")
@@ -130,20 +130,19 @@ class GenesisTextDataset( Dataset ):
         block_size,
         batch_size,
         num_workers,
-        dataset_name,
+        dataset_names,
         data_dir,
         save_dataset,
         max_datasets,
         no_tokenizer, 
         num_batches,
-        max_directories
     ):
         super().__init__()
         self.block_size = block_size
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
-        self.dataset_name = dataset_name
+        self.dataset_names = dataset_names
         self.data_dir = data_dir
         self.save_dataset = save_dataset
         self.datafile_size_bound = 262158
@@ -154,7 +153,16 @@ class GenesisTextDataset( Dataset ):
         self.backup_dataset_cap_size = 5e7 # set 50MB limit per folder
         self.IPFS_fails_max = 10
         self.num_batches = num_batches
-        self.max_directories = max_directories
+
+        # Ensure dataset_names is formatted correctly
+        if isinstance(self.dataset_names, str):
+            self.dataset_names = [self.dataset_names]
+
+        allowed_datasets = bittensor.__datasets__ + ["default"]
+        for dataset_name in self.dataset_names:
+            if dataset_name not in allowed_datasets:
+                self.dataset_names.remove(dataset_name)
+                warnings.warn(f"Requested dataset {dataset_name} not in allowed datasets: {allowed_datasets}")
 
         # Retrieve a random slice of the genesis dataset
         self.data = []
@@ -345,7 +353,7 @@ class GenesisTextDataset( Dataset ):
         directories = []
         self.IPFS_fails = 0
         
-        if self.dataset_name == 'default':
+        if self.dataset_names == ['default']:
             i = 0
             dataset_hashes = list(self.dataset_hashes.values())
             random.shuffle(dataset_hashes)
@@ -358,7 +366,7 @@ class GenesisTextDataset( Dataset ):
                     break
                     
         else:
-            for key in self.dataset_name:
+            for key in self.dataset_names:
                 if key in self.dataset_hashes.keys():
                     dataset_meta = {'Folder': 'mountain','Name': key, 'Hash': self.dataset_hashes[key]['Hash'] }  
                     directories += get_hashes(dataset_meta)
@@ -416,13 +424,13 @@ class GenesisTextDataset( Dataset ):
     def get_text_from_local(self, min_data_len):
 
         folders = os.listdir( os.path.expanduser (self.data_dir))
-        if self.dataset_name == 'default':
+        if self.dataset_names == ['default']:
             folders_avail = folders
             random.shuffle(folders_avail)
             folders_avail = folders_avail[:self.max_datasets]
         else:
             folders_avail = []
-            for dataset_name in self.dataset_name:
+            for dataset_name in self.dataset_names:
                 if dataset_name in folders:
                     folders_avail.append(dataset_name)
             random.shuffle(folders_avail)
@@ -480,21 +488,21 @@ class GenesisTextDataset( Dataset ):
                 # --- Dont stop until the corpus size and the minimum data_length was reached.
                 n_workers = cpu_count() if self.num_workers == 0 else self.num_workers
                 with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
-                    future_map = {}
-                    for idx, call_arg in enumerate(directories[:self.max_directories]):
-                        future = executor.submit(self.get_text, call_arg)
-                        future_map[future] = call_arg
-
-                    for i, future in enumerate(concurrent.futures.as_completed(future_map)):
-                        text = future.result()
-
-                        if text is not None:
-                            text_list = text.split()
-                            data_corpus.extend(text_list)
-                            total_dataset_len += len(text_list)
-
-                        if (total_dataset_len > min_data_len) or self.IPFS_fails > self.IPFS_fails_max:
-                            break
+                    while (total_dataset_len < min_data_len) and (self.IPFS_fails <= self.IPFS_fails_max):
+                        future_map = {}
+                        for idx, call_arg in enumerate(directories[:n_workers]):
+                            future = executor.submit(self.get_text, call_arg)
+                            future_map[future] = call_arg
+                        
+                        for i, future in enumerate(concurrent.futures.as_completed(future_map)):
+                            text = future.result()
+                            if text is not None:
+                                text_list = text.split()
+                                data_corpus.extend(text_list)
+                                total_dataset_len += len(text_list)
+                        
+                        logger.success("Loaded from IPFS".ljust(20) + f"<yellow>{ round(total_dataset_len / min_data_len * 100) }%</yellow>  " + "<blue>{}</blue>".format([file_meta['Name'] for file_meta in directories[:n_workers]]))
+                        directories = directories[n_workers:]
 
             else:
                 logger.error("It appears the directory is empty... Restart your miner to try again.")

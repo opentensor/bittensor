@@ -21,10 +21,10 @@ Implementation of the config class, which manages the config of different bitten
 
 import yaml
 import json
+import pandas
+import bittensor
 from munch import Munch
 from prometheus_client import Info
-from pandas.io.json import json_normalize
-import bittensor
 
 class Config ( Munch ):
     """
@@ -58,7 +58,7 @@ class Config ( Munch ):
         """
         try:
             prometheus_info = Info('config', 'Config Values')
-            config_info = json_normalize(json.loads(json.dumps(self)), sep='.').to_dict(orient='records')[0]
+            config_info = pandas.json_normalize(json.loads(json.dumps(self)), sep='.').to_dict(orient='records')[0]
             formatted_info = {}
             for key in config_info:
                 config_info[key] = str(config_info[key])
@@ -84,7 +84,7 @@ class Config ( Munch ):
                 bittensor.defaults.dataset.block_size = self.dataset.block_size
                 bittensor.defaults.dataset.num_batches = self.dataset.num_batches
                 bittensor.defaults.dataset.num_workers = self.dataset.num_workers
-                bittensor.defaults.dataset.dataset_name = self.dataset.dataset_name
+                bittensor.defaults.dataset.dataset_names = self.dataset.dataset_names
                 bittensor.defaults.dataset.data_dir = self.dataset.data_dir
                 bittensor.defaults.dataset.save_dataset = self.dataset.save_dataset
                 bittensor.defaults.dataset.max_datasets = self.dataset.max_datasets

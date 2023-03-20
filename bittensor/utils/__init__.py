@@ -5,10 +5,14 @@ import bittensor
 import pandas
 import requests
 import torch
+import scalecodec
 from substrateinterface import Keypair
 from substrateinterface.utils import ss58
 from .registration import *
 
+RAOPERTAO = 1e9
+U16_MAX = 65535
+U64_MAX = 18446744073709551615
 
 def indexed_values_to_dataframe ( 
         prefix: Union[str, int],
@@ -66,7 +70,7 @@ def version_checking():
     latest_version_as_int = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 
     if latest_version_as_int > bittensor.__version_as_int__:
-        print('\u001b[31m Current Bittensor Version: {}, Latest Bittensor Version {} \n Please update to the latest version'.format(bittensor.__version__,latest_version))
+        print('\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience\u001b[0m'.format(bittensor.__version__,latest_version))
 
 def is_valid_ss58_address( address: str ) -> bool:
     """
@@ -79,7 +83,8 @@ def is_valid_ss58_address( address: str ) -> bool:
         True if the address is a valid ss58 address for Bittensor, False otherwise.
     """
     try:
-        return ss58.is_valid_ss58_address( address, valid_ss58_format=bittensor.__ss58_format__ )
+        return ss58.is_valid_ss58_address( address, valid_ss58_format=bittensor.__ss58_format__ ) or \
+                ss58.is_valid_ss58_address( address, valid_ss58_format=42 ) # Default substrate ss58 format (legacy)
     except (IndexError):
         return False
 
@@ -139,6 +144,10 @@ def is_valid_bittensor_address_or_public_key( address: Union[str, bytes] ) -> bo
         # Invalid address type
         return False
 
+def get_ss58_format( ss58_address: str ) -> int:
+    """Returns the ss58 format of the given ss58 address."""
+    return ss58.get_ss58_format( ss58_address )
+
 def strtobool_with_default( default: bool ) -> Callable[[str], bool]:
     """
     Creates a strtobool function with a default value.
@@ -169,3 +178,66 @@ def strtobool(val: str) -> bool:
     else:
         raise ValueError("invalid truth value %r" % (val,))
 
+def get_explorer_root_url_by_network_from_map(network: str, network_map: Dict[str, str]) -> Optional[str]:
+    r"""
+    Returns the explorer root url for the given network name from the given network map.
+
+    Args:
+        network(str): The network to get the explorer url for.
+        network_map(Dict[str, str]): The network map to get the explorer url from.
+    
+    Returns:
+        The explorer url for the given network.
+        Or None if the network is not in the network map.
+    """
+    explorer_url: Optional[str] = None
+    if network in network_map:
+        explorer_url = network_map[network]
+
+    return explorer_url
+    
+
+def get_explorer_url_for_network(network: str, block_hash: str, network_map: Dict[str, str]) -> Optional[str]:
+    r"""
+    Returns the explorer url for the given block hash and network.
+
+    Args:
+        network(str): The network to get the explorer url for.
+        block_hash(str): The block hash to get the explorer url for.
+        network_map(Dict[str, str]): The network map to get the explorer url from.
+    
+    Returns:
+        The explorer url for the given block hash and network.
+        Or None if the network is not known.
+    """
+
+    explorer_url: Optional[str] = None
+    # Will be None if the network is not known. i.e. not in network_map
+    explorer_root_url: Optional[str] = get_explorer_root_url_by_network_from_map(network, network_map)
+
+    if explorer_root_url is not None:
+        # We are on a known network.
+        explorer_url = "{root_url}/query/{block_hash}".format( root_url=explorer_root_url, block_hash = block_hash )
+    
+    return explorer_url
+
+def ss58_address_to_bytes(ss58_address: str) -> bytes:
+    """Converts a ss58 address to a bytes object."""
+    account_id_hex: str = scalecodec.ss58_decode(ss58_address, bittensor.__ss58_format__)
+    return bytes.fromhex(account_id_hex)
+
+def U16_NORMALIZED_FLOAT( x: int ) -> float:
+    return float( x ) / float( U16_MAX ) 
+
+def U64_NORMALIZED_FLOAT( x: int ) -> float:
+    return float( x ) / float( U64_MAX )
+
+def u8_key_to_ss58(u8_key: List[int]) -> str:
+    r"""
+    Converts a u8-encoded account key to an ss58 address.
+
+    Args:
+        u8_key (List[int]): The u8-encoded account key.
+    """
+    # First byte is length, then 32 bytes of key.
+    return scalecodec.ss58_encode( bytes(u8_key).hex(), bittensor.__ss58_format__)
