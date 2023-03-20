@@ -73,7 +73,7 @@ __nakamoto_entrypoint__ = "ws://AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaw
 
 __nobunaga_entrypoint__ = "wss://stagingnode.opentensor.ai:443"
 
-__finney_entrypoint__ = "wss://public.finney.opentensor.ai:443"
+__finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
@@ -91,7 +91,7 @@ __network_explorer_map__ = {
     'nakamoto': "https://explorer.nakamoto.opentensor.ai/#/explorer",
     'endpoint': "https://explorer.nakamoto.opentensor.ai/#/",
     'nobunaga': "https://staging.opentensor.ai/#/explorer",
-    'finney': "https://polkadot.js.org/apps/?rpc=wss://staging.parachain.opentensor.ai#/explorer"
+    'finney': "https://explorer.opentensor.ai/"
 }
 
 # Avoid collisions with other processes
