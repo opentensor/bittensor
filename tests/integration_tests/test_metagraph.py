@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2023 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -25,40 +26,30 @@ class TestMetagraph(unittest.TestCase):
     
     def setUp(self):
         mock_subtensor.kill_global_mock_process()
-        sub = bittensor.subtensor(_mock=True)
-        self.metagraph = bittensor.metagraph(subtensor=sub)
+        self.sub = bittensor.subtensor(_mock=True)
+        self.metagraph = bittensor.metagraph( netuid = -1, network="mock")
 
     def test_print_empty(self):
         print (self.metagraph)
 
     def test_sync(self):
-        self.metagraph.sync()
-        self.metagraph.sync(0)
+        self.metagraph.sync(subtensor=self.sub)
+        self.metagraph.sync(subtensor=self.sub, block=0)
 
     def test_load_sync_save(self):
-        self.metagraph.sync()
+        self.metagraph.sync(subtensor=self.sub)
         self.metagraph.save()
         self.metagraph.load()
         self.metagraph.save()
 
     def test_factory(self):
-        self.metagraph.load().sync().save()
-
-    def test_forward(self):
-        metagraph = self.metagraph
-        row = torch.ones( (metagraph.n), dtype = torch.float32 )
-        for i in range( metagraph.n ):
-            metagraph(i, row)
-        metagraph.sync()
-        row = torch.ones( (metagraph.n), dtype = torch.float32 )
-        for i in range( metagraph.n ):
-            metagraph(i, row)
+        self.metagraph.load().sync(subtensor=self.sub).save()
 
     def test_state_dict(self):
         self.metagraph.load()
         state = self.metagraph.state_dict()
         assert 'uids' in state
-        assert 'stake' in state
+        assert 'total_stake' in state
         assert 'last_update' in state
         assert 'block' in state
         assert 'tau' in state
@@ -76,9 +67,5 @@ class TestMetagraph(unittest.TestCase):
         metagraph.D
         metagraph.C
 
-    def test_retrieve_cached_neurons(self):
-        n = self.metagraph.retrieve_cached_neurons()
-        assert len(n) >= 2000
-        
     def test_to_dataframe(self):
         df = self.metagraph.to_dataframe()

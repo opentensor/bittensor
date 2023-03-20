@@ -50,6 +50,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
         mock_config.wallet.name = "mock" # use a mock wallet
 
         mock_axon_with_external_ip_set = bittensor.axon(
+            netuid = -1,
             ip=internal_ip,
             external_ip=external_ip,
             server=mock_grpc_server,
@@ -91,6 +92,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
         mock_config.wallet.name = "mock" # use a mock wallet 
 
         mock_axon_with_external_port_set = bittensor.axon(
+            netuid = -1,
             port=internal_port,
             external_port=external_port,
             server=mock_grpc_server,
@@ -123,18 +125,20 @@ class TestStakeMultiple(unittest.TestCase):
     def test_stake_multiple(self):
         mock_amount: bittensor.Balance = bittensor.Balance.from_tao(1.0)
 
-        mock_wallets = [
-            MagicMock(
-                spec=bittensor.Wallet,
-                coldkey=MagicMock(),
-                coldkeypub=MagicMock(
-                    # mock ss58 address
-                    ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
-                ), 
-                hotkey=MagicMock(
-                    ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
-                ),
-            )
+        mock_wallet = MagicMock(
+                        spec=bittensor.Wallet,
+                        coldkey=MagicMock(),
+                        coldkeypub=MagicMock(
+                            # mock ss58 address
+                            ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+                        ), 
+                        hotkey=MagicMock(
+                            ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
+                        ),
+                    )
+
+        mock_hotkey_ss58s = [
+            "5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
         ]
 
         mock_amounts = [
@@ -153,15 +157,10 @@ class TestStakeMultiple(unittest.TestCase):
             spec=bittensor.Subtensor,
             network="mock",
             get_balance=MagicMock(return_value=bittensor.Balance.from_tao(mock_amount.tao + 20.0)), # enough balance to stake
-            neuron_for_pubkey=MagicMock(return_value=mock_neuron),
+            get_neuron_for_pubkey_and_subnet=MagicMock(return_value=mock_neuron),
             substrate=MagicMock(
                 __enter__=MagicMock(
                     return_value=MagicMock(
-                        get_payment_info=MagicMock(
-                            return_value={
-                                'partialFee': int(0.125 * 10**9) # 0.125 TAO
-                            }
-                        ),
                         compose_call=mock_compose_call,
                     ),
                 ),
@@ -171,7 +170,8 @@ class TestStakeMultiple(unittest.TestCase):
         with pytest.raises(ExitEarly):
             bittensor.Subtensor.add_stake_multiple(
                 mock_subtensor,
-                wallets=mock_wallets,
+                wallet=mock_wallet,
+                hotkey_ss58s=mock_hotkey_ss58s,
                 amounts=mock_amounts,
             )
 

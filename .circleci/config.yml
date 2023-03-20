@@ -20,7 +20,7 @@ jobs:
       - restore_cache:
           name: Restore cached venv
           keys:
-            - v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}
+            - v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
             - v1-pypi-py<< parameters.python-version >>
 
       - run:
@@ -29,19 +29,19 @@ jobs:
             python -m venv env/
             . env/bin/activate
             python -m pip install --upgrade pip
-            pip install '.'
+            pip install '.[dev]'
 
       - save_cache:
           name: Save cached venv
           paths:
             - "env/"
-          key: v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}
+          key: v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
 
       - run:
           name: Install Bittensor
           command: |
             . env/bin/activate
-            pip install -e '.'
+            pip install -e '.[dev]'
 
       - run:
           name: Instantiate Mock Wallet & Protos
@@ -123,13 +123,55 @@ jobs:
             [[ $(git diff-tree --no-commit-id --name-only -r HEAD..master | grep bittensor/__init__.py | wc -l) == 1 ]] && echo "bittensor/__init__.py has changed"
             [[ $(git diff-tree --no-commit-id --name-only -r HEAD..master | grep VERSION | wc -l) == 1 ]] && echo "VERSION has changed"
 
+  check-changelog-updated:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: File CHANGELOG.md is updated
+          command: |
+            [[ $(git diff-tree --no-commit-id --name-only -r HEAD..master | grep CHANGELOG.md | wc -l) == 1 ]] && echo "CHANGELOG.md has changed"
+
+  check-version-not-released:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Git tag does not exist for the current version
+          command: |
+            [[ $(git tag | grep `cat VERSION` | wc -l) == 0 ]] && echo "VERSION is not a tag"
+      - run:
+          name: Pypi package 'bittensor' does not exist for the current version
+          command: |
+            [[ $(pip index versions bittensor | grep `cat VERSION` | wc -l) == 0 ]] && echo "Pypi package 'bittensor' does not exist"
+      - run:
+          name: Docker image 'opentensorfdn/bittensor' does not exist for the current version
+          command: |
+            [[ $(docker manifest inspect opentensorfdn/bittensor:`cat VERSION` > /dev/null 2> /dev/null ; echo $?) == 1 ]] && echo "Docker image 'opentensorfdn/bittensor:`cat VERSION`' does not exist in dockerhub"
+
+  release-dry-run:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.14
+          docker_layer_caching: true
+      - run:
+          name: Executing release script
+          command: |
+            ./scripts/release/release.sh --github-token ${GH_API_ACCESS_TOKEN}
+
+
 workflows:
-  pre-pr:
+  pr-requirements:
     jobs:
       - build-and-test:
           matrix:
             parameters:
-              python-version: ["3.7.14", "3.8.14", "3.9.13", "3.10.6"]
+              python-version: ["3.8.14", "3.9.13", "3.10.6"]
       - unit-tests-all-python-versions:
           requires:
             - build-and-test
@@ -137,10 +179,33 @@ workflows:
           #requires:
             #- build-and-test
 
-  check-version-updated:
+  release-branches-requirements:
     jobs:
       - check-version-updated:
           filters:
             branches:
               only:
                 - /^(release|hotfix)/.*/
+      - check-changelog-updated:
+          filters:
+            branches:
+              only:
+                - /^(release|hotfix)/.*/
+      - release-dry-run:
+          filters:
+            branches:
+              only:
+                - /^(release|hotfix)/.*/
+  
+  release-requirements:
+    jobs:
+      - check-version-not-released:
+          filters:
+            branches:
+              only:
+                - master
+      - release-dry-run:
+          filters:
+            branches:
+              only:
+                - master

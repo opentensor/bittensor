@@ -47,19 +47,34 @@ class prometheus:
 
     def __new__( 
         cls,
+        wallet: 'bittensor.wallet',
+        netuid: int,
         config: 'bittensor.config' = None,
         port: int = None,
-        level: Union[str, "prometheus.level"] = None
+        level: Union[str, "prometheus.level"] = None,
+        network: str = None,
+        chain_endpoint: str = None,
+        subtensor: 'bittensor.subtensor' = None,
     ):
         """ Instantiates a global prometheus DB which can be accessed by other processes.
             Each prometheus DB is designated by a port.
             Args:
+                wallet (:obj: `bittensor.wallet`, `required`):
+                    bittensor wallet object.
+                netuid (:obj: `int`, `required`):
+                    network uid to serve on.
                 config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.prometheus.config()):
                     A config namespace object created by calling bittensor.prometheus.config()
                 port (:obj:`int`, `optional`, defaults to bittensor.defaults.prometheus.port ):
                     The port to run the prometheus DB on, this uniquely identifies the prometheus DB.
                 level (:obj:`prometheus.level`, `optional`, defaults to bittensor.defaults.prometheus.level ):
                     Prometheus logging level. If OFF, the prometheus DB is not initialized.
+                subtensor (:obj:`bittensor.Subtensor`, `optional`): 
+                    Chain connection through which to serve.
+                network (default='local', type=str)
+                    If subtensor is not set, uses this network flag to create the subtensor connection.
+                chain_endpoint (default=None, type=str)
+                    Overrides the network argument if not set.
         """
         if config == None:
             config = prometheus.config()
@@ -67,21 +82,49 @@ class prometheus:
         if isinstance(level, prometheus.level):
             level = level.name # Convert ENUM to str.
 
+        if subtensor == None: subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint) 
+        
         config.prometheus.port = port if port != None else config.prometheus.port
         config.prometheus.level = level if level != None else config.prometheus.level
+
+        if isinstance(config.prometheus.level, str):
+            config.prometheus.level = config.prometheus.level.upper() # Convert str to upper case.
+        
         cls.check_config( config )
-        if config.prometheus.level != prometheus.level.OFF.name:
-            try:
-                start_http_server( config.prometheus.port )
-            except OSError:
-                # The singleton process is likely already running.
-                logger.error( "Prometheus:".ljust(20) + "<blue>{}</blue>  <red>already in use</red> ".format( config.prometheus.port ) )
-                return
-            prometheus.started = True
-            prometheus.port = config.prometheus.port
-            logger.success( "Prometheus:".ljust(20) + "<green>ON</green>".ljust(20) + "using: <blue>[::]:{}</blue>".format( config.prometheus.port ))
-        else:
+
+        return cls.serve(
+            cls,
+            wallet = wallet,
+            netuid = netuid,
+            subtensor = subtensor,
+            port = config.prometheus.port,
+            level = config.prometheus.level,
+        )
+        
+    def serve(cls, wallet, subtensor, netuid, port, level) -> bool:
+        if level == prometheus.level.OFF.name: # If prometheus is off, return true.
             logger.success('Prometheus:'.ljust(20) + '<red>OFF</red>')
+            return True
+        else:
+            # Serve prometheus. Not OFF
+            serve_success = subtensor.serve_prometheus(
+                wallet = wallet,
+                port = port,
+                netuid = netuid,
+            )
+            if serve_success:
+                try:
+                    start_http_server( port )
+                except OSError:
+                    # The singleton process is likely already running.
+                    logger.error( "Prometheus:".ljust(20) + "<blue>{}</blue>  <red>already in use</red> ".format( port ) )
+                prometheus.started = True
+                prometheus.port = port
+                logger.success( "Prometheus:".ljust(20) + "<green>ON</green>".ljust(20) + "using: <blue>[::]:{}</blue>".format( port ))
+                return True
+            else:
+                logger.error('Prometheus:'.ljust(20) + '<red>OFF</red>')
+                raise RuntimeError('Failed to serve neuron.')
 
     @classmethod
     def config(cls) -> 'bittensor.Config':

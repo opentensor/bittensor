@@ -116,8 +116,6 @@ class logging:
                 rotation="25 MB",
                 retention="10 days"
             )
-            logger.success('Set record log:'.ljust(20) + '<blue>{}</blue>', filepath)
-        else: logger.success('Set record log:'.ljust(20) + '<red>OFF</red>')
 
     @classmethod
     def config(cls):
@@ -174,10 +172,6 @@ class logging:
         if not cls.__has_been_inited__:
             cls()
         cls.__debug_on__ = debug_on
-        if debug_on: 
-            logging.success( prefix = 'Set debug', sufix = '<green>ON</green>')
-        else:  
-            logging.success( prefix = 'Set debug', sufix = '<red>OFF</red>')
 
     @classmethod
     def set_trace(cls, trace_on: bool = True):
@@ -186,10 +180,6 @@ class logging:
         if not cls.__has_been_inited__:
             cls()
         cls.__trace_on__ = trace_on
-        if trace_on: 
-            logging.success( prefix = 'Set trace', sufix = '<green>ON</green>')
-        else:  
-            logging.success( prefix = 'Set trace', sufix = '<red>OFF</red>')
 
     @classmethod
     def log_filter(cls, record ):

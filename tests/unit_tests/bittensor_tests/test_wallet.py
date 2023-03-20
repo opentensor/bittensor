@@ -73,7 +73,7 @@ class TestWallet(unittest.TestCase):
 
             mock_set_coldkey.assert_called_once()
             keypair: bittensor.Keypair = mock_set_coldkey.call_args_list[0][0][0]
-            self.assertEqual(keypair.seed_hex, seed_str)
+            self.assertEqual(keypair.seed_hex if isinstance(keypair.seed_hex, str) else keypair.seed_hex.hex(), seed_str)
             self.assertEqual(keypair.ss58_address, ss58_addr) # Check that the ss58 address is correct
 
         seed_str_bad = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763" # 1 character short
@@ -88,7 +88,7 @@ class TestWallet(unittest.TestCase):
 
             mock_set_hotkey.assert_called_once()
             keypair: bittensor.Keypair = mock_set_hotkey.call_args_list[0][0][0]
-            self.assertEqual(keypair.seed_hex, seed_str)
+            self.assertEqual(keypair.seed_hex if isinstance(keypair.seed_hex, str) else keypair.seed_hex.hex(), seed_str)
             self.assertEqual(keypair.ss58_address, ss58_addr) # Check that the ss58 address is correct
 
         seed_str_bad = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763" # 1 character short
@@ -108,6 +108,7 @@ class TestWalletReregister(unittest.TestCase):
         # No need to specify the other config options as they are default to None
 
         mock_wallet = bittensor.wallet.mock()
+        mock_wallet.is_registered = MagicMock(return_value=False)
         mock_wallet.config = config
 
         class MockException(Exception):
@@ -119,7 +120,7 @@ class TestWalletReregister(unittest.TestCase):
         with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
-                mock_wallet.reregister()
+                mock_wallet.reregister( netuid = -1 )
 
             call_args = mock_register.call_args
             _, kwargs = call_args
@@ -140,6 +141,7 @@ class TestWalletReregister(unittest.TestCase):
         # No need to specify the other config options as they are default to None
 
         mock_wallet = bittensor.wallet.mock()
+        mock_wallet.is_registered = MagicMock(return_value=False)
         mock_wallet.config = config
 
         class MockException(Exception):
@@ -151,7 +153,7 @@ class TestWalletReregister(unittest.TestCase):
         with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
-                mock_wallet.reregister()
+                mock_wallet.reregister( netuid = -1 )
 
             call_args = mock_register.call_args
             _, kwargs = call_args
@@ -172,6 +174,7 @@ class TestWalletReregister(unittest.TestCase):
         # No need to specify the other config options as they are default to None
 
         mock_wallet = bittensor.wallet.mock()
+        mock_wallet.is_registered = MagicMock(return_value=False)
         mock_wallet.config = config
 
         class MockException(Exception):
@@ -183,7 +186,7 @@ class TestWalletReregister(unittest.TestCase):
         with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
-                mock_wallet.reregister()
+                mock_wallet.reregister( netuid = -1 )
 
             call_args = mock_register.call_args
             _, kwargs = call_args
@@ -204,6 +207,7 @@ class TestWalletReregister(unittest.TestCase):
         # No need to specify the other config options as they are default to None
 
         mock_wallet = bittensor.wallet.mock()
+        mock_wallet.is_registered = MagicMock(return_value=False)
         mock_wallet.config = config
 
         class MockException(Exception):
@@ -215,10 +219,14 @@ class TestWalletReregister(unittest.TestCase):
         with patch('bittensor.Subtensor.register', side_effect=exit_early) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
-                mock_wallet.reregister()
+                mock_wallet.reregister( netuid = -1 )
 
             call_args = mock_register.call_args
             _, kwargs = call_args
 
             mock_register.assert_called_once()
             self.assertEqual(kwargs['cuda'], False) # should be False when no flag was set
+
+
+if __name__ == '__main__':
+    unittest.main()

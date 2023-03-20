@@ -40,7 +40,7 @@ neuron_obj = bittensor.endpoint(
     port = 12345,
     hotkey = wallet.hotkey.ss58_address,
     coldkey = wallet.coldkey.ss58_address,
-    modality = 0
+    protocol =0
 )
 
 receptor_pool = bittensor.receptor_pool(wallet=wallet)
@@ -79,7 +79,7 @@ def test_receptor_pool_max_workers_forward():
         port = 12346,
         hotkey = wallet2.hotkey.ss58_address,
         coldkey = wallet2.coldkey.ss58_address,
-        modality = 0
+        protocol =0
     )
     receptor_pool = bittensor.receptor_pool(wallet=wallet,max_active_receptors=1)
     endpoints = [neuron_obj,neuron_obj2]

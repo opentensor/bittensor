@@ -193,14 +193,15 @@ class TextSeq2Seq (Synapse):
     def encode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: 
         return forward_request_tensor
         
-    def decode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor: 
+    def decode_forward_request_tensor    ( self, forward_request_tensor: torch.Tensor ) -> torch.Tensor:
         return forward_request_tensor
 
     def encode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: 
         # Apply topk logit encoding.
         return forward_response_tensor
 
-    def decode_forward_response_tensor   ( self, forward_response_tensor: torch.Tensor ) -> torch.Tensor: 
+    def decode_forward_response_tensor   ( self, forward_request_tensor: torch.Tensor,
+                                           forward_response_tensor: torch.Tensor ) -> torch.Tensor:
         # Decode topk logit encoding.
         return forward_response_tensor  # [batch_size, sequence_len]
 

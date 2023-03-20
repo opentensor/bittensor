@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM pytorch/pytorch:1.12.0-cuda11.3-cudnn8-devel
+FROM pytorch/pytorch:1.13.1-cuda11.6-cudnn8-devel
 
 LABEL bittensor.image.authors="bittensor.com" \
 	bittensor.image.vendor="Bittensor" \
@@ -9,8 +9,8 @@ LABEL bittensor.image.authors="bittensor.com" \
 	bittensor.image.revision="${VCS_REF}" \
 	bittensor.image.created="${BUILD_DATE}" \
 	bittensor.image.documentation="https://app.gitbook.com/@opentensor/s/bittensor/"
-LABEL bittensor.dependencies.versions.torch="1.12.0"
-LABEL bittensor.dependencies.versions.cuda="11.3"
+LABEL bittensor.dependencies.versions.torch="1.13.1"
+LABEL bittensor.dependencies.versions.cuda="11.6"
 ARG DEBIAN_FRONTEND=noninteractive
 
 #nvidia key migration
@@ -21,7 +21,7 @@ RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machi
 RUN apt update && apt upgrade -y
 # Install bittensor
 ## Install dependencies
-RUN apt install -y curl sudo nano git htop netcat wget unzip python3-dev python3-pip tmux apt-utils cmake build-essential
+RUN apt install -y curl sudo nano git htop netcat wget unzip tmux apt-utils cmake build-essential
 ## Upgrade pip
 RUN pip3 install --upgrade pip
 
@@ -36,9 +36,9 @@ RUN bash -c "source $HOME/.nvm/nvm.sh && \
     # install pm2
     npm install --location=global pm2"
 
-RUN mkdir -p /root/.bittensor/
-COPY . /root/.bittensor/
-RUN cd /root/.bittensor/ && python3 -m pip install .
+RUN mkdir -p /root/.bittensor/bittensor
+COPY . /root/.bittensor/bittensor
+RUN cd /root/.bittensor/bittensor && python3 -m pip install .
 
 # Increase ulimit to 1,000,000
 RUN prlimit --pid=$PPID --nofile=1000000

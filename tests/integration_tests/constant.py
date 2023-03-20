@@ -2,7 +2,7 @@ from munch import Munch
 
 dataset = Munch().fromDict(
   {
-    'dataset_name': ["Books3"],
+    'dataset_names': ["Books3"],
     'num_batches': 10
   }
 )

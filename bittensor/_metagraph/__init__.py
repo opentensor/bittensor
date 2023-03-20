@@ -18,12 +18,15 @@ which maintains chain state as a torch.nn.Module.
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
 import copy
-
+import torch
+import argparse
 import bittensor
 from . import metagraph_impl
 from . import metagraph_mock
+from typing import Optional, List
+import bittensor.utils.weight_utils as weight_utils
+from .naka_metagraph_impl import Metagraph as naka_metagraph
 
 class metagraph:
     """ Factory class for the bittensor.Metagraph class or the MockMetagraph
@@ -33,32 +36,31 @@ class metagraph:
 
     Examples:: 
             >>> subtensor = bittensor.subtensor(network='nakamoto')
-            >>> metagraph = bittensor.metagraph(subtensor=subtensor)
-            >>> metagraph.sync()
+            >>> metagraph = bittensor.metagraph()
+            >>> metagraph.sync(subtensor=subtensor, netuid=0)
     """
     def __new__(
             cls, 
             config: 'bittensor.config' = None,
-            subtensor: 'bittensor.Subtensor' = None,
             network: str = None,
-            chain_endpoint: str = None,
+            netuid: Optional[int] = None,
+            subtensor: 'bittensor.Subtensor' = None,
             _mock:bool=None
         ) -> 'bittensor.Metagraph':
         r""" Creates a new bittensor.Metagraph object from passed arguments.
             Args:
                 config (:obj:`bittensor.Config`, `optional`): 
                     bittensor.metagraph.config()
-                subtensor (:obj:`bittensor.Subtensor`, `optional`): 
-                    bittensor subtensor chain connection.
-                network (default='local', type=str)
+                network (default=None, type=str, optional)
                     The subtensor network flag. The likely choices are:
                             -- nobunaga (staging network)
                             -- nakamoto (main network)
                             -- local (local running network)
-                    If this option is set it overloads subtensor.chain_endpoint with 
-                    an entry point node from that network.
-                chain_endpoint (default=None, type=str)
-                    The subtensor endpoint flag. If set, overrides the network argument.
+                    This option allows you to load a metagraph from a local file.
+                    If set, overrides config.subtensor.network
+                netuid (default=None, type=int)
+                    The subnet netuid. If set, overrides config.netuid.
+                    This option allows you to load a metagraph from a local file.
                 _mock (:obj:`bool`, `optional`):
                     For testing, if true the metagraph returns mocked outputs.
         """      
@@ -68,9 +70,18 @@ class metagraph:
         config.metagraph._mock = _mock if _mock != None else config.metagraph._mock
         if config.metagraph._mock:
             return metagraph_mock.MockMetagraph()
-        if subtensor == None:
-            subtensor = bittensor.subtensor( config = config, network = network, chain_endpoint = chain_endpoint )
-        return metagraph_impl.Metagraph( subtensor = subtensor )
+        if subtensor != None:
+            network = subtensor.network
+        if netuid == None:
+            netuid = config.get('netuid', None)
+        if network == None:
+            network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
+
+        if network =='finney':
+            return metagraph_impl.Metagraph( network = network, netuid = netuid )
+        elif network =='nakamoto':
+            config.subtensor.network = 'nakamoto'
+            return naka_metagraph(config = config, subtensor = subtensor)
 
     @classmethod   
     def config(cls) -> 'bittensor.Config':
@@ -109,4 +120,120 @@ class metagraph:
         """ Check config,
         which is identical to subtensor
         """
-        assert config.subtensor
+        pass
+
+    @staticmethod
+    def from_neurons( network: str, netuid: int, info: 'bittensor.SubnetInfo', neurons: List['bittensor.NeuronInfo'], block: int ) -> 'bittensor.Metagraph':
+        r""" Creates a metagraph from a list of neurons.
+            Args: 
+                network: (:obj:`str`, required):
+                    Name of the network for the metagraph.
+                netuid: (:obj:`int`, required):
+                    netuid of the subnet for the metagraph.
+                info: (:obj:`SubnetInfo`, required):
+                    SubnetInfo object for the metagraph, including the subnet's hyperparameters.
+                neurons: (:obj:`List[NeuronInfo]`, required):
+                    List of neurons to create metagraph from.
+                block: (:obj:`int`, required):
+                    Block number at time of the metagraph.
+        """
+        metagraph = metagraph_impl.Metagraph( network = network, netuid = netuid )
+        metagraph.info = info
+
+        n_total = len(neurons)
+
+        # Fill arrays.
+        uids = [ i for i in range(n_total) ]
+        active = [ 0 for _ in range(n_total) ]
+        stake = [ {} for _ in range(n_total) ]
+        total_stake = [ 0 for _ in range(n_total) ]
+        ranks = [ 0 for _ in range(n_total) ]
+        trust = [ 0 for _ in range(n_total) ]
+        consensus = [ 0 for _ in range(n_total) ]
+        validator_trust = [ 0 for _ in range(n_total) ]
+        incentive = [ 0 for _ in range(n_total) ]
+        emission = [ 0 for _ in range(n_total) ]
+        dividends = [ 0 for _ in range(n_total) ]
+        last_updates = [ -1 for _ in range(n_total) ]
+        validator_permit = [ False for _ in range(n_total) ]
+        endpoints = [ [-1 for _ in range(250) ]  for _ in range(n_total) ]
+        weights = [ [ 0 for _ in range(n_total) ] for _ in range(n_total) ]
+        bonds = [ [0 for _ in range(n_total) ] for _ in range(n_total) ]
+        metagraph._endpoint_objs = [ bittensor.endpoint.dummy() for _ in range(n_total) ]
+        metagraph.neurons = [None for _ in range(n_total)]
+        for n in neurons:
+            metagraph.neurons[n.uid] = n
+            uids[n.uid] = n.uid 
+            active[n.uid] = n.active
+            stake[n.uid] = n.stake # stake is a Dict[str, Balance]
+            total_stake[n.uid] = n.total_stake.tao 
+            ranks[n.uid] = n.rank
+            trust[n.uid] = n.trust
+            consensus[n.uid] = n.consensus
+            validator_trust[n.uid] = n.validator_trust
+            incentive[n.uid] = n.incentive
+            dividends[n.uid] = n.dividends
+            emission[n.uid] = n.emission
+            last_updates[n.uid] = n.last_update
+            validator_permit[n.uid] = n.validator_permit
+            endpoint =  bittensor.endpoint.from_neuron(n)
+            metagraph._endpoint_objs[n.uid] = endpoint 
+            endpoints[n.uid] = endpoint.to_tensor().tolist()
+            if len(n.weights) > 0:
+                w_uids, w_weights = zip(*n.weights)
+                weights[n.uid] = weight_utils.convert_weight_uids_and_vals_to_tensor( n_total, w_uids, w_weights ).tolist()
+            else:
+                weights[n.uid] = [0] * n_total
+            if len(n.bonds) > 0:
+                b_uids, b_bonds = zip(*n.bonds)
+                bonds[n.uid] = weight_utils.convert_bond_uids_and_vals_to_tensor( n_total, b_uids, b_bonds ).tolist()
+            else:
+                bonds[n.uid] = [0] * n_total
+
+        # Set tensors.
+        tn = torch.tensor( n_total, dtype=torch.int64 )
+        tblock = torch.tensor( block, dtype=torch.int64 )
+        tuids = torch.tensor( uids, dtype=torch.int64 )
+        tactive = torch.tensor( active, dtype=torch.int64 )
+       
+        ttotal_stake = torch.tensor( total_stake, dtype=torch.float32 )
+
+        tranks = torch.tensor( ranks, dtype=torch.float32 )
+        ttrust = torch.tensor( trust, dtype=torch.float32 )
+        tconsensus = torch.tensor( consensus, dtype=torch.float32 )
+        tvalidator_trust = torch.tensor( validator_trust, dtype=torch.float32 )
+        tincentive = torch.tensor( incentive, dtype=torch.float32 )
+        temission = torch.tensor( emission, dtype=torch.float32 )
+        tdividends = torch.tensor( dividends, dtype=torch.float32 )
+        tlast_update = torch.tensor( last_updates, dtype=torch.int64 )
+        tvalidator_permit = torch.tensor( validator_permit, dtype=torch.bool )
+        tbonds = torch.tensor( bonds, dtype=torch.int64 )
+        tweights = torch.tensor( weights, dtype=torch.float32 )
+        tendpoints = torch.tensor( endpoints, dtype=torch.int64 )
+
+        # Normalize bond ownership.
+        tbonds = torch.nn.functional.normalize( tbonds.float(), p=1, dim=0, eps=1e-12 ) * 0.5 + torch.eye( tn ) * 0.5
+
+        # Set params.
+        metagraph.n = torch.nn.Parameter( tn, requires_grad=False )
+        metagraph.block = torch.nn.Parameter( tblock, requires_grad=False )
+        metagraph.uids = torch.nn.Parameter( tuids, requires_grad=False )
+
+        metagraph.stake = stake
+        metagraph.total_stake = torch.nn.Parameter( ttotal_stake, requires_grad=False )
+        
+        metagraph.ranks = torch.nn.Parameter( tranks, requires_grad=False )
+        metagraph.trust = torch.nn.Parameter( ttrust, requires_grad=False )
+        metagraph.consensus = torch.nn.Parameter( tconsensus, requires_grad=False )
+        metagraph.validator_trust = torch.nn.Parameter( tvalidator_trust, requires_grad=False )
+        metagraph.incentive = torch.nn.Parameter( tincentive, requires_grad=False )
+        metagraph.emission = torch.nn.Parameter( temission, requires_grad=False )
+        metagraph.dividends = torch.nn.Parameter( tdividends, requires_grad=False )
+        metagraph.active = torch.nn.Parameter( tactive, requires_grad=False )
+        metagraph.last_update = torch.nn.Parameter( tlast_update, requires_grad=False )
+        metagraph.validator_permit = torch.nn.Parameter( tvalidator_permit, requires_grad=False )
+        metagraph.weights = torch.nn.Parameter( tweights, requires_grad=False )
+        metagraph.bonds = torch.nn.Parameter( tbonds, requires_grad=False )
+        metagraph.endpoints = torch.nn.Parameter( tendpoints, requires_grad=False )
+
+        return metagraph

@@ -16,18 +16,20 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
+import unittest
 
-def test_axon():
-    axon = bittensor.axon()
-    axon.to_wandb()
+class TestWandb(unittest.TestCase):
+    def test_axon(self):
+        mock_wallet = bittensor.wallet( _mock = True )
+        axon = bittensor.axon( netuid = -1, wallet = mock_wallet )
+        axon.to_wandb()
 
-def test_dendrite():
-    dendrite = bittensor.dendrite()
-    dendrite.to_wandb()
-    del dendrite
+    def test_dendrite(self):
+        mock_wallet = bittensor.wallet( _mock = True )
+        dendrite = bittensor.dendrite( wallet = mock_wallet)
+        dendrite.to_wandb()
+        del dendrite
 
-def test_metagraph():
-    config = bittensor.subtensor.config()
-    subtensor = bittensor.subtensor(network='mock', config=config, )
-    metagraph = bittensor.metagraph( subtensor=subtensor )
-    metagraph.to_wandb()
+    def test_metagraph(self):
+        metagraph = bittensor.metagraph( _mock= True )
+        metagraph.to_wandb()
