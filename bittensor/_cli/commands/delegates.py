@@ -87,7 +87,7 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], width: Optional[i
             str(delegate.registrations),
             str(['*' if subnet in delegate.validator_permits else '' for subnet in delegate.registrations]),
             #f'{delegate.take * 100:.1f}%',
-            f'{delegate.return_per_1000!s:6.6}',
+            f'{delegate.total_daily_return.tao * (1000/delegate.total_stake.tao)!s:6.6}',
             str(delegate_description)
             #f'{delegate_profile.description:140.140}',
         )
@@ -437,7 +437,7 @@ class MyDelegatesCommand:
                         str(delegate[0].registrations),
                         str(['*' if subnet in delegate[0].validator_permits else '' for subnet in delegate[0].registrations]),
                         #f'{delegate.take * 100:.1f}%',
-                        f'{delegate[0].return_per_1000!s:6.6}',
+                        f'{delegate[0].total_daily_return.tao * (1000/delegate[0].total_stake.tao)!s:6.6}',
                         str(delegate_description)
                         #f'{delegate_profile.description:140.140}',
                     )
