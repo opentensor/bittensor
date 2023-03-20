@@ -1,37 +1,7 @@
 {
-    "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3": {
-        "name": "Opentensor Foundation",
-        "url": "https://opentensor.ai/",
-        "description": "Founded, maintain and advance Bittensor"
-    },
-    "5HNQURvmjjYhTSksi8Wfsw676b4owGwfLR2BFAQzG7H3HhYf": {
-        "name": "Neural Internet",
-        "url": "https://neuralinternet.ai/",
-        "description": "An AI research and development decentralized autonomous organization (DAO)."
-    },
-    "5HeKSHGdsRCwVgyrHchijnZJnq4wiv6GqoDLNah8R5WMfnLB": {
-        "name": "TaoStation",
-        "url": "https://taostation.com",
-        "description": "The go to validator for maximal TAO returns to stakers. Earn up to 12% rakeback in our loyalty incentives program by staking with us!"
-    },
-    "5ECvRLMj9jkbdM4sLuH5WvjUe87TcAdjRfUj5onN4iKqYYGm": {
-        "name": "Vune",
-        "url": "https://fairchild.dev",
-        "description": "Vune is a dev at Opentensor and a BSc CS student at UofT."
-    },
-    "5H6BgKkAr2Anmm9Xw5BVDE4VaQmFEVMkJUHeT7Gki4J7yF4x": {
-        "name": "TaoPolishNode",
-        "url": "https://taonode.io",
-        "description": "This node is a collective effort of the polish community. We are engaged in evangelizing the project, educating and sharing the knowledge."
-    },
-      "5DCc5oHA6c1Lpt9R6T1xU8jJGTMvvwBqD1yGX67sL8dHUcga": {
-        "name": "WaveTensor",
-        "url": "https://twitter.com/wavetensor",
-        "description": "A new Wave is coming, join the AI revolution on top of Bittensor by staking with us."
-    },
-    "5Hddm3iBFD2GLT5ik7LZnT3XJUnRnN8PoeCFgGQgawUVKNm8": {
-        "name": "τaosτaτs",
-        "url": "https://taostats.io",
-        "description": "Supporting the bittensor eco-system through data provision, statistics and analytics."
+    "5CaCUPsSSdKWcMJbmdmJdnWVa15fJQuz5HsSGgVdZffpHAUa": {
+        "name": "StakeTensor",
+        "url": "https://www.staketensor.com/",
+        "description": "Redundant infrastructure with multiple validators offering up to 50% rebates to stakers"
     }
 }
