@@ -77,16 +77,18 @@ class OverviewCommand:
         block = subtensor.block
 
         netuids = subtensor.get_all_subnet_netuids()
+        if cli.config.netuid != []:
+            netuids = [netuid for netuid in netuids if netuid in cli.config.netuid]
         for netuid in netuids:
             neurons[str(netuid)] = []
         netuids_copy = netuids.copy()
         
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
-            for netuid in netuids_copy:
+            for netuid in tqdm(netuids_copy, desc="Checking each subnet"):
                 all_neurons = subtensor.neurons( netuid = netuid )
                 # Map the hotkeys to uids
                 hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
-                for hot_wallet in tqdm(all_hotkeys):
+                for hot_wallet in all_hotkeys:
                     uid = hotkey_to_neurons.get(hot_wallet.hotkey.ss58_address)
                     if uid is not None:
                         nn = all_neurons[uid]
@@ -109,9 +111,12 @@ class OverviewCommand:
         grid.add_row(Align(title, vertical="middle", align="center"))
 
         # Generate rows per netuid
+        hotkeys_seen = set()
+        total_neurons = 0
+        total_stake = 0.0
         for netuid in netuids:
+            last_subnet = netuid == netuids[-1]
             TABLE_DATA = []  
-            total_stake = 0.0
             total_rank = 0.0
             total_trust = 0.0
             total_consensus = 0.0
@@ -120,7 +125,7 @@ class OverviewCommand:
             total_dividends = 0.0
             total_emission = 0   
 
-            for nn, hotwallet in tqdm(neurons[str(netuid)]):
+            for nn, hotwallet in neurons[str(netuid)]:
                 nn: bittensor.NeuronInfo
                 uid = nn.uid
                 active = nn.active
@@ -152,7 +157,7 @@ class OverviewCommand:
                     bittensor.utils.networking.int_to_ip( nn.axon_info.ip) + ':' + str(nn.axon_info.port) if nn.axon_info.port != 0 else '[yellow]none[/yellow]', 
                     nn.hotkey
                 ]
-                total_stake += stake
+               
                 total_rank += rank
                 total_trust += trust
                 total_consensus += consensus
@@ -160,19 +165,32 @@ class OverviewCommand:
                 total_dividends += dividends
                 total_emission += emission
                 total_validator_trust += validator_trust
+
+                if not nn.hotkey in hotkeys_seen:
+                    # Don't double count hotkeys or stake.
+                    hotkeys_seen.add(nn.hotkey)
+                    total_stake += stake
+                    total_neurons += 1
                 TABLE_DATA.append(row)
-                
-            total_neurons = len(neurons)
 
             # Add subnet header
             grid.add_row(f"Subnet: [bold white]{netuid}[/bold white]")
 
             table = Table(show_footer=False, width=cli.config.get('width', None), pad_edge=False, box=None)
-            table.add_column("[overline white]COLDKEY",  str(total_neurons), footer_style = "overline white", style='bold white')
-            table.add_column("[overline white]HOTKEY",  str(total_neurons), footer_style = "overline white", style='white')
+            if last_subnet:
+                table.add_column("[overline white]COLDKEY",  str(total_neurons), footer_style = "overline white", style='bold white')
+                table.add_column("[overline white]HOTKEY",  str(total_neurons), footer_style = "overline white", style='white')
+            else:
+                # No footer for non-last subnet.
+                table.add_column("[overline white]COLDKEY", style='bold white')
+                table.add_column("[overline white]HOTKEY", style='white')
             table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
             table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
-            table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+            if last_subnet:
+                table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+            else:
+                # No footer for non-last subnet.
+                table.add_column("[overline white]STAKE(\u03C4)", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]RANK", '{:.5f}'.format(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]TRUST", '{:.5f}'.format(total_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
@@ -300,6 +318,14 @@ class OverviewCommand:
             default=False,
             help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.'''
         )
+        overview_parser.add_argument(
+            '--netuid', 
+            dest='netuid', 
+            type=int,
+            nargs='*',
+            help='''Set the netuid(s) to filter by.''',
+            default=[],
+        )
         overview_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )  
         bittensor.wallet.add_args( overview_parser )
         bittensor.subtensor.add_args( overview_parser )
@@ -313,8 +339,6 @@ class OverviewCommand:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-
-
-
-
+        if config.netuid != []:
+            config.netuid = [int(netuid) for netuid in config.netuid]
       
