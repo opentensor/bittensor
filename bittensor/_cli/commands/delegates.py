@@ -384,7 +384,8 @@ class MyDelegatesCommand:
         table.add_column("[overline white]Wallet", footer_style = "overline white", style='bold white')
         table.add_column("[overline white]OWNER", style='rgb(50,163,219)', no_wrap=True, justify='left')
         table.add_column("[overline white]SS58", footer_style = "overline white", style='bold yellow')
-        table.add_column("[overline green]My Delegation", footer_style = "overline green", style='bold green')
+        table.add_column("[overline green]Delegation", footer_style = "overline green", style='bold green')
+        table.add_column("[overline green]\u03C4/24h", footer_style = "overline green", style='bold green')
         table.add_column("[overline white]NOMS", justify='center', style='green', no_wrap=True)
         table.add_column("[overline white]OWNER STAKE(\u03C4)", justify='right', no_wrap=True)
         table.add_column("[overline white]TOTAL STAKE(\u03C4)", justify='right', style='green', no_wrap=True)
@@ -431,6 +432,7 @@ class MyDelegatesCommand:
                         Text(delegate_name, style=f'link {delegate_url}'),
                         f'{delegate[0].hotkey_ss58:8.8}...',
                         f'{my_delegates[delegate[0].hotkey_ss58]!s:13.13}',
+                        f'{delegate[0].total_daily_return.tao * (my_delegates[delegate[0].hotkey_ss58]/delegate[0].total_stake.tao)!s:6.6}',
                         str(len(delegate[0].nominators)),
                         f'{owner_stake!s:13.13}',
                         f'{delegate[0].total_stake!s:13.13}',
