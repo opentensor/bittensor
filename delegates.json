@@ -54,4 +54,10 @@
         "url": "https://taostats.io",
         "description": "Supporting the bittensor eco-system through data provision, statistics and analytics."
     }
+    "5CaCUPsSSdKWcMJbmdmJdnWVa15fJQuz5HsSGgVdZffpHAUa": {
+        "name": "StakeTensor",
+        "url": "https://www.staketensor.com",
+        "description": "Redundant infrastructure with multiple validators offering up to 50% rebates to stakers"
+    }
+
 }
