@@ -369,7 +369,6 @@ class ReceptorPool ( torch.nn.Module ):
 
         # ---- Or: Create a new receptor ----
         else:
-            bittensor.logging.create_receptor_log( endpoint )
             receptor = bittensor.receptor (
                     endpoint = endpoint, 
                     wallet = self.wallet,
