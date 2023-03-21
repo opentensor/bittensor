@@ -26,7 +26,7 @@ console = bittensor.__console__
 
 import os
 import bittensor
-from typing import List
+from typing import List, Tuple
 
 def _get_coldkey_wallets_for_path( path: str ) -> List['bittensor.wallet']:
     try:
@@ -65,8 +65,18 @@ class InspectCommand:
         subtensor = bittensor.subtensor( config = cli.config )
 
         netuids = subtensor.get_all_subnet_netuids()
-        registered_delegate_info = json.load( open("delegates.json") )
-        delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+
+        try:
+            package_dir = os.path.dirname(bittensor.__file__)
+            root_dir = os.path.dirname(package_dir)
+            filename = os.path.join(root_dir, 'delegates.json')
+            if os.path.exists(filename):
+                registered_delegate_info = json.load( open(filename, 'r') )
+            else:
+                registered_delegate_info = {}
+        except:
+            registered_delegate_info = {}
+
         neuron_state_dict = {}
         for netuid in tqdm( netuids ):
             neuron_state_dict[netuid] = subtensor.neurons_lite( netuid )
@@ -82,6 +92,7 @@ class InspectCommand:
         table.add_column("[overline white]Stake", footer_style = "overline white", style='green')
         table.add_column("[overline white]Emission", footer_style = "overline white", style='green')
         for wallet in tqdm( wallets ):
+            delegates: List[Tuple(bittensor.DelegateInfo, bittensor.Balance)] = subtensor.get_delegated( coldkey_ss58=wallet.coldkeypub.ss58_address )
             if not wallet.coldkeypub_file.exists_on_device(): continue
             cold_balance = wallet.get_balance( subtensor = subtensor )
             table.add_row(
@@ -95,24 +106,22 @@ class InspectCommand:
                 '',
                 '',
             )
-            for dele in delegates:
-                for nom in dele.nominators:
-                    if nom[0] == wallet.coldkeypub.ss58_address:
-                        if dele.hotkey_ss58 in registered_delegate_info:
-                            delegate_name = registered_delegate_info[dele.hotkey_ss58]['name']
-                        else:
-                            delegate_name = dele.hotkey_ss58
-                        table.add_row(
-                            '',
-                            '',
-                            str(delegate_name),
-                            str(nom[1]),
-                            str(dele.total_daily_return.tao * (nom[1]/dele.total_stake.tao)),
-                            '',
-                            '',
-                            '',
-                            ''
-                        )
+            for dele, staked in delegates:
+                if dele.hotkey_ss58 in registered_delegate_info:
+                    delegate_name = registered_delegate_info[dele.hotkey_ss58]['name']
+                else:
+                    delegate_name = dele.hotkey_ss58
+                table.add_row(
+                    '',
+                    '',
+                    str(delegate_name),
+                    str(staked),
+                    str(dele.total_daily_return.tao * (staked.tao/dele.total_stake.tao)),
+                    '',
+                    '',
+                    '',
+                    ''
+                )
 
             hotkeys = _get_hotkey_wallets_for_wallet( wallet )
             for netuid in netuids:
