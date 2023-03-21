@@ -115,6 +115,7 @@ class OverviewCommand:
         total_neurons = 0
         total_stake = 0.0
         for netuid in netuids:
+            subnet_tempo = subtensor.tempo(netuid=netuid)
             last_subnet = netuid == netuids[-1]
             TABLE_DATA = []  
             total_rank = 0.0
@@ -136,7 +137,7 @@ class OverviewCommand:
                 validator_trust = nn.validator_trust
                 incentive = nn.incentive
                 dividends = nn.dividends
-                emission = nn.emission / (subtensor.tempo(netuid=netuid) + 1)
+                emission = nn.emission / (subnet_tempo + 1)
                 last_update = int(block -  nn.last_update)
                 validator_permit = nn.validator_permit
                 row = [
