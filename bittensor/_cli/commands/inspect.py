@@ -69,11 +69,7 @@ class InspectCommand:
         delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
         neuron_state_dict = {}
         for netuid in tqdm( netuids ):
-            neuron_state_dict[netuid] = {}
-            neurons = subtensor.neurons_lite( netuid )
-            for neuron in neurons:
-                neuron_state_dict[netuid][neuron.hotkey] = neuron
-
+            neuron_state_dict[netuid] = subtensor.neurons_lite( netuid )
 
         table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
         table.add_column("[overline white]Coldkey", footer_style = "overline white", style='bold white')
@@ -120,9 +116,8 @@ class InspectCommand:
 
             hotkeys = _get_hotkey_wallets_for_wallet( wallet )
             for netuid in netuids:
-                for hotkey in hotkeys:
-                    if not wallet.hotkey_file.exists_on_device(): continue
-                    if hotkey.hotkey.ss58_address in neuron_state_dict[netuid]:
+                for neuron in neuron_state_dict[netuid]:
+                    if neuron.coldkey == wallet.coldkeypub.ss58_address:
                         table.add_row(
                             '',
                             '',
@@ -130,9 +125,9 @@ class InspectCommand:
                             '',
                             '',
                             str( netuid ),
-                            str(hotkey.hotkey_str),
-                            str(neuron_state_dict[ netuid][ hotkey.hotkey.ss58_address ].stake),
-                            str(bittensor.Balance.from_tao(neuron_state_dict[ netuid][ hotkey.hotkey.ss58_address ].emission))
+                            str( neuron.hotkey ),
+                            str( neuron.stake ),
+                            str( bittensor.Balance.from_tao(neuron.emission) )
                         )
                
         bittensor.__console__.print(table)

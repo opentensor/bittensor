@@ -1,16 +1,21 @@
 {
     "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3": {
-        "name": "Opentensor Foundation",
+        "name": "Openτensor Foundaτion",
         "url": "https://opentensor.ai/",
         "description": "Founded, maintain and advance Bittensor"
     },
     "5HNQURvmjjYhTSksi8Wfsw676b4owGwfLR2BFAQzG7H3HhYf": {
-        "name": "Neural Internet",
+        "name": "Neural Interneτ",
         "url": "https://neuralinternet.ai/",
         "description": "An AI research and development decentralized autonomous organization (DAO)."
     },
+    "5FLKnbMjHY8LarHZvk2q2RY9drWFbpxjAcR5x8tjr3GqtU6F": {
+        "name": "τao Bridge", 
+        "url": "https://taobridge.xyz", 
+        "description": "A community bridge between Bittensor and Ethereum"
+    },
     "5HeKSHGdsRCwVgyrHchijnZJnq4wiv6GqoDLNah8R5WMfnLB": {
-        "name": "TaoStation",
+        "name": "τaoStation",
         "url": "https://taostation.com",
         "description": "The go to validator for maximal TAO returns to stakers."
     },
@@ -20,7 +25,7 @@
         "description": "Vune is a dev at Opentensor and a BSc CS student at UofT."
     },
     "5H6BgKkAr2Anmm9Xw5BVDE4VaQmFEVMkJUHeT7Gki4J7yF4x": {
-        "name": "TaoPolishNode",
+        "name": "τaoPolishNode",
         "url": "https://taonode.io",
         "description": "This node is a collective effort of the polish community. We are engaged in evangelizing the project, educating and sharing the knowledge."
     },
@@ -30,12 +35,12 @@
         "description": "GPU Cloud built for AI. We plan to introduce perks for those who stake."
     },
     "5CPzGD8sxyv8fKKXNvKem4qJRhCXABRmpUgC1wb1V4YAXLc3": {
-        "name": "Tao Staking",
+        "name": "τao Staking",
         "url": "https://www.taostaking.com",
         "description": "Empowering innovation on the Bittensor network by helping upcoming projects grow and thrive on Bittensor."
     },
     "5FFApaS75bv5pJHfAp2FVLBj9ZaXuFDjEypsaBNc1wCfe52v": {
-        "name": "RoundTable21",
+        "name": "Roundτable21",
         "url": "https://roundtable21.com",
         "description": "RoundTable21 is an International, multi-disciplinary team of consultants and advisors partnering alongside leading blockchain startups to offer guidance, expertise, investment and hands-on assistance in every aspect of development."
     },
@@ -45,7 +50,7 @@
         "description": "Foundry works to empower a decentralized infrastructure. We are protocol-agnostic and seek to support like-minded blockchain entrepreneurs who share our mission to advance the industry."
     },
     "5DCc5oHA6c1Lpt9R6T1xU8jJGTMvvwBqD1yGX67sL8dHUcga": {
-        "name": "WaveTensor",
+        "name": "Waveτensor",
         "url": "https://twitter.com/wavetensor",
         "description": "A new Wave is coming, join the AI revolution on top of Bittensor by staking with us."
     },
@@ -53,5 +58,25 @@
         "name": "τaosτaτs",
         "url": "https://taostats.io",
         "description": "Supporting the bittensor eco-system through data provision, statistics and analytics."
+    },
+    "5GcBK8PDrVifV1xAf4Qkkk6KsbsmhDdX9atvk8vyKU8xdU63": {
+        "name": "τensor.exchange", 
+        "url": "www.tensor.exchange", 
+        "description": "Bittensor's first community OTC exchange"
+    },
+    "5GBxDYkDp8eJZHGT89wcZJKcMc4ytSqnqqVSpeuGeqtGfqxK": {
+        "name": "τao Stake",
+        "url": "www.taostake.io",
+        "description": "We have been mining since the start of bittensor and want to maintain a long term solid validator to help people get some value from thier investment and keep TAO within the ecosystem."
+    },
+    "5FcXnzNo3mrqReTEY4ftkg5iXRBi61iyvM4W1bywZLRqfxAY": {
+        "name": "Lucrosus Capiτal",
+        "url": "https://lucrosuspool.io/",
+        "description": "Decentralized VC focused on the most thriving blockchain ideas. Join our pool to receive early entrance into promising projects!"
+    },
+    "5CAW5xpgPbxGUzkE3dgmM2XasaygpbvtSoTh3UeR8RMfHQZU": {
+        "name": "Vogue τensor",
+        "url": "https://voguetensor.webflow.io/",
+        "description": "Designing branded clothing for the Bittensor community."
     }
 }
