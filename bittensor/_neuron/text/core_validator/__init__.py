@@ -986,9 +986,10 @@ class nucleus( torch.nn.Module ):
         )
 
         if not self.config.nucleus.dendrite_backward:
-            query_responses = [[syn.detach().to(self.device) for syn in res] for res in query_responses]
-            return_ops = [ops.detach().to(self.device) for ops in return_ops]
-            times = [t.detach().to(self.device) for t in times]
+            query_responses = [[syn.detach() for syn in res] for res in query_responses]
+            return_ops = [ops.detach() for ops in return_ops]
+            times = [t.detach() for t in times]
+
 
         # Send responses to device. This is required to ensure we move the responses
         # Onto the correct device.
