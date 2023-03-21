@@ -73,7 +73,7 @@ class OverviewCommand:
             return
 
         # Pull neuron info for all keys.            
-        neurons: Dict[str, List[bittensor.NeuronInfo, bittensor.Wallet]] = {}
+        neurons: Dict[str, List[bittensor.NeuronInfoLite, bittensor.Wallet]] = {}
         block = subtensor.block
 
         netuids = subtensor.get_all_subnet_netuids()
@@ -127,7 +127,7 @@ class OverviewCommand:
             total_emission = 0   
 
             for nn, hotwallet in neurons[str(netuid)]:
-                nn: bittensor.NeuronInfo
+                nn: bittensor.NeuronInfoLite
                 uid = nn.uid
                 active = nn.active
                 stake = nn.total_stake.tao
