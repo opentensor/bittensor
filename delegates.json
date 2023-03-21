@@ -63,5 +63,10 @@
         "name": "Tensor.Exchange", 
         "url": "www.tensor.exchange", 
         "description": "Bittensor's first community OTC exchange"
+    },
+    "5Grwj7JSauxjfVtRwxssuv4qVDPsDA8KroAngAU58inq5wtx": {
+        "name": "The Lost Cove", 
+        "url": "https://lostcove.tech/", 
+        "description": "Australia and New Zealand community. We're in it for the gains."
     }
 }
