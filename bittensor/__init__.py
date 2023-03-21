@@ -78,7 +78,7 @@ __finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
-__local_entrypoint__ = "ws://127.0.0.1:9945"
+__local_entrypoint__ = "ws://127.0.0.1:9944"
 
 __tao_symbol__: str = chr(0x03C4)
 
