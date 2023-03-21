@@ -835,7 +835,7 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=3)
         parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
-        parser.add_argument('--nucleus.no_dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
+        parser.add_argument('--nucleus.dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
         parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
         parser.add_argument('--nucleus.synergy_scaling_law_power', type=float, help='Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
         parser.add_argument('--nucleus.logits_divergence', type=float, help=' the divergence value for logit anomaly detection (default value: -1, pulling from subtensor directly)', default=-1)
@@ -976,10 +976,11 @@ class nucleus( torch.nn.Module ):
             timeout=bittensor.__blocktime__
         )
 
-        if self.config.nucleus.no_dendrite_backward:
-            query_responses = [[syn.detach().to(self.device) for syn in res] for res in query_responses]
-            return_ops = [ops.detach().to(self.device) for ops in return_ops]
-            times = [t.detach().to(self.device) for t in times]
+        if not self.config.nucleus.dendrite_backward:
+            query_responses = [[syn.detach() for syn in res] for res in query_responses]
+            return_ops = [ops.detach() for ops in return_ops]
+            times = [t.detach() for t in times]
+
 
         # Send responses to device. This is required to ensure we move the responses
         # Onto the correct device.
