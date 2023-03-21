@@ -87,7 +87,7 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], width: Optional[i
             str(delegate.registrations),
             str(['*' if subnet in delegate.validator_permits else '' for subnet in delegate.registrations]),
             #f'{delegate.take * 100:.1f}%',
-            f'{delegate.total_daily_return.tao * (1000/delegate.total_stake.tao)!s:6.6}',
+            f'{delegate.total_daily_return.tao * (1000/ ( 0.001 + delegate.total_stake.tao ) )!s:6.6}',
             str(delegate_description)
             #f'{delegate_profile.description:140.140}',
         )
@@ -376,7 +376,7 @@ class MyDelegatesCommand:
         if config.all == True:
             wallets = _get_coldkey_wallets_for_path( config.wallet.path )
         else:
-            wallets = bittensor.wallet( config = config )
+            wallets = [bittensor.wallet( config = config )]
         subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
 
         table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
@@ -437,8 +437,8 @@ class MyDelegatesCommand:
                         f'{delegate[0].total_stake!s:13.13}',
                         str(delegate[0].registrations),
                         str(['*' if subnet in delegate[0].validator_permits else '' for subnet in delegate[0].registrations]),
-                        #f'{delegate.take * 100:.1f}%',
-                        f'{delegate[0].total_daily_return.tao * (1000/delegate[0].total_stake.tao)!s:6.6}',
+                        #f'{delegate.take * 100:.1f}%',s
+                        f'{ delegate[0].total_daily_return.tao * ( 1000 / ( 0.001 + delegate[0].total_stake.tao ) )!s:6.6}',
                         str(delegate_description)
                         #f'{delegate_profile.description:140.140}',
                     )
