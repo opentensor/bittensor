@@ -389,26 +389,6 @@ class MyDelegatesCommand:
         else:
             wallets = [bittensor.wallet( config = config )]
         subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
-        delegates = subtensor.get_delegated( coldkey_ss58=wallet.coldkeypub.ss58_address )
-
-        my_delegates = {} # hotkey, amount
-        for delegate in delegates:
-            for coldkey_addr, staked in delegate[0].nominators:
-                if coldkey_addr == wallet.coldkeypub.ss58_address and staked.tao > 0:
-                    my_delegates[ delegate[0].hotkey_ss58 ] = staked
-
-        delegates.sort(key=lambda delegate: delegate[0].total_stake, reverse=True)
-        
-        try:
-            package_dir = os.path.dirname(bittensor.__file__)
-            root_dir = os.path.dirname(package_dir)
-            filename = os.path.join(root_dir, 'delegates.json')
-            if os.path.exists(filename):
-                registered_delegate_info = json.load( open(filename, 'r') )
-            else:
-                registered_delegate_info = {}
-        except:
-            registered_delegate_info = {}
 
         table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
         table.add_column("[overline white]Wallet", footer_style = "overline white", style='bold white')
@@ -436,7 +416,13 @@ class MyDelegatesCommand:
             delegates.sort(key=lambda delegate: delegate[0].total_stake, reverse=True)
             
             try:
-                registered_delegate_info = json.load( open("delegates.json") )
+                package_dir = os.path.dirname(bittensor.__file__)
+                root_dir = os.path.dirname(package_dir)
+                filename = os.path.join(root_dir, 'delegates.json')
+                if os.path.exists(filename):
+                    registered_delegate_info = json.load( open(filename, 'r') )
+                else:
+                    registered_delegate_info = {}
             except:
                 registered_delegate_info = {}
 
