@@ -63,5 +63,10 @@
         "name": "Tensor.Exchange", 
         "url": "www.tensor.exchange", 
         "description": "Bittensor's first community OTC exchange"
+    },
+    "5Gpt8XWFTXmKrRF1qaxcBQLvnPLpKi6Pt2XC4vVQR7gqNKtU": {
+        "name": "StakeBoost Validator", 
+        "url": "https://taostats.io/validators/stakeboost-validator/", 
+        "description": "Boost your APY and check our account @StakeBoostV on twitter to learn more about our automatic reward system."
     }
 }
