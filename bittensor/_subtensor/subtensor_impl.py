@@ -910,7 +910,7 @@ class Subtensor:
         
         return NeuronInfoLite.list_from_vec_u8( result )
 
-    def metagraph( self, netuid: int, block: Optional[int] = None ) -> 'bittensor.Metagraph':
+    def metagraph( self, netuid: int, block: Optional[int] = None, lite: bool = True ) -> 'bittensor.Metagraph':
         r""" Returns the metagraph for the subnet.
         Args:
             netuid ( int ):
@@ -918,6 +918,8 @@ class Subtensor:
             block (Optional[int]):
                 The block to create the metagraph for.
                 Defaults to latest.
+            lite (bool, default=True):
+                If true, returns a metagraph using the lite sync (no weights, no bonds)
         Returns:
             metagraph ( `bittensor.Metagraph` ):
                 The metagraph for the subnet at the block.
@@ -928,7 +930,11 @@ class Subtensor:
             status.start()
         
         # Get neurons.
-        neurons = self.neurons( netuid = netuid, block = block )
+        if lite:
+            neurons = self.neurons_lite( netuid = netuid, block = block )
+        else:
+            neurons = self.neurons( netuid = netuid, block = block )
+        
         # Get subnet info.
         subnet_info: Optional[bittensor.SubnetInfo] = self.get_subnet_info( netuid = netuid, block = block )
         if subnet_info == None:
@@ -939,7 +945,7 @@ class Subtensor:
 
         # Create metagraph.
         block_number = self.block
-
+        
         metagraph = bittensor.metagraph.from_neurons( network = self.network, netuid = netuid, info = subnet_info, neurons = neurons, block = block_number )
         print("Metagraph subtensor: ", self.network)
         return metagraph
