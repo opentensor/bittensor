@@ -53,5 +53,10 @@
         "name": "τaosτaτs",
         "url": "https://taostats.io",
         "description": "Supporting the bittensor eco-system through data provision, statistics and analytics."
+    },
+    "5GcBK8PDrVifV1xAf4Qkkk6KsbsmhDdX9atvk8vyKU8xdU63": {
+        "name": "Tensor.Exchange", 
+        "url": "www.tensor.exchange", 
+        "description": "Bittensor's first community OTC exchange"
     }
 }
