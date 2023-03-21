@@ -318,7 +318,7 @@ class axon:
         bittensor.wallet.check_config( config )
 
     @classmethod   
-    def default_synapse_check(cls, synapse, hotkey ):
+    def default_synapse_check(cls, synapse, hotkey, inputs ):
         """ default synapse check function
         """
         if len(hotkey) == bittensor.__ss58_address_length__:
@@ -415,7 +415,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         version = metadata.get('bittensor-version')
         if signature is None:
             raise Exception("Request signature missing")
-        if version < 370:
+        if int(version) < 370:
             raise Exception("Incorrect Version")
         
         for parser in [self.parse_signature_v2, self.parse_legacy_signature]:
