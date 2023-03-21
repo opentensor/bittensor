@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+from typing import Union
 
 import torch
 
@@ -27,11 +28,12 @@ class TextCausalLMNextForwardCall(bittensor.BittensorCall):
 
     # The name of the synapse call.
     name: str = "forward_text_last_hidden_state"
+    text_outputs = None # To be filled by the forward call
 
     def __str__(self) -> str:
         return """
 bittensor.TextCausalLMNextForwardCall( 
-    description: Returns the last hidden state of the endpoint subject to passed mask.
+    description: Returns the logits for the last predicted item in a given sequence.
     caller: {},
     version: {},
     timeout = {}, 
@@ -40,11 +42,9 @@ bittensor.TextCausalLMNextForwardCall(
     elapsed = {},
     Args:
     \ttext_inputs: torch.LongTensor = {}, 
-    \tmask: torch.BoolTensor = {}, 
-    \thidden_states: torch.FloatTensor = {},
-    \tmask_serializer_type: bittensor.serializer_type = {}, 
+    \ttext_outputs: torch.FloatTensor = {},
     \ttext_inputs_serializer_type: bittensor.serializer_type = {}, 
-    \thidden_states_serializer_type: bittensor.serializer_type = {} 
+    \ttext_outputs_serializer_type: bittensor.serializer_type = {} 
 )
 """.format(
             self.hotkey,
@@ -54,61 +54,47 @@ bittensor.TextCausalLMNextForwardCall(
             self.end_time,
             time.time() - self.start_time,
             self.text_inputs,
-            self.mask,
-            self.hidden_states
-            if self.hidden_states != None
-            else "To be filled by the forward call.",
-            self.mask_serializer_type,
+            self.text_outputs if self.text_outputs is not None else "To be filled by the forward call.",
             self.text_inputs_serializer_type,
-            self.hidden_states_serializer_type,
+            self.text_outputs_serializer_type,
         )
 
     def __init__(
         self,
         text_inputs: torch.LongTensor,
-        mask: torch.BoolTensor,
         timeout: float = bittensor.__blocktime__,
-        mask_serializer_type: "bittensor.serializer_type" = bittensor.proto.Serializer.MSGPACK,
         text_inputs_serializer_type: "bittensor.serializer_type" = bittensor.proto.Serializer.MSGPACK,
-        hidden_states_serializer_type: "bittensor.serializer_type" = bittensor.proto.Serializer.MSGPACK,
+        text_outputs_serializer_type: "bittensor.serializer_type" = bittensor.proto.Serializer.MSGPACK,
     ):
         """Forward call to the receptor.
         Args:
             text_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length)`, `required`):
                 torch tensor of text inputs.
-            mask (:obj:`torch.BoolTensor` of shape :obj:`(batch_size, sequence_length)`, `required`):
-                Mask over hidden states to be returned.
             timeout (:obj:`float`, `optional`, defaults to 5 seconds):
                 timeout for the forward call.
-            mask_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
-                serializer type for mask.
             text_inputs_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
                 serializer type for text inputs.
-            hidden_states_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
-                serializer type for hidden states.
+            text_outputs_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
+                serializer type for text outputs.
         Returns:
             call.TextCausalLMNextForwardCall (:obj:`call.TextCausalLMNextForwardCall`, `required`):
                 bittensor forward call dataclass.
         """
         super().__init__(timeout=timeout)
         self.text_inputs = text_inputs
-        self.mask = mask
         self.hidden_states = None
-        self.mask_serializer_type = mask_serializer_type
         self.text_inputs_serializer_type = text_inputs_serializer_type
-        self.hidden_states_serializer_type = hidden_states_serializer_type
+        self.text_outputs_serializer_type = text_outputs_serializer_type
 
-    def get_inputs_shape(self) -> torch.Size:
+    def get_inputs_shape(self) -> Union[torch.Size, None]:
         if self.text_inputs is not None:
             return self.text_inputs.shape
-        else:
-            return None
+        return None
 
-    def get_outputs_shape(self) -> torch.Size:
+    def get_outputs_shape(self) -> Union[torch.Size, None]:
         if self.hidden_states is not None:
             return self.hidden_states.shape
-        else:
-            return None
+        return None
 
 
 class TextCausalLMNextBackwardCall(bittensor.BittensorCall):

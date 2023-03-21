@@ -53,23 +53,12 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
         )
         serialized_text = text_serializer.serialize(forward_call.text_inputs)
 
-        # Optionally serialize mask.
-        if forward_call.mask != None:
-            mask_serializer = bittensor.serializer(
-                serializer_type=forward_call.mask_serializer_type
-            )
-            serialized_mask = mask_serializer.serialize(forward_call.mask)
-        else:
-            serialized_mask = None
-
         # Return forward call.
         return bittensor.ForwardTextCausalLMNextRequest(
             timeout=forward_call.timeout,
-            serialized_mask=serialized_mask,
             serialized_text_inputs=serialized_text,
-            mask_serializer_type=forward_call.mask_serializer_type,
             text_inputs_serializer_type=forward_call.text_inputs_serializer_type,
-            hidden_states_serializer_type=forward_call.hidden_states_serializer_type,
+            text_outputs_serializer_type=forward_call.text_outputs_serializer_type,
         )
 
     def post_process_response_proto_to_forward_call(
@@ -147,23 +136,19 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
     def forward(
         self,
         text_inputs: torch.LongTensor,
-        mask: torch.BoolTensor = None,
         timeout: float = bittensor.__blocktime__,
-        mask_serializer_type: "bittensor.serializer_type" = bittensor.proto.Serializer.MSGPACK,
         text_inputs_serializer_type: "bittensor.serializer_type" = bittensor.proto.Serializer.MSGPACK,
-        hidden_states_serializer_type: "bittensor.serializer_type" = bittensor.proto.Serializer.MSGPACK,
+        text_outputs_serializer_type: "bittensor.serializer_type" = bittensor.proto.Serializer.MSGPACK,
     ) -> "bittensor.TextCausalLMNextForwardCall":
         """Forward call to the receptor.
         Args:
             text_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length)`, `required`):
                 torch tensor of text inputs.
-            mask (:obj:`torch.BoolTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`, defaults to :obj:`None`):
-                mask over returned hidden states.
             timeout (:obj:`float`, `optional`, defaults to 5 seconds):
                 timeout for the forward call.
-            text_prompt_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
+            text_inputs_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
                 serializer type for text inputs.
-            hidden_states_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
+            text_outputs_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
                 serializer type for hidden states.
         Returns:
             bittensor.TextCausalLMNextForwardCall (:obj:`bittensor.TextCausalLMNextForwardCall`, `required`):
@@ -172,11 +157,9 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
         return self._forward(
             forward_call=bittensor.TextCausalLMNextForwardCall(
                 text_inputs=text_inputs,
-                mask=mask,
                 timeout=timeout,
-                mask_serializer_type=mask_serializer_type,
                 text_inputs_serializer_type=text_inputs_serializer_type,
-                hidden_states_serializer_type=hidden_states_serializer_type,
+                text_outputs_serializer_type=text_outputs_serializer_type,
             )
         )
 

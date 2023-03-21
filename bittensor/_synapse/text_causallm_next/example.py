@@ -21,7 +21,7 @@ class Synapse(bittensor.TextCausalLMNextSynapse):
     ) -> torch.Tensor:
         outputs = self.model(input_ids=forward_call.text_inputs, output_hidden_states=True)
 
-        forward_call.hidden_states = outputs.hidden_states[-1][:, :, :1024]
+        return outputs.hidden_states[-1][:, :, :1024]
 
 
 # Create a mock wallet.
@@ -52,7 +52,6 @@ sequence_length=32
 module = bittensor.text_causal_lm_next(endpoint=local_endpoint, wallet=wallet)
 response = module.forward(
     text_inputs=torch.ones((batch_size, sequence_length), dtype=torch.long),
-    mask=torch.rand((batch_size, sequence_length)) > 0.5,
     timeout=1e6
 )
 
