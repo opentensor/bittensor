@@ -148,20 +148,19 @@ message ForwardTextCausalLMNextRequest {
 
 	Serializer mask_serializer_type = 3;
 	Serializer text_inputs_serializer_type = 4;
-	Serializer hidden_states_serializer_type = 5;
+	Serializer text_outputs_serializer_type = 5;
 
 	Tensor serialized_text_inputs = 6;
-	Tensor serialized_mask = 7;
 
 	// QueryTimeout
-	float timeout = 8;
+	float timeout = 7;
 }
 
 message ForwardTextCausalLMNextResponse {
 	int32 version = 1;
 	string hotkey = 2;
 
-	Tensor serialized_hidden_states = 3;
+	Tensor serialized_text_outputs = 3;
 
 	string message = 4;
 	ReturnCode return_code = 5;
@@ -172,14 +171,13 @@ message BackwardTextCausalLMNextRequest {
 	string hotkey = 2;
 
 	Serializer mask_serializer_type = 3;
-	Serializer hidden_states_serializer_type = 4;
-	Serializer hidden_states_grads_serializer_type = 5;
+	Serializer text_outputs_serializer_type = 4;
+	Serializer text_outputs_grads_serializer_type = 5;
 	Serializer text_inputs_serializer_type = 6;
 
 	Tensor serialized_text_inputs = 7;
-	Tensor serialized_hidden_states = 8;
-	Tensor serialized_hidden_states_grads = 9;
-	Tensor serialized_mask = 10;
+	Tensor serialized_text_outputs = 8;
+	Tensor serialized_text_outputs_grads = 9;
 }
 
 message BackwardTextCausalLMNextResponse {
