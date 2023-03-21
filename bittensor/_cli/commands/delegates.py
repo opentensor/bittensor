@@ -34,8 +34,9 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], width: Optional[i
     """
     delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
     try:
-        dirname = os.path.dirname(bittensor.__file__)
-        filename = os.path.join(dirname, 'delegates.json')
+        package_dir = os.path.dirname(bittensor.__file__)
+        root_dir = os.path.dirname(package_dir)
+        filename = os.path.join(root_dir, 'delegates.json')
         if os.path.exists(filename):
             registered_delegate_info = json.load( open(filename, 'r') )
         else:
@@ -387,8 +388,9 @@ class MyDelegatesCommand:
         delegates.sort(key=lambda delegate: delegate[0].total_stake, reverse=True)
         
         try:
-            dirname = os.path.dirname(bittensor.__file__)
-            filename = os.path.join(dirname, 'delegates.json')
+            package_dir = os.path.dirname(bittensor.__file__)
+            root_dir = os.path.dirname(package_dir)
+            filename = os.path.join(root_dir, 'delegates.json')
             if os.path.exists(filename):
                 registered_delegate_info = json.load( open(filename, 'r') )
             else:
