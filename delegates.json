@@ -63,5 +63,10 @@
         "name": "Tensor.Exchange", 
         "url": "www.tensor.exchange", 
         "description": "Bittensor's first community OTC exchange"
+    },
+    "5Dyi5e2QqnWn2RN9X6r8A8Q1QBjYD536H75mxNye193oeCJ4": {
+        "name": "Makoto AI",
+        "url": "https://www.linkedin.com/in/henry-thrasher-17b320239/",
+        "description": "Makoto AI, founded by Mac Thrasher, is an interdisciplinary research institute committed to discovering and accelerating innovative solutions for climate change, social inequality, and mental and physical illness. As the founder and CEO, Mac Thrasher balances his time leading the organization and completing his degree in Computer Science at Austin Community College while gaining valuable experience as a machine learning intern at the Opentensor Foundation."
     }
 }
