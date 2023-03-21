@@ -59,22 +59,12 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
             serializer_type=request_proto.text_inputs_serializer_type
         )
         text_inputs = text_deserializer.deserialize(request_proto.serialized_text_inputs)
-        # Optionally deserialize mask.
-        if len(request_proto.serialized_mask.shape) > 0:
-            mask_deserializer = bittensor.serializer(
-                serializer_type=request_proto.mask_serializer_type
-            )
-            mask = mask_deserializer.deserialize(request_proto.serialized_mask)
-        else:
-            mask = None
 
         return bittensor.TextCausalLMNextForwardCall(
             text_inputs=text_inputs,
-            mask=mask,
             timeout=request_proto.timeout,
-            mask_serializer_type=request_proto.mask_serializer_type,
             text_inputs_serializer_type=request_proto.text_inputs_serializer_type,
-            hidden_states_serializer_type=request_proto.hidden_states_serializer_type,
+            text_outputs_serializer_type=request_proto.text_outputs_serializer_type,
         )
 
     def post_process_forward_call_to_response_proto(

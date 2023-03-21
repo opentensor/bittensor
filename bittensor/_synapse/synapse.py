@@ -332,7 +332,8 @@ class Synapse(ABC):
         # Do forward.
         try:
             # Get the result.
-            future.result(timeout=forward_call.timeout)
+            tensor = future.result(timeout=forward_call.timeout)
+            forward_call.text_outputs = tensor
 
         except Exception as e:
             forward_call.response_code = bittensor.proto.ReturnCode.UnknownException
