@@ -196,7 +196,7 @@ class OverviewCommand:
             table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-            table.add_column("[overline white]EMISSION(\u03C4)", '\u03C4{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+            table.add_column("[overline white]EMISSION(\u03C4)", '\u03C4{:.5f}'.format(total_emission), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]VTRUST", '{:.5f}'.format(total_validator_trust), footer_style="overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]VPERMIT", justify='right', no_wrap=True)
             table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
