@@ -394,6 +394,7 @@ class MyDelegatesCommand:
         table.add_column("[overline white]Desc", style='rgb(50,163,219)')
 
         for wallet in tqdm(wallets):
+            if not wallet.coldkeypub_file.exists_on_device(): continue
             delegates = subtensor.get_delegated( coldkey_ss58=wallet.coldkeypub.ss58_address )
 
             my_delegates = {} # hotkey, amount
