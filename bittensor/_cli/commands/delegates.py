@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import sys
+import os
 import json
 import argparse
 import bittensor
@@ -32,7 +33,16 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], width: Optional[i
     """ Pretty prints a table of delegates sorted by total stake.
     """
     delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
-    registered_delegate_info = json.load( open("delegates.json") )
+    try:
+        dirname = os.path.dirname(bittensor.__file__)
+        filename = os.path.join(dirname, 'delegates.json')
+        if os.path.exists(filename):
+            registered_delegate_info = json.load( open(filename, 'r') )
+        else:
+            registered_delegate_info = {}
+    except:
+        registered_delegate_info = {}
+
     table = Table(show_footer=True, width=width, pad_edge=False, box=None, expand=True)
     table.add_column("[overline white]INDEX",  str(len(delegates)), footer_style = "overline white", style='bold white')
     table.add_column("[overline white]OWNER", style='rgb(50,163,219)', no_wrap=True, justify='left')
@@ -377,7 +387,12 @@ class MyDelegatesCommand:
         delegates.sort(key=lambda delegate: delegate[0].total_stake, reverse=True)
         
         try:
-            registered_delegate_info = json.load( open("delegates.json") )
+            dirname = os.path.dirname(bittensor.__file__)
+            filename = os.path.join(dirname, 'delegates.json')
+            if os.path.exists(filename):
+                registered_delegate_info = json.load( open(filename, 'r') )
+            else:
+                registered_delegate_info = {}
         except:
             registered_delegate_info = {}
 
