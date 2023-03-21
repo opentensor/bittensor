@@ -87,11 +87,10 @@ __rao_symbol__: str = chr(0x03C1)
 # Block Explorers map network to explorer url
 ## Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
-    'local': "https://explorer.nakamoto.opentensor.ai/#/explorer",
+    'local': "https://explorer.finney.opentensor.ai/#/explorer",
     'nakamoto': "https://explorer.nakamoto.opentensor.ai/#/explorer",
-    'endpoint': "https://explorer.nakamoto.opentensor.ai/#/",
-    'nobunaga': "https://staging.opentensor.ai/#/explorer",
-    'finney': "https://explorer.opentensor.ai/"
+    'endpoint': "https://explorer.finney.opentensor.ai/#/explorer",
+    'finney': "https://explorer.finney.opentensor.ai/#/explorer"
 }
 
 # Avoid collisions with other processes
