@@ -63,5 +63,10 @@
         "name": "Tensor.Exchange", 
         "url": "www.tensor.exchange", 
         "description": "Bittensor's first community OTC exchange"
+    },
+    "5Gpt8XWFTXmKrRF1qaxcBQLvnPLpKi6Pt2XC4vVQR7gqNKtU": {
+        "name": "StakeBoost Validator", 
+        "url": "https://taostats.io/validators/stakeboost-validator/", 
+        "description": "We refund 50% of the 18% take that validators get from delegated stake emissions. Payback is automatic after a minimum holding period of 30 days to the users coldkey."
     }
 }
