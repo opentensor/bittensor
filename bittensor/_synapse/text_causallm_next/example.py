@@ -1,4 +1,4 @@
-bittensor/_synapse/text_causallm_next/example.pyimport torch
+import torch
 from transformers import AutoModelForCausalLM
 
 import bittensor
