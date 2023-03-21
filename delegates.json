@@ -59,6 +59,11 @@
         "url": "https://taostats.io",
         "description": "Supporting the bittensor eco-system through data provision, statistics and analytics."
     },
+    "5CXRfP2ekFhe62r7q3vppRajJmGhTi7vwvb2yr79jveZ282w": {
+        "name": "Rizzo",
+        "url": "",
+        "description": "Validator built for performance and uptime. Data center housed, redundancies include dual physical failover servers (HA), power, internet, tested DR Plan."
+    },	
     "5GcBK8PDrVifV1xAf4Qkkk6KsbsmhDdX9atvk8vyKU8xdU63": {
         "name": "Tensor.Exchange", 
         "url": "www.tensor.exchange", 
