@@ -63,5 +63,10 @@
         "name": "Tensor.Exchange", 
         "url": "www.tensor.exchange", 
         "description": "Bittensor's first community OTC exchange"
+    },
+    "5GzoXHNJ4UzZYiQN2wpBcwMigiHiakiz5ZLMwhpunpwDNzFg": {
+        "name": "CHARITAOS", 
+        "url": "https://twitter.com/karis_crypto/status/1637904058911522830?s=20", 
+        "description": "You pay 18%, we donate 18%. At the end of every month, we will select one (or more) community-proposed 501c3 licensed nonprofit(s) to receive all proceeds from stake delegation for the prior month."
     }
 }
