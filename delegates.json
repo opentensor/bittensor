@@ -63,5 +63,10 @@
         "name": "Tensor.Exchange", 
         "url": "www.tensor.exchange", 
         "description": "Bittensor's first community OTC exchange"
-    }
+    },
+        "5EhvL1FVkQPpMjZX4MAADcW42i3xPSF1KiCpuaxTYVr28sux": {
+        "name": "TAO-Validator.com", 
+        "url": "www.tao-validator.com", 
+        "description": "TAO-Validator.com is a highly secure validator on the Bittensor Network. Maximize your return when staking with TAO-Validator.com"
+    },
 }
