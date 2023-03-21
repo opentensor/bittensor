@@ -1,8 +1,28 @@
-import torch
+bittensor/_synapse/text_causallm_next/example.pyimport torch
+from transformers import AutoModelForCausalLM
 
 import bittensor
 
 bittensor.logging(debug=True)
+
+
+# Create a synapse that returns zeros.
+class Synapse(bittensor.TextCausalLMNextSynapse):
+
+    model = AutoModelForCausalLM.from_pretrained("EleutherAI/gpt-neo-1.3B")
+    def _priority(self, forward_call: "bittensor.TextCausalLMNextForwardCall") -> float:
+        return 0.0
+
+    def _blacklist(self, forward_call: "bittensor.TextCausalLMNextForwardCall") -> bool:
+        return False
+
+    def forward(
+        self, forward_call: "bittensor.TextCausalLMNextForwardCall"
+    ) -> torch.Tensor:
+        outputs = self.model(input_ids=forward_call.text_inputs, output_hidden_states=True)
+
+        forward_call.hidden_states = outputs.hidden_states[-1][:, :, :1024]
+
 
 # Create a mock wallet.
 wallet = bittensor.wallet().create_if_non_existent()
@@ -19,38 +39,21 @@ local_endpoint = bittensor.endpoint(
     modality=0,
 )
 
-# Create a synapse that returns zeros.
-class Synapse(bittensor.TextCausalLMNextSynapse):
-    def _priority(self, forward_call: "bittensor.TextCausalLMNextForwardCall") -> float:
-        return 0.0
-
-    def _blacklist(self, forward_call: "bittensor.TextCausalLMNextForwardCall") -> bool:
-        return False
-
-    def forward(
-        self, forward_call: "bittensor.TextCausalLMNextForwardCall"
-    ) -> bittensor.TextCausalLMNextForwardCall:
-        forward_call.hidden_states = torch.zeros(
-            forward_call.text_inputs.shape[0],
-            forward_call.text_inputs.shape[1],
-            bittensor.__network_dim__,
-        )
-        return forward_call
-
-
-subtensor = bittensor.subtensor( )
 metagraph = None # Allow offline testing with unregistered keys.
-# Create a synapse and attach it to an axon.
 axon = bittensor.axon(wallet=wallet, port=9090, ip="127.0.0.1", metagraph=metagraph)
 
 synapse = Synapse()
 axon.attach(synapse=synapse)
 axon.start()
 
-# Create a text_last_hidden_state module and call it.
+batch_size = 4
+sequence_length=32
+# Create a text_causallm_next module and call it.
 module = bittensor.text_causal_lm_next(endpoint=local_endpoint, wallet=wallet)
 response = module.forward(
-    text_inputs=torch.ones((3, 4), dtype=torch.long), mask=torch.rand((3, 4)) > 0.5, timeout=1
+    text_inputs=torch.ones((batch_size, sequence_length), dtype=torch.long),
+    mask=torch.rand((batch_size, sequence_length)) > 0.5,
+    timeout=1e6
 )
 
 

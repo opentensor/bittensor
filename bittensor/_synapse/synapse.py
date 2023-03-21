@@ -24,6 +24,8 @@ from types import SimpleNamespace
 from typing import Union
 from warnings import warn
 
+import torch
+
 import grpc
 
 import bittensor
@@ -69,7 +71,8 @@ class Synapse(ABC):
         raise NotImplementedError("Must implement subclass_blacklist() in subclass.")
 
     @abstractmethod
-    def forward(self, forward_call: bittensor.BittensorCall) -> bittensor.BittensorCall:
+    def forward(self, inputs: torch.Tensor,
+                forward_call: bittensor.BittensorCall) -> bittensor.BittensorCall:
         raise NotImplementedError("Must implement forward() in subclass.")
 
     ## Methods to be defined in the request-specific synapse.
@@ -206,7 +209,8 @@ class Synapse(ABC):
         # Call subclass blacklist and optionaly return if metagraph is None.
         try:
             sub_blacklist = self._blacklist(forward_call)
-        except:
+        except NotImplementedError:
+            warn("_blacklist is not defined in the terminal child class, defaulting to blacklist=True.")
             sub_blacklist = True
         if self.axon.metagraph is None:
             return sub_blacklist
