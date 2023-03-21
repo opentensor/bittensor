@@ -621,7 +621,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = []
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="subnetInfo_getSubnetsInfo", # custom rpc method
                     params=params
@@ -642,7 +642,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [netuid]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="subnetInfo_getSubnetInfo", # custom rpc method
                     params=params
@@ -679,7 +679,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [encoded_hotkey]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="delegateInfo_getDelegate", # custom rpc method
                     params=params
@@ -702,7 +702,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = []
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="delegateInfo_getDelegates", # custom rpc method
                     params=params
@@ -724,7 +724,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [encoded_coldkey]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="delegateInfo_getDelegated", # custom rpc method
                     params=params
@@ -802,7 +802,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [netuid, uid]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="neuronInfo_getNeuron", # custom rpc method
                     params=params
@@ -832,7 +832,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [netuid]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="neuronInfo_getNeurons", # custom rpc method
                     params=params
@@ -866,7 +866,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [netuid, uid]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash] 
                 return substrate.rpc_request(
                     method="neuronInfo_getNeuronLite", # custom rpc method
                     params=params
@@ -896,7 +896,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [netuid]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="neuronInfo_getNeuronsLite", # custom rpc method
                     params=params
