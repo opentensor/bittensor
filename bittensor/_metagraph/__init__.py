@@ -132,7 +132,7 @@ class metagraph:
                     netuid of the subnet for the metagraph.
                 info: (:obj:`SubnetInfo`, required):
                     SubnetInfo object for the metagraph, including the subnet's hyperparameters.
-                neurons: (:obj:`List[NeuronInfo]`, required):
+                neurons: (:obj:`Union[List[NeuronInfo], List[NeuronInfoLite]]`, required):
                     List of neurons to create metagraph from.
                 block: (:obj:`int`, required):
                     Block number at time of the metagraph.

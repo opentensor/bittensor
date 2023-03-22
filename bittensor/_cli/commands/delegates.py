@@ -112,7 +112,7 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], prev_delegates: L
             str(i),
             Text(delegate_name, style=f'link {delegate_url}'),
             f'{delegate.hotkey_ss58:8.8}...',
-            str(len(delegate.nominators)),
+            str(len([nom for nom in delegate.nominators if nom[1].rao > 0])),
             f'{owner_stake!s:13.13}',
             f'{delegate.total_stake!s:13.13}',
             rate_change_in_stake_str,
