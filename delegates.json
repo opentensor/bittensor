@@ -69,6 +69,11 @@
         "url": "www.tensor.exchange", 
         "description": "Bittensor's first community OTC exchange"
     },
+    "5DnWFhKfeu6gXMydzrv8bkwxFegAC6bMWsC4Z2XtaotAeB6S": {
+        "name": "Bittensor Greece", 
+        "url": "", 
+        "description": "The Greek / Cypriot validator supporting the development of decentralised AI"
+    },
     "5GBxDYkDp8eJZHGT89wcZJKcMc4ytSqnqqVSpeuGeqtGfqxK": {
         "name": "τao Stake",
         "url": "www.taostake.io",
