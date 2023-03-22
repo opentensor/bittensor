@@ -69,6 +69,11 @@
         "url": "www.tensor.exchange", 
         "description": "Bittensor's first community OTC exchange"
     },
+    "5E6oB7h5wtWPbqtPxtSoZeo11fpvDjPuY13SobAMxqEUjqkQ": {
+        "name": "StakeTensor.com-3", 
+        "url": "www.staketensor.com", 
+        "description": "We run multiple, parallel validators to support Bittensor decentralization & achieve maximum returns"
+    },
     "5DnWFhKfeu6gXMydzrv8bkwxFegAC6bMWsC4Z2XtaotAeB6S": {
         "name": "Bittensor Greece", 
         "url": "", 
