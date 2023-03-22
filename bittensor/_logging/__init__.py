@@ -304,24 +304,11 @@ class logging:
                     synapse = synapse
         )
 
-
-    @classmethod
-    def create_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
-        """ Debug logging for the connection between endpoints 
-        """
-        logger.debug( 'endpoint', receptor=True, action = '<green>' + 'Connect'.center(16) + '</green>', uid=str(endpoint.uid).center(4), hotkey=endpoint.hotkey, coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(27) )
-
     @classmethod
     def update_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
         """ Debug logging for updating the connection with endpoint
         """
         logger.debug( 'endpoint', receptor=True, action = '<blue>' + 'Update'.center(16) + '</blue>', uid=str(endpoint.uid).center(4), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(27) )
-
-    @classmethod
-    def destroy_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
-        """ Debug logging for destroying connection with endpoint
-        """
-        logger.debug( 'endpoint', receptor=True, action = '<red>' + 'Destroy'.center(16) + '</red>', uid=str(endpoint.uid).center(4), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(27) )
 
     @classmethod
     def success( cls, prefix:str, sufix:str ):
