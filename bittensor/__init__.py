@@ -78,7 +78,7 @@ __finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
-__local_entrypoint__ = "ws://127.0.0.1:9945"
+__local_entrypoint__ = "ws://127.0.0.1:9944"
 
 __tao_symbol__: str = chr(0x03C4)
 
@@ -87,11 +87,10 @@ __rao_symbol__: str = chr(0x03C1)
 # Block Explorers map network to explorer url
 ## Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
-    'local': "https://explorer.nakamoto.opentensor.ai/#/explorer",
+    'local': "https://explorer.finney.opentensor.ai/#/explorer",
     'nakamoto': "https://explorer.nakamoto.opentensor.ai/#/explorer",
-    'endpoint': "https://explorer.nakamoto.opentensor.ai/#/",
-    'nobunaga': "https://staging.opentensor.ai/#/explorer",
-    'finney': "https://explorer.opentensor.ai/"
+    'endpoint': "https://explorer.finney.opentensor.ai/#/explorer",
+    'finney': "https://explorer.finney.opentensor.ai/#/explorer"
 }
 
 # Avoid collisions with other processes
