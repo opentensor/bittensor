@@ -72,7 +72,7 @@ class Synapse(ABC):
 
     @abstractmethod
     def forward(self, inputs: torch.Tensor,
-                forward_call: bittensor.BittensorCall) -> bittensor.BittensorCall:
+                forward_call: bittensor.BittensorCall) -> bittensor.BittensorCall: # TODO: Return tensors instead, attach to call obj in middle child Forward
         raise NotImplementedError("Must implement forward() in subclass.")
 
     ## Methods to be defined in the request-specific synapse.
