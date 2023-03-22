@@ -138,9 +138,8 @@ class ListSubnetsCommand:
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-
+        pass
+    
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
         list_subnets_parser = parser.add_parser(

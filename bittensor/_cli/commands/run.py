@@ -83,10 +83,7 @@ class RunCommand:
    
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        # Check network.
-        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-        
+        # Check network.        
         check_netuid_set( config, subtensor = bittensor.subtensor( config = config ) )
 
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
