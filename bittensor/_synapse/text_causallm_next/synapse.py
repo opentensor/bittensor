@@ -83,6 +83,9 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
             response (bittensor.ForwardTextCausalLMNextResponse):
                 response.serialized_hidden_states (string): serialized hidden states.
         """
+        # TODO: Return topk logits
+        # (bs, 1, vocab_size) -> (32, 1, 50_000) -> (32, 1, topk=4096) -> (32, 2, 4096)
+
         # Serialize hidden states.
         hidden_state_serializer = bittensor.serializer(
             serializer_type=forward_call.hidden_states_serializer_type
