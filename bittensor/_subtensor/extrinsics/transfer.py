@@ -113,7 +113,7 @@ def transfer_extrinsic(
 
     # Ask before moving on.
     if prompt:
-        if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest )):
+        if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}\n  for fee:{}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest, fee )):
             return False
 
     with bittensor.__console__.status(":satellite: Transferring..."):
