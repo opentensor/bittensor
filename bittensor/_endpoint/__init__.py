@@ -18,7 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import json
-from types import SimpleNamespace
+from typing import Union
 import torch
 import bittensor
 
@@ -63,7 +63,7 @@ class endpoint:
 
 
     @staticmethod
-    def from_neuron( neuron: 'bittensor.NeuronInfo' ) -> 'bittensor.Endpoint':
+    def from_neuron( neuron: Union['bittensor.NeuronInfo', 'bittensor.NeuronInfoLite'] ) -> 'bittensor.Endpoint':
         """
         endpoint.assert_format(
             version = neuron.version,
