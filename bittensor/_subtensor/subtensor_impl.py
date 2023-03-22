@@ -241,6 +241,22 @@ class Subtensor:
             wait_for_finalization = wait_for_finalization,
             prompt = prompt
         )
+    
+    def get_existential_deposit(
+        self,
+        block: Optional[int] = None,
+    ) -> Optional[Balance]:
+        """ Returns the existential deposit for the chain. """
+        result = self.query_constant(
+            module_name='Balances',
+            constant_name='ExistentialDeposit',
+            block = block,
+        )
+        
+        if result is None:
+            return None
+        
+        return Balance.from_rao(result.value)
 
     #################
     #### Serving ####
@@ -373,6 +389,18 @@ class Subtensor:
                     block_hash = None if block == None else substrate.get_block_hash(block)
                 )
         return make_substrate_call_with_retry()
+    
+    """ Gets a constant from subtensor with module_name, constant_name, and block. """
+    def query_constant( self, module_name: str, constant_name: str, block: Optional[int] = None ) -> Optional[object]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.get_constant(
+                    module_name=module_name,
+                    constant_name=constant_name,
+                    block_hash = None if block == None else substrate.get_block_hash(block)
+                )
+        return make_substrate_call_with_retry()
       
     #####################################
     #### Hyper parameter calls. ####
@@ -484,7 +512,7 @@ class Subtensor:
         return self.query_subtensor('Tempo', block, [netuid] ).value
 
     ##########################
-    #### Account fucntions ###
+    #### Account functions ###
     ##########################
 
     """ Returns the total stake held on a hotkey including delegative """
@@ -950,6 +978,12 @@ class Subtensor:
         print("Metagraph subtensor: ", self.network)
         return metagraph
 
+    ################
+    #### Transfer ##
+    ################
+
+
+    
 
     ################
     #### Legacy ####
