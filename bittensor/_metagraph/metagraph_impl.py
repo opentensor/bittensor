@@ -342,7 +342,7 @@ class Metagraph( torch.nn.Module ):
         self.info = bittensor.SubnetInfo.from_parameter_dict( state_dict['info'] ) if 'info' in state_dict else None
         return self
 
-    def sync ( self, netuid: Optional[int] = None, subtensor: 'bittensor.Subtensor' = None, block: Optional[int] = None ) -> 'Metagraph':
+    def sync ( self, netuid: Optional[int] = None, subtensor: 'bittensor.Subtensor' = None, block: Optional[int] = None, lite: bool = True ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.
             Args:
                 subtensor: (:obj:`bittensor.Subtensor`, optional, defaults to None):
@@ -353,6 +353,9 @@ class Metagraph( torch.nn.Module ):
                     Defaults to the netuid of the metagraph object.
                 block: (:obj:`int`, optional, defaults to None):
                     block to sync with. If None, syncs with the current block.
+                lite: (:obj:`bool`, defaults to True):
+                    If true, syncs using the lite version of the metagraph.
+                    Note: lite version does not include weights, bonds
             Returns:
                 self: (:obj:`Metagraph`, required):
                     Returns self.
@@ -365,7 +368,7 @@ class Metagraph( torch.nn.Module ):
             if netuid == None:
                 raise ValueError('Metagraph.sync() requires a netuid to sync with.')
         # Pull metagraph from chain using subtensor.
-        metagraph = subtensor.metagraph( netuid = netuid, block = block )
+        metagraph = subtensor.metagraph( netuid = netuid, block = block, lite = lite )
         # Update self with new values.
         self.__dict__.update(metagraph.__dict__)
         return self

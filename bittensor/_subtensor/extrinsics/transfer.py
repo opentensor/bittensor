@@ -31,6 +31,7 @@ def transfer_extrinsic(
         amount: Union[Balance, float], 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        keep_alive: bool = True,
         prompt: bool = False,
     ) -> bool:
     r""" Transfers funds from this wallet to the destination public key address
@@ -47,6 +48,8 @@ def transfer_extrinsic(
         wait_for_finalization (bool):
             If set, waits for the extrinsic to be finalized on the chain before returning true,
             or returns false if the extrinsic fails to be finalized within the timeout.
+        keep_alive (bool):
+            If set, keeps the account alive by keeping the balance above the existential deposit.
         prompt (bool):
             If true, the call waits for confirmation from the user before proceeding.
     Returns:
@@ -75,14 +78,42 @@ def transfer_extrinsic(
     # Check balance.
     with bittensor.__console__.status(":satellite: Checking Balance..."):
         account_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
+        # check existential deposit.
+        existential_deposit = subtensor.get_existential_deposit()
+
+    with bittensor.__console__.status(":satellite: Transferring..."):
+        with subtensor.substrate as substrate:
+            call = substrate.compose_call(
+                call_module='Balances',
+                call_function='transfer',
+                call_params={
+                    'dest': dest, 
+                    'value': transfer_balance.rao
+                }
+            )
+
+            try:
+                payment_info = substrate.get_payment_info( call = call, keypair = wallet.coldkey )
+            except Exception as e:
+                bittensor.__console__.print(":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {}[/bold white]".format(e))
+                payment_info = {
+                    'partialFee': 2e7, # assume  0.02 Tao 
+                }
+
+            fee = bittensor.Balance.from_rao( payment_info['partialFee'] )
     
-    if account_balance < transfer_balance:
-        bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}[/bold white]".format( account_balance, transfer_balance ))
+    if not keep_alive:
+        # Check if the transfer should keep_alive the account
+        existential_deposit = bittensor.Balance(0)
+
+    # Check if we have enough balance.
+    if account_balance < (transfer_balance + fee + existential_deposit):
+        bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}\n  for fee: {}[/bold white]".format( account_balance, transfer_balance, fee ))
         return False
 
     # Ask before moving on.
     if prompt:
-        if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest )):
+        if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}\n  for fee: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest, fee )):
             return False
 
     with bittensor.__console__.status(":satellite: Transferring..."):
@@ -95,6 +126,7 @@ def transfer_extrinsic(
                     'value': transfer_balance.rao
                 }
             )
+
             extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
             response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
             # We only wait here if we expect finalization.

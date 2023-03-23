@@ -289,7 +289,7 @@ def add_stake_multiple_extrinsic (
                 block = subtensor.get_current_block()
                 new_stake = subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkeypub.ss58_address, hotkey_ss58 = hotkey_ss58, block = block )
                 new_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address, block = block )
-                bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( wallet.hotkey.ss58_address, old_stake, new_stake ))
+                bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( hotkey_ss58, old_stake, new_stake ))
                 old_balance = new_balance
                 successful_stakes += 1
                 if staking_all:
@@ -301,7 +301,7 @@ def add_stake_multiple_extrinsic (
                 continue
 
         except NotRegisteredError as e:
-            bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
+            bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(hotkey_ss58))
             continue
         except StakeError as e:
             bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
