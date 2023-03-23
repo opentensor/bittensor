@@ -154,6 +154,7 @@ message ForwardTextCausalLMNextRequest {
 
 	// QueryTimeout
 	float timeout = 7;
+	int32 topk = 8;
 }
 
 message ForwardTextCausalLMNextResponse {

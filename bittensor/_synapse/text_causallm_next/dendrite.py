@@ -46,7 +46,6 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
             request_proto (:obj:`bittensor.ForwardTextCausalLMNextRequest`, `required`):
                 bittensor request proto object.
         """
-
         # Serialize text inputs.
         text_serializer = bittensor.serializer(
             serializer_type=forward_call.text_inputs_serializer_type
@@ -56,6 +55,7 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
         # Return forward call.
         return bittensor.ForwardTextCausalLMNextRequest(
             timeout=forward_call.timeout,
+            topk=forward_call.topk,
             serialized_text_inputs=serialized_text,
             text_inputs_serializer_type=forward_call.text_inputs_serializer_type,
             text_outputs_serializer_type=forward_call.text_outputs_serializer_type,

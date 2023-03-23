@@ -29,12 +29,14 @@ class TextCausalLMNextForwardCall(bittensor.BittensorCall):
     # The name of the synapse call.
     name: str = "forward_text_last_hidden_state"
     text_outputs = None # To be filled by the forward call
+    topk: int = 4096 # Static.
 
     def __str__(self) -> str:
         return """
 bittensor.TextCausalLMNextForwardCall( 
     description: Returns the logits for the last predicted item in a given sequence.
     caller: {},
+    topk: {},
     version: {},
     timeout = {}, 
     start_time = {},
@@ -48,6 +50,7 @@ bittensor.TextCausalLMNextForwardCall(
 )
 """.format(
             self.hotkey,
+            self.topk,
             self.version,
             self.timeout,
             self.start_time,
