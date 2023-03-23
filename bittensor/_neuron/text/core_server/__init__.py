@@ -214,7 +214,7 @@ class neuron:
 
         # Load/Create our bittensor wallet.
         self.wallet.reregister(subtensor=self.subtensor, netuid = self.config.netuid)
-        self.metagraph.load().sync(netuid = self.config.netuid, subtensor=self.subtensor).save()
+        self.metagraph.sync(netuid = self.config.netuid, subtensor=self.subtensor).save()
 
         # Create our optimizer.
         optimizer = torch.optim.SGD(

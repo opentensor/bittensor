@@ -76,8 +76,6 @@ class neuron:
                 bittensor dendrite object
             dataset (:obj:bittensor.dendrite, `optional`):
                 bittensor dendrite object
-            axon (:obj:bittensor.axon, `optional`):
-                bittensor axon object
     Examples:: 
             >>> subtensor = bittensor.subtensor(network='nakamoto')
             >>> validator = bittensor.neuron.text.core_validator.neuron(subtensor=subtensor)
@@ -91,7 +89,6 @@ class neuron:
         metagraph: 'bittensor.Metagraph' = None,
         dendrite: 'bittensor.Dendrite' = None,
         dataset: 'bittensor.dataset' = None,
-        axon: 'bittensor.axon' = None,
         netuid: int = None
     ):
 
@@ -123,7 +120,6 @@ class neuron:
             self.config.dendrite._mock = True
             self.config.metagraph._mock = True
             self.config.subtensor._mock = True
-            self.config.axon._mock = True
         print ( self.config )
 
         # ===  Logging + prometheus ===
@@ -139,8 +135,7 @@ class neuron:
         self.wallet = bittensor.wallet ( config = self.config ) if wallet == None else wallet
         self.subtensor = subtensor
         self.metagraph = bittensor.metagraph ( config = self.config ) if metagraph == None else metagraph
-        self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet, max_active_receptors = 0 ) if dendrite == None else dendrite # Dendrite should not store receptor in validator.
-        self.axon = bittensor.axon ( netuid=self.config.netuid, config = self.config, wallet = self.wallet ) if axon == None else axon
+        self.dendrite = bittensor.dendrite ( config = self.config, wallet = self.wallet, max_active_receptors = 0 ) if dendrite == None else dendrite # Dendrite should not store receptor in validator.        
         self.device = torch.device ( device = self.config.neuron.device )    
         self.nucleus = nucleus ( config = self.config, device = self.device, subtensor = self.subtensor, vlogger = self.vlogger ).to( self.device )
         if self.config.subtensor.network == 'nakamoto':
@@ -192,7 +187,6 @@ class neuron:
         bittensor.dataset.check_config( config )
         bittensor.dendrite.check_config( config )
         bittensor.wandb.check_config( config )
-        bittensor.axon.check_config( config )
         bittensor.prometheus.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}/netuid{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.netuid, config.neuron.name ))
         config.neuron.full_path = os.path.expanduser(full_path)
@@ -236,7 +230,6 @@ class neuron:
         bittensor.logging.add_args( parser )
         bittensor.dataset.add_args( parser )
         bittensor.wandb.add_args(parser)
-        bittensor.axon.add_args( parser )
         bittensor.prometheus.add_args( parser )
         return bittensor.config( parser )
 
@@ -286,15 +279,13 @@ class neuron:
             )
 
         # === Set prometheus run info ===
-        # Serve the prometheus with axon so we can determine where the prometheus server port is (the axon is only served for this reason.)
-        # TODO (Cameron) this should be it's own storage map on-chain.
+        # Serve the prometheus 
         bittensor.prometheus(
             config = self.config, 
             wallet = self.wallet,
             netuid = self.config.netuid,
-            port = self.config.prometheus.port if self.config.prometheus.port == bittensor.defaults.axon.port else self.config.axon.port - 1000
+            port = self.config.prometheus.port
         )
-        self.axon.serve( subtensor = self.subtensor )
         
         self.vlogger.prometheus.log_run_info(
             parameters = self.nucleus.parameters(),
@@ -844,7 +835,7 @@ class nucleus( torch.nn.Module ):
         parser.add_argument('--nucleus.dropout', type=float, help='the dropout value', default=0.2)
         parser.add_argument('--nucleus.importance', type=float, help='hyperparameter for the importance loss', default=3)
         parser.add_argument('--nucleus.noise_multiplier', type=float, help='Standard deviation multipler on weights', default=2 )
-        parser.add_argument('--nucleus.no_dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
+        parser.add_argument('--nucleus.dendrite_backward', action='store_true', help='Pass backward request to the server side or not', default=False )
         parser.add_argument('--nucleus.scaling_law_power', type=float, help='Power for modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
         parser.add_argument('--nucleus.synergy_scaling_law_power', type=float, help='Power for synergy modified scaling law, powered down to improve dynamic range, e.g. 3 → 6 nats for 0.5. (default value: -1, pulling from subtensor directly)', default=-1)
         parser.add_argument('--nucleus.logits_divergence', type=float, help=' the divergence value for logit anomaly detection (default value: -1, pulling from subtensor directly)', default=-1)
@@ -985,10 +976,11 @@ class nucleus( torch.nn.Module ):
             timeout=bittensor.__blocktime__
         )
 
-        if self.config.nucleus.no_dendrite_backward:
-            query_responses = [[syn.detach().to(self.device) for syn in res] for res in query_responses]
-            return_ops = [ops.detach().to(self.device) for ops in return_ops]
-            times = [t.detach().to(self.device) for t in times]
+        if not self.config.nucleus.dendrite_backward:
+            query_responses = [[syn.detach() for syn in res] for res in query_responses]
+            return_ops = [ops.detach() for ops in return_ops]
+            times = [t.detach() for t in times]
+
 
         # Send responses to device. This is required to ensure we move the responses
         # Onto the correct device.
