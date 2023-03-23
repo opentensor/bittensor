@@ -41,8 +41,6 @@ class Synapse(ABC):
         Args:
             config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.config()):
                 bittensor config object.
-            metagraph (:obj:`bittensor.metagraph.Metagraph`, `optional`, defaults to bittensor.metagraph.Metagraph()):
-                bittensor metagraph object.
         """
 
         if self.synapse_name == "base":
@@ -72,7 +70,7 @@ class Synapse(ABC):
 
     @abstractmethod
     def forward(self, inputs: torch.Tensor,
-                forward_call: bittensor.BittensorCall) -> bittensor.BittensorCall: # TODO: Return tensors instead, attach to call obj in middle child Forward
+                forward_call: bittensor.BittensorCall) -> torch.Tensor:
         raise NotImplementedError("Must implement forward() in subclass.")
 
     ## Methods to be defined in the request-specific synapse.
@@ -265,7 +263,7 @@ class Synapse(ABC):
 
     def Forward(
         self, request: "bittensor.ForwardRequest", context: grpc.ServicerContext
-    ) -> "bittensor.ForwardResponse":
+    ) -> torch.Tensor:
         """ForwardTextLastHiddenState
         ----------------------------
         Args:

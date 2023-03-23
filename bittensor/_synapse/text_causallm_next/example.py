@@ -20,8 +20,10 @@ class Synapse(bittensor.TextCausalLMNextSynapse):
         self, forward_call: "bittensor.TextCausalLMNextForwardCall"
     ) -> torch.Tensor:
         outputs = self.model(input_ids=forward_call.text_inputs, output_hidden_states=False)
-        # TODO: topk here? (or in post_process_...?
-        return outputs.logits
+        # TODO: return topk CORRECTLY.
+        topk = forward_call.topk
+        topk_obj = torch.topk(outputs.logits, topk)
+        return topk_obj.values
 
 
 # Create a mock wallet.
