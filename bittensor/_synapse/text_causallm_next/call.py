@@ -82,7 +82,7 @@ bittensor.TextCausalLMNextForwardCall(
         """
         super().__init__(timeout=timeout)
         self.text_inputs = text_inputs
-        self.hidden_states = None
+        self.text_outputs = None
         self.text_inputs_serializer_type = text_inputs_serializer_type
         self.text_outputs_serializer_type = text_outputs_serializer_type
 
@@ -92,8 +92,8 @@ bittensor.TextCausalLMNextForwardCall(
         return None
 
     def get_outputs_shape(self) -> Union[torch.Size, None]:
-        if self.hidden_states is not None:
-            return self.hidden_states.shape
+        if self.text_outputs is not None:
+            return self.text_outputs.shape
         return None
 
 

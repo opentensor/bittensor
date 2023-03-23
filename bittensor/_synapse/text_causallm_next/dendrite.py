@@ -80,57 +80,19 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
         forward_call.response_code = response_proto.return_code
         forward_call.response_message = response_proto.message
 
-        if (response_proto.return_code != bittensor.proto.ReturnCode.Success) or (
-            response_proto.return_code != bittensor.proto.ReturnCode.Success
-        ):
+        if response_proto.return_code != bittensor.proto.ReturnCode.Success:
             forward_call.hidden_states = None
             return forward_call
 
         # Deserialize hidden states.
-        hidden_states_serializer = bittensor.serializer(
-            serializer_type=forward_call.hidden_states_serializer_type
+        text_outputs_serializer = bittensor.serializer(
+            serializer_type=forward_call.text_outputs_serializer_type
         )
-        hidden_states = hidden_states_serializer.deserialize(
-            response_proto.serialized_hidden_states
+        text_outputs = text_outputs_serializer.deserialize(
+            response_proto.serialized_text_outputs
         )
 
-        # If the mask is not none, we need to expand the hidden states to the proper size.
-        if forward_call.mask != None:
-            # From the encode_forward_response function the forward_response_tensor is [ len(mask), net_dim ]
-            # a set of rows from the stacked_forward_response_tensor = [ bs * seq, net_dim ]
-            # We will load these rows into a destination tensor = [bs, seq, net_dim]
-            destination = torch.zeros(
-                [
-                    forward_call.text_inputs.size(0) * forward_call.text_inputs.size(1),
-                    bittensor.__network_dim__,
-                ]
-            )
-
-            # Iterate through the mask and fill the destination tensor
-            # with the hidden states from the forward call.
-            counter = 0
-            for i, not_masked in enumerate(forward_call.mask.reshape(-1)):
-                if not_masked:
-                    destination[i, :] = hidden_states[counter, :]
-                    counter += 1
-
-            # Reshape the destination tensor to the proper expanded size.
-            hidden_states = destination.reshape(
-                (
-                    forward_call.text_inputs.size(0),
-                    forward_call.text_inputs.size(1),
-                    bittensor.__network_dim__,
-                )
-            )
-
-            # Fill forward call.
-            forward_call.hidden_states = hidden_states
-
-        # If the mask is none, we can just fill the forward call.
-        else:
-            forward_call.hidden_states = hidden_states
-
-        # Return.
+        forward_call.text_outputs = text_outputs
         return forward_call
 
     def forward(

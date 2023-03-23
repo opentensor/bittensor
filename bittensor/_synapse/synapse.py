@@ -348,16 +348,15 @@ class Synapse(ABC):
                 call_time=time.time() - forward_call.start_time,
                 pubkey=forward_call.hotkey,
                 uid=None,
-                inputs=list(forward_call.get_inputs_shape())
+                inputs=forward_call.get_inputs_shape()
                 if forward_call.response_code == bittensor.proto.ReturnCode.Success
                 else None,
-                outputs=list(forward_call.get_outputs_shape())
+                outputs=forward_call.get_outputs_shape()
                 if forward_call.response_code == bittensor.proto.ReturnCode.Success
                 else None,
                 message=forward_call.response_message,
                 synapse=self.__str__(),
             )
-
             response = self.post_process_forward_call_to_response_proto(forward_call)
             response.hotkey = self.axon.wallet.hotkey.ss58_address
             response.version = bittensor.__version_as_int__
