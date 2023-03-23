@@ -63,5 +63,10 @@
         "name": "Tensor.Exchange", 
         "url": "www.tensor.exchange", 
         "description": "Bittensor's first community OTC exchange"
+    },
+    "5CsvRJXuR955WojnGMdok1hbhffZyB4N5ocrv82f3p5A2zVp": {
+        "name": "Owl Ventures", 
+        "url": "https://owlventures.co.uk", 
+        "description": "Owl Ventures Bittensor Validator"
     }
 }
