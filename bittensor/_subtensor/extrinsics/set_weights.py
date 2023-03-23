@@ -90,7 +90,8 @@ def set_weights_extrinsic(
                         'version_key': version_key,
                     }
                 )
-                extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+                # Period dictates how long the extrinsic will stay as part of waiting pool
+                extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey, era={'period':100})
                 response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
                 # We only wait here if we expect finalization.
                 if not wait_for_finalization and not wait_for_inclusion:
