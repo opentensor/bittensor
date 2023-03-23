@@ -241,6 +241,22 @@ class Subtensor:
             wait_for_finalization = wait_for_finalization,
             prompt = prompt
         )
+    
+    def get_existential_deposit(
+        self,
+        block: Optional[int] = None,
+    ) -> Optional[Balance]:
+        """ Returns the existential deposit for the chain. """
+        result = self.query_constant(
+            module_name='Balances',
+            constant_name='ExistentialDeposit',
+            block = block,
+        )
+        
+        if result is None:
+            return None
+        
+        return Balance.from_rao(result.value)
 
     #################
     #### Serving ####
@@ -373,6 +389,18 @@ class Subtensor:
                     block_hash = None if block == None else substrate.get_block_hash(block)
                 )
         return make_substrate_call_with_retry()
+    
+    """ Gets a constant from subtensor with module_name, constant_name, and block. """
+    def query_constant( self, module_name: str, constant_name: str, block: Optional[int] = None ) -> Optional[object]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.get_constant(
+                    module_name=module_name,
+                    constant_name=constant_name,
+                    block_hash = None if block == None else substrate.get_block_hash(block)
+                )
+        return make_substrate_call_with_retry()
       
     #####################################
     #### Hyper parameter calls. ####
@@ -484,7 +512,7 @@ class Subtensor:
         return self.query_subtensor('Tempo', block, [netuid] ).value
 
     ##########################
-    #### Account fucntions ###
+    #### Account functions ###
     ##########################
 
     """ Returns the total stake held on a hotkey including delegative """
@@ -621,7 +649,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = []
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="subnetInfo_getSubnetsInfo", # custom rpc method
                     params=params
@@ -642,7 +670,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [netuid]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="subnetInfo_getSubnetInfo", # custom rpc method
                     params=params
@@ -679,7 +707,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [encoded_hotkey]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="delegateInfo_getDelegate", # custom rpc method
                     params=params
@@ -702,7 +730,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = []
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="delegateInfo_getDelegates", # custom rpc method
                     params=params
@@ -724,7 +752,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [encoded_coldkey]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="delegateInfo_getDelegated", # custom rpc method
                     params=params
@@ -802,7 +830,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [netuid, uid]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="neuronInfo_getNeuron", # custom rpc method
                     params=params
@@ -832,7 +860,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [netuid]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="neuronInfo_getNeurons", # custom rpc method
                     params=params
@@ -866,7 +894,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [netuid, uid]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash] 
                 return substrate.rpc_request(
                     method="neuronInfo_getNeuronLite", # custom rpc method
                     params=params
@@ -896,7 +924,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [netuid]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="neuronInfo_getNeuronsLite", # custom rpc method
                     params=params
@@ -910,7 +938,7 @@ class Subtensor:
         
         return NeuronInfoLite.list_from_vec_u8( result )
 
-    def metagraph( self, netuid: int, block: Optional[int] = None ) -> 'bittensor.Metagraph':
+    def metagraph( self, netuid: int, block: Optional[int] = None, lite: bool = True ) -> 'bittensor.Metagraph':
         r""" Returns the metagraph for the subnet.
         Args:
             netuid ( int ):
@@ -918,6 +946,8 @@ class Subtensor:
             block (Optional[int]):
                 The block to create the metagraph for.
                 Defaults to latest.
+            lite (bool, default=True):
+                If true, returns a metagraph using the lite sync (no weights, no bonds)
         Returns:
             metagraph ( `bittensor.Metagraph` ):
                 The metagraph for the subnet at the block.
@@ -928,7 +958,11 @@ class Subtensor:
             status.start()
         
         # Get neurons.
-        neurons = self.neurons( netuid = netuid, block = block )
+        if lite:
+            neurons = self.neurons_lite( netuid = netuid, block = block )
+        else:
+            neurons = self.neurons( netuid = netuid, block = block )
+        
         # Get subnet info.
         subnet_info: Optional[bittensor.SubnetInfo] = self.get_subnet_info( netuid = netuid, block = block )
         if subnet_info == None:
@@ -939,11 +973,17 @@ class Subtensor:
 
         # Create metagraph.
         block_number = self.block
-
+        
         metagraph = bittensor.metagraph.from_neurons( network = self.network, netuid = netuid, info = subnet_info, neurons = neurons, block = block_number )
         print("Metagraph subtensor: ", self.network)
         return metagraph
 
+    ################
+    #### Transfer ##
+    ################
+
+
+    
 
     ################
     #### Legacy ####

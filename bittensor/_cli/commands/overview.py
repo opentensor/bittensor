@@ -73,7 +73,7 @@ class OverviewCommand:
             return
 
         # Pull neuron info for all keys.            
-        neurons: Dict[str, List[bittensor.NeuronInfo, bittensor.Wallet]] = {}
+        neurons: Dict[str, List[bittensor.NeuronInfoLite, bittensor.Wallet]] = {}
         block = subtensor.block
 
         netuids = subtensor.get_all_subnet_netuids()
@@ -115,6 +115,7 @@ class OverviewCommand:
         total_neurons = 0
         total_stake = 0.0
         for netuid in netuids:
+            subnet_tempo = subtensor.tempo(netuid=netuid)
             last_subnet = netuid == netuids[-1]
             TABLE_DATA = []  
             total_rank = 0.0
@@ -126,7 +127,7 @@ class OverviewCommand:
             total_emission = 0   
 
             for nn, hotwallet in neurons[str(netuid)]:
-                nn: bittensor.NeuronInfo
+                nn: bittensor.NeuronInfoLite
                 uid = nn.uid
                 active = nn.active
                 stake = nn.total_stake.tao
@@ -136,7 +137,7 @@ class OverviewCommand:
                 validator_trust = nn.validator_trust
                 incentive = nn.incentive
                 dividends = nn.dividends
-                emission = nn.emission / (subtensor.tempo(netuid=netuid) + 1)
+                emission = int(nn.emission / (subnet_tempo + 1) * 1e9)
                 last_update = int(block -  nn.last_update)
                 validator_permit = nn.validator_permit
                 row = [
@@ -150,7 +151,7 @@ class OverviewCommand:
                     '{:.5f}'.format(consensus),
                     '{:.5f}'.format(incentive),
                     '{:.5f}'.format(dividends),
-                    '{:.5f}'.format(emission),
+                    '{:_}'.format(emission),
                     '{:.5f}'.format(validator_trust),
                     '*' if validator_permit else '',
                     str(last_update),
@@ -196,7 +197,7 @@ class OverviewCommand:
             table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-            table.add_column("[overline white]EMISSION(\u03C4)", '\u03C4{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+            table.add_column("[overline white]EMISSION(\u03C1)", '\u03C1{:_}'.format(total_emission), footer_style = "overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]VTRUST", '{:.5f}'.format(total_validator_trust), footer_style="overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]VPERMIT", justify='right', no_wrap=True)
             table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
