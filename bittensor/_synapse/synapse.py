@@ -386,7 +386,7 @@ class Synapse(ABC):
             backward_call.version = request.version
 
             # Check blacklist.
-            if self.__blacklist(backward_call):
+            if self._blacklist(backward_call):
                 raise Exception("Blacklisted")
             # Get priority.
             priority = self._priority(backward_call)
