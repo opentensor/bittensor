@@ -83,41 +83,29 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
             response (bittensor.ForwardTextCausalLMNextResponse):
                 response.serialized_hidden_states (string): serialized hidden states.
         """
-        # TODO: Return topk logits
-        # (bs, 1, vocab_size) -> (32, 1, 50_000) -> (32, 1, topk=4096) -> (32, 2, 4096)
-
         # Serialize hidden states.
-        hidden_state_serializer = bittensor.serializer(
-            serializer_type=forward_call.hidden_states_serializer_type
+        outputs_serializer = bittensor.serializer(
+            serializer_type=forward_call.text_outputs_serializer_type
         )
 
-        # Check if response is sucessful
+        # Check if response is successful
         if (forward_call.request_code != bittensor.proto.ReturnCode.Success) or (
             forward_call.response_code != bittensor.proto.ReturnCode.Success
         ):
-            serialized_hidden_states = None
-
+            serialized_text_outputs = None
         else:
-            # Optionally apply mask.
-            if forward_call.mask != None:
-                # Apply mask.
-                hidden_states = forward_call.hidden_states.reshape(-1, bittensor.__network_dim__)
+            text_outputs = forward_call.text_outputs
+            serialized_text_outputs = outputs_serializer.serialize(text_outputs)
 
-                # Filter hidden states.
-                hidden_states = hidden_states[forward_call.mask.reshape(-1)]
-
-            # Else return the raw hidden states.
-            else:
-                hidden_states = forward_call.hidden_states
-            serialized_hidden_states = hidden_state_serializer.serialize(hidden_states)
+        # TODO: extract topk here and return.
 
         # Return the forward response proto.
         return bittensor.ForwardTextCausalLMNextResponse(
             version=bittensor.__version_as_int__,
-            serialized_hidden_states=serialized_hidden_states,
             hotkey=self.axon.wallet.hotkey.ss58_address,
-            return_code=forward_call.request_code,
+            serialized_text_outputs=serialized_text_outputs,
             message=forward_call.request_message,
+            return_code=forward_call.request_code,
         )
 
     def pre_process_request_proto_to_backward_call(

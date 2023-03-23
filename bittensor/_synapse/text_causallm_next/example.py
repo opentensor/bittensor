@@ -19,9 +19,9 @@ class Synapse(bittensor.TextCausalLMNextSynapse):
     def forward(
         self, forward_call: "bittensor.TextCausalLMNextForwardCall"
     ) -> torch.Tensor:
-        outputs = self.model(input_ids=forward_call.text_inputs, output_hidden_states=True)
-
-        return outputs.hidden_states[-1][:, :, :1024]
+        outputs = self.model(input_ids=forward_call.text_inputs, output_hidden_states=False)
+        # TODO: topk here? (or in post_process_...?
+        return outputs.logits
 
 
 # Create a mock wallet.
@@ -47,7 +47,7 @@ axon.attach(synapse=synapse)
 axon.start()
 
 batch_size = 4
-sequence_length=32
+sequence_length = 32
 # Create a text_causallm_next module and call it.
 module = bittensor.text_causal_lm_next(endpoint=local_endpoint, wallet=wallet)
 response = module.forward(
