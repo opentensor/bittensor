@@ -74,6 +74,11 @@
         "url": "www.tensor.exchange", 
         "description": "Bittensor's first community OTC exchange"
     },
+    "5EhvL1FVkQPpMjZX4MAADcW42i3xPSF1KiCpuaxTYVr28sux": {
+        "name": "TAO-Validator.com", 
+        "url": "www.tao-validator.com", 
+        "description": "Maximize your return when staking with TAO-Validator.com. TAO-Validator.com is a highly secure validator that aims to become one of the top contributing entities to Bittensor."
+    },
     "5FvhvCWLbu2VgotT5obC9E6S9nskerJUrVsWqkWXCbuD8veW": {
         "name": "The Lost Cove", 
         "url": "https://lostcove.tech/", 
