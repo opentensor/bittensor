@@ -288,14 +288,14 @@ def unstake_multiple_extrinsic (
                 with bittensor.__console__.status(":satellite: Checking Balance on: [white]{}[/white] ...".format(subtensor.network)):
                     block = subtensor.get_current_block()
                     new_stake = subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkeypub.ss58_address, hotkey_ss58 = hotkey_ss58, block = block )
-                    bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( wallet.hotkey.ss58_address, stake_on_uid, new_stake ))
+                    bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( hotkey_ss58, stake_on_uid, new_stake ))
                     successful_unstakes += 1
             else:
                 bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
                 continue
 
         except NotRegisteredError as e:
-            bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
+            bittensor.__console__.print(":cross_mark: [red]{} is not registered.[/red]".format(hotkey_ss58))
             continue
         except StakeError as e:
             bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))

@@ -338,7 +338,6 @@ class ReceptorPool ( torch.nn.Module ):
                         
                 if receptor_to_remove != None:
                     try:
-                        bittensor.logging.destroy_receptor_log(receptor_to_remove.endpoint)
                         self.receptors[ receptor_to_remove.endpoint.hotkey ].close()
                         del self.receptors[ receptor_to_remove.endpoint.hotkey ]
                     except KeyError:
@@ -370,7 +369,6 @@ class ReceptorPool ( torch.nn.Module ):
 
         # ---- Or: Create a new receptor ----
         else:
-            bittensor.logging.create_receptor_log( endpoint )
             receptor = bittensor.receptor (
                     endpoint = endpoint, 
                     wallet = self.wallet,

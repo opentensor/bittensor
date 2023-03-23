@@ -24,7 +24,7 @@ import argparse
 import bittensor
 from . import metagraph_impl
 from . import metagraph_mock
-from typing import Optional, List
+from typing import Optional, List, Union
 import bittensor.utils.weight_utils as weight_utils
 from .naka_metagraph_impl import Metagraph as naka_metagraph
 
@@ -77,11 +77,11 @@ class metagraph:
         if network == None:
             network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
 
-        if network =='finney':
-            return metagraph_impl.Metagraph( network = network, netuid = netuid )
-        elif network =='nakamoto':
+        if network =='nakamoto':
             config.subtensor.network = 'nakamoto'
             return naka_metagraph(config = config, subtensor = subtensor)
+        else:
+            return metagraph_impl.Metagraph( network = network, netuid = netuid )
 
     @classmethod   
     def config(cls) -> 'bittensor.Config':
@@ -123,7 +123,7 @@ class metagraph:
         pass
 
     @staticmethod
-    def from_neurons( network: str, netuid: int, info: 'bittensor.SubnetInfo', neurons: List['bittensor.NeuronInfo'], block: int ) -> 'bittensor.Metagraph':
+    def from_neurons( network: str, netuid: int, info: 'bittensor.SubnetInfo', neurons: Union[List['bittensor.NeuronInfo'], List['bittensor.NeuronInfoLite']], block: int ) -> 'bittensor.Metagraph':
         r""" Creates a metagraph from a list of neurons.
             Args: 
                 network: (:obj:`str`, required):
@@ -132,7 +132,7 @@ class metagraph:
                     netuid of the subnet for the metagraph.
                 info: (:obj:`SubnetInfo`, required):
                     SubnetInfo object for the metagraph, including the subnet's hyperparameters.
-                neurons: (:obj:`List[NeuronInfo]`, required):
+                neurons: (:obj:`Union[List[NeuronInfo], List[NeuronInfoLite]]`, required):
                     List of neurons to create metagraph from.
                 block: (:obj:`int`, required):
                     Block number at time of the metagraph.
@@ -179,6 +179,9 @@ class metagraph:
             endpoint =  bittensor.endpoint.from_neuron(n)
             metagraph._endpoint_objs[n.uid] = endpoint 
             endpoints[n.uid] = endpoint.to_tensor().tolist()
+            if isinstance(n, bittensor.NeuronInfoLite):
+                continue
+            # Weights and bonds only for full neurons.
             if len(n.weights) > 0:
                 w_uids, w_weights = zip(*n.weights)
                 weights[n.uid] = weight_utils.convert_weight_uids_and_vals_to_tensor( n_total, w_uids, w_weights ).tolist()
