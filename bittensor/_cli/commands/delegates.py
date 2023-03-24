@@ -43,13 +43,17 @@ def _get_coldkey_wallets_for_path( path: str ) -> List['bittensor.wallet']:
 console = bittensor.__console__
 
 # Uses rich console to pretty print a table of delegates.
-def show_delegates( delegates: List['bittensor.DelegateInfo'], prev_delegates: List['bittensor.DelegateInfo'], width: Optional[int] = None):
+def show_delegates( delegates: List['bittensor.DelegateInfo'], prev_delegates: Optional[List['bittensor.DelegateInfo']], width: Optional[int] = None):
     """ Pretty prints a table of delegates sorted by total stake.
     """
     delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
-    prev_delegates_dict = {}
-    for prev_delegate in prev_delegates:
-        prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
+
+    prev_delegates_dict = None
+    if prev_delegates is not None:
+        prev_delegates_dict = {}
+        for prev_delegate in prev_delegates:
+            prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
+    
     try:
         package_dir = os.path.dirname(bittensor.__file__)
         root_dir = os.path.dirname(package_dir)
@@ -106,7 +110,7 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], prev_delegates: L
                 else:
                     rate_change_in_stake_str = "[grey0]0%[/grey0]"
         else:
-            rate_change_in_stake_str = "[grey0]0%[/grey0]"
+            rate_change_in_stake_str = "[grey0]NA[/grey0]"
 
         table.add_row(
             str(i),
@@ -190,7 +194,10 @@ class DelegateStakeCommand:
             with bittensor.__console__.status(":satellite: Loading delegates..."):
                 subtensor = bittensor.subtensor( config = config )
                 delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
-                prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
+                try:
+                    prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
+                except:
+                    prev_delegates = None
 
             if len(delegates) == 0:
                 console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
