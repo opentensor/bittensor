@@ -88,7 +88,6 @@ class cli:
         MetagraphCommand.add_args( cmd_parsers )
         SetWeightsCommand.add_args( cmd_parsers )
         NewColdkeyCommand.add_args( cmd_parsers )
-        NewHotkeyCommand.add_args( cmd_parsers )
         MyDelegatesCommand.add_args( cmd_parsers )
         ListSubnetsCommand.add_args( cmd_parsers )
         RegenHotkeyCommand.add_args( cmd_parsers )
