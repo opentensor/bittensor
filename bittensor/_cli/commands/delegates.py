@@ -296,7 +296,10 @@ class DelegateUnstakeCommand:
             with bittensor.__console__.status(":satellite: Loading delegates..."):
                 subtensor = bittensor.subtensor( config = config )
                 delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
-                prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
+                try:
+                    prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
+                except:
+                    prev_delegates = None
 
             if len(delegates) == 0:
                 console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
