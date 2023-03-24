@@ -48,7 +48,7 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], prev_delegates: O
     """
     delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
 
-    prev_delegates_dict = None
+    prev_delegates_dict = {}
     if prev_delegates is not None:
         prev_delegates_dict = {}
         for prev_delegate in prev_delegates:
