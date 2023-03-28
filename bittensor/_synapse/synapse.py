@@ -204,7 +204,7 @@ class Synapse(ABC):
             bool: True if blacklisted, False otherwise.
         """
         assert self.is_attached
-        # Call subclass blacklist and optionaly return if metagraph is None.
+        # Call subclass blacklist and optionally return if metagraph is None.
         try:
             sub_blacklist = self._blacklist(forward_call)
         except NotImplementedError:
@@ -331,7 +331,7 @@ class Synapse(ABC):
         try:
             # Get the result.
             tensor = future.result(timeout=forward_call.timeout)
-            forward_call.text_outputs = tensor
+            forward_call.outputs = tensor
 
         except Exception as e:
             forward_call.response_code = bittensor.proto.ReturnCode.UnknownException

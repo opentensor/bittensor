@@ -23,11 +23,11 @@ import torch
 import bittensor
 
 
-class TextCausalLMNextForwardCall(bittensor.BittensorCall):
+class TextCausalLMForwardCall(bittensor.BittensorCall):
     """Call state for the text_last_hidden_state synapse."""
 
     # The name of the synapse call.
-    synapse_name: str = "forward_text_causallm_next"
+    synapse_name: str = "forward_text_causallm"
     outputs = None # To be filled by the forward call
     topk: int = 4096 # Static.
 
@@ -95,17 +95,16 @@ bittensor.TextCausalLMNextForwardCall(
         return None
 
     def get_outputs_shape(self) -> Union[torch.Size, None]:
-        print("in TextCausalLMNextForwardCall.get_outputs_shape()")
         if self.outputs is not None:
             return self.outputs.shape
         return None
 
 
-class TextCausalLMNextBackwardCall(bittensor.BittensorCall):
+class TextCausalLMBackwardCall(bittensor.BittensorCall):
     """Backward call state for the text_last_hidden_state synapse."""
 
     # The name of the synapse call.
-    name: str = "backward_text_last_hidden_state"
+    name: str = "backward_text_causallm"
 
     def __str__(self) -> str:
         return """
@@ -192,13 +191,13 @@ bittensor.TextCausalLMNextBackwardCall(
         self.hidden_states_serializer_type = hidden_states_serializer_type
         self.hidden_states_grads_serializer_type = hidden_states_grads_serializer_type
 
-    def get_inputs_shape(self) -> torch.Size:
+    def get_inputs_shape(self) -> Union[torch.Size, None]:
         if self.text_inputs is not None:
             return self.text_inputs.shape
         else:
             return None
 
-    def get_outputs_shape(self) -> torch.Size:
+    def get_outputs_shape(self) -> Union[torch.Size, None]:
         if self.hidden_states is not None:
             return self.hidden_states.shape
         else:

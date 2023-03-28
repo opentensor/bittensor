@@ -159,7 +159,6 @@ class Dendrite(torch.nn.Module):
                 forward_call.end_time = time.time()
                 return forward_call
 
-   
         # Make the call and wait for response.
         try:
             # Make asyncio call.
@@ -171,16 +170,15 @@ class Dendrite(torch.nn.Module):
                     ('bittensor-signature', self.receptor.sign() ),
                     ('bittensor-version',str(bittensor.__version_as_int__)),
                 ))
-        
+
             # Wait for response.
             forward_call.response_proto = await asyncio.wait_for( asyncio_future, timeout = forward_call.timeout )
 
             # Process response.
             forward_call = self.post_process_response_proto_to_forward_call( 
-                forward_call = forward_call, 
-                response_proto = forward_call.response_proto 
+                forward_call = forward_call,
+                response_proto = forward_call.response_proto
             )
-
         except grpc.RpcError as rpc_error_call:
             # Request failed with GRPC code.
             forward_call.response_code = rpc_error_call.code()
@@ -194,8 +192,8 @@ class Dendrite(torch.nn.Module):
             forward_call.response_code = bittensor.proto.ReturnCode.UnknownException
             forward_call.response_message = str(e)
         finally:
-            # Log Response 
-            bittensor.logging.rpc_log( 
+            # Log Response
+            bittensor.logging.rpc_log(
                 axon = False, 
                 forward = True, 
                 is_response = True, 

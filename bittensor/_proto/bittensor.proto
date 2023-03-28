@@ -6,6 +6,11 @@ service TextLastHiddenState {
 	rpc Backward (BackwardTextLastHiddenStateRequest) returns (BackwardTextLastHiddenStateResponse) {}
 }
 
+service TextCausalLM {
+	rpc Forward (ForwardTextCausalLMRequest) returns (ForwardTextCausalLMResponse) {}
+	rpc Backward (BackwardTextCausalLMRequest) returns (BackwardTextCausalLMResponse) {}
+}
+
 service TextCausalLMNext {
 	rpc Forward (ForwardTextCausalLMNextRequest) returns (ForwardTextCausalLMNextResponse) {}
 	rpc Backward (BackwardTextCausalLMNextRequest) returns (BackwardTextCausalLMNextResponse) {}
@@ -14,7 +19,7 @@ service TextCausalLMNext {
 service TextSeq2Seq  {
 	rpc Forward (ForwardTextSeq2SeqRequest) returns (ForwardTextSeq2SeqResponse) {}
 }
- 
+
 /////////////////
 // TextSeq2Seq //
 /////////////////
@@ -191,39 +196,54 @@ message BackwardTextCausalLMNextResponse {
 /////////////////////////
 // TextCausalLM //
 /////////////////////////
+// TODO: This need topk!
 message ForwardTextCausalLMRequest {
 	int32 version = 1;
-	string hotkey = 2;	
+	string hotkey = 2;
 
-	Serializer input_text_serializer = 3;
-	Serializer output_logits_serializer = 4;
+	Serializer mask_serializer_type = 3;
+	Serializer text_inputs_serializer_type = 4;
+	Serializer text_outputs_serializer_type = 5;
 
-	Tensor input_text = 5;
-
-	// Specifies the number of Topk logits to return.
-	// Logit values are packed (pos, value) acocording 
-	// to the bittensor tokenizer vocab size.
-	int32 topk = 6;
+	Tensor serialized_text_inputs = 6;
 
 	// QueryTimeout
 	float timeout = 7;
+	int32 topk = 8;
 }
-
+// TODO: This need topk!
 message ForwardTextCausalLMResponse {
 	int32 version = 1;
-	string hotkey = 2;	
-	
-	Tensor output_logits = 3;
+	string hotkey = 2;
 
-	// Specifies the number of Topk logits to return.
-	// Logit values are packed (pos, value) acocording 
-	// to the bittensor tokenizer vocab size.
-	int32 topk = 4;
+	Tensor serialized_text_outputs = 3;
 
-	string message = 5;
-	ReturnCode return_code = 6; 
+	string message = 4;
+	ReturnCode return_code = 5;
 }
 
+
+// TODO: Modify these to match LMNExt, simply copied from ForwardTextCausalLMRequest
+message BackwardTextCausalLMRequest {
+	int32 version = 1;
+	string hotkey = 2;
+
+	Serializer mask_serializer_type = 3;
+	Serializer text_outputs_serializer_type = 4;
+	Serializer text_outputs_grads_serializer_type = 5;
+	Serializer text_inputs_serializer_type = 6;
+
+	Tensor serialized_text_inputs = 7;
+	Tensor serialized_text_outputs = 8;
+	Tensor serialized_text_outputs_grads = 9;
+}
+
+message BackwardTextCausalLMResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string message = 3;
+	ReturnCode return_code = 4;
+}
 
 // Return codes from Backward and Forward call.
 enum ReturnCode {
