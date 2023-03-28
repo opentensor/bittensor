@@ -98,7 +98,7 @@ def serve_extrinsic (
     output['hotkey'] = wallet.hotkey.ss58_address
 
     if neuron_up_to_date:
-        bittensor.__console__.print(f":white_heavy_check_mark: [green]Already Served[/green]\n"
+        bittensor.__console__.print(f":white_heavy_check_mark: [green]Axon already Served[/green]\n"
                                     f"[green not bold]- coldkey: [/green not bold][white not bold]{output['coldkey']}[/white not bold] \n"
                                     f"[green not bold]- hotkey: [/green not bold][white not bold]{output['hotkey']}[/white not bold] \n"
                                     f"[green not bold]- Status: [/green not bold] |"

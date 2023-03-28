@@ -421,7 +421,7 @@ class Metagraph( torch.nn.Module ):
 
         return neurons
 
-    def sync ( self, block: int = None, cached: bool = True, netuid: int = 1 ) -> 'Metagraph':
+    def sync ( self, block: int = None, cached: bool = True, subtensor = None, netuid: int = 1 ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.
         """
         logger.success(self.subtensor)

@@ -161,11 +161,6 @@ class TestStakeMultiple(unittest.TestCase):
             substrate=MagicMock(
                 __enter__=MagicMock(
                     return_value=MagicMock(
-                        get_payment_info=MagicMock(
-                            return_value={
-                                'partialFee': int(0.125 * 10**9) # 0.125 TAO
-                            }
-                        ),
                         compose_call=mock_compose_call,
                     ),
                 ),

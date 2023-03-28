@@ -18,7 +18,7 @@
 import sys
 import argparse
 import bittensor
-from rich.prompt import Prompt
+from rich.prompt import Prompt, Confirm
 from .utils import check_netuid_set, check_for_cuda_reg_config
 
 console = bittensor.__console__
@@ -81,9 +81,6 @@ class RegisterCommand:
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
-        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-
         check_netuid_set( config, subtensor = bittensor.subtensor( config = config ) )
 
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
@@ -97,8 +94,80 @@ class RegisterCommand:
         if not config.no_prompt:
             check_for_cuda_reg_config(config)
 
+class RecycleRegisterCommand:
+
+    @staticmethod
+    def run( cli ):
+        r""" Register neuron by recycling some TAO. """
+        wallet = bittensor.wallet( config = cli.config )
+        subtensor = bittensor.subtensor( config = cli.config )
+
+        # Verify subnet exists
+        if not subtensor.subnet_exists( netuid = cli.config.netuid ):
+            bittensor.__console__.print(f"[red]Subnet {cli.config.netuid} does not exist[/red]")
+            sys.exit(1)
+
+        # Check current recycle amount
+        current_recycle = subtensor.burn( netuid = cli.config.netuid )
+        balance = subtensor.get_balance( address = wallet.coldkeypub.ss58_address )
+
+        # Check balance is sufficient
+        if balance < current_recycle:
+            bittensor.__console__.print(f"[red]Insufficient balance {balance} to register neuron. Current recycle is {current_recycle} TAO[/red]")
+            sys.exit(1)
+
+        if not cli.config.no_prompt:
+            if Confirm.ask(f"Your balance is: [bold green]{balance}[/bold green]\nThe cost to register by recycle is [bold red]{current_recycle}[/bold red]\nDo you want to continue?", default = False) == False:
+                sys.exit(1)
+        
+        subtensor.burned_register(
+            wallet = wallet,
+            netuid = cli.config.netuid,
+            prompt = not cli.config.no_prompt
+        )
 
 
+    @staticmethod
+    def add_args( parser: argparse.ArgumentParser ):
+        recycle_register_parser = parser.add_parser(
+            'recycle_register', 
+            help='''Register a wallet to a network.'''
+        )
+        recycle_register_parser.add_argument( 
+            '--no_version_checking', 
+            action='store_true', 
+            help='''Set false to stop cli version checking''', 
+            default = False 
+        )
+        recycle_register_parser.add_argument(
+            '--no_prompt', 
+            dest='no_prompt', 
+            action='store_true', 
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        recycle_register_parser.add_argument(
+            '--netuid',
+            type=int,
+            help='netuid for subnet to serve this neuron on',
+            default=argparse.SUPPRESS,
+        )
 
+        bittensor.wallet.add_args( recycle_register_parser )
+        bittensor.subtensor.add_args( recycle_register_parser )
 
+    @staticmethod   
+    def check_config( config: 'bittensor.Config' ):
+        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+
+        check_netuid_set( config, subtensor = bittensor.subtensor( config = config ) )
+
+        if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
       

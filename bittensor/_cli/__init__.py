@@ -71,10 +71,7 @@ class cli:
             add_help=True)
 
         cmd_parsers = parser.add_subparsers(dest='command')
-        RunCommand.add_args( cmd_parsers )
-        HelpCommand.add_args( cmd_parsers ) 
         ListCommand.add_args( cmd_parsers )
-        QueryCommand.add_args( cmd_parsers )
         StakeCommand.add_args( cmd_parsers )
         UpdateCommand.add_args( cmd_parsers )
         InspectCommand.add_args( cmd_parsers ) 
@@ -89,6 +86,7 @@ class cli:
         SetWeightsCommand.add_args( cmd_parsers )
         NewColdkeyCommand.add_args( cmd_parsers )
         NewHotkeyCommand.add_args( cmd_parsers )
+        MyDelegatesCommand.add_args( cmd_parsers )
         ListSubnetsCommand.add_args( cmd_parsers )
         RegenHotkeyCommand.add_args( cmd_parsers )
         RegenColdkeyCommand.add_args( cmd_parsers )
@@ -96,6 +94,7 @@ class cli:
         DelegateUnstakeCommand.add_args( cmd_parsers )
         ListDelegatesCommand.add_args( cmd_parsers )
         RegenColdkeypubCommand.add_args( cmd_parsers )
+        RecycleRegisterCommand.add_args( cmd_parsers )
 
         # If no arguments are passed, print help text.
         if len(args) == 0:
@@ -108,9 +107,7 @@ class cli:
     def check_config (config: 'bittensor.Config'):
         """ Check if the essential config exist under different command
         """
-        if config.command == "run":
-            RunCommand.check_config( config )
-        elif config.command == "transfer":
+        if config.command == "transfer":
             TransferCommand.check_config( config )
         elif config.command == "register":
             RegisterCommand.check_config( config )
@@ -140,10 +137,6 @@ class cli:
             ListCommand.check_config( config )
         elif config.command == "inspect":
             InspectCommand.check_config( config )
-        elif config.command == "query":
-            QueryCommand.check_config( config )
-        elif config.command == "help":
-            HelpCommand.check_config( config )
         elif config.command == "update":
             UpdateCommand.check_config( config )
         elif config.command == "nominate":
@@ -156,6 +149,10 @@ class cli:
             DelegateStakeCommand.check_config( config )
         elif config.command == "undelegate":
             DelegateUnstakeCommand.check_config( config )
+        elif config.command == "my_delegates":
+            MyDelegatesCommand.check_config( config )
+        elif config.command == "recycle_register":
+            RecycleRegisterCommand.check_config( config )
         else:
             console.print(":cross_mark:[red]Unknown command: {}[/red]".format(config.command))
             sys.exit()
