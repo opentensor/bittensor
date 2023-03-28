@@ -643,10 +643,10 @@ class neuron:
             time_check()
             stake_check()      
             hotkey_check()      
-            return False
-        except Exception as e:
+            return False, None
+        except Exception as error:
             self.prometheus_counters.labels("blacklisted").inc()
-            return True
+            return True, error
 
     def get_neuron(self):
         if self.subtensor.network == 'nakamoto':
