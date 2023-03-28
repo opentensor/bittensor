@@ -27,14 +27,15 @@ from bittensor.utils.balance import Balance
 from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
 
 # Local imports.
-from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo, SubnetInfo
+from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo, SubnetInfo, NeuronInfoLite
 from .errors import *
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .extrinsics.serving import serve_extrinsic, serve_axon_extrinsic
-from .extrinsics.registration import register_extrinsic
+from .extrinsics.registration import register_extrinsic, burned_register_extrinsic
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
+from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic,undelegate_extrinsic
 
 # Logging
@@ -146,7 +147,7 @@ class Subtensor:
         netuid: int,
         uids: Union[torch.LongTensor, list],
         weights: Union[torch.FloatTensor, list],
-        version_key: int = 0,
+        version_key: int = bittensor.__version_as_int__,
         wait_for_inclusion:bool = False,
         wait_for_finalization:bool = False,
         prompt:bool = False
@@ -199,6 +200,24 @@ class Subtensor:
             update_interval = update_interval,
             log_verbose = log_verbose,
         )
+    
+    def burned_register (
+        self,
+        wallet: 'bittensor.Wallet',
+        netuid: int,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False
+    ) -> bool:
+        """ Registers the wallet to chain by recycling TAO."""
+        return burned_register_extrinsic( 
+            subtensor = self, 
+            wallet = wallet, 
+            netuid = netuid, 
+            wait_for_inclusion = wait_for_inclusion, 
+            wait_for_finalization = wait_for_finalization, 
+            prompt = prompt
+        )
 
     ##################
     #### Transfer ####
@@ -222,6 +241,22 @@ class Subtensor:
             wait_for_finalization = wait_for_finalization,
             prompt = prompt
         )
+    
+    def get_existential_deposit(
+        self,
+        block: Optional[int] = None,
+    ) -> Optional[Balance]:
+        """ Returns the existential deposit for the chain. """
+        result = self.query_constant(
+            module_name='Balances',
+            constant_name='ExistentialDeposit',
+            block = block,
+        )
+        
+        if result is None:
+            return None
+        
+        return Balance.from_rao(result.value)
 
     #################
     #### Serving ####
@@ -251,6 +286,15 @@ class Subtensor:
     ) -> bool:
         return serve_axon_extrinsic( self, axon, use_upnpc, wait_for_inclusion, wait_for_finalization)
 
+    def serve_prometheus (
+        self,
+        wallet: 'bittensor.wallet',
+        port: int,
+        netuid: int,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> bool:
+        return prometheus_extrinsic( self, wallet = wallet, port = port, netuid = netuid, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization)
     #################
     #### Staking ####
     #################
@@ -345,6 +389,18 @@ class Subtensor:
                     block_hash = None if block == None else substrate.get_block_hash(block)
                 )
         return make_substrate_call_with_retry()
+    
+    """ Gets a constant from subtensor with module_name, constant_name, and block. """
+    def query_constant( self, module_name: str, constant_name: str, block: Optional[int] = None ) -> Optional[object]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.get_constant(
+                    module_name=module_name,
+                    constant_name=constant_name,
+                    block_hash = None if block == None else substrate.get_block_hash(block)
+                )
+        return make_substrate_call_with_retry()
       
     #####################################
     #### Hyper parameter calls. ####
@@ -356,7 +412,7 @@ class Subtensor:
         return self.query_subtensor( "Rho", block, [netuid] ).value
 
     """ Returns network Kappa hyper parameter """
-    def kappa (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
+    def kappa (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
         return U16_NORMALIZED_FLOAT( self.query_subtensor( "Kappa", block, [netuid] ).value )
 
@@ -364,6 +420,11 @@ class Subtensor:
     def difficulty (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid ): return None
         return self.query_subtensor( "Difficulty", block, [netuid] ).value
+    
+    """ Returns network Burn hyper parameter """
+    def burn (self, netuid: int, block: Optional[int] = None ) -> Optional[bittensor.Balance]:
+        if not self.subnet_exists( netuid ): return None
+        return bittensor.Balance.from_rao( self.query_subtensor( "Burn", block, [netuid] ).value )
 
     """ Returns network ImmunityPeriod hyper parameter """
     def immunity_period (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
@@ -381,9 +442,9 @@ class Subtensor:
         return self.query_subtensor("ValidatorPruneLen", block, [netuid] ).value
 
     """ Returns network ValidatorLogitsDivergence hyper parameter """
-    def validator_logits_divergence (self, netuid: int, block: Optional[int] = None ) -> int:
+    def validator_logits_divergence (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
-        return self.query_subtensor("ValidatorLogitsDivergence", block, [netuid] ).value/U64_MAX
+        return U16_NORMALIZED_FLOAT(self.query_subtensor("ValidatorLogitsDivergence", block, [netuid]).value)
 
     """ Returns network ValidatorSequenceLength hyper parameter """
     def validator_sequence_length (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
@@ -403,7 +464,7 @@ class Subtensor:
     """ Returns network ValidatorEpochLen hyper parameter """
     def validator_exclude_quantile (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
-        return U16_NORMALIZED_FLOAT( self.query_subtensor("ValidatorEpochLen", block, [netuid] ).value )
+        return U16_NORMALIZED_FLOAT( self.query_subtensor("ValidatorExcludeQuantile", block, [netuid] ).value )
 
     """ Returns network MaxAllowedValidators hyper parameter """
     def max_allowed_validators(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
@@ -423,12 +484,12 @@ class Subtensor:
     """ Returns network ScalingLawPower hyper parameter """
     def scaling_law_power (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
-        return U16_NORMALIZED_FLOAT( self.query_subtensor('ScalingLawPower', block, [netuid] ).value)
+        return self.query_subtensor('ScalingLawPower', block, [netuid] ).value / 100.
 
     """ Returns network SynergyScalingLawPower hyper parameter """
     def synergy_scaling_law_power (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
         if not self.subnet_exists( netuid ): return None
-        return U16_NORMALIZED_FLOAT( self.query_subtensor('SynergyScalingLawPower', block, [netuid] ).value )
+        return self.query_subtensor('SynergyScalingLawPower', block, [netuid] ).value / 100.
 
     """ Returns network SubnetworkN hyper parameter """
     def subnetwork_n (self, netuid: int, block: Optional[int] = None ) -> int:
@@ -451,7 +512,7 @@ class Subtensor:
         return self.query_subtensor('Tempo', block, [netuid] ).value
 
     ##########################
-    #### Account fucntions ###
+    #### Account functions ###
     ##########################
 
     """ Returns the total stake held on a hotkey including delegative """
@@ -588,7 +649,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = []
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="subnetInfo_getSubnetsInfo", # custom rpc method
                     params=params
@@ -597,10 +658,10 @@ class Subtensor:
         json_body = make_substrate_call_with_retry()
         result = json_body['result']
 
-        if result == None:
+        if result in (None, []):
             return []
         
-        return [ SubnetInfo.from_json(subnet_info) for subnet_info in result ]
+        return SubnetInfo.list_from_vec_u8( result )
 
     def get_subnet_info( self, netuid: int, block: Optional[int] = None ) -> Optional[SubnetInfo]:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -609,7 +670,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [netuid]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="subnetInfo_getSubnetInfo", # custom rpc method
                     params=params
@@ -618,10 +679,10 @@ class Subtensor:
         json_body = make_substrate_call_with_retry()
         result = json_body['result']
 
-        if result == None:
+        if result in (None, []):
             return None
         
-        return SubnetInfo.from_json(result)
+        return SubnetInfo.from_vec_u8( result )
         
     ####################
     #### Nomination ####
@@ -646,7 +707,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [encoded_hotkey]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="delegateInfo_getDelegate", # custom rpc method
                     params=params
@@ -655,10 +716,12 @@ class Subtensor:
         hotkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes( hotkey_ss58 )
         encoded_hotkey: List[int] = [ int( byte ) for byte in hotkey_bytes ]
         json_body = make_substrate_call_with_retry(encoded_hotkey)
-        if json_body['result'] == None:
+        result = json_body['result']
+
+        if result in (None, []):
             return None
             
-        return DelegateInfo.from_json( json_body['result'] )
+        return DelegateInfo.from_vec_u8( result )
 
     def get_delegates( self, block: Optional[int] = None ) -> List[DelegateInfo]:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -667,16 +730,43 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = []
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="delegateInfo_getDelegates", # custom rpc method
                     params=params
                 )
         json_body = make_substrate_call_with_retry()
-        if json_body['result'] == None:
+        result = json_body['result']
+
+        if result in (None, []):
             return []
 
-        return [DelegateInfo.from_json( delegate ) for delegate in json_body['result']]
+        return DelegateInfo.list_from_vec_u8( result )
+    
+    def get_delegated( self, coldkey_ss58: str, block: Optional[int] = None ) -> List[Tuple[DelegateInfo, Balance]]:
+        """ Returns the list of delegates that a given coldkey is staked to.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry(encoded_coldkey: List[int]):
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = [encoded_coldkey]
+                if block_hash:
+                    params = params + [block_hash]
+                return substrate.rpc_request(
+                    method="delegateInfo_getDelegated", # custom rpc method
+                    params=params
+                )
+
+        coldkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes( coldkey_ss58 )
+        encoded_coldkey: List[int] = [ int( byte ) for byte in coldkey_bytes ]
+        json_body = make_substrate_call_with_retry(encoded_coldkey)
+        result = json_body['result']
+
+        if result in (None, []):
+            return []
+
+        return DelegateInfo.delegated_list_from_vec_u8( result )
 
 
     ########################################
@@ -740,15 +830,18 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [netuid, uid]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="neuronInfo_getNeuron", # custom rpc method
                     params=params
                 )
         json_body = make_substrate_call_with_retry()
-        if json_body['result'] == None:
+        result = json_body['result']
+
+        if result in (None, []):
             return NeuronInfo._null_neuron()
-        return NeuronInfo.from_json( json_body['result'] ) 
+        
+        return NeuronInfo.from_vec_u8( result ) 
 
     def neurons(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]: 
         r""" Returns a list of neuron from the chain. 
@@ -767,7 +860,7 @@ class Subtensor:
                 block_hash = None if block == None else substrate.get_block_hash( block )
                 params = [netuid]
                 if block_hash:
-                    params = [block_hash] + params
+                    params = params + [block_hash]
                 return substrate.rpc_request(
                     method="neuronInfo_getNeurons", # custom rpc method
                     params=params
@@ -775,10 +868,77 @@ class Subtensor:
         
         json_body = make_substrate_call_with_retry()
         result = json_body['result']
-        
-        return [ NeuronInfo.from_json( neuron ) for neuron in result ]
 
-    def metagraph( self, netuid: int, block: Optional[int] = None ) -> 'bittensor.Metagraph':
+        if result in (None, []):
+            return []
+        
+        return NeuronInfo.list_from_vec_u8( result )
+    
+    def neuron_for_uid_lite( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfoLite]: 
+        r""" Returns a list of neuron lite from the chain. 
+        Args:
+            uid ( int ):
+                The uid of the neuron to query for.
+            netuid ( int ):
+                The uid of the network to query for.
+            block ( int ):
+                The neuron at a particular block
+        Returns:
+            neuron (Optional[NeuronInfoLite]):
+                neuron metadata associated with uid or None if it does not exist.
+        """
+        if uid == None: return NeuronInfoLite._null_neuron()
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = [netuid, uid]
+                if block_hash:
+                    params = params + [block_hash] 
+                return substrate.rpc_request(
+                    method="neuronInfo_getNeuronLite", # custom rpc method
+                    params=params
+                )
+        json_body = make_substrate_call_with_retry()
+        result = json_body['result']
+
+        if result in (None, []):
+            return NeuronInfoLite._null_neuron()
+        
+        return NeuronInfoLite.from_vec_u8( result ) 
+
+    def neurons_lite(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfoLite]: 
+        r""" Returns a list of neuron lite from the chain. 
+        Args:
+            netuid ( int ):
+                The netuid of the subnet to pull neurons from.
+            block ( Optional[int] ):
+                block to sync from.
+        Returns:
+            neuron (List[NeuronInfoLite]):
+                List of neuron lite metadata objects.
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = [netuid]
+                if block_hash:
+                    params = params + [block_hash]
+                return substrate.rpc_request(
+                    method="neuronInfo_getNeuronsLite", # custom rpc method
+                    params=params
+                )
+        
+        json_body = make_substrate_call_with_retry()
+        result = json_body['result']
+
+        if result in (None, []):
+            return []
+        
+        return NeuronInfoLite.list_from_vec_u8( result )
+
+    def metagraph( self, netuid: int, block: Optional[int] = None, lite: bool = True ) -> 'bittensor.Metagraph':
         r""" Returns the metagraph for the subnet.
         Args:
             netuid ( int ):
@@ -786,20 +946,44 @@ class Subtensor:
             block (Optional[int]):
                 The block to create the metagraph for.
                 Defaults to latest.
+            lite (bool, default=True):
+                If true, returns a metagraph using the lite sync (no weights, no bonds)
         Returns:
             metagraph ( `bittensor.Metagraph` ):
                 The metagraph for the subnet at the block.
         """
+        status: Optional['rich.console.Status'] = None
         if bittensor.__use_console__:
-            with bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth"):
-                neurons = self.neurons( netuid = netuid, block = block )
+            status = bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth")
+            status.start()
+        
+        # Get neurons.
+        if lite:
+            neurons = self.neurons_lite( netuid = netuid, block = block )
         else:
             neurons = self.neurons( netuid = netuid, block = block )
+        
+        # Get subnet info.
+        subnet_info: Optional[bittensor.SubnetInfo] = self.get_subnet_info( netuid = netuid, block = block )
+        if subnet_info == None:
+            status.stop() if status else ...
+            raise ValueError('Could not find subnet info for netuid: {}'.format(netuid))
+
+        status.stop() if status else ...
+
         # Create metagraph.
         block_number = self.block
-        metagraph = bittensor.metagraph.from_neurons( network = self.network, neurons = neurons, netuid = netuid, block = block_number )
+        
+        metagraph = bittensor.metagraph.from_neurons( network = self.network, netuid = netuid, info = subnet_info, neurons = neurons, block = block_number )
+        print("Metagraph subtensor: ", self.network)
         return metagraph
 
+    ################
+    #### Transfer ##
+    ################
+
+
+    
 
     ################
     #### Legacy ####
@@ -870,8 +1054,7 @@ class Subtensor:
             incentive = 0,
             consensus = 0,
             trust = 0,
-            # weight_consensus = 0,
-            # validator_trust = 0,
+            validator_trust = 0,
             dividends = 0,
             last_update = 0,
             validator_permit = False,

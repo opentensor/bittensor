@@ -24,7 +24,7 @@ import argparse
 import bittensor
 from . import metagraph_impl
 from . import metagraph_mock
-from typing import Optional, List
+from typing import Optional, List, Union
 import bittensor.utils.weight_utils as weight_utils
 from .naka_metagraph_impl import Metagraph as naka_metagraph
 
@@ -77,10 +77,11 @@ class metagraph:
         if network == None:
             network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
 
-        if network =='finney':
-            return metagraph_impl.Metagraph( network = network, netuid = netuid )
-        elif network =='nakamoto':
+        if network =='nakamoto':
+            config.subtensor.network = 'nakamoto'
             return naka_metagraph(config = config, subtensor = subtensor)
+        else:
+            return metagraph_impl.Metagraph( network = network, netuid = netuid )
 
     @classmethod   
     def config(cls) -> 'bittensor.Config':
@@ -122,19 +123,23 @@ class metagraph:
         pass
 
     @staticmethod
-    def from_neurons( network: str, netuid: int, neurons: List['bittensor.NeuronInfo'], block: int ) -> 'bittensor.Metagraph':
+    def from_neurons( network: str, netuid: int, info: 'bittensor.SubnetInfo', neurons: Union[List['bittensor.NeuronInfo'], List['bittensor.NeuronInfoLite']], block: int ) -> 'bittensor.Metagraph':
         r""" Creates a metagraph from a list of neurons.
             Args: 
                 network: (:obj:`str`, required):
                     Name of the network for the metagraph.
                 netuid: (:obj:`int`, required):
                     netuid of the subnet for the metagraph.
-                neurons: (:obj:`List[NeuronInfo]`, required):
+                info: (:obj:`SubnetInfo`, required):
+                    SubnetInfo object for the metagraph, including the subnet's hyperparameters.
+                neurons: (:obj:`Union[List[NeuronInfo], List[NeuronInfoLite]]`, required):
                     List of neurons to create metagraph from.
                 block: (:obj:`int`, required):
                     Block number at time of the metagraph.
         """
         metagraph = metagraph_impl.Metagraph( network = network, netuid = netuid )
+        metagraph.info = info
+
         n_total = len(neurons)
 
         # Fill arrays.
@@ -145,8 +150,7 @@ class metagraph:
         ranks = [ 0 for _ in range(n_total) ]
         trust = [ 0 for _ in range(n_total) ]
         consensus = [ 0 for _ in range(n_total) ]
-        # validator_trust = [ 0 for _ in range(n_total) ]
-        # weight_consensus = [ 0 for _ in range(n_total) ]
+        validator_trust = [ 0 for _ in range(n_total) ]
         incentive = [ 0 for _ in range(n_total) ]
         emission = [ 0 for _ in range(n_total) ]
         dividends = [ 0 for _ in range(n_total) ]
@@ -166,8 +170,7 @@ class metagraph:
             ranks[n.uid] = n.rank
             trust[n.uid] = n.trust
             consensus[n.uid] = n.consensus
-            # validator_trust[n.uid] = n.validator_trust
-            # weight_consensus[n.uid] = n.weight_consensus
+            validator_trust[n.uid] = n.validator_trust
             incentive[n.uid] = n.incentive
             dividends[n.uid] = n.dividends
             emission[n.uid] = n.emission
@@ -176,6 +179,9 @@ class metagraph:
             endpoint =  bittensor.endpoint.from_neuron(n)
             metagraph._endpoint_objs[n.uid] = endpoint 
             endpoints[n.uid] = endpoint.to_tensor().tolist()
+            if isinstance(n, bittensor.NeuronInfoLite):
+                continue
+            # Weights and bonds only for full neurons.
             if len(n.weights) > 0:
                 w_uids, w_weights = zip(*n.weights)
                 weights[n.uid] = weight_utils.convert_weight_uids_and_vals_to_tensor( n_total, w_uids, w_weights ).tolist()
@@ -198,8 +204,7 @@ class metagraph:
         tranks = torch.tensor( ranks, dtype=torch.float32 )
         ttrust = torch.tensor( trust, dtype=torch.float32 )
         tconsensus = torch.tensor( consensus, dtype=torch.float32 )
-        # tvalidator_trust = torch.tensor( validator_trust, dtype=torch.float32 )
-        # tweight_consensus = torch.tensor( weight_consensus, dtype=torch.float32 )
+        tvalidator_trust = torch.tensor( validator_trust, dtype=torch.float32 )
         tincentive = torch.tensor( incentive, dtype=torch.float32 )
         temission = torch.tensor( emission, dtype=torch.float32 )
         tdividends = torch.tensor( dividends, dtype=torch.float32 )
@@ -223,8 +228,7 @@ class metagraph:
         metagraph.ranks = torch.nn.Parameter( tranks, requires_grad=False )
         metagraph.trust = torch.nn.Parameter( ttrust, requires_grad=False )
         metagraph.consensus = torch.nn.Parameter( tconsensus, requires_grad=False )
-        # metagraph.validator_trust = torch.nn.Parameter( tvalidator_trust, requires_grad=False )
-        # metagraph.weight_consensus = torch.nn.Parameter( tweight_consensus, requires_grad=False )
+        metagraph.validator_trust = torch.nn.Parameter( tvalidator_trust, requires_grad=False )
         metagraph.incentive = torch.nn.Parameter( tincentive, requires_grad=False )
         metagraph.emission = torch.nn.Parameter( temission, requires_grad=False )
         metagraph.dividends = torch.nn.Parameter( tdividends, requires_grad=False )

@@ -55,8 +55,7 @@ class subtensor:
                 network (default='local', type=str)
                     The subtensor network flag. The likely choices are:
                             -- local (local running network)
-                            -- nakamoto (main network)
-                            -- nobunaga (staging network)
+                            -- finney (main network)
                             -- mock (mock network for testing.)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
@@ -81,7 +80,10 @@ class subtensor:
         # Select using chain_endpoint arg.
         if chain_endpoint != None:
             config.subtensor.chain_endpoint = chain_endpoint
-            config.subtensor.network = network
+            if network != None:
+                config.subtensor.network = network
+            else:
+                config.subtensor.network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
             
         # Select using network arg.
         elif network != None:
@@ -110,15 +112,16 @@ class subtensor:
         # make sure formatting is good
         endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
         
-        substrate = SubstrateInterface(
-            ss58_format = bittensor.__ss58_format__,
-            type_registry_preset='kusama',
-            url = endpoint_url,
-        )
+        
 
         subtensor.check_config( config )
         network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
         if network == 'nakamoto':
+            substrate = SubstrateInterface(
+                ss58_format = bittensor.__ss58_format__,
+                use_remote_preset=True,
+                url = endpoint_url,
+            )
             # Use nakamoto-specific subtensor.
             return Nakamoto_subtensor( 
                 substrate = substrate,
@@ -126,6 +129,12 @@ class subtensor:
                 chain_endpoint = config.subtensor.chain_endpoint,
             )
         else:
+            substrate = SubstrateInterface(
+                ss58_format = bittensor.__ss58_format__,
+                use_remote_preset=True,
+                url = endpoint_url,
+                type_registry=bittensor.__type_registry__
+            )
             return subtensor_impl.Subtensor( 
                 substrate = substrate,
                 network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
@@ -153,8 +162,7 @@ class subtensor:
         try:
             parser.add_argument('--' + prefix_str + 'subtensor.network', default = bittensor.defaults.subtensor.network, type=str,
                                 help='''The subtensor network flag. The likely choices are:
-                                        -- finney (staging network)
-                                        -- nakamoto (master network)
+                                        -- finney (main network)
                                         -- local (local running network)
                                         -- mock (creates a mock connection (for testing))
                                     If this option is set it overloads subtensor.chain_endpoint with 

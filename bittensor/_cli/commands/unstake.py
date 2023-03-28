@@ -27,20 +27,17 @@ console = bittensor.__console__
 class UnStakeCommand:
 
     @classmethod   
-    def check_config( cls, config: 'bittensor.Config' ):
-        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-        
+    def check_config( cls, config: 'bittensor.Config' ):        
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.get('all_hotkeys') and not config.get('hotkeys'):
+        if not config.hotkey_ss58address and config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.get('all_hotkeys') and not config.get('hotkeys'):
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
                     
         # Get amount.
-        if not config.get('amount') and not config.get('unstake_all') and not config.get('max_stake'):
+        if not config.hotkey_ss58address and not config.get('amount') and not config.get('unstake_all') and not config.get('max_stake'):
             hotkeys: str = ''
             if config.get('all_hotkeys'):
                 hotkeys = "all hotkeys"
@@ -81,6 +78,12 @@ class UnStakeCommand:
             '--amount', 
             dest="amount", 
             type=float, 
+            required=False
+        )
+        unstake_parser.add_argument(
+            '--hotkey_ss58address', 
+            dest="hotkey_ss58address", 
+            type=str, 
             required=False
         )
         unstake_parser.add_argument(
@@ -132,7 +135,10 @@ class UnStakeCommand:
         
         # Get the hotkey_names (if any) and the hotkey_ss58s.
         hotkeys_to_unstake_from: List[Tuple[Optional[str], str]] = []
-        if cli.config.get('all_hotkeys'):
+        if cli.config.get('hotkey_ss58address'):
+            # Stake to specific hotkey.
+            hotkeys_to_unstake_from = [(None, cli.config.get('hotkey_ss58address'))]
+        elif cli.config.get('all_hotkeys'):
             # Stake to all hotkeys.
             all_hotkeys: List[bittensor.wallet] = get_hotkey_wallets_for_wallet( wallet = wallet )
             # Get the hotkeys to exclude. (d)efault to no exclusions.
@@ -174,17 +180,6 @@ class UnStakeCommand:
         final_amounts: List[Union[float, Balance]] = []
         for hotkey in tqdm(hotkeys_to_unstake_from):
             hotkey: Tuple[Optional[str], str] # (hotkey_name (or None), hotkey_ss58)
-            if not subtensor.is_hotkey_registered_any( hotkey_ss58 = hotkey[1] ):
-                # Hotkey is not registered.
-                if (len(hotkeys_to_unstake_from) == 1):
-                    # Only one hotkey, error
-                    bittensor.__console__.print(f"[red]Hotkey [bold]{hotkey[1]}[/bold] is not registered. Aborting.[/red]")
-                    return None
-                else:
-                    # Otherwise, print warning and skip
-                    bittensor.__console__.print(f"[yellow]Hotkey [bold]{hotkey[1]}[/bold] is not registered. Skipping.[/yellow]")
-                    continue
-        
             unstake_amount_tao: float = cli.config.get('amount') # The amount specified to unstake.
             hotkey_stake: Balance = subtensor.get_stake_for_coldkey_and_hotkey( hotkey_ss58 = hotkey[1], coldkey_ss58 = wallet.coldkeypub.ss58_address )
             if unstake_amount_tao == None:
