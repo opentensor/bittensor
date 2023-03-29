@@ -27,7 +27,7 @@ service TextSeq2Seq  {
 message ForwardTextSeq2SeqRequest {
     // Caller information.
     int32 version = 1;
-	string hotkey = 2;	
+	string hotkey = 2;
 
     // Serializers required on forward messages.
 	Serializer text_prompt_serializer_type = 3;
@@ -37,7 +37,7 @@ message ForwardTextSeq2SeqRequest {
 	Tensor serialized_text_prompt = 5;
 
     // Specifies the number of Topk logits to return.
-    // Logit values are packed (pos, value) acocording 
+    // Logit values are packed (pos, value) according
     // to the bittensor tokenizer vocab size.
     int32 topk = 6;
 
@@ -54,7 +54,7 @@ message ForwardTextSeq2SeqRequest {
     //Early Stopping
     bool early_stopping = 10;
     
-    //Number of return seuqences
+    //Number of return sequences
     int32 num_return_sequences = 11;
 
     //If sampling should be used
@@ -196,7 +196,7 @@ message BackwardTextCausalLMNextResponse {
 /////////////////////////
 // TextCausalLM //
 /////////////////////////
-// TODO: This need topk!
+
 message ForwardTextCausalLMRequest {
 	int32 version = 1;
 	string hotkey = 2;
@@ -211,7 +211,7 @@ message ForwardTextCausalLMRequest {
 	float timeout = 7;
 	int32 topk = 8;
 }
-// TODO: This need topk!
+
 message ForwardTextCausalLMResponse {
 	int32 version = 1;
 	string hotkey = 2;
@@ -223,7 +223,7 @@ message ForwardTextCausalLMResponse {
 }
 
 
-// TODO: Modify these to match LMNExt, simply copied from ForwardTextCausalLMRequest
+// TODO: Modify these to match LMNext, simply copied from ForwardTextCausalLMRequest
 message BackwardTextCausalLMRequest {
 	int32 version = 1;
 	string hotkey = 2;
@@ -248,7 +248,7 @@ message BackwardTextCausalLMResponse {
 // Return codes from Backward and Forward call.
 enum ReturnCode {
 	NoReturn = 0; // Default Value
-	Success = 1; // Succesfull query.
+	Success = 1; // Successful query.
 	Timeout = 2; // Request timeout.
 	Backoff = 3; // Call triggered a backoff.
 	Unavailable = 4; // Endpoint not available.
@@ -268,7 +268,7 @@ enum ReturnCode {
 	NucleusFull = 18; // Returned when the processing queue on the server is full.
 	RequestIncompatibleVersion = 19; // The request handler is incompatible with the request version.
 	ResponseIncompatibleVersion = 20; // The request handler is incompatible with the request version.
-	SenderUnknown = 21; // The requester is not known by the reciever. 
+	SenderUnknown = 21; // The requester is not known by the receiver.
 	UnknownException = 22; // Unknown exception.
 	Unauthenticated = 23; // Authentication failed.
 	BadEndpoint = 24; // Dummy endpoint

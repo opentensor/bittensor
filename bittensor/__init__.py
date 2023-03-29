@@ -139,6 +139,7 @@ import bittensor._neuron as neurons
 
 # ---- Utils ----
 from bittensor.utils import unbiased_topk as unbiased_topk
+from bittensor.utils.tokenizer_utils import topk_token_phrases # Eugene's topk for synapse
 from bittensor._cli.commands import utils as cli_utils
 
 # ---- Factories -----
@@ -185,9 +186,9 @@ from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateResponse
 from bittensor._proto.bittensor_pb2 import BackwardTextLastHiddenStateRequest
 from bittensor._proto.bittensor_pb2 import BackwardTextLastHiddenStateResponse
 
-from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMNextRequest
-from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMNextResponse
-from bittensor._proto.bittensor_pb2 import BackwardTextCausalLMNextRequest
+from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMRequest
+from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMResponse
+from bittensor._proto.bittensor_pb2 import BackwardTextCausalLMRequest
 
 from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMNextRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMNextResponse
@@ -201,6 +202,8 @@ from bittensor._synapse.call import BittensorCall
 from bittensor._synapse.text_seq2seq.call import TextSeq2SeqBittensorCall 
 from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateForwardCall
 from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateBackwardCall
+from bittensor._synapse.text_causallm.call import TextCausalLMForwardCall
+from bittensor._synapse.text_causallm.call import TextCausalLMBackwardCall
 from bittensor._synapse.text_causallm_next.call import TextCausalLMNextForwardCall
 from bittensor._synapse.text_causallm_next.call import TextCausalLMNextBackwardCall
 
@@ -208,12 +211,14 @@ from bittensor._synapse.text_causallm_next.call import TextCausalLMNextBackwardC
 from bittensor._synapse.synapse import Synapse
 from bittensor._synapse.text_seq2seq.synapse import TextSeq2SeqSynapse
 from bittensor._synapse.text_last_hidden_state.synapse import TextLastHiddenStateSynapse
+from bittensor._synapse.text_causallm.synapse import TextCausalLMSynapse
 from bittensor._synapse.text_causallm_next.synapse import TextCausalLMNextSynapse
 
 # ---- Dendrites -----
 from bittensor._synapse.dendrite import Dendrite
 from bittensor._synapse.text_seq2seq.dendrite import TextSeq2SeqDendrite as text_seq2seq
 from bittensor._synapse.text_last_hidden_state.dendrite import TextLastHiddenStateDendrite as text_last_hidden_state
+from bittensor._synapse.text_causallm.dendrite import TextCausalLMDendrite as text_causal_lm
 from bittensor._synapse.text_causallm_next.dendrite import TextCausalLMNextDendrite as text_causal_lm_next
 
 

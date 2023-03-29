@@ -81,19 +81,19 @@ class axon:
         self.wallet = wallet
 
         # Build and check config.
-        if config == None:
+        if config is None:
             config = axon.config()
         config = copy.deepcopy(config)
-        config.axon.port = port if port != None else config.axon.port
-        config.axon.ip = ip if ip != None else config.axon.ip
-        config.axon.external_ip = external_ip if external_ip != None else config.axon.external_ip
+        config.axon.port = port if port is not None else config.axon.port
+        config.axon.ip = ip if ip is not None else config.axon.ip
+        config.axon.external_ip = external_ip if external_ip is not None else config.axon.external_ip
         config.axon.external_port = (
-            external_port if external_port != None else config.axon.external_port
+            external_port if external_port is not None else config.axon.external_port
         )
-        config.axon.max_workers = max_workers if max_workers != None else config.axon.max_workers
+        config.axon.max_workers = max_workers if max_workers is not None else config.axon.max_workers
         config.axon.maximum_concurrent_rpcs = (
             maximum_concurrent_rpcs
-            if maximum_concurrent_rpcs != None
+            if maximum_concurrent_rpcs is not None
             else config.axon.maximum_concurrent_rpcs
         )
         axon.check_config(config)
@@ -151,7 +151,7 @@ class axon:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         """Accept specific arguments from parser"""
-        prefix_str = "" if prefix == None else prefix + "."
+        prefix_str = "" if prefix is None else prefix + "."
         bittensor.prioritythreadpool.add_args(parser, prefix=prefix_str + "axon")
         try:
             parser.add_argument(
@@ -202,23 +202,23 @@ class axon:
         """Adds parser defaults to object from enviroment variables."""
         defaults.axon = bittensor.Config()
         defaults.axon.port = (
-            os.getenv("BT_AXON_PORT") if os.getenv("BT_AXON_PORT") != None else 8091
+            os.getenv("BT_AXON_PORT") if os.getenv("BT_AXON_PORT") is not None else 8091
         )
-        defaults.axon.ip = os.getenv("BT_AXON_IP") if os.getenv("BT_AXON_IP") != None else "[::]"
+        defaults.axon.ip = os.getenv("BT_AXON_IP") if os.getenv("BT_AXON_IP") is not None else "[::]"
         defaults.axon.external_port = (
             os.getenv("BT_AXON_EXTERNAL_PORT")
-            if os.getenv("BT_AXON_EXTERNAL_PORT") != None
+            if os.getenv("BT_AXON_EXTERNAL_PORT") is not None
             else None
         )
         defaults.axon.external_ip = (
-            os.getenv("BT_AXON_EXTERNAL_IP") if os.getenv("BT_AXON_EXTERNAL_IP") != None else None
+            os.getenv("BT_AXON_EXTERNAL_IP") if os.getenv("BT_AXON_EXTERNAL_IP") is not None else None
         )
         defaults.axon.max_workers = (
-            os.getenv("BT_AXON_MAX_WORERS") if os.getenv("BT_AXON_MAX_WORERS") != None else 10
+            os.getenv("BT_AXON_MAX_WORERS") if os.getenv("BT_AXON_MAX_WORERS") is not None else 10
         )
         defaults.axon.maximum_concurrent_rpcs = (
             os.getenv("BT_AXON_MAXIMUM_CONCURRENT_RPCS")
-            if os.getenv("BT_AXON_MAXIMUM_CONCURRENT_RPCS") != None
+            if os.getenv("BT_AXON_MAXIMUM_CONCURRENT_RPCS") is not None
             else 400
         )
 
@@ -258,7 +258,7 @@ class axon:
 
     def start(self) -> "bittensor.axon":
         r"""Starts the standalone axon GRPC server thread."""
-        if self.server != None:
+        if self.server is not None:
             self.server.stop(grace=1)
         self.server.start()
         self.started = True
@@ -266,7 +266,7 @@ class axon:
 
     def stop(self) -> "bittensor.axon":
         r"""Stop the axon grpc server."""
-        if self.server != None:
+        if self.server is not None:
             self.server.stop(grace=1)
         self.started = False
 
@@ -364,7 +364,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
     def black_list_checking(self, hotkey: str):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
-        if self.blacklist == None:
+        if self.blacklist is None:
             return
 
         if self.blacklist(hotkey):
