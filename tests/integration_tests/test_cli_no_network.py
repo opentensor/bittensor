@@ -258,5 +258,44 @@ class TestCLINoNetwork(unittest.TestCase):
         assert 'overview' in help_out
         assert 'run' in help_out
 
+    def test_register_cuda_use_cuda_flag(self):
+            class ExitEarlyException(Exception):
+                """Raised by mocked function to exit early"""
+                pass
+
+            base_args = [
+                "register",
+                "--wallet.path", "tmp/walletpath",
+                "--wallet.name", "mock",
+                "--wallet.hotkey", "hk0",
+                "--no_prompt",
+                "--cuda.dev_id", "0",
+            ]
+            bittensor.subtensor.check_config = MagicMock(return_value = True)  
+            with patch('torch.cuda.is_available', return_value=True):
+                with patch('bittensor.Subtensor.get_subnets', return_value = [1]):
+                    with patch('bittensor.Subtensor.subnet_exists', side_effect=lambda netuid: netuid == 1):
+                        with patch('bittensor.Subtensor.register', side_effect=ExitEarlyException):
+                            # Should be able to set true without argument
+                            args = base_args + [
+                                "--subtensor.register.cuda.use_cuda", # should be True without any arugment
+                            ]
+                            with pytest.raises(ExitEarlyException):
+                                cli = bittensor.cli(args=args)
+                                cli.run()
+
+                            assert cli.config.subtensor.register.cuda.get('use_cuda') == True # should be None
+
+                            # Should be able to set to false with no argument
+
+                            args = base_args + [
+                                "--subtensor.register.cuda.no_cuda",
+                            ]
+                            with pytest.raises(ExitEarlyException):
+                                cli = bittensor.cli(args=args)
+                                cli.run()
+
+                            assert cli.config.subtensor.register.cuda.use_cuda == False
+
 if __name__ == "__main__":
     unittest.main()

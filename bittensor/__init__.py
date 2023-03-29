@@ -73,12 +73,12 @@ __nakamoto_entrypoint__ = "ws://AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaw
 
 __nobunaga_entrypoint__ = "wss://stagingnode.opentensor.ai:443"
 
-__finney_entrypoint__ = "wss://staging.parachain.opentensor.ai:443"
+__finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
-__local_entrypoint__ = "ws://127.0.0.1:9945"
+__local_entrypoint__ = "ws://127.0.0.1:9944"
 
 __tao_symbol__: str = chr(0x03C4)
 
@@ -87,11 +87,10 @@ __rao_symbol__: str = chr(0x03C1)
 # Block Explorers map network to explorer url
 ## Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
-    'local': "https://explorer.nakamoto.opentensor.ai/#/explorer",
+    'local': "https://explorer.finney.opentensor.ai/#/explorer",
     'nakamoto': "https://explorer.nakamoto.opentensor.ai/#/explorer",
-    'endpoint': "https://explorer.nakamoto.opentensor.ai/#/",
-    'nobunaga': "https://staging.opentensor.ai/#/explorer",
-    'finney': "https://polkadot.js.org/apps/?rpc=wss://staging.parachain.opentensor.ai#/explorer"
+    'endpoint': "https://explorer.finney.opentensor.ai/#/explorer",
+    'finney': "https://explorer.finney.opentensor.ai/#/explorer"
 }
 
 # Avoid collisions with other processes
@@ -101,6 +100,12 @@ __mock_entrypoint__ = f"localhost:{mock_subtensor_port}"
 
 __mock_chain_db__ = './tmp/mock_chain_db'
 
+# --- Type Registry ---
+__type_registry__ = {
+    'types': {
+        'Balance': 'u64', # Need to override default u128
+    },
+}
 
 # --- Prometheus ---
 __prometheus_version__ = "0.1.0"
@@ -135,9 +140,6 @@ from bittensor._logging import logging as logging
 import bittensor._proto.bittensor_pb2 as proto
 import bittensor._proto.bittensor_pb2_grpc as grpc
 
-# ---- Neurons ----
-import bittensor._neuron as neurons
-
 # ---- Utils ----
 from bittensor.utils import unbiased_topk as unbiased_topk
 from bittensor.utils.tokenizer_utils import topk_token_phrases # Eugene's topk for synapse
@@ -171,6 +173,7 @@ from bittensor._keyfile.keyfile_impl import Keyfile as Keyfile
 from bittensor._endpoint.endpoint_impl import Endpoint as Endpoint
 from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
 from bittensor._subtensor.chain_data import NeuronInfo as NeuronInfo
+from bittensor._subtensor.chain_data import NeuronInfoLite as NeuronInfoLite
 from bittensor._subtensor.chain_data import PrometheusInfo as PrometheusInfo
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
@@ -199,6 +202,9 @@ from bittensor._proto.bittensor_pb2 import BackwardTextCausalLMNextRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqResponse
 
+from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
+from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse
+
 # ---- Calls -----
 from bittensor._synapse.call import BittensorCall
 from bittensor._synapse.text_seq2seq.call import TextSeq2SeqBittensorCall 
@@ -208,6 +214,7 @@ from bittensor._synapse.text_causallm.call import TextCausalLMForwardCall
 from bittensor._synapse.text_causallm.call import TextCausalLMBackwardCall
 from bittensor._synapse.text_causallm_next.call import TextCausalLMNextForwardCall
 from bittensor._synapse.text_causallm_next.call import TextCausalLMNextBackwardCall
+from bittensor._synapse.text_prompting.call import TextPromptingForwardCall
 
 # ---- Synapses -----
 from bittensor._synapse.synapse import Synapse
@@ -215,6 +222,7 @@ from bittensor._synapse.text_seq2seq.synapse import TextSeq2SeqSynapse
 from bittensor._synapse.text_last_hidden_state.synapse import TextLastHiddenStateSynapse
 from bittensor._synapse.text_causallm.synapse import TextCausalLMSynapse
 from bittensor._synapse.text_causallm_next.synapse import TextCausalLMNextSynapse
+from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
 
 # ---- Dendrites -----
 from bittensor._synapse.dendrite import Dendrite
@@ -222,7 +230,13 @@ from bittensor._synapse.text_seq2seq.dendrite import TextSeq2SeqDendrite as text
 from bittensor._synapse.text_last_hidden_state.dendrite import TextLastHiddenStateDendrite as text_last_hidden_state
 from bittensor._synapse.text_causallm.dendrite import TextCausalLMDendrite as text_causal_lm
 from bittensor._synapse.text_causallm_next.dendrite import TextCausalLMNextDendrite as text_causal_lm_next
+from bittensor._synapse.text_prompting.dendrite import TextPromptingDendrite as text_prompting
 
+# ---- Errors and Exceptions -----
+from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
+
+# ---- Errors and Exceptions -----
+from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 
 # DEFAULTS
 defaults = Config()
@@ -237,9 +251,3 @@ wandb.add_defaults( defaults )
 logging.add_defaults( defaults )
 
 from substrateinterface import Keypair as Keypair
-
-from bittensor._synapse.text_prompting.call import TextPromptingForwardCall
-from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
-from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse
-from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
-from bittensor._synapse.text_prompting.dendrite import TextPromptingDendrite as text_prompting

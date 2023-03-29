@@ -1,9 +1,10 @@
-import math
-import torch
 import argparse
+import math
 import bittensor
+import torch
 from torch import nn
 import torch.nn.functional as F
+from types import SimpleNamespace
 from typing import Tuple, Optional
 
 import transformers
@@ -14,35 +15,7 @@ from bittensor.utils.tokenizer_utils import prep_tokenizer, get_translation_map,
 
 from loguru import logger; logger = logger.opt(colors=True)
 
-class PretrainedModel(torch.nn.Module):
-
-    @classmethod
-    def config(self) -> 'bittensor.Config':
-        """ Get config from the argument parser
-            Return: bittensor.config object 
-        """
-        parser = argparse.ArgumentParser()
-        PretrainedModel.add_args( parser )
-        return bittensor.config( parser )
-    
-    @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser, prefix: str = None ):
-        prefix_str = '' if prefix == None else prefix + '.'
-        try:
-            # ML model arguements
-            parser.add_argument('--model.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
-            parser.add_argument('--model.model_name', type=str, help='pretrained model from hugging face',default='gpt2')
-            parser.add_argument('--model.pretrained', action='store_false', help='if the model should be pretrained',default=True)
-            parser.add_argument('--model.padding', action='store_false', help='To pad out final dimensions',default=True)
-            parser.add_argument('--model.interpolate', action='store_false', help='To interpolate between sentence length',default=True)
-            parser.add_argument('--model.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
-            parser.add_argument('--model.autocast',  action='store_true', help='(experimental) autocasts the model to float16. Must require cuda', default=False)
-            parser.add_argument('--model.checking', action='store_false', help='To check if server settings are correct',default=True)
-        except argparse.ArgumentError:
-            # re-parsing arguments.
-            pass
-
-
+class server(torch.nn.Module):
     def __init__(self, 
                 config: 'bittensor.config' = None,
                 pretrained: bool = None,
@@ -80,15 +53,15 @@ class PretrainedModel(torch.nn.Module):
                 token_remap (:obj:Callable, `optional`):
                     Custom function that maps between tokenizers (defaults to self.remapping_token)
         """
-        super(PretrainedModel, self).__init__()
-        if config == None: config = PretrainedModel.config()
-        self.config = config
+        super(server, self).__init__()
+        if config == None: config = server.config()
+        self.config = config;print(config)
         self.std_tokenizer = bittensor.tokenizer()
-        self.device = config.model.device
+        self.device = config.neuron.device
 
         #setting up pretrained model
-        self.model_name = model_name if model_name != None else config.model.model_name
-        self.pretrained = pretrained if pretrained != None else config.model.pretrained
+        self.model_name = model_name if model_name != None else config.neuron.model_name
+        self.pretrained = pretrained if pretrained != None else config.neuron.pretrained
         if self.pretrained == True:
             self.pre_model = model if model != None else AutoModelForCausalLM.from_pretrained(self.model_name)
             self.tokenizer = tokenizer
@@ -114,26 +87,27 @@ class PretrainedModel(torch.nn.Module):
         self.from_translation_map = get_translation_map(self.std_tokenizer, self.tokenizer)
         self.split_map_cache = {}
 
-        # NOTE( Eugene ): this is a hack to get the model to work with the new structure.
-        # if self.config.model.local_train or self.config.model.remote_train:
-        #     self.pre_model.train()
-        #     self.set_fine_tuning_params()
-        # else:
-        self.pre_model.eval()
-        if self.config.model.autocast and self.device[:4] == 'cuda':
+        if self.config.neuron.local_train or self.config.neuron.remote_train:
+            self.pre_model.train()
+            self.set_fine_tuning_params()
+
+        else:
+            self.pre_model.eval()
+
+        if self.config.neuron.autocast and self.device[:4] == 'cuda':
             self.pre_model.half()
 
         #parameters of the models
         self.final_dim =  bittensor.__network_dim__
         self.pre_dimension = self.pre_model.config.hidden_size
-        self.padding = padding if padding != None else config.model.padding
-        self.interpolate = interpolate if interpolate != None else config.model.interpolate
-        self.inter_degree = inter_degree if inter_degree != None else config.model.inter_degree
-        self.checking = checking if checking != None else config.model.checking
+        self.padding = padding if padding != None else config.neuron.padding
+        self.interpolate = interpolate if interpolate != None else config.neuron.interpolate
+        self.inter_degree = inter_degree if inter_degree != None else config.neuron.inter_degree
+        self.checking = checking if checking != None else config.neuron.checking
         self.mapping_function= mapping_function
         self.token_remap = token_remap if token_remap is not None else self.remapping_token
 
-        if self.config.model.padding == False:
+        if self.config.neuron.padding == False:
             self.mapping = torch.nn.Linear( self.pre_dimension, self.final_dim)
 
         self.decoder = torch.nn.Linear( self.final_dim, bittensor.__vocab_size__ , bias=False)
@@ -250,6 +224,7 @@ class PretrainedModel(torch.nn.Module):
     def forward(self, inputs, tokenizer=None):
         """
             Forward pass through the whole server model. Returns the loss and decoded predictions.
+
             Args:
                 inputs ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
@@ -260,6 +235,7 @@ class PretrainedModel(torch.nn.Module):
                     MLM loss from the inputs
                 decoded_targets (:obj:`torch.FloatTensor`):
                     Decoded predictions of the next token in the sentence.
+
         """
         message, model_output, decoded_targets = self.local_forward(inputs, tokenizer)
         shift_logits = decoded_targets[..., :-1, :].contiguous()
@@ -272,6 +248,7 @@ class PretrainedModel(torch.nn.Module):
         r""" Forward pass through the pretrained model and possible mappings between hidden units.
              The response tensor should be the hidden units computed using the local context and
              with shape: [batch_size, sequence_len, __vocab_size__].
+
             Args:
                 token_batch ( :obj:`torch.LongTensor`, `required`):
                     torch inputs to be forward processed, [batch_size, sequence_len]
@@ -281,6 +258,7 @@ class PretrainedModel(torch.nn.Module):
                     logit encoding length, default bittensor.__network_dim__ length
                 model_output (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `optional`):
                     The output of huggingface auto model.
+
             Returns:
                 model_outputs (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `required`):
                     The output of huggingface auto model.
@@ -306,6 +284,7 @@ class PretrainedModel(torch.nn.Module):
     def encode_forward(self,inputs,tokenizer=None, model_output = None):
         r""" Forward pass through the pretrained model and possible mappings between hidden units. 
              The response tensor should be the hidden units computed using the local context and with shape: [batch_size, sequence_len, __network_dim__].
+
             Args:
                 inputs ( :obj:`torch.Tensor`, `required`):
                     torch inputs to be forward processed.
@@ -313,6 +292,7 @@ class PretrainedModel(torch.nn.Module):
                     The tokenizer which was used to tokenize the inputs
                 model_outputs (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `optional`):
                     The output of huggingface auto model.
+
             Returns:
                 model_outputs (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `required`):
                     The output of huggingface auto model.
@@ -360,6 +340,7 @@ class PretrainedModel(torch.nn.Module):
         r""" Forward pass through the pretrained model and possible mappings between hidden units.
              The response tensor should be the hidden units computed using the local context and
              with shape: [batch_size, sequence_len, __vocab_size__].
+
             Args:
                 token_batch ( :obj:`torch.LongTensor`, `required`):
                     torch inputs to be forward processed, [batch_size, sequence_len]
@@ -369,6 +350,7 @@ class PretrainedModel(torch.nn.Module):
                     logit encoding length, default bittensor.__network_dim__ length
                 model_output (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `optional`):
                     The output of huggingface auto model.
+
             Returns:
                 model_outputs (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `required`):
                     The output of huggingface auto model.
@@ -417,6 +399,7 @@ class PretrainedModel(torch.nn.Module):
         into 1-D tensor [ >= batch_size * (2 * topk + 1)] prob + at least 1 token per phrase + floor_prob.
         The floor probability is the mean probability of token phrases not captured in topk, required since
         the server tokenizer vocab_size may not be known to the receiver/validator.
+
             Args:
                 token_batch ( :obj:`torch.LongTensor`, `required`):
                     torch inputs to be forward processed, [batch_size, std_sequence_len].
@@ -426,6 +409,7 @@ class PretrainedModel(torch.nn.Module):
                     Amount of std_tokenized server phrases with highest probability to produce.
                 model_output (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `optional`):
                     The output of transformers AutoModel.
+
             Returns:
                 model_outputs (:obj:`transformers.modeling_outputs.BaseModelOutputWithCrossAttentions`, `required`):
                     The output of transformers AutoModel.
@@ -480,9 +464,11 @@ class PretrainedModel(torch.nn.Module):
     def model_output_check(self, model_output: transformers.modeling_outputs.CausalLMOutputWithPast):
         """
             Verify the model has been ran correctly with valid output.
+
             Args:
                 model_output (:obj:`transformers.modeling_outputs.CausalLMOutputWithPast`, required):
                     The output of transformers AutoModel.
+
             Returns:
                 check_status (:type: `bool`):
                     True if the model_output is valid.
@@ -503,6 +489,7 @@ class PretrainedModel(torch.nn.Module):
                     [batch_size, sequence_len, bittensor.__network_dim__]
                 labels (:obj:`torch.LongTensor`, `required`):
                     [batch_size, sequence_len]
+
             Returns:
                 loss (:obj:`torch.FloatTensor`):
                     scalar
@@ -551,3 +538,67 @@ class PretrainedModel(torch.nn.Module):
 
         except Exception as e:
             logger.warning('No saved model found with error: {}', e)
+
+    @staticmethod
+    def config ():
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
+
+        # ML model arguements
+        parser.add_argument('--neuron.learning_rate', type=float, help='Training initial learning rate.', default=0.01)
+        parser.add_argument('--neuron.momentum', type=float, help='optimizer momentum.', default=0.8)
+        parser.add_argument('--neuron.clip_gradients', type=float, help='Implement gradient clipping to avoid exploding loss on smaller architectures.', default=1.0)
+        parser.add_argument('--neuron.device', type=str, help='miner default training device cpu/cuda', default=("cuda" if torch.cuda.is_available() else "cpu"))
+        parser.add_argument('--neuron.model_name', type=str, help='pretrained model from hugging face',default='gpt2')
+        parser.add_argument('--neuron.pretrained', action='store_false', help='if the model should be pretrained',default=True)
+        parser.add_argument('--neuron.padding', action='store_false', help='To pad out final dimensions',default=True)
+        parser.add_argument('--neuron.interpolate', action='store_false', help='To interpolate between sentence length',default=True)
+        parser.add_argument('--neuron.inter_degree', type=str, help='Interpolate algorithm (nearest | linear | bilinear | bicubic | trilinear | area)', default='nearest')
+        parser.add_argument('--neuron.autocast',  action='store_true', help='(experimental) autocasts the model to float16. Must require cuda', default=False)
+        parser.add_argument('--neuron.local_train', action='store_true', help='''If true, allow local training''', default=False)
+        parser.add_argument('--neuron.remote_train', action='store_true', help='''If true, allow remote training''', default=False)
+        parser.add_argument('--neuron.finetune.all', action='store_true', help='Finetune your whole model instead of only on the last (few) layers', default=False)
+        parser.add_argument('--neuron.finetune.num_layers', type=int, help='The number of layers to finetune on your model.', default=1)
+        parser.add_argument('--neuron.finetune.layer_name', type=str, help='Specify since which layer to finetune. eg. encoder.layer.11', default=None)
+        
+        # Miner arguements
+        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_server')
+        parser.add_argument('--neuron.checking', action='store_false', help='To check if server settings are correct',default=True)
+        parser.add_argument('--neuron.restart', action='store_true', help='If True, train the neuron from the beginning', default=False)
+        parser.add_argument('--neuron.no_set_weights', action='store_true', help='If True, the model does not set weights.', default=False)
+        parser.add_argument('--neuron.blacklist.stake', type=float, help='Amount of stake (tao) in order not to get blacklisted', default=10)
+        parser.add_argument('--neuron.blocks_per_epoch', type=int, help='Blocks per epoch', default=10)
+        parser.add_argument('--neuron.blacklist.time', type=int, help='how often a peer can query you (seconds) ', default=1)
+        parser.add_argument('--neuron.blocks_per_set_weights', type=float, help='how often to set weights', default=-1)
+        parser.add_argument('--neuron.metagraph_sync', type=float, help='how often to sync the metagraph', default=100000)
+        parser.add_argument('--neuron.blacklist_allow_non_registered', action='store_true', help='''If true, allow non-registered peers''', default=False)
+        parser.add_argument('--neuron.disable_blacklist', action='store_true', help='Turns off blacklisting', default=False)
+        parser.add_argument('--neuron.disable_priority', action='store_true', help='Turns off priority threadpool', default=False)
+        parser.add_argument('--neuron.num_remote_loss', type=int, help='Number of past remote loss to keep in stat.', default=20)
+        parser.add_argument('--neuron.max_batch_size', type=int, help='The maximum batch size for forward requests.', default=-1)
+        parser.add_argument('--neuron.max_sequence_len', type=int, help='The maximum sequence length for forward requests.', default=-1)
+        parser.add_argument('--neuron.blacklist.hotkeys', type=str, required=False, nargs='*', action='store', help='To blacklist certain hotkeys', default=[])
+
+        # Synapse Arguements
+        parser.add_argument('--neuron.lasthidden', action='store_false', help='To turn off last hidden synapse', default=True)
+        parser.add_argument('--neuron.causallm', action='store_false', help='To turn off causallm synapse', default=True)
+        parser.add_argument('--neuron.causallmnext', action='store_false', help='To turn off causallmnext synapse', default=True)
+        parser.add_argument('--neuron.seq2seq', action='store_false', help='To turn off seq2seq synapse', default=True)
+        parser.add_argument('--neuron.lasthidden_stake', type = float, help='the amount of stake to run last hidden synapse',default=0)
+        parser.add_argument('--neuron.causallm_stake',  type = float, help='the amount of stake to run causallm synapse',default=0)
+        parser.add_argument('--neuron.causallmnext_stake', type=float, help='the amount of stake to run causallmnext synapse', default=0)
+        parser.add_argument('--neuron.seq2seq_stake',  type = float, help='the amount of stake to run seq2seq synapse',default=0)
+
+        # Netuid Arg
+        parser.add_argument('--netuid', type=int , help='Subnet netuid', default=1)
+
+        bittensor.wallet.add_args( parser )
+        bittensor.axon.add_args( parser )
+        bittensor.subtensor.add_args( parser )
+        bittensor.logging.add_args( parser )
+        bittensor.wandb.add_args(parser)
+        bittensor.prioritythreadpool.add_args( parser )
+        bittensor.dataset.add_args( parser )
+        bittensor.metagraph.add_args( parser )
+        bittensor.prometheus.add_args( parser )
+        return bittensor.config( parser )

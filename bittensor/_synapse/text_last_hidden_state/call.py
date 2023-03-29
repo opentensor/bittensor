@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+from typing import Union
 import torch
 import bittensor
 
@@ -23,7 +24,8 @@ class TextLastHiddenStateForwardCall( bittensor.BittensorCall ):
     """ Call state for the text_last_hidden_state synapse."""
 
     # The name of the synapse call.
-    name: str = 'forward_text_last_hidden_state'
+    synapse_name: str = 'forward_text_last_hidden_state'
+    outputs = None # To be filled by the forward call.
 
     def __str__( self ) -> str:
         return """
@@ -52,7 +54,7 @@ bittensor.TextLastHiddenStateForwardCall(
             time.time() - self.start_time,
             self.text_inputs, 
             self.mask,
-            self.hidden_states if self.hidden_states != None else "To be filled by the forward call.",
+            self.hidden_states if self.hidden_states is not None else "To be filled by the forward call.",
             self.mask_serializer_type,
             self.text_inputs_serializer_type,
             self.hidden_states_serializer_type
@@ -95,15 +97,17 @@ bittensor.TextLastHiddenStateForwardCall(
         self.text_inputs_serializer_type = text_inputs_serializer_type
         self.hidden_states_serializer_type = hidden_states_serializer_type
 
-    def get_inputs_shape(self) -> torch.Size:
+    def get_inputs_shape(self) -> Union[torch.Size, None]:
         if self.text_inputs is not None:
             return self.text_inputs.shape
-        else: return None
+        return None
     
-    def get_outputs_shape(self) -> torch.Size:
-        if self.hidden_states is not None:
-            return self.hidden_states.shape
-        else: return None
+    def get_outputs_shape(self) -> Union[torch.Size, None]:
+        print("in TextLastHiddenStateForwardCall.get_outputs_shape()")
+        # TODO: WHY IS HIDDEN STATES NOT SHOWING UP?  WHERE TO SET? WHAT ABOUT TEXT_OUTPUTS?! WTF
+        if self.outputs is not None:
+            return self.outputs.shape
+        return None
 
 
 class TextLastHiddenStateBackwardCall( bittensor.BittensorCall ):
@@ -144,7 +148,7 @@ bittensor.TextLastHiddenStateBackwardCall(
             self.hidden_states,
             self.hidden_states_grads,
             self.mask,
-            self.hidden_states if self.hidden_states != None else "To be filled by the forward call.",
+            self.hidden_states if self.hidden_states is not None else "To be filled by the forward call.",
             self.mask_serializer_type,
             self.text_inputs_serializer_type,
             self.hidden_states_serializer_type,
@@ -197,12 +201,12 @@ bittensor.TextLastHiddenStateBackwardCall(
         self.hidden_states_serializer_type = hidden_states_serializer_type
         self.hidden_states_grads_serializer_type = hidden_states_grads_serializer_type
 
-    def get_inputs_shape(self) -> torch.Size:
+    def get_inputs_shape(self) -> Union[torch.Size, None]:
         if self.text_inputs is not None:
             return self.text_inputs.shape
-        else: return None
+        return None
     
-    def get_outputs_shape(self) -> torch.Size:
+    def get_outputs_shape(self) -> Union[torch.Size, None]:
         if self.hidden_states is not None:
             return self.hidden_states.shape
-        else: return None
+        return None

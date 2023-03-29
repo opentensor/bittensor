@@ -101,39 +101,19 @@ def add_stake_extrinsic(
     else:
         staking_balance = staking_balance
 
-    # Estimate transfer fee.
-    staking_fee = None # To be filled.
-    with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
-        with subtensor.substrate as substrate:
-            call = substrate.compose_call(
-                call_module='SubtensorModule', 
-                call_function='add_stake',
-                call_params={
-                    'hotkey': hotkey_ss58,
-                    'amount_staked': staking_balance.rao
-                }
-            )
-            payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkeypub)
-            if payment_info:
-                staking_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
-                bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( staking_fee ))
-            else:
-                staking_fee = bittensor.Balance.from_tao( 0.2 )
-                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate staking fee, assuming base fee of 0.2")
-
     # Check enough to stake.
-    if staking_balance > old_balance + staking_fee:
-        bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  fee: {}\n  coldkey: {}[/bold white]".format(old_balance, staking_balance, staking_fee, wallet.name))
+    if staking_balance > old_balance:
+        bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  coldkey: {}[/bold white]".format(old_balance, staking_balance, wallet.name))
         return False
             
     # Ask before moving on.
     if prompt:
         if not own_hotkey:
             # We are delegating.
-            if not Confirm.ask("Do you want to delegate:[bold white]\n  amount: {}\n  to: {}\n  fee: {}\n  take: {}\n  owner: {}[/bold white]".format( staking_balance, wallet.hotkey_str, staking_fee, hotkey_take, hotkey_owner) ):
+            if not Confirm.ask("Do you want to delegate:[bold white]\n  amount: {}\n  to: {}\n  take: {}\n  owner: {}[/bold white]".format( staking_balance, wallet.hotkey_str, hotkey_take, hotkey_owner) ):
                 return False
         else:
-            if not Confirm.ask("Do you want to stake:[bold white]\n  amount: {}\n  to: {}\n  fee: {}[/bold white]".format( staking_balance, wallet.hotkey_str, staking_fee) ):
+            if not Confirm.ask("Do you want to stake:[bold white]\n  amount: {}\n  to: {}[/bold white]".format( staking_balance, wallet.hotkey_str) ):
                 return False
 
     try:
@@ -272,38 +252,14 @@ def add_stake_multiple_extrinsic (
             assert isinstance(amount, bittensor.Balance)
             staking_balance = amount
 
-        # Estimate staking fee.
-        stake_fee = None # To be filled.
-        with bittensor.__console__.status(":satellite: Estimating Staking Fees..."):
-            with subtensor.substrate as substrate:
-                call = substrate.compose_call(
-                call_module='SubtensorModule', 
-                call_function='add_stake',
-                call_params={
-                    'hotkey': hotkey_ss58,
-                    'amount_staked': staking_balance.rao
-                    }
-                )
-                payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
-                if payment_info:
-                    stake_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
-                    bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( stake_fee ))
-                else:
-                    stake_fee = bittensor.Balance.from_tao( 0.2 )
-                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate staking fee, assuming base fee of 0.2")
-
         # Check enough to stake
-        if staking_all:
-            staking_balance -= stake_fee
-            max(staking_balance, bittensor.Balance.from_tao(0))
-
-        if staking_balance > old_balance - stake_fee:
+        if staking_balance > old_balance:
             bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]: [green]{}[/green] to stake: [blue]{}[/blue] from coldkey: [white]{}[/white]".format(old_balance, staking_balance, wallet.name))
             continue
                         
         # Ask before moving on.
         if prompt:
-            if not Confirm.ask("Do you want to stake:\n[bold white]  amount: {}\n  hotkey: {}\n  fee: {}[/bold white ]?".format( staking_balance, wallet.hotkey_str, stake_fee) ):
+            if not Confirm.ask("Do you want to stake:\n[bold white]  amount: {}\n  hotkey: {}[/bold white ]?".format( staking_balance, wallet.hotkey_str) ):
                 continue
 
         try:
@@ -320,7 +276,7 @@ def add_stake_multiple_extrinsic (
                 # We only wait here if we expect finalization.
                 if not wait_for_finalization and not wait_for_inclusion:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                    old_balance -= staking_balance + stake_fee
+                    old_balance -= staking_balance
                     successful_stakes += 1
                     if staking_all:
                         # If staked all, no need to continue
@@ -333,7 +289,7 @@ def add_stake_multiple_extrinsic (
                 block = subtensor.get_current_block()
                 new_stake = subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkeypub.ss58_address, hotkey_ss58 = hotkey_ss58, block = block )
                 new_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address, block = block )
-                bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( wallet.hotkey.ss58_address, old_stake, new_stake ))
+                bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( hotkey_ss58, old_stake, new_stake ))
                 old_balance = new_balance
                 successful_stakes += 1
                 if staking_all:
@@ -345,7 +301,7 @@ def add_stake_multiple_extrinsic (
                 continue
 
         except NotRegisteredError as e:
-            bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
+            bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(hotkey_ss58))
             continue
         except StakeError as e:
             bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))

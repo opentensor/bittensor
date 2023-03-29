@@ -29,35 +29,37 @@ class HelpCommand:
     def run (cli):
         cli.config.to_defaults()
         sys.argv = [sys.argv[0], '--help']
-        # Run miner.
-        if cli.config.model == 'core_server':
-            bittensor.neurons.core_server.neuron().run()
-        elif cli.config.model == 'core_validator':
-            bittensor.neurons.core_validator.neuron().run()
-        elif cli.config.model == 'multitron_server':
-            bittensor.neurons.multitron_server.neuron().run()
+        # # Run miner.
+        # if cli.config.model == 'core_server':
+        #     bittensor.neurons.core_server.neuron().run()
+        # elif cli.config.model == 'core_validator':
+        #     bittensor.neurons.core_validator.neuron().run()
+        # elif cli.config.model == 'multitron_server':
+        #     bittensor.neurons.multitron_server.neuron().run()
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        if config.model == 'None':
-            model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'core_server')
-            config.model = model
+        pass
+        # if config.model == 'None':
+        #     model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'core_server')
+        #     config.model = model
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
-        help_parser = parser.add_parser(
-            'help', 
-            add_help=False,
-            help='''Displays the help '''
-        )
-        help_parser.add_argument(
-            '--model', 
-            type=str, 
-            choices= list(bittensor.neurons.__text_neurons__.keys()), 
-            default='None', 
-        )
-        help_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
-        bittensor.subtensor.add_args( help_parser )
+        pass
+        # help_parser = parser.add_parser(
+        #     'help', 
+        #     add_help=False,
+        #     help='''Displays the help '''
+        # )
+        # help_parser.add_argument(
+        #     '--model', 
+        #     type=str, 
+        #     choices= list(bittensor.neurons.__text_neurons__.keys()), 
+        #     default='None', 
+        # )
+        # help_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+        # bittensor.subtensor.add_args( help_parser )
 
 class UpdateCommand:
     @staticmethod
@@ -101,35 +103,35 @@ class ListSubnetsCommand:
 
         for subnet in subnets:
             total_neurons += subnet.max_n
+            # netuid, N, Max N, difficulty, network connect, tempo, emission, burn rate
             rows.append((
                 str(subnet.netuid),
                 str(subnet.subnetwork_n),
-                str(subnet.max_n),
-                str(bittensor.utils.registration.millify(subnet.difficulty)) + "M",
-                str(subnet.immunity_period),
-                str(subnet.validator_batch_size),
-                str(subnet.validator_sequence_length),
+                str(bittensor.utils.registration.millify(subnet.max_n)),
+                str(bittensor.utils.registration.millify(subnet.difficulty)),
                 str(subnet.tempo),
-                str(subnet.modality),
-                str([cr[1] for cr in subnet.connection_requirements]),
-                str(subnet.emission_value),
+                str([ f'{cr[0]}: {cr[1] * 100:.1f}%' for cr in subnet.connection_requirements.items()] if len(subnet.connection_requirements) > 0 else None ),
+                f'{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%',
+                f'{subnet.burn!s:8.8}',
             ))
 
-        table = Table(show_footer=True, width=cli.config.get('width', None), pad_edge=False, box=None)
+        table = Table(show_footer=True, width=cli.config.get('width', None), pad_edge=True, box=None, show_edge=True)
         table.title = (
             "[white]Subnets - {}".format(subtensor.network)
         )
-        table.add_column("[overline white]NETUID",  str(len(subnets)), footer_style = "overline white", style='bold white')
-        table.add_column("[overline white]N", str(total_neurons), footer_style = "overline white", style='white')
-        table.add_column("[overline white]MAX_N", style='white')
-        table.add_column("[overline white]DIFFICULTY", style='white')
-        table.add_column("[overline white]IMMUNITY", style='white')
-        table.add_column("[overline white]BATCH SIZE", style='white')
-        table.add_column("[overline white]SEQ_LEN", style='white')
-        table.add_column("[overline white]TEMPO", style='white')
-        table.add_column("[overline white]MODALITY", style='white')
-        table.add_column("[overline white]CON_REQ", style='white')
-        table.add_column("[overline white]EMISSION", "1.0", style='white', footer_style="overline white") # sums to 1.0
+        # netuid, N, Max N, difficulty, network connect, tempo, emission, burn rate
+        table.add_column("[overline white]NETUID",  str(len(subnets)), footer_style = "overline white", style='bold green', justify='center')
+        table.add_column("[overline white]NEURONS", str(total_neurons), footer_style = "overline white", style='white', justify='center')
+        table.add_column("[overline white]MAX_N", style='white', justify='center')
+        table.add_column("[overline white]DIFFICULTY", style='white', justify='center')
+        #table.add_column("[overline white]IMMUNITY", style='white')
+        #table.add_column("[overline white]BATCH SIZE", style='white')
+        #table.add_column("[overline white]SEQ_LEN", style='white')
+        table.add_column("[overline white]TEMPO", style='white', justify='center')
+        #table.add_column("[overline white]MODALITY", style='white')
+        table.add_column("[overline white]CON_REQ", style='white', justify='center')
+        table.add_column("[overline white]EMISSION", style='white', justify='center') # sums to 100%
+        table.add_column("[overline white]BURN(\u03C4)", style='white')
         
         for row in rows:
             table.add_row(*row)
@@ -138,9 +140,8 @@ class ListSubnetsCommand:
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-
+        pass
+    
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
         list_subnets_parser = parser.add_parser(

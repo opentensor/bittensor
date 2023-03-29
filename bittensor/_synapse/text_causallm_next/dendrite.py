@@ -26,7 +26,7 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
     """Dendrite for the text_last_hidden_state synapse."""
 
     # Dendrite name.
-    name: str = "text_last_hidden_state"
+    name: str = "text_causallm_next"
 
     def __str__(self) -> str:
         return "TextCausalLMNext"
@@ -77,11 +77,12 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
             forward_call (:obj:`bittensor.TextCausalLMNextForwardCall`, `required`):
                 filled bittensor forward call object.
         """
+
         forward_call.response_code = response_proto.return_code
         forward_call.response_message = response_proto.message
 
         if response_proto.return_code != bittensor.proto.ReturnCode.Success:
-            forward_call.hidden_states = None
+            forward_call.outputs = None
             return forward_call
 
         # Deserialize hidden states.
@@ -92,7 +93,7 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
             response_proto.serialized_text_outputs
         )
 
-        forward_call.text_outputs = text_outputs
+        forward_call.outputs = text_outputs
         return forward_call
 
     def forward(

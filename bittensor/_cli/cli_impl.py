@@ -40,9 +40,7 @@ class CLI:
     def run ( self ):
         """ Execute the command from config 
         """
-        if self.config.command == "run":
-            RunCommand.run( self )
-        elif self.config.command == "transfer":
+        if self.config.command == "transfer":
             TransferCommand.run( self )
         elif self.config.command == "register":
             RegisterCommand.run( self )
@@ -72,10 +70,6 @@ class CLI:
             SetWeightsCommand.run( self )
         elif self.config.command == "inspect":
             InspectCommand.run( self )
-        elif self.config.command == "query":
-            QueryCommand.run( self )
-        elif self.config.command == "help":
-            HelpCommand.run( self )
         elif self.config.command == 'update':
             UpdateCommand.run( self )
         elif self.config.command == 'nominate':
@@ -84,8 +78,12 @@ class CLI:
             DelegateStakeCommand.run( self )
         elif self.config.command == 'undelegate':
             DelegateUnstakeCommand.run( self )
+        elif self.config.command == 'my_delegates':
+            MyDelegatesCommand.run( self )
         elif self.config.command == 'list_delegates':
             ListDelegatesCommand.run( self )
         elif self.config.command == 'list_subnets':
             ListSubnetsCommand.run( self )
+        elif self.config.command == 'recycle_register':
+            RecycleRegisterCommand.run( self )
         
