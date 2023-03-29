@@ -22,39 +22,38 @@ import torch
 import bittensor
 
 
-class TextCausalLMNextDendrite(bittensor.Dendrite):
+class TextCausalLMDendrite(bittensor.Dendrite):
     """Dendrite for the text_last_hidden_state synapse."""
 
     # Dendrite name.
-    name: str = "text_last_hidden_state"
+    name: str = "text_causallm"
 
     def __str__(self) -> str:
-        return "TextCausalLMNext"
+        return "TextCausalLM"
 
     def get_stub(self, channel) -> Callable:
-        return bittensor.grpc.TextCausalLMNextStub(channel)
+        return bittensor.grpc.TextCausalLMStub(channel)
 
     def pre_process_forward_call_to_request_proto(
-        self, forward_call: "bittensor.TextCausalLMNextForwardCall"
-    ) -> "bittensor.ForwardTextCausalLMNextRequest":
+        self, forward_call: "bittensor.TextCausalLMForwardCall"
+    ) -> "bittensor.ForwardTextCausalLMRequest":
         """Preprocesses the forward call to a request proto.
         --------------------------------------------
         Args:
-            forward_call (:obj:`bittensor.TextCausalLMNextForwardCall`, `required`):
+            forward_call (:obj:`bittensor.TextCausalLMForwardCall`, `required`):
                 forward_call to preprocess.
         Returns:
-            request_proto (:obj:`bittensor.ForwardTextCausalLMNextRequest`, `required`):
+            request_proto (:obj:`bittensor.ForwardTextCausalLMRequest`, `required`):
                 bittensor request proto object.
         """
-        print("in TextCausalLMNextDendrite.preprocess_forward_to_request")
         # Serialize text inputs.
         text_serializer = bittensor.serializer(
             serializer_type=forward_call.text_inputs_serializer_type
         )
         serialized_text = text_serializer.serialize(forward_call.text_inputs)
-
+        # import pdb; pdb.set_trace()
         # Return forward call.
-        return bittensor.ForwardTextCausalLMNextRequest(
+        return bittensor.ForwardTextCausalLMRequest(
             timeout=forward_call.timeout,
             topk=forward_call.topk,
             serialized_text_inputs=serialized_text,
@@ -64,22 +63,20 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
 
     def post_process_response_proto_to_forward_call(
         self,
-        forward_call: bittensor.TextCausalLMNextForwardCall,
-        response_proto: bittensor.ForwardTextCausalLMNextResponse,
-    ) -> bittensor.TextCausalLMNextForwardCall:
+        forward_call: bittensor.TextCausalLMForwardCall,
+        response_proto: bittensor.ForwardTextCausalLMResponse,
+    ) -> bittensor.TextCausalLMForwardCall:
         """Postprocesses the response proto to fill forward call.
         --------------------------------------------
         Args:
-            forward_call (:obj:`bittensor.TextCausalLMNextForwardCall`, `required`):
+            forward_call (:obj:`bittensor.TextCausalLMForwardCall`, `required`):
                 bittensor forward call object to fill.
-            response_proto (:obj:`bittensor.ForwardTextCausalLMNextResponse`, `required`):
+            response_proto (:obj:`bittensor.ForwardTextCausalLMResponse`, `required`):
                 bittensor forward response proto.
         Returns:
-            forward_call (:obj:`bittensor.TextCausalLMNextForwardCall`, `required`):
+            forward_call (:obj:`bittensor.TextCausalLMForwardCall`, `required`):
                 filled bittensor forward call object.
         """
-        print("in TextCausalLMNextDendrite.post_process_response_to_forward()")
-
         forward_call.response_code = response_proto.return_code
         forward_call.response_message = response_proto.message
 
@@ -104,7 +101,7 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
         timeout: float = bittensor.__blocktime__,
         text_inputs_serializer_type: "bittensor.serializer_type" = bittensor.proto.Serializer.MSGPACK,
         text_outputs_serializer_type: "bittensor.serializer_type" = bittensor.proto.Serializer.MSGPACK,
-    ) -> "bittensor.TextCausalLMNextForwardCall":
+    ) -> "bittensor.TextCausalLMForwardCall":
         """Forward call to the receptor.
         Args:
             text_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length)`, `required`):
@@ -116,12 +113,11 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
             text_outputs_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
                 serializer type for hidden states.
         Returns:
-            bittensor.TextCausalLMNextForwardCall (:obj:`bittensor.TextCausalLMNextForwardCall`, `required`):
+            bittensor.TextCausalLMForwardCall (:obj:`bittensor.TextCausalLMForwardCall`, `required`):
                 bittensor forward call dataclass.
         """
-        print("in TextCausalLMNextDendrite.forward()")
         return self._forward(
-            forward_call=bittensor.TextCausalLMNextForwardCall(
+            forward_call=bittensor.TextCausalLMForwardCall(
                 text_inputs=text_inputs,
                 timeout=timeout,
                 text_inputs_serializer_type=text_inputs_serializer_type,
@@ -130,15 +126,15 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
         )
 
     def pre_process_backward_call_to_request_proto(
-        self, backward_call: "bittensor.TextCausalLMNextBackwardCall"
-    ) -> "bittensor.BackwardTextCausalLMNextRequest":
+        self, backward_call: "bittensor.TextCausalLMBackwardCall"
+    ) -> "bittensor.BackwardTextCausalLMRequest":
         """Preprocesses the forward call to a request proto.
         --------------------------------------------
         Args:
-            forward_call (:obj:`bittensor.TextCausalLMNextBackwardCall`, `required`):
+            forward_call (:obj:`bittensor.TextCausalLMBackwardCall`, `required`):
                 backward_call to preprocess.
         Returns:
-            request_proto (:obj:`bittensor.BackwardTextCausalLMNextRequest`, `required`):
+            request_proto (:obj:`bittensor.BackwardTextCausalLMRequest`, `required`):
                 bittensor request proto object.
         """
         # Serialize text inputs.
@@ -179,7 +175,7 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
             serialized_mask = None
 
         # Return forward call.
-        return bittensor.BackwardTextCausalLMNextRequest(
+        return bittensor.BackwardTextCausalLMRequest(
             serialized_mask=serialized_mask,
             serialized_text_inputs=serialized_text_inputs,
             serialized_hidden_states=serialized_hidden_states,
@@ -221,7 +217,7 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
             None
         """
         return self._backward(
-            backward_call=bittensor.TextCausalLMNextBackwardCall(
+            backward_call=bittensor.TextCausalLMBackwardCall(
                 text_inputs=text_inputs,
                 hidden_states=hidden_states,
                 hidden_states_grads=hidden_states_grads,
