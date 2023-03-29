@@ -389,7 +389,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         sender_hotkey = parts[1]
         signature = parts[2]
         receptor_uuid = parts[3]
-        return (nonce, sender_hotkey, signature, receptor_uuid, 2)
+        return (nonce, sender_hotkey, signature, receptor_uuid)
 
     def parse_signature(
         self, metadata: Dict[str, str]
@@ -413,17 +413,12 @@ class AuthInterceptor(grpc.ServerInterceptor):
         sender_hotkey: str,
         signature: str,
         receptor_uuid: str,
-        format: int,
     ):
         r"""verification of signature in metadata. Uses the pubkey and nonce"""
         keypair = Keypair(ss58_address=sender_hotkey)
         # Build the expected message which was used to build the signature.
-        if format == 2:
-            message = f"{nonce}.{sender_hotkey}.{self.receiver_hotkey}.{receptor_uuid}"
-        elif format == 1:
-            message = f"{nonce}{sender_hotkey}{receptor_uuid}"
-        else:
-            raise Exception("Invalid signature version")
+        message = f"{nonce}.{sender_hotkey}.{self.receiver_hotkey}.{receptor_uuid}"
+
         # Build the key which uniquely identifies the endpoint that has signed
         # the message.
         endpoint_key = f"{sender_hotkey}:{receptor_uuid}"
@@ -466,12 +461,11 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 sender_hotkey,
                 signature,
                 receptor_uuid,
-                signature_format,
             ) = self.parse_signature(metadata)
 
             # signature checking
             self.check_signature(
-                nonce, sender_hotkey, signature, receptor_uuid, signature_format
+                nonce, sender_hotkey, signature, receptor_uuid
             )
 
             # blacklist checking
