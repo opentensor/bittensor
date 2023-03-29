@@ -38,7 +38,7 @@ class IntListPrompt(PromptBase):
 
 
 def check_netuid_set( config: 'bittensor.Config', subtensor: 'bittensor.Subtensor', allow_none: bool = False ):
-    if subtensor.network =='finney':
+    if subtensor.network != 'nakamoto':
         all_netuids = [str(netuid) for netuid in subtensor.get_subnets()]
         if len(all_netuids) == 0:
             console.print(":cross_mark:[red]There are no open networks.[/red]")
