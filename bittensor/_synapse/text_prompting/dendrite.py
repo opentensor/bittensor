@@ -55,7 +55,7 @@ class TextPromptingDendrite(bittensor.Dendrite):
     ) -> "bittensor.TextPromptingForwardCall":
         loop = asyncio.get_event_loop()
         return loop.run_until_complete( 
-            self.async_forward( 
+            self._async_forward( 
                 forward_call = bittensor.TextPromptingForwardCall(
                     messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
                     timeout = timeout,
@@ -69,7 +69,7 @@ class TextPromptingDendrite(bittensor.Dendrite):
         messages: List[Dict[str, str]],
         timeout: float = bittensor.__blocktime__,
     ) -> "bittensor.TextPromptingForwardCall":
-        return self.async_forward(
+        return self._async_forward(
             forward_call=bittensor.TextPromptingForwardCall(
                 messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
                 timeout = timeout,
