@@ -81,7 +81,9 @@ def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: Li
     row_weights = torch.zeros( [ n ], dtype=torch.float32 )
     for uid_j, wij in list(zip( uids, weights )):
         row_weights[ uid_j ] = float( wij )  # assumes max-upscaled values (w_max = U16_MAX).
-    row_weights /= row_weights.sum()  # normalize
+    row_sum = row_weights.sum()
+    if row_sum > 0:
+        row_weights /= row_sum  # normalize
     return row_weights
 
 def convert_bond_uids_and_vals_to_tensor( n: int, uids: List[int], bonds: List[int] ) -> 'torch.LongTensor':
@@ -120,8 +122,6 @@ def convert_weights_and_uids_for_emit( uids: torch.LongTensor, weights: torch.Fl
     uids = uids.tolist()
     if min(weights) < 0:
         raise ValueError('Passed weight is negative cannot exist on chain {}'.format(weights))
-    if max(weights) == 0:
-        raise ValueError('Passed weight all zero cannot exist on chain {}'.format(weights))
     if min(uids) < 0:
         raise ValueError('Passed uid is negative cannot exist on chain {}'.format(uids))
     if len(uids) != len(weights):
