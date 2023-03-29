@@ -124,6 +124,7 @@ except ValueError:
     # We simply pass over this error. 
     pass
 
+
 # ---- Config ----
 from bittensor._config import config as config
 
@@ -140,6 +141,7 @@ import bittensor._neuron as neurons
 # ---- Utils ----
 from bittensor.utils import unbiased_topk as unbiased_topk
 from bittensor.utils.tokenizer_utils import topk_token_phrases # Eugene's topk for synapse
+from bittensor.utils.tokenizer_utils import  compact_topk_token_phrases
 from bittensor._cli.commands import utils as cli_utils
 
 # ---- Factories -----
@@ -235,3 +237,9 @@ wandb.add_defaults( defaults )
 logging.add_defaults( defaults )
 
 from substrateinterface import Keypair as Keypair
+
+from bittensor._synapse.text_prompting.call import TextPromptingForwardCall
+from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
+from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse
+from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
+from bittensor._synapse.text_prompting.dendrite import TextPromptingDendrite as text_prompting

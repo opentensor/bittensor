@@ -103,7 +103,6 @@ class Dendrite(torch.nn.Module):
                     filled bittensor forward call object.
         """
         raise NotImplementedError('Must implement post_process_response_proto_to_forward_call() in subclass.')
-    
 
     def _forward( self, forward_call: 'bittensor.BittensorCall' ) -> 'bittensor.BittensorCall':
         """ Forward call to remote endpoint."""
