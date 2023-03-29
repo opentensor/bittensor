@@ -126,12 +126,14 @@ class mock_subtensor():
         """
         try:
             operating_system = "OSX" if platform == "darwin" else "Linux"
-            path = "./tests/mock_subtensor/bin/{}/{}".format(operating_system, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME)
+            path_root = "./tests/mock_subtensor"
+            path = "{}/bin/{}/{}".format(path_root, operating_system, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME)
+            path_to_spec = "{}/specs/local_raw.json".format(path_root)
             
             ws_port = int(bittensor.__mock_entrypoint__.split(':')[1])
             print(f'MockSub ws_port: {ws_port}')
             
-            command_args = [ path ] + f'--chain dev --base-path {bittensor.__mock_chain_db__} --execution native --ws-max-connections 1000 --no-mdns --rpc-cors all'.split(' ') + \
+            command_args = [ path ] + f'--chain {path_to_spec} --base-path {bittensor.__mock_chain_db__} --execution native --ws-max-connections 1000 --no-mdns --rpc-cors all'.split(' ') + \
                 f'--port {int(bittensor.get_random_unused_port())} --rpc-port {int(bittensor.get_random_unused_port())} --ws-port {ws_port}'.split(' ') + \
                 '--validator --alice'.split(' ')
             
