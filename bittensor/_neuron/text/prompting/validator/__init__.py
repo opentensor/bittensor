@@ -5,6 +5,8 @@ import sys
 
 import bittensor
 import argparse
+import asyncio
+import math
 import re
 import json
 
@@ -73,69 +75,51 @@ class neuron:
         )
         self.reward_model = GPTRewardModel('Dahoas/gptj-rm-IHP', 'EleutherAI/gpt-j-6B')
         self.reward_model.to(self.device)
+        self.modules = [ bittensor.text_prompting( endpoint = endpoint, wallet = self.wallet ) for endpoint in self.metagraph.endpoints_objs ]
 
     def run(self):
-        with self:
-            while True:
-                user_message = input("User> ")
-                responses = []
-                values = {}
-                for endpoint in (self.metagraph.endpoint_objs):
-                    try:
+        while True:
 
-                        # check if endpoint.ip is not 0.0.0.0
-                        if endpoint.ip == "0.0.0.0" and endpoint.uid != 2:
-                            continue
-                            
-                        if endpoint.uid == 2:
-                            endpoint = bittensor.endpoint(
-                                version=bittensor.__version_as_int__,
-                                uid=2,
-                                ip="127.0.0.1",
-                                ip_type=4,
-                                port=8091,
-                                hotkey=self.wallet.hotkey.ss58_address,
-                                coldkey=self.wallet.coldkeypub.ss58_address,
-                                modality=0,
-                            )
+            # Query the uid endpoint.
+            async def call_uid( uid: int, user_message: str ) -> str:
+                endpoint = self.metagraph.endpoints_objs[uid]
+                if endpoint.ip == "0.0.0.0" and endpoint.uid != 2: continue
+                if endpoint.uid == 2:
+                    endpoint = bittensor.endpoint(
+                        version=bittensor.__version_as_int__,
+                        uid=2,
+                        ip="127.0.0.1",
+                        ip_type=4,
+                        port=8091,
+                        hotkey=self.wallet.hotkey.ss58_address,
+                        coldkey=self.wallet.coldkeypub.ss58_address,
+                        modality=0,
+                    )
+                module = bittensor.text_prompting( endpoint = endpoint, wallet = self.wallet ) 
+                return await module.async_forward( roles = ['user'], messages = [user_message], timeout=12 ).response
+            
+            # Async call the uids.
+            async def query( user_message: str ):
+                coroutines = []
+                for uid in self.metagraph.uids.tolist():
+                    coroutines.append( call_uid( uid, user_message ) )
+                await asyncio.gather(*coroutines)
 
-                        # print(endpoint)
-                        module = bittensor.text_prompting( endpoint = endpoint, wallet = self.wallet )
-                        response = module.forward(
-                            roles = ['user'],
-                            messages = [user_message],
-                            timeout=12
-                        )
-                        if response.response:
-                            responses.append({ 'uid': endpoint.uid, 'response': response.response })
-                            continue
-                    except Exception as e:
-                        print(e)
-                        continue
-                
-                # print(responses)
-                for response in responses:
-                    value = self.reward_fn([response['response']])
-                    values[response['response']] = value
-                    # print(value)
-                    
-                # sort by value
-                sorted_values = sorted(values.items(), key=lambda x: x[1], reverse=True)
+            # Make queries
+            user_message = input("User> ")
+            responses_per_uid = asyncio.run(query(user_message))
 
-                # get the highest value response
-                highest_value = sorted_values[0][0]
+            # Get the highest value response
+            max_reward: float = -math.inf
+            max_response:str = ""
+            for uid, response in enumerate( responses_per_uid ):
+                reward = self.reward_fn([response])
+                if reward > max_reward:
+                    max_reward = reward
+                    max_response = response
 
-                # replace the prompt in the highest value response
-                highest_value = highest_value.replace(user_message, "")
-
-                print('Bittensor> ', highest_value)
-
-                ## debug
-
-                print('values: ', values)
-                print('sorted_values: ', sorted_values)
-                print('responses: ', responses)
-
+            print("Bot> ", max_response)
+            
     def reward_fn(self, samples):
         scores_list = []
         batch_size = 2

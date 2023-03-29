@@ -15,11 +15,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import json
-
-from typing import Callable, List, Dict
-
+import asyncio
 import bittensor
 
+from typing import Callable, List, Dict
 
 class TextPromptingDendrite(bittensor.Dendrite):
     """Dendrite for the text_prompting synapse."""
@@ -54,12 +53,25 @@ class TextPromptingDendrite(bittensor.Dendrite):
         messages: List[Dict[str, str]],
         timeout: float = bittensor.__blocktime__,
     ) -> "bittensor.TextPromptingForwardCall":
-
-        m = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)]
-        return self._forward(
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete( 
+            self.async_forward( 
+                forward_call = bittensor.TextPromptingForwardCall(
+                    messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
+                    timeout = timeout,
+                ) 
+            ) 
+        )
+    
+    def async_forward(
+        self,
+        roles: str,
+        messages: List[Dict[str, str]],
+        timeout: float = bittensor.__blocktime__,
+    ) -> "bittensor.TextPromptingForwardCall":
+        return self.async_forward(
             forward_call=bittensor.TextPromptingForwardCall(
-                # messages = json.dumps(messages),
-                messages = m,
+                messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
                 timeout = timeout,
             )
         )
