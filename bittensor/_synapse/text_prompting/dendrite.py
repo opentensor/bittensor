@@ -55,7 +55,8 @@ class TextPromptingDendrite(bittensor.Dendrite):
     ) -> "bittensor.TextPromptingForwardCall":
         return self._forward(
             forward_call=bittensor.TextPromptingForwardCall(
-                messages = json.dumps(messages),
+                # messages = json.dumps(messages),
+                messages = messages,
                 timeout = timeout,
             )
         )

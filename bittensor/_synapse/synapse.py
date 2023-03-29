@@ -202,6 +202,7 @@ class Synapse(ABC):
         Returns:
             bool: True if blacklisted, False otherwise.
         """
+        return False
         assert self.is_attached
         # Call subclass blacklist and optionally return if metagraph is None.
         try:

@@ -21,7 +21,7 @@ from typing import Union, List, Dict
 import torch
 
 import bittensor
-
+import json
 
 class TextPromptingForwardCall(bittensor.BittensorCall):
     """Call state for the text_prompting synapse."""
@@ -51,12 +51,12 @@ bittensor.TextPromptingForwardCall(
             self.end_time,
             time.time() - self.start_time,
             self.messages,
-            self.responses if self.responses is not None else "To be filled by the forward call.",
+            self.response if self.response is not None else "To be filled by the forward call.",
         )
 
     def __init__(
         self,
-        messages: str,
+        messages: List[str],
         timeout: float = bittensor.__blocktime__,
     ):
         """Forward call to the receptor.
