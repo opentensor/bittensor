@@ -14,6 +14,10 @@ service TextCausalLMNext {
 service TextSeq2Seq  {
 	rpc Forward (ForwardTextSeq2SeqRequest) returns (ForwardTextSeq2SeqResponse) {}
 }
+
+service TextPrompting  {
+	rpc Forward (ForwardTextPromptingRequest) returns (ForwardTextPromptingResponse) {}
+}
  
 /////////////////
 // TextSeq2Seq //
@@ -222,6 +226,26 @@ message ForwardTextCausalLMResponse {
 
 	string message = 5;
 	ReturnCode return_code = 6; 
+}
+
+/////////////////////////
+// TextPrompting //
+/////////////////////////
+message ForwardTextPromptingRequest {
+    int32 version = 1;
+    string hotkey = 2;
+    repeated string messages = 3;
+    float timeout = 4;
+} 
+message ForwardTextPromptingResponse {
+    int32 version = 1;
+    string hotkey = 2;
+    string response = 3;
+} 
+message BackwardTextPromptingRequest {
+    int32 version = 1;
+    string hotkey = 2;
+    Tensor reward = 3;
 }
 
 

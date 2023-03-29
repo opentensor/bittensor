@@ -258,8 +258,6 @@ class TestCLINoNetwork(unittest.TestCase):
         assert 'overview' in help_out
         assert 'run' in help_out
 
-<<<<<<< HEAD
-=======
     def test_register_cuda_use_cuda_flag(self):
             class ExitEarlyException(Exception):
                 """Raised by mocked function to exit early"""
@@ -299,6 +297,5 @@ class TestCLINoNetwork(unittest.TestCase):
 
                             assert cli.config.subtensor.register.cuda.use_cuda == False
 
->>>>>>> 9443c66f8c230b0984e5ae423026f514d51f763a
 if __name__ == "__main__":
     unittest.main()

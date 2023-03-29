@@ -199,6 +199,9 @@ from bittensor._proto.bittensor_pb2 import BackwardTextCausalLMNextRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqResponse
 
+from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
+from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse
+
 # ---- Calls -----
 from bittensor._synapse.call import BittensorCall
 from bittensor._synapse.text_seq2seq.call import TextSeq2SeqBittensorCall 
@@ -206,19 +209,24 @@ from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateFo
 from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateBackwardCall
 from bittensor._synapse.text_causallm_next.call import TextCausalLMNextForwardCall
 from bittensor._synapse.text_causallm_next.call import TextCausalLMNextBackwardCall
+from bittensor._synapse.text_prompting.call import TextPromptingForwardCall
 
 # ---- Synapses -----
 from bittensor._synapse.synapse import Synapse
 from bittensor._synapse.text_seq2seq.synapse import TextSeq2SeqSynapse
 from bittensor._synapse.text_last_hidden_state.synapse import TextLastHiddenStateSynapse
 from bittensor._synapse.text_causallm_next.synapse import TextCausalLMNextSynapse
+from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
 
 # ---- Dendrites -----
 from bittensor._synapse.dendrite import Dendrite
 from bittensor._synapse.text_seq2seq.dendrite import TextSeq2SeqDendrite as text_seq2seq
 from bittensor._synapse.text_last_hidden_state.dendrite import TextLastHiddenStateDendrite as text_last_hidden_state
 from bittensor._synapse.text_causallm_next.dendrite import TextCausalLMNextDendrite as text_causal_lm_next
+from bittensor._synapse.text_prompting.dendrite import TextPromptingDendrite as text_prompting
 
+# ---- Errors and Exceptions -----
+from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
