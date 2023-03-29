@@ -1,4 +1,5 @@
-import torch
+from typing import List, Dict
+
 import bittensor
 bittensor.logging(debug=True)
 # import openai
@@ -14,7 +15,7 @@ class Synapse(bittensor.TextPromptingSynapse):
     def _blacklist(self, forward_call: "bittensor.TextPromptingForwardCall") -> bool:
         return False
 
-    def forward(self, messages: str) -> str:
+    def forward(self, messages: List[Dict[str, str]]) -> str:
 
         import openai
         openai.api_key = "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"
@@ -58,7 +59,7 @@ sequence_length = 32
 # Create a text_prompting module and call it.
 module = bittensor.text_prompting( endpoint = local_endpoint, wallet = wallet )
 response = module.forward(
-    messages = ["hello"],
+    messages = [{ "user": "Human", "content": "hello"}],
     timeout=1e6
 )
 

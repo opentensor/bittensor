@@ -14,10 +14,9 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import json
 
-from typing import Callable, List
-
-import torch
+from typing import Callable, List, Dict
 
 import bittensor
 
@@ -51,12 +50,12 @@ class TextPromptingDendrite(bittensor.Dendrite):
 
     def forward(
         self,
-        messages: List[str],
+        messages: List[Dict[str, str]],
         timeout: float = bittensor.__blocktime__,
     ) -> "bittensor.TextPromptingForwardCall":
         return self._forward(
             forward_call=bittensor.TextPromptingForwardCall(
-                messages = messages,
+                messages = json.dumps(messages),
                 timeout = timeout,
             )
         )

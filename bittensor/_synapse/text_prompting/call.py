@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-from typing import Union, List
+from typing import Union, List, Dict
 
 import torch
 
@@ -56,13 +56,13 @@ bittensor.TextPromptingForwardCall(
 
     def __init__(
         self,
-        messages: List[str],
+        messages: str,
         timeout: float = bittensor.__blocktime__,
     ):
         """Forward call to the receptor.
         Args:
-            messages (:obj:`List[str]` of shape :obj:`(n)`, `required`):
-                list of text prompts
+            messages (:obj:`str`, `required`):
+                stringified list of json text prompts
             timeout (:obj:`float`, `optional`, defaults to 5 seconds):
                 timeout for the forward call.
         Returns:
