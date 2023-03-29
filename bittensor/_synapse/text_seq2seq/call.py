@@ -23,7 +23,9 @@ class TextSeq2SeqBittensorCall( bittensor.BittensorCall ):
     """ Call state for the text_seq_to_seq synapse."""
 
     # Name of the synapse
-    name: str = 'text_seq2seq'
+    synapse_name: str = 'text_seq2seq'
+    outputs = None
+    topk: int = 4096
 
     def __str__( self ) -> str:
         return """
@@ -56,7 +58,7 @@ bittensor.TextSeq2SeqBittensorCall(
     \tgenerations_serializer_type: 'bittensor.serializer_type' = {}
 )
 """.format(
-            self.name,
+            self.synapse_name,
             self.hotkey,
             self.version,
             self.timeout,
@@ -64,7 +66,7 @@ bittensor.TextSeq2SeqBittensorCall(
             self.end_time,
             time.time() - self.start_time,
             self.text_prompt,
-            self.generations if self.generations != None else "To be filled by the forward call.",
+            self.outputs if self.outputs is not None else "To be filled by the forward call.",
             self.topk,
             self.num_to_generate,
             self.num_beams,
@@ -86,7 +88,7 @@ bittensor.TextSeq2SeqBittensorCall(
             self, 
             text_prompt: torch.LongTensor, 
             timeout: float = bittensor.__blocktime__,
-            topk:int = 50, 
+            topk: int = 50,
             num_to_generate: int = 256,
             num_beams: int = 5,
             no_repeat_ngram_size: int = 2,
@@ -164,6 +166,6 @@ bittensor.TextSeq2SeqBittensorCall(
         else: return None
     
     def get_outputs_shape(self) -> torch.Size:
-        if self.generations is not None:
-            return self.generations.shape
+        if self.outputs is not None:
+            return self.outputs.shape
         else: return None

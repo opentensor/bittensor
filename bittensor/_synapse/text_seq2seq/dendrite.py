@@ -85,16 +85,28 @@ class TextSeq2SeqDendrite( bittensor.Dendrite ):
                 forward_call (:obj:`bittensor.TextSeq2SeqBittensorCall`, `required`):
                     filled bittensor forward call object.
         """
+        forward_call.response_code = response_proto.return_code
+        forward_call.response_message = response_proto.message
+
+        if response_proto.return_code != bittensor.proto.ReturnCode.Success:
+            forward_call.outputs = None
+            return forward_call
+
         # Deserialize generations.
-        generations_deserializer = bittensor.serializer( serializer_type = forward_call.generations_serializer_type )
-        forward_call.generations = generations_deserializer.deserialize( response_proto.serialized_generations, to_type = bittensor.proto.TensorType.TORCH )
+        generations_deserializer = bittensor.serializer(
+            serializer_type=forward_call.generations_serializer_type
+        )
+        seq_outputs = generations_deserializer.deserialize(
+            response_proto.serialized_generations, to_type=bittensor.proto.TensorType.TORCH
+        )
+
+        forward_call.outputs = seq_outputs
         return forward_call
     
     def forward( 
             self, 
             text_prompt: torch.LongTensor,
             timeout: int = bittensor.__blocktime__,
-            topk:int = 50, 
             num_to_generate: int = 256,
             num_beams: int = 5,
             no_repeat_ngram_size: int = 2,
@@ -156,7 +168,6 @@ class TextSeq2SeqDendrite( bittensor.Dendrite ):
             forward_call = bittensor.TextSeq2SeqBittensorCall( 
                 text_prompt = text_prompt, 
                 timeout = timeout,
-                topk = topk,
                 num_to_generate = num_to_generate,
                 num_beams = num_beams,
                 no_repeat_ngram_size = no_repeat_ngram_size,

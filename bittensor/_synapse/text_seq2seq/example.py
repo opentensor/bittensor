@@ -20,28 +20,32 @@ local_endpoint = bittensor.endpoint(
 
 # Create a synapse that returns zeros.
 class Synapse( bittensor.TextSeq2SeqSynapse ):
-    def priority(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> float:
+    def _priority(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> float:
         return 0.0
     
-    def blacklist(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> bool:
+    def _blacklist(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> bool:
         return False
     
-    def forward(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> 'bittensor.TextSeq2SeqBittensorCall':
-        forward_call.generations = torch.zeros( forward_call.text_prompt.shape[0], forward_call.text_prompt.shape[1], bittensor.__network_dim__ )
-        return forward_call
-    
+    def forward(self, forward_call: 'bittensor.TextSeq2SeqBittensorCall' ) -> torch.Tensor:
+        # TODO: return topk correctly with Eugene's func(s).
+        generations = torch.zeros(
+            forward_call.text_prompt.shape[0], forward_call.text_prompt.shape[1], bittensor.__network_dim__
+        )
+        topk_generations, _ = torch.topk(generations, k=forward_call.topk)
+        return topk_generations
+
 # Create a synapse and attach it to an axon.
-synapse = Synapse( wallet = wallet )
-axon = bittensor.axon( wallet = wallet, port = 9090, ip = '127.0.0.1' )
+synapse = Synapse()
+metagraph = None
+axon = bittensor.axon(wallet=wallet, port=9090, ip="127.0.0.1", metagraph=metagraph)
 axon.attach( synapse = synapse )
 axon.start()
 
-# Create a text_last_hidden_stsate module and call it.
+# Create a text_last_hidden_state module and call it.
 module = bittensor.text_seq2seq( wallet = wallet, endpoint = local_endpoint )
 response = module( 
     text_prompt = torch.ones( ( 1, 1 ), dtype = torch.long ),
     timeout = 1,
-    topk = 50, 
     num_to_generate = 256,
     num_beams = 5,
     no_repeat_ngram_size  = 2,
