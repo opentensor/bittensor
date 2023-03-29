@@ -598,9 +598,6 @@ class Subtensor:
     def tx_rate_limit (self, block: Optional[int] = None ) -> Optional[int]:
         return self.query_subtensor( "TxRateLimit", block ).value
 
-    def tx_rate_limit (self, block: Optional[int] = None ) -> Optional[int]:
-        return self.query_subtensor( "TxRateLimit", block ).value
-
     #####################################
     #### Network Parameters ####
     #####################################
