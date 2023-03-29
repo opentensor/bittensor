@@ -15,134 +15,151 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import sys
+import json
 import argparse
 import bittensor
+from tqdm import tqdm
+from rich.table import Table
 from rich.prompt import Prompt
 from .utils import check_netuid_set
 console = bittensor.__console__
+
+import os
+import bittensor
+from typing import List, Tuple
+
+def _get_coldkey_wallets_for_path( path: str ) -> List['bittensor.wallet']:
+    try:
+        wallet_names = next(os.walk(os.path.expanduser(path)))[1]
+        return [ bittensor.wallet( path= path, name=name ) for name in wallet_names ]
+    except StopIteration:
+        # No wallet files found.
+        wallets = []
+    return wallets
+
+def _get_hotkey_wallets_for_wallet( wallet ) -> List['bittensor.wallet']:
+    hotkey_wallets = []
+    hotkeys_path = wallet.path + '/' + wallet.name + '/hotkeys'
+    try:
+        hotkey_files = next(os.walk(os.path.expanduser(hotkeys_path)))[2]
+    except StopIteration:
+        hotkey_files = []
+    for hotkey_file_name in hotkey_files:
+        try:
+            hotkey_for_name = bittensor.wallet( path = wallet.path, name = wallet.name, hotkey = hotkey_file_name )
+            if hotkey_for_name.hotkey_file.exists_on_device() and not hotkey_for_name.hotkey_file.is_encrypted():
+                hotkey_wallets.append( hotkey_for_name )
+        except Exception:
+            pass
+    return hotkey_wallets
 
 class InspectCommand:
     @staticmethod
     def run (cli):
         r""" Inspect a cold, hot pair.
         """
-        wallet = bittensor.wallet(config = cli.config)
+        if cli.config.all == True:
+            wallets = _get_coldkey_wallets_for_path( cli.config.wallet.path )
+        else:
+            wallets = [bittensor.wallet( config = cli.config )]
         subtensor = bittensor.subtensor( config = cli.config )
 
-        if cli.config.netuid != None:
-            # Verify subnet exists
-            if not subtensor.subnet_exists( netuid = cli.config.netuid ):
-                bittensor.__console__.print(f"[red]Subnet {cli.config.netuid} does not exist[/red]")
-                sys.exit(1)
+        netuids = subtensor.get_all_subnet_netuids()
 
-            
-        with bittensor.__console__.status(":satellite: Looking up account on: [white]{}[/white] ...".format(cli.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
-            
-            if cli.config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey) is None:
-                # If no hotkey is provided, inspect just the coldkey
-                wallet.coldkeypub
-                cold_balance = wallet.get_balance( subtensor = subtensor )
-                bittensor.__console__.print("\n[bold white]{}[/bold white]:\n  {}[bold white]{}[/bold white]\n {} {}\n".format( wallet, "coldkey:".ljust(15), wallet.coldkeypub.ss58_address, " balance:".ljust(15), cold_balance.__rich__()), highlight=True)
-
+        try:
+            package_dir = os.path.dirname(bittensor.__file__)
+            root_dir = os.path.dirname(package_dir)
+            filename = os.path.join(root_dir, 'delegates.json')
+            if os.path.exists(filename):
+                registered_delegate_info = json.load( open(filename, 'r') )
             else:
-                wallet.hotkey
-                wallet.coldkeypub
+                registered_delegate_info = {}
+        except:
+            registered_delegate_info = {}
 
-                if cli.config.netuid != None:
-                    # If a netuid is provided, inspect the hotkey and the neuron
-                    neuron = subtensor.get_neuron_for_pubkey_and_subnet( hotkey_ss58 = wallet.hotkey.ss58_address, netuid = cli.config.netuid )
-                    if neuron.is_null:
-                        registered = '[bold white]No[/bold white]'
-                        stake = bittensor.Balance.from_tao( 0 )
-                        emission = bittensor.Balance.from_rao( 0 )
-                        latency = 'N/A'
-                    else:
-                        endpoint = bittensor.endpoint.from_neuron( neuron )
-                        registered = '[bold white]Yes[/bold white]'
-                        stake = bittensor.Balance.from_tao( neuron.total_stake )
-                        emission = bittensor.Balance.from_rao( neuron.emission * 1000000000 )
+        neuron_state_dict = {}
+        for netuid in tqdm( netuids ):
+            neuron_state_dict[netuid] = subtensor.neurons_lite( netuid )
 
-                    cold_balance = wallet.get_balance( subtensor = subtensor )
-                    bittensor.__console__.print((
-                        "\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n" + \
-                        "  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n[/bold grey]"
-                    )
-                    .format(
-                        wallet,
-                        "coldkey:".ljust(15),
-                        wallet.coldkeypub.ss58_address,
-                        "hotkey:".ljust(15),
-                        wallet.hotkey.ss58_address,
-                        "registered:".ljust(15),
-                        registered,
-                        "balance:".ljust(15),
-                        cold_balance.__rich__(),
-                        "stake:".ljust(15),
-                        stake.__rich__(),
-                        "emission:".ljust(15),
-                        emission.__rich_rao__(),
-                    ), highlight=True)
+        table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
+        table.add_column("[overline white]Coldkey", footer_style = "overline white", style='bold white')
+        table.add_column("[overline white]Balance", footer_style = "overline white", style='green')
+        table.add_column("[overline white]Delegate", footer_style = "overline white", style='blue')
+        table.add_column("[overline white]Stake", footer_style = "overline white", style='green')
+        table.add_column("[overline white]Emission", footer_style = "overline white", style='green')
+        table.add_column("[overline white]Netuid", footer_style = "overline white", style='bold white')
+        table.add_column("[overline white]Hotkey", footer_style = "overline white", style='yellow')
+        table.add_column("[overline white]Stake", footer_style = "overline white", style='green')
+        table.add_column("[overline white]Emission", footer_style = "overline white", style='green')
+        for wallet in tqdm( wallets ):
+            delegates: List[Tuple(bittensor.DelegateInfo, bittensor.Balance)] = subtensor.get_delegated( coldkey_ss58=wallet.coldkeypub.ss58_address )
+            if not wallet.coldkeypub_file.exists_on_device(): continue
+            cold_balance = wallet.get_balance( subtensor = subtensor )
+            table.add_row(
+                wallet.name,
+                str(cold_balance),
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+            )
+            for dele, staked in delegates:
+                if dele.hotkey_ss58 in registered_delegate_info:
+                    delegate_name = registered_delegate_info[dele.hotkey_ss58]['name']
                 else:
-                    # Otherwise, print all subnets the hotkey is registered on.
-                    # If a netuid is provided, inspect the hotkey and the neuron
-                    stake = subtensor.get_stake_for_coldkey_and_hotkey( hotkey_ss58 = wallet.hotkey.ss58_address, coldkey_ss58 = wallet.coldkeypub.ss58_address )
-                    if stake == None:
-                        # Not registered on any subnets
-                        subnets = "[bold white][][/bold white]"
-                        stake = bittensor.Balance.from_tao( 0 )
-                    else:
-                        # Registered on subnets
-                        subnets_registered = subtensor.get_netuids_for_hotkey( hotkey_ss58 = wallet.hotkey.ss58_address )
-                        subnets = f'[bold white]{subnets_registered}[/bold white]'
-                        
-                        emission = bittensor.Balance.from_rao( 0 )
-                        for netuid in subnets_registered:
-                            neuron = subtensor.neuron_for_pubkey( hotkey_ss58 = wallet.hotkey.ss58_address, netuid = netuid )
-                            emission += bittensor.Balance.from_rao( neuron.emission * 1000000000 )
+                    delegate_name = dele.hotkey_ss58
+                table.add_row(
+                    '',
+                    '',
+                    str(delegate_name),
+                    str(staked),
+                    str(dele.total_daily_return.tao * (staked.tao/dele.total_stake.tao)),
+                    '',
+                    '',
+                    '',
+                    ''
+                )
 
-                    cold_balance = wallet.get_balance( subtensor = subtensor )
-                    bittensor.__console__.print((
-                        "\n[bold white]{}[/bold white]:\n  [bold grey]{}[bold white]{}[/bold white]\n" + \
-                        "  {}[bold white]{}[/bold white]\n  {}{}\n  {}{}\n  {}{}\n  {}{}\n  {}{}[/bold grey]"
-                    )
-                    .format(
-                        wallet,
-                        "coldkey:".ljust(15),
-                        wallet.coldkeypub.ss58_address,
-                        "hotkey:".ljust(15),
-                        wallet.hotkey.ss58_address,
-                        "subnets:".ljust(15),
-                        subnets,
-                        "balance:".ljust(15),
-                        cold_balance.__rich__(),
-                        "stake:".ljust(15),
-                        stake.__rich__(),
-                        "emission:".ljust(15),
-                        emission.__rich_rao__(),
-                    ), highlight=True)
-
+            hotkeys = _get_hotkey_wallets_for_wallet( wallet )
+            for netuid in netuids:
+                for neuron in neuron_state_dict[netuid]:
+                    if neuron.coldkey == wallet.coldkeypub.ss58_address:
+                        table.add_row(
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            str( netuid ),
+                            str( neuron.hotkey ),
+                            str( neuron.stake ),
+                            str( bittensor.Balance.from_tao(neuron.emission) )
+                        )
+               
+        bittensor.__console__.print(table)
+            
+                
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
-
-        check_netuid_set( config, subtensor = bittensor.subtensor( config = config ),allow_none = True )
-
-        if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
+        if not config.all and config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
-
-        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name (optional)", default = None)
-            config.wallet.hotkey = hotkey
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
         inspect_parser = parser.add_parser(
             'inspect', 
             help='''Inspect a wallet (cold, hot) pair'''
+        )
+        inspect_parser.add_argument( 
+            '--all', 
+            action='store_true', 
+            help='''Check all coldkey wallets.''', 
+            default = False 
         )
         inspect_parser.add_argument(
             '--no_prompt', 

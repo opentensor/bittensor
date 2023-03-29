@@ -39,10 +39,9 @@ class MetagraphCommand:
         TABLE_DATA = [] 
         total_stake = 0.0
         total_rank = 0.0
-        # total_validator_trust = 0.0
+        total_validator_trust = 0.0
         total_trust = 0.0
         total_consensus = 0.0
-        # total_weight_consensus = 0.0
         total_incentive = 0.0
         total_dividends = 0.0
         total_emission = 0  
@@ -50,15 +49,14 @@ class MetagraphCommand:
             ep = metagraph.endpoint_objs[uid]
             row = [
                 str(ep.uid), 
-                '{:.5f}'.format( metagraph.stake[uid]),
+                '{:.5f}'.format( metagraph.total_stake[uid]),
                 '{:.5f}'.format( metagraph.ranks[uid]),
                 '{:.5f}'.format( metagraph.trust[uid]), 
                 '{:.5f}'.format( metagraph.consensus[uid]),
-                # '{:.5f}'.format( metagraph.weight_consensus[uid]),
                 '{:.5f}'.format( metagraph.incentive[uid]),
                 '{:.5f}'.format( metagraph.dividends[uid]),
                 '{}'.format( int(metagraph.emission[uid] * 1000000000)),
-                # '{:.5f}'.format( metagraph.validator_trust[uid]),
+                '{:.5f}'.format( metagraph.validator_trust[uid]),
                 '*' if metagraph.validator_permit[uid] else '',
                 str((metagraph.block.item() - metagraph.last_update[uid].item())),
                 str( metagraph.active[uid].item() ),
@@ -66,12 +64,11 @@ class MetagraphCommand:
                 ep.hotkey[:10],
                 ep.coldkey[:10]
             ]
-            total_stake += metagraph.stake[uid]
+            total_stake += metagraph.total_stake[uid]
             total_rank += metagraph.ranks[uid]
-            # total_validator_trust += metagraph.validator_trust[uid]
+            total_validator_trust += metagraph.validator_trust[uid]
             total_trust += metagraph.trust[uid]
             total_consensus += metagraph.consensus[uid]
-            # total_weight_consensus += metagraph.weight_consensus[uid]
             total_incentive += metagraph.incentive[uid]
             total_dividends += metagraph.dividends[uid]
             total_emission += int(metagraph.emission[uid] * 1000000000)
@@ -86,11 +83,10 @@ class MetagraphCommand:
         table.add_column("[overline white]RANK", '{:.5f}'.format(total_rank), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]TRUST", '{:.5f}'.format(total_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]CONSENSUS", '{:.5f}'.format(total_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-        # table.add_column("[overline white]WCONSENSUS", '{:.5f}'.format(total_weight_consensus), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]INCENTIVE", '{:.5f}'.format(total_incentive), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]DIVIDENDS", '{:.5f}'.format(total_dividends), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]EMISSION(\u03C1)", '\u03C1{}'.format(int(total_emission)), footer_style = "overline white", justify='right', style='green', no_wrap=True)
-        # table.add_column("[overline white]VTRUST", '{:.5f}'.format(total_validator_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
+        table.add_column("[overline white]VTRUST", '{:.5f}'.format(total_validator_trust), footer_style = "overline white", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]VAL", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
         table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
@@ -108,8 +104,6 @@ class MetagraphCommand:
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
         check_netuid_set( config, subtensor = bittensor.subtensor( config = config ) )
 
     @staticmethod

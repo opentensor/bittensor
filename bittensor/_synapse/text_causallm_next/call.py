@@ -95,7 +95,6 @@ bittensor.TextCausalLMNextForwardCall(
         return None
 
     def get_outputs_shape(self) -> Union[torch.Size, None]:
-        print("in TextCausalLMNextForwardCall.get_outputs_shape()")
         if self.outputs is not None:
             return self.outputs.shape
         return None
@@ -105,7 +104,8 @@ class TextCausalLMNextBackwardCall(bittensor.BittensorCall):
     """Backward call state for the text_last_hidden_state synapse."""
 
     # The name of the synapse call.
-    name: str = "backward_text_last_hidden_state"
+    synapse_name: str = "backward_text_last_hidden_state"
+    outputs = None
 
     def __str__(self) -> str:
         return """
@@ -199,7 +199,7 @@ bittensor.TextCausalLMNextBackwardCall(
             return None
 
     def get_outputs_shape(self) -> torch.Size:
-        if self.hidden_states is not None:
-            return self.hidden_states.shape
+        if self.outputs is not None:
+            return self.outputs.shape
         else:
             return None

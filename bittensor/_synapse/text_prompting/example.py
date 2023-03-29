@@ -31,7 +31,6 @@ class Synapse(bittensor.TextPromptingSynapse):
         )
         return resp['choices'][0]['message']['content']
 
-
 # Create a mock wallet.
 wallet = bittensor.wallet().create_if_non_existent()
 

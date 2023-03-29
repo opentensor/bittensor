@@ -18,6 +18,8 @@
 from typing import Union, Optional
 from bittensor import Balance, NeuronInfo, AxonInfo, PrometheusInfo, Keypair, __ss58_format__
 from scalecodec import ss58_encode
+from rich.console import Console
+from rich.text import Text
 
 from Crypto.Hash import keccak
 
@@ -93,7 +95,6 @@ def get_mock_neuron(**kwargs) -> NeuronInfo:
                 "trust":0.0,
                 "consensus":0.0,
                 "validator_trust": 0.0,
-                "weight_consensus": 0.0,
                 "incentive":0.0,
                 "dividends":0.0,
                 "emission":0.0,
@@ -123,3 +124,43 @@ def get_mock_neuron_by_uid( uid: int, **kwargs ) -> NeuronInfo:
         coldkey = get_mock_coldkey(uid),
         **kwargs
     )
+
+class MockStatus:
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
+
+class MockConsole:
+    """
+    Mocks the console object for status and print.
+    Captures the last print output as a string.
+    """
+    captured_print = None
+
+    def status(self, *args, **kwargs):
+        return MockStatus()
+    
+    def print(self, *args, **kwargs):
+        console = Console(width = 1000, no_color=True, markup=False) # set width to 1000 to avoid truncation
+        console.begin_capture()
+        console.print(*args, **kwargs)
+        self.captured_print = console.end_capture()
+
+    def clear(self, *args, **kwargs):
+        pass
+
+    @staticmethod
+    def remove_rich_syntax(text: str) -> str:
+        """
+        Removes rich syntax from the given text.
+        Removes markup and ansi syntax.
+        """
+        output_no_syntax = Text.from_ansi(
+            Text.from_markup(
+                text
+            ).plain
+        ).plain
+
+        return output_no_syntax

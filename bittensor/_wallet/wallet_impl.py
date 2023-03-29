@@ -91,11 +91,10 @@ class Wallet():
         return neuron.trust
 
     def validator_trust(self, netuid: int) -> Optional[float]:
-        raise NotImplementedError
-        # neuron = self.get_neuron(netuid=netuid)
-        # if neuron is None:
-        #     return None
-        # return neuron.validator_trust
+        neuron = self.get_neuron(netuid=netuid)
+        if neuron is None:
+            return None
+        return neuron.validator_trust
 
     def rank(self, netuid: int) -> Optional[float]:
         neuron = self.get_neuron(netuid=netuid)
@@ -120,13 +119,6 @@ class Wallet():
         if neuron is None:
             return None
         return neuron.consensus
-
-    def weight_consensus(self, netuid: int) -> Optional[float]:
-        raise NotImplementedError
-        # neuron = self.get_neuron(netuid=netuid)
-        # if neuron is None:
-        #     return None
-        # return neuron.weight_consensus
 
     def last_update(self, netuid: int) -> Optional[int]:
         neuron = self.get_neuron(netuid=netuid)
@@ -177,14 +169,15 @@ class Wallet():
                     Is the wallet registered on the chain.
         """
         if subtensor == None: subtensor = bittensor.subtensor(self.config)
-        if subtensor.network == 'finney':
+        if subtensor.network == 'nakamoto':
+            neuron = subtensor.neuron_for_pubkey( ss58_hotkey = self.hotkey.ss58_address )
+            return not neuron.is_null
+        else:
+            # default to finney
             if netuid == None:
                 return subtensor.is_hotkey_registered_any( self.hotkey.ss58_address )
             else:
                 return subtensor.is_hotkey_registered_on_subnet( self.hotkey.ss58_address, netuid = netuid )
-        else:
-            neuron = subtensor.neuron_for_pubkey( ss58_hotkey = self.hotkey.ss58_address )
-            return not neuron.is_null
         
 
     def get_neuron ( self, netuid: int, subtensor: Optional['bittensor.Subtensor'] = None ) -> Optional['bittensor.NeuronInfo'] :
@@ -863,7 +856,7 @@ class Wallet():
             if len(mnemonic) not in [12,15,18,21,24]:
                 raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
             keypair = Keypair.create_from_mnemonic(" ".join(mnemonic), ss58_format=bittensor.__ss58_format__ )
-            display_mnemonic_msg( keypair, "coldkey" )
+            display_mnemonic_msg( keypair, "hotkey" )
         elif seed is not None:
             keypair = Keypair.create_from_seed(seed, ss58_format=bittensor.__ss58_format__ )
         else:

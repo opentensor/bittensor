@@ -31,6 +31,7 @@ def transfer_extrinsic(
         amount: Union[Balance, float], 
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        keep_alive: bool = True,
         prompt: bool = False,
     ) -> bool:
     r""" Transfers funds from this wallet to the destination public key address
@@ -47,6 +48,8 @@ def transfer_extrinsic(
         wait_for_finalization (bool):
             If set, waits for the extrinsic to be finalized on the chain before returning true,
             or returns false if the extrinsic fails to be finalized within the timeout.
+        keep_alive (bool):
+            If set, keeps the account alive by keeping the balance above the existential deposit.
         prompt (bool):
             If true, the call waits for confirmation from the user before proceeding.
     Returns:
@@ -75,9 +78,10 @@ def transfer_extrinsic(
     # Check balance.
     with bittensor.__console__.status(":satellite: Checking Balance..."):
         account_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
+        # check existential deposit.
+        existential_deposit = subtensor.get_existential_deposit()
 
-    # Estimate transfer fee.
-    with bittensor.__console__.status(":satellite: Estimating Transfer Fees..."):
+    with bittensor.__console__.status(":satellite: Transferring..."):
         with subtensor.substrate as substrate:
             call = substrate.compose_call(
                 call_module='Balances',
@@ -87,22 +91,29 @@ def transfer_extrinsic(
                     'value': transfer_balance.rao
                 }
             )
-            payment_info = substrate.get_payment_info(call = call, keypair = wallet.coldkey)
-            transfer_fee = "N/A"
-            if payment_info:
-                transfer_fee = bittensor.Balance.from_rao(payment_info['partialFee'])
-                bittensor.__console__.print("[green]Estimated Fee: {}[/green]".format( transfer_fee ))
-            else:
-                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: could not estimate transfer fee, assuming base fee of 0.2")
-                transfer_fee = bittensor.Balance.from_tao( 0.2 )
 
-    if account_balance < transfer_balance + transfer_fee:
-        bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {} fee: {}[/bold white]".format( account_balance, transfer_balance, transfer_fee ))
+            try:
+                payment_info = substrate.get_payment_info( call = call, keypair = wallet.coldkey )
+            except Exception as e:
+                bittensor.__console__.print(":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {}[/bold white]".format(e))
+                payment_info = {
+                    'partialFee': 2e7, # assume  0.02 Tao 
+                }
+
+            fee = bittensor.Balance.from_rao( payment_info['partialFee'] )
+    
+    if not keep_alive:
+        # Check if the transfer should keep_alive the account
+        existential_deposit = bittensor.Balance(0)
+
+    # Check if we have enough balance.
+    if account_balance < (transfer_balance + fee + existential_deposit):
+        bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}\n  for fee: {}[/bold white]".format( account_balance, transfer_balance, fee ))
         return False
 
     # Ask before moving on.
     if prompt:
-        if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}\n  for fee: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest, transfer_fee )):
+        if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}\n  for fee: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest, fee )):
             return False
 
     with bittensor.__console__.status(":satellite: Transferring..."):
@@ -129,7 +140,7 @@ def transfer_extrinsic(
                 block_hash = response.block_hash
                 bittensor.__console__.print("[green]Block Hash: {}[/green]".format( block_hash ))
                 
-                explorer_url = bittensor.utils.get_explorer_url_for_network( subtensor.network, block_hash )
+                explorer_url = bittensor.utils.get_explorer_url_for_network( subtensor.network, block_hash, bittensor.__network_explorer_map__ )
                 if explorer_url is not None:
                     bittensor.__console__.print("[green]Explorer Link: {}[/green]".format( explorer_url ))
                 

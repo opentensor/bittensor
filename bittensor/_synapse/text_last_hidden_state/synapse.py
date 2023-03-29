@@ -27,7 +27,8 @@ import bittensor
 class TextLastHiddenStateSynapse(bittensor.Synapse, bittensor.grpc.TextLastHiddenStateServicer):
     """TextLastHiddenStateSynapse: A class for servicing text_last_hidden_state requests."""
 
-    name: str = "text_last_hidden_state"
+    synapse_name: str = "text_last_hidden_state"
+    default_blacklist_stake: float = 10
 
     def __init__(
         self,
@@ -36,52 +37,12 @@ class TextLastHiddenStateSynapse(bittensor.Synapse, bittensor.grpc.TextLastHidde
         if config is None:
             config = self.config()
         TextLastHiddenStateSynapse.check_config(config)
-        self.synapse_config = config.text_last_hidden_state
         super().__init__(config)
         self.config = copy.deepcopy(config)
-        print(config)
 
     def _attach(self, axon: "bittensor.axon"):
         """_attach: Attaches the synapse to the axon."""
         bittensor.grpc.add_TextLastHiddenStateServicer_to_server(self, axon.server)
-
-    @staticmethod
-    def add_defaults(defaults):
-        """Add default values to defaults object"""
-        defaults.text_last_hidden_state = bittensor.Config()
-        defaults.text_last_hidden_state.blacklist.stake = (
-            os.getenv("BT_TEXT_CAUSAL_LM_NEXT_BLACKLIST_STAKE")
-            if os.getenv("BT_TEXT_CAUSAL_LM_NEXT_BLACKLIST_STAKE") is not None
-            else 10
-        )
-        defaults.text_last_hidden_state.blacklist.allow_non_registered = (
-            os.getenv("BT_TEXT_CAUSAL_LM_NEXT_BLACKLIST_ALLOW_NON_REGISTERED")
-            if os.getenv("BT_TEXT_CAUSAL_LM_NEXT_BLACKLIST_ALLOW_NON_REGISTERED") is not None
-            else True
-        )
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser, prefix: str = None):
-        """Accept specific arguments from parser"""
-        prefix_str = "" if prefix is None else prefix + "."
-
-        bittensor.prioritythreadpool.add_args(parser, prefix=prefix_str + "text_last_hidden_state")
-        try:
-            parser.add_argument(
-                "--" + prefix_str + "synapse.text_last_hidden_state.blacklist.stake",
-                type=float,
-                help="The amount of stake (tao) required to make a call.",
-                default=10,
-            )
-            parser.add_argument(
-                "--" + prefix_str + "synapse.text_last_hidden_state.blacklist.allow_non_registered",
-                action="store_true",
-                help="""If true, allow non-registered peers""",
-                default=True,
-            )
-        except argparse.ArgumentError:
-            # re-parsing arguments.
-            pass
 
     def pre_process_request_proto_to_forward_call(
         self, request_proto: bittensor.ForwardTextLastHiddenStateRequest
@@ -95,6 +56,7 @@ class TextLastHiddenStateSynapse(bittensor.Synapse, bittensor.grpc.TextLastHidde
             bittensor.TextLastHiddenStateForwardCall (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
                 bittensor forward call dataclass.
         """
+        print("in synapse middle child pre_process_proto_to_forward.")
         # Deserialize text inputs.
         text_deserializer = bittensor.serializer(
             serializer_type=request_proto.text_inputs_serializer_type
@@ -134,29 +96,29 @@ class TextLastHiddenStateSynapse(bittensor.Synapse, bittensor.grpc.TextLastHidde
             response (bittensor.ForwardTextLastHiddenStateResponse):
                 response.serialized_hidden_states (string): serialized hidden states.
         """
+        print("in synapse middle child post_process_forward_to_response().")
         # Serialize hidden states.
         hidden_state_serializer = bittensor.serializer(
             serializer_type=forward_call.hidden_states_serializer_type
         )
 
-        # Check if response is sucessful
+        # Check if response is successful
         if (forward_call.request_code != bittensor.proto.ReturnCode.Success) or (
             forward_call.response_code != bittensor.proto.ReturnCode.Success
         ):
             serialized_hidden_states = None
-
         else:
             # Optionally apply mask.
-            if forward_call.mask != None:
+            if forward_call.mask is not None:
                 # Apply mask.
-                hidden_states = forward_call.hidden_states.reshape(-1, bittensor.__network_dim__)
+                hidden_states = forward_call.outputs.reshape(-1, bittensor.__network_dim__)
 
                 # Filter hidden states.
                 hidden_states = hidden_states[forward_call.mask.reshape(-1)]
 
             # Else return the raw hidden states.
             else:
-                hidden_states = forward_call.hidden_states
+                hidden_states = forward_call.outputs
             serialized_hidden_states = hidden_state_serializer.serialize(hidden_states)
 
         # Return the forward response proto.

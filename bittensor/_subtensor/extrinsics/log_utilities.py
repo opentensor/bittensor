@@ -1,20 +1,3 @@
-# The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
-# the Software.
-
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
-# DEALINGS IN THE SOFTWARE.
-
 import math
 import time
 import torch
@@ -26,7 +9,6 @@ from typing import List, Tuple, Callable, Dict, Any, Union, Set
 import datetime
 from prometheus_client import Counter, Gauge, Histogram, Summary, Info
 import bittensor
-import bittensor.utils.networking as net
 
 class ValidatorLogger:
     r"""
@@ -266,7 +248,7 @@ class ValidatorLogger:
         name: str, 
         stats: Dict, 
         sort_col: str, 
-        time: time.time
+        start_time: time.time
     ):
         r""" 
         Prints the evaluation of the neuron responses to the validator request
@@ -286,7 +268,7 @@ class ValidatorLogger:
                     f'[white] \[{name}] responses [/white] | Validator forward',  # title
                     f'[bold]{len([s for s in stats.values() if len(s) and sort_col in s])}[/bold]/'
                     f'{len(stats)} (respond/topk) | '
-                    f'[bold]Synapse[/bold] | [white]\[{time:.3g}s][/white]'  # caption
+                    f'[bold]Synapse[/bold] | [white]\[{time.time() - start_time:.3g}s][/white]'  # caption
                     )
 
     def print_weights_table(
@@ -452,148 +434,6 @@ class ValidatorLogger:
         f'min:[bold]{sample_weights.min().item():.4g}[/bold] [/white] '
         f'\[{max_weight_limit:.4g} allowed]')
 
-    def format_predictions(
-        uids: torch.Tensor, 
-        query_responses: List[List[torch.FloatTensor]],
-        return_ops: List[torch.LongTensor], 
-        inputs: torch.FloatTensor,
-        validation_len: int, 
-        index_s: int = 0, 
-        number_of_predictions: int = 3
-    ) -> List:
-        r""" Format batch task topk predictions for rich table print of query responses.
-        """
-        batch_predictions = []
-        std_tokenizer = bittensor.tokenizer()
-
-        # === Batch iteration ===
-        for batch_item in range(inputs.shape[0]):
-            # === Task formatting ===
-            context = inputs[batch_item][:-validation_len]
-            answer = inputs[batch_item][-validation_len:]
-
-            context = repr(std_tokenizer.decode(context))[1:-1][-30:]  # strip '' and truncate
-            answer = repr(std_tokenizer.decode(answer))[1:-1][:15]  # strip '' and truncate
-
-            task = f"[reverse]{context}[/reverse][bold]{answer}[/bold]"
-
-            # === Prediction formatting ===
-            predictions = {}
-            for index, uid in enumerate(uids.tolist()):
-                if return_ops[index][index_s] == bittensor.proto.ReturnCode.Success:
-                    topk_tensor = query_responses[index][index_s]  # [batch_size, (topk + 1), max_len] (prob_k) + floor_prob
-                    topk_tokens = topk_tensor[batch_item, :-1, 1:].int()  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
-                    topk_probs = topk_tensor[batch_item, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
-
-                    # === Topk iteration ===
-                    topk_predictions = ''
-                    for i in range(number_of_predictions):
-                        phrase = topk_tokens[i]
-                        phrase = phrase[phrase >= 0]  # strip negative ignore_index = -100
-                        phrase_str = repr(std_tokenizer.decode(phrase))[:15]  # decode, escape and truncate
-                        prob = f'{topk_probs[i]:.3f}'.lstrip('0').replace('1.000', '1.00')
-                        topk_predictions += f"[green]{prob}[/green]: {phrase_str} "
-
-                    predictions[uid] = topk_predictions[:-1]  # strip trailing space
-
-            batch_predictions += [(task, predictions)]
-
-        return batch_predictions
-
-    def step_log(
-            self, 
-            uid, 
-            wallet,
-            metagraph,
-            subtensor,
-            netuid,
-            neuron_stats,
-            epoch_status, 
-            epoch_params, 
-            step_status, 
-            stats,
-            debug,
-            synapse_keys,
-        ): 
-
-        # === Synergy table ===
-        # Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal)
-        self.print_synergy_table(stats, step_status.syn_loss_diff, 'loss_nxt')
-
-        # === Neuron responses (table) ===
-        # Prints the evaluation of the neuron responses to the validator request
-        self.print_synapse_table( 'Stats table', stats, 'loss_nxt', step_status.shapley_time)
-
-        # === ALL logging for validation step (including console message, console tables, prometheus, wandb) ===
-        if epoch_status.step % 25 == 1:
-            # console message - validator identifier status (every 25 validation steps)
-            self.print_console_validator_identifier(uid, wallet, net.get_external_ip())
-            # console message - validator update status (every 25 validation steps)
-            self.print_console_metagraph_status(uid, metagraph, step_status.current_block, epoch_params.start_block, subtensor.network, netuid)
-
-        # console message - query summary (every validation step)
-        self.print_console_query_summary(
-            current_block = step_status.current_block, 
-            start_block = epoch_params.start_block,
-            blocks_per_epoch = epoch_params.blocks_per_epoch, 
-            epoch_steps = epoch_params.epoch_steps, 
-            epoch = epoch_status.step, 
-            responsive_uids = step_status.responsive_uids, 
-            queried_uids = step_status.queried_uids, 
-            step_time = step_status.step_time, 
-            epoch_responsive_uids = epoch_status.responsive_uids, 
-            epoch_queried_uids = epoch_status.queried_uids
-        )
-
-        if debug:
-            # console table - stats table (every validation step)
-            # Prints exponential moving average statistics of valid neurons from latest validator forward 
-            self.print_stats_table({uid: neuron_stats[uid]
-                            for uid, stat in stats.items() if len(set(stat.keys()) & set(synapse_keys))},
-                        self.weight_key,
-                        f'[white] Stats update [/white] | ' + str(self),  # title
-                        f'#{step_status.current_block}: '
-                        f'[bold]{step_status.current_block - epoch_params.start_block}[/bold]/{epoch_params.blocks_per_epoch} (blocks/epoch) | '
-                        f'Epoch {self.epoch} | '
-                        f'[white] Step {epoch_status.step} ({self.global_step} global) \[{step_status.step_time:.3g}s] [/white]')  # caption
-
-            # console table - weight table (every validation step)
-            sample_uids, sample_weights = self.calculate_weights()
-            self.print_weights_table(
-                min_allowed_weights = self.subtensor.min_allowed_weights(netuid=self.config.netuid) if self.config.subtensor.network == 'finney' else self.subtensor.min_allowed_weights,
-                max_weight_limit = self.subtensor.max_weight_limit(netuid=self.config.netuid)  if self.config.subtensor.network == 'finney' else self.subtensor.max_weight_limit,
-                neuron_stats = self.neuron_stats,
-                title = str(self),
-                metagraph_n = self.metagraph.n, 
-                sample_uids = sample_uids, 
-                sample_weights = sample_weights,
-                include_uids=list(stats.keys()), 
-                num_rows=len(stats) + 25
-            )
-
-    def epoch_log(self, debug, sample_uids, sample_weights, epoch_status, subtensor, metagraph, netuid, neuron_stats):
-
-        # === ALL end of epoch logging (including console message, console table, prometheus, wandb)===
-        if debug:
-                # console table - weight table (every end of epoch)
-            self.print_weights_table(
-                min_allowed_weights = subtensor.min_allowed_weights(netuid=netuid),
-                max_weight_limit = subtensor.max_weight_limit(netuid=netuid),
-                neuron_stats = neuron_stats,
-                title = str(self),
-                metagraph_n = metagraph.n, 
-                sample_uids = sample_uids, 
-                sample_weights = sample_weights,
-            )  
-
-        # console message - subtensor weight (every end of epoch)
-        self.print_console_subtensor_weight(
-            sample_weights = sample_weights, 
-            epoch_responsive_uids = epoch_status.responsive_uids, 
-            epoch_queried_uids = epoch_status.queried_uids, 
-            max_weight_limit = subtensor.max_weight_limit(netuid=netuid), 
-            epoch_start_time = epoch_status.start_time
-        )
 class ValidatorPrometheus:
     r"""
     Prometheis logging object for validator.

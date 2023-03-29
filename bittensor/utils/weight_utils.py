@@ -128,26 +128,14 @@ def convert_weights_and_uids_for_emit( uids: torch.LongTensor, weights: torch.Fl
     else:
         weights = [ float(value) / sum(weights) for value in weights] # Initial normalization.
 
-    remainder = U16_MAX 
     weight_vals = []
     weight_uids = []
     for i, (weight_i, uid_i) in enumerate(list(zip(weights, uids))):
-        uint32_val = int(float(weight_i) * int(U16_MAX)) # convert to int representation.
-        remainder -= uint32_val
-        
-        # Fix overflow
-        if remainder < 0:
-            uint32_val += remainder
-            remainder = 0
-        
-        # Fix underflow
-        if i == (len(weights) -1) and remainder > 0:
-            uint32_val += remainder 
-            remainder = 0
+        uint16_val = int(float(weight_i) * int(U16_MAX))  # convert to int representation.
 
         # Filter zeros
-        if uint32_val != 0: # Filter zeros
-            weight_vals.append( uint32_val )
+        if uint16_val != 0: # Filter zeros
+            weight_vals.append( uint16_val )
             weight_uids.append( uid_i ) 
 
     return weight_uids, weight_vals

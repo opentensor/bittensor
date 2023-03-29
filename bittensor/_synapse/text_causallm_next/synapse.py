@@ -32,11 +32,18 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
         self,
         config: "bittensor.Config" = None,
     ):
-        if config is None:
-            config = self.config()
+        """ __init__: Initializes the synapse.
+            Args:
+                config (:obj:`bittensor.Config`, `optional`):
+                    bittensor config object.
+        """
+        if config is None: config = self.config()
         TextCausalLMNextSynapse.check_config(config)
         super().__init__(config)
         self.config = copy.deepcopy(config)
+
+    def __str__(self):
+        return 'TextCausalLMNext'
 
     def _attach(self, axon: "bittensor.axon"):
         """_attach: Attaches the synapse to the axon."""
@@ -83,6 +90,7 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
             response (bittensor.ForwardTextCausalLMNextResponse):
                 response.serialized_hidden_states (string): serialized hidden states.
         """
+
         # Serialize hidden states.
         outputs_serializer = bittensor.serializer(
             serializer_type=forward_call.text_outputs_serializer_type
@@ -94,10 +102,18 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
         ):
             serialized_text_outputs = None
         else:
-            text_outputs = forward_call.text_outputs
-            serialized_text_outputs = outputs_serializer.serialize(text_outputs)
+            text_outputs = forward_call.outputs
 
-        # TODO: extract topk here and return.
+            # get topk
+            # TODO: ask (joueee) about implementation of bittensor.tokenizer().  Does not contain func expected.
+            # AttributeError: 'tokenizers.Tokenizer' object has no attribute 'std_token_phrases'
+            # tokenizer = bittensor.tokenizer()
+            # topk_values = bittensor.topk_token_phrases(
+            #     logits=text_outputs, tokenizer=tokenizer, topk=forward_call.topk
+            # )
+            # # serialize
+            # serialized_text_outputs = outputs_serializer.serialize(topk_values)
+            serialized_text_outputs = outputs_serializer.serialize(text_outputs)
 
         # Return the forward response proto.
         return bittensor.ForwardTextCausalLMNextResponse(
@@ -149,7 +165,7 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
             mask = None
 
         # If the mask is not none, we need to expand the hidden states to the proper size.
-        if mask != None:
+        if mask is not None:
             # From the encode_forward_response function the forward_response_tensor is [ len(mask), net_dim ]
             # a set of rows from the stacked_forward_response_tensor = [ bs * seq, net_dim ]
             # We will load these rows into a destination tensor = [bs, seq, net_dim]
@@ -178,7 +194,7 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
             )
 
         # Return backward call.
-        return bittensor.TextCausalLMNextForwardCall(
+        return bittensor.TextCausalLMNextBackwardCall(
             mask=mask,
             text_inputs=text_inputs,
             hidden_states=hidden_states,

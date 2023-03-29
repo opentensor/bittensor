@@ -44,13 +44,12 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
                 request_proto (:obj:`bittensor.ForwardTextLastHiddenStateRequest`, `required`):
                     bittensor request proto object.
         """
-
         # Serialize text inputs.
         text_serializer = bittensor.serializer( serializer_type = forward_call.text_inputs_serializer_type )
         serialized_text = text_serializer.serialize( forward_call.text_inputs )
 
         # Optionally serialize mask.
-        if forward_call.mask != None:
+        if forward_call.mask is not None:
             mask_serializer = bittensor.serializer( serializer_type = forward_call.mask_serializer_type )
             serialized_mask = mask_serializer.serialize( forward_call.mask )
         else:
@@ -65,7 +64,6 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
             text_inputs_serializer_type = forward_call.text_inputs_serializer_type,
             hidden_states_serializer_type = forward_call.hidden_states_serializer_type,
         )
-
     
     def post_process_response_proto_to_forward_call( 
             self, 
@@ -94,9 +92,9 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
         # Deserialize hidden states.
         hidden_states_serializer = bittensor.serializer( serializer_type = forward_call.hidden_states_serializer_type )
         hidden_states = hidden_states_serializer.deserialize( response_proto.serialized_hidden_states )
-
+        print("in dendrite post_process_response_proto_to_forward")
         # If the mask is not none, we need to expand the hidden states to the proper size.
-        if forward_call.mask != None:
+        if forward_call.mask is not None:
             # From the encode_forward_response function the forward_response_tensor is [ len(mask), net_dim ]
             # a set of rows from the stacked_forward_response_tensor = [ bs * seq, net_dim ]
             # We will load these rows into a destination tensor = [bs, seq, net_dim]
@@ -114,12 +112,11 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
             hidden_states = destination.reshape( (forward_call.text_inputs.size(0), forward_call.text_inputs.size(1), bittensor.__network_dim__) )
             
             # Fill forward call.
-            forward_call.hidden_states = hidden_states
+            forward_call.outputs = hidden_states
 
         # If the mask is none, we can just fill the forward call.
         else:
-            forward_call.hidden_states = hidden_states
-
+            forward_call.outputs = hidden_states
         # Return.
         return forward_call
 
@@ -140,7 +137,9 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
                     mask over returned hidden states.
                 timeout (:obj:`float`, `optional`, defaults to 5 seconds):  
                     timeout for the forward call.
-                text_prompt_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
+                mask_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
+                    serializer type for hidden states.
+                text_inputs_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
                     serializer type for text inputs.
                 hidden_states_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
                     serializer type for hidden states.
@@ -148,7 +147,8 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
                 bittensor.TextLastHiddenStateForwardCall (:obj:`bittensor.TextLastHiddenStateForwardCall`, `required`):
                     bittensor forward call dataclass.
         """
-        return self._forward( 
+        print("in dendrite forward()")
+        return self._forward(
             forward_call = bittensor.TextLastHiddenStateForwardCall( 
                 text_inputs = text_inputs, 
                 mask = mask,
@@ -156,7 +156,8 @@ class TextLastHiddenStateDendrite( bittensor.Dendrite ):
                 mask_serializer_type = mask_serializer_type,
                 text_inputs_serializer_type = text_inputs_serializer_type,
                 hidden_states_serializer_type = hidden_states_serializer_type
-            ) )
+            )
+        )
     
 
     def pre_process_backward_call_to_request_proto( 

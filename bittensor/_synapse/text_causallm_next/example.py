@@ -9,7 +9,9 @@ bittensor.logging(debug=True)
 # Create a synapse that returns zeros.
 class Synapse(bittensor.TextCausalLMNextSynapse):
 
+    # TODO: replace with an unset variable for user-defined model?
     model = AutoModelForCausalLM.from_pretrained("EleutherAI/gpt-neo-1.3B")
+
     def _priority(self, forward_call: "bittensor.TextCausalLMNextForwardCall") -> float:
         return 0.0
 
@@ -20,11 +22,35 @@ class Synapse(bittensor.TextCausalLMNextSynapse):
         self, forward_call: "bittensor.TextCausalLMNextForwardCall"
     ) -> torch.Tensor:
         outputs = self.model(input_ids=forward_call.text_inputs, output_hidden_states=False)
-        # TODO: return topk CORRECTLY.
-        topk = forward_call.topk
-        topk_obj = torch.topk(outputs.logits, topk)
-        return topk_obj.values
+        last_logits = outputs.logits[:, -1, :]
+        return last_logits
 
+    def backward(
+        self, backward_call: "bittensor.TextCausalLMNextBackwardCall"
+     ) -> torch.Tensor:
+        return torch.zeros((16, 1, bittensor.__network_dim__))
+
+"""
+    # TODO: Call this properly and/or get correct function to get and then compress topk.
+    # Option 1 Naive topk
+    topk = forward_call.topk
+    topk_values, indices = torch.topk(last_logits, topk)
+
+    # Option 2 Unbiased topk (selected index k out of range...)
+    # topk_values, indices = bittensor.unbiased_topk(last_logits, k=topk)
+
+    # Option 3 Eugene's func
+    # Where to get tokenizer req for this function? Do we need one?
+    # topk_values = bittensor.topk_token_phrases(logits=last_logits, topk=topk)
+
+    # Compact topk for sending over wire. (returns empty tensor...)
+    # compact_topk_values = bittensor.compact_topk_token_phrases(topk_values)
+
+    # Not sure if we need to return the logits or the activations.
+    # topk_probs = torch.softmax(topk_values, dim=-1)
+
+    # TODO: (De)compact on other end.
+"""
 
 # Create a mock wallet.
 wallet = bittensor.wallet().create_if_non_existent()
@@ -52,10 +78,15 @@ batch_size = 4
 sequence_length = 32
 # Create a text_causallm_next module and call it.
 module = bittensor.text_causal_lm_next(endpoint=local_endpoint, wallet=wallet)
-response = module.forward(
+response1 = module.forward(
     text_inputs=torch.ones((batch_size, sequence_length), dtype=torch.long),
     timeout=1e6
 )
+
+# response2 = module.backward(
+#
+# )
+
 
 
 # # Delete objects.

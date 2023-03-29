@@ -179,3 +179,97 @@ def register_extrinsic (
             # Failed to register after max attempts.
             bittensor.__console__.print( "[red]No more attempts.[/red]" )
             return False 
+        
+
+def burned_register_extrinsic (
+    subtensor: 'bittensor.Subtensor',
+    wallet: 'bittensor.Wallet',
+    netuid: int,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+    prompt: bool = False
+) -> bool:
+    r""" Registers the wallet to chain by recycling TAO.
+    Args:
+        wallet (bittensor.wallet):
+            bittensor wallet object.
+        netuid (int):
+            The netuid of the subnet to register on.
+        wait_for_inclusion (bool):
+            If set, waits for the extrinsic to enter a block before returning true, 
+            or returns false if the extrinsic fails to enter the block within the timeout.   
+        wait_for_finalization (bool):
+            If set, waits for the extrinsic to be finalized on the chain before returning true,
+            or returns false if the extrinsic fails to be finalized within the timeout.
+        prompt (bool):
+            If true, the call waits for confirmation from the user before proceeding.
+    Returns:
+        success (bool):
+            flag is true if extrinsic was finalized or uncluded in the block. 
+            If we did not wait for finalization / inclusion, the response is true.
+    """
+    if not subtensor.subnet_exists( netuid ):
+        bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{}[/bold white] does not exist.".format(netuid))
+        return False
+
+    wallet.coldkey # unlock coldkey
+    with bittensor.__console__.status(f":satellite: Checking Account on [bold]subnet:{netuid}[/bold]..."):
+        neuron = subtensor.get_neuron_for_pubkey_and_subnet( wallet.hotkey.ss58_address, netuid = netuid )
+
+        old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
+
+        burn_amount = subtensor.burn( netuid = netuid )
+        if not neuron.is_null:
+            bittensor.__console__.print(
+            ':white_heavy_check_mark: [green]Already Registered[/green]:\n'\
+            'uid: [bold white]{}[/bold white]\n' \
+            'netuid: [bold white]{}[/bold white]\n' \
+            'hotkey: [bold white]{}[/bold white]\n' \
+            'coldkey: [bold white]{}[/bold white]' 
+            .format(neuron.uid, neuron.netuid, neuron.hotkey, neuron.coldkey))
+            return True
+        
+    if prompt:
+        # Prompt user for confirmation.
+        if not Confirm.ask( f"Recycle {burn_amount} to register on subnet:{netuid}?" ):
+            return False
+
+    with bittensor.__console__.status(":satellite: Recycling TAO for Registration..."):
+       with subtensor.substrate as substrate:
+            # create extrinsic call
+            call = substrate.compose_call( 
+                call_module='SubtensorModule',  
+                call_function='burned_register', 
+                call_params={ 
+                    'netuid': netuid,
+                    'hotkey': wallet.hotkey.ss58_address
+                } 
+            )
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
+            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
+            
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
+                return True
+            
+            # process if registration successful, try again if pow is still valid
+            response.process_events()
+            if not response.is_success:
+                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
+                time.sleep(0.5)
+            
+            # Successful registration, final check for neuron and pubkey
+            else:
+                bittensor.__console__.print(":satellite: Checking Balance...")
+                block = subtensor.get_current_block()
+                new_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address, block = block )
+
+                bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
+                is_registered = wallet.is_registered( subtensor = subtensor, netuid = netuid )
+                if is_registered:
+                    bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
+                    return True
+                else:
+                    # neuron not found, try again
+                    bittensor.__console__.print(":cross_mark: [red]Unknown error. Neuron not found.[/red]")

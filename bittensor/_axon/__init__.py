@@ -323,8 +323,12 @@ class AuthInterceptor(grpc.ServerInterceptor):
     def parse_signature(self, metadata: Dict[str, str]) -> Tuple[int, str, str, str, int]:
         r"""Attempts to parse a signature from the metadata"""
         signature = metadata.get("bittensor-signature")
+        version = metadata.get('bittensor-version')
         if signature is None:
             raise Exception("Request signature missing")
+        if int(version) < 370:
+            raise Exception("Incorrect Version")
+        
         for parser in [self.parse_signature_v2, self.parse_legacy_signature]:
             parts = parser(signature)
             if parts is not None:
