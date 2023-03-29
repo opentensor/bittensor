@@ -58,6 +58,7 @@ class neuron:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wallet = bittensor.wallet ( config = self.config )
         self.metagraph = self.subtensor.metagraph(11)
+<<<<<<< HEAD
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
@@ -72,6 +73,43 @@ class neuron:
             repetition_penalty = self.config.nucleus.repetition_penalty
         )
         self.reward_model = GPTRewardModel('Dahoas/gptj-rm-IHP', 'EleutherAI/gpt-j-6B')
+=======
+
+
+    def sync_metagraph(self):
+        self.metagraph.sync(netuid=self.config.netuid, subtensor=self.subtensor).save()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        print(exc_type, exc_value, traceback)
+
+    def __enter__(self):
+        config = self.config
+
+        self.wallet.create()
+        self.wallet.reregister( subtensor = self.subtensor, netuid=self.config.netuid )
+        self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid=self.config.netuid )  
+
+        # self.model = PromptingValidator(
+        #     config = config,
+        #     model_name = config.nucleus.model_name,
+        #     min_tokens = config.nucleus.min_tokens,
+        #     max_tokens = config.nucleus.max_tokens,
+        #     temperature = config.nucleus.temperature,
+        #     top_p = config.nucleus.top_p,
+        #     logprobs = config.nucleus.logprobs,
+        #     repetition_penalty = config.nucleus.repetition_penalty
+        # )
+
+        # REWARD_CHECKPOINT_PATH = "reward_model/rm_checkpoint/hf_ckpt.pt"
+        # if not os.path.exists(REWARD_CHECKPOINT_PATH):
+        #     os.makedirs("reward_model/rm_checkpoint", exist_ok=True)
+        #     os.system(
+        #         f"wget -O {REWARD_CHECKPOINT_PATH} \
+        #         https://huggingface.co/Dahoas/gptj-rm-IHP/resolve/main/hf_ckpt.pt"
+        #     )
+
+        self.reward_model = GPTRewardModel('Dahoas/gptj-sft-static')
+>>>>>>> 3f6ae08d (trying new reward model)
         self.reward_model.to(self.device)
 
     def run(self):
