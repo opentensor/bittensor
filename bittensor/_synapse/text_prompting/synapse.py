@@ -16,8 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import copy
-
-import torch
+import json
 
 import bittensor
 
@@ -48,9 +47,7 @@ class TextPromptingSynapse(bittensor.Synapse, bittensor.grpc.TextPromptingServic
         ...
 
     def apply_forward_call(self, forward_call: bittensor.BittensorCall) -> "bittensor.BittensorCall":
-        print("apply (middle child) forward call hi.")
-        forward_call.response = self.forward(messages=forward_call.messages)
-        print("apply (middle child) forward call AFTER.")
+        forward_call.response = self.forward(messages=json.loads(forward_call.messages))
         return forward_call
 
     def pre_process_request_proto_to_forward_call(
