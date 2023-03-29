@@ -19,12 +19,15 @@ local_endpoint = bittensor.endpoint(
 
 
 # Create a text_prompting module and call it.
+response = ""
 module = bittensor.text_prompting( endpoint = local_endpoint, wallet = wallet )
 response = module.forward(
-    messages = [json.dumps({ "role": "user", "content": "hello"})],
+    # messages = [json.dumps({ "role": "user", "content": "hello"})],
+    roles=["user"],
+    messages = ["hello"],
     timeout=1e6
 )
-print(response)
+print(response.response)
 
 
 # # Delete objects.

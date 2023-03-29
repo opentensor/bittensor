@@ -50,13 +50,16 @@ class TextPromptingDendrite(bittensor.Dendrite):
 
     def forward(
         self,
+        roles: str,
         messages: List[Dict[str, str]],
         timeout: float = bittensor.__blocktime__,
     ) -> "bittensor.TextPromptingForwardCall":
+
+        m = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)]
         return self._forward(
             forward_call=bittensor.TextPromptingForwardCall(
                 # messages = json.dumps(messages),
-                messages = messages,
+                messages = m,
                 timeout = timeout,
             )
         )
