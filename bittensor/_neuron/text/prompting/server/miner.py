@@ -121,19 +121,24 @@ def main():
                 messages=messages,
             )
             # bittensor.logging.info("resp", resp)
-            response = 'hi'
-            # response = json.dumps({'role': 'assistant', 'content': resp['choices'][0]['content']})
+            # response = 'hi'
+            # response = json.dumps({'role': 'assistant', 'content': resp['choices'][0]['message']['content']})
+            response = resp['choices'][0]['message']['content']
             return response
 
-    syn = Synapse()
     # --- Build axon server and start it.
     axon = bittensor.axon(
         wallet=wallet,
         metagraph=metagraph,
         config=config,
     )
+    syn = Synapse()
     axon.attach(syn)
     axon.start()
+    axon.netuid = config.netuid
+    axon.protocol = 4
+    subtensor.serve_axon( axon )  
+    
 
     # --- Run Forever.
     last_update = subtensor.get_current_block()
