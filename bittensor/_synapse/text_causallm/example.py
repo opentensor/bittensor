@@ -26,6 +26,9 @@ class Synapse(bittensor.TextCausalLMSynapse):
         logits = outputs.logits
         probs = torch.softmax(logits, dim=-1)
 
+        # TODO: Call this properly or get correct function.
+        # topk_values = bittensor.topk_token_phrases(logits=last_logits, topk=topk)
+
         topk = forward_call.topk
         topk_values, _ = torch.topk(probs, topk)
 
