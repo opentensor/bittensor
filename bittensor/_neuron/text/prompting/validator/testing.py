@@ -1,4 +1,5 @@
 import bittensor
+import json
 
 bittensor.logging(debug=True)
 # Create a mock wallet.
@@ -20,7 +21,7 @@ local_endpoint = bittensor.endpoint(
 # Create a text_prompting module and call it.
 module = bittensor.text_prompting( endpoint = local_endpoint, wallet = wallet )
 response = module.forward(
-    messages = [{ "role": "user", "content": "hello"}],
+    messages = [json.dumps({ "role": "user", "content": "hello"})],
     timeout=1e6
 )
 print(response)
