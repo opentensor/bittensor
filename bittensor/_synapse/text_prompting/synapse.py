@@ -47,7 +47,8 @@ class TextPromptingSynapse(bittensor.Synapse, bittensor.grpc.TextPromptingServic
         ...
 
     def apply_forward_call(self, forward_call: bittensor.BittensorCall) -> "bittensor.BittensorCall":
-        forward_call.response = self.forward(messages=json.loads(forward_call.messages))
+        formatted_messages = [json.loads(message) for message in forward_call.messages]
+        forward_call.response = self.forward(messages=formatted_messages)
         return forward_call
 
     def pre_process_request_proto_to_forward_call(

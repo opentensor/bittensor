@@ -120,8 +120,9 @@ def main():
                 model="gpt-3.5-turbo",
                 messages=messages,
             )
-            bittensor.logging.info('resp', resp)
-            response = [json.dumps({'role': 'assistant', 'content': resp['choices'][0]['content']})]
+            # bittensor.logging.info("resp", resp)
+            response = 'hi'
+            # response = json.dumps({'role': 'assistant', 'content': resp['choices'][0]['content']})
             return response
 
     syn = Synapse()
