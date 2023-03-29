@@ -245,6 +245,32 @@ message BackwardTextCausalLMResponse {
 	ReturnCode return_code = 4;
 }
 
+service TextPrompting  {
+    rpc Forward (ForwardTextPromptingRequest) returns (ForwardTextPromptingResponse) {}
+}
+/////////////////////////
+// TextPrompting //
+/////////////////////////
+message ForwardTextPromptingRequest {
+    int32 version = 1;
+    string hotkey = 2;
+    repeated string messages = 3;
+    float timeout = 4;
+}
+message ForwardTextPromptingResponse {
+    int32 version = 1;
+    string hotkey = 2;
+    string response = 3;
+		string message = 4;
+		ReturnCode return_code = 5;
+}
+message BackwardTextPromptingRequest {
+    int32 version = 1;
+    string hotkey = 2;
+    Tensor reward = 3;
+}
+
+
 // Return codes from Backward and Forward call.
 enum ReturnCode {
 	NoReturn = 0; // Default Value

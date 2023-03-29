@@ -69,8 +69,7 @@ class Synapse(ABC):
         raise NotImplementedError("Must implement subclass_blacklist() in subclass.")
 
     @abstractmethod
-    def forward(self, inputs: torch.Tensor,
-                forward_call: bittensor.BittensorCall) -> torch.Tensor:
+    def apply_forward_call(self, forward_call: bittensor.BittensorCall):
         raise NotImplementedError("Must implement forward() in subclass.")
 
     ## Methods to be defined in the request-specific synapse.
@@ -295,7 +294,7 @@ class Synapse(ABC):
             priority = self._priority(forward_call)
             # Queue the forward call.
             future = self.axon.priority_threadpool.submit(
-                self.forward,
+                self.apply_forward_call,
                 forward_call=forward_call,
                 priority=priority,
             )
@@ -330,8 +329,8 @@ class Synapse(ABC):
         # Do forward.
         try:
             # Get the result.
-            tensor = future.result(timeout=forward_call.timeout)
-            forward_call.outputs = tensor
+            forward_call = future.result(timeout=forward_call.timeout)
+            print("Forward parent.")
 
         except Exception as e:
             forward_call.response_code = bittensor.proto.ReturnCode.UnknownException
