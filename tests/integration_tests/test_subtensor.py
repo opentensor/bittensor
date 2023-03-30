@@ -53,25 +53,26 @@ class TestSubtensor(unittest.TestCase):
 
         with patch.object(self.subtensor.substrate, 'rpc_request'):
             with patch('bittensor.Subtensor.get_uid_for_hotkey_on_subnet', return_value=1):
-                with patch('bittensor.NeuronInfo.from_json', side_effect=mock_get_neuron_by_uid):
+                with patch('bittensor.NeuronInfoLite.from_vec_u8', side_effect=mock_get_neuron_by_uid):
+                    with patch('bittensor.NeuronInfo.from_vec_u8', side_effect=mock_get_neuron_by_uid):
 
-                    neuron = self.subtensor.neuron_for_uid( 1, netuid = -1 )
-                    assert type(neuron.axon_info.ip) == int
-                    assert type(neuron.axon_info.port) == int
-                    assert type(neuron.axon_info.ip_type) == int
-                    assert type(neuron.uid) == int
-                    assert type(neuron.axon_info.protocol) == int
-                    assert type(neuron.hotkey) == str
-                    assert type(neuron.coldkey) == str
+                        neuron = self.subtensor.neuron_for_uid( 1, netuid = -1 )
+                        assert type(neuron.axon_info.ip) == int
+                        assert type(neuron.axon_info.port) == int
+                        assert type(neuron.axon_info.ip_type) == int
+                        assert type(neuron.uid) == int
+                        assert type(neuron.axon_info.protocol) == int
+                        assert type(neuron.hotkey) == str
+                        assert type(neuron.coldkey) == str
 
-                    neuron = self.subtensor.get_neuron_for_pubkey_and_subnet(neuron.hotkey, netuid = -1)
-                    assert type(neuron.axon_info.ip) == int
-                    assert type(neuron.axon_info.port) == int
-                    assert type(neuron.axon_info.ip_type) == int
-                    assert type(neuron.uid) == int
-                    assert type(neuron.axon_info.protocol) == int
-                    assert type(neuron.hotkey) == str
-                    assert type(neuron.coldkey) == str
+                        neuron = self.subtensor.get_neuron_for_pubkey_and_subnet(neuron.hotkey, netuid = -1)
+                        assert type(neuron.axon_info.ip) == int
+                        assert type(neuron.axon_info.port) == int
+                        assert type(neuron.axon_info.ip_type) == int
+                        assert type(neuron.uid) == int
+                        assert type(neuron.axon_info.protocol) == int
+                        assert type(neuron.hotkey) == str
+                        assert type(neuron.coldkey) == str
 
 
     def test_get_current_block( self ):
