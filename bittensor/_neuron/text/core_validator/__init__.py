@@ -604,7 +604,7 @@ class neuron:
             wandb.log( { **wandb_data, **wandb_data_dend, **wandb_weight }, step = current_block, commit=True)
 
         # prometheus - metagraph (every end of epoch)
-        self.vlogger.prometheus.log_epoch_end(uid = self.uid, metagraph = self.metagraph)
+        self.vlogger.prometheus.log_epoch_end(uid = self.uid, metagraph = self.metagraph, current_block = self.subtensor.block)
         
         # === Iterate epochs ===
         self.epoch += 1
