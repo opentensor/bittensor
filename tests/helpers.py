@@ -132,6 +132,9 @@ class MockStatus:
     def __exit__(self, exc_type, exc_value, traceback):
         pass
 
+    def start(self):
+        pass
+
 class MockConsole:
     """
     Mocks the console object for status and print.
