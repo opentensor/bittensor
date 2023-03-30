@@ -169,10 +169,11 @@ class TestSubtensor(unittest.TestCase):
 
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(return_value = self.mock_neuron) 
         with patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', return_value=Balance.from_tao(500)):
-            success= self.subtensor.add_stake(self.wallet,
-                                amount = 200
-                                )
-            assert success == True
+            with patch('bittensor.Subtensor.get_hotkey_owner', return_value=self.wallet.coldkeypub.ss58_address):
+                success= self.subtensor.add_stake(self.wallet,
+                                    amount = 200
+                                    )
+                assert success == True
 
     def test_stake_inclusion(self):
         class success():
@@ -192,11 +193,12 @@ class TestSubtensor(unittest.TestCase):
 
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(return_value = self.mock_neuron) 
         with patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', return_value=Balance.from_tao(500)):
-            success= self.subtensor.add_stake(self.wallet,
-                                amount = 200,
-                                wait_for_inclusion = True
-                                )
-            assert success == True
+            with patch('bittensor.Subtensor.get_hotkey_owner', return_value=self.wallet.coldkeypub.ss58_address):
+                success= self.subtensor.add_stake(self.wallet,
+                                    amount = 200,
+                                    wait_for_inclusion = True
+                                    )
+                assert success == True
 
     def test_stake_failed( self ):
         class failed():
@@ -218,11 +220,12 @@ class TestSubtensor(unittest.TestCase):
 
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(return_value = self.mock_neuron) 
         with patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', return_value=Balance.from_tao(500)):
-            fail= self.subtensor.add_stake(self.wallet,
-                                amount = 200,
-                                wait_for_inclusion = True
-                                )
-            assert fail == False
+            with patch('bittensor.Subtensor.get_hotkey_owner', return_value=self.wallet.coldkeypub.ss58_address):
+                fail= self.subtensor.add_stake(self.wallet,
+                                    amount = 200,
+                                    wait_for_inclusion = True
+                                    )
+                assert fail == False
         
     def test_transfer( self ):
         class success():
