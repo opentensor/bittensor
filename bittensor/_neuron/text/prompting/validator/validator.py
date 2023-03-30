@@ -52,7 +52,7 @@ class neuron:
     @classmethod
     def add_args( cls, parser ):
         # Netuid Arg
-        parser.add_argument('--netuid', type=int , help='Subnet netuid', default=11)
+        parser.add_argument('--netuid', type=int , help = 'Prompting network netuid', default = 11 )
 
     @classmethod
     def config ( cls ):
@@ -63,21 +63,25 @@ class neuron:
         bittensor.subtensor.add_args( parser )
         bittensor.metagraph.add_args( parser )
         bittensor.logging.add_args( parser )
-        bittensor.dataset.add_args( parser )
-        bittensor.wandb.add_args(parser)
-        bittensor.prometheus.add_args( parser )
         return bittensor.config( parser )
     
     def __init__( self ):
+
+        # Build config.
         self.config = neuron.config()
-        self.subtensor = bittensor.subtensor ( config = self.config )
-        self.messages = []
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        check_config( config ) 
+        bittensor.logging( config = self.config )
+
+        # Build objects.
+        self.subtensor = bittensor.subtensor( config = self.config )
         self.wallet = bittensor.wallet ( config = self.config )
-        self.metagraph = self.subtensor.metagraph(11)
+        self.metagraph = self.subtensor.metagraph( self.config.netuid )
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
+
+        # Build model.
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = PromptingValidator(
             config = self.config,
             model_name = self.config.nucleus.model_name,

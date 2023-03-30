@@ -25,7 +25,6 @@ import bittensor
 from . import cli_impl
 from .commands import *
 from typing import List, Optional
-from .naka_cli_impl import CLI as naka_CLI
 console = bittensor.__console__
 
 # Turn off rich console locals trace.
@@ -48,17 +47,9 @@ class cli:
                 args (`List[str]`, `optional`): 
                     The arguments to parse from the command line.
         """
-        if config == None: 
+        if config == None:  
             config = cli.config(args)
         cli.check_config( config )
-        if config.subtensor:
-            network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
-
-        if network == 'nakamoto':
-            # Use nakamoto version of the CLI
-            return naka_CLI(config=config)
-        else:
-            return cli_impl.CLI( config = config)
 
     @staticmethod   
     def config(args: List[str]) -> 'bittensor.config':

@@ -75,8 +75,8 @@ def get_config():
     bittensor.wallet.add_args(parser)
     bittensor.axon.add_args(parser)
     bittensor.subtensor.add_args(parser)
-    bittensor.logging.add_args(parser)
-    bittensor.metagraph.add_args(parser)
+    bittensor.logging.add_args(parser) 
+    bittensor.metagraph.add_args(parser) 
     # bittensor.TextPromptingSynapse.add_args(parser)
     return bittensor.config(parser)
 
@@ -106,7 +106,6 @@ def main():
     # --- Build /Load our model and set the device.
     openai.api_key = config.api_key
 
-
     class Synapse(bittensor.TextPromptingSynapse):
         def _priority(self, forward_call: "bittensor.TextPromptingForwardCall") -> float:
             return 0.0
@@ -115,16 +114,7 @@ def main():
             return False
 
         def forward(self, messages: List[str]) -> str:
-            # bittensor.logging.info("messages", messages)
-            resp = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=messages,
-            )
-            # bittensor.logging.info("resp", resp)
-            # response = 'hi'
-            # response = json.dumps({'role': 'assistant', 'content': resp['choices'][0]['message']['content']})
-            response = resp['choices'][0]['message']['content']
-            return response
+            return openai.ChatCompletion.create( model = "gpt-3.5-turbo", messages = messages ) ['choices'][0]['message']['content']
 
     # --- Build axon server and start it.
     axon = bittensor.axon(
