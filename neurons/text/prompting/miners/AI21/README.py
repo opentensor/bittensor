@@ -1,14 +1,14 @@
 ## AI21 Miner
-Connects to AI21 via an api_key
+AI21 Language Model Serving with BitTensor
+This code is for running a language model powered by AI21 through the BitTensor framework. 
 
 # Example Usage
-
 ```
 python3 -m pip install -r neurons/text/prompting/miners/AI21/requirements.txt 
 python3 neurons/text/prompting/miners/AI21/miner.py --neuron.api_key <your AI21 api_key>
 ```
 
-# Usage
+# Full Usage
 ```
 usage: miner.py [-h] [--netuid NETUID] [--config CONFIG] [--neuron.model_name NEURON.MODEL_NAME] [--neuron.name NEURON.NAME] [--neuron.temperature NEURON.TEMPERATURE] [--neuron.max_tokens NEURON.MAX_TOKENS]
                 [--neuron.min_tokens NEURON.MIN_TOKENS] [--neuron.top_p NEURON.TOP_P] [--neuron.presence_penalty NEURON.PRESENCE_PENALTY] [--neuron.count_penalty NEURON.COUNT_PENALTY] [--neuron.frequency_penalty NEURON.FREQUENCY_PENALTY]
@@ -105,4 +105,4 @@ optional arguments:
                         Logging default root directory.
   --metagraph._mock     To turn on metagraph mocking for testing purposes.
   --strict              If flagged, config will check that only exact arguemnts have been set.
-  ```
+```
