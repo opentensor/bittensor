@@ -71,7 +71,7 @@ __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails'
 
 __nobunaga_entrypoint__ = "wss://stagingnode.opentensor.ai:443"
 
-__finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
+__finney_entrypoint__ = "wss://test.finney.opentensor.ai:443"
 
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
