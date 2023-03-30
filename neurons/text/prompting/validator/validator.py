@@ -23,29 +23,25 @@ import json
 import torch
 import asyncio
 import argparse
-import bittensor
+import bittensor as bt
 
 from torch import nn
 from typing import List, Tuple
-from bittensor._neuron.text.prompting.validator.model_impl import PromptingValidator
-from .reward_impl import GPTRewardModel
+from model_impl import PromptingValidator
+from reward_impl import GPTRewardModel
 
 class neuron:
     @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
+    def check_config( cls, config: 'bt.Config' ):
         r""" Checks/validates the config namespace object.
         """
         PromptingValidator.check_config( config )
-        bittensor.logging.check_config( config )
-        bittensor.wallet.check_config( config )
-        bittensor.subtensor.check_config( config )
-        bittensor.metagraph.check_config( config )
-        bittensor.dataset.check_config( config )
-        bittensor.wandb.check_config( config )
-        bittensor.prometheus.check_config( config )
+        bt.logging.check_config( config )
+        bt.wallet.check_config( config )
+        bt.subtensor.check_config( config )
+        bt.metagraph.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}/netuid{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.netuid, config.neuron.name ))
         config.neuron.full_path = os.path.expanduser(full_path)
-        config.using_wandb = config.wandb.api_key != 'default'
         if not os.path.exists(config.neuron.full_path):
             os.makedirs(config.neuron.full_path)
 
@@ -53,36 +49,33 @@ class neuron:
     def add_args( cls, parser ):
         # Netuid Arg
         parser.add_argument('--netuid', type=int , help = 'Prompting network netuid', default = 11 )
+        parser.add_argument('--neuron.name', type=str,
+                        help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
+                        default='prompting_validator')
 
     @classmethod
     def config ( cls ):
         parser = argparse.ArgumentParser()    
         cls.add_args( parser )
         PromptingValidator.add_args( parser )    
-        bittensor.wallet.add_args( parser )
-        bittensor.subtensor.add_args( parser )
-        bittensor.metagraph.add_args( parser )
-        bittensor.logging.add_args( parser )
-        return bittensor.config( parser )
+        bt.wallet.add_args( parser )
+        bt.subtensor.add_args( parser )
+        bt.metagraph.add_args( parser )
+        bt.logging.add_args( parser )
+        return bt.config( parser )
     
-    def __init__( self ):
 
-        # Build config.
-        self.config = neuron.config()
-        check_config( config ) 
-        bittensor.logging( config = self.config )
+    def __init__( self, config=None ):
+        self.config = config if config is not None else neuron.config()
+        self.subtensor = bt.subtensor ( chain_endpoint='wss://test.finney.opentensor.ai', network="finney" )
 
-        self.subtensor = bittensor.subtensor( config = self.config )
-        self.metagraph = self.subtensor.metagraph( self.config.netuid )
-
-        # Build Wallet.
-        self.wallet = bittensor.wallet ( config = self.config )
+        self.messages = []
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.wallet = bt.wallet ( config = self.config )
+        self.metagraph = self.subtensor.metagraph(11)
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
-
-        # Build model.
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = PromptingValidator(
             config = self.config,
             model_name = self.config.nucleus.model_name,
@@ -93,21 +86,47 @@ class neuron:
             logprobs = self.config.nucleus.logprobs,
             repetition_penalty = self.config.nucleus.repetition_penalty
         )
-        self.reward_model = GPTRewardModel('Dahoas/gptj-rm-static')
+        self.reward_model = GPTRewardModel('Dahoas/gpt2-rm-static')
         self.reward_model.to(self.device)
-        self.modules = [ bittensor.text_prompting( endpoint = endpoint, wallet = self.wallet ) for endpoint in self.metagraph.endpoints_objs ]
+        self.modules = [ bt.text_prompting( endpoint = endpoint, wallet = self.wallet ) for endpoint in self.metagraph.endpoint_objs ]
+
+    async def query(self, user_message: str):
+        coroutines = []
+        for uid in self.metagraph.uids.tolist():
+            coroutines.append(self.call_uid(uid, user_message))
+
+        all_responses = await asyncio.gather(*coroutines)
+        return all_responses
+    
+    async def call_uid(self, uid: int, user_message: str) -> str:
+        endpoint = self.metagraph.endpoint_objs[uid]
+        if endpoint.ip == "0.0.0.0" and endpoint.uid != 0: pass
+        if endpoint.uid == 0:
+            endpoint = bt.endpoint(
+                version=bt.__version_as_int__,
+                uid=0,
+                ip="127.0.0.1",
+                ip_type=4,
+                port=8091,
+                hotkey=self.wallet.hotkey.ss58_address,
+                coldkey=self.wallet.coldkeypub.ss58_address,
+                modality=0,
+            )
+        module = bt.text_prompting(endpoint=endpoint, wallet=self.wallet)
+        response = await module.async_forward(roles=['user'], messages=[user_message], timeout=12)
+        return response.response
 
     def run(self):
         while True:
 
             # Query the uid endpoint.
             async def call_uid( uid: int, user_message: str ) -> str:
-                endpoint = self.metagraph.endpoints_objs[uid]
-                if endpoint.ip == "0.0.0.0" and endpoint.uid != 2: continue
-                if endpoint.uid == 2:
-                    endpoint = bittensor.endpoint(
-                        version=bittensor.__version_as_int__,
-                        uid=2,
+                endpoint = self.metagraph.endpoint_objs[uid]
+                if endpoint.ip == "0.0.0.0" and endpoint.uid != 0: pass
+                if endpoint.uid == 0:
+                    endpoint = bt.endpoint(
+                        version=bt.__version_as_int__,
+                        uid=0,
                         ip="127.0.0.1",
                         ip_type=4,
                         port=8091,
@@ -115,28 +134,32 @@ class neuron:
                         coldkey=self.wallet.coldkeypub.ss58_address,
                         modality=0,
                     )
-                module = bittensor.text_prompting( endpoint = endpoint, wallet = self.wallet ) 
-                return await module.async_forward( roles = ['user'], messages = [user_message], timeout=12 ).response
+                module = bt.text_prompting( endpoint = endpoint, wallet = self.wallet )
+                response = await module.async_forward(roles=['user'], messages=[user_message], timeout=12)
+                return response.response
             
             # Async call the uids.
             async def query( user_message: str ):
                 coroutines = []
                 for uid in self.metagraph.uids.tolist():
                     coroutines.append( call_uid( uid, user_message ) )
-                await asyncio.gather(*coroutines)
-
+                    
+                all_responses = await asyncio.gather(*coroutines)
+                return all_responses
             # Make queries
             user_message = input("User> ")
             responses_per_uid = asyncio.run(query(user_message))
-
+            print(responses_per_uid)
             # Get the highest value response
             max_reward: float = -math.inf
-            max_response:str = ""
+            max_response: str = ""
             for uid, response in enumerate( responses_per_uid ):
-                reward = self.reward_fn([response])
-                if reward > max_reward:
-                    max_reward = reward
-                    max_response = response
+                if response:
+                    reward = self.reward_fn([response])
+                    print(f"UID: {uid} | Reward: {reward} | Response: {response}")
+                    if reward > max_reward:
+                        max_reward = reward
+                        max_response = response
 
             print("Bot> ", max_response)
             
@@ -165,5 +188,8 @@ class neuron:
         scores = torch.cat(scores_list, dim=0)
         return scores
 
+
+
 if __name__ == '__main__':
     neuron().run()
+

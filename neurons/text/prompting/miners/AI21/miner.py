@@ -52,10 +52,11 @@ def check_config(config: 'bittensor.Config'):
 def get_config():
     parser = argparse.ArgumentParser()
 
+
+    # AI21 arguements
     parser.add_argument('--netuid', type=int, help='Subnet netuid', default=11)
     parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
     parser.add_argument('--neuron.model_name', type=str, help='Name of the model.', default='j2-jumbo-instruct')
-    parser.add_argument('--neuron.name', type=str, help='Name of the neuron.', default='AI21')
     parser.add_argument('--neuron.temperature', type=float, help='Sampling temperature.', default=0.7)
     parser.add_argument('--neuron.max_tokens', type=int, help='Maximum number of tokens to generate.', default=256)
     parser.add_argument('--neuron.min_tokens', type=int, help='Minimum number of tokens to generate.', default=0)
@@ -67,7 +68,23 @@ def get_config():
     parser.add_argument('--neuron.logit_bias', type=str, help='Adjust the probability of specific tokens being generated.', default=None)
     parser.add_argument('--neuron.stop', type=str, help='Stop tokens.', default=None)
     parser.add_argument('--neuron.base_url', type=str, help='Base url to use, if None decides based on model name.', default=None)
-    parser.add_argument('--neuron.api_key', type=str, help='AI21 API key.', default=None, required=True )
+    parser.add_argument('--neuron.api_key', type=str, help='AI21 API key.', default=None)
+
+    # Miner arguements
+    parser.add_argument('--neuron.name', type=str,
+                        help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
+                        default='AI21_server')
+    parser.add_argument('--neuron.blocks_per_epoch', type=str, help='Blocks until the miner sets weights on chain',
+                        default=100)
+    parser.add_argument('--neuron.no_set_weights', action='store_true', help='If True, the model does not set weights.',
+                        default=False)
+    parser.add_argument('--neuron.max_batch_size', type=int, help='The maximum batch size for forward requests.',
+                        default=-1)
+    parser.add_argument('--neuron.max_sequence_len', type=int, help='The maximum sequence length for forward requests.',
+                        default=-1)
+    parser.add_argument('--neuron.blacklist.hotkeys', type=str, required=False, nargs='*', action='store',
+                        help='To blacklist certain hotkeys', default=[])
+
 
     bittensor.wallet.add_args(parser)
     bittensor.axon.add_args(parser)
@@ -104,7 +121,7 @@ def main():
     # --- Build /Load our model and set the device.
     with bittensor.__console__.status(f"Loading model {config.neuron.model_name} AI21 ..."):
         bittensor.logging.info('Loading', config.neuron.model_name )
-        model = AI21( model = config.neuron.model_name, api_key = config.neuron.api_key)
+        model = AI21(model=config.neuron.model_name, ai21_api_key=config.neuron.api_key)
     
     # --- Build axon server and start it.tensor.loggi
     axon = bittensor.axon(
@@ -113,10 +130,9 @@ def main():
         config=config,
     )
 
-    def _process_history(history: List[str]) -> str:
+    def _process_history(history: List[dict]) -> str:
         processed_history = ''
         for message in history:
-            message = json.loads(message)
             if message['role'] == 'system':
                 processed_history += 'system: ' + message['content'] + '\n'
 
@@ -135,19 +151,22 @@ def main():
             return False
 
         def forward(self, messages: List[str]) -> str:
+            bittensor.logging.info('messages', str(messages))
             history = _process_history(messages)
+            bittensor.logging.info('history', str(history))
             resp = model(history)
+            bittensor.logging.info('response', str(resp))
             return resp
 
 
-    with bittensor.__console__.status("Serving Axon on netuid:{} subtensor:{} ...".format( config.netuid, subtensor )):
-        syn = Synapse()
-        axon.attach(syn)
-        axon.start()
-        axon.netuid = config.netuid
-        axon.protocol = 4
-        subtensor.serve_axon( axon )  
-        print (axon)
+    # with bittensor.__console__.status("Serving Axon on netuid:{} subtensor:{} ...".format( config.netuid, subtensor )):
+    syn = Synapse()
+    axon.attach(syn)
+    axon.start()
+    axon.netuid = config.netuid
+    axon.protocol = 4
+    subtensor.serve_axon( axon )  
+    print (axon)
 
     # --- Run Forever.
     last_update = subtensor.get_current_block()
