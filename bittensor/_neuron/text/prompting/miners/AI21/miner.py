@@ -102,7 +102,7 @@ def main():
     # --- Build /Load our model and set the device.
     with bittensor.__console__.status("Loading model AI21 ..."):
         bittensor.logging.info('Loading', "AI21" )
-        ai21 = AI21(model="j2-jumbo-instruct")
+        model = AI21(model="j2-jumbo-instruct")
     
     # --- Build axon server and start it.tensor.loggi
     axon = bittensor.axon(
@@ -110,6 +110,20 @@ def main():
         metagraph=metagraph,
         config=config,
     )
+
+    def _process_history(history: List[str]) -> str:
+        processed_history = ''
+        for message in history:
+            message = json.loads(message)
+            if message['role'] == 'system':
+                processed_history += 'system: ' + message['content'] + '\n'
+
+            if message['role'] == 'assistant':
+                processed_history += 'assistant: ' + message['content'] + '\n'
+            
+            if message['role'] == 'user':
+                processed_history += 'user: ' + message['content'] + '\n'
+        return processed_history
 
     class Synapse(bittensor.TextPromptingSynapse):
         def _priority(self, forward_call: "bittensor.TextPromptingForwardCall") -> float:
@@ -119,10 +133,10 @@ def main():
             return False
 
         def forward(self, messages: List[str]) -> str:
-            prompt = ""
-            for element in messages:
-                prompt += element["role"] + ":" + element["content"] + "\n"
-            return pipe( prompt )[0]['generated_text'].split(':')[-1].replace( str( element["content"] ), "") 
+            history = _process_history(messages)
+            resp = model(history)
+            return resp
+
 
     with bittensor.__console__.status("Serving Axon on netuid:{} subtensor:{} ...".format( config.netuid, subtensor )):
         syn = Synapse()

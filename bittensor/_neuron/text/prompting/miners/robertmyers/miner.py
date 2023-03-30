@@ -75,6 +75,7 @@ def get_config():
     return bittensor.config(parser)
 
 
+
 # Main entry point for model serving.
 def main():
     # --- Build, Check, Set and Print the run config.
@@ -113,6 +114,20 @@ def main():
         config=config,
     )
 
+    def _process_history(history: List[str]) -> str:
+        processed_history = ''
+        for message in history:
+            message = json.loads(message)
+            if message['role'] == 'system':
+                processed_history += 'system: ' + message['content'] + '\n'
+
+            if message['role'] == 'assistant':
+                processed_history += 'assistant: ' + message['content'] + '\n'
+            
+            if message['role'] == 'user':
+                processed_history += 'user: ' + message['content'] + '\n'
+        return processed_history
+
     class Synapse(bittensor.TextPromptingSynapse):
         def _priority(self, forward_call: "bittensor.TextPromptingForwardCall") -> float:
             return 0.0
@@ -121,10 +136,8 @@ def main():
             return False
 
         def forward(self, messages: List[str]) -> str:
-            prompt = ""
-            for element in messages:
-                prompt += element["role"] + ":" + element["content"] + "\n"
-            return pipe( prompt )[0]['generated_text'].split(':')[-1].replace( str( element["content"] ), "") 
+            history = _process_history(messages)
+            return pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "") 
 
     with bittensor.__console__.status("Serving Axon on netuid:{} subtensor:{} ...".format( config.netuid, subtensor )):
         syn = Synapse()
