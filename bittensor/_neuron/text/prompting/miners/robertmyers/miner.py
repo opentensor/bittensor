@@ -106,7 +106,7 @@ def main():
         model.to( "cuda" )
         pipe = pipeline("text-generation", model, tokenizer=tokenizer, device=0, max_new_tokens = 256 )   
     
-    # --- Build axon server and start it.
+    # --- Build axon server and start it.tensor.loggi
     axon = bittensor.axon(
         wallet=wallet,
         metagraph=metagraph,
