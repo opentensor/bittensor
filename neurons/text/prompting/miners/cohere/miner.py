@@ -50,6 +50,7 @@ def check_config(config: 'bittensor.Config'):
 def get_config():
     parser = argparse.ArgumentParser()
 
+    # Choene
     parser.add_argument('--netuid', type=int, help='Subnet netuid', default=11)
     parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
     parser.add_argument('--neuron.model_name', type=str, help='Name of the model.', default='command-xlarge-nightly')
@@ -64,6 +65,20 @@ def get_config():
     parser.add_argument('--neuron.stop', type=str, help='List of tokens to stop generation on.', default=None)
     parser.add_argument('--neuron.api_key', type=str, help='API key for Cohere.', default=None)
 
+    # Miner arguements
+    parser.add_argument('--neuron.name', type=str,
+                        help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
+                        default='cohere_server')
+    parser.add_argument('--neuron.blocks_per_epoch', type=str, help='Blocks until the miner sets weights on chain',
+                        default=100)
+    parser.add_argument('--neuron.no_set_weights', action='store_true', help='If True, the model does not set weights.',
+                        default=False)
+    parser.add_argument('--neuron.max_batch_size', type=int, help='The maximum batch size for forward requests.',
+                        default=-1)
+    parser.add_argument('--neuron.max_sequence_len', type=int, help='The maximum sequence length for forward requests.',
+                        default=-1)
+    parser.add_argument('--neuron.blacklist.hotkeys', type=str, required=False, nargs='*', action='store',
+                        help='To blacklist certain hotkeys', default=[])
 
     bittensor.wallet.add_args(parser)
     bittensor.axon.add_args(parser)
@@ -112,7 +127,6 @@ def main():
     def _process_history(history: List[str]) -> str:
         processed_history = ''
         for message in history:
-            message = json.loads(message)
             if message['role'] == 'system':
                 processed_history += 'system: ' + message['content'] + '\n'
 
