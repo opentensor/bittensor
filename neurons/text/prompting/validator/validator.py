@@ -27,8 +27,8 @@ import bittensor
 
 from torch import nn
 from typing import List, Tuple
-from bittensor._neuron.text.prompting.validator.model_impl import PromptingValidator
-from .reward_impl import GPTRewardModel
+from model_impl import PromptingValidator
+from reward_impl import GPTRewardModel
 
 class neuron:
     @classmethod
@@ -40,12 +40,8 @@ class neuron:
         bittensor.wallet.check_config( config )
         bittensor.subtensor.check_config( config )
         bittensor.metagraph.check_config( config )
-        bittensor.dataset.check_config( config )
-        bittensor.wandb.check_config( config )
-        bittensor.prometheus.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}/netuid{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.netuid, config.neuron.name ))
         config.neuron.full_path = os.path.expanduser(full_path)
-        config.using_wandb = config.wandb.api_key != 'default'
         if not os.path.exists(config.neuron.full_path):
             os.makedirs(config.neuron.full_path)
 
@@ -53,6 +49,9 @@ class neuron:
     def add_args( cls, parser ):
         # Netuid Arg
         parser.add_argument('--netuid', type=int , help = 'Prompting network netuid', default = 11 )
+        parser.add_argument('--neuron.name', type=str,
+                        help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
+                        default='prompting_validator')
 
     @classmethod
     def config ( cls ):
@@ -69,7 +68,7 @@ class neuron:
 
         # Build config.
         self.config = neuron.config()
-        check_config( config ) 
+        neuron.check_config( self.config ) 
         bittensor.logging( config = self.config )
 
         self.subtensor = bittensor.subtensor( config = self.config )
@@ -93,21 +92,21 @@ class neuron:
             logprobs = self.config.nucleus.logprobs,
             repetition_penalty = self.config.nucleus.repetition_penalty
         )
-        self.reward_model = GPTRewardModel('Dahoas/gptj-rm-static')
+        self.reward_model = GPTRewardModel('Dahoas/gpt2-rm-static')
         self.reward_model.to(self.device)
-        self.modules = [ bittensor.text_prompting( endpoint = endpoint, wallet = self.wallet ) for endpoint in self.metagraph.endpoints_objs ]
+        self.modules = [ bittensor.text_prompting( endpoint = endpoint, wallet = self.wallet ) for endpoint in self.metagraph.endpoint_objs ]
 
     def run(self):
         while True:
 
             # Query the uid endpoint.
             async def call_uid( uid: int, user_message: str ) -> str:
-                endpoint = self.metagraph.endpoints_objs[uid]
-                if endpoint.ip == "0.0.0.0" and endpoint.uid != 2: continue
-                if endpoint.uid == 2:
+                endpoint = self.metagraph.endpoint_objs[uid]
+                if endpoint.ip == "0.0.0.0" and endpoint.uid != 0: pass
+                if endpoint.uid == 0:
                     endpoint = bittensor.endpoint(
                         version=bittensor.__version_as_int__,
-                        uid=2,
+                        uid=0,
                         ip="127.0.0.1",
                         ip_type=4,
                         port=8091,
