@@ -51,10 +51,10 @@ def get_config():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--api_key', type=str, help='openai api key')
-
     parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
 
     # Miner arguements
+    parser.add_argument('--netuid', type=int, help='Subnet netuid', default=21)
     parser.add_argument('--neuron.name', type=str,
                         help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
                         default='core_server')
@@ -68,9 +68,6 @@ def get_config():
                         default=-1)
     parser.add_argument('--neuron.blacklist.hotkeys', type=str, required=False, nargs='*', action='store',
                         help='To blacklist certain hotkeys', default=[])
-
-    # Netuid Arg
-    parser.add_argument('--netuid', type=int, help='Subnet netuid', default=1)
 
     bittensor.wallet.add_args(parser)
     bittensor.axon.add_args(parser)

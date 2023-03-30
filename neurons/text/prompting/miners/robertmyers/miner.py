@@ -50,7 +50,7 @@ def check_config(config: 'bittensor.Config'):
 def get_config():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--netuid', type=int, help='Subnet netuid', default=11)
+    parser.add_argument('--netuid', type=int, help='Subnet netuid', default=21)
     parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
     parser.add_argument('--neuron.name', type=str,
                         help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',

@@ -51,7 +51,7 @@ def get_config():
     parser = argparse.ArgumentParser()
 
     # Choene
-    parser.add_argument('--netuid', type=int, help='Subnet netuid', default=11)
+    parser.add_argument('--netuid', type=int, help='Subnet netuid', default=21)
     parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
     parser.add_argument('--neuron.model_name', type=str, help='Name of the model.', default='command-xlarge-nightly')
     parser.add_argument('--neuron.max_tokens', type=int, help='Number of tokens to generate.', default=256)
