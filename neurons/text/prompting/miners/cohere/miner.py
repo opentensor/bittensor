@@ -54,22 +54,7 @@ def get_config():
 
     parser.add_argument('--netuid', type=int, help='Subnet netuid', default=11)
     parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
-    parser.add_argument('--neuron.model_name', type=str, help='Name of the model.', default='j2-jumbo-instruct')
-    parser.add_argument('--neuron.name', type=str, help='Name of the neuron.', default='AI21')
-    parser.add_argument('--neuron.temperature', type=float, help='Sampling temperature.', default=0.7)
-    parser.add_argument('--neuron.max_tokens', type=int, help='Maximum number of tokens to generate.', default=256)
-    parser.add_argument('--neuron.min_tokens', type=int, help='Minimum number of tokens to generate.', default=0)
-    parser.add_argument('--neuron.top_p', type=float, help='Total probability mass of tokens to consider at each step.', default=1.0)
-    parser.add_argument('--neuron.presence_penalty', type=float, help='Penalizes repeated tokens.', default=0.0)
-    parser.add_argument('--neuron.count_penalty', type=float, help='Penalizes repeated tokens according to count.', default=0.0)
-    parser.add_argument('--neuron.frequency_penalty', type=float, help='Penalizes repeated tokens according to frequency.', default=0.0)
-    parser.add_argument('--neuron.num_results', type=int, help='How many completions to generate for each prompt.', default=1)
-    parser.add_argument('--neuron.logit_bias', type=str, help='Adjust the probability of specific tokens being generated.', default=None)
-    parser.add_argument('--neuron.stop', type=str, help='Stop tokens.', default=None)
-    parser.add_argument('--neuron.base_url', type=str, help='Base url to use, if None decides based on model name.', default=None)
-    parser.add_argument('--neuron.ai21_api_key', type=str, help='AI21 API key.', default=None)
-
-
+    parser.add_argument('--neuron.name', type=str, help='Name of the neuron', default='cohere')
     bittensor.wallet.add_args(parser)
     bittensor.axon.add_args(parser)
     bittensor.subtensor.add_args(parser)
