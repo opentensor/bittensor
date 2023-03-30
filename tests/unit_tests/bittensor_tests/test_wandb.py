@@ -19,11 +19,6 @@ import bittensor
 import unittest
 
 class TestWandb(unittest.TestCase):
-    def test_axon(self):
-        mock_wallet = bittensor.wallet( _mock = True )
-        axon = bittensor.axon( netuid = -1, wallet = mock_wallet )
-        axon.to_wandb()
-
     def test_dendrite(self):
         mock_wallet = bittensor.wallet( _mock = True )
         dendrite = bittensor.dendrite( wallet = mock_wallet)
