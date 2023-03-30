@@ -36,16 +36,45 @@ class TestSubtensor(unittest.TestCase):
         self.mock_neuron = get_mock_neuron_by_uid(0)
         self.balance = Balance.from_tao(1000)
 
-    def test_defaults_to_nobunaga( self ):
-        assert self.subtensor.chain_endpoint == bittensor.__nobunaga_entrypoint__
+    def test_defaults_to_finney( self ):
+        sub = bittensor.subtensor( )
+        assert sub.network == 'finney'
+        assert sub.chain_endpoint == bittensor.__finney_entrypoint__
 
-    def test_networks( self ):
-        assert self.subtensor.chain_endpoint == bittensor.__nobunaga_entrypoint__
+    def test_network_overrides( self ): 
+        """ Tests that the network overrides the chain_endpoint.
+        """
+        # Argument importance: chain_endpoint (arg) > network (arg) > config.subtensor.chain_endpoint > config.subtensor.network
+        config0 = bittensor.subtensor.config()
+        config0.subtensor.network = 'finney'
+        config0.subtensor.chain_endpoint = 'wss://finney.subtensor.io'
 
-    def test_network_overrides( self ):
-        config = bittensor.subtensor.config()
-        subtensor = bittensor.subtensor(network='nobunaga', config=config, )
-        assert subtensor.chain_endpoint == bittensor.__nobunaga_entrypoint__
+        config1 = bittensor.subtensor.config()
+        config1.subtensor.network = 'local'
+        config1.subtensor.chain_endpoint = None
+
+        # Mock network calls
+        with patch('substrateinterface.SubstrateInterface.connect_websocket'):
+            with patch('substrateinterface.SubstrateInterface.reload_type_registry'):
+                
+                # Choose arg over config
+                sub0 = bittensor.subtensor( config = config0, chain_endpoint = 'wss://fin.subtensor.io' )
+                assert sub0.chain_endpoint == 'wss://fin.subtensor.io'
+
+                # Choose network arg over config
+                sub1 = bittensor.subtensor( config = config0, network = 'local' )
+                assert sub1.chain_endpoint == bittensor.__local_entrypoint__
+
+                # Choose chain_endpoint config over network config
+                sub2 = bittensor.subtensor( config = config0 )
+                assert sub2.chain_endpoint == 'wss://finney.subtensor.io'
+
+                sub3 = bittensor.subtensor( config = config1 )
+                # Should pick local instead of finney (default)
+                assert sub3.network == "local"
+                assert sub3.chain_endpoint == bittensor.__local_entrypoint__
+            
+
 
     def test_neurons( self ):
         def mock_get_neuron_by_uid(_):
