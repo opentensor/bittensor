@@ -108,7 +108,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "overview"
         config.no_prompt = True
         config.all = False
-        config.netuid = [config.netuid]
+        config.netuid = [] # Don't set, so it tries all networks.
 
         cli = bittensor.cli(config)
 
@@ -146,11 +146,12 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register each wallet to it's subnet.
         for netuid, wallet in mock_registrations:
-            _subtensor_mock.sudo_register(
+            result, err = _subtensor_mock.sudo_register(
                 netuid = netuid,
                 coldkey = wallet.coldkey.ss58_address,
                 hotkey = wallet.hotkey.ss58_address
             )
+            self.assertTrue(result, err)
 
         def mock_get_wallet(*args, **kwargs):
             hk = kwargs.get('hotkey')
@@ -207,7 +208,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "overview"
         config.no_prompt = True
         config.all = False
-        config.netuid = [config.netuid]
+        config.netuid = [] # Don't set, so it tries all networks.
 
         cli = bittensor.cli(config)
 
@@ -306,7 +307,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             config.command = "overview"
             config.no_prompt = True
             config.all = False
-            config.netuid = [config.netuid]
+            config.netuid = [] # Don't set, so it tries all networks.
             
 
             cli = bittensor.cli(config)
@@ -318,7 +319,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.no_prompt = True
         config.hotkeys = ['some_hotkey']
         config.all = False
-        config.netuid = [config.netuid]
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -329,7 +330,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "overview"
         config.no_prompt = True
         config.all = False
-        config.netuid = [config.netuid]
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -341,7 +342,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.no_prompt = True
         config.wallet.sort_by = "rank"
         config.all = False
-        config.netuid = [config.netuid]
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -353,7 +354,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.no_prompt = True
         config.wallet.sort_by = "totallynotmatchingcolumnname"
         config.all = False
-        config.netuid = [config.netuid]
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -364,7 +365,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "overview"
         config.no_prompt = True
         config.all = False
-        config.netuid = [config.netuid]
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -376,7 +377,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.wallet.sort_order = "desc" # Set descending sort order
         config.no_prompt = True
         config.all = False
-        config.netuid = [config.netuid]
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -388,7 +389,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.wallet.sort_order = "nowaythisshouldmatchanyorderingchoice" 
         config.no_prompt = True
         config.all = False
-        config.netuid = [config.netuid]
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -400,7 +401,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Don't specify sort_order in config
         config.no_prompt = True
         config.all = False
-        config.netuid = [config.netuid]
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -412,7 +413,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.width = 100
         config.no_prompt = True
         config.all = False
-        config.netuid = [config.netuid]
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -424,7 +425,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Don't specify width in config
         config.no_prompt = True
         config.all = False
-        config.netuid = [config.netuid]
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -434,7 +435,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config = self.config
         config.command = "overview"
         config.no_prompt = True
-        config.netuid = [config.netuid]
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         config.all = True
