@@ -121,11 +121,7 @@ def main():
     # --- Build /Load our model and set the device.
     with bittensor.__console__.status(f"Loading model {config.neuron.model_name} AI21 ..."):
         bittensor.logging.info('Loading', config.neuron.model_name )
-<<<<<<< HEAD
-        model = AI21( model = config.neuron.model_name, api_key = config.neuron.api_key)
-=======
         model = AI21(model=config.neuron.model_name, ai21_api_key=config.neuron.api_key)
->>>>>>> 98d441c7 (saving)
     
     # --- Build axon server and start it.tensor.loggi
     axon = bittensor.axon(
