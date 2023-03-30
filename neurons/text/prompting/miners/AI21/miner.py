@@ -54,7 +54,7 @@ def get_config():
 
 
     # AI21 arguements
-    parser.add_argument('--netuid', type=int, help='Subnet netuid', default=11)
+    parser.add_argument('--netuid', type=int, help='Subnet netuid', default=21)
     parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
     parser.add_argument('--neuron.model_name', type=str, help='Name of the model.', default='j2-jumbo-instruct')
     parser.add_argument('--neuron.temperature', type=float, help='Sampling temperature.', default=0.7)
