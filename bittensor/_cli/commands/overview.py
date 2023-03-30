@@ -338,5 +338,8 @@ class OverviewCommand:
             config.wallet.name = str(wallet_name)
 
         if config.netuid != []:
-            config.netuid = [int(netuid) for netuid in config.netuid]
+            if not isinstance(config.netuid, list):
+                config.netuid = [int(config.netuid)]
+            else:
+                config.netuid = [int(netuid) for netuid in config.netuid]
       
