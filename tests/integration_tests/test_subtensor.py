@@ -31,7 +31,7 @@ from tests.helpers import get_mock_neuron, get_mock_hotkey, get_mock_coldkey, ge
 
 class TestSubtensor(unittest.TestCase):
     def setUp(self):
-        self.subtensor = bittensor.subtensor( network = 'nobunaga' )
+        self.subtensor = bittensor.subtensor( network = 'mock' )
         self.wallet = bittensor.wallet(_mock=True)
         self.mock_neuron = get_mock_neuron_by_uid(0)
         self.balance = Balance.from_tao(1000)
@@ -56,7 +56,7 @@ class TestSubtensor(unittest.TestCase):
                 with patch('bittensor.NeuronInfoLite.from_vec_u8', side_effect=mock_get_neuron_by_uid):
                     with patch('bittensor.NeuronInfo.from_vec_u8', side_effect=mock_get_neuron_by_uid):
 
-                        neuron = self.subtensor.neuron_for_uid( 1, netuid = -1 )
+                        neuron = self.subtensor.neuron_for_uid( 1, netuid = 3 )
                         assert type(neuron.axon_info.ip) == int
                         assert type(neuron.axon_info.port) == int
                         assert type(neuron.axon_info.ip_type) == int
@@ -65,7 +65,7 @@ class TestSubtensor(unittest.TestCase):
                         assert type(neuron.hotkey) == str
                         assert type(neuron.coldkey) == str
 
-                        neuron = self.subtensor.get_neuron_for_pubkey_and_subnet(neuron.hotkey, netuid = -1)
+                        neuron = self.subtensor.get_neuron_for_pubkey_and_subnet(neuron.hotkey, netuid = 3)
                         assert type(neuron.axon_info.ip) == int
                         assert type(neuron.axon_info.port) == int
                         assert type(neuron.axon_info.ip_type) == int
@@ -331,7 +331,7 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.substrate.create_signed_extrinsic = MagicMock()
 
         success= self.subtensor.set_weights(wallet=self.wallet,
-                            netuid = -1,
+                            netuid = 3,
                             uids=[1],
                             weights=chain_weights,
                             )
@@ -371,7 +371,7 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.substrate.create_signed_extrinsic = MagicMock()
 
         fail= self.subtensor.set_weights(wallet=self.wallet,
-                            netuid = -1, 
+                            netuid = 3, 
                             uids=[1],
                             weights=chain_weights,
                             wait_for_inclusion = True
@@ -391,19 +391,19 @@ class TestSubtensor(unittest.TestCase):
 
     def test_get_uid_by_hotkey_on_subnet( self ):
         fake_hotkey = get_mock_hotkey(0)
-        with patch('bittensor.Subtensor.query_paratensor', return_value=MagicMock( value=0 )):
-            uid = self.subtensor.get_uid_for_hotkey_on_subnet(fake_hotkey, netuid = -1)
+        with patch('bittensor.Subtensor.query_subtensor', return_value=MagicMock( value=0 )):
+            uid = self.subtensor.get_uid_for_hotkey_on_subnet(fake_hotkey, netuid = 3)
             assert isinstance(uid, int)
 
     def test_hotkey_register( self ):
         fake_hotkey = get_mock_hotkey(0)
         self.subtensor.get_uid_for_hotkey_on_subnet = MagicMock(return_value = 0)
-        register= self.subtensor.is_hotkey_registered(fake_hotkey, netuid = -1)
+        register= self.subtensor.is_hotkey_registered(fake_hotkey, netuid = 3)
         assert register == True
 
     def test_hotkey_register_failed( self ):
         self.subtensor.get_uid_for_hotkey_on_subnet = MagicMock(return_value = None) 
-        register= self.subtensor.is_hotkey_registered('mock', netuid = -1)
+        register= self.subtensor.is_hotkey_registered('mock', netuid = 3)
         assert register == False
 
     def test_registration_multiprocessed_already_registered( self ):
@@ -440,7 +440,7 @@ class TestSubtensor(unittest.TestCase):
                         mock_set_status.__exit__ = MagicMock(return_value=True)
 
                         # should return True
-                        assert self.subtensor.register(wallet=wallet, netuid = -1, num_processes=3, update_interval=5 ) == True
+                        assert self.subtensor.register(wallet=wallet, netuid = 3, num_processes=3, update_interval=5 ) == True
 
                     # calls until True and once again before exiting subtensor class
                     # This assertion is currently broken when difficulty is too low
@@ -484,7 +484,7 @@ class TestSubtensor(unittest.TestCase):
                     mock_set_status.__exit__ = MagicMock(return_value=True)
 
                     # should return True
-                    assert self.subtensor.register(wallet=wallet, netuid = -1, num_processes=3, update_interval=5) == True
+                    assert self.subtensor.register(wallet=wallet, netuid = 3, num_processes=3, update_interval=5) == True
 
     def test_registration_failed( self ):
         class failed():
@@ -510,7 +510,7 @@ class TestSubtensor(unittest.TestCase):
             self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed())
 
             # should return True
-            assert self.subtensor.register(wallet=wallet, netuid = -1 ) == False
+            assert self.subtensor.register(wallet=wallet, netuid = 3 ) == False
             assert bittensor.utils.create_pow.call_count == 3 
 
     def test_registration_stale_then_continue( self ):
@@ -547,7 +547,7 @@ class TestSubtensor(unittest.TestCase):
                     # then should create a new pow and check if it is stale
                     # then should enter substrate and exit early because of test
                     with pytest.raises(ExitEarly):
-                        bittensor.Subtensor.register(mock_subtensor_self, mock_wallet, netuid = -1)
+                        bittensor.Subtensor.register(mock_subtensor_self, mock_wallet, netuid = 3)
                     assert mock_create_pow.call_count == 2 # must try another pow after stale
                     assert mock_not_stale.call_count == 2
                     assert mock_substrate_enter.call_count == 1 # only tries to submit once, then exits
@@ -557,17 +557,17 @@ class TestSubtensor(unittest.TestCase):
             sub = bittensor.subtensor(_mock=True)
             sub.total_issuance
             sub.total_stake
-            sub.immunity_period(netuid = -1)
-            sub.rho(netuid = -1)
-            sub.kappa(netuid = -1)
-            sub.blocks_since_epoch(netuid = -1)
-            sub.max_n(netuid = -1)
-            sub.min_allowed_weights(netuid = -1)
-            sub.validator_epoch_length(netuid = -1)
-            sub.validator_epochs_per_reset(netuid = -1)
-            sub.validator_sequence_length(netuid = -1)
-            sub.validator_batch_size(netuid = -1)
-            sub.difficulty(netuid = -1)
+            sub.immunity_period(netuid = 3)
+            sub.rho(netuid = 3)
+            sub.kappa(netuid = 3)
+            sub.blocks_since_epoch(netuid = 3)
+            sub.max_n(netuid = 3)
+            sub.min_allowed_weights(netuid = 3)
+            sub.validator_epoch_length(netuid = 3)
+            sub.validator_epochs_per_reset(netuid = 3)
+            sub.validator_sequence_length(netuid = 3)
+            sub.validator_batch_size(netuid = 3)
+            sub.difficulty(netuid = 3)
 
 
 def test_subtensor_mock():
