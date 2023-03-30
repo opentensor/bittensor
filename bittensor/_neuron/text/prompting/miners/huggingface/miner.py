@@ -50,6 +50,7 @@ def check_config(config: 'bittensor.Config'):
 def get_config():
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--netuid', type=int, help='Subnet netuid', default=11)
     parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
     parser.add_argument('--neuron.model_name', type=str, help='Huggingface model to use.', default="robertmyers/bpt-sft" )
     parser.add_argument('--neuron.name', type=str,
@@ -65,9 +66,6 @@ def get_config():
                         default=-1)
     parser.add_argument('--neuron.blacklist.hotkeys', type=str, required=False, nargs='*', action='store',
                         help='To blacklist certain hotkeys', default=[])
-
-    # Netuid Arg
-    parser.add_argument('--netuid', type=int, help='Subnet netuid', default=1)
 
     bittensor.wallet.add_args(parser)
     bittensor.axon.add_args(parser)
@@ -102,10 +100,12 @@ def main():
     uid = metagraph.hotkeys.index(wallet.hotkey.ss58_address)
     
     # --- Build /Load our model and set the device.
-    tokenizer = AutoTokenizer.from_pretrained( config.neuron.model_name )
-    model = AutoModelForCausalLM.from_pretrained(  config.neuron.model_name, torch_dtype=torch.float16 )
-    model.to( "cuda" )
-    pipe = pipeline("text-generation", model, tokenizer=tokenizer, device=0, max_new_tokens = 256 )   
+    with bittensor.__console__.status("Loading huggingface model {} ...".format( config.neuron.model_name )):
+        bittensor.logging.info('Loading', config.neuron.model_name )
+        tokenizer = AutoTokenizer.from_pretrained( config.neuron.model_name )
+        model = AutoModelForCausalLM.from_pretrained(  config.neuron.model_name, torch_dtype=torch.float16 )
+        model.to( "cuda" )
+        pipe = pipeline("text-generation", model, tokenizer=tokenizer, device=0, max_new_tokens = 256 )   
     
     # --- Build axon server and start it.
     axon = bittensor.axon(
@@ -127,13 +127,14 @@ def main():
                 prompt += element["role"] + ":" + element["content"] + "\n"
             return pipe( prompt )[0]['generated_text'].split(':')[-1].replace( str( element["content"] ), "") 
 
-    syn = Synapse()
-    axon.attach(syn)
-    axon.start()
-    axon.netuid = config.netuid
-    axon.protocol = 4
-    subtensor.serve_axon( axon )  
-    print (axon)
+    with bittensor.__console__.status("Serving Axon on netuid:{} subtensor:{} ...".format( config.netuid, subtensor )):
+        syn = Synapse()
+        axon.attach(syn)
+        axon.start()
+        axon.netuid = config.netuid
+        axon.protocol = 4
+        subtensor.serve_axon( axon )  
+        print (axon)
 
     # --- Run Forever.
     last_update = subtensor.get_current_block()
