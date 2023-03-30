@@ -156,7 +156,7 @@ class Dendrite(torch.nn.Module):
         # Make the call and wait for response.
         try:
             # Make asyncio call.
-            asyncio_future = self.get_stub( self.receptor.channel).Forward(
+            asyncio_future = self.get_stub( self.receptor.channel ).Forward(
                 request = forward_call.request_proto,
                 timeout = forward_call.timeout,
                 metadata = (
