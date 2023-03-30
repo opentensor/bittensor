@@ -67,8 +67,7 @@ def get_config():
     parser.add_argument('--neuron.logit_bias', type=str, help='Adjust the probability of specific tokens being generated.', default=None)
     parser.add_argument('--neuron.stop', type=str, help='Stop tokens.', default=None)
     parser.add_argument('--neuron.base_url', type=str, help='Base url to use, if None decides based on model name.', default=None)
-    parser.add_argument('--neuron.api_key', type=str, help='AI21 API key.', default=None)
-
+    parser.add_argument('--neuron.api_key', type=str, help='AI21 API key.', default=None, required=True )
 
     bittensor.wallet.add_args(parser)
     bittensor.axon.add_args(parser)
@@ -105,7 +104,7 @@ def main():
     # --- Build /Load our model and set the device.
     with bittensor.__console__.status(f"Loading model {config.neuron.model_name} AI21 ..."):
         bittensor.logging.info('Loading', config.neuron.model_name )
-        model = AI21(model=config.neuron.model_name, api_key=config.neuron.api_key)
+        model = AI21( model = config.neuron.model_name, api_key = config.neuron.api_key)
     
     # --- Build axon server and start it.tensor.loggi
     axon = bittensor.axon(
