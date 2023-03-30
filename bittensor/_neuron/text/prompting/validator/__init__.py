@@ -88,7 +88,7 @@ class neuron:
             logprobs = self.config.nucleus.logprobs,
             repetition_penalty = self.config.nucleus.repetition_penalty
         )
-        self.reward_model = GPTRewardModel('Dahoas/gptj-rm-IHP', 'EleutherAI/gpt-j-6B')
+        self.reward_model = GPTRewardModel('Dahoas/gptj-rm-static')
         self.reward_model.to(self.device)
         self.modules = [ bittensor.text_prompting( endpoint = endpoint, wallet = self.wallet ) for endpoint in self.metagraph.endpoints_objs ]
 
