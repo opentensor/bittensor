@@ -100,6 +100,8 @@ def get_mock_neuron(**kwargs) -> NeuronInfo:
                 "emission":0.0,
                 "bonds":[],
                 "weights":[],
+                "stake_dict": {},
+                "pruning_score": 0.0,
                 "is_null":False
             })
 
