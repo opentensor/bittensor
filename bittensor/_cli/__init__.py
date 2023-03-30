@@ -48,8 +48,9 @@ class cli:
                     The arguments to parse from the command line.
         """
         if config == None:  
-            config = cli.config(args)
+            config = cli.config( args )
         cli.check_config( config )
+        return cli_impl.CLI( config = config )
 
     @staticmethod   
     def config(args: List[str]) -> 'bittensor.config':
