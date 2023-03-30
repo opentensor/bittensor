@@ -51,9 +51,6 @@ def get_config():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
-    parser.add_argument('--neuron.model_name', type=str, help='Huggingface model to use.)
-
-    # Miner arguements
     parser.add_argument('--neuron.model_name', type=str, help='Huggingface model to use.', default="robertmyers/bpt-sft" )
     parser.add_argument('--neuron.name', type=str,
                         help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
