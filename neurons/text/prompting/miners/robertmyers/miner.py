@@ -139,14 +139,13 @@ def main():
             history = _process_history(messages)
             return pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "") 
 
-    with bittensor.__console__.status("Serving Axon on netuid:{} subtensor:{} ...".format( config.netuid, subtensor )):
-        syn = Synapse()
-        axon.attach(syn)
-        axon.start()
-        axon.netuid = config.netuid
-        axon.protocol = 4
-        subtensor.serve_axon( axon )  
-        print (axon)
+    syn = Synapse()
+    axon.attach(syn)
+    axon.start()
+    axon.netuid = config.netuid
+    axon.protocol = 4
+    subtensor.serve_axon( axon )  
+    print (axon)
 
     # --- Run Forever.
     last_update = subtensor.get_current_block()
