@@ -1,17 +1,32 @@
-import torch
-from torch import nn
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+import re
 import os
 import sys
-
-import bittensor
-import argparse
-import asyncio
 import math
-import re
 import json
+import torch
+import asyncio
+import argparse
+import bittensor
 
+from torch import nn
 from typing import List, Tuple
-
 from bittensor._neuron.text.prompting.validator.model_impl import PromptingValidator
 from .reward_impl import GPTRewardModel
 
@@ -145,4 +160,5 @@ class neuron:
         scores = torch.cat(scores_list, dim=0)
         return scores
 
-
+if __name__ == '__main__':
+    neuron().run()
