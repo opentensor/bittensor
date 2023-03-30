@@ -3,7 +3,7 @@ import json
 
 bittensor.logging(debug=True)
 # Create a mock wallet.
-wallet = bittensor.wallet(name='prompting_testing', hotkey='default')
+wallet = bittensor.wallet(name='prompt', hotkey='default')
 
 # Create a local endpoint receptor grpc connection.
 local_endpoint = bittensor.endpoint(
