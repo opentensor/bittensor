@@ -103,7 +103,7 @@ def main():
     with bittensor.__console__.status("Loading huggingface model robertmyers/bpt-sft ..."):
         bittensor.logging.info('Loading', "robertmyers/bpt-sft" )
         tokenizer = AutoTokenizer.from_pretrained( "robertmyers/bpt-sft" )
-        model = AutoModelForCausalLM.from_pretrained(  config.neuron.model_name, torch_dtype=torch.float16 )
+        model = AutoModelForCausalLM.from_pretrained(  "robertmyers/bpt-sft", torch_dtype=torch.float16 )
         model.to( "cuda" )
         pipe = pipeline("text-generation", model, tokenizer=tokenizer, device=0, max_new_tokens = 256 )   
     
