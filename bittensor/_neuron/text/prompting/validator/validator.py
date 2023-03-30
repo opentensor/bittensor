@@ -72,10 +72,11 @@ class neuron:
         check_config( config ) 
         bittensor.logging( config = self.config )
 
-        # Build objects.
         self.subtensor = bittensor.subtensor( config = self.config )
-        self.wallet = bittensor.wallet ( config = self.config )
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
+
+        # Build Wallet.
+        self.wallet = bittensor.wallet ( config = self.config )
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
