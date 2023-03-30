@@ -29,8 +29,7 @@ from datetime import datetime
 
 # Torch tooling.
 from torch.nn.utils.rnn import pad_sequence
-from langchain.llms import AI21
-
+from langchain.llms import Cohere
 
 # Check run config.
 def check_config(config: 'bittensor.Config'):
@@ -47,14 +46,25 @@ def check_config(config: 'bittensor.Config'):
         os.makedirs(config.neuron.full_path)
 
 
-
 # Create run config.
 def get_config():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--netuid', type=int, help='Subnet netuid', default=11)
     parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
-    parser.add_argument('--neuron.name', type=str, help='Name of the neuron', default='cohere')
+    parser.add_argument('--neuron.model_name', type=str, help='Name of the model.', default='command-xlarge-nightly')
+    parser.add_argument('--neuron.max_tokens', type=int, help='Number of tokens to generate.', default=256)
+    parser.add_argument('--neuron.temperature', type=float, help='Temperature of generation.', default=0.75)
+    parser.add_argument('--neuron.k', type=int, help='Number of most likely tokens to consider at each step.', default=0)
+    parser.add_argument('--neuron.p', type=int, help='Total probability mass of tokens to consider at each step.',
+                        default=1)
+    parser.add_argument('--neuron.frequency_penalty', type=float, help='Penalizes repeated tokens according to frequency.', default=0.0)
+    parser.add_argument('--neuron.presence_penalty', type=float, help='Penalizes repeated tokens.', default=0.0)
+    parser.add_argument('--neuron.truncate', type=str, help='Specify how the client handles inputs longer than the maximum token length: Truncate from START, END or NONE', default=None)
+    parser.add_argument('--neuron.stop', type=str, help='List of tokens to stop generation on.', default=None)
+    parser.add_argument('--neuron.api_key', type=str, help='API key for Cohere.', default=None)
+
+
     bittensor.wallet.add_args(parser)
     bittensor.axon.add_args(parser)
     bittensor.subtensor.add_args(parser)
@@ -88,9 +98,9 @@ def main():
     uid = metagraph.hotkeys.index(wallet.hotkey.ss58_address)
     
     # --- Build /Load our model and set the device.
-    with bittensor.__console__.status("Loading model AI21 ..."):
-        bittensor.logging.info('Loading', "AI21" )
-        model = AI21(model="j2-jumbo-instruct")
+    with bittensor.__console__.status(f"Loading {config.neuron.model_name} ..."):
+        bittensor.logging.info('Loading', config.neuron.model_name )
+        model = Cohere(model=config.neuron.model_name, cohere_api_key=config.neuron.api_key)
     
     # --- Build axon server and start it.tensor.loggi
     axon = bittensor.axon(
