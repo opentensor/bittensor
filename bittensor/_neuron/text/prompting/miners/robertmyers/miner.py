@@ -52,7 +52,6 @@ def get_config():
 
     parser.add_argument('--netuid', type=int, help='Subnet netuid', default=11)
     parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
-    parser.add_argument('--neuron.model_name', type=str, help='Huggingface model to use.', default="robertmyers/bpt-sft" )
     parser.add_argument('--neuron.name', type=str,
                         help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
                         default='text_prompting_miner')
@@ -100,9 +99,9 @@ def main():
     uid = metagraph.hotkeys.index(wallet.hotkey.ss58_address)
     
     # --- Build /Load our model and set the device.
-    with bittensor.__console__.status("Loading huggingface model {} ...".format( config.neuron.model_name )):
-        bittensor.logging.info('Loading', config.neuron.model_name )
-        tokenizer = AutoTokenizer.from_pretrained( config.neuron.model_name )
+    with bittensor.__console__.status("Loading huggingface model robertmyers/bpt-sft ..."):
+        bittensor.logging.info('Loading', "robertmyers/bpt-sft" )
+        tokenizer = AutoTokenizer.from_pretrained( "robertmyers/bpt-sft" )
         model = AutoModelForCausalLM.from_pretrained(  config.neuron.model_name, torch_dtype=torch.float16 )
         model.to( "cuda" )
         pipe = pipeline("text-generation", model, tokenizer=tokenizer, device=0, max_new_tokens = 256 )   
