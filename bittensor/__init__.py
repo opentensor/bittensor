@@ -65,11 +65,9 @@ __ss58_format__ = 42
 # Wallet ss58 address length
 __ss58_address_length__ = 48
 
-__networks__ = [ 'local', 'nakamoto', 'finney']
+__networks__ = [ 'local', 'finney']
 
 __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']
-
-__nakamoto_entrypoint__ = "ws://AtreusLB-2c6154f73e6429a9.elb.us-east-2.amazonaws.com:9944"
 
 __nobunaga_entrypoint__ = "wss://stagingnode.opentensor.ai:443"
 
@@ -88,7 +86,6 @@ __rao_symbol__: str = chr(0x03C1)
 ## Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
     'local': "https://explorer.finney.opentensor.ai/#/explorer",
-    'nakamoto': "https://explorer.nakamoto.opentensor.ai/#/explorer",
     'endpoint': "https://explorer.finney.opentensor.ai/#/explorer",
     'finney': "https://explorer.finney.opentensor.ai/#/explorer"
 }
