@@ -22,10 +22,11 @@ import argparse
 import os
 import copy
 import inspect
-import time
+import time as clock
 from concurrent import futures
 from typing import Dict, List, Callable, Optional, Tuple, Union
 from bittensor._threadpool import prioritythreadpool
+from substrateinterface.utils.ss58 import ss58_decode
 
 import torch
 import grpc
@@ -373,6 +374,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self.nonces = {}
         self.blacklist = blacklist
         self.receiver_hotkey = receiver_hotkey
+        self.nonce_len = 4096
 
     def parse_legacy_signature(
         self, signature: str
@@ -424,6 +426,15 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 return parts
         raise Exception("Unknown signature format")
 
+    def prune_nonce(self):
+        r"""Remove stored nonce when the size of nonce is too big.""" 
+        if len(self.nonces) > self.nonce_len:
+            nonces = self.nonces.copy()
+            lower_bound = clock.monotonic_ns() - bittensor.__blocktime__*1e9
+            for key in nonces:
+                if self.nonces[key] < lower_bound:
+                    del self.nonces[key]
+
     def check_signature(
         self,
         nonce: int,
@@ -431,6 +442,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         signature: str,
         receptor_uuid: str,
         format: int,
+        endpoint_key: str
     ):
         r"""verification of signature in metadata. Uses the pubkey and nonce"""
         keypair = Keypair(ss58_address=sender_hotkey)
@@ -441,19 +453,21 @@ class AuthInterceptor(grpc.ServerInterceptor):
             message = f"{nonce}{sender_hotkey}{receptor_uuid}"
         else:
             raise Exception("Invalid signature version")
-        # Build the key which uniquely identifies the endpoint that has signed
-        # the message.
-        endpoint_key = f"{sender_hotkey}:{receptor_uuid}"
 
         if endpoint_key in self.nonces.keys():
             previous_nonce = self.nonces[endpoint_key]
             # Nonces must be strictly monotonic over time.
-            if nonce <= previous_nonce:
-                raise Exception("Nonce is too small")
+            lower_bound = clock.monotonic_ns() - bittensor.__blocktime__*1e9 # nonce should not be too much earlier then block_time
+            upper_bound = clock.monotonic_ns() + bittensor.__blocktime__*1e9 # nonce should not be too much older then block_time
+            if nonce < lower_bound or nonce > upper_bound or nonce <= previous_nonce:
+                raise Exception(f"Nonce {nonce} is out of range {lower_bound} to {upper_bound} OR nonce is earlier then previous nonce {previous_nonce}.")
 
         if not keypair.verify(message, signature):
             raise Exception("Signature mismatch")
-        self.nonces[endpoint_key] = nonce
+
+        ss58_decode(sender_hotkey) # verify it is a valid hotkey to be written, otherwise raise value error
+
+        return 
 
     def black_list_checking(self, hotkey: str, method: str):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
@@ -484,13 +498,19 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 signature_format,
             ) = self.parse_signature(metadata)
 
+            # Build the key which uniquely identifies the endpoint that has signed the message.
+            endpoint_key = f"{sender_hotkey}:{receptor_uuid}"
+            
             # signature checking
-            self.check_signature(
-                nonce, sender_hotkey, signature, receptor_uuid, signature_format
-            )
+            self.check_signature(nonce, sender_hotkey, signature, receptor_uuid, signature_format, endpoint_key)
 
             # blacklist checking
             self.black_list_checking(sender_hotkey, method)
+            
+            # update nonce when all checking pass
+            self.nonces[endpoint_key] = nonce
+
+            self.prune_nonce()
 
             return continuation(handler_call_details)
 
