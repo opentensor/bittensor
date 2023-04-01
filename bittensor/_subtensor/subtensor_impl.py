@@ -953,9 +953,9 @@ class Subtensor:
                 The metagraph for the subnet at the block.
         """
         status: Optional['rich.console.Status'] = None
-        if bittensor.__use_console__:
-            status = bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth")
-            status.start()
+        # if bittensor.__use_console__:
+        # status = bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth")
+        # status.start()
         
         # Get neurons.
         if lite:
@@ -966,10 +966,10 @@ class Subtensor:
         # Get subnet info.
         subnet_info: Optional[bittensor.SubnetInfo] = self.get_subnet_info( netuid = netuid, block = block )
         if subnet_info == None:
-            status.stop() if status else ...
+            # status.stop() if status else ...
             raise ValueError('Could not find subnet info for netuid: {}'.format(netuid))
 
-        status.stop() if status else ...
+        # status.stop() if status else ...
 
         # Create metagraph.
         block_number = self.block
