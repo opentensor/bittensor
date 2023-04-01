@@ -26,9 +26,8 @@ from datetime import datetime
 import openai
 import json
 
-from typing import List, Dict
-# Torch tooling.
-from torch.nn.utils.rnn import pad_sequence
+from typing import List
+
 
 
 # Check run config.
@@ -50,8 +49,24 @@ def check_config(config: 'bittensor.Config'):
 def get_config():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--api_key', type=str, help='openai api key')
+    # OpenAI  arguments
+    parser.add_argument('--api_key', type=str, required=True, help='openai api key')
     parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
+    parser.add_argument('--neuron.model_name', type=str, default='gpt-3.5-turbo', help="ID of the model to use.")
+    parser.add_argument('--neuron.suffix', type=str, default=None, help="The suffix that comes after a completion of inserted text.")
+    parser.add_argument('--neuron.max_tokens', type=int, default=256, help="The maximum number of tokens to generate in the completion.")
+    parser.add_argument('--neuron.temperature', type=float, default=0.7, help="Sampling temperature to use, between 0 and 2.")
+    parser.add_argument('--neuron.top_p', type=float, default=1, help="Nucleus sampling parameter, top_p probability mass.")
+    parser.add_argument('--neuron.n', type=int, default=1, help="How many completions to generate for each prompt.")
+    parser.add_argument('--neuron.stream', action='store_true', default=False, help="Whether to stream back partial progress.")
+    parser.add_argument('--neuron.logprobs', type=int, default=None, help="Include the log probabilities on the logprobs most likely tokens.")
+    parser.add_argument('--neuron.echo', action='store_true', default=False, help="Echo back the prompt in addition to the completion.")
+    parser.add_argument('--neuron.stop', type=list[str], help='Up to 4 sequences where the API will stop generating further tokens.', default=['user: ', 'bot: ', 'system: '])
+    parser.add_argument('--neuron.presence_penalty', type=float, default=0, help="Penalty for tokens based on their presence in the text so far.")
+    parser.add_argument('--neuron.frequency_penalty', type=float, default=0, help="Penalty for tokens based on their frequency in the text so far.")
+    parser.add_argument('--neuron.best_of', type=int, default=1, help="Generates best_of completions server-side and returns the 'best' one.")
+    parser.add_argument('--neuron.logit_bias', type=json.loads, default=None, help="Modify the likelihood of specified tokens appearing in the completion.")
+    parser.add_argument('--neuron.user', type=str, default=None, help="A unique identifier representing your end-user.")
 
     # Miner arguements
     parser.add_argument('--netuid', type=int, help='Subnet netuid', default=21)
@@ -74,7 +89,6 @@ def get_config():
     bittensor.subtensor.add_args(parser)
     bittensor.logging.add_args(parser) 
     bittensor.metagraph.add_args(parser) 
-    # bittensor.TextPromptingSynapse.add_args(parser)
     return bittensor.config(parser)
 
 
@@ -111,7 +125,23 @@ def main():
             return False
 
         def forward(self, messages: List[str]) -> str:
-            return openai.ChatCompletion.create( model = "gpt-3.5-turbo", messages = messages ) ['choices'][0]['message']['content']
+            return openai.ChatCompletion.create(
+                model=config.neuron.model_name,
+                messages=messages,
+                temperature=config.neuron.temperature,
+                max_tokens=config.neuron.max_tokens,
+                top_p=config.neuron.top_p,
+                frequency_penalty=config.neuron.frequency_penalty,
+                presence_penalty=config.neuron.presence_penalty,
+                n=config.neuron.n,
+                best_of=config.neuron.best_of,
+                openai_api_key=config.neuron.api_key,
+                batch_size=config.neuron.batch_size,
+                request_timeout=config.neuron.request_timeout,
+                logit_bias=config.neuron.logit_bias,
+                max_retries=config.neuron.max_retries,
+            )['choices'][0]['message']['content']
+        
 
     # --- Build axon server and start it.
     axon = bittensor.axon(
