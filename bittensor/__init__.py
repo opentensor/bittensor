@@ -19,8 +19,8 @@ from rich.console import Console
 from rich.traceback import install
 from prometheus_client import Info
 
-import nest_asyncio
-nest_asyncio.apply()
+# import nest_asyncio
+# nest_asyncio.apply()
 
 # Bittensor code and protocol version.
 __version__ = '3.7.0'
