@@ -28,8 +28,8 @@ import bittensor as bt
 from torch import nn
 from typing import List, Tuple
 from model_impl import PromptingValidator
-from reward_impl import GPTRewardModel
-
+from reward_model import GPTRewardModel
+from gating_model import GatingModel
 
 prompt = '''
 You are Chattensor.
@@ -71,9 +71,8 @@ class neuron:
     def add_args( cls, parser ):
         # Netuid Arg
         parser.add_argument('--netuid', type=int , help = 'Prompting network netuid', default = 21 )
-        parser.add_argument('--neuron.name', type=str,
-                        help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
-                        default='prompting_validator')
+        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='prompting_validator')
+        parser.add_argument('--neuron.reward_model_name', type=str, help='GPTRewardModel name', default='Dahoas/gpt2-rm-static')
 
     @classmethod
     def config ( cls ):
@@ -89,9 +88,7 @@ class neuron:
 
     def __init__( self, config=None ):
         self.config = config if config is not None else neuron.config()
-        self.subtensor = bt.subtensor ( chain_endpoint='wss://test.finney.opentensor.ai', network="finney" )
-
-        self.messages = []
+        self.subtensor = bt.subtensor ( config = self.config )
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wallet = bt.wallet ( config = self.config )
         self.metagraph = self.subtensor.metagraph(21)
@@ -108,109 +105,69 @@ class neuron:
             logprobs = self.config.nucleus.logprobs,
             repetition_penalty = self.config.nucleus.repetition_penalty
         )
-        self.reward_model = GPTRewardModel('Dahoas/gpt2-rm-static')
+        self.reward_model = GPTRewardModel( self.config.neuron.reward_model_name )
+        self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config )
         self.reward_model.to(self.device)
         self.modules = [ bt.text_prompting( endpoint = endpoint, wallet = self.wallet ) for endpoint in self.metagraph.endpoint_objs ]
 
-    async def query(self, user_message: str):
-        coroutines = []
-        for uid in self.metagraph.uids.tolist():
-            coroutines.append(self.call_uid(uid, user_message))
 
-        all_responses = await asyncio.gather(*coroutines)
-        return all_responses
-    
-    async def call_uid(self, uid: int, user_message: str) -> str:
-        endpoint = self.metagraph.endpoint_objs[uid]
-        if endpoint.ip == "0.0.0.0" and endpoint.uid != 4: pass
-        if endpoint.uid == 4:
-            endpoint = bt.endpoint(
-                version=bt.__version_as_int__,
-                uid=4,
-                ip="127.0.0.1",
-                ip_type=4,
-                port=8091,
-                hotkey=self.w3allet.hotkey.ss58_address,
-                coldkey=self.wallet.coldkeypub.ss58_address,
-                modality=0,
+
+    def query( 
+            self, 
+            message: str, 
+            uids: List[int] = None, 
+            timeout: float = 12 
+        ) -> List[str]:
+        r""" Queries uids on the network for a response to the passed message.
+        Args:
+            message (str): The message to query the network with.
+            uids (List[int]): The uids to query. If None, queries all uids.
+            timeout (float): The timeout for the query.
+        Returns:
+            responses (List[str]): The responses from the network.
+        """
+        # If no uids are provided, query all uids.
+        if uids is None: uids = self.metagraph.uids.tolist()
+
+        # Query the uid endpoint.
+        async def call_single_uid( uid: int ) -> str:
+            endpoint = self.metagraph.endpoint_objs[uid]
+            module = bt.text_prompting( endpoint = endpoint, wallet = self.wallet )
+            response = await module.async_forward( 
+                roles = ['system', 'user'], 
+                messages = [ prompt, message ], 
+                timeout = timeout 
             )
-        module = bt.text_prompting(endpoint=endpoint, wallet=self.wallet)
-        response = await module.async_forward(roles=['system', 'user'], messages=[prompt, user_message], timeout=12)
-        return response.response
+            return response.response
+        
+        # Async call the uids.
+        async def query( user_message: str ):
+            coroutines = [ call_single_uid( uid) for uid in uids ]                
+            all_responses = await asyncio.gather(*coroutines)
+            return all_responses
+        
+        return asyncio.run(query(message))
 
-    def run(self):
+    def train(self):
         while True:
-            import pdb; pdb.set_trace()
-            # Query the uid endpoint.
-            async def call_uid( uid: int, user_message: str ) -> str:
-                endpoint = self.metagraph.endpoint_objs[uid]
-                if endpoint.ip == "0.0.0.0" and endpoint.uid != 0: pass
-                if endpoint.uid == 0:
-                    endpoint = bt.endpoint(
-                        version=bt.__version_as_int__,
-                        uid=0,
-                        ip="127.0.0.1",
-                        ip_type=4,
-                        port=8091,
-                        hotkey=self.wallet.hotkey.ss58_address,
-                        coldkey=self.wallet.coldkeypub.ss58_address,
-                        modality=0,
-                    )
-                module = bt.text_prompting( endpoint = endpoint, wallet = self.wallet )
-                response = await module.async_forward(roles=['system', 'user'], messages=[prompt, user_message], timeout=12)
-                return response.response
-            
-            # Async call the uids.
-            async def query( user_message: str ):
-                coroutines = []
-                for uid in self.metagraph.uids.tolist():
-                    coroutines.append( call_uid( uid, user_message ) )
-                    
-                all_responses = await asyncio.gather(*coroutines)
-                return all_responses
-            # Make queries
-            user_message = input("User> ")
-            responses_per_uid = asyncio.run(query(user_message))
-            # Get the highest value response
-            max_reward: float = -math.inf
-            max_response: str = ""
-            for uid, response in enumerate( responses_per_uid ):
-                if response:
-                    reward = self.reward_fn([response])
-                    print(f"UID: {uid} | Reward: {reward} | Response: {response}")
-                    if reward > max_reward:
-                        max_reward = reward
-                        max_response = response
 
-            print("Bot> ", max_response)
-            
-    def reward_fn(self, samples):
-        scores_list = []
-        batch_size = 2
-        for i in range(0, len(samples), batch_size):
-            sub_samples = samples[i : i + batch_size]
-            sub_samples = [
-                "<|startoftext|>" + chosen + "<|endoftext|>" for chosen in sub_samples
-            ]
-            encodings_dict = self.reward_model.tokenizer(
-                sub_samples,
-                truncation=True,
-                max_length=550,
-                padding="max_length",
-                return_tensors="pt",
-            )
-            input_ids = encodings_dict["input_ids"].to(self.device)
-            attn_masks = encodings_dict["attention_mask"].to(self.device)
-            input_ids = input_ids.repeat(2, 1)
-            attn_masks = attn_masks.repeat(2, 1)
-            with torch.no_grad():
-                sub_scores = self.reward_model(input_ids=input_ids, attention_mask=attn_masks)
-            scores_list.append(sub_scores["chosen_end_scores"])
-        scores = torch.cat(scores_list, dim=0)
-        return scores
+            # Forward pass.
+            message = input("User> ") 
+            scores = self.gating_model( message )
+            completions = self.query( message )
+            rewards = self.reward_model.reward( completions )
+            self.gating_model.backward( scores, rewards )
+            print("Bot> ", completions[ rewards.argmax() ] )
+
+            # Logging.
+            for completion, reward, score in zip( completions, rewards, scores ):
+                print( "Completion: ", completion )
+                print( "Reward: ", reward )
+                print( "Score: ", score )
+                print( "------------------" )
 
 
 
 if __name__ == '__main__':
-    neuron().run()
+    neuron().train()
 
