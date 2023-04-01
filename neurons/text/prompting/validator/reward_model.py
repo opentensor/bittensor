@@ -1,20 +1,48 @@
 import torch
 from torch import nn
+from typing import List
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 class GPTRewardModel(nn.Module):
-    def __init__(self, model_path):
+    def __init__( self, model_path: str ):
         super().__init__()
-        model = AutoModelForCausalLM.from_pretrained(model_path)
-        self.config = model.config
+        self.model = AutoModelForCausalLM.from_pretrained( model_path )
+        self.config = self.model.config
         # `gpt-neo(x)` models use `hidden_size` attribute names instead of `n_embd``
         self.config.n_embd = self.config.hidden_size if hasattr(self.config, "hidden_size") else self.config.n_embd
-        self.transformer = model.transformer
+        self.transformer = self.model.transformer
         self.v_head = nn.Linear(self.config.n_embd, 1, bias=False)
         self.tokenizer = AutoTokenizer.from_pretrained('EleutherAI/gpt-j-6B')
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.PAD_ID = self.tokenizer(self.tokenizer.pad_token)["input_ids"][0]
+
+    def reward( self, completions: List[str] ) -> torch.FloatTensor:
+        def reward_fn( samples ):
+            scores_list = []
+            batch_size = 2
+            for i in range(0, len(samples), batch_size):
+                sub_samples = samples[i : i + batch_size]
+                sub_samples = [
+                    "<|startoftext|>" + chosen + "<|endoftext|>" for chosen in sub_samples
+                ]
+                encodings_dict = self.tokenizer(
+                    sub_samples,
+                    truncation=True,
+                    max_length=550,
+                    padding="max_length",
+                    return_tensors="pt",
+                )
+                input_ids = encodings_dict["input_ids"].to( self.device )
+                attn_masks = encodings_dict["attention_mask"].to( self.device )
+                input_ids = input_ids.repeat(2, 1)
+                attn_masks = attn_masks.repeat(2, 1)
+                with torch.no_grad():
+                    sub_scores = self.forward(input_ids=input_ids, attention_mask=attn_masks)
+                scores_list.append(sub_scores["chosen_end_scores"])
+            scores = torch.cat(scores_list, dim=0)
+            return scores
+        return torch.tensor( [ reward_fn( completion ) for completion in completions ], dtype = torch.float32 )
 
     def forward(
         self,
