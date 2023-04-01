@@ -27,8 +27,6 @@ from typing import List
 from rich import print
 from datetime import datetime
 
-# Torch tooling.
-from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
 # Check run config.
@@ -67,14 +65,16 @@ def get_config():
                         help='To blacklist certain hotkeys', default=[])
 
     # Model params
-    parser.add_argument('--neuron.device', type=str, help='Subnet netuid', default="cuda")
+    parser.add_argument('--device', type=str, help='Device to load model', default="cuda")
+    parser.add_argument('--client.max_new_tokens', type=int, help='Max tokens for model output.', default=256)
+    parser.add_argument('--client.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).')
+    parser.add_argument('--client.temperature', type=float, help='Sampling temperature of model', default=0.8)
 
     bittensor.wallet.add_args(parser)
     bittensor.axon.add_args(parser)
     bittensor.subtensor.add_args(parser)
     bittensor.logging.add_args(parser)
     bittensor.metagraph.add_args(parser)
-    # bittensor.TextPromptingSynapse.add_args(parser)
     return bittensor.config(parser)
 
 
@@ -104,11 +104,17 @@ def main():
     
     # --- Build /Load our model and set the device.
     with bittensor.__console__.status("Loading huggingface model togethercomputer/Pythia-Chat-Base-7B ..."):
-        bittensor.logging.info('Loading', "Pythia-Chat-Base-7B") # v0.16 has no config? ( "togethercomputer/Pythia-Chat-Base-7B-v0.16" )
-        tokenizer = AutoTokenizer.from_pretrained("togethercomputer/Pythia-Chat-Base-7B")
-        model = AutoModelForCausalLM.from_pretrained("togethercomputer/Pythia-Chat-Base-7B", torch_dtype=torch.float16)
-        model = model.to( config.neuron.device )
-        pipe = pipeline("text-generation", model, tokenizer=tokenizer, device=0, max_new_tokens = 256)
+        bittensor.logging.info('Loading', "Pythia-Chat-Base-7B")
+
+        model_config = {
+            'model': AutoModelForCausalLM.from_pretrained("togethercomputer/Pythia-Chat-Base-7B"),
+            'tokenizer': AutoTokenizer.from_pretrained("togethercomputer/Pythia-Chat-Base-7B", torch_dtype=torch.float16),
+            'device':0,
+        }
+        pipe_config = {**model_config, **config.client}
+
+        pipe_config['model'] = pipe_config['model'].to( config.device )
+        pipe = pipeline("text-generation", **pipe_config)
     
     # --- Build axon server and start it.tensor.loggi
     axon = bittensor.axon(
