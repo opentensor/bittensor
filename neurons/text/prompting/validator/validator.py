@@ -15,18 +15,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import re
 import os
-import sys
-import math
-import json
 import torch
 import asyncio
 import argparse
 import bittensor as bt
 
-from torch import nn
-from typing import List, Tuple
 from model_impl import PromptingValidator
 from reward_model import GPTRewardModel
 from gating_model import GatingModel
