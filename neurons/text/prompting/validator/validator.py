@@ -205,6 +205,9 @@ class neuron:
     def train(self):
         """ Training """
         while True:
+            # TODO( robert ): Use prompting network here to generate inputs.
+            # message = self.prompting.forward()
+            message = input("User> ")
             # Print the output to terminal.
             print("Bot> ", self.forward( input("User> ") , topk = self.config.neuron.training_topk ) )
 
