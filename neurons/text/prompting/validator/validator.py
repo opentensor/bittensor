@@ -170,6 +170,13 @@ class neuron:
         rewards = self.reward_model.reward( 
             completions 
         )
+
+        # We backpropagate the rewards to the gating network.
+        self.gating_model.backward( 
+            scores = scores, 
+            rewards = rewards 
+        )
+
         # We return the completion with the highest reward.
         return completions[ rewards.argmax() ]
 
