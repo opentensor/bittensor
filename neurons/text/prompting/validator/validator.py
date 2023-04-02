@@ -108,7 +108,7 @@ class neuron:
         self.modules = [ bt.text_prompting( endpoint = endpoint, wallet = self.wallet ) for endpoint in self.metagraph.endpoint_objs ]
 
 
-    def query( 
+    def forward_query( 
             self, 
             message: str, 
             uids: List[int] = None, 
@@ -163,15 +163,26 @@ class neuron:
         scores = self.gating_model( 
             message 
         )
+
         # We query the topk best uids here using the inference topk as the limit.
-        completions = self.query( 
+        completions = self.forward_query( 
             message, 
             uids = scores.sort()[1][-topk:].tolist() 
         ) 
+
         # We rank the completions based on the reward model.
         rewards = self.reward_model.reward( 
             completions 
         )
+
+        # We backprop the reward signals to the miners.
+        # TODO(joey/jason): We need to implement backward here
+        # with corresponding PPO on miners.
+        # self.backward_query( 
+        #     message, 
+        #     rewards,
+        #     uids = scores.sort()[1][-topk:].tolist() 
+        # ) 
 
         # We backpropagate the rewards to the gating network.
         self.gating_model.backward( 
