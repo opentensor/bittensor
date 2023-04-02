@@ -21,6 +21,7 @@ import asyncio
 import argparse
 import bittensor as bt
 
+from typing import List, Optional
 from model_impl import PromptingValidator
 from reward_model import GPTRewardModel
 from gating_model import GatingModel
@@ -146,7 +147,11 @@ class neuron:
         # Return the message responses running the query in asyncio.
         return asyncio.run(query(message))
 
-    def inference( self, message ):
+    def forward( 
+            self, 
+            message: str,
+            topk: Optional[int] = 1,
+        ):
         """ Inference is called by clients seeking the outputs of the model
             We use the gating network to determine the best models to query 
             Optionally we use the reward model to train the gating network.
@@ -161,7 +166,7 @@ class neuron:
         # We query the topk best uids here using the inference topk as the limit.
         completions = self.query( 
             message, 
-            uids = scores.sort()[1][-self.config.neuron.inference_topk:].tolist() 
+            uids = scores.sort()[1][-topk:].tolist() 
         ) 
         # We rank the completions based on the reward model.
         rewards = self.reward_model.reward( 
@@ -174,51 +179,23 @@ class neuron:
             rewards = rewards 
         )
 
+        # Logging.
+        if self.config.logging.debug:
+            for completion, reward, score in zip( completions, rewards, scores ):
+                print( "Completion: ", completion )
+                print( "Reward: ", reward )
+                print( "Score: ", score )
+                print( "------------------" )
+
         # We return the completion with the highest reward.
         return completions[ rewards.argmax() ]
 
 
     def train(self):
-        """ Training: We iterate continually using the prompting model to
-            generate synthetic data to query the network. We use the reward
-            to train the gating network.
-        """
+        """ Training """
         while True:
-
-            # We get the user input 
-            # TODO( carro ): this should be generated from our prompting network rather than user input.
-            message = input("User> ") 
-
-            # We run the gating network here to get the scores for each uid based on the input.
-            scores = self.gating_model( message )
-
-            # We query the topk best based on scores or optionally all of the uids if topk is -1.
-            completions = self.query( 
-                message, 
-                uids = None if self.config.neuron.training_topk == -1 else scores.sort()[1][-self.config.neuron.training_topk:].tolist() 
-            )
-
-            # We rank the responses based on the reward model.
-            rewards = self.reward_model.reward( 
-                completions 
-            )
-
-            # We backpropagate the rewards to the gating network.
-            self.gating_model.backward( 
-                scores = scores, 
-                rewards = rewards 
-            )
-
             # Print the output to terminal.
-            print("Bot> ", completions[ rewards.argmax() ] )
-
-            # Logging.
-            if self.config.logging.debug:
-                for completion, reward, score in zip( completions, rewards, scores ):
-                    print( "Completion: ", completion )
-                    print( "Reward: ", reward )
-                    print( "Score: ", score )
-                    print( "------------------" )
+            print("Bot> ", self.forward( input("User> ") , topk = self.config.neuron.training_topk ) )
 
 
 
