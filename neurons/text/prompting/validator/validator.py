@@ -153,7 +153,10 @@ class neuron:
         return asyncio.run(query(message))
 
     def inference( self, message ):
-        """ Inference function for the neuron.
+        """ Inference is called by clients seeking the outputs of the model
+            We use the gating network to determine the best models to query 
+            Optionally we use the reward model to train the gating network.
+
             Args: 
                 message (str): The message to query the network with.
         """
@@ -182,6 +185,10 @@ class neuron:
 
 
     def train(self):
+        """ Training: We iterate continually using the prompting model to
+            generate synthetic data to query the network. We use the reward
+            to train the gating network.
+        """
         while True:
 
             # We get the user input 
