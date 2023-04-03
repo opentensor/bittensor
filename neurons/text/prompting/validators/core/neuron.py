@@ -66,7 +66,7 @@ class neuron:
     def add_args( cls, parser ):
         # Netuid Arg
         parser.add_argument('--netuid', type=int , help = 'Prompting network netuid', default = 21 )
-        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='prompting_validator')
+        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_prompting_validator')
         parser.add_argument('--neuron.reward_model_name', type=str, help='GPTRewardModel name', default='Dahoas/gpt2-rm-static')
         parser.add_argument('--neuron.inference_topk', type=str, help='At inference time, how many miners to we query and return the top rewarded.', default = 10 )
         parser.add_argument('--neuron.training_topk', type=str, help='During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
@@ -91,50 +91,10 @@ class neuron:
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
-        self.prompting_model = PromptingModel( config = self.config )
-        self.reward_model = RewardModel( self.config.neuron.reward_model_name )
-        self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config )
-        self.reward_model.to(self.device)
-        self.modules = [ bt.text_prompting( endpoint = endpoint, wallet = self.wallet ) for endpoint in self.metagraph.endpoint_objs ]
-        
-    def forward_query( 
-            self, 
-            message: str, 
-            uids: List[int] = None, 
-            timeout: float = 12 
-        ) -> List[str]:
-        r""" Queries uids on the network for a response to the passed message.
-        Args:
-            message (str): The message to query the network with.
-            uids (List[int]): The uids to query. If None, queries all uids.
-            timeout (float): The timeout for the query.
-        Returns:
-            responses (List[str]): The responses from the network.
-        """
-        # We optionally set the uids to all if uids is None.
-        if uids is None: uids = self.metagraph.uids.tolist()
-
-        # The following asyncio defintion queries a single endpoint with the message
-        # prompt and returns the response.
-        async def call_single_uid( uid: int ) -> str:
-            endpoint = self.metagraph.endpoint_objs[uid]
-            module = bt.text_prompting( endpoint = endpoint, wallet = self.wallet )
-            response = await module.async_forward( 
-                roles = ['system', 'user'], 
-                messages = [ prompt, message ], 
-                timeout = timeout 
-            )
-            return response.response
-        
-        # The following asyncio definition gathers the responses
-        # from multiple coroutines for each uid.
-        async def query( user_message: str ):
-            coroutines = [ call_single_uid( uid) for uid in uids ]                
-            all_responses = await asyncio.gather(*coroutines)
-            return all_responses
-        
-        # Return the message responses running the query in asyncio.
-        return asyncio.run(query(message))
+        self.prompting_model = PromptingModel( config = self.config ).to(self.device)
+        self.reward_model = RewardModel( self.config.neuron.reward_model_name ).to(self.device)
+        self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to(self.device)
+        self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
 
     def forward( 
             self, 
@@ -154,7 +114,7 @@ class neuron:
         )
 
         # We query the topk best uids here using the inference topk as the limit.
-        completions = self.forward_query( 
+        completions = self.dendrite_pool( 
             message, 
             uids = scores.sort()[1][-topk:].tolist() 
         ) 

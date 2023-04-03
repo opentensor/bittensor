@@ -228,6 +228,7 @@ from bittensor._synapse.text_last_hidden_state.dendrite import TextLastHiddenSta
 from bittensor._synapse.text_causallm.dendrite import TextCausalLMDendrite as text_causal_lm
 from bittensor._synapse.text_causallm_next.dendrite import TextCausalLMNextDendrite as text_causal_lm_next
 from bittensor._synapse.text_prompting.dendrite import TextPromptingDendrite as text_prompting
+from bittensor._synapse.text_prompting.dendrite import TextPromptingDendritePool as text_prompting_pool
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
