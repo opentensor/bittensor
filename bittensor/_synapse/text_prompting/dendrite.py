@@ -18,7 +18,7 @@ import json
 import torch
 import asyncio
 import bittensor
-from typing import Callable, List, Dict
+from typing import Callable, List, Dict, Union
 
 class TextPromptingDendritePool( torch.nn.Module ):
 
@@ -40,7 +40,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
             self, 
             message: str, 
             prompt: str = None,
-            uids: List[int] = None, 
+            uids: Union[ torch.LongTensor, List[int] ] = None, 
             timeout: float = 12 
         ) -> List[str]:
         r""" Queries uids on the network for a response to the passed message.
@@ -52,7 +52,8 @@ class TextPromptingDendritePool( torch.nn.Module ):
             responses (List[str]): The responses from the network.
         """
         # We optionally set the uids to all if uids is None.
-        if uids is None: uids = len( self.dendrites )
+        if uids is None: uids = [ len( self.dendrites ) ]
+        if isinstance( uids, torch.Tensor ): uids = uids.tolist()
 
         # We optionally set the prompt to the message if prompt is None.
         if prompt is not None: 

@@ -95,6 +95,7 @@ class neuron:
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
         self.history = []
 
+   
     def forward( 
             self, 
             message: str,
@@ -110,27 +111,43 @@ class neuron:
         if topk is None or topk == -1: topk = self.metagraph.n.item()
 
         # We run the gating network here to get the best uids
+        # TODO( jason + joey ): this is not training properly.
+        # probably want to port over joey's work on embedding based cosine similarity routing.
+        # message --> torch.tensor([scores x num_uids])
         scores = self.gating_model( 
             message 
         )
 
         # We query the topk best uids here using the inference topk as the limit.
-        uids = scores.sort()[1][-topk:].tolist()
+        # uids = scores.sort()[1][-topk:].tolist()
+        uids = [ 1 ]
         completions = self.dendrite_pool( 
             message, 
             uids = uids 
         ) 
 
         # We rank the completions based on the reward model.
+        # TODO( carro ): this needs to be trained properly.
         rewards = self.reward_model.reward( 
             completions 
         )
 
         # We backpropagate the rewards to the gating network.
+        # TODO( jaons + joey ): ditto.
         self.gating_model.backward( 
             scores = scores[ uids ], 
             rewards = rewards 
         )
+
+        # We call the backward pass to the miners.
+        # TODO( jason ) write the proto + dendrite + synapse
+        # to service these requests.
+        # reward --> miner, then the miner optionally applies PPO.
+        # self.dendrite_pool.backward(
+        #     message = message,
+        #     reward = rewards, # NOTE( jason ): I dont think this is a single scalar in practice. 
+        #     uids = uids,
+        # )
 
         # Save history for later computing of weights.
         # history [
@@ -171,7 +188,15 @@ class neuron:
             # Set weights on epoch.
             if self.subtensor.block - last_epoch_block > self.subtensor.validator_epoch_length( self.config.netuid ) :
                 last_epoch_block = self.subtensor.block
-                weights = torch.nn.functional.softmax( torch.cat( [r for m, r in self.history] ).sum( 0 ) )
+
+                # TODO( taco + joey + jason): we need to get a lot more intelligence here about how 
+                # we translate the history into chain weights. Because we actually want to be
+                # training the weights so that the E( topk( score ) )_B               
+                # A: 5 5 5 5 5 5 5 5 5 5  = 5
+                # B: 10 0 0 0 0 10 0 0 0 -- 20/8 = 3.5
+                # C:  0 0 10 10 10 0 0 0 -- 30/8 = 3.9
+                # D:  0 0 0 0 0 0 0 10 10 -- 20/8 = 3.5
+                weights = torch.nn.functional.softmax( torch.cat( [r for m, u, r in self.history] ).sum( 0 ) )
                 self.subtensor.set_weights(
                     uids = self.metagraph.uids,
                     weights = weights
