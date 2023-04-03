@@ -35,6 +35,7 @@ class RewardModel(nn.Module):
 
     def reward( self, completions: List[str] ) -> torch.FloatTensor:
         def reward_fn( samples ):
+            if samples is None: return 0
             scores_list = []
             batch_size = 2
             for i in range(0, len(samples), batch_size):

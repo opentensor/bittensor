@@ -24,7 +24,6 @@ import bittensor as bt
 from typing import List, Optional
 from reward import RewardModel
 from gating import GatingModel
-from prompting import PromptingModel
 
 prompt = '''
 You are Chattensor.
@@ -52,7 +51,6 @@ class neuron:
     def check_config( cls, config: 'bt.Config' ):
         r""" Checks/validates the config namespace object.
         """
-        PromptingModel.check_config( config )
         bt.logging.check_config( config )
         bt.wallet.check_config( config )
         bt.subtensor.check_config( config )
@@ -70,28 +68,28 @@ class neuron:
         parser.add_argument('--neuron.reward_model_name', type=str, help='GPTRewardModel name', default='Dahoas/gpt2-rm-static')
         parser.add_argument('--neuron.inference_topk', type=str, help='At inference time, how many miners to we query and return the top rewarded.', default = 10 )
         parser.add_argument('--neuron.training_topk', type=str, help='During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
+        parser.add_argument('--neuron.epoch_length', type=str, help='During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
 
     @classmethod
     def config ( cls ):
         parser = argparse.ArgumentParser()    
         cls.add_args( parser )
-        PromptingModel.add_args( parser )    
         bt.wallet.add_args( parser )
         bt.subtensor.add_args( parser )
         bt.metagraph.add_args( parser )
         bt.logging.add_args( parser )
+        GatingModel.add_args( parser )
         return bt.config( parser )
     
     def __init__( self, config=None ):
         self.config = config if config is not None else neuron.config()
         self.subtensor = bt.subtensor ( config = self.config )
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = "cpu" #torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wallet = bt.wallet ( config = self.config )
         self.metagraph = self.subtensor.metagraph(21)
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
-        self.prompting_model = PromptingModel( config = self.config ).to(self.device)
         self.reward_model = RewardModel( self.config.neuron.reward_model_name ).to(self.device)
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to(self.device)
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
@@ -115,9 +113,10 @@ class neuron:
         )
 
         # We query the topk best uids here using the inference topk as the limit.
+        uids = scores.sort()[1][-topk:].tolist()
         completions = self.dendrite_pool( 
             message, 
-            uids = scores.sort()[1][-topk:].tolist() 
+            uids = uids 
         ) 
 
         # We rank the completions based on the reward model.
@@ -127,7 +126,7 @@ class neuron:
 
         # We backpropagate the rewards to the gating network.
         self.gating_model.backward( 
-            scores = scores, 
+            scores = scores[ uids ], 
             rewards = rewards 
         )
 
@@ -139,14 +138,15 @@ class neuron:
         #     ...
         # ] ---> weights
         self.history.append( 
-            ( message, rewards )
+            ( message, uids, rewards )
         )
-        if self.config.logging.debug:
-            for completion, reward, score in zip( completions, rewards, scores ):
-                print( "Completion: ", completion )
-                print( "Reward: ", reward )
-                print( "Score: ", score )
-                print( "------------------" )
+        #if self.config.logging.debug:
+        for completion, reward, score in zip( completions, rewards, scores[ uids ] ):
+            print( "Message: ", message )
+            print( "Completion: ", completion )
+            print( "Reward: ", reward )
+            print( "Score: ", score )
+            print( "------------------" )
 
         # We return the completion with the highest reward.
         return completions[ rewards.argmax() ]
@@ -158,15 +158,18 @@ class neuron:
 
     def train(self):
         """ Training """
-        last_epoch = 0
+        last_epoch_block = self.subtensor.block
         while True:
+            
             # TODO( robert ): Use prompting network here to generate inputs.
             # the prompting network should generate questions which cover our data distribution.
-            message = self.prompting_model.forward( "here is a generated question about" )[0] 
+            message = self.forward( "ask me a random question about anything. Make the questions very domain specific about science and language.", topk = self.config.neuron.training_topk )
             self.forward( message, topk = self.config.neuron.training_topk )
     
-            if self.subtenosr:
-                weights = self.hippocampus( self.history )
+            # Set weights on epoch.
+            if self.subtensor.block - last_epoch_block > self.subtensor.validator_epoch_length( self.config.netuid ) :
+                last_epoch_block = self.subtensor.block
+                weights = torch.nn.functional.softmax( torch.cat( [r for m, r in self.history] ).sum( 0 ) )
                 self.subtensor.set_weights(
                     uids = self.metagraph.uids,
                     weights = weights

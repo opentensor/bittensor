@@ -86,6 +86,6 @@ class GatingModel( torch.nn.Module ):
         """
         inputs = self.tokenizer( message, return_tensors="pt" )
         hidden_states = self.model( **inputs ).last_hidden_state[0, -1, :]
-        return self.linear( hidden_states )
+        return self.linear( hidden_states.to('cpu') )
 
 
