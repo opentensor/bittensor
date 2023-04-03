@@ -374,7 +374,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self.nonces = {}
         self.blacklist = blacklist
         self.receiver_hotkey = receiver_hotkey
-        self.nonce_len = 4096
+        self.nonce_len = 4096 * 2
 
     def parse_legacy_signature(
         self, signature: str
@@ -430,9 +430,11 @@ class AuthInterceptor(grpc.ServerInterceptor):
         r"""Remove stored nonce when the size of nonce is too big.""" 
         if len(self.nonces) > self.nonce_len:
             nonces = self.nonces.copy()
-            lower_bound = clock.monotonic_ns() - bittensor.__blocktime__*1e9
+            
+            # lower_bound is if the nonce havent been updated in 3 days.
+            lower_bound = clock.monotonic_ns() - 260000 * 1e9
             for key in nonces:
-                if self.nonces[key] < lower_bound:
+                if self.nonces[key][1] < lower_bound:
                     del self.nonces[key]
 
     def check_signature(
@@ -442,7 +444,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
         signature: str,
         receptor_uuid: str,
         format: int,
-        endpoint_key: str
     ):
         r"""verification of signature in metadata. Uses the pubkey and nonce"""
         keypair = Keypair(ss58_address=sender_hotkey)
@@ -453,21 +454,28 @@ class AuthInterceptor(grpc.ServerInterceptor):
             message = f"{nonce}{sender_hotkey}{receptor_uuid}"
         else:
             raise Exception("Invalid signature version")
+        # Build the key which uniquely identifies the endpoint that has signed the message.
+        endpoint_key = f"{sender_hotkey}:{receptor_uuid}"
+            
 
         if endpoint_key in self.nonces.keys():
-            previous_nonce = self.nonces[endpoint_key]
+            previous_nonce = self.nonces[endpoint_key][1]
+            corrected_nonce = self.nonces[endpoint_key][0] + nonce
             # Nonces must be strictly monotonic over time.
-            lower_bound = clock.monotonic_ns() - bittensor.__blocktime__*1e9 # nonce should not be too much earlier then block_time
-            upper_bound = clock.monotonic_ns() + bittensor.__blocktime__*1e9 # nonce should not be too much older then block_time
-            if nonce < lower_bound or nonce > upper_bound or nonce <= previous_nonce:
-                raise Exception(f"Nonce {nonce} is out of range {lower_bound} to {upper_bound} OR nonce is earlier then previous nonce {previous_nonce}.")
-
+            lower_bound = clock.monotonic_ns() - bittensor.__blocktime__*1e9 # corrected_nonce should not be too much earlier then block_time
+            upper_bound = clock.monotonic_ns() + bittensor.__blocktime__*1e9 # corrected_nonce should not be too much older then block_time
+            if corrected_nonce < lower_bound or corrected_nonce > upper_bound or corrected_nonce <= previous_nonce:
+                raise Exception(f"Nonce {corrected_nonce} is out of range {lower_bound} to {upper_bound} OR nonce is earlier then previous nonce {previous_nonce}.")
+        else:
+            # Initializing the (offset, corrected_nonce = offset + nonce) 
+            corrected_nonce = clock.monotonic_ns() + nonce 
+            self.nonces[endpoint_key] = (clock.monotonic_ns() - nonce, corrected_nonce)
+        
         if not keypair.verify(message, signature):
             raise Exception("Signature mismatch")
-
-        ss58_decode(sender_hotkey) # verify it is a valid hotkey to be written, otherwise raise value error
-
-        return 
+        
+        # update nonce when all checking pass
+        self.nonces[endpoint_key] = (self.nonces[endpoint_key][0], corrected_nonce)
 
     def black_list_checking(self, hotkey: str, method: str):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
@@ -498,17 +506,11 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 signature_format,
             ) = self.parse_signature(metadata)
 
-            # Build the key which uniquely identifies the endpoint that has signed the message.
-            endpoint_key = f"{sender_hotkey}:{receptor_uuid}"
-            
             # signature checking
-            self.check_signature(nonce, sender_hotkey, signature, receptor_uuid, signature_format, endpoint_key)
+            self.check_signature(nonce, sender_hotkey, signature, receptor_uuid, signature_format)
 
             # blacklist checking
             self.black_list_checking(sender_hotkey, method)
-            
-            # update nonce when all checking pass
-            self.nonces[endpoint_key] = nonce
 
             self.prune_nonce()
 
