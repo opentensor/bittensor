@@ -7,7 +7,7 @@ This repository the the core validator for the bittensor prompting network.
 
 ## Installation
 1. Clone the repository
-2. Install the required packages with `pip install -r requirements.txt`
+2. Install the required packages with `pip install -r neurons/text/prompting/validators/core/requirements.txt`
 For more configuration options related to the wallet, axon, subtensor, logging, and metagraph, please refer to the Bittensor documentation.
 
 ## Example Usage
