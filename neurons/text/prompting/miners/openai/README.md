@@ -22,9 +22,8 @@ To run the OpenAI Bittensor Miner with default settings, use the following comma
 
 ```
 python3 -m pip install -r neurons/text/prompting/miners/openai/requirements.txt 
-python3 neurons/text/prompting/miners/openai/miner.py --neuron.api_key <your OpenAI api_key>
+python3 neurons/text/prompting/miners/openai/neuron.py --neuron.api_key <your OpenAI api_key>
 ```
-
 
 
 # Full Usage

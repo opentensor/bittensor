@@ -1,13 +1,14 @@
 # Langchain Cohere Model Server
 This repository contains the implementation of a language model server using the Cohere API. The model is integrated into the Bittensor network, allowing it to serve as a Bittensor neuron.
 
-#Table of Contents
+# Table of Contents
 Requirements
 Installation
 Usage
 Configuration
 License
-Requirements
+
+# Requirements
 Python 3.7 or higher
 Bittensor installed
 Cohere API Key
@@ -18,7 +19,8 @@ Copy code
 git clone https://github.com/YOUR_USERNAME/langchain-cohere-model-server.git
 Change to the project directory:
 bash
-Copy code
+# Copy code
+
 cd langchain-cohere-model-server
 Install the required packages:
 bash
