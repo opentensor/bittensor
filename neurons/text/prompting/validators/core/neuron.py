@@ -98,7 +98,7 @@ class neuron:
     def forward( 
             self, 
             message: str,
-            topk: Optional[int] = 1,
+            topk: Optional[int] = None,
         ):
         """ Inference is called by clients seeking the outputs of the model
             We use the gating network to determine the best models to query 
@@ -107,6 +107,8 @@ class neuron:
             Args: 
                 message (str): The message to query the network with.
         """
+        if topk is None or topk == -1: topk = self.metagraph.n.item()
+
         # We run the gating network here to get the best uids
         scores = self.gating_model( 
             message 
@@ -163,7 +165,7 @@ class neuron:
             
             # TODO( robert ): Use prompting network here to generate inputs.
             # the prompting network should generate questions which cover our data distribution.
-            message = self.forward( "ask me a random question about anything. Make the questions very domain specific about science and language.", topk = self.config.neuron.training_topk )
+            message = self.forward( "ask me a random question about anything. Make the question very domain specific about science and language." )
             self.forward( message, topk = self.config.neuron.training_topk )
     
             # Set weights on epoch.

@@ -68,7 +68,7 @@ def get_config():
     # Miner arguements
     parser.add_argument('--neuron.name', type=str,
                         help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
-                        default='cohere_server')
+                        default='cohere_prompting_miner')
     parser.add_argument('--neuron.blocks_per_epoch', type=str, help='Blocks until the miner sets weights on chain',
                         default=100)
     parser.add_argument('--neuron.no_set_weights', action='store_true', help='If True, the model does not set weights.',
