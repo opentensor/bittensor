@@ -1,9 +1,12 @@
 import bittensor
 import json
+import asyncio
 
 bittensor.logging(debug=True)
 # Create a mock wallet.
 wallet = bittensor.wallet(name='prompt', hotkey='default')
+subtensor = bittensor.subtensor( chain_endpoint = 'wss://test.finney.opentensor.ai', network='finney' )
+metagraph = subtensor.metagraph(21)
 
 # Create a local endpoint receptor grpc connection.
 local_endpoint = bittensor.endpoint(
@@ -17,6 +20,20 @@ local_endpoint = bittensor.endpoint(
     modality=0,
 )
 
+
+def uid_selector():
+    """
+        Returns the uids of metagraph endpoint objs that are not equal to 0.0.0.0
+
+        Returns:
+            uids (list): The list of uids.
+    """
+    endpoints = []
+    for endpoint in metagraph.endpoint_objs:
+        if endpoint.ip != '0.0.0.0':
+            print('ip |', endpoint.ip, '| uid |', endpoint.uid)
+            endpoints.append(endpoint)
+    return endpoints
 
 # Create a text_prompting module and call it.
 prompt = '''
@@ -39,15 +56,62 @@ Lists should not be long, like so:
 • third item
 They are the creators of Chattensor, but not Bittensor. That was founded by Jacob Steeves (Const) and Ala Shaabana (Shibshib). 
 The current maintainers of Bittensor is the Opentensor Foundation. Carro and Prism work at Opentensor.'''
-module = bittensor.text_prompting( endpoint = local_endpoint, wallet = wallet )
-response = module.forward(
-    # messages = [json.dumps({ "role": "user", "content": "hello"})],
-    roles=["system", "user"],
-    messages = [prompt, "who are you?"],
-    timeout=1e6
-)
-print(response.response)
+
+message = "who are you?"
+timeout = 3
+# for endpoint in uid_selector():
+#     module = bittensor.text_prompting( endpoint = endpoint, wallet = wallet )
+#     response = module.forward(
+#         # messages = [json.dumps({ "role": "user", "content": "hello"})],
+#         roles=["system", "user"],
+#         messages = [prompt, "who are you?"],
+#         timeout=1e6
+#     )
+#     print(response.response)
 
 
-# # Delete objects.
-del module
+# async def run():
+#     for endpoint in uid_selector():
+#         module = bittensor.text_prompting( endpoint = endpoint, wallet = wallet )
+#         response = await module.async_forward(
+#             # messages = [json.dumps({ "role": "user", "content": "hello"})],
+#             roles=["system", "user"],
+#             messages = [prompt, "who are you?"],
+#             timeout=12
+#         )
+#         print(response.response)
+
+uids = [ endpoint.uid for endpoint in uid_selector() ]
+dendrites = []
+for uid, endpoint in enumerate( metagraph.endpoint_objs ):
+    module = bittensor.text_prompting( endpoint = endpoint, wallet = wallet )
+    dendrites.append( module )
+
+if prompt is not None: 
+    roles = ['system', 'user']
+    messages = [ prompt, message ]
+else:
+    roles = ['user']
+    messages = [ message ]
+
+async def call_single_uid( uid: int ) -> str:
+    print ('calling uid:', uid)
+    module = bittensor.text_prompting( endpoint = metagraph.endpoint_objs[ uid ], wallet = wallet )
+    response = await module.async_forward( 
+        roles = roles, 
+        messages = messages, 
+        timeout = timeout 
+    )
+    print ('response:', response.response)
+    return response.response
+
+async def query():
+    coroutines = [ call_single_uid( uid ) for uid in uids ]                
+    all_responses = await asyncio.gather(*coroutines)
+    print ('all responses:', all_responses)
+    return all_responses
+
+
+asyncio.run(query())
+
+

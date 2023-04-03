@@ -21,6 +21,8 @@ import asyncio
 import argparse
 import bittensor as bt
 
+from copy import deepcopy
+
 from typing import List, Optional
 from reward import RewardModel
 from gating import GatingModel
@@ -84,7 +86,7 @@ class neuron:
     def __init__( self, config=None ):
         self.config = config if config is not None else neuron.config()
         self.subtensor = bt.subtensor ( config = self.config )
-        self.device = "cpu" #torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wallet = bt.wallet ( config = self.config )
         self.metagraph = self.subtensor.metagraph(21)
         self.wallet.create_if_non_existent()
@@ -107,6 +109,7 @@ class neuron:
         uids = []
         for endpoint in self.metagraph.endpoint_objs:
             if endpoint.ip != '0.0.0.0':
+                print('ip |', endpoint.ip, '| uid |', endpoint.uid)
                 uids.append(endpoint.uid)
         return uids
    
@@ -129,25 +132,20 @@ class neuron:
         # probably want to port over joey's work on embedding based cosine similarity routing.
         # message --> torch.tensor([scores x num_uids])
         scores = self.gating_model( 
-            message 
+            message
         )
 
         # We query the topk best uids here using the inference topk as the limit.
-        # uids = scores.sort()[1][-topk:].tolist()
-        # uids = [ 1 ]
+        uids = scores.sort()[1][-topk:].tolist()
         
-        ### TODO: delete this
-        ### UID Selector
-        uids = self.uid_selector()
-        import pdb; pdb.set_trace()
-        completions = self.dendrite_pool( 
+        _completions = self.dendrite_pool( 
             prompt = prompt,
             message = message, 
             uids = uids 
-        ) 
+        )
 
-        # turn the completions into a one liner
-        # completions = [ completion[0] for completion in completions ]
+        completions = [completion for completion in _completions if completion is not None]
+        uids = [uid for completion, uid in zip(_completions, uids) if completion is not None]
 
         # We rank the completions based on the reward model.
         # TODO( carro ): this needs to be trained properly.
@@ -155,8 +153,12 @@ class neuron:
             completions 
         )
 
+        # import pdb; pdb.set_trace()
+
         # We backpropagate the rewards to the gating network.
         # TODO( jaons + joey ): ditto.
+
+
         self.gating_model.backward( 
             scores = scores[ uids ], 
             rewards = rewards 
@@ -191,7 +193,7 @@ class neuron:
             print( "------------------" )
 
         # We return the completion with the highest reward.
-        return completions[ rewards.argmax() ]
+        return completions[ rewards.argmax(dim=0) ]
     
     # User queries here.
     def inference( self, message ):
@@ -219,11 +221,12 @@ class neuron:
                 # B: 10 0 0 0 0 10 0 0 0 -- 20/8 = 3.5
                 # C:  0 0 10 10 10 0 0 0 -- 30/8 = 3.9
                 # D:  0 0 0 0 0 0 0 10 10 -- 20/8 = 3.5
-                gate_matrix = torch.zeros_like(weights)
-                gate_values = torch.nn.Softmax(dim=1)(topk.values)
-                self.gate_matrix = gate_matrix.scatter(dim=1, index=topk.indices, src=gate_values)
+                # gate_matrix = torch.zeros_like(weights)
+                # gate_values = torch.nn.Softmax(dim=1)(topk.values)
+                # self.gate_matrix = gate_matrix.scatter(dim=1, index=topk.indices, src=gate_values)
 
-                average_rewards = torch.zeros_like( self.metagraph.R )
+                # average_rewards = torch.zeros_like( self.metagraph.R )
+
                 from collections import defaultdict
                 scores_by_uid = defaultdict(list)
                 for message, uids, rewards, scores in self.history:

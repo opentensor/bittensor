@@ -52,6 +52,7 @@ class GatingModel( torch.nn.Module ):
         if num_uids is not None: config.gating.num_uids = num_uids
         self.config = config
         self.metagraph = metagraph
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.gating.model_name )
         self.model = AutoModel.from_config( AutoConfig.from_pretrained(self.config.gating.model_name) )
         self.linear = torch.nn.Linear( self.model.config.hidden_size, self.metagraph.n )
@@ -69,8 +70,8 @@ class GatingModel( torch.nn.Module ):
                 rewards (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     Rewards for each uids as output by the reward model.
         """   
-        normalized_scores = torch.nn.functional.softmax( scores, dim=0 )
-        nomralized_rewards = torch.nn.functional.softmax( rewards, dim=0 )
+        normalized_scores = torch.nn.functional.softmax( scores, dim=0 ).to( self.device )
+        nomralized_rewards = torch.nn.functional.softmax( rewards, dim=0 ).to( self.device )
         loss = torch.nn.functional.mse_loss( normalized_scores, nomralized_rewards )
         loss.backward()
         self.optimizer.step()
@@ -84,8 +85,8 @@ class GatingModel( torch.nn.Module ):
                 scores (:obj:`torch.FloatTensor` of shape :obj:`(network_size)`):
                     Scores for each uids as output by the gating model.
         """
-        inputs = self.tokenizer( message, return_tensors="pt" )
+        inputs = self.tokenizer( message, return_tensors="pt" ).to( self.device )
         hidden_states = self.model( **inputs ).last_hidden_state[0, -1, :]
-        return self.linear( hidden_states.to('cpu') )
+        return self.linear( hidden_states )
 
 
