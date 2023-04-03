@@ -34,7 +34,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
         for uid, endpoint in enumerate( self.metagraph.endpoint_objs ):
             module = bittensor.text_prompting( endpoint = endpoint, wallet = self.wallet )
             self.dendrites.append( module )
-            self.add_module( "dendrite-{}".format( uid ) , module )
+            # self.add_module( "dendrite-{}".format( uid ) , module )
 
     def forward( 
             self, 
@@ -56,7 +56,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
         # We optionally set the uids to all if uids is None.
         if uids is None: uids = range( len( self.dendrites ))
         if isinstance( uids, torch.Tensor ): uids = uids.tolist()
-        print ( 'calling all uids:', uids )
+        # print ( 'calling all uids:', uids )
 
         # We optionally set the prompt to the message if prompt is None.
         if prompt is not None: 
@@ -69,13 +69,14 @@ class TextPromptingDendritePool( torch.nn.Module ):
         # The following asyncio defintion queries a single endpoint with the message
         # prompt and returns the response.
         async def call_single_uid( uid: int ) -> str:
-            print ('calling uid:', uid)
-            response = await self.dendrites[ uid ].async_forward( 
+            # print ('calling uid:', uid)
+            module = bittensor.text_prompting( endpoint = self.metagraph.endpoint_objs[ uid ], wallet = self.wallet )
+            response = await module.async_forward( 
                 roles = roles, 
                 messages = messages, 
                 timeout = timeout 
             )
-            print ('response:', response.response)
+            # print ('response:', response.response)
             return response.response
         
         # The following asyncio definition gathers the responses
@@ -83,6 +84,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
         async def query():
             coroutines = [ call_single_uid( uid ) for uid in uids ]                
             all_responses = await asyncio.gather(*coroutines)
+            # print ('all responses:', all_responses)
             return all_responses
         
         # Return the message responses running the query in asyncio.

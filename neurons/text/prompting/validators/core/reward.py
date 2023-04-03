@@ -27,6 +27,7 @@ class RewardModel(nn.Module):
         self.config = self.model.config
         # `gpt-neo(x)` models use `hidden_size` attribute names instead of `n_embd``
         self.config.n_embd = self.config.hidden_size if hasattr(self.config, "hidden_size") else self.config.n_embd
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.transformer = self.model.transformer
         self.v_head = nn.Linear(self.config.n_embd, 1, bias=False)
         self.tokenizer = AutoTokenizer.from_pretrained('EleutherAI/gpt-j-6b')
@@ -37,7 +38,7 @@ class RewardModel(nn.Module):
         def reward_fn( samples ):
             if samples is None: return 0
             scores_list = []
-            batch_size = 2
+            batch_size = 1
             for i in range(0, len(samples), batch_size):
                 sub_samples = samples[i : i + batch_size]
                 sub_samples = [
@@ -45,7 +46,7 @@ class RewardModel(nn.Module):
                 ]
                 encodings_dict = self.tokenizer(
                     sub_samples,
-                    truncation=True,
+                    truncation=False,
                     max_length=550,
                     padding="max_length",
                     return_tensors="pt",
@@ -57,10 +58,16 @@ class RewardModel(nn.Module):
                 with torch.no_grad():
                     sub_scores = self.forward(input_ids=input_ids, attention_mask=attn_masks)
                 scores_list.append(sub_scores["chosen_end_scores"])
-            scores = torch.cat(scores_list, dim=0)
+            scores = torch.cat(scores_list, dim=0).mean().item()
             return scores
-        return torch.tensor( [ reward_fn( completion ) for completion in completions ], dtype = torch.float32 )
-
+        
+        with torch.no_grad():
+            rewards = [reward_fn([completion]) for completion in completions]
+            for completion, reward in zip(completions, rewards):
+                print(completion)
+                print(reward)
+            return torch.tensor(rewards, dtype=torch.float32)
+        
     def forward(
         self,
         input_ids=None,
