@@ -81,8 +81,8 @@ class GatingModel( torch.nn.Module ):
                 message (:obj:`str`): 
                     text message to be encoded.
             Returns:
-                output (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length, config.hidden_size)`):
-                    Sequence of hidden-states at the output of the last layer of the model.
+                scores (:obj:`torch.FloatTensor` of shape :obj:`(network_size)`):
+                    Scores for each uids as output by the gating model.
         """
         inputs = self.tokenizer( message, return_tensors="pt" )
         hidden_states = self.model( **inputs ).last_hidden_state[0, -1, :]

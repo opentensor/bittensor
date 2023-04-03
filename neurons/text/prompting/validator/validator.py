@@ -92,7 +92,7 @@ class neuron:
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
-        self.model = PromptingValidator(
+        self.prompting_model = PromptingValidator(
             config = self.config,
             model_name = self.config.nucleus.model_name,
             min_tokens = self.config.nucleus.min_tokens,
@@ -178,16 +178,22 @@ class neuron:
         # We backprop the reward signals to the miners.
         # TODO(joey/jason): We need to implement backward here
         # with corresponding PPO on miners.
-        # self.backward_query( 
-        #     message, 
-        #     rewards,
-        #     uids = scores.sort()[1][-topk:].tolist() 
-        # ) 
+        self.backward_query( 
+            message, 
+            rewards,
+            uids = scores.sort()[1][-topk:].tolist() 
+        ) 
 
         # We backpropagate the rewards to the gating network.
         self.gating_model.backward( 
             scores = scores, 
             rewards = rewards 
+        )
+
+        # Set weights.
+        self.subtensor.set_weights( 
+            uids = self.metagraph.uids, 
+            weights = self.rewards_to_weights( rewards )
         )
 
         # Logging.
@@ -200,17 +206,21 @@ class neuron:
 
         # We return the completion with the highest reward.
         return completions[ rewards.argmax() ]
+    
+    # User queries here.
+    def inference( self, message ):
+        """Inference"""
+        return self.forward( message, topk = self.config.neuron.inference_topk )
 
-
-    def train(self):
-        """ Training """
-        while True:
-            # TODO( robert ): Use prompting network here to generate inputs.
-            # message = self.prompting.forward()
-            message = input("User> ")
-            # Print the output to terminal.
-            print("Bot> ", self.forward( input("User> ") , topk = self.config.neuron.training_topk ) )
-
+    # def train(self):
+    #     """ Training """
+    #     while True:
+    #         # TODO( robert ): Use prompting network here to generate inputs.
+    #         message = self.prompting_model.forward()
+    #         completion = self.forward( 
+    #             message, 
+    #             topk = self.config.neuron.training_topk 
+    #         )
 
 
 if __name__ == '__main__':
