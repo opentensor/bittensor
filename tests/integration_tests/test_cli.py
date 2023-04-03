@@ -57,7 +57,7 @@ def setUpModule():
     set_diff, err = _subtensor_mock.sudo_set_difficulty( netuid = 1, difficulty = 0 )
     assert err == None
 
-    set_tx_limit, err = _subtensor_mock.sudo_set_tx_rate_limit( netuid = 1, tx_limit = 0 ) # No tx limit
+    set_tx_limit, err = _subtensor_mock.sudo_set_tx_rate_limit( netuid = 1, tx_rate_limit = 0 ) # No tx limit
     assert err == None
 
 def tearDownModule() -> None:
