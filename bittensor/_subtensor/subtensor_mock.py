@@ -266,6 +266,30 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
             else:
                 return False, response.error_message
             
+    def sudo_set_tx_rate_limit(self, netuid: int, tx_rate_limit: int) -> Tuple[bool, Optional[str]]:
+        r""" Sets the tx rate limit of the subnet in the mock chain using the sudo key.
+        """
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                    call_module='SubtensorModule',
+                    call_function='sudo_set_tx_rate_limit',
+                    call_params = {
+                        'netuid': netuid,
+                        'tx_rate_limit': tx_rate_limit
+                    }
+                )
+
+            wrapped_call = self.wrap_sudo(call)
+
+            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
+            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = True, wait_for_finalization = True )
+
+            response.process_events()
+            if response.is_success:
+                return True, None
+            else:
+                return False, response.error_message
+        
     def sudo_set_difficulty(self, netuid: int, difficulty: int) -> Tuple[bool, Optional[str]]:
         r""" Sets the difficulty of the mock chain using the sudo key.
         """
