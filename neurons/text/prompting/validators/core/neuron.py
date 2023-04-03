@@ -22,9 +22,9 @@ import argparse
 import bittensor as bt
 
 from typing import List, Optional
-from model_impl import PromptingValidator
-from reward_model import GPTRewardModel
-from gating_model import GatingModel
+from reward import RewardModel
+from gating import GatingModel
+from prompting import PromptingModel
 
 prompt = '''
 You are Chattensor.
@@ -52,7 +52,7 @@ class neuron:
     def check_config( cls, config: 'bt.Config' ):
         r""" Checks/validates the config namespace object.
         """
-        PromptingValidator.check_config( config )
+        PromptingModel.check_config( config )
         bt.logging.check_config( config )
         bt.wallet.check_config( config )
         bt.subtensor.check_config( config )
@@ -75,14 +75,13 @@ class neuron:
     def config ( cls ):
         parser = argparse.ArgumentParser()    
         cls.add_args( parser )
-        PromptingValidator.add_args( parser )    
+        PromptingModel.add_args( parser )    
         bt.wallet.add_args( parser )
         bt.subtensor.add_args( parser )
         bt.metagraph.add_args( parser )
         bt.logging.add_args( parser )
         return bt.config( parser )
     
-
     def __init__( self, config=None ):
         self.config = config if config is not None else neuron.config()
         self.subtensor = bt.subtensor ( config = self.config )
@@ -92,22 +91,12 @@ class neuron:
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
-        self.prompting_model = PromptingValidator(
-            config = self.config,
-            model_name = self.config.nucleus.model_name,
-            min_tokens = self.config.nucleus.min_tokens,
-            max_tokens = self.config.nucleus.max_tokens,
-            temperature = self.config.nucleus.temperature,
-            top_p = self.config.nucleus.top_p,
-            logprobs = self.config.nucleus.logprobs,
-            repetition_penalty = self.config.nucleus.repetition_penalty
-        )
-        self.reward_model = GPTRewardModel( self.config.neuron.reward_model_name )
+        self.prompting_model = PromptingModel( config = self.config )
+        self.reward_model = RewardModel( self.config.neuron.reward_model_name )
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config )
         self.reward_model.to(self.device)
         self.modules = [ bt.text_prompting( endpoint = endpoint, wallet = self.wallet ) for endpoint in self.metagraph.endpoint_objs ]
-
-
+        
     def forward_query( 
             self, 
             message: str, 
@@ -178,11 +167,11 @@ class neuron:
         # We backprop the reward signals to the miners.
         # TODO(joey/jason): We need to implement backward here
         # with corresponding PPO on miners.
-        self.backward_query( 
-            message, 
-            rewards,
-            uids = scores.sort()[1][-topk:].tolist() 
-        ) 
+        # self.backward_query( 
+        #     message, 
+        #     rewards,
+        #     uids = scores.sort()[1][-topk:].tolist() 
+        # ) 
 
         # We backpropagate the rewards to the gating network.
         self.gating_model.backward( 
@@ -191,10 +180,11 @@ class neuron:
         )
 
         # Set weights.
-        self.subtensor.set_weights( 
-            uids = self.metagraph.uids, 
-            weights = self.rewards_to_weights( rewards )
-        )
+        # TODO(taco): conversion between history of responses to weights.
+        # self.subtensor.set_weights( 
+        #     uids = self.metagraph.uids, 
+        #     weights = self.rewards_to_weights( rewards )
+        # )
 
         # Logging.
         if self.config.logging.debug:
@@ -212,15 +202,13 @@ class neuron:
         """Inference"""
         return self.forward( message, topk = self.config.neuron.inference_topk )
 
-    # def train(self):
-    #     """ Training """
-    #     while True:
-    #         # TODO( robert ): Use prompting network here to generate inputs.
-    #         message = self.prompting_model.forward()
-    #         completion = self.forward( 
-    #             message, 
-    #             topk = self.config.neuron.training_topk 
-    #         )
+    def train(self):
+        """ Training """
+        while True:
+            # TODO( robert ): Use prompting network here to generate inputs.
+            # the prompting network should generate questions which cover our data distribution.
+            message = self.prompting_model.forward( "here is a generated question about" )[0] 
+            self.forward( message, topk = self.config.neuron.training_topk )
 
 
 if __name__ == '__main__':
