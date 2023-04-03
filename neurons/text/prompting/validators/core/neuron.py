@@ -110,7 +110,6 @@ class neuron:
                 uids.append(endpoint.uid)
         return uids
    
-   
     def forward( 
             self, 
             message: str,
@@ -135,12 +134,20 @@ class neuron:
 
         # We query the topk best uids here using the inference topk as the limit.
         # uids = scores.sort()[1][-topk:].tolist()
+        # uids = [ 1 ]
+        
+        ### TODO: delete this
+        ### UID Selector
         uids = self.uid_selector()
+        import pdb; pdb.set_trace()
         completions = self.dendrite_pool( 
             prompt = prompt,
             message = message, 
             uids = uids 
         ) 
+
+        # turn the completions into a one liner
+        # completions = [ completion[0] for completion in completions ]
 
         # We rank the completions based on the reward model.
         # TODO( carro ): this needs to be trained properly.
