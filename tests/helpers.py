@@ -137,6 +137,9 @@ class MockStatus:
     def start(self):
         pass
 
+    def stop(self):
+        pass
+
 class MockConsole:
     """
     Mocks the console object for status and print.
