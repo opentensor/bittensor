@@ -24,9 +24,10 @@ class TextPromptingDendritePool( torch.nn.Module ):
 
     def __init__(
             self, 
-            metagraph: bittensor.metagraph.Metagraph, 
-            wallet: bittensor.wallet.Wallet
+            metagraph: 'bittensor.metagraph', 
+            wallet: 'bittensor.wallet'
         ):
+        super(TextPromptingDendritePool, self).__init__()
         self.metagraph = metagraph
         self.wallet = wallet
         self.dendrites = []
