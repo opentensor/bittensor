@@ -15,10 +15,71 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import json
+import torch
 import asyncio
 import bittensor
-
 from typing import Callable, List, Dict
+
+class TextPromptingDendritePool( torch.nn.Module ):
+
+    def __init__(
+            self, 
+            metagraph: bittensor.metagraph.Metagraph, 
+            wallet: bittensor.wallet.Wallet
+        ):
+        self.metagraph = metagraph
+        self.wallet = wallet
+        self.dendrites = []
+        for uid, endpoint in enumerate( self.metagraph.endpoint_objs ):
+            module = bittensor.text_prompting( endpoint = endpoint, wallet = self.wallet )
+            self.dendrites.append( module )
+            self.add_module( "dendrite-{}".format( uid ) , module )
+
+    def forward( 
+            self, 
+            message: str, 
+            prompt: str = None,
+            uids: List[int] = None, 
+            timeout: float = 12 
+        ) -> List[str]:
+        r""" Queries uids on the network for a response to the passed message.
+        Args:
+            message (str): The message to query the network with.
+            uids (List[int]): The uids to query. If None, queries all uids.
+            timeout (float): The timeout for the query.
+        Returns:
+            responses (List[str]): The responses from the network.
+        """
+        # We optionally set the uids to all if uids is None.
+        if uids is None: uids = len( self.dendrites )
+
+        # We optionally set the prompt to the message if prompt is None.
+        if prompt is not None: 
+            roles = ['system', 'user']
+            messages = [ prompt, message ]
+        else:
+            roles = ['user']
+            messages = [ message ]
+
+        # The following asyncio defintion queries a single endpoint with the message
+        # prompt and returns the response.
+        async def call_single_uid( uid: int ) -> str:
+            response = await self.dendrites[ uid ].async_forward( 
+                roles = roles, 
+                messages = messages, 
+                timeout = timeout 
+            )
+            return response.response
+        
+        # The following asyncio definition gathers the responses
+        # from multiple coroutines for each uid.
+        async def query():
+            coroutines = [ call_single_uid( uid ) for uid in uids ]                
+            all_responses = await asyncio.gather(*coroutines)
+            return all_responses
+        
+        # Return the message responses running the query in asyncio.
+        return asyncio.run(query())
 
 class TextPromptingDendrite(bittensor.Dendrite):
     """Dendrite for the text_prompting synapse."""
