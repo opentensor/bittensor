@@ -24,7 +24,7 @@ class GatingModel( torch.nn.Module ):
 
     @classmethod
     def add_args( cls, parser ):
-        parser.add_argument('--gating.model_name', type=str, default='EleutherAI/gpt-neo-125M', help='Name of the model to use as the encoding layer for the gating model')
+        parser.add_argument('--gating.model_name', type=str, default='EleutherAI/gpt-neo-125m', help='Name of the model to use as the encoding layer for the gating model')
         parser.add_argument('--gating.num_uids', type=int, default=4096, help='Number of uids to gate on')
         parser.add_argument('--gating.learning_rate', type=float, default=0.01, help='Learning rate for the gating model')
         parser.add_argument('--gating.momentum', type=float, default=0.9, help='Momentum for the gating model')

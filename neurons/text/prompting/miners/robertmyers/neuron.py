@@ -49,7 +49,6 @@ def check_config(config: 'bittensor.Config'):
 # Create run config.
 def get_config():
     parser = argparse.ArgumentParser()
-
     parser.add_argument('--netuid', type=int, help='Subnet netuid', default=21)
     parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
     parser.add_argument('--neuron.name', type=str,
