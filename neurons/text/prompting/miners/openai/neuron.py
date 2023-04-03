@@ -29,7 +29,6 @@ import json
 from typing import List
 
 
-
 # Check run config.
 def check_config(config: 'bittensor.Config'):
     bittensor.logging.check_config(config)
@@ -61,18 +60,18 @@ def get_config():
     parser.add_argument('--neuron.stream', action='store_true', default=False, help="Whether to stream back partial progress.")
     parser.add_argument('--neuron.logprobs', type=int, default=None, help="Include the log probabilities on the logprobs most likely tokens.")
     parser.add_argument('--neuron.echo', action='store_true', default=False, help="Echo back the prompt in addition to the completion.")
-    parser.add_argument('--neuron.stop', type=list[str], help='Up to 4 sequences where the API will stop generating further tokens.', default=['user: ', 'bot: ', 'system: '])
+    parser.add_argument('--neuron.stop', type=List[str], help='Up to 4 sequences where the API will stop generating further tokens.', default=['user: ', 'bot: ', 'system: '])
     parser.add_argument('--neuron.presence_penalty', type=float, default=0, help="Penalty for tokens based on their presence in the text so far.")
     parser.add_argument('--neuron.frequency_penalty', type=float, default=0, help="Penalty for tokens based on their frequency in the text so far.")
     parser.add_argument('--neuron.best_of', type=int, default=1, help="Generates best_of completions server-side and returns the 'best' one.")
-    parser.add_argument('--neuron.logit_bias', type=json.loads, default=None, help="Modify the likelihood of specified tokens appearing in the completion.")
+    parser.add_argument('--neuron.logit_bias', type=int, default=0, help="Modify the likelihood of specified tokens appearing in the completion.")
     parser.add_argument('--neuron.user', type=str, default=None, help="A unique identifier representing your end-user.")
 
     # Miner arguements
     parser.add_argument('--netuid', type=int, help='Subnet netuid', default=21)
     parser.add_argument('--neuron.name', type=str,
                         help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
-                        default='core_server')
+                        default='openai_prompting_miner')
     parser.add_argument('--neuron.blocks_per_epoch', type=str, help='Blocks until the miner sets weights on chain',
                         default=100)
     parser.add_argument('--neuron.no_set_weights', action='store_true', help='If True, the model does not set weights.',
