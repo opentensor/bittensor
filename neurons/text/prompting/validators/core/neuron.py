@@ -95,6 +95,7 @@ class neuron:
         self.reward_model = RewardModel( self.config.neuron.reward_model_name ).to(self.device)
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to(self.device)
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
+        self.history = []
 
     def forward( 
             self, 
@@ -124,29 +125,22 @@ class neuron:
             completions 
         )
 
-        # We backprop the reward signals to the miners.
-        # TODO(joey/jason): We need to implement backward here
-        # with corresponding PPO on miners.
-        # self.backward_query( 
-        #     message, 
-        #     rewards,
-        #     uids = scores.sort()[1][-topk:].tolist() 
-        # ) 
-
         # We backpropagate the rewards to the gating network.
         self.gating_model.backward( 
             scores = scores, 
             rewards = rewards 
         )
 
-        # Set weights.
-        # TODO(taco): conversion between history of responses to weights.
-        # self.subtensor.set_weights( 
-        #     uids = self.metagraph.uids, 
-        #     weights = self.rewards_to_weights( rewards )
-        # )
-
-        # Logging.
+        # Save history for later computing of weights.
+        # history [
+        #     message, rewards # message = { 'role': 'user', 'text': 'hello world'}, rewards = [ 0.1, 0.2, 0.3, 0.4 ... x number of miners ]
+        #     message, rewards
+        #     ...
+        #     ...
+        # ] ---> weights
+        self.history.append( 
+            ( message, rewards )
+        )
         if self.config.logging.debug:
             for completion, reward, score in zip( completions, rewards, scores ):
                 print( "Completion: ", completion )
@@ -164,13 +158,20 @@ class neuron:
 
     def train(self):
         """ Training """
+        last_epoch = 0
         while True:
             # TODO( robert ): Use prompting network here to generate inputs.
             # the prompting network should generate questions which cover our data distribution.
             message = self.prompting_model.forward( "here is a generated question about" )[0] 
             self.forward( message, topk = self.config.neuron.training_topk )
-
-
+    
+            if self.subtenosr:
+                weights = self.hippocampus( self.history )
+                self.subtensor.set_weights(
+                    uids = self.metagraph.uids,
+                    weights = weights
+                )
+            
 if __name__ == '__main__':
     neuron().train()
 
