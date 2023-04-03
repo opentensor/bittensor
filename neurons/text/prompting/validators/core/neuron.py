@@ -95,6 +95,21 @@ class neuron:
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
         self.history = []
 
+    def uid_selector(
+            self
+    ):
+        """
+            Returns the uids of metagraph endpoint objs that are not equal to 0.0.0.0
+
+            Returns:
+                uids (list): The list of uids.
+        """
+        uids = []
+        for endpoint in self.metagraph.endpoint_objs:
+            if endpoint.ip != '0.0.0.0':
+                uids.append(endpoint.uid)
+        return uids
+   
    
     def forward( 
             self, 
@@ -120,9 +135,10 @@ class neuron:
 
         # We query the topk best uids here using the inference topk as the limit.
         # uids = scores.sort()[1][-topk:].tolist()
-        uids = [ 1 ]
+        uids = self.uid_selector()
         completions = self.dendrite_pool( 
-            message, 
+            prompt = prompt,
+            message = message, 
             uids = uids 
         ) 
 
@@ -157,7 +173,7 @@ class neuron:
         #     ...
         # ] ---> weights
         self.history.append( 
-            ( message, uids, rewards )
+            ( message, uids, rewards, scores[ uids ] )
         )
         #if self.config.logging.debug:
         for completion, reward, score in zip( completions, rewards, scores[ uids ] ):
@@ -196,7 +212,27 @@ class neuron:
                 # B: 10 0 0 0 0 10 0 0 0 -- 20/8 = 3.5
                 # C:  0 0 10 10 10 0 0 0 -- 30/8 = 3.9
                 # D:  0 0 0 0 0 0 0 10 10 -- 20/8 = 3.5
-                weights = torch.nn.functional.softmax( torch.cat( [r for m, u, r in self.history] ).sum( 0 ) )
+                gate_matrix = torch.zeros_like(weights)
+                gate_values = torch.nn.Softmax(dim=1)(topk.values)
+                self.gate_matrix = gate_matrix.scatter(dim=1, index=topk.indices, src=gate_values)
+
+                average_rewards = torch.zeros_like( self.metagraph.R )
+                from collections import defaultdict
+                scores_by_uid = defaultdict(list)
+                for message, uids, rewards, scores in self.history:
+                    for uid, reward in zip(uids, rewards):
+                        scores_by_uid[uid].append(reward)
+                        
+                for k, v in scores_by_uid.values():
+                    scores_by_uid[k] = sum(v) / len(v)
+                weights = torch.zeros_like( self.metagraph.uids, dtype = torch.float32 )
+                uids = sorted(list(scores_by_uid.keys()))
+                rewards = [scores_by_uid[k] for k in uids]
+                
+                weights = weights.scatter(
+                    index = torch.tensor( uids, dtype=torch.long ), 
+                    values = torch.tensor( rewards, dtype = torch.float32 )
+                )                    
                 self.subtensor.set_weights(
                     uids = self.metagraph.uids,
                     weights = weights
