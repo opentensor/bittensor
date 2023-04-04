@@ -148,6 +148,7 @@ class DelegatesDetails:
 
 def _get_delegates_details_from_github(requests_get, url: str) -> Dict[str, DelegatesDetails]:
     response = requests_get(url)
+    
 
     if response.status_code == 200:
         all_delegates: Dict[str, Any] = response.json()
@@ -157,8 +158,8 @@ def _get_delegates_details_from_github(requests_get, url: str) -> Dict[str, Dele
         return all_delegates_details
     else:
         return {}
-
-def get_delegates_details(url: str) -> Optional[Dict[str, DelegatesDetails]]:
+    
+def get_delegates_details(url: str) -> Optional[Dict[str, DelegatesDetails]]: 
     try:
         return _get_delegates_details_from_github(requests.get, url)
     except Exception:
