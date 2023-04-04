@@ -30,11 +30,6 @@ class TextPromptingDendritePool( torch.nn.Module ):
         super(TextPromptingDendritePool, self).__init__()
         self.metagraph = metagraph
         self.wallet = wallet
-        self.dendrites = []
-        for uid, endpoint in enumerate( self.metagraph.endpoint_objs ):
-            module = bittensor.text_prompting( endpoint = endpoint, wallet = self.wallet )
-            self.dendrites.append( module )
-            # self.add_module( "dendrite-{}".format( uid ) , module )
 
     def forward( 
             self, 
