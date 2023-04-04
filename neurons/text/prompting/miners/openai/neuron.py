@@ -68,7 +68,7 @@ def get_config():
     parser.add_argument('--neuron.user', type=str, default=None, help="A unique identifier representing your end-user.")
 
     # Miner arguements
-    parser.add_argument('--netuid', type=int, help='Subnet netuid', default=21)
+    parser.add_argument('--netuid', type=int, help='Subnet netuid', default=41)
     parser.add_argument('--neuron.name', type=str,
                         help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
                         default='openai_prompting_miner')
