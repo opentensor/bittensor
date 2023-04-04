@@ -31,9 +31,12 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from nacl import pwhash, secret
 from password_strength import PasswordPolicy
 from substrateinterface.utils.ss58 import ss58_encode
 from termcolor import colored
+
+NACL_SALT = b'\x13q\x83\xdf\xf1Z\t\xbc\x9c\x90\xb5Q\x879\xe9\xb1'
 
 class KeyFileError(Exception):
     """ Error thrown when the keyfile is corrupt, non-writable, nno-readable or the password used to decrypt is invalid.
@@ -143,6 +146,17 @@ def ask_password_to_encrypt() -> str:
         valid = validate_password(password)
     return password
 
+def keyfile_data_is_encrypted_nacl( keyfile_data:bytes ) -> bool:
+    """ Returns true if the keyfile data is ansible encrypted.
+        Args:
+            keyfile_data ( bytes, required ):
+                Bytes to validate
+        Returns:
+            is_ansible (bool):
+                True if data is ansible encrypted.
+    """
+    return keyfile_data[:len('$NACL')] == b'$NACL'
+
 def keyfile_data_is_encrypted_ansible( keyfile_data:bytes ) -> bool:
     """ Returns true if the keyfile data is ansible encrypted.
         Args:
@@ -174,7 +188,7 @@ def keyfile_data_is_encrypted( keyfile_data:bytes ) -> bool:
             is_encrypted (bool):
                 True if data is encrypted.
     """
-    return keyfile_data_is_encrypted_ansible( keyfile_data ) or keyfile_data_is_encrypted_legacy( keyfile_data )
+    return keyfile_data_is_encrypted_nacl(keyfile_data) or keyfile_data_is_encrypted_ansible( keyfile_data ) or keyfile_data_is_encrypted_legacy( keyfile_data )
 
 def encrypt_keyfile_data ( keyfile_data:bytes, password: str = None ) -> bytes:
     """ Encrypts passed keyfile data using ansible vault.
@@ -188,11 +202,12 @@ def encrypt_keyfile_data ( keyfile_data:bytes, password: str = None ) -> bytes:
                 Ansible encrypted data.
     """
     password = ask_password_to_encrypt() if password == None else password
-    console = bittensor.__console__;             
-    with console.status(":locked_with_key: Encrypting key..."):
-        vault = Vault( password )
-    return vault.vault.encrypt ( keyfile_data )
-
+    kdf = pwhash.argon2i.kdf
+    password = b"" if password == None else bytes(password, 'utf-8')
+    key = kdf(secret.SecretBox.KEY_SIZE, password, NACL_SALT, opslimit=pwhash.argon2i.OPSLIMIT_SENSITIVE, memlimit=pwhash.argon2i.MEMLIMIT_SENSITIVE)
+    box = secret.SecretBox(key)
+    encrypted = box.encrypt(keyfile_data)
+    return b"$NACL" + encrypted
 
 def get_coldkey_password_from_environment(coldkey_name: str) -> Optional[str]:
 
@@ -227,8 +242,15 @@ def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name
         password = getpass.getpass("Enter password to unlock key: ") if password is None else password
         console = bittensor.__console__;             
         with console.status(":key: Decrypting key..."):
+            if keyfile_data_is_encrypted_nacl( keyfile_data ):
+                password = b"" if password == None else bytes(password, 'utf-8')
+                kdf = pwhash.argon2i.kdf
+                key = kdf(secret.SecretBox.KEY_SIZE, password, NACL_SALT, opslimit=pwhash.argon2i.OPSLIMIT_SENSITIVE, memlimit=pwhash.argon2i.MEMLIMIT_SENSITIVE)
+                box = secret.SecretBox(key)
+                decrypted_keyfile_data = box.decrypt(keyfile_data[len('$NACL'):])
+                
             # Ansible decrypt.
-            if keyfile_data_is_encrypted_ansible( keyfile_data ):
+            elif keyfile_data_is_encrypted_ansible( keyfile_data ):
                 vault = Vault( password )
                 try:
                     decrypted_keyfile_data = vault.load( keyfile_data )
