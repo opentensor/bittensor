@@ -65,7 +65,7 @@ class neuron:
     @classmethod
     def add_args( cls, parser ):
         # Netuid Arg
-        parser.add_argument('--netuid', type=int , help = 'Prompting network netuid', default = 21 )
+        parser.add_argument('--netuid', type=int , help = 'Prompting network netuid', default = 41 )
         parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_prompting_validator')
         parser.add_argument('--neuron.reward_model_name', type=str, help='GPTRewardModel name', default='Dahoas/gpt2-rm-static')
         parser.add_argument('--neuron.inference_topk', type=str, help='At inference time, how many miners to we query and return the top rewarded.', default = 10 )
