@@ -27,13 +27,17 @@ from transformers import pipeline
 from typing import List, Optional
 
 # Default prompt used to generate synthetic questions from the network for validation.
+default_prompt = '''You are a chat assistant who answers questions.'''
+
+# Default prompt used to generate synthetic questions from the network for validation.
 default_question_prompt = ''' Ask me a random question or suggest a random task that would involve answering with detail and naunce'''
 
-# Default prompt used to generate evaluations of responses from the network.
-default_evaluation_prompt = '''Evaluate the response below for attention to detail and nuance.'''
-
 # Default base prompt injected before every query into the network.
-default_question_prompt = ''' Answer questions with attention to detail and nuance.'''
+default_completion_prompt = ''' Answer the following question with attention to detail and nuance, question: {}'''
+
+# Default prompt used to generate evaluations of responses from the network.
+default_evaluation_prompt = '''Evaluate the question response for attention to detail and nuance, question: {} response: {}'''
+
 
 class neuron:
     @classmethod
@@ -53,7 +57,7 @@ class neuron:
     def add_args( cls, parser ):
 
         # Network
-        parser.add_argument('--netuid', type=int , help = 'Prompting network netuid', default = 21 )
+        parser.add_argument('--netuid', type=int , help = 'Prompting network netuid', default = 41 )
 
         # Prompting.
         parser.add_argument('--completion_prompt', type=str , help = 'Prompt injected before a question is completed by miners on the network', default = default_completion_prompt )
@@ -85,34 +89,53 @@ class neuron:
         self.wallet = bt.wallet ( config = self.config )
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
         self.wallet.create_if_non_existent()
-        self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
-        self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
+        # self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
+        # self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
-        sentiment_pipeline = pipeline("sentiment-analysis")
+        self.sentiment = pipeline("sentiment-analysis")
         self.weights = torch.tensor([ 0 for _ in self.metagraph.uids.tolist() ], dtype = torch.float32 )
 
-    def full(self):
+    def train(self):
 
         alpha = 0.01
         last_epoch_block = self.subtensor.block
         all_serving_uids = [ uid for uid, ep in enumerate( self.metagraph.endpoint_objs ) if ep.is_serving ]
-
+        print ( 'all_serving_uids', all_serving_uids, '\n' )
         while True:
             # Generate question.
+            print ("\nQuestion ---------------")
             question_miner_uid = random.choice( all_serving_uids )
-            question = self.dendrite_pool( prompt = self.config.question_prompt, message = "", uids = [ question_miner_uid ] )[ 0 ]
+            print ('question_miner_uid', question_miner_uid)
+            question_prompt = self.config.question_prompt
+            print ('question_prompt:\n\t{}'.format( question_prompt ))
+            question_response = self.dendrite_pool( prompt = default_prompt, message = question_prompt, uids = [ question_miner_uid ] )[ 0 ]
+            print ('question_response:\n\t{}'.format( question_response ) )
 
-            # Generate response.
+            # Generate completion.
+            print ("\nCompletion ---------------")
             completion_miner_uid = random.choice( all_serving_uids )
-            completion = self.dendrite_pool( prompt = self.config.completion_prompt, message = question, uids = [ completion_miner_uid ] )[ 0 ]
+            print ('completion_miner_uid', completion_miner_uid)
+            completion_prompt = self.config.completion_prompt.format( question_response )
+            print ('completion_prompt:\n\t{}'.format( completion_prompt ))
+            completion_response = self.dendrite_pool( prompt = default_prompt, message = completion_prompt, uids = [ completion_miner_uid ] )[ 0 ]
+            print ('completion_response:\n\t{}'.format( completion_response ))
 
-            # Generate reward
+            # Generate evaluation
+            print ("\nEvaluation ---------------")
             evaluation_miner_uid = random.choice( all_serving_uids )
-            evaluation = self.dendrite_pool( prompt = self.config.evaluation_prompt, message = completion, uids = [ evaluation_miner_uid ] )[ 0 ]
+            print ('evaluation_miner_uid', evaluation_miner_uid)
+            evaluation_prompt = self.config.evaluation_prompt.format( question_response, completion_response )
+            print ('evaluation_prompt:\n\t{}'.format( evaluation_prompt ))
+            evaluation_response = self.dendrite_pool( prompt = default_prompt, message = evaluation_prompt, uids = [ evaluation_miner_uid ] )[ 0 ]
+            print ('evaluation_response:\n\t{}'.format( evaluation_response ) )
 
             # Calculate reward
-            sentiment = sentiment_pipeline( evaluation )[0]['score']
-            self.weights[ random_completion_uid ] = alpha * self.weights[ random_completion_uid ] + ( 1 - alpha ) * sentiment
+            sentiment = self.sentiment( evaluation_response )[0]['score']
+            print ('sentiment:\n', sentiment)
+
+            # Update weights.
+            self.weights[ completion_miner_uid ] = alpha * self.weights[ completion_miner_uid ] + ( 1 - alpha ) * sentiment
+            print ('weight', self.weights[ completion_miner_uid ], '\n')
 
             # Set weights.
             if self.subtensor.block - last_epoch_block > self.subtensor.validator_epoch_length( self.config.netuid ) :
