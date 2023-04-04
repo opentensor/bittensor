@@ -23,7 +23,7 @@ import getpass
 import bittensor
 from typing import Optional
 from pathlib import Path
-
+from rich.prompt import Confirm
 from ansible_vault import Vault
 from ansible.parsing.vault import AnsibleVaultError
 from cryptography.exceptions import InvalidSignature, InvalidKey
@@ -242,6 +242,8 @@ def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name
         password = getpass.getpass("Enter password to unlock key: ") if password is None else password
         console = bittensor.__console__;             
         with console.status(":key: Decrypting key..."):
+            
+            # NaCl SecretBox decrypt.
             if keyfile_data_is_encrypted_nacl( keyfile_data ):
                 password = b"" if password == None else bytes(password, 'utf-8')
                 kdf = pwhash.argon2i.kdf
@@ -267,6 +269,7 @@ def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name
             else: 
                 raise KeyFileError( "Keyfile data: {} is corrupt".format( keyfile_data ))
 
+    
     except (InvalidSignature, InvalidKey, InvalidToken):
         raise KeyFileError('Invalid password')
 
@@ -368,8 +371,16 @@ class Keyfile( object ):
         """
         keyfile_data = self._read_keyfile_data_from_file()
         if keyfile_data_is_encrypted( keyfile_data ):
-            keyfile_data = decrypt_keyfile_data(keyfile_data, password, coldkey_name=self.name)
-        return deserialize_keypair_from_keyfile_data( keyfile_data )
+            decrypted_keyfile_data = decrypt_keyfile_data(keyfile_data, password, coldkey_name=self.name)
+
+            if not keyfile_data_is_encrypted_nacl( keyfile_data ):
+                bittensor.__console__.print(":exclamation_mark::exclamation_mark: You may update the keyfile to improve the security of storing your keys. It would require setting up a new password while the keys stay the same.")
+                if Confirm.ask("Update keyfile?"):
+                    self.update_encryption(decrypted_keyfile_data)
+        else:
+            decrypted_keyfile_data = keyfile_data
+
+        return deserialize_keypair_from_keyfile_data( decrypted_keyfile_data )
 
     def make_dirs( self ):
         """ Makes directories for path.
@@ -426,6 +437,27 @@ class Keyfile( object ):
         choice = input("File {} already exists. Overwrite ? (y/N) ".format( self.path ))
         return choice == 'y'
 
+    def update_encryption(self, decrypted_keyfile_data):
+        """ Encrypts file under path.
+            Args:
+                password: (str, optional):
+                    Optional password for encryption. Otherwise asks for user input.
+            Raises:
+                KeyFileError:
+                    Raised if the file does not exists, is not readable, writable.
+        """
+        if not self.exists_on_device():
+            raise KeyFileError( "Keyfile at: {} is not a file".format( self.path ))
+        if not self.is_readable():
+            raise KeyFileError( "Keyfile at: {} is not readable".format( self.path ))
+        if not self.is_writable():
+            raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) ) 
+        
+        encrypted_keyfile_data = encrypt_keyfile_data( decrypted_keyfile_data )
+        self._write_keyfile_data_to_file( encrypted_keyfile_data, overwrite = True )
+        bittensor.__console__.print(":white_heavy_check_mark: [green]Successfully updated keyfile.[/green]")
+
+
     def encrypt( self, password: str = None):
         """ Encrypts file under path.
             Args:
@@ -441,11 +473,13 @@ class Keyfile( object ):
             raise KeyFileError( "Keyfile at: {} is not readable".format( self.path ))
         if not self.is_writable():
             raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) ) 
+        
         keyfile_data = self._read_keyfile_data_from_file()
         if not keyfile_data_is_encrypted( keyfile_data ):
             as_keypair = deserialize_keypair_from_keyfile_data( keyfile_data )
             keyfile_data = serialized_keypair_to_keyfile_data( as_keypair )
             keyfile_data = encrypt_keyfile_data( keyfile_data, password )
+        
         self._write_keyfile_data_to_file( keyfile_data, overwrite = True )
 
     def decrypt( self, password: str = None):
