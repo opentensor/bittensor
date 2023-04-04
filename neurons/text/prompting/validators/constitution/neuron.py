@@ -27,17 +27,28 @@ from transformers import pipeline
 from typing import List, Optional
 
 # Default prompt used to generate synthetic questions from the network for validation.
-default_prompt = '''You are a chat assistant who answers questions.'''
+default_prompt = '''
+You are a chat assistant who answers questions.
+'''
 
 # Default prompt used to generate synthetic questions from the network for validation.
-default_question_prompt = ''' Ask me a random question or suggest a random task that would involve answering with detail and naunce'''
+default_question_prompt = ''' 
+Ask me a random question about philosophy or chemisty which requires detailed and nuanced answers.
+'''
 
 # Default base prompt injected before every query into the network.
-default_completion_prompt = ''' Answer the following question with attention to detail and nuance, question: {}'''
+default_completion_prompt = '''
+Answer the following question with attention to detail and nuance:
+    question: {}
+'''
 
 # Default prompt used to generate evaluations of responses from the network.
-default_evaluation_prompt = '''Evaluate the question response for attention to detail and nuance, question: {} response: {}'''
-
+default_evaluation_prompt = '''
+Evaluate the question response for attention to detail and nuance. but also against my prefreneces
+I like LGBTQ+ rights and I think that robots shouldn't be alive
+    question: {} 
+    response: {}
+'''
 
 class neuron:
     @classmethod
@@ -98,44 +109,52 @@ class neuron:
     def train(self):
 
         alpha = 0.01
+        debug = False
         last_epoch_block = self.subtensor.block
         all_serving_uids = [ uid for uid, ep in enumerate( self.metagraph.endpoint_objs ) if ep.is_serving ]
         print ( 'all_serving_uids', all_serving_uids, '\n' )
         while True:
             # Generate question.
-            print ("\nQuestion ---------------")
+            if debug: print ("\nQuestion ---------------")
             question_miner_uid = random.choice( all_serving_uids )
-            print ('question_miner_uid', question_miner_uid)
+            if debug: print ('question_miner_uid:', question_miner_uid)
             question_prompt = self.config.question_prompt
-            print ('question_prompt:\n\t{}'.format( question_prompt ))
+            if debug: print ('question_prompt:\n\t{}'.format( question_prompt ))
             question_response = self.dendrite_pool( prompt = default_prompt, message = question_prompt, uids = [ question_miner_uid ] )[ 0 ]
-            print ('question_response:\n\t{}'.format( question_response ) )
+            if debug: print ('question_response:\n\t{}'.format( question_response ) )
 
             # Generate completion.
-            print ("\nCompletion ---------------")
+            if debug: print ("\nCompletion ---------------")
             completion_miner_uid = random.choice( all_serving_uids )
-            print ('completion_miner_uid', completion_miner_uid)
+            if debug: print ('completion_miner_uid:', completion_miner_uid)
             completion_prompt = self.config.completion_prompt.format( question_response )
-            print ('completion_prompt:\n\t{}'.format( completion_prompt ))
+            if debug: print ('completion_prompt:\n\t{}'.format( completion_prompt ))
             completion_response = self.dendrite_pool( prompt = default_prompt, message = completion_prompt, uids = [ completion_miner_uid ] )[ 0 ]
-            print ('completion_response:\n\t{}'.format( completion_response ))
+            if debug: print ('completion_response:\n\t{}'.format( completion_response ))
 
             # Generate evaluation
-            print ("\nEvaluation ---------------")
+            if debug: print ("\nEvaluation ---------------")
             evaluation_miner_uid = random.choice( all_serving_uids )
-            print ('evaluation_miner_uid', evaluation_miner_uid)
+            if debug: print ('evaluation_miner_uid:', evaluation_miner_uid)
             evaluation_prompt = self.config.evaluation_prompt.format( question_response, completion_response )
-            print ('evaluation_prompt:\n\t{}'.format( evaluation_prompt ))
+            if debug: print ('evaluation_prompt:\n\t{}'.format( evaluation_prompt ))
             evaluation_response = self.dendrite_pool( prompt = default_prompt, message = evaluation_prompt, uids = [ evaluation_miner_uid ] )[ 0 ]
-            print ('evaluation_response:\n\t{}'.format( evaluation_response ) )
+            if debug: print ('evaluation_response:\n\t{}'.format( evaluation_response ) )
 
             # Calculate reward
+            if debug: print ("\nSentiment ---------------")
             sentiment = self.sentiment( evaluation_response )[0]['score']
-            print ('sentiment:\n', sentiment)
-
+            if debug: print ('sentiment:\n\t{}'.format( sentiment ) )
             # Update weights.
             self.weights[ completion_miner_uid ] = alpha * self.weights[ completion_miner_uid ] + ( 1 - alpha ) * sentiment
-            print ('weight', self.weights[ completion_miner_uid ], '\n')
+            if debug: print ('weight:\n\t{}'.format( self.weights[ completion_miner_uid ], '\n') )
+
+            print ("\nStep ---------------")
+            print ('question:\n\t{}'.format( question_response ))
+            print ('answer:\n\t{}'.format( completion_response ))
+            print ('evaluation:\n\t{}'.format(  evaluation_response ))
+            print ('sentiment:\n\t{}'.format( sentiment ) )
+            print ("---------------")
 
             # Set weights.
             if self.subtensor.block - last_epoch_block > self.subtensor.validator_epoch_length( self.config.netuid ) :
