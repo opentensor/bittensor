@@ -21,6 +21,8 @@ import torch
 
 import bittensor
 
+from abc import abstractmethod
+
 
 class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNextServicer):
     """TextCausalLMNextSynapse: A class for servicing text_causallm_next requests."""
@@ -48,6 +50,26 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
     def _attach(self, axon: "bittensor.axon"):
         """_attach: Attaches the synapse to the axon."""
         bittensor.grpc.add_TextCausalLMNextServicer_to_server(self, axon.server)
+
+    @abstractmethod
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        ...
+
+    def apply_forward_call(self, forward_call: bittensor.BittensorCall) -> "bittensor.BittensorCall":
+        logits = self.forward(forward_call.text_inputs)
+        logits = logits[:, -1, :]
+
+        # ( jouee ) where *should* these tokenizers come from?
+        tokenizer = bittensor.prep_tokenizer(
+            tokenizer=bittensor.tokenizer(), std_tokenizer=bittensor.tokenizer()
+        )
+        topk_values = bittensor.topk_token_phrases(
+            logits=logits, tokenizer=tokenizer, topk=forward_call.topk
+        )
+        compact_topk = bittensor.compact_topk_token_phrases(topk_values)
+
+        forward_call.outputs = compact_topk
+        return forward_call
 
     def pre_process_request_proto_to_forward_call(
         self, request_proto: bittensor.ForwardTextCausalLMNextRequest
@@ -90,7 +112,6 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
             response (bittensor.ForwardTextCausalLMNextResponse):
                 response.serialized_hidden_states (string): serialized hidden states.
         """
-
         # Serialize hidden states.
         outputs_serializer = bittensor.serializer(
             serializer_type=forward_call.text_outputs_serializer_type

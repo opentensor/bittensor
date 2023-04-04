@@ -59,6 +59,7 @@ sequence_length = 32
 # Create a text_prompting module and call it.
 module = bittensor.text_prompting( endpoint = local_endpoint, wallet = wallet )
 response = module.forward(
+    roles=['user', 'assistant'],
     messages = [{ "user": "Human", "content": "hello"}],
     timeout=1e6
 )
