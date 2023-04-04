@@ -21,7 +21,7 @@ import os
 import time
 from abc import ABC, abstractmethod
 from types import SimpleNamespace
-from typing import Union
+from typing import Union, Any
 from warnings import warn
 
 import torch
@@ -260,6 +260,10 @@ class Synapse(ABC):
     @staticmethod
     def check_config(config: "bittensor.Config"):
         pass
+
+    @abstractmethod
+    def forward(self, inputs: Any) -> Any:
+        ...
 
     def Forward(
         self, request: "bittensor.ForwardRequest", context: grpc.ServicerContext
