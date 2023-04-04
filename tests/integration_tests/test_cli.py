@@ -41,23 +41,23 @@ def setUpModule():
     # Start a mock instance of subtensor.
     _subtensor_mock = bittensor.subtensor( _mock = True, network='finney' )
 
-    # create a mock subnet
-    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 1, tempo = 99, modality = 0 )
+    # create mock subnet 2
+    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 2, tempo = 90, modality = 0, wait_for_finalization=False  )
     assert err == None
 
-    # create a second mock subnet
-    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 2, tempo = 90, modality = 0 )
+    # create mock subnet 3
+    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 3, tempo = 90, modality = 0, wait_for_finalization=False )
     assert err == None
 
-     # create a third mock subnet
-    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 3, tempo = 90, modality = 0 )
+    # create a mock subnet 1
+    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 1, tempo = 99, modality = 0, wait_for_finalization=False )
     assert err == None
 
     # Make registration difficulty 0. Instant registration.
-    set_diff, err = _subtensor_mock.sudo_set_difficulty( netuid = 1, difficulty = 0 )
+    set_diff, err = _subtensor_mock.sudo_set_difficulty( netuid = 1, difficulty = 0, wait_for_finalization=False )
     assert err == None
 
-    set_tx_limit, err = _subtensor_mock.sudo_set_tx_rate_limit( netuid = 1, tx_rate_limit = 0 ) # No tx limit
+    set_tx_limit, err = _subtensor_mock.sudo_set_tx_rate_limit( netuid = 1, tx_rate_limit = 0, wait_for_finalization=False ) # No tx limit
     assert err == None
 
 def tearDownModule() -> None:
