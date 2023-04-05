@@ -1,6 +1,8 @@
 import torch
 from transformers import AutoModelForCausalLM
 
+from typing import Any
+
 import bittensor
 
 bittensor.logging(debug=True)
@@ -18,12 +20,9 @@ class Synapse(bittensor.TextCausalLMNextSynapse):
     def _blacklist(self, forward_call: "bittensor.TextCausalLMNextForwardCall") -> bool:
         return False
 
-    def forward(
-        self, forward_call: "bittensor.TextCausalLMNextForwardCall"
-    ) -> torch.Tensor:
-        outputs = self.model(input_ids=forward_call.text_inputs, output_hidden_states=False)
-        last_logits = outputs.logits[:, -1, :]
-        return last_logits
+    def forward(self, inputs: Any) -> torch.Tensor:
+        outputs = self.model(input_ids=inputs, output_hidden_states=False)
+        return outputs.logits
 
     def backward(
         self, backward_call: "bittensor.TextCausalLMNextBackwardCall"
@@ -82,7 +81,8 @@ response1 = module.forward(
     text_inputs=torch.ones((batch_size, sequence_length), dtype=torch.long),
     timeout=1e6
 )
-
+# import pdb
+# pdb.set_trace()
 # response2 = module.backward(
 #
 # )

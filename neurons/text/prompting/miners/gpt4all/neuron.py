@@ -17,16 +17,18 @@
 
 # General.
 import os
+import json
 import time
 import torch
 import argparse
 import bittensor
-from rich import print
-from datetime import datetime
-import openai
-import json
 
 from typing import List
+from rich import print
+from datetime import datetime
+
+# Torch tooling.
+from langchain.llms import GPT4All
 
 
 # Check run config.
@@ -44,34 +46,41 @@ def check_config(config: 'bittensor.Config'):
         os.makedirs(config.neuron.full_path)
 
 
+
 # Create run config.
 def get_config():
     parser = argparse.ArgumentParser()
 
-    # OpenAI  arguments
-    parser.add_argument('--api_key', type=str, required=True, help='openai api key')
-    parser.add_argument('--config', type=str, help='If set, defaults are overridden by passed file.')
-    parser.add_argument('--neuron.model_name', type=str, default='gpt-3.5-turbo', help="ID of the model to use.")
-    parser.add_argument('--neuron.suffix', type=str, default=None, help="The suffix that comes after a completion of inserted text.")
-    parser.add_argument('--neuron.max_tokens', type=int, default=256, help="The maximum number of tokens to generate in the completion.")
-    parser.add_argument('--neuron.temperature', type=float, default=0.7, help="Sampling temperature to use, between 0 and 2.")
-    parser.add_argument('--neuron.top_p', type=float, default=1, help="Nucleus sampling parameter, top_p probability mass.")
-    parser.add_argument('--neuron.n', type=int, default=1, help="How many completions to generate for each prompt.")
-    parser.add_argument('--neuron.stream', action='store_true', default=False, help="Whether to stream back partial progress.")
-    parser.add_argument('--neuron.logprobs', type=int, default=None, help="Include the log probabilities on the logprobs most likely tokens.")
-    parser.add_argument('--neuron.echo', action='store_true', default=False, help="Echo back the prompt in addition to the completion.")
-    parser.add_argument('--neuron.stop', type=List[str], help='Up to 4 sequences where the API will stop generating further tokens.', default=['user: ', 'bot: ', 'system: '])
-    parser.add_argument('--neuron.presence_penalty', type=float, default=0, help="Penalty for tokens based on their presence in the text so far.")
-    parser.add_argument('--neuron.frequency_penalty', type=float, default=0, help="Penalty for tokens based on their frequency in the text so far.")
-    parser.add_argument('--neuron.best_of', type=int, default=1, help="Generates best_of completions server-side and returns the 'best' one.")
-    parser.add_argument('--neuron.logit_bias', type=int, default=0, help="Modify the likelihood of specified tokens appearing in the completion.")
-    parser.add_argument('--neuron.user', type=str, default=None, help="A unique identifier representing your end-user.")
+    # GPT4ALL arguments
+    # Original weights: https://the-eye.eu/public/AI/models/nomic-ai/gpt4all/gpt4all-lora-quantized.bin
+    # Github: https://github.com/nomic-ai/gpt4all
+    # Conversion: https://github.com/nomic-ai/gpt4all/issues/215 (Must convert GPT4All model to new ggml format using pyllamacpp)
+    parser.add_argument('--client.model', type=str, help='Path to pretrained gpt4all model in ggml format.', default='./gpt4all-lora-converted.bin')
+    parser.add_argument('--client.n_ctx', type=int, default=512, help='Token context window.')
+    parser.add_argument('--client.n_parts', type=int, default=-1, help='Number of parts to split the model into. If -1, the number of parts is automatically determined.')
+    parser.add_argument('--client.seed', type=int, default=0, help='Seed. If -1, a random seed is used.')
+    parser.add_argument('--client.f16_kv', action='store_true', default=False, help='Use half-precision for key/value cache.')
+    parser.add_argument('--client.logits_all', action='store_true', default=False, help='Return logits for all tokens, not just the last token.')
+    parser.add_argument('--client.vocab_only', action='store_true', default=False, help='Only load the vocabulary, no weights.')
+    parser.add_argument('--client.use_mlock', action='store_true', default=False, help='Force system to keep model in RAM.')
+    parser.add_argument('--client.embedding', action='store_true', default=False, help='Use embedding mode only.')
+    parser.add_argument('--client.n_threads', type=int, default=4, help='Number of threads to use.')
+    parser.add_argument('--client.n_predict', type=int, default=256, help='The maximum number of tokens to generate.')
+    parser.add_argument('--client.temp', type=float, default=0.8, help='The temperature to use for sampling.')
+    parser.add_argument('--client.top_p', type=float, default=0.95, help='The top-p value to use for sampling.')
+    parser.add_argument('--client.top_k', type=int, default=40, help='The top-k value to use for sampling.')
+    parser.add_argument('--client.echo', action='store_true', default=False, help='Whether to echo the prompt.')
+    parser.add_argument('--client.stop', type=list[str], help='Stop tokens.', default=['user: ', 'bot: ', 'system: '])
+    parser.add_argument('--client.repeat_last_n', type=int, default=64, help='Last n tokens to penalize.')
+    parser.add_argument('--client.repeat_penalty', type=float, default=1.3, help='The penalty to apply to repeated tokens.')
+    parser.add_argument('--client.n_batch', type=int, default=1, help='Batch size for prompt processing.')
+    parser.add_argument('--client.streaming', action='store_true', default=False, help='Whether to stream the results or not.')
 
     # Miner arguements
-    parser.add_argument('--netuid', type=int, help='Subnet netuid', default=41)
+    parser.add_argument('--netuid', type=int, help='Subnet netuid', default=21)
     parser.add_argument('--neuron.name', type=str,
                         help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
-                        default='openai_prompting_miner')
+                        default='gpt4all_prompting_miner')
     parser.add_argument('--neuron.blocks_per_epoch', type=str, help='Blocks until the miner sets weights on chain',
                         default=100)
     parser.add_argument('--neuron.no_set_weights', action='store_true', help='If True, the model does not set weights.',
@@ -86,8 +95,8 @@ def get_config():
     bittensor.wallet.add_args(parser)
     bittensor.axon.add_args(parser)
     bittensor.subtensor.add_args(parser)
-    bittensor.logging.add_args(parser) 
-    bittensor.metagraph.add_args(parser) 
+    bittensor.logging.add_args(parser)
+    bittensor.metagraph.add_args(parser)
     return bittensor.config(parser)
 
 
@@ -101,20 +110,43 @@ def main():
 
     # --- Turn on logging.
     bittensor.logging(config=config, logging_dir=config.neuron.full_path)
-
+    
     # --- Create our chain connection.
     subtensor = bittensor.subtensor(config)
-
+    
     # --- Create our wallet and register it to the subnetwork.
     wallet = bittensor.wallet(config)
     wallet.register(netuid=config.netuid, subtensor=subtensor)
-
+    
     # --- Create our network state cache
     metagraph = bittensor.metagraph(config=config, netuid=config.netuid, )
     metagraph.sync(netuid=config.netuid, subtensor=subtensor).save()
-
+    uid = metagraph.hotkeys.index(wallet.hotkey.ss58_address)
+    
     # --- Build /Load our model and set the device.
-    openai.api_key = config.api_key
+    with bittensor.__console__.status(f"Loading model {config.neuron.name} GPT4All ..."):
+        bittensor.logging.info('Loading', config.neuron.name )
+        model = GPT4All(**config.client)
+
+    # --- Build axon server and start it.tensor.loggi
+    axon = bittensor.axon(
+        wallet=wallet,
+        metagraph=metagraph,
+        config=config,
+    )
+
+    def _process_history(history: List[dict]) -> str:
+        processed_history = ''
+        for message in history:
+            if message['role'] == 'system':
+                processed_history += 'system: ' + message['content'] + '\n'
+
+            if message['role'] == 'assistant':
+                processed_history += 'assistant: ' + message['content'] + '\n'
+            
+            if message['role'] == 'user':
+                processed_history += 'user: ' + message['content'] + '\n'
+        return processed_history
 
     class Synapse(bittensor.TextPromptingSynapse):
         def _priority(self, forward_call: "bittensor.TextPromptingForwardCall") -> float:
@@ -124,37 +156,22 @@ def main():
             return False
 
         def forward(self, messages: List[str]) -> str:
-            return openai.ChatCompletion.create(
-                model=config.neuron.model_name,
-                messages=messages,
-                temperature=config.neuron.temperature,
-                max_tokens=config.neuron.max_tokens,
-                top_p=config.neuron.top_p,
-                frequency_penalty=config.neuron.frequency_penalty,
-                presence_penalty=config.neuron.presence_penalty,
-                n=config.neuron.n,
-                best_of=config.neuron.best_of,
-                openai_api_key=config.neuron.api_key,
-                batch_size=config.neuron.batch_size,
-                request_timeout=config.neuron.request_timeout,
-                logit_bias=config.neuron.logit_bias,
-                max_retries=config.neuron.max_retries,
-            )['choices'][0]['message']['content']
-        
+            bittensor.logging.info('messages', str(messages))
+            history = _process_history(messages)
+            bittensor.logging.info('history', str(history))
+            resp = model(history)
+            bittensor.logging.info('response', str(resp))
+            return resp
 
-    # --- Build axon server and start it.
-    axon = bittensor.axon(
-        wallet=wallet,
-        metagraph=metagraph,
-        config=config,
-    )
+
+    # with bittensor.__console__.status("Serving Axon on netuid:{} subtensor:{} ...".format( config.netuid, subtensor )):
     syn = Synapse()
     axon.attach(syn)
     axon.start()
     axon.netuid = config.netuid
     axon.protocol = 4
     subtensor.serve_axon( axon )  
-    
+    print (axon)
 
     # --- Run Forever.
     last_update = subtensor.get_current_block()
