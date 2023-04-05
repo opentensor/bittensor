@@ -92,4 +92,6 @@ class CLI:
             ListSubnetsCommand.run( self )
         elif self.config.command == 'recycle_register':
             RecycleRegisterCommand.run( self )
+        elif self.config.command == 'update_wallet':
+            UpdateWalletCommand.run( self )
         

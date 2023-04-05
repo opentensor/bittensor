@@ -98,6 +98,7 @@ class cli:
         ListDelegatesCommand.add_args( cmd_parsers )
         RegenColdkeypubCommand.add_args( cmd_parsers )
         RecycleRegisterCommand.add_args( cmd_parsers )
+        UpdateWalletCommand.add_args( cmd_parsers )
 
         # If no arguments are passed, print help text.
         if len(args) == 0:
@@ -162,6 +163,8 @@ class cli:
             MyDelegatesCommand.check_config( config )
         elif config.command == "recycle_register":
             RecycleRegisterCommand.check_config( config )
+        elif config.command == "update_wallet":
+            UpdateWalletCommand.check_config( config )
         else:
             console.print(":cross_mark:[red]Unknown command: {}[/red]".format(config.command))
             sys.exit()
