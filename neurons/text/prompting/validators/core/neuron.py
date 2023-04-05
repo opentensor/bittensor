@@ -126,7 +126,7 @@ class neuron:
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
         avg_rewards = torch.nan_to_num( rewards.sum(1) / (rewards != 0).sum(1), 0 )
-        print ('avg_rewards', avg_rewards.size(), avg_rewards)
+        print ('avg_rewards', avg_rewards.size(), 'top10 values', avg_rewards.sort()[0], 'top10 uids', avg_rewards.sort()[1])
 
         # Return the calculated average rewards.
         return avg_rewards
