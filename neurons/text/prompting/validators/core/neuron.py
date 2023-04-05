@@ -21,21 +21,27 @@ import queue
 import torch
 import argparse
 
+import json
+
 import bittensor as bt
 
 from types import SimpleNamespace
 
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from uvicorn import Config, Server
+import asyncio
+import uvicorn
 
-from typing import List, Optional
+from typing import List, Optional, Union
 from reward import RewardModel
 from gating import GatingModel
 
+
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific about science and language.
-Do not include the answer in the question.
 '''
-
 __default_base_prompt__ = '''
 You are designed to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics.
 '''
@@ -57,17 +63,15 @@ class neuron:
     @classmethod
     def add_args( cls, parser ):
         # Netuid Arg
-        parser.add_argument( '--netuid', type = int, help = 'Prompting network netuid', default = 41 )
-        parser.add_argument( '--neuron.name', type = str, help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default = 'core_prompting_validator')
-        parser.add_argument( '--neuron.base_prompt', type=str, help = 'Prompt injected before a question is completed by miners on the network', default = __default_base_prompt__ )
-        parser.add_argument( '--neuron.question_prompt', type=str, help = 'Prompt used to generate questions from the network whicha are used to evaluate other miners.', default = __default_question_prompt__ )
-        parser.add_argument( '--neuron.reward_model_name', type = str, help = 'GPTRewardModel name', default = 'Dahoas/gpt2-rm-static')
-        parser.add_argument( '--neuron.inference_topk', type = str, help = 'At inference time, how many miners to we query and return the top rewarded.', default = 10 )
-        parser.add_argument( '--neuron.training_topk', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
-        parser.add_argument( '--neuron.epoch_length', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
-        parser.add_argument( '--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 100 )
-        parser.add_argument( '--neuron.base_timeout', type = int, help = 'Base timeout for all requests.', default = 1 )
-        parser.add_argument( '--neuron.length_timeout_multiplier', type = int, help = 'Base timeout for all requests.', default = 0.01 )
+        parser.add_argument('--netuid', type = int , help = 'Prompting network netuid', default = 41 )
+        parser.add_argument('--neuron.name', type = str, help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default = 'core_prompting_validator')
+        parser.add_argument('--neuron.base_prompt', type=str , help = 'Prompt injected before a question is completed by miners on the network', default = __default_base_prompt__ )
+        parser.add_argument('--neuron.question_prompt', type=str , help = 'Prompt used to generate questions from the network whicha are used to evaluate other miners.', default = __default_question_prompt__ )
+        parser.add_argument('--neuron.reward_model_name', type = str, help = 'GPTRewardModel name', default = 'Dahoas/gpt2-rm-static')
+        parser.add_argument('--neuron.inference_topk', type = str, help = 'At inference time, how many miners to we query and return the top rewarded.', default = 10 )
+        parser.add_argument('--neuron.training_topk', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
+        parser.add_argument('--neuron.epoch_length', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
+        parser.add_argument('--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 100 )
 
     @classmethod
     def config ( cls ):
@@ -93,9 +97,78 @@ class neuron:
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to(self.device)
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
+        self.clients = {}
+
+
+    async def run_query(
+            self,
+            message: str,
+            prompt: str = None,
+            uids: Union[ torch.LongTensor, List[int] ] = None, 
+            timeout: int = 12,
+    ):
+        # We optionally set the uids to all if uids is None.
+        if uids is None: uids = range( len( self.dendrites ))
+        if isinstance( uids, torch.Tensor ): uids = uids.tolist()
+
+        # We optionally set the prompt to the message if prompt is None.
+        if prompt is not None: 
+            roles = ['system', 'user']
+            messages = [ prompt, message ]
+        else:
+            roles = ['user']
+            messages = [ message ]
+
+        # The following asyncio defintion queries a single endpoint with the message
+        # prompt and returns the response.
+        async def call_single_uid( uid: int ) -> str:
+            module = bt.text_prompting( endpoint = self.metagraph.endpoint_objs[ uid ], wallet = self.wallet )
+            response = await module.async_forward( 
+                roles = roles, 
+                messages = messages, 
+                timeout = timeout 
+            )
+            return response.response
+
+        # The following asyncio definition gathers the responses
+        # from multiple coroutines for each uid.
+        async def query():
+            coroutines = [ call_single_uid( uid ) for uid in uids ]                
+            all_responses = await asyncio.gather(*coroutines)
+            print(all_responses)
+            return all_responses
+        
+        return await query()
 
     
-    def websocket_endpoint( self, websocket:  ):
+    async def websocket_endpoint( self, websocket: WebSocket ):
+        r""" Websocket endpoint for the neuron. 
+        """
+        await websocket.accept()
+        self.clients[websocket] = {"connection": websocket}
+        try:
+            while True:
+                data = await websocket.receive_text()
+                messages = json.loads(data)
+                user_message = messages[-1]['content']
+                response = await self.inference(user_message)
+
+                response = response.replace('\n', ' NEWLINE ')
+                response = response.replace('\t', ' TAB ')
+
+                for word in response.split():
+                    if word == 'NEWLINE':
+                        await websocket.send_text('\n')
+                    elif word == 'TAB':
+                        await websocket.send_text('\t')
+                    else:
+                        await websocket.send_text(word + ' ')
+                    await asyncio.sleep(0.1)
+
+                await websocket.send_text('<|endoftext|>')
+            
+        except WebSocketDisconnect:
+            del self.clients[websocket]
 
     def complute_weights( self ) -> torch.FloatTensor:
         """
@@ -106,18 +179,12 @@ class neuron:
                 weights ( torch.FloatTensor, shape = (n) ): 
                     The weights for each uid.
         """
-<<<<<<< HEAD
         # Return zeros weights if there is no history.
         if self.history.qsize() == 0: 
             print ('no history to compute weights.'); return torch.zeros((self.metagraph.n))
 
         # Averages the rewards for each uid across non-zero values.
         rewards = []
-=======
-        if len(self.history) == 0:
-            # Averages the rewards for each uid across non-zero values.
-            rewards = []
->>>>>>> 6474fc9d (saving work adding websocket)
 
         # Iterate over all events in the `history` list.
         for event in self.history.queue:
@@ -131,7 +198,7 @@ class neuron:
             print ('scattered_rewards', scattered_rewards.size(), scattered_rewards)
 
             # Append the scattered rewards to the `rewards` list.
-            rewards.append( scattered_rewards )
+            rewards.append(scattered_rewards)
 
         # Stack the scattered rewards tensors along the second dimension.
         rewards = torch.stack( rewards, 1 ).to( self.device )
@@ -140,12 +207,12 @@ class neuron:
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
         avg_rewards = torch.nan_to_num( rewards.sum(1) / (rewards != 0).sum(1), 0 )
-        print ('avg_rewards', avg_rewards.size(), 'top10 values', avg_rewards.sort()[0], 'top10 uids', avg_rewards.sort()[1])
+        print ('avg_rewards', avg_rewards.size(), avg_rewards)
 
         # Return the calculated average rewards.
         return avg_rewards
    
-    def forward( 
+    async def forward( 
             self, 
             message: str,
             topk: Optional[int] = None,
@@ -178,12 +245,12 @@ class neuron:
         # Use the selected `uids` to query the dendrite pool.
         # Print the `completions`.
         topk_uids = available_uids[ scores[ available_uids ].sort()[ 1 ][ -topk: ]]
-        completions = self.dendrite_pool( 
-            prompt = self.config.neuron.base_prompt, 
-            message = message, 
-            uids = topk_uids, 
-            timeout = float( self.config.neuron.base_timeout + self.config.neuron.length_timeout_multiplier * len( message ) )
-        )
+        # completions = await self.dendrite_pool( prompt = self.config.neuron.base_prompt, message = message, uids = topk_uids )
+        completions = await self.run_query( prompt = self.config.neuron.base_prompt, message = message, uids = topk_uids )
+        if completions is None:
+            print("No completions found")
+            print(completions)
+            return None
         print ('\ntopk_uids',  len(topk_uids), topk_uids)
         print ('\ncompletions', len(completions), completions)
 
@@ -219,13 +286,13 @@ class neuron:
         return result
     
     # User queries here.
-    def inference( self, message ) -> str:
+    async def inference( self, message ) -> str:
         """Inference"""
-        result = self.forward( message, topk = self.config.neuron.inference_topk )
+        result = await self.forward( message, topk = self.config.neuron.inference_topk )
         if result == None: return "Failed"
         else: return result.completion
 
-    def train( self ):
+    async def train( self ):
         """ Training 
             The function uses an infinite loop to repeatedly generate a random question, 
             ask the network to complete the question, and train the gating network using 
@@ -238,7 +305,7 @@ class neuron:
         while True:
             
             # Query the network for a random question.
-            question = self.forward( self.config.neuron.question_prompt )
+            question = await self.forward( self.config.neuron.question_prompt )
             if question == None: continue # no responses from network.
             
             # Ask the network to complete the random question, training the gating network.
@@ -264,8 +331,33 @@ class neuron:
                     wait_for_finalization = True,
                 )
 
-            time.sleep(1)
-            
-if __name__ == '__main__':
-    neuron().train()
+            await asyncio.sleep(1)
 
+# Set the default event loop policy
+asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+
+app = FastAPI()
+
+@app.websocket("/chat")
+async def websocket_endpoint(websocket: WebSocket):
+    await n.websocket_endpoint(websocket)
+
+@app.post("/inference")
+async def api_inference(message: str):
+    return await n.inference(message)
+
+async def start_training(n: neuron):
+    await n.train()
+
+
+if __name__ == '__main__':
+    n = neuron()
+    config = Config(app=app, host="127.0.0.1", port=8000)
+    server = Server(config)
+
+    # Set the event loop explicitly to the default asyncio event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    # Start the server with the specified event loop
+    loop.run_until_complete(server.serve())
