@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import time
 import queue
 import torch
 import argparse
@@ -96,29 +97,35 @@ class neuron:
                 weights ( torch.FloatTensor, shape = (n) ): 
                     The weights for each uid.
         """
-        if len(self.history) == 0: print ('no history to compute weights.'); return torch.zeros((self.metagraph.n))
+        # Return zeros weights if there is no history.
+        if self.history.qsize() == 0: 
+            print ('no history to compute weights.'); return torch.zeros((self.metagraph.n))
 
         # Averages the rewards for each uid across non-zero values.
         rewards = []
 
         # Iterate over all events in the `history` list.
-        for event in self.history:
-            # Normalize the rewards for the current event using L1 normalization.
-            normalized_rewards = torch.nn.functional.normalize( event.rewards.to( self.device ), p=1, dim=0 )
+        for event in self.history.queue:
+            # Normalize the rewards for the current event using softmax normalization.
+            normalized_rewards = torch.nn.functional.softmax( event.rewards.to( self.device ), dim=0 )
+            print ('normalized_rewards', normalized_rewards.size(), normalized_rewards)
 
             # Use the `uids` of the current event to scatter the normalized rewards
             # into a zero-initialized tensor with the same shape as `self.metagraph.n`.
             scattered_rewards = torch.zeros((self.metagraph.n)).to( self.device ).scatter(0, event.uids.to( self.device ), normalized_rewards.to( self.device ) )
+            print ('scattered_rewards', scattered_rewards.size(), scattered_rewards)
 
             # Append the scattered rewards to the `rewards` list.
             rewards.append(scattered_rewards)
 
         # Stack the scattered rewards tensors along the second dimension.
         rewards = torch.stack( rewards, 1 ).to( self.device )
+        print ('rewards', rewards.size(), rewards)
 
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
         avg_rewards = torch.nan_to_num( rewards.sum(1) / (rewards != 0).sum(1), 0 )
+        print ('avg_rewards', avg_rewards.size(), avg_rewards)
 
         # Return the calculated average rewards.
         return avg_rewards
@@ -127,7 +134,7 @@ class neuron:
             self, 
             message: str,
             topk: Optional[int] = None,
-        ):
+        ) -> SimpleNamespace:
         """ Inference is called by clients seeking the outputs of the model
             We use the gating network to determine the best models to query 
             Optionally we use the reward model to train the gating network.
@@ -161,11 +168,11 @@ class neuron:
         print ('\ncompletions', len(completions), completions)
 
         # Filter out any `None` `completions`.
-        successful_uids = torch.tensor( [ uid for uid, completion in list( zip( topk_uids, completions ) ) if completion is not None and not '' ], dtype = torch.int64 ).to( self.device )
-        successful_completions = [ completion for completion in completions if completion is not None and not '' ]
+        successful_uids = torch.tensor( [ uid for uid, completion in list( zip( topk_uids, completions ) ) if completion is not None and len(completion) > 10 ], dtype = torch.int64 ).to( self.device )
+        successful_completions = [ completion for completion in completions if completion is not None and len(completion) > 10 ]
         print ('\nsuccessful_uids', len(successful_uids), successful_uids)
         print ('\nsuccessful_completions', len(successful_completions), successful_completions)
-        if len( successful_completions ) == 0: print ('no successful queries'); return None
+        if len( successful_completions ) == 0: print ('no successful completions'); return None
 
         # Calculate the rewards for the successful `completions` using the reward model.
         # Print the rewards for all `uids`.
@@ -192,9 +199,11 @@ class neuron:
         return result
     
     # User queries here.
-    def inference( self, message ):
+    def inference( self, message ) -> str:
         """Inference"""
-        return self.forward( message, topk = self.config.neuron.inference_topk ).completion
+        result = self.forward( message, topk = self.config.neuron.inference_topk )
+        if result == None: return "Failed"
+        else: return result.completion
 
     def train( self ):
         """ Training 
@@ -209,11 +218,11 @@ class neuron:
         while True:
             
             # Query the network for a random question.
-            question = self.forward( self.config.neuron.question_prompt ).completion
+            question = self.forward( self.config.neuron.question_prompt )
             if question == None: continue # no responses from network.
             
             # Ask the network to complete the random question, training the gating network.
-            self.forward( question, topk = self.config.neuron.training_topk )
+            self.forward( question.completion, topk = self.config.neuron.training_topk )
             
             # Check if enough epoch blocks have elapsed since the last epoch.
             if self.subtensor.block > last_epoch_block: # run every block. # > self.subtensor.validator_epoch_length( self.config.netuid ) :
@@ -224,7 +233,8 @@ class neuron:
                 # Computes the average reward for each uid across non-zero values 
                 # using the rewards history stored in the self.history list.
                 weights = self.complute_weights()
-                
+                print ('\nweights', weights.size(), weights)
+
                 # Set the weights on chain via our subtensor connection.
                 self.subtensor.set_weights(
                     wallet = self.wallet,
@@ -233,6 +243,8 @@ class neuron:
                     weights = weights,
                     wait_for_finalization = True,
                 )
+
+            time.sleep(1)
             
 if __name__ == '__main__':
     neuron().train()
