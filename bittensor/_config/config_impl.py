@@ -100,6 +100,10 @@ class Config ( Munch ):
                 bittensor.defaults.logging.record_log = self.logging.record_log
                 bittensor.defaults.logging.logging_dir = self.logging.logging_dir
             
+            if 'subtensor' in self.keys():
+                bittensor.defaults.subtensor.network = self.subtensor.network
+                bittensor.defaults.subtensor.chain_endpoint = self.subtensor.chain_endpoint
+            
             if 'threadpool' in self.keys():
                 bittensor.defaults.threadpool.max_workers = self.threadpool.max_workers
                 bittensor.defaults.threadpool.maxsize = self.threadpool.maxsize 
