@@ -96,8 +96,8 @@ class neuron:
                 weights ( torch.FloatTensor, shape = (n) ): 
                     The weights for each uid.
         """
-        if len(self.history) == 0:
-            
+        if len(self.history) == 0: print ('no history to compute weights.'); return torch.zeros((self.metagraph.n))
+
         # Averages the rewards for each uid across non-zero values.
         rewards = []
 
@@ -185,7 +185,7 @@ class neuron:
             scores = scores,
             all_completions = completions
         )
-        self.history.append( result )
+        self.history.put( result )
 
         # Return the completion with the highest reward.
         print ('result', result )
