@@ -20,10 +20,13 @@ import time
 import queue
 import torch
 import argparse
+
 import bittensor as bt
 
 from types import SimpleNamespace
-from collections import defaultdict
+
+from fastapi import FastAPI, WebSocket
+
 from typing import List, Optional
 from reward import RewardModel
 from gating import GatingModel
@@ -91,6 +94,9 @@ class neuron:
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
 
+    
+    def websocket_endpoint( self, websocket:  ):
+
     def complute_weights( self ) -> torch.FloatTensor:
         """
             Computes the average reward for each uid across non-zero values 
@@ -100,12 +106,18 @@ class neuron:
                 weights ( torch.FloatTensor, shape = (n) ): 
                     The weights for each uid.
         """
+<<<<<<< HEAD
         # Return zeros weights if there is no history.
         if self.history.qsize() == 0: 
             print ('no history to compute weights.'); return torch.zeros((self.metagraph.n))
 
         # Averages the rewards for each uid across non-zero values.
         rewards = []
+=======
+        if len(self.history) == 0:
+            # Averages the rewards for each uid across non-zero values.
+            rewards = []
+>>>>>>> 6474fc9d (saving work adding websocket)
 
         # Iterate over all events in the `history` list.
         for event in self.history.queue:
