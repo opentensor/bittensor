@@ -70,7 +70,7 @@ class Config ( Munch ):
             bittensor.__console__.print("The config has already been added to prometheus.", highlight=True)
 
     def to_defaults(self):
-        try: 
+        try:
             if 'axon' in self.keys():
                 bittensor.defaults.axon.port = self.axon.port
                 bittensor.defaults.axon.ip = self.axon.ip
@@ -99,10 +99,6 @@ class Config ( Munch ):
                 bittensor.defaults.logging.trace = self.logging.trace
                 bittensor.defaults.logging.record_log = self.logging.record_log
                 bittensor.defaults.logging.logging_dir = self.logging.logging_dir
-            
-            if 'subtensor' in self.keys():
-                bittensor.defaults.subtensor.network = self.subtensor.network
-                bittensor.defaults.subtensor.chain_endpoint = self.subtensor.chain_endpoint
             
             if 'threadpool' in self.keys():
                 bittensor.defaults.threadpool.max_workers = self.threadpool.max_workers
