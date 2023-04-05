@@ -475,7 +475,8 @@ class Keyfile( object ):
 
                 bittensor.__console__.print(f":exclamation_mark:You may update the keyfile to improve the security for storing your keys. \nWhile the keys stay the same, it would require (1) providing your old password and (2) setting up a new password. \n:key: {self}")
                 if Confirm.ask("Update keyfile?"):
-                    decrypted_keyfile_data = decrypt_keyfile_data(keyfile_data, coldkey_name=self.name)
+                    password = getpass.getpass("Enter password to update keyfile: ")
+                    decrypted_keyfile_data = decrypt_keyfile_data(keyfile_data, coldkey_name=self.name, password = password)
 
                     if not self.exists_on_device():
                         raise KeyFileError( "Keyfile at: {} is not a file".format( self.path ))
@@ -484,7 +485,7 @@ class Keyfile( object ):
                     if not self.is_writable():
                         raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) ) 
 
-                    encrypted_keyfile_data = encrypt_keyfile_data( decrypted_keyfile_data )
+                    encrypted_keyfile_data = encrypt_keyfile_data( decrypted_keyfile_data, password = password )
                     self._write_keyfile_data_to_file( encrypted_keyfile_data, overwrite = True )
         
         
