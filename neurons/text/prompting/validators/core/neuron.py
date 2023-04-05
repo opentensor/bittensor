@@ -26,28 +26,13 @@ from typing import List, Optional
 from reward import RewardModel
 from gating import GatingModel
 
-prompt = '''
-You are Chattensor.
-Chattensor is a research project by Opentensor Cortex.
-Chattensor is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Chattensor is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
-Chattensor is constantly learning and improving, and its capabilities are constantly evolving. It is able to process and understand large amounts of text, and can use this knowledge to provide accurate and informative responses to a wide range of questions. Additionally, Chattensor is able to generate its own text based on the input it receives, allowing it to engage in discussions and provide explanations and descriptions on a wide range of topics.
-Overall, Chattensor is a powerful tool that can help with a wide range of tasks and provide valuable insights and information on a wide range of topics. Whether you need help with a specific question or just want to have a conversation about a particular topic, Chattensor is here to assist.
-If asked about what Bittensor is, Chattensor will respond with the following:
-   Bittensor is a peer to peer, decentralized network that facilitates a marketplace for machine intelligence.
-   Validators utilize yuma consensus to rank and reward neural networks for their novel knowledge contributions.
-   Servers deploy their machine intelligence to be ranked and rewarded by the network.
-   This marketplace serves multi modalities of machine intelligence, including text, images, and audio through the finney subnetwork upgrade.
-If asked about who the creators of Chattensor are, Chattensor will respond with the following:
-    - Carro
-    - Prism
-Lists should not be long, like so:
-• first item
-• second item
-• third item
-They are the creators of Chattensor, but not Bittensor. That was founded by Jacob Steeves (Const) and Ala Shaabana (Shibshib). 
-The current maintainers of Bittensor is the Opentensor Foundation. Carro and Prism work at Opentensor.'''
 
-no_response_text = "no responce"
+__default_question_prompt__ = '''
+Ask me a random question about anything. Make the question very domain specific about science and language.
+'''
+__default_base_prompt__ = '''
+You are designed to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics.
+'''
 
 class neuron:
     @classmethod
@@ -68,6 +53,8 @@ class neuron:
         # Netuid Arg
         parser.add_argument('--netuid', type = int , help = 'Prompting network netuid', default = 41 )
         parser.add_argument('--neuron.name', type = str, help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default = 'core_prompting_validator')
+        parser.add_argument('--neuron.base_prompt', type=str , help = 'Prompt injected before a question is completed by miners on the network', default = __default_base_prompt__ )
+        parser.add_argument('--neuron.question_prompt', type=str , help = 'Prompt used to generate questions from the network whicha are used to evaluate other miners.', default = __default_question_prompt__ )
         parser.add_argument('--neuron.reward_model_name', type = str, help = 'GPTRewardModel name', default = 'Dahoas/gpt2-rm-static')
         parser.add_argument('--neuron.inference_topk', type = str, help = 'At inference time, how many miners to we query and return the top rewarded.', default = 10 )
         parser.add_argument('--neuron.training_topk', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
@@ -99,19 +86,38 @@ class neuron:
         self.history = []
 
     def complute_weights( self ) -> torch.FloatTensor:
-        """ Computes valdiation weights from history and clears history.
+        """
+            Computes the average reward for each uid across non-zero values 
+            using the rewards history stored in the self.history list.
+
             Returns:
                 weights ( torch.FloatTensor, shape = (n) ): 
                     The weights for each uid.
         """
         # Averages the rewards for each uid across non-zero values.
         rewards = []
+
+        # Iterate over all events in the `history` list.
         for event in self.history:
+            # Normalize the rewards for the current event using L1 normalization.
             normalized_rewards = torch.nn.functional.normalize( event.rewards, p=1, dim=0 )
-            rewards.append( torch.zeros((self.metagraph.n)).scatter(0, event.uids, normalized_rewards ) )
-        rewards = torch.cat( rewards, 0 )
+
+            # Use the `uids` of the current event to scatter the normalized rewards
+            # into a zero-initialized tensor with the same shape as `self.metagraph.n`.
+            scattered_rewards = torch.zeros((self.metagraph.n)).scatter(0, event.uids, normalized_rewards )
+
+            # Append the scattered rewards to the `rewards` list.
+            rewards.append(scattered_rewards)
+
+        # Stack the scattered rewards tensors along the second dimension.
         rewards = torch.stack( rewards, 1) 
-        return torch.nan_to_num( rewards.sum(1) / (rewards != 0).sum(1), 0 )
+
+        # Calculate the average reward for each uid across non-zero values.
+        # Replace any NaN values with 0.
+        avg_rewards = torch.nan_to_num( rewards.sum(1) / (rewards != 0).sum(1), 0 )
+
+        # Return the calculated average rewards.
+        return avg_rewards
    
     def forward( 
             self, 
@@ -126,37 +132,43 @@ class neuron:
                 message (str): The message to query the network with.
         """
         print ('forward --------------------' )
+
+        # Set `topk` to the number of items in `self.metagraph.n` if `topk` is not provided or is -1.
+        # Find the available `uids` that are currently serving.
+        # If `topk` is larger than the number of available `uids`, set `topk` to the number of available `uids`.
+        available_uids = torch.tensor( [ uid for uid, ep in enumerate( self.metagraph.endpoint_objs ) if ep.is_serving ], dtype = torch.int64 )
         if topk is None or topk == -1: topk = self.metagraph.n.item()
-        available_uids = [ uid for uid, ep in enumerate( self.metagraph.endpoint_objs ) if ep.is_serving ]
         if topk > len(available_uids): topk = len(available_uids)
         print ('topk', topk)
 
         # We run the gating network here to get the best uids
+        # Use the gating model to generate scores for each `uid`.
         scores = self.gating_model( message )
-        print ('scores', scores)
+        print ('scores', scores.size(), scores)
 
-        # We query the topk best uids here using the inference topk as the limit.
+        # Select the top `topk` `uids` based on the highest `scores`.
+        # Use the selected `uids` to query the dendrite pool.
+        # Print the `completions`.
         topk_uids = available_uids[ scores[ available_uids ].sort()[ 1 ][ -topk: ]]
-        print ('topk_uids', topk_uids)
+        completions = self.dendrite_pool( prompt = self.config.neuron.base_prompt, message = message, uids = topk_uids )
+        print ('topk_uids',  len(topk_uids), topk_uids)
+        print ('completions', len(completions), completions)
 
-        # We query the topk available uids.
-        completions = self.dendrite_pool( prompt = prompt, message = message, uids = topk_uids )
-        print ('completions', completions)
-
-        # Filter out the None completions.
+        # Filter out any `None` `completions`.
+        # Calculate the rewards for the successful `completions` using the reward model.
+        # Print the rewards for all `uids`.
         successful_uids = [ uid for uid, completion in list( zip( topk_uids, completions ) ) if completion is not None ]
         successful_completions = [ completions[ uid ] for uid in successful_uids ]
-        print ('successful_uids', successful_uids)
-
-        # Rank the completions based on the reward model filling the rewards vector.
         rewards = torch.zeros( ( self.metagraph.n.item() ) )
         rewards[ successful_uids ] = self.reward_model.reward( successful_completions )
-        print ('rewards', rewards)
+        print ('successful_uids', len(successful_uids), successful_uids)
+        print ('rewards', rewards.size(), rewards)
 
-        # We train the gating network here.
+        # Train the gating model using the scores and rewards of the successful `completions`.
         self.gating_model.backward( scores = scores[ successful_uids ], rewards = rewards[ successful_uids ] )
 
-        # Save the query history.
+        # Save the query history in a `result` object.
+        # Return the `completion` with the highest reward.
         result = SimpleNamespace( 
             completion = completions[ rewards.argmax( dim = 0 ) ],
             message = message,  
@@ -175,21 +187,35 @@ class neuron:
         """Inference"""
         return self.forward( message, topk = self.config.neuron.inference_topk ).completion
 
-    def train(self):
-        """ Training """
+    def train( self ):
+        """ Training 
+            The function uses an infinite loop to repeatedly generate a random question, 
+            ask the network to complete the question, and train the gating network using 
+            the question and the resulting completions.
+        """
+        # Store the current epoch block number for comparison later.
         last_epoch_block = self.subtensor.block
+        
+        # Start an infinite loop for training.
         while True:
-
-            # Query the network for a question            
-            question = self.forward( "ask me a random question about anything. Make the question very domain specific about science and language." ).completion
-
-            # Ask the questions to the network, training the gating network.
+            
+            # Query the network for a random question.
+            question = self.forward( self.config.neuron.question_prompt ).completion
+            
+            # Ask the network to complete the random question, training the gating network.
             self.forward( question, topk = self.config.neuron.training_topk )
-    
-            # Set weights on epoch.
+            
+            # Check if enough epoch blocks have elapsed since the last epoch.
             if self.subtensor.block - last_epoch_block > self.subtensor.validator_epoch_length( self.config.netuid ) :
+                
+                # Update the last epoch block to the current epoch block.
                 last_epoch_block = self.subtensor.block
-                weights = self.complute_weights()          
+                
+                # Computes the average reward for each uid across non-zero values 
+                # using the rewards history stored in the self.history list.
+                weights = self.complute_weights()
+                
+                # Set the weights on chain via our subtensor connection.
                 self.subtensor.set_weights(
                     uids = self.metagraph.uids,
                     weights = weights,
