@@ -141,6 +141,7 @@ class DelegateStakeCommand:
             wait_for_inclusion = True, 
             prompt = not config.no_prompt 
         )
+        wallet.coldkey_file.check_and_update_encryption( no_prompt = config.no_prompt)
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
@@ -233,6 +234,7 @@ class DelegateUnstakeCommand:
             wait_for_inclusion = True, 
             prompt = not config.no_prompt 
         )
+        wallet.coldkey_file.check_and_update_encryption(no_prompt = config.no_prompt)
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
@@ -375,6 +377,8 @@ class NominateCommand:
                 bittensor.__console__.print("Could not became a delegate on [white]{}[/white]".format(subtensor.network))
                 return
             bittensor.__console__.print("Successfully became a delegate on [white]{}[/white]".format(subtensor.network))
+        
+        wallet.coldkey_file.check_and_update_encryption(no_prompt = config.no_prompt)
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):

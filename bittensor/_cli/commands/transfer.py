@@ -30,6 +30,7 @@ class TransferCommand:
         wallet = bittensor.wallet( config = cli.config )
         subtensor = bittensor.subtensor( config = cli.config )
         subtensor.transfer( wallet = wallet, dest = cli.config.dest, amount = cli.config.amount, wait_for_inclusion = True, prompt = not cli.config.no_prompt )
+        wallet.coldkey_file.check_and_update_encryption(no_prompt = config.no_prompt)
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
