@@ -139,8 +139,10 @@ import bittensor._proto.bittensor_pb2_grpc as grpc
 
 # ---- Utils ----
 from bittensor.utils import unbiased_topk as unbiased_topk
-from bittensor.utils.tokenizer_utils import topk_token_phrases # Eugene's topk for synapse
-from bittensor.utils.tokenizer_utils import  compact_topk_token_phrases
+from bittensor.utils.tokenizer_utils import topk_token_phrases
+from bittensor.utils.tokenizer_utils import compact_topk_token_phrases
+from bittensor.utils.tokenizer_utils import unravel_topk_token_phrases
+from bittensor.utils.tokenizer_utils import prep_tokenizer
 from bittensor._cli.commands import utils as cli_utils
 
 # ---- Factories -----

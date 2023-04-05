@@ -15,12 +15,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Callable
+from typing import List, Dict, Callable
 
 import torch
 
 import bittensor
 
+import asyncio
 
 class TextCausalLMNextDendrite(bittensor.Dendrite):
     """Dendrite for the text_last_hidden_state synapse."""
@@ -93,38 +94,43 @@ class TextCausalLMNextDendrite(bittensor.Dendrite):
             response_proto.serialized_text_outputs
         )
 
-        forward_call.outputs = text_outputs
+        # Unravel topk
+        unraveled_topk = bittensor.unravel_topk_token_phrases(text_outputs, topk=forward_call.topk)
+
+        # TODO: Compute loss calculation
+        forward_call.outputs = unraveled_topk
+
+        # Delete unnecessary proto(s)
+        del forward_call.request_proto, forward_call.response_proto
+
         return forward_call
 
     def forward(
         self,
-        text_inputs: torch.LongTensor,
+        text_inputs: torch.Tensor,
         timeout: float = bittensor.__blocktime__,
-        text_inputs_serializer_type: "bittensor.serializer_type" = bittensor.proto.Serializer.MSGPACK,
-        text_outputs_serializer_type: "bittensor.serializer_type" = bittensor.proto.Serializer.MSGPACK,
-    ) -> "bittensor.TextCausalLMNextForwardCall":
-        """Forward call to the receptor.
-        Args:
-            text_inputs (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length)`, `required`):
-                torch tensor of text inputs.
-            timeout (:obj:`float`, `optional`, defaults to 5 seconds):
-                timeout for the forward call.
-            text_inputs_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
-                serializer type for text inputs.
-            text_outputs_serializer_type (:obj:`bittensor.proto.Serializer`, `optional`, defaults to bittensor.proto.Serializer.MSGPACK):
-                serializer type for hidden states.
-        Returns:
-            bittensor.TextCausalLMNextForwardCall (:obj:`bittensor.TextCausalLMNextForwardCall`, `required`):
-                bittensor forward call dataclass.
-        """
-        return self._forward(
-            forward_call=bittensor.TextCausalLMNextForwardCall(
-                text_inputs=text_inputs,
-                timeout=timeout,
-                text_inputs_serializer_type=text_inputs_serializer_type,
-                text_outputs_serializer_type=text_outputs_serializer_type,
-            )
+    ) -> "bittensor.TextPromptingForwardCall":
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete( 
+            self._async_forward( 
+                forward_call = bittensor.TextCausalLMForwardCall(
+                    text_inputs=text_inputs,
+                    timeout=timeout
+                ) 
+            ) 
         )
+    
+    def async_forward(
+        self,
+        text_inputs: torch.Tensor,
+        timeout: float = bittensor.__blocktime__,
+    ) -> "bittensor.TextPromptingForwardCall":
+        return self._async_forward( 
+                forward_call = bittensor.TextCausalLMForwardCall(
+                    text_inputs=text_inputs,
+                    timeout=timeout
+            ) 
+        )    
 
     def pre_process_backward_call_to_request_proto(
         self, backward_call: "bittensor.TextCausalLMNextBackwardCall"
