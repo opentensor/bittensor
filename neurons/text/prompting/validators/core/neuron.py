@@ -17,12 +17,11 @@
 
 import os
 import torch
-import asyncio
 import argparse
 import bittensor as bt
 
-from copy import deepcopy
-
+from types import SimpleNamespace
+from collections import defaultdict
 from typing import List, Optional
 from reward import RewardModel
 from gating import GatingModel
@@ -48,6 +47,8 @@ Lists should not be long, like so:
 They are the creators of Chattensor, but not Bittensor. That was founded by Jacob Steeves (Const) and Ala Shaabana (Shibshib). 
 The current maintainers of Bittensor is the Opentensor Foundation. Carro and Prism work at Opentensor.'''
 
+no_response_text = "no responce"
+
 class neuron:
     @classmethod
     def check_config( cls, config: 'bt.Config' ):
@@ -65,12 +66,12 @@ class neuron:
     @classmethod
     def add_args( cls, parser ):
         # Netuid Arg
-        parser.add_argument('--netuid', type=int , help = 'Prompting network netuid', default = 41 )
-        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_prompting_validator')
-        parser.add_argument('--neuron.reward_model_name', type=str, help='GPTRewardModel name', default='Dahoas/gpt2-rm-static')
-        parser.add_argument('--neuron.inference_topk', type=str, help='At inference time, how many miners to we query and return the top rewarded.', default = 10 )
-        parser.add_argument('--neuron.training_topk', type=str, help='During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
-        parser.add_argument('--neuron.epoch_length', type=str, help='During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
+        parser.add_argument('--netuid', type = int , help = 'Prompting network netuid', default = 41 )
+        parser.add_argument('--neuron.name', type = str, help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default = 'core_prompting_validator')
+        parser.add_argument('--neuron.reward_model_name', type = str, help = 'GPTRewardModel name', default = 'Dahoas/gpt2-rm-static')
+        parser.add_argument('--neuron.inference_topk', type = str, help = 'At inference time, how many miners to we query and return the top rewarded.', default = 10 )
+        parser.add_argument('--neuron.training_topk', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
+        parser.add_argument('--neuron.epoch_length', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
 
     @classmethod
     def config ( cls ):
@@ -88,7 +89,7 @@ class neuron:
         self.subtensor = bt.subtensor ( config = self.config )
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wallet = bt.wallet ( config = self.config )
-        self.metagraph = self.subtensor.metagraph(21)
+        self.metagraph = self.subtensor.metagraph( self.config.netuid )
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
@@ -97,21 +98,20 @@ class neuron:
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
         self.history = []
 
-    def uid_selector(
-            self
-    ):
-        """
-            Returns the uids of metagraph endpoint objs that are not equal to 0.0.0.0
-
+    def complute_weights( self ) -> torch.FloatTensor:
+        """ Computes valdiation weights from history and clears history.
             Returns:
-                uids (list): The list of uids.
+                weights ( torch.FloatTensor, shape = (n) ): 
+                    The weights for each uid.
         """
-        uids = []
-        for endpoint in self.metagraph.endpoint_objs:
-            if endpoint.ip != '0.0.0.0':
-                print('ip |', endpoint.ip, '| uid |', endpoint.uid)
-                uids.append(endpoint.uid)
-        return uids
+        # Averages the rewards for each uid across non-zero values.
+        rewards = []
+        for event in self.history:
+            normalized_rewards = torch.nn.functional.normalize( event.rewards, p=1, dim=0 )
+            rewards.append( torch.zeros((self.metagraph.n)).scatter(0, event.uids, normalized_rewards ) )
+        rewards = torch.cat( rewards, 0 )
+        rewards = torch.stack( rewards, 1) 
+        return torch.nan_to_num( rewards.sum(1) / (rewards != 0).sum(1), 0 )
    
     def forward( 
             self, 
@@ -125,127 +125,74 @@ class neuron:
             Args: 
                 message (str): The message to query the network with.
         """
+        print ('forward --------------------' )
         if topk is None or topk == -1: topk = self.metagraph.n.item()
+        available_uids = [ uid for uid, ep in enumerate( self.metagraph.endpoint_objs ) if ep.is_serving ]
+        if topk > len(available_uids): topk = len(available_uids)
+        print ('topk', topk)
 
         # We run the gating network here to get the best uids
-        # TODO( jason + joey ): this is not training properly.
-        # probably want to port over joey's work on embedding based cosine similarity routing.
-        # message --> torch.tensor([scores x num_uids])
-        scores = self.gating_model( 
-            message
-        )
+        scores = self.gating_model( message )
+        print ('scores', scores)
 
         # We query the topk best uids here using the inference topk as the limit.
-        uids = scores.sort()[1][-topk:].tolist()
-        
-        _completions = self.dendrite_pool( 
-            prompt = prompt,
-            message = message, 
-            uids = uids 
+        topk_uids = available_uids[ scores[ available_uids ].sort()[ 1 ][ -topk: ]]
+        print ('topk_uids', topk_uids)
+
+        # We query the topk available uids.
+        completions = self.dendrite_pool( prompt = prompt, message = message, uids = topk_uids )
+        print ('completions', completions)
+
+        # Filter out the None completions.
+        successful_uids = [ uid for uid, completion in list( zip( topk_uids, completions ) ) if completion is not None ]
+        successful_completions = [ completions[ uid ] for uid in successful_uids ]
+        print ('successful_uids', successful_uids)
+
+        # Rank the completions based on the reward model filling the rewards vector.
+        rewards = torch.zeros( ( self.metagraph.n.item() ) )
+        rewards[ successful_uids ] = self.reward_model.reward( successful_completions )
+        print ('rewards', rewards)
+
+        # We train the gating network here.
+        self.gating_model.backward( scores = scores[ successful_uids ], rewards = rewards[ successful_uids ] )
+
+        # Save the query history.
+        result = SimpleNamespace( 
+            completion = completions[ rewards.argmax( dim = 0 ) ],
+            message = message,  
+            uids = topk_uids,
+            rewards = rewards,
+            scores = scores[ topk_uids ],
+            all_completions = completions
         )
+        self.history.append( result )
 
-        completions = [completion for completion in _completions if completion is not None]
-        uids = [uid for completion, uid in zip(_completions, uids) if completion is not None]
-
-        # We rank the completions based on the reward model.
-        # TODO( carro ): this needs to be trained properly.
-        rewards = self.reward_model.reward( 
-            completions 
-        )
-
-        # import pdb; pdb.set_trace()
-
-        # We backpropagate the rewards to the gating network.
-        # TODO( jaons + joey ): ditto.
-
-
-        self.gating_model.backward( 
-            scores = scores[ uids ], 
-            rewards = rewards 
-        )
-
-        # We call the backward pass to the miners.
-        # TODO( jason ) write the proto + dendrite + synapse
-        # to service these requests.
-        # reward --> miner, then the miner optionally applies PPO.
-        # self.dendrite_pool.backward(
-        #     message = message,
-        #     reward = rewards, # NOTE( jason ): I dont think this is a single scalar in practice. 
-        #     uids = uids,
-        # )
-
-        # Save history for later computing of weights.
-        # history [
-        #     message, rewards # message = { 'role': 'user', 'text': 'hello world'}, rewards = [ 0.1, 0.2, 0.3, 0.4 ... x number of miners ]
-        #     message, rewards
-        #     ...
-        #     ...
-        # ] ---> weights
-        self.history.append( 
-            ( message, uids, rewards, scores[ uids ] )
-        )
-        #if self.config.logging.debug:
-        for completion, reward, score in zip( completions, rewards, scores[ uids ] ):
-            print( "Message: ", message )
-            print( "Completion: ", completion )
-            print( "Reward: ", reward )
-            print( "Score: ", score )
-            print( "------------------" )
-
-        # We return the completion with the highest reward.
-        return completions[ rewards.argmax(dim=0) ]
+        # Return the completion with the highest reward.
+        return result
     
     # User queries here.
     def inference( self, message ):
         """Inference"""
-        return self.forward( message, topk = self.config.neuron.inference_topk )
+        return self.forward( message, topk = self.config.neuron.inference_topk ).completion
 
     def train(self):
         """ Training """
         last_epoch_block = self.subtensor.block
         while True:
-            
-            # TODO( robert ): Use prompting network here to generate inputs.
-            # the prompting network should generate questions which cover our data distribution.
-            message = self.forward( "ask me a random question about anything. Make the question very domain specific about science and language." )
-            self.forward( message, topk = self.config.neuron.training_topk )
+
+            # Query the network for a question            
+            question = self.forward( "ask me a random question about anything. Make the question very domain specific about science and language." ).completion
+
+            # Ask the questions to the network, training the gating network.
+            self.forward( question, topk = self.config.neuron.training_topk )
     
             # Set weights on epoch.
             if self.subtensor.block - last_epoch_block > self.subtensor.validator_epoch_length( self.config.netuid ) :
                 last_epoch_block = self.subtensor.block
-
-                # TODO( taco + joey + jason): we need to get a lot more intelligence here about how 
-                # we translate the history into chain weights. Because we actually want to be
-                # training the weights so that the E( topk( score ) )_B               
-                # A: 5 5 5 5 5 5 5 5 5 5  = 5
-                # B: 10 0 0 0 0 10 0 0 0 -- 20/8 = 3.5
-                # C:  0 0 10 10 10 0 0 0 -- 30/8 = 3.9
-                # D:  0 0 0 0 0 0 0 10 10 -- 20/8 = 3.5
-                # gate_matrix = torch.zeros_like(weights)
-                # gate_values = torch.nn.Softmax(dim=1)(topk.values)
-                # self.gate_matrix = gate_matrix.scatter(dim=1, index=topk.indices, src=gate_values)
-
-                # average_rewards = torch.zeros_like( self.metagraph.R )
-
-                from collections import defaultdict
-                scores_by_uid = defaultdict(list)
-                for message, uids, rewards, scores in self.history:
-                    for uid, reward in zip(uids, rewards):
-                        scores_by_uid[uid].append(reward)
-                        
-                for k, v in scores_by_uid.values():
-                    scores_by_uid[k] = sum(v) / len(v)
-                weights = torch.zeros_like( self.metagraph.uids, dtype = torch.float32 )
-                uids = sorted(list(scores_by_uid.keys()))
-                rewards = [scores_by_uid[k] for k in uids]
-                
-                weights = weights.scatter(
-                    index = torch.tensor( uids, dtype=torch.long ), 
-                    values = torch.tensor( rewards, dtype = torch.float32 )
-                )                    
+                weights = self.complute_weights()          
                 self.subtensor.set_weights(
                     uids = self.metagraph.uids,
-                    weights = weights
+                    weights = weights,
                 )
             
 if __name__ == '__main__':
