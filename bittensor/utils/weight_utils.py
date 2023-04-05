@@ -135,7 +135,7 @@ def convert_weights_and_uids_for_emit( uids: torch.LongTensor, weights: torch.Fl
     weight_vals = []
     weight_uids = []
     for i, (weight_i, uid_i) in enumerate(list(zip(weights, uids))):
-        uint16_val = int(float(weight_i) * int(U16_MAX))  # convert to int representation.
+        uint16_val = round(float(weight_i) * int(U16_MAX))  # convert to int representation.
 
         # Filter zeros
         if uint16_val != 0: # Filter zeros
