@@ -466,7 +466,13 @@ class Keyfile( object ):
                     return True if the keyfile is the most updated with nacl, else False.
         """
         if not self.exists_on_device():
-            bittensor.__console__.print(f"Keyfile does not exist.\n{self}")
+            bittensor.__console__.print(f"Keyfile does not exist. {self.path}")
+            return False
+        if not self.is_readable():
+            bittensor.__console__.print(f"Keyfile is not redable. {self.path}")
+            return False
+        if not self.is_writable():
+            bittensor.__console__.print(f"Keyfile is not writable. {self.path}")
             return False
         
         if not no_prompt:
@@ -484,12 +490,6 @@ class Keyfile( object ):
                             if not Confirm.ask("Invalid password, retry and continue this keyfile update?"):
                                 return False
 
-                    if not self.exists_on_device():
-                        raise KeyFileError( "Keyfile at: {} is not a file".format( self.path ))
-                    if not self.is_readable():
-                        raise KeyFileError( "Keyfile at: {} is not readable".format( self.path ))
-                    if not self.is_writable():
-                        raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) ) 
 
                     encrypted_keyfile_data = encrypt_keyfile_data( decrypted_keyfile_data, password = password )
                     self._write_keyfile_data_to_file( encrypted_keyfile_data, overwrite = True )
@@ -500,7 +500,7 @@ class Keyfile( object ):
             if print_result: bittensor.__console__.print(f"Keyfile is not encrypted. \n:key: {self}")
             return False
         elif keyfile_data_is_encrypted_nacl( keyfile_data ):
-            if print_result: bittensor.__console__.print(f":white_heavy_check_mark: Keyfile has been updated. \n:key: {self}")
+            if print_result: bittensor.__console__.print(f":white_heavy_check_mark: Keyfile is already updated. \n:key: {self}")
             return True
         else:
             if print_result: bittensor.__console__.print(f':cross_mark: Keyfile is outdated, please update with "btcli update_wallet" \n:key: {self}')

@@ -53,10 +53,10 @@ class UpdateWalletCommand:
         else:
             wallets = [bittensor.wallet( config = config )]
 
-        print(wallets)
         for wallet in wallets: 
             print("\n===== ", wallet, " =====")
             wallet.coldkey_file.check_and_update_encryption()
+
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
