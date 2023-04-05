@@ -69,7 +69,7 @@ def add_stake_extrinsic(
         hotkey_ss58 = wallet.hotkey.ss58_address 
 
     # Flag to indicate if we are using the wallet's own hotkey.
-    own_hotkey: bool = False
+    own_hotkey: bool
 
     with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(subtensor.network)):
         old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
