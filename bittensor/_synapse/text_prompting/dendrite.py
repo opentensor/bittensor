@@ -77,7 +77,8 @@ class TextPromptingDendritePool( torch.nn.Module ):
             return all_responses
         
         # Return the message responses running the query in asyncio.
-        return asyncio.run(query())
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete( query() )
 
 class TextPromptingDendrite(bittensor.Dendrite):
     """Dendrite for the text_prompting synapse."""
