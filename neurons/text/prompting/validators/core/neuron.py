@@ -28,10 +28,11 @@ from typing import List, Optional
 from reward import RewardModel
 from gating import GatingModel
 
-
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific about science and language.
+Do not include the answer in the question.
 '''
+
 __default_base_prompt__ = '''
 You are designed to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics.
 '''
