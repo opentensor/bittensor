@@ -2095,26 +2095,27 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
 
         with patch('bittensor.neurons.core_server.neuron', MagicMock(side_effect=MockException("should exit early"))) as mock_neuron:
             with patch('bittensor.Wallet.is_registered', MagicMock(return_value=True)): # mock registered
-                with pytest.raises(MockException):
-                    cli = bittensor.cli(args=[
-                        'run',
-                        '--subtensor.network', 'mock', # Mock network
-                        '--netuid', '1',
-                        '--wallet.name', 'mock',
-                        '--wallet.hotkey', 'mock_hotkey',
-                        '--wallet._mock', 'True',
-                        '--cuda.no_cuda',
-                        '--no_prompt',
-                        '--model', 'core_server',
-                        '--synapse', 'All',
-                    ])
-                    cli.run()
+                with patch('bittensor.Config.to_defaults', MagicMock(return_value=True)): 
+                    with pytest.raises(MockException):
+                        cli = bittensor.cli(args=[
+                            'run',
+                            '--subtensor.network', 'mock', # Mock network
+                            '--netuid', '1',
+                            '--wallet.name', 'mock',
+                            '--wallet.hotkey', 'mock_hotkey',
+                            '--wallet._mock', 'True',
+                            '--cuda.no_cuda',
+                            '--no_prompt',
+                            '--model', 'core_server',
+                            '--synapse', 'All',
+                        ])
+                        cli.run()
 
-                assert mock_neuron.call_count == 1
-                args, kwargs = mock_neuron.call_args
+                    assert mock_neuron.call_count == 1
+                    args, kwargs = mock_neuron.call_args
 
-                self.assertEqual(len(args), 0) # Should not have any args; indicates that "All" synapses are being used
-                self.assertEqual(len(kwargs), 1) # should have one kwarg; netuid
+                    self.assertEqual(len(args), 0) # Should not have any args; indicates that "All" synapses are being used
+                    self.assertEqual(len(kwargs), 1) # should have one kwarg; netuid
 
     def test_list_delegates(self):
         cli = bittensor.cli(args=[
