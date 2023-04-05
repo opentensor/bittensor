@@ -151,7 +151,9 @@ class mock_subtensor():
                 error_code = None
             
             if error_code is not None:
-                raise RuntimeError( 'Failed to start mocked subtensor process: {}'.format(error_code) )
+                # Get the error message.
+                error_message = _mock_subtensor_process.stderr.read().decode('utf-8')
+                raise RuntimeError( 'Failed to start mocked subtensor process: {}'.format(error_code), error_message )
 
             print ('Starting subtensor process with pid {} and name {}'.format(_mock_subtensor_process.pid, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME))
 
