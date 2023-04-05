@@ -305,7 +305,6 @@ class Keyfile( object ):
         if not self.exists_on_device():
             return "Keyfile (empty, {})>".format( self.path )
         if self.is_encrypted():
-                        
             return "Keyfile ({} encrypted, {})>".format( keyfile_data_encryption_method(self._read_keyfile_data_from_file()), self.path )
         else:
             return "Keyfile (decrypted, {})>".format( self.path )
@@ -451,24 +450,30 @@ class Keyfile( object ):
         choice = input("File {} already exists. Overwrite ? (y/N) ".format( self.path ))
         return choice == 'y'
 
-    def check_and_update_encryption(self, print_result = True, no_prompt = False):
-        """ Encrypts file under path.
+    def check_and_update_encryption(self, print_result:bool = True, no_prompt:bool = False):
+        """ Check the version of keyfile and update if needed.
             Args:
-                password: (str, optional):
-                    Optional password for encryption. Otherwise asks for user input.
+                print_result (bool):
+                    Print the checking result or not.
+                no_prompt (bool):
+                    Skip if no prompt.
             Raises:
                 KeyFileError:
                     Raised if the file does not exists, is not readable, writable.
+
+            Returns:
+                result (bool):
+                    return True if the keyfile is the most updated with nacl, else False.
         """
         if not self.exists_on_device():
             bittensor.__console__.print(f"Keyfile does not exist.\n{self}")
-            return
+            return False
         
         if not no_prompt:
             keyfile_data = self._read_keyfile_data_from_file()
             if keyfile_data_is_encrypted( keyfile_data ) and not keyfile_data_is_encrypted_nacl( keyfile_data ):
 
-                bittensor.__console__.print(f":exclamation_mark:You may update the keyfile to improve the security for storing your keys. \n:exclamation_mark:While the keys stay the same, it would require (1) providing your old password and (2) setting up a new password. \n:key: {self}")
+                bittensor.__console__.print(f":exclamation_mark:You may update the keyfile to improve the security for storing your keys. \nWhile the keys stay the same, it would require (1) providing your old password and (2) setting up a new password. \n:key: {self}")
                 if Confirm.ask("Update keyfile?"):
                     decrypted_keyfile_data = decrypt_keyfile_data(keyfile_data, coldkey_name=self.name)
 
@@ -482,16 +487,17 @@ class Keyfile( object ):
                     encrypted_keyfile_data = encrypt_keyfile_data( decrypted_keyfile_data )
                     self._write_keyfile_data_to_file( encrypted_keyfile_data, overwrite = True )
         
-        if print_result:
-            keyfile_data = self._read_keyfile_data_from_file()
-            if not keyfile_data_is_encrypted( keyfile_data ):
-                bittensor.__console__.print(f"Keyfile is not encrypted. \n:key: {self}")
-                return 
-            elif keyfile_data_is_encrypted_nacl( keyfile_data ):
-                bittensor.__console__.print(f":white_heavy_check_mark: Keyfile has been updated. \n:key: {self}")
-            else:
-                bittensor.__console__.print(f':cross_mark: Keyfile is outdated, please update with "btcli update_wallet" \n:key: {self}')
-
+        
+        keyfile_data = self._read_keyfile_data_from_file()
+        if not keyfile_data_is_encrypted( keyfile_data ):
+            if print_result: bittensor.__console__.print(f"Keyfile is not encrypted. \n:key: {self}")
+            return False
+        elif keyfile_data_is_encrypted_nacl( keyfile_data ):
+            if print_result: bittensor.__console__.print(f":white_heavy_check_mark: Keyfile has been updated. \n:key: {self}")
+            return True
+        else:
+            if print_result: bittensor.__console__.print(f':cross_mark: Keyfile is outdated, please update with "btcli update_wallet" \n:key: {self}')
+            return False
 
     def encrypt( self, password: str = None):
         """ Encrypts file under path.
