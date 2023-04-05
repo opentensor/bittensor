@@ -31,7 +31,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
         self.metagraph = metagraph
         self.wallet = wallet
 
-    def forward( 
+    async def forward( 
             self, 
             message: str, 
             prompt: str = None,
@@ -77,8 +77,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
             return all_responses
         
         # Return the message responses running the query in asyncio.
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete( query() )
+        return await query()
 
 class TextPromptingDendrite(bittensor.Dendrite):
     """Dendrite for the text_prompting synapse."""
@@ -107,20 +106,17 @@ class TextPromptingDendrite(bittensor.Dendrite):
         forward_call.response = response_proto.response
         return forward_call
 
-    def forward(
-        self,
-        roles: str,
-        messages: List[Dict[str, str]],
-        timeout: float = bittensor.__blocktime__,
-    ) -> "bittensor.TextPromptingForwardCall":
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete( 
-            self._async_forward( 
-                forward_call = bittensor.TextPromptingForwardCall(
-                    messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
-                    timeout = timeout,
-                ) 
-            ) 
+    async def forward(
+            self,
+            roles: str,
+            messages: List[Dict[str, str]],
+            timeout: float = bittensor.__blocktime__,
+        ) -> "bittensor.TextPromptingForwardCall":
+        return await self._async_forward(
+            forward_call=bittensor.TextPromptingForwardCall(
+                messages=[json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
+                timeout=timeout,
+            )
         )
     
     def async_forward(
