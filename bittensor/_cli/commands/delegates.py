@@ -405,7 +405,7 @@ class MyDelegatesCommand:
     def run( cli ):
         '''Delegates stake to a chain delegate.'''
         config = cli.config.copy()
-        if config.all == True:
+        if config.get('all', d=None) == True:
             wallets = _get_coldkey_wallets_for_path( config.wallet.path )
         else:
             wallets = [bittensor.wallet( config = config )]
@@ -508,7 +508,7 @@ class MyDelegatesCommand:
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
-        if not config.all and config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
+        if not config.get( 'all', d=None ) and config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
