@@ -54,15 +54,17 @@ class neuron:
     @classmethod
     def add_args( cls, parser ):
         # Netuid Arg
-        parser.add_argument('--netuid', type = int , help = 'Prompting network netuid', default = 41 )
-        parser.add_argument('--neuron.name', type = str, help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default = 'core_prompting_validator')
-        parser.add_argument('--neuron.base_prompt', type=str , help = 'Prompt injected before a question is completed by miners on the network', default = __default_base_prompt__ )
-        parser.add_argument('--neuron.question_prompt', type=str , help = 'Prompt used to generate questions from the network whicha are used to evaluate other miners.', default = __default_question_prompt__ )
-        parser.add_argument('--neuron.reward_model_name', type = str, help = 'GPTRewardModel name', default = 'Dahoas/gpt2-rm-static')
-        parser.add_argument('--neuron.inference_topk', type = str, help = 'At inference time, how many miners to we query and return the top rewarded.', default = 10 )
-        parser.add_argument('--neuron.training_topk', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
-        parser.add_argument('--neuron.epoch_length', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
-        parser.add_argument('--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 100 )
+        parser.add_argument( '--netuid', type = int, help = 'Prompting network netuid', default = 41 )
+        parser.add_argument( '--neuron.name', type = str, help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default = 'core_prompting_validator')
+        parser.add_argument( '--neuron.base_prompt', type=str, help = 'Prompt injected before a question is completed by miners on the network', default = __default_base_prompt__ )
+        parser.add_argument( '--neuron.question_prompt', type=str, help = 'Prompt used to generate questions from the network whicha are used to evaluate other miners.', default = __default_question_prompt__ )
+        parser.add_argument( '--neuron.reward_model_name', type = str, help = 'GPTRewardModel name', default = 'Dahoas/gpt2-rm-static')
+        parser.add_argument( '--neuron.inference_topk', type = str, help = 'At inference time, how many miners to we query and return the top rewarded.', default = 10 )
+        parser.add_argument( '--neuron.training_topk', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
+        parser.add_argument( '--neuron.epoch_length', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
+        parser.add_argument( '--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 100 )
+        parser.add_argument( '--neuron.base_timeout', type = int, help = 'Base timeout for all requests.', default = 1 )
+        parser.add_argument( '--neuron.length_timeout_multiplier', type = int, help = 'Base timeout for all requests.', default = 0.01 )
 
     @classmethod
     def config ( cls ):
@@ -117,7 +119,7 @@ class neuron:
             print ('scattered_rewards', scattered_rewards.size(), scattered_rewards)
 
             # Append the scattered rewards to the `rewards` list.
-            rewards.append(scattered_rewards)
+            rewards.append( scattered_rewards )
 
         # Stack the scattered rewards tensors along the second dimension.
         rewards = torch.stack( rewards, 1 ).to( self.device )
@@ -164,7 +166,12 @@ class neuron:
         # Use the selected `uids` to query the dendrite pool.
         # Print the `completions`.
         topk_uids = available_uids[ scores[ available_uids ].sort()[ 1 ][ -topk: ]]
-        completions = self.dendrite_pool( prompt = self.config.neuron.base_prompt, message = message, uids = topk_uids )
+        completions = self.dendrite_pool( 
+            prompt = self.config.neuron.base_prompt, 
+            message = message, 
+            uids = topk_uids, 
+            timeout = float( self.config.neuron.base_timeout + self.config.neuron.length_timeout_multiplier * len( message ) )
+        )
         print ('\ntopk_uids',  len(topk_uids), topk_uids)
         print ('\ncompletions', len(completions), completions)
 
