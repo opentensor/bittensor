@@ -190,6 +190,23 @@ def keyfile_data_is_encrypted( keyfile_data:bytes ) -> bool:
     """
     return keyfile_data_is_encrypted_nacl(keyfile_data) or keyfile_data_is_encrypted_ansible( keyfile_data ) or keyfile_data_is_encrypted_legacy( keyfile_data )
 
+def keyfile_data_encryption_method( keyfile_data:bytes ) -> bool:
+    """ Returns true if the keyfile data is encrypted.
+        Args:
+            keyfile_data ( bytes, required ):
+                Bytes to validate
+        Returns:
+            encryption_method (bool):
+                True if data is encrypted.
+    """
+
+    if keyfile_data_is_encrypted_nacl(keyfile_data):
+        return 'NaCl'
+    elif keyfile_data_is_encrypted_ansible( keyfile_data ):
+        return 'Ansible Vault'
+    elif keyfile_data_is_encrypted_legacy( keyfile_data ):
+        return 'legacy'
+
 def encrypt_keyfile_data ( keyfile_data:bytes, password: str = None ) -> bytes:
     """ Encrypts passed keyfile data using ansible vault.
         Args:
@@ -288,7 +305,8 @@ class Keyfile( object ):
         if not self.exists_on_device():
             return "Keyfile (empty, {})>".format( self.path )
         if self.is_encrypted():
-            return "Keyfile (encrypted, {})>".format( self.path )
+                        
+            return "Keyfile ({} encrypted, {})>".format( keyfile_data_encryption_method(self._read_keyfile_data_from_file()), self.path )
         else:
             return "Keyfile (decrypted, {})>".format( self.path )
 
@@ -373,10 +391,6 @@ class Keyfile( object ):
         if keyfile_data_is_encrypted( keyfile_data ):
             decrypted_keyfile_data = decrypt_keyfile_data(keyfile_data, password, coldkey_name=self.name)
 
-            if not keyfile_data_is_encrypted_nacl( keyfile_data ):
-                bittensor.__console__.print(":exclamation_mark::exclamation_mark: You may update the keyfile to improve the security of storing your keys. It would require setting up a new password while the keys stay the same.")
-                if Confirm.ask("Update keyfile?"):
-                    self.update_encryption(decrypted_keyfile_data)
         else:
             decrypted_keyfile_data = keyfile_data
 
@@ -437,7 +451,7 @@ class Keyfile( object ):
         choice = input("File {} already exists. Overwrite ? (y/N) ".format( self.path ))
         return choice == 'y'
 
-    def update_encryption(self, decrypted_keyfile_data):
+    def check_and_update_encryption(self, print_result = True, no_prompt = False):
         """ Encrypts file under path.
             Args:
                 password: (str, optional):
@@ -447,15 +461,36 @@ class Keyfile( object ):
                     Raised if the file does not exists, is not readable, writable.
         """
         if not self.exists_on_device():
-            raise KeyFileError( "Keyfile at: {} is not a file".format( self.path ))
-        if not self.is_readable():
-            raise KeyFileError( "Keyfile at: {} is not readable".format( self.path ))
-        if not self.is_writable():
-            raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) ) 
+            bittensor.__console__.print(f"Keyfile does not exist.\n{self}")
+            return
         
-        encrypted_keyfile_data = encrypt_keyfile_data( decrypted_keyfile_data )
-        self._write_keyfile_data_to_file( encrypted_keyfile_data, overwrite = True )
-        bittensor.__console__.print(":white_heavy_check_mark: [green]Successfully updated keyfile.[/green]")
+        if not no_prompt:
+            keyfile_data = self._read_keyfile_data_from_file()
+            if keyfile_data_is_encrypted( keyfile_data ) and not keyfile_data_is_encrypted_nacl( keyfile_data ):
+
+                bittensor.__console__.print(f":exclamation_mark:You may update the keyfile to improve the security for storing your keys. \n:exclamation_mark:While the keys stay the same, it would require (1) providing your old password and (2) setting up a new password. \n:key: {self}")
+                if Confirm.ask("Update keyfile?"):
+                    decrypted_keyfile_data = decrypt_keyfile_data(keyfile_data, coldkey_name=self.name)
+
+                    if not self.exists_on_device():
+                        raise KeyFileError( "Keyfile at: {} is not a file".format( self.path ))
+                    if not self.is_readable():
+                        raise KeyFileError( "Keyfile at: {} is not readable".format( self.path ))
+                    if not self.is_writable():
+                        raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) ) 
+
+                    encrypted_keyfile_data = encrypt_keyfile_data( decrypted_keyfile_data )
+                    self._write_keyfile_data_to_file( encrypted_keyfile_data, overwrite = True )
+        
+        if print_result:
+            keyfile_data = self._read_keyfile_data_from_file()
+            if not keyfile_data_is_encrypted( keyfile_data ):
+                bittensor.__console__.print(f"Keyfile is not encrypted. \n:key: {self}")
+                return 
+            elif keyfile_data_is_encrypted_nacl( keyfile_data ):
+                bittensor.__console__.print(f":white_heavy_check_mark: Keyfile has been updated. \n:key: {self}")
+            else:
+                bittensor.__console__.print(f':cross_mark: Keyfile is outdated, please update with "btcli update_wallet" \n:key: {self}')
 
 
     def encrypt( self, password: str = None):
