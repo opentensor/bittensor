@@ -23,7 +23,6 @@ import json
 import miniupnpc
 import netaddr
 import requests
-
 from loguru import logger
 
 def int_to_ip(int_val: int) -> str:
@@ -82,7 +81,7 @@ def ip__str__(ip_type:int, ip_str:str, port:int):
 class ExternalIPNotFound(Exception):
     """ Raised if we cannot attain your external ip from CURL/URLLIB/IPIFY/AWS """
 
-def get_external_ip() -> str:
+def get_external_ip(timeout:int = 12) -> str:
     r""" Checks CURL/URLLIB/IPIFY/AWS for your external ip.
         Returns:
             external_ip  (:obj:`str` `required`):
@@ -93,13 +92,13 @@ def get_external_ip() -> str:
                 Raised if all external ip attempts fail.
     """
     def get_external_ip_from_aws():
-        return requests.get('https://checkip.amazonaws.com').text.strip()
+        return requests.get('https://checkip.amazonaws.com', timeout=timeout).text.strip()
 
     def get_external_ip_from_ipv6():
-        return urllib.request.urlopen('https://ident.me').read().decode('utf8')
+        return urllib.request.urlopen('https://ident.me', timeout=timeout).read().decode('utf8')
 
     def get_external_ip_from_wiki():
-        return requests.get('https://www.wikipedia.org').headers['X-Client-IP']
+        return requests.get('https://www.wikipedia.org', timeout=timeout).headers['X-Client-IP']
     
     def get_external_ip_from_ipinfo():
         process =  os.popen('curl -s https://ipinfo.io')
