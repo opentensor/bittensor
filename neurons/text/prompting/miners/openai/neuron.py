@@ -18,16 +18,15 @@
 # General.
 import os
 import time
+import json
 import torch
+import openai
 import argparse
 import bittensor
+
+from typing import List, Dict
 from rich import print
 from datetime import datetime
-import openai
-import json
-
-from typing import List
-
 
 # Check run config.
 def check_config(config: 'bittensor.Config'):
