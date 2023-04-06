@@ -92,59 +92,37 @@ def get_external_ip() -> str:
             ExternalIPNotFound (Exception):
                 Raised if all external ip attempts fail.
     """
-    # --- Try AWS
-    try:
-        external_ip = requests.get('https://checkip.amazonaws.com').text.strip()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
-        pass
+    def get_external_ip_from_aws():
+        return requests.get('https://checkip.amazonaws.com').text.strip()
 
-    # --- Try ipconfig.
-    try:
-        process =  os.popen('curl -s ifconfig.me')
-        external_ip = process.readline()
-        process.close()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
-        pass
+    def get_external_ip_from_ipv6():
+        return urllib.request.urlopen('https://ident.me').read().decode('utf8')
 
-    # --- Try ipinfo.
-    try:
+    def get_external_ip_from_wiki():
+        return requests.get('https://www.wikipedia.org').headers['X-Client-IP']
+    
+    def get_external_ip_from_ipinfo():
         process =  os.popen('curl -s https://ipinfo.io')
         external_ip = json.loads(process.read())['ip']
         process.close()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
-        pass
+        return external_ip
 
-    # --- Try myip.dnsomatic 
-    try:
-        process = os.popen('curl -s myip.dnsomatic.com')
-        external_ip  = process.readline()
-        process.close()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
-        pass    
+    external_ip = None
 
-    # --- Try urllib ipv6 
-    try:
-        external_ip = urllib.request.urlopen('https://ident.me').read().decode('utf8')
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
-        pass
-
-    # --- Try Wikipedia 
-    try:
-        external_ip = requests.get('https://www.wikipedia.org').headers['X-Client-IP']
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
-        pass
+    for get_ip in [
+        get_external_ip_from_aws, 
+        get_external_ip_from_ipinfo, 
+        get_external_ip_from_ipv6, 
+        get_external_ip_from_wiki
+    ]:
+        try:
+            external_ip = get_ip()
+            if external_ip != None: 
+                assert isinstance(ip_to_int(external_ip), int)
+                return str(external_ip)
+        except Exception:
+            print(get_ip)
+            pass
 
     raise ExternalIPNotFound
 
