@@ -16,44 +16,34 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+import json
+import torch
+import bittensor
 from typing import Union, List, Dict
 
-import torch
-
-import bittensor
-import json
-
 class TextPromptingForwardCall(bittensor.BittensorCall):
-    """Call state for the text_prompting synapse."""
+    """
+    Call state for the text_prompting synapse.
+    """
 
-    # The name of the synapse call.
     name: str = "forward_prompting"
-    messages = None # To be filled by the forward call
+    messages = None  # To be filled by the forward call
 
     def __str__(self) -> str:
-        return """
-bittensor.TextPromptingForwardCall( 
-    description: Returns the logits for the last predicted item in a given sequence.
-    caller: {},
-    version: {},
-    timeout = {}, 
-    start_time = {},
-    end_time = {},
-    elapsed = {},
-    Args:
-    \tmessages: List[str] = {}, 
-    \tresponse: List[str] = {}, 
-)
-""".format(
-            self.hotkey,
-            self.version,
-            self.timeout,
-            self.start_time,
-            self.end_time,
-            time.time() - self.start_time,
-            self.messages,
-            self.response if self.response is not None else "To be filled by the forward call.",
-        )
+        return f"""
+            bittensor.TextPromptingForwardCall( 
+                description: Returns the logits for the last predicted item in a given sequence.
+                caller: {self.hotkey},
+                version: {self.version},
+                timeout: {self.timeout}, 
+                start_time: {self.start_time},
+                end_time: {self.end_time},
+                elapsed: {time.time() - self.start_time},
+                Args:
+                    messages: List[str] = {self.messages}, 
+                    response: List[str] = {self.response if self.response is not None else "To be filled by the forward call."},
+            )
+        """
 
     def __init__(
         self,
@@ -91,41 +81,35 @@ class TextPromptingBackwardCall(bittensor.BittensorCall):
     name: str = "backward_prompting"
 
     def __str__(self) -> str:
-        return """
-bittensor.TextPromptingForwardCall( 
-    description: Returns RL rewards to miner based on reward model scoring.
-    caller: {},
-    version: {},
-    timeout = {}, 
-    start_time = {},
-    end_time = {},
-    elapsed = {},
-    Args:
-    \tforward_call: TextPromptingForwardCall = {}, 
-    \trewards: List[float] = {}, 
-
-)
-""".format(
-            self.hotkey,
-            self.version,
-            self.timeout,
-            self.start_time,
-            self.end_time,
-            time.time() - self.start_time,
-            self.forward_call,
-            self.rewards
-        )
+        return f"""
+            bittensor.TextPromptingForwardCall( 
+                description: Returns RL rewards to miner based on reward model scoring.
+                caller: {self.hotkey},
+                version: {self.version},
+                timeout: {self.timeout}, 
+                start_time: {self.start_time},
+                end_time: {self.end_time},
+                elapsed: {time.time() - self.start_time},
+                Args:
+                    messages: List[Dict[str,str]] = {self.messages}, 
+                    response: str = {self.response}, 
+                    rewards: List[float] = {self.rewards},
+            )
+        """
 
     def __init__(
         self,
-        forward_call: 'TextPromptingForwardCall',
+        messages: List[str],
+        response: str,
         rewards: List[float],
         timeout: float = bittensor.__blocktime__,
     ):
         """Forward call to the receptor.
         Args:
-            forward_call (:obj:`TextPromptingForwardCall`, `required`):
-                forward_call as sent during the forward pass.
+            messages (:obj:`List[str]`, `required`):
+                messages on forward call.
+            response (:obj:`str`, `required`):
+                response from forward call.
             rewards (:obj:`List[float]`, `required`):
                 rewards vector from reward model from forward call.
             timeout (:obj:`float`, `optional`, defaults to 5 seconds):
@@ -135,7 +119,8 @@ bittensor.TextPromptingForwardCall(
                 bittensor forward call dataclass.
         """
         super().__init__(timeout=timeout)
-        self.forward_call = forward_call
+        self.messages = messages
+        self.response = response
         self.rewards = rewards
 
     def get_inputs_shape(self) -> Union[torch.Size, None]:

@@ -28,7 +28,7 @@ class Synapse(bittensor.TextPromptingSynapse):
     def _blacklist(self, forward_call: "bittensor.TextPromptingForwardCall") -> bool:
         return False
 
-    def backward( self, messages: List[Dict[str, str]], rewards: torch.FloatTensor ) -> str:
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
         # Apply PPO.
         pass
 
@@ -69,6 +69,7 @@ forward_response = module.forward(
 backward_response = module.backward(
     roles = ['user', 'assistant'],
     messages = [{ "user": "Human", "content": "hello"}],
+    response = forward_response.response,
     rewards = [1,2,3,4,5],
     timeout = 1e6
 )

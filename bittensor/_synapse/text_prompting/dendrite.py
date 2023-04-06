@@ -31,20 +31,169 @@ class TextPromptingDendritePool( torch.nn.Module ):
         self.metagraph = metagraph
         self.wallet = wallet
 
-    async def forward( 
+    def backward(self,
+            message: str,
+            completions: List[ str ],
+            rewards: Union[ List[torch.LongTensor], List[List[float]] ],
+            uids: Union[torch.LongTensor, List[int]],
+            prompt: str = None,
+            return_call:bool = True,
+            timeout: float = 12.0
+        ):
+        """Sends a forward query to the networks and returns rewards to miners.
+
+        Args:
+            message (:obj:`str`, `required`):
+                The message used on the forward to query the networks.
+            completions (:obj:`List[str]`, `required`):
+                The completions from the prompt on the forward call.
+            rewards (:obj:`Union[List[torch.LongTensor], List[List[float]], List[float]]`, `optional`):
+                The rewards from the forward call based on the reward model.
+            uids (:obj:`Union[torch.LongTensor, List[int]]`, `optional`):
+                The uids from the forward call.
+            prompt (:obj:`str`, `optional`, defaults to `None`):
+                The prompt message used to query the network with.
+            return_call (bool): 
+                The result is the full forward query object.
+            timeout (:obj:`float`, `optional`, defaults to `12.0`):
+                The timeout for the query.
+        Returns:
+            None
+        """
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete( 
+            self.async_backward (
+                message = message,
+                completions = completions,
+                rewards = rewards,
+                uids = uids,
+                prompt = prompt,
+                return_call = return_call,
+                timeout = timeout,
+            ) 
+        )
+
+    async def async_backward(self,
+            message: str,
+            completions: List[ str ],
+            rewards: Union[ List[torch.LongTensor], List[List[float]] ],
+            uids: Union[torch.LongTensor, List[int]],
+            prompt: str = None,
+            return_call:bool = True,
+            timeout: float = 12.0
+        ):
+        """Sends a forward query to the networks and returns rewards to miners.
+
+        Args:
+            message (:obj:`str`, `required`):
+                The message used on the forward to query the networks.
+            completions (:obj:`List[str]`, `required`):
+                The completions from the prompt on the forward call.
+            rewards (:obj:`Union[List[torch.FloatTensor], torch.FloatTensor List[List[float]], List[float]]`, `optional`):
+                The rewards from the forward call based on the reward model.
+            uids (:obj:`Union[torch.LongTensor, List[int]]`, `optional`):
+                The uids from the forward call.
+            prompt (:obj:`str`, `optional`, defaults to `None`):
+                The prompt message used to query the network with.
+            return_call (bool): 
+                The result is the full forward query object.
+            timeout (:obj:`float`, `optional`, defaults to `12.0`):
+                The timeout for the query.
+        Returns:
+            None
+        """
+        if isinstance(uids, torch.Tensor):
+            uids = [ int(el) for el in uids.tolist() ]  
+        formatted_rewards = []
+        if isinstance( rewards, torch.Tensor ): 
+            formatted_rewards = [ float(el) for el in rewards.tolist() ]
+        else:
+            for element in rewards:
+                # Rewards are a list of floats
+                if isinstance( element, float ): 
+                    formatted_rewards = rewards
+                    break
+                # Rewards are a list of tensors.
+                if isinstance( element, torch.Tensor ): 
+                    element = element.tolist()
+                formatted_rewards.append( [ float(el) for el in element.tolist() ])
+
+        # We optionally set the prompt to the message if prompt is None.
+        if prompt is not None: 
+            roles = ['system', 'user']
+            messages = [ prompt, message ]
+        else:
+            roles = ['user']
+            messages = [ message ]
+
+        # The following asyncio defintion queries a single endpoint with the message
+        # prompt and returns the response.
+        async def call_single_uid( index:int, uid: int ) -> str:
+            module = bittensor.text_prompting( endpoint = self.metagraph.endpoint_objs[ uid ], wallet = self.wallet )
+            return await module.async_backward( 
+                roles = roles, 
+                messages = messages,
+                response = completions[ index ],
+                rewards = formatted_rewards[ index ],
+                return_call = return_call,
+                timeout = timeout 
+            )
+        
+        # The following asyncio definition gathers the responses
+        # from multiple coroutines for each uid.
+        async def query():
+            coroutines = [ call_single_uid( index, uid ) for index, uid in enumerate( uids ) ]                
+            all_responses = await asyncio.gather(*coroutines)
+            return all_responses
+        
+        return await query()
+
+    def forward( 
             self, 
             message: str, 
             prompt: str = None,
             uids: Union[ torch.LongTensor, List[int] ] = None, 
+            return_call:bool = True,
             timeout: float = 12 
-        ) -> List[str]:
+        ) -> List['bittensor.TextPromptingForwardCall']:
         r""" Queries uids on the network for a response to the passed message.
         Args:
             message (str): The message to query the network with.
             uids (List[int]): The uids to query. If None, queries all uids.
+            return_call (bool): The result is the full forward query object.
             timeout (float): The timeout for the query.
         Returns:
-            responses (List[str]): The responses from the network.
+            responses (List['bittensor.TextPromptingForwardCall']): 
+                The responses from the forward call.
+        """
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete( 
+            self.async_forward (
+                message = message,
+                prompt = prompt,
+                uids = uids,
+                return_call = return_call,
+                timeout = timeout,
+            ) 
+        )
+
+    async def async_forward( 
+            self, 
+            message: str, 
+            prompt: str = None,
+            uids: Union[ torch.LongTensor, List[int] ] = None, 
+            return_call:bool = True,
+            timeout: float = 12 
+        ) -> List['bittensor.TextPromptingForwardCall']:
+        r""" Queries uids on the network for a response to the passed message.
+        Args:
+            message (str): The message to query the network with.
+            uids (List[int]): The uids to query. If None, queries all uids.
+            return_call (bool): The result is the full forward query object.
+            timeout (float): The timeout for the query.
+        Returns:
+            responses (List['bittensor.TextPromptingForwardCall']): 
+                The responses from the forward call.
         """
         # We optionally set the uids to all if uids is None.
         if uids is None: uids = range( len( self.dendrites ))
@@ -62,12 +211,12 @@ class TextPromptingDendritePool( torch.nn.Module ):
         # prompt and returns the response.
         async def call_single_uid( uid: int ) -> str:
             module = bittensor.text_prompting( endpoint = self.metagraph.endpoint_objs[ uid ], wallet = self.wallet )
-            response = await module.async_forward( 
+            return await module.async_forward( 
                 roles = roles, 
-                messages = messages, 
+                messages = messages,
+                return_call = return_call, 
                 timeout = timeout 
             )
-            return response.response
         
         # The following asyncio definition gathers the responses
         # from multiple coroutines for each uid.
@@ -76,8 +225,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
             all_responses = await asyncio.gather(*coroutines)
             return all_responses
         
-        # Return the message responses running the query in asyncio.
-        return await query()
+        return await query() 
 
 class TextPromptingDendrite(bittensor.Dendrite):
     """Dendrite for the text_prompting synapse."""
@@ -100,7 +248,8 @@ class TextPromptingDendrite(bittensor.Dendrite):
             self, backward_call: 'bittensor.TextPromptingBackwardCall' 
     ) -> 'bittensor.BackwardTextPromptingRequest':
         return bittensor.BackwardTextPromptingRequest( 
-            forward_call = self.pre_process_forward_call_to_request_proto( backward_call.forward_call ), 
+            messages = backward_call.messages, 
+            response = backward_call.response,
             rewards = backward_call.rewards 
         )
 
@@ -118,6 +267,7 @@ class TextPromptingDendrite(bittensor.Dendrite):
             self,
             roles: List[ str ] ,
             messages: List[ str ],
+            return_call:bool = True,
             timeout: float = bittensor.__blocktime__,
         ) -> "bittensor.TextPromptingForwardCall":
         forward_call=bittensor.TextPromptingForwardCall(
@@ -125,55 +275,63 @@ class TextPromptingDendrite(bittensor.Dendrite):
             timeout=timeout,
         )
         loop = asyncio.get_event_loop()
-        return loop.run_until_complete( self._async_forward( forward_call = forward_call ) )
+        response_call = loop.run_until_complete( self._async_forward( forward_call = forward_call ) )
+        if return_call: return response_call
+        else: return response_call.response
     
     async def async_forward(
         self,
         roles: List[ str ],
         messages: List[ str ],
+        return_call: bool = True,
         timeout: float = bittensor.__blocktime__,
     ) -> "bittensor.TextPromptingForwardCall":
         forward_call=bittensor.TextPromptingForwardCall(
             messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
             timeout = timeout,
         )
-        return self._async_forward( forward_call = forward_call )
+        response_call = await self._async_forward( forward_call = forward_call )
+        if return_call: return response_call
+        else: return response_call.response
 
     def backward(
             self,
             roles: List[ str ],
             messages: List[ str ],
+            response: str,
             rewards: Union[ List[ float], torch.FloatTensor ],
+            return_call: bool = True,
             timeout: float = bittensor.__blocktime__,
         ) -> "bittensor.TextPromptingBackwardCall":
-        forward_call = bittensor.TextPromptingForwardCall(
-            messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
-            timeout = timeout,
-        )
+        if isinstance( rewards, torch.FloatTensor ): rewards = rewards.tolist()
         backward_call = bittensor.TextPromptingBackwardCall(
-            forward_call = forward_call,
+            messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
+            response = response,
             rewards = rewards
         )
         loop = asyncio.get_event_loop()
-        return loop.run_until_complete( self._async_backward( backward_call = backward_call ) )
-    
+        response_call =  loop.run_until_complete( self._async_backward( backward_call = backward_call ) )
+        if return_call: return response_call
+        else: return response_call.response
+
     async def async_backward(
         self,
         roles: List[ str ],
         messages: List[ str ],
+        response: str,        
         rewards: Union[ List[ float], torch.FloatTensor ],
+        return_call: bool = True,
         timeout: float = bittensor.__blocktime__,
     ) -> "bittensor.TextPromptingBackwardCall":
         if isinstance( rewards, torch.FloatTensor ): rewards = rewards.tolist()
-        forward_call = bittensor.TextPromptingForwardCall(
-            messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
-            timeout = timeout,
-        )
         backward_call = bittensor.TextPromptingBackwardCall(
-            forward_call = forward_call,
+            messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
+            response = response,
             rewards = rewards
         )
-        return self._async_backward( backward_call = backward_call ) 
+        response_call = await self._async_backward( backward_call = backward_call ) 
+        if return_call: return response_call
+        else: return response_call.response
 
 
 

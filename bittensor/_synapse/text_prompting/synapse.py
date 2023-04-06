@@ -80,17 +80,18 @@ class TextPromptingSynapse(bittensor.Synapse, bittensor.grpc.TextPromptingServic
     ##################
     #### Backward ####
     ##################
-    def backward( self, messages: List[Dict[str, str]], rewards: torch.FloatTensor ) -> str:
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
         pass
 
     def apply_backward_call( 
         self, 
         backward_call: 'bittensor.TextPromptingBackwardCall' 
     ) -> "bittensor.TextPromptingBackwardCall":
-        formatted_messages = [ json.loads(message) for message in backward_call.forward_call.messages ]
+        formatted_messages = [ json.loads(message) for message in backward_call.messages ]
         formatted_rewards = torch.tensor( [backward_call.rewards], dtype = torch.float32 )
         self.backward(
             messages = formatted_messages,
+            response = backward_call.response,
             rewards = formatted_rewards
         )
         return backward_call
@@ -99,9 +100,9 @@ class TextPromptingSynapse(bittensor.Synapse, bittensor.grpc.TextPromptingServic
         self, 
         request_proto: "bittensor.BackwardTextPromptingRequest"
     ) -> "bittensor.TextPromptingBackwardCall":
-        forward_call = self.pre_process_request_proto_to_forward_call( request_proto.forward_call )
         retval = bittensor.TextPromptingBackwardCall(
-            forward_call = forward_call, 
+            messages = request_proto.messages, 
+            response = request_proto.response, 
             rewards = request_proto.rewards,
         )
         return retval
