@@ -193,6 +193,9 @@ class DelegateStakeCommand:
                 except SubstrateRequestException:
                     prev_delegates = None
 
+            if prev_delegates is None:
+                bittensor.__console__.print(":cross_mark:[red]Could not fetch delegates history[/red]")
+
             if len(delegates) == 0:
                 console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
                 sys.exit(1)
@@ -295,6 +298,9 @@ class DelegateUnstakeCommand:
                 except SubstrateRequestException:
                     prev_delegates = None
 
+            if prev_delegates is None:
+                bittensor.__console__.print(":cross_mark:[red]Could not fetch delegates history[/red]")
+
             if len(delegates) == 0:
                 console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
                 sys.exit(1)
@@ -331,6 +337,10 @@ class ListDelegatesCommand:
                 prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
             except SubstrateRequestException:
                 prev_delegates = None
+
+        if prev_delegates is None:
+            bittensor.__console__.print(":cross_mark:[red]Could not fetch delegates history[/red]")
+        
         show_delegates( delegates, prev_delegates = prev_delegates, width = cli.config.get('width', None) )
 
     @staticmethod
