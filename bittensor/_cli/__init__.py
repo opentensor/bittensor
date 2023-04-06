@@ -61,7 +61,7 @@ class cli:
             return cli_impl.CLI( config = config)
         
     @staticmethod
-    def create_parser() -> 'argparse.ArgumentParser':
+    def __create_parser__() -> 'argparse.ArgumentParser':
         """ Creates the argument parser for the bittensor cli.
         """
         parser = argparse.ArgumentParser(
@@ -104,7 +104,7 @@ class cli:
         """ From the argument parser, add config to bittensor.executor and local config 
             Return: bittensor.config object
         """
-        parser = cli.create_parser()
+        parser = cli.__create_parser__()
 
         # If no arguments are passed, print help text.
         if len(args) == 0:
