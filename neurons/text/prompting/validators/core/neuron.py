@@ -166,10 +166,11 @@ class neuron:
         # Use the selected `uids` to query the dendrite pool.
         # Print the `completions`.
         topk_uids = available_uids[ scores[ available_uids ].sort()[ 1 ][ -topk: ]]
-        completions = self.dendrite_pool( 
+        completions = self.dendrite_pool.forward( 
             prompt = self.config.neuron.base_prompt, 
             message = message, 
             uids = topk_uids, 
+            return_call = False,
             timeout = float( self.config.neuron.base_timeout + self.config.neuron.length_timeout_multiplier * len( message ) )
         )
         print ('\ntopk_uids',  len(topk_uids), topk_uids)
@@ -189,6 +190,15 @@ class neuron:
 
         # Train the gating model using the scores and rewards of the successful `completions`.
         self.gating_model.backward( scores = scores[ successful_uids ], rewards = rewards )
+
+        # Pass rewards backward for potential PPO.
+        self.dendrite_pool.backward( 
+            prompt = self.config.neuron.base_prompt, 
+            message = message, 
+            completions = successful_completions,
+            rewards = rewards,
+            uids = successful_uids, 
+        )
 
         # Save the query history in a `result` object.
         # Return the `completion` with the highest reward.

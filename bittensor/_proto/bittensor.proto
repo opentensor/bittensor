@@ -268,8 +268,9 @@ message ForwardTextPromptingResponse {
 message BackwardTextPromptingRequest {
     int32 version = 1;
     string hotkey = 2;
-    ForwardTextPromptingRequest forward_call = 3;
-	repeated float rewards = 4;
+	repeated float rewards = 3;
+	repeated string messages = 4;
+	string response = 5;
 }
 message BackwardTextPromptingResponse {
     int32 version = 1;
