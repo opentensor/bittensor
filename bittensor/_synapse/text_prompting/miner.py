@@ -1,3 +1,19 @@
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
 
 import os
 import time
@@ -5,55 +21,52 @@ import copy
 import torch
 import argparse
 import bittensor
+from typing import List, Dict
 from abc import ABC, abstractmethod
 from rich import print
 from datetime import datetime
 
 class BasePromptingMiner(ABC):
 
+    @classmethod
     @abstractmethod
-    def synapse(self) -> "bittensor.TextPromptingSynapse": 
+    def add_args( cls, parser: argparse.ArgumentParser ):
         ...
 
-    def __init__(
-        self,
-        config: "bittensor.Config" = None
-    ):
-        config = config if config != None else BasePromptingMiner.config()
-        self.config = copy.deepcopy( config )
-        self.check_config( self.config )
-        self.config.to_defaults()
-        bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
-        self.subtensor = bittensor.subtensor( self.config )
-        self.wallet = bittensor.wallet( self.config )
-        self.wallet.reregister(netuid = config.netuid, subtensor = self.subtensor )
-        self.metagraph = self.subtensor.metagraph( self.config.netuid )
-        self.axon = bittensor.axon( 
-            wallet = self.wallet,
-            metagraph = self.metagraph,
-            config = self.config,
-        )
-        self.axon.attach( self.synapse() )
-        self.axon.start()
-        self.axon.netuid = config.netuid
-        self.axon.protocol = 4
-        self.subtensor.serve_axon( self.axon )
+    @abstractmethod
+    def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
+        ...
+
+    @abstractmethod
+    def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
+        ...
+
+    @abstractmethod
+    def forward( self, messages: List[Dict[str, str]] ) -> str:
+        ...
+
+    @classmethod
+    @abstractmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        ...
 
     @classmethod
     def config( cls ) -> "bittensor.Config":
         parser = argparse.ArgumentParser()
-        cls.add_args(parser)
+        cls.add_super_args( parser )
         return bittensor.config( parser )
 
     @classmethod
     def help( cls ):
         parser = argparse.ArgumentParser()
+        cls.add_super_args( parser )
         cls.add_args(parser)
         print( cls.__new__.__doc__ )
         parser.print_help()
 
     @classmethod
-    def check_config( cls, config: "bittensor.Config" ):
+    def super_check_config( cls, config: "bittensor.Config" ):
+        cls.check_config( config )
         bittensor.axon.check_config( config )
         bittensor.wallet.check_config( config )
         bittensor.logging.check_config( config )
@@ -66,9 +79,10 @@ class BasePromptingMiner(ABC):
         if not os.path.exists( config.neuron.full_path ):
             os.makedirs( config.neuron.full_path )
 
+
     @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser ):
-        print ('get super level config')
+    def add_super_args( cls, parser: argparse.ArgumentParser ):
+        cls.add_args(parser)
         parser.add_argument(
             '--netuid', 
             type = int, 
@@ -119,6 +133,37 @@ class BasePromptingMiner(ABC):
         bittensor.logging.add_args( parser )
         bittensor.metagraph.add_args( parser )
 
+    def __init__(
+        self,
+        config: "bittensor.Config" = None
+    ):
+        config = config if config != None else self.config()
+        self.config = copy.deepcopy( config )
+        self.super_check_config( self.config )
+        self.config.to_defaults()
+        bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
+        self.subtensor = bittensor.subtensor( self.config )
+        self.wallet = bittensor.wallet( self.config )
+        self.wallet.reregister(netuid = config.netuid, subtensor = self.subtensor )
+        self.metagraph = self.subtensor.metagraph( self.config.netuid )
+        self.axon = bittensor.axon( 
+            wallet = self.wallet,
+            metagraph = self.metagraph,
+            config = self.config,
+        )
+        class Synapse( bittensor.TextPromptingSynapse ):
+            def _priority( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
+                return self.priority( forward_call )
+            def _blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
+                return self.blacklist( forward_call )
+            def forward( _, messages: List[Dict[str, str]] ) -> str:
+                return self.forward( messages )
+        self.axon.attach( Synapse() )
+        self.axon.start()
+        self.axon.netuid = config.netuid
+        self.axon.protocol = 4
+        self.subtensor.serve_axon( self.axon )
+
     def run( self ):
         # --- Run Forever.
         last_update = self.subtensor.get_current_block()
@@ -127,7 +172,7 @@ class BasePromptingMiner(ABC):
             # --- Wait until next epoch.
             current_block = self.subtensor.get_current_block()
             while (current_block - last_update) < self.config.neuron.blocks_per_epoch:
-                time.sleep(bittensor.__blocktime__)
+                time.sleep( bittensor.__blocktime__ )
                 current_block = self.subtensor.get_current_block()
             last_update = self.axon.get_current_block()
 
