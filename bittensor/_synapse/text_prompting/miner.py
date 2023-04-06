@@ -68,6 +68,7 @@ class BasePromptingMiner(ABC):
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser ):
+        print ('get super level config')
         parser.add_argument(
             '--netuid', 
             type = int, 

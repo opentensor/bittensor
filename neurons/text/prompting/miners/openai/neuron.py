@@ -21,8 +21,15 @@ import bittensor
 from typing import List, Dict
 
 class OpenAIMiner( bittensor.BasePromptingMiner ):
+
     @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser ):
+    def config( cls ) -> "bittensor.Config":
+        parser = argparse.ArgumentParser()
+        cls.add_args(parser)
+        return bittensor.config( parser )
+
+    @staticmethod
+    def add_args( parser: argparse.ArgumentParser ):
         parser.add_argument('--openai.api_key', type=str, required=True, help='openai api key')
         parser.add_argument('--openai.suffix', type=str, default=None, help="The suffix that comes after a completion of inserted text.")
         parser.add_argument('--openai.max_tokens', type=int, default=256, help="The maximum number of tokens to generate in the completion.")
@@ -38,7 +45,8 @@ class OpenAIMiner( bittensor.BasePromptingMiner ):
         bittensor.BasePromptingMiner.add_args( parser )
         
     def __init__( self ):
-        super( OpenAIMiner, self ).__init__()
+        self.config = OpenAIMiner.config()
+        super( OpenAIMiner, self ).__init__( config = self.config )
         openai.api_key = self.config.openai.api_key
 
     def synapse( self ) -> "bittensor.TextPromptingSynapse":
