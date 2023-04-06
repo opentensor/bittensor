@@ -41,7 +41,7 @@ class OverviewCommand:
         total_balance = bittensor.Balance(0)
         
         # We are printing for every coldkey.
-        if cli.config.all:
+        if cli.config.get( 'all', d=None ):
             cold_wallets = get_coldkey_wallets_for_path(cli.config.wallet.path)
             for cold_wallet in tqdm(cold_wallets, desc="Pulling balances"):
                 if cold_wallet.coldkeypub_file.exists_on_device() and not cold_wallet.coldkeypub_file.is_encrypted():
@@ -102,7 +102,7 @@ class OverviewCommand:
         grid = Table.grid(pad_edge=False)
 
         title: str = ""
-        if not cli.config.all:
+        if not cli.config.get( 'all', d=None ):
             title = ( "[bold white italic]Wallet - {}:{}".format(cli.config.wallet.name, wallet.coldkeypub.ss58_address) )
         else:
             title = ( "[bold whit italic]All Wallets:" )
@@ -333,10 +333,13 @@ class OverviewCommand:
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
-        if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt and not config.all:
+        if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt and not config.get( 'all', d=None ):
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
         if config.netuid != []:
-            config.netuid = [int(netuid) for netuid in config.netuid]
+            if not isinstance(config.netuid, list):
+                config.netuid = [int(config.netuid)]
+            else:
+                config.netuid = [int(netuid) for netuid in config.netuid]
       

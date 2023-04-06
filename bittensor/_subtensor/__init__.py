@@ -37,7 +37,7 @@ class subtensor:
     """Factory Class for both bittensor.Subtensor and Mock_Subtensor Classes
 
     The Subtensor class handles interactions with the substrate subtensor chain.
-    By default, the Subtensor class connects to the Nakamoto which serves as the main bittensor network.
+    By default, the Subtensor class connects to the Finney which serves as the main bittensor network.
     
     """
     
