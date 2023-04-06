@@ -29,27 +29,6 @@ class Synapse(bittensor.TextCausalLMNextSynapse):
      ) -> torch.Tensor:
         return torch.zeros((16, 1, bittensor.__network_dim__))
 
-"""
-    # TODO: Call this properly and/or get correct function to get and then compress topk.
-    # Option 1 Naive topk
-    topk = forward_call.topk
-    topk_values, indices = torch.topk(last_logits, topk)
-
-    # Option 2 Unbiased topk (selected index k out of range...)
-    # topk_values, indices = bittensor.unbiased_topk(last_logits, k=topk)
-
-    # Option 3 Eugene's func
-    # Where to get tokenizer req for this function? Do we need one?
-    # topk_values = bittensor.topk_token_phrases(logits=last_logits, topk=topk)
-
-    # Compact topk for sending over wire. (returns empty tensor...)
-    # compact_topk_values = bittensor.compact_topk_token_phrases(topk_values)
-
-    # Not sure if we need to return the logits or the activations.
-    # topk_probs = torch.softmax(topk_values, dim=-1)
-
-    # TODO: (De)compact on other end.
-"""
 
 # Create a mock wallet.
 wallet = bittensor.wallet().create_if_non_existent()
