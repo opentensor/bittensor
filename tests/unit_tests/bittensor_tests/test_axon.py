@@ -71,7 +71,6 @@ def test_forward_not_implemented():
     assert synapses[0].return_code == bittensor.proto.ReturnCode.NotImplemented
 
 def test_forward_last_hidden_success():
-    bittensor.logging(debug = True)
     def forward( inputs_x: torch.FloatTensor, synapse , model_output = None):
         return None, dict(), torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
@@ -1266,7 +1265,7 @@ class TestExternalAxon(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    test_grpc_forward_fails()
     # test_forward_joint_success()
     # test_forward_joint_missing_synapse()
     # test_forward_priority_timeout()

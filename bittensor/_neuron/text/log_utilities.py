@@ -511,12 +511,14 @@ class ValidatorPrometheus:
     def log_epoch_end(
         self,
         uid: int,
-        metagraph: 'bittensor.Metagraph'
+        metagraph: 'bittensor.Metagraph',
+        current_block: int,
     ):
         r""" All prometheus logging at the end of epoch. 
         """
         self.gauges.labels("epoch").inc()
         self.gauges.labels("set_weights").inc()
+        self.gauges.labels('set_weights_block').set(current_block)
         self.gauges.labels("stake").set( metagraph.total_stake[uid] )
         self.gauges.labels("rank").set( metagraph.ranks[uid] )
         self.gauges.labels("trust").set( metagraph.trust[uid] )

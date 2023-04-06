@@ -41,20 +41,23 @@ def setUpModule():
     # Start a mock instance of subtensor.
     _subtensor_mock = bittensor.subtensor( _mock = True, network='finney' )
 
-    # create a mock subnet
-    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 1, tempo = 99, modality = 0 )
+    # create mock subnet 2
+    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 2, tempo = 90, modality = 0, wait_for_finalization=False  )
     assert err == None
 
-    # create a second mock subnet
-    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 2, tempo = 90, modality = 0 )
+    # create mock subnet 3
+    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 3, tempo = 90, modality = 0, wait_for_finalization=False )
     assert err == None
 
-     # create a third mock subnet
-    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 3, tempo = 90, modality = 0 )
+    # create a mock subnet 1
+    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 1, tempo = 99, modality = 0, wait_for_finalization=False )
     assert err == None
 
     # Make registration difficulty 0. Instant registration.
-    set_diff, err = _subtensor_mock.sudo_set_difficulty( netuid = 1, difficulty = 0 )
+    set_diff, err = _subtensor_mock.sudo_set_difficulty( netuid = 1, difficulty = 0, wait_for_finalization=False )
+    assert err == None
+
+    set_tx_limit, err = _subtensor_mock.sudo_set_tx_rate_limit( netuid = 1, tx_rate_limit = 0, wait_for_finalization=False ) # No tx limit
     assert err == None
 
 def tearDownModule() -> None:
@@ -108,6 +111,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "overview"
         config.no_prompt = True
         config.all = False
+        config.netuid = [] # Don't set, so it tries all networks.
 
         cli = bittensor.cli(config)
 
@@ -145,11 +149,12 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register each wallet to it's subnet.
         for netuid, wallet in mock_registrations:
-            _subtensor_mock.sudo_register(
+            result, err = _subtensor_mock.sudo_register(
                 netuid = netuid,
                 coldkey = wallet.coldkey.ss58_address,
                 hotkey = wallet.hotkey.ss58_address
             )
+            self.assertTrue(result, err)
 
         def mock_get_wallet(*args, **kwargs):
             hk = kwargs.get('hotkey')
@@ -206,6 +211,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "overview"
         config.no_prompt = True
         config.all = False
+        config.netuid = [] # Don't set, so it tries all networks.
 
         cli = bittensor.cli(config)
 
@@ -304,6 +310,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             config.command = "overview"
             config.no_prompt = True
             config.all = False
+            config.netuid = [] # Don't set, so it tries all networks.
             
 
             cli = bittensor.cli(config)
@@ -315,6 +322,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.no_prompt = True
         config.hotkeys = ['some_hotkey']
         config.all = False
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -325,6 +333,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "overview"
         config.no_prompt = True
         config.all = False
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -336,6 +345,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.no_prompt = True
         config.wallet.sort_by = "rank"
         config.all = False
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -347,6 +357,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.no_prompt = True
         config.wallet.sort_by = "totallynotmatchingcolumnname"
         config.all = False
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -357,6 +368,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "overview"
         config.no_prompt = True
         config.all = False
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -368,6 +380,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.wallet.sort_order = "desc" # Set descending sort order
         config.no_prompt = True
         config.all = False
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -379,6 +392,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.wallet.sort_order = "nowaythisshouldmatchanyorderingchoice" 
         config.no_prompt = True
         config.all = False
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -390,6 +404,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Don't specify sort_order in config
         config.no_prompt = True
         config.all = False
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -401,6 +416,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.width = 100
         config.no_prompt = True
         config.all = False
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -412,6 +428,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Don't specify width in config
         config.no_prompt = True
         config.all = False
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         cli = bittensor.cli(config)
@@ -421,6 +438,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config = self.config
         config.command = "overview"
         config.no_prompt = True
+        config.netuid = [] # Don't set, so it tries all networks.
         
 
         config.all = True
@@ -1946,7 +1964,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         
         # Add some neurons to the metagraph
         mock_nn = []
-        for i in range(10):
+        for i in range(5):
             mock_nn.append( 
                 SimpleNamespace(
                     hotkey = get_mock_keypair(i + 100, self.id()).ss58_address,
@@ -2077,26 +2095,27 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
 
         with patch('bittensor.neurons.core_server.neuron', MagicMock(side_effect=MockException("should exit early"))) as mock_neuron:
             with patch('bittensor.Wallet.is_registered', MagicMock(return_value=True)): # mock registered
-                with pytest.raises(MockException):
-                    cli = bittensor.cli(args=[
-                        'run',
-                        '--subtensor.network', 'mock', # Mock network
-                        '--netuid', '1',
-                        '--wallet.name', 'mock',
-                        '--wallet.hotkey', 'mock_hotkey',
-                        '--wallet._mock', 'True',
-                        '--cuda.no_cuda',
-                        '--no_prompt',
-                        '--model', 'core_server',
-                        '--synapse', 'All',
-                    ])
-                    cli.run()
+                with patch('bittensor.Config.to_defaults', MagicMock(return_value=True)): 
+                    with pytest.raises(MockException):
+                        cli = bittensor.cli(args=[
+                            'run',
+                            '--subtensor.network', 'mock', # Mock network
+                            '--netuid', '1',
+                            '--wallet.name', 'mock',
+                            '--wallet.hotkey', 'mock_hotkey',
+                            '--wallet._mock', 'True',
+                            '--cuda.no_cuda',
+                            '--no_prompt',
+                            '--model', 'core_server',
+                            '--synapse', 'All',
+                        ])
+                        cli.run()
 
-                assert mock_neuron.call_count == 1
-                args, kwargs = mock_neuron.call_args
+                    assert mock_neuron.call_count == 1
+                    args, kwargs = mock_neuron.call_args
 
-                self.assertEqual(len(args), 0) # Should not have any args; indicates that "All" synapses are being used
-                self.assertEqual(len(kwargs), 1) # should have one kwarg; netuid
+                    self.assertEqual(len(args), 0) # Should not have any args; indicates that "All" synapses are being used
+                    self.assertEqual(len(kwargs), 1) # should have one kwarg; netuid
 
     def test_list_delegates(self):
         cli = bittensor.cli(args=[
