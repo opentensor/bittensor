@@ -726,6 +726,7 @@ class Axon( bittensor.grpc.BittensorServicer ):
     def __del__(self):
         r""" Called when this axon is deleted, ensures background threads shut down properly.
         """
+        self.server.interceptors[0][0].close()
         self.stop()
 
     def serve( 

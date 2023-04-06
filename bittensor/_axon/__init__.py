@@ -32,6 +32,7 @@ import torch
 import grpc
 from substrateinterface import Keypair
 
+import json
 import bittensor
 from . import axon_impl
 
@@ -128,7 +129,7 @@ class axon:
                 forward_timeout (:type:`Optional[int]`, `optional`):
                     timeout on the forward requests. 
                 backward_timeout (:type:`Optional[int]`, `optional`):
-                    timeout on the backward requests.              
+                    timeout on the backward requests.    
         """   
         if config == None: 
             config = axon.config()
@@ -375,6 +376,10 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self.blacklist = blacklist
         self.receiver_hotkey = receiver_hotkey
         self.nonce_len = 4096 * 2
+
+    def close(self):
+        with open("nonces_dict.txt", "w") as nonces_file:
+            json.dump(self.nonces, nonces_file)
 
     def parse_legacy_signature(
         self, signature: str
