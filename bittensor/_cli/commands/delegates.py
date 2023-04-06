@@ -327,7 +327,7 @@ class ListDelegatesCommand:
         with bittensor.__console__.status(":satellite: Loading delegates..."):
             delegates: bittensor.DelegateInfo = subtensor.get_delegates()
             try:
-                    prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
+                prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
             except:
                 prev_delegates = None
         show_delegates( delegates, prev_delegates = prev_delegates, width = cli.config.get('width', None) )
