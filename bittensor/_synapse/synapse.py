@@ -50,7 +50,6 @@ class Synapse(ABC):
         if config is None:
             config = Synapse.config()
         Synapse.check_config(config)
-        print(config)
 
         self.config = copy.deepcopy(config)
         self.is_attached = False
