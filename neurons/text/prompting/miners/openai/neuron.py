@@ -64,10 +64,6 @@ class OpenAIMiner( bittensor.BasePromptingMiner ):
             n = self.config.neuron.n,
         )['choices'][0]['message']['content']
 
-
-    def block_step( self )
-            
-
 if __name__ == "__main__":
     bittensor.utils.version_checking()
     OpenAIMiner().run()
