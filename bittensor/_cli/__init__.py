@@ -59,11 +59,10 @@ class cli:
             return naka_CLI(config=config)
         else:
             return cli_impl.CLI( config = config)
-
-    @staticmethod   
-    def config(args: List[str]) -> 'bittensor.config':
-        """ From the argument parser, add config to bittensor.executor and local config 
-            Return: bittensor.config object
+        
+    @staticmethod
+    def create_parser() -> 'argparse.ArgumentParser':
+        """ Creates the argument parser for the bittensor cli.
         """
         parser = argparse.ArgumentParser(
             description=f"bittensor cli v{bittensor.__version__}",
@@ -97,6 +96,15 @@ class cli:
         ListDelegatesCommand.add_args( cmd_parsers )
         RegenColdkeypubCommand.add_args( cmd_parsers )
         RecycleRegisterCommand.add_args( cmd_parsers )
+
+        return parser
+
+    @staticmethod   
+    def config(args: List[str]) -> 'bittensor.config':
+        """ From the argument parser, add config to bittensor.executor and local config 
+            Return: bittensor.config object
+        """
+        parser = cli.create_parser()
 
         # If no arguments are passed, print help text.
         if len(args) == 0:
