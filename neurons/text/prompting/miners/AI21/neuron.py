@@ -23,7 +23,7 @@ import torch
 import argparse
 import bittensor
 
-from typing import List
+from typing import List, Dict
 from rich import print
 from datetime import datetime
 

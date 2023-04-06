@@ -23,7 +23,7 @@ import torch
 import argparse
 import bittensor
 
-from typing import List
+from typing import List, Dict
 from rich import print
 from datetime import datetime
 
@@ -154,7 +154,7 @@ def main():
 
         def _blacklist(self, forward_call: "bittensor.TextPromptingForwardCall") -> bool:
             return False
-            
+
         def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
             pass
 
