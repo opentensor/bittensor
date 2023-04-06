@@ -41,7 +41,8 @@ bittensor.TextPromptingForwardCall(
     end_time = {},
     elapsed = {},
     Args:
-    \messages: List[str] = {}, 
+    \tmessages: List[str] = {}, 
+    \tresponse: List[str] = {}, 
 )
 """.format(
             self.hotkey,
@@ -82,3 +83,65 @@ bittensor.TextPromptingForwardCall(
         if self.response is not None:
             return torch.Size([len(self.response)])
         return None
+
+class TextPromptingBackwardCall(bittensor.BittensorCall):
+    """Call state for the text_prompting synapse."""
+
+    # The name of the synapse call.
+    name: str = "backward_prompting"
+
+    def __str__(self) -> str:
+        return """
+bittensor.TextPromptingForwardCall( 
+    description: Returns RL rewards to miner based on reward model scoring.
+    caller: {},
+    version: {},
+    timeout = {}, 
+    start_time = {},
+    end_time = {},
+    elapsed = {},
+    Args:
+    \tforward_call: TextPromptingForwardCall = {}, 
+    \trewards: List[float] = {}, 
+
+)
+""".format(
+            self.hotkey,
+            self.version,
+            self.timeout,
+            self.start_time,
+            self.end_time,
+            time.time() - self.start_time,
+            self.forward_call,
+            self.rewards
+        )
+
+    def __init__(
+        self,
+        forward_call: 'TextPromptingForwardCall',
+        rewards: List[float],
+        timeout: float = bittensor.__blocktime__,
+    ):
+        """Forward call to the receptor.
+        Args:
+            forward_call (:obj:`TextPromptingForwardCall`, `required`):
+                forward_call as sent during the forward pass.
+            rewards (:obj:`List[float]`, `required`):
+                rewards vector from reward model from forward call.
+            timeout (:obj:`float`, `optional`, defaults to 5 seconds):
+                timeout for the backward call. (redundant.)
+        Returns:
+            call.TextPromptingForwardCall (:obj:`call.TextPromptingForwardCall`, `required`):
+                bittensor forward call dataclass.
+        """
+        super().__init__(timeout=timeout)
+        self.forward_call = forward_call
+        self.rewards = rewards
+
+    def get_inputs_shape(self) -> Union[torch.Size, None]:
+        if self.rewards is not None:
+            return torch.Size( [ len(self.rewards) ] )
+        return torch.Size( [] )
+
+    def get_outputs_shape(self) -> Union[torch.Size, None]:
+        return torch.Size( [] )

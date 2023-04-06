@@ -96,6 +96,14 @@ class TextPromptingDendrite(bittensor.Dendrite):
     ) -> "bittensor.ForwardTextPromptingRequest":
         return bittensor.ForwardTextPromptingRequest( timeout = forward_call.timeout, messages = forward_call.messages )
 
+    def pre_process_backward_call_to_request_proto( 
+            self, backward_call: 'bittensor.TextPromptingBackwardCall' 
+    ) -> 'bittensor.BackwardTextPromptingRequest':
+        return bittensor.BackwardTextPromptingRequest( 
+            forward_call = self.pre_process_forward_call_to_request_proto( backward_call.forward_call ), 
+            rewards = backward_call.rewards 
+        )
+
     def post_process_response_proto_to_forward_call(
         self,
         forward_call: bittensor.TextPromptingForwardCall,
@@ -106,28 +114,67 @@ class TextPromptingDendrite(bittensor.Dendrite):
         forward_call.response = response_proto.response
         return forward_call
 
-    async def forward(
+    def forward(
             self,
-            roles: str,
-            messages: List[Dict[str, str]],
+            roles: List[ str ] ,
+            messages: List[ str ],
             timeout: float = bittensor.__blocktime__,
         ) -> "bittensor.TextPromptingForwardCall":
-        return await self._async_forward(
-            forward_call=bittensor.TextPromptingForwardCall(
-                messages=[json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
-                timeout=timeout,
-            )
+        forward_call=bittensor.TextPromptingForwardCall(
+            messages=[json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
+            timeout=timeout,
         )
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete( self._async_forward( forward_call = forward_call ) )
     
-    def async_forward(
+    async def async_forward(
         self,
-        roles: str,
-        messages: List[Dict[str, str]],
+        roles: List[ str ],
+        messages: List[ str ],
         timeout: float = bittensor.__blocktime__,
     ) -> "bittensor.TextPromptingForwardCall":
-        return self._async_forward(
-            forward_call=bittensor.TextPromptingForwardCall(
-                messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
-                timeout = timeout,
-            )
+        forward_call=bittensor.TextPromptingForwardCall(
+            messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
+            timeout = timeout,
         )
+        return self._async_forward( forward_call = forward_call )
+
+    def backward(
+            self,
+            roles: List[ str ],
+            messages: List[ str ],
+            rewards: Union[ List[ float], torch.FloatTensor ],
+            timeout: float = bittensor.__blocktime__,
+        ) -> "bittensor.TextPromptingBackwardCall":
+        forward_call = bittensor.TextPromptingForwardCall(
+            messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
+            timeout = timeout,
+        )
+        backward_call = bittensor.TextPromptingBackwardCall(
+            forward_call = forward_call,
+            rewards = rewards
+        )
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete( self._async_backward( backward_call = backward_call ) )
+    
+    async def async_backward(
+        self,
+        roles: List[ str ],
+        messages: List[ str ],
+        rewards: Union[ List[ float], torch.FloatTensor ],
+        timeout: float = bittensor.__blocktime__,
+    ) -> "bittensor.TextPromptingBackwardCall":
+        if isinstance( rewards, torch.FloatTensor ): rewards = rewards.tolist()
+        forward_call = bittensor.TextPromptingForwardCall(
+            messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
+            timeout = timeout,
+        )
+        backward_call = bittensor.TextPromptingBackwardCall(
+            forward_call = forward_call,
+            rewards = rewards
+        )
+        return self._async_backward( backward_call = backward_call ) 
+
+
+
+
