@@ -19,6 +19,7 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
+from typing import Any
 import pytest
 from copy import deepcopy
 import re
@@ -31,9 +32,24 @@ class TestCLINoNetwork(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        mock_delegate_info = {
+            "hotkey_ss58": "",
+            "total_stake": bittensor.Balance.from_rao(0),
+            "nominators": [],
+            "owner_ss58": "",
+            "take": 0.18, 
+            "validator_permits": [],
+            "registrations": [], 
+            "return_per_1000": bittensor.Balance.from_rao(0), 
+            "total_daily_return": bittensor.Balance.from_rao(0)
+        }
         cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.mock_subtensor.mock', new=MagicMock(
             return_value=MagicMock(
                 get_subnets=MagicMock(return_value=[1]), # Mock subnet 1 ONLY.
+                block=10_000,
+                get_delegates=MagicMock(return_value=[
+                    bittensor.DelegateInfo( **mock_delegate_info )
+                ]),
             )
         ))
         cls._patched_subtensor.start()
@@ -65,10 +81,6 @@ class TestCLINoNetwork(unittest.TestCase):
         return defaults
 
     def test_check_configs(self):
-        commands = ["run", "transfer", "register", "unstake", 
-        "stake", "overview", "new_coldkey", "new_hotkey", 
-        "regen_coldkey", "regen_hotkey", "metagraph", "weights", 
-        "set_weights", "inspect"]
         config = self.config
         config.no_prompt = True
         config.model = "core_server"
@@ -79,6 +91,8 @@ class TestCLINoNetwork(unittest.TestCase):
         config.uids = [1,2,3]
         config.weights = [0.25, 0.25, 0.25, 0.25]
         config.no_version_checking = True
+        config.ss58_address = bittensor.Keypair.create_from_seed( b'0' * 32 ).ss58_address
+        config.public_key_hex = None
 
         cli = bittensor.cli
 
@@ -88,10 +102,19 @@ class TestCLINoNetwork(unittest.TestCase):
         commands = [ 
             command for command in parser._actions[1].choices 
         ]
+
+        def ask_response(prompt: str) -> Any:
+            if "delegate index" in prompt:
+                return 0
+            elif "wallet name" in prompt:
+                return "mock"
+            elif "hotkey" in prompt:
+                return "mock"
         
-        for cmd in commands:
-            config.command = cmd
-            cli.check_config(config)
+        with patch('rich.prompt.Prompt.ask', ask_response):
+            for cmd in commands:
+                config.command = cmd
+                cli.check_config(config)
 
     def test_new_coldkey( self ):
         config = self.config
