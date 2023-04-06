@@ -123,6 +123,9 @@ def main():
         def _blacklist(self, forward_call: "bittensor.TextPromptingForwardCall") -> bool:
             return False
 
+        def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
+            pass
+
         def forward(self, messages: List[str]) -> str:
             return openai.ChatCompletion.create(
                 model=config.neuron.model_name,

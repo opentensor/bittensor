@@ -134,6 +134,10 @@ def main():
         def _blacklist(self, forward_call: "bittensor.TextPromptingForwardCall") -> bool:
             return False
 
+        def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
+            # Apply PPO here.
+            pass
+
         def forward(self, messages: List[str]) -> str:
             history = _process_history(messages)
             return pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "") 
