@@ -194,10 +194,10 @@ class DelegateStakeCommand:
                     prev_delegates = None
 
             if prev_delegates is None:
-                bittensor.__console__.print(":cross_mark:[red]Could not fetch delegates history[/red]")
+                bittensor.__console__.print(":cross_mark: [red]Could not fetch delegates history[/red]")
 
             if len(delegates) == 0:
-                console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
+                console.print(":cross_mark: [red]There are no delegates on {}[/red]".format(subtensor.network))
                 sys.exit(1)
             
             delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
@@ -217,7 +217,7 @@ class DelegateStakeCommand:
                 try:
                     config.amount = float(amount)
                 except ValueError:
-                    console.print(":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
+                    console.print(":cross_mark: [red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
                     sys.exit()
             else:
                 config.stake_all = True
@@ -299,10 +299,10 @@ class DelegateUnstakeCommand:
                     prev_delegates = None
 
             if prev_delegates is None:
-                bittensor.__console__.print(":cross_mark:[red]Could not fetch delegates history[/red]")
+                bittensor.__console__.print(":cross_mark: [red]Could not fetch delegates history[/red]")
 
             if len(delegates) == 0:
-                console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
+                console.print(":cross_mark: [red]There are no delegates on {}[/red]".format(subtensor.network))
                 sys.exit(1)
             
             delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
@@ -318,7 +318,7 @@ class DelegateUnstakeCommand:
                 try:
                     config.amount = float(amount)
                 except ValueError:
-                    console.print(":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
+                    console.print(":cross_mark: [red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
                     sys.exit()
             else:
                 config.unstake_all = True
@@ -339,7 +339,7 @@ class ListDelegatesCommand:
                 prev_delegates = None
 
         if prev_delegates is None:
-            bittensor.__console__.print(":cross_mark:[red]Could not fetch delegates history[/red]")
+            bittensor.__console__.print(":cross_mark: [red]Could not fetch delegates history[/red]")
         
         show_delegates( delegates, prev_delegates = prev_delegates, width = cli.config.get('width', None) )
 
