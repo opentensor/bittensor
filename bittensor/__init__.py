@@ -237,7 +237,7 @@ from bittensor._synapse.text_prompting.dendrite import TextPromptingDendrite as 
 from bittensor._synapse.text_prompting.dendrite import TextPromptingDendritePool as text_prompting_pool
 
 # ---- Base Miners -----
-from bittensor._synapse.text_prompting.base_miner import BasePromptingMiner
+from bittensor._synapse.text_prompting.miner import BasePromptingMiner
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
