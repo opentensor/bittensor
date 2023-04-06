@@ -123,7 +123,7 @@ class Receptor(nn.Module):
     def __exit__ ( self ):
         self.__del__()
 
-    def sign_v2(self):
+    def sign(self):
         nonce = f"{self.nonce()}"
         sender_hotkey = self.wallet.hotkey.ss58_address
         receiver_hotkey = self.endpoint.hotkey
@@ -131,8 +131,6 @@ class Receptor(nn.Module):
         signature = f"0x{self.wallet.hotkey.sign(message).hex()}"
         return ".".join([nonce, sender_hotkey, signature, self.receptor_uid])
 
-    def sign(self):
-        return self.sign_v2()
 
     def nonce ( self ):
         r"""creates a string representation of the time
