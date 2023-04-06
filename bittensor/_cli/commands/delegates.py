@@ -26,6 +26,7 @@ from rich.prompt import Prompt
 from rich.prompt import Confirm
 from rich.console import Text
 from tqdm import tqdm
+from substrateinterface.exceptions import SubstrateRequestException
 from .utils import get_delegates_details, DelegatesDetails
 
 import os
@@ -189,7 +190,7 @@ class DelegateStakeCommand:
                 delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
                 try:
                     prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
-                except:
+                except SubstrateRequestException:
                     prev_delegates = None
 
             if len(delegates) == 0:
@@ -291,7 +292,7 @@ class DelegateUnstakeCommand:
                 delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
                 try:
                     prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
-                except:
+                except SubstrateRequestException:
                     prev_delegates = None
 
             if len(delegates) == 0:
@@ -328,7 +329,7 @@ class ListDelegatesCommand:
             delegates: bittensor.DelegateInfo = subtensor.get_delegates()
             try:
                 prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
-            except:
+            except SubstrateRequestException:
                 prev_delegates = None
         show_delegates( delegates, prev_delegates = prev_delegates, width = cli.config.get('width', None) )
 
