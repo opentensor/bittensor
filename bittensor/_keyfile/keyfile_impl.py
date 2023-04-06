@@ -479,7 +479,7 @@ class Keyfile( object ):
             keyfile_data = self._read_keyfile_data_from_file()
             if keyfile_data_is_encrypted( keyfile_data ) and not keyfile_data_is_encrypted_nacl( keyfile_data ):
 
-                bittensor.__console__.print(f":exclamation_mark:You may update the keyfile to improve the security for storing your keys. \nWhile the keys stay the same, it would require (1) providing your old password and (2) setting up a new password. \n:key: {self}")
+                bittensor.__console__.print(f":exclamation_mark:You may update the keyfile to improve the security for storing your keys. \nWhile the key and the password stays the same, it would require providing your password once. \n:key: {self}")
                 if Confirm.ask("Update keyfile?"):
                     decrypted_keyfile_data = None
                     while decrypted_keyfile_data == None:
