@@ -26,6 +26,7 @@ from rich.prompt import Prompt
 from rich.prompt import Confirm
 from rich.console import Text
 from tqdm import tqdm
+from substrateinterface.exceptions import SubstrateRequestException
 from .utils import get_delegates_details, DelegatesDetails
 
 import os
@@ -44,13 +45,14 @@ def _get_coldkey_wallets_for_path( path: str ) -> List['bittensor.wallet']:
 console = bittensor.__console__
 
 # Uses rich console to pretty print a table of delegates.
-def show_delegates( delegates: List['bittensor.DelegateInfo'], prev_delegates: List['bittensor.DelegateInfo'], width: Optional[int] = None):
+def show_delegates( delegates: List['bittensor.DelegateInfo'], prev_delegates: Optional[List['bittensor.DelegateInfo']], width: Optional[int] = None):
     """ Pretty prints a table of delegates sorted by total stake.
     """
     delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
     prev_delegates_dict = {}
-    for prev_delegate in prev_delegates:
-        prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
+    if prev_delegates is not None:
+        for prev_delegate in prev_delegates:
+            prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
 
     registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(url = bittensor.__delegates_details_url__)
     if registered_delegate_info is None:
@@ -102,7 +104,7 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], prev_delegates: L
                 else:
                     rate_change_in_stake_str = "[grey0]0%[/grey0]"
         else:
-            rate_change_in_stake_str = "[grey0]0%[/grey0]"
+            rate_change_in_stake_str = "[grey0]NA[/grey0]"
 
         table.add_row(
             str(i),
@@ -186,10 +188,16 @@ class DelegateStakeCommand:
             with bittensor.__console__.status(":satellite: Loading delegates..."):
                 subtensor = bittensor.subtensor( config = config )
                 delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
-                prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
+                try:
+                    prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
+                except SubstrateRequestException:
+                    prev_delegates = None
+
+            if prev_delegates is None:
+                bittensor.__console__.print(":warning: [yellow]Could not fetch delegates history[/yellow]")
 
             if len(delegates) == 0:
-                console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
+                console.print(":cross_mark: [red]There are no delegates on {}[/red]".format(subtensor.network))
                 sys.exit(1)
             
             delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
@@ -209,7 +217,7 @@ class DelegateStakeCommand:
                 try:
                     config.amount = float(amount)
                 except ValueError:
-                    console.print(":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
+                    console.print(":cross_mark: [red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
                     sys.exit()
             else:
                 config.stake_all = True
@@ -285,10 +293,16 @@ class DelegateUnstakeCommand:
             with bittensor.__console__.status(":satellite: Loading delegates..."):
                 subtensor = bittensor.subtensor( config = config )
                 delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
-                prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
+                try:
+                    prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
+                except SubstrateRequestException:
+                    prev_delegates = None
+
+            if prev_delegates is None:
+                bittensor.__console__.print(":warning: [yellow]Could not fetch delegates history[/yellow]")
 
             if len(delegates) == 0:
-                console.print(":cross_mark:[red]There are no delegates on {}[/red]".format(subtensor.network))
+                console.print(":cross_mark: [red]There are no delegates on {}[/red]".format(subtensor.network))
                 sys.exit(1)
             
             delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
@@ -304,7 +318,7 @@ class DelegateUnstakeCommand:
                 try:
                     config.amount = float(amount)
                 except ValueError:
-                    console.print(":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
+                    console.print(":cross_mark: [red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(amount))
                     sys.exit()
             else:
                 config.unstake_all = True
@@ -319,7 +333,14 @@ class ListDelegatesCommand:
         subtensor = bittensor.subtensor( config = cli.config )
         with bittensor.__console__.status(":satellite: Loading delegates..."):
             delegates: bittensor.DelegateInfo = subtensor.get_delegates()
-            prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
+            try:
+                prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
+            except SubstrateRequestException:
+                prev_delegates = None
+
+        if prev_delegates is None:
+            bittensor.__console__.print(":warning: [yellow]Could not fetch delegates history[/yellow]")
+        
         show_delegates( delegates, prev_delegates = prev_delegates, width = cli.config.get('width', None) )
 
     @staticmethod
@@ -405,7 +426,7 @@ class MyDelegatesCommand:
     def run( cli ):
         '''Delegates stake to a chain delegate.'''
         config = cli.config.copy()
-        if config.all == True:
+        if config.get('all', d=None) == True:
             wallets = _get_coldkey_wallets_for_path( config.wallet.path )
         else:
             wallets = [bittensor.wallet( config = config )]
@@ -508,7 +529,7 @@ class MyDelegatesCommand:
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
-        if not config.all and config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
+        if not config.get( 'all', d=None ) and config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
