@@ -236,6 +236,9 @@ from bittensor._synapse.text_causallm_next.dendrite import TextCausalLMNextDendr
 from bittensor._synapse.text_prompting.dendrite import TextPromptingDendrite as text_prompting
 from bittensor._synapse.text_prompting.dendrite import TextPromptingDendritePool as text_prompting_pool
 
+# ---- Base Miners -----
+from bittensor._synapse.text_prompting.base_miner import BasePromptingMiner
+
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 
