@@ -79,6 +79,7 @@ class neuron:
     
     def __init__( self, config=None ):
         self.config = config if config is not None else neuron.config()
+        bt.logging( config = self.config )
         self.subtensor = bt.subtensor ( config = self.config )
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wallet = bt.wallet ( config = self.config )

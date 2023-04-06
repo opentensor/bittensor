@@ -250,7 +250,7 @@ class logging:
         """
 
         if axon:
-            prefix = "Axon"
+            prefix = "Synapse"
         else:
             prefix = "Dendrite"
         prefix = prefix.center(len('Dendrite'))

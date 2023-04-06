@@ -104,20 +104,25 @@ class TextPromptingDendritePool( torch.nn.Module ):
         """
         if isinstance(uids, torch.Tensor):
             uids = [ int(el) for el in uids.tolist() ]  
-        formatted_rewards = []
-        if isinstance( rewards, torch.Tensor ): 
-            formatted_rewards = [ float(el) for el in rewards.tolist() ]
-        else:
-            for element in rewards:
-                # Rewards are a list of floats
-                if isinstance( element, float ): 
-                    formatted_rewards = rewards
-                    break
-                # Rewards are a list of tensors.
-                if isinstance( element, torch.Tensor ): 
-                    element = element.tolist()
-                formatted_rewards.append( [ float(el) for el in element.tolist() ])
 
+        # format rewards to list of lists of floats.
+        def format_rewards( rewards ) -> List[List[float]]:
+            ret_formatted_rewards = []
+            if isinstance( rewards, torch.Tensor ): 
+                ret_formatted_rewards = [ [float(el)] for el in rewards.tolist() ]
+            elif isinstance( rewards, list ): 
+                ret_formatted_rewards = [ [float(el)] for el in rewards ]
+            else:
+                # Format list of tensors and list of lists.
+                for element in rewards:
+                    if isinstance( element, torch.Tensor ): 
+                        element = element.tolist()
+                    ret_formatted_rewards.append( [ float(el) for el in element.tolist() ])
+            return ret_formatted_rewards
+
+        formatted_rewards = format_rewards( rewards )
+        assert len(uids) == len(formatted_rewards), 'rewards must have same length as uids.'
+        
         # We optionally set the prompt to the message if prompt is None.
         if prompt is not None: 
             roles = ['system', 'user']
