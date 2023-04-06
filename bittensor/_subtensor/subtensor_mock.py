@@ -270,6 +270,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                 return True, None
             else:
                 return False, response.error_message
+            
     def sudo_set_tx_rate_limit(self, netuid: int, tx_rate_limit: int, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
         r""" Sets the tx rate limit of the subnet in the mock chain using the sudo key.
         """
@@ -290,11 +291,13 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
             if not wait_for_finalization:
                 return True, None
+            
             response.process_events()
             if response.is_success:
                 return True, None
             else:
                 return False, response.error_message
+        
     def sudo_set_difficulty(self, netuid: int, difficulty: int, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
         r""" Sets the difficulty of the mock chain using the sudo key.
         """
@@ -373,6 +376,9 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
             if not wait_for_finalization:
                 return True, None
 
+            if not wait_for_finalization:
+                return True, None
+            
             response.process_events()
             if response.is_success:
                 return True, None
@@ -409,6 +415,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                 return True, None
             else:
                 return False, response.error_message
+            
     def sudo_register(self, netuid: int, hotkey: str, coldkey: str, stake: int = 0, balance: int = 0, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
         r""" Registers a neuron to the subnet using sudo.
         """

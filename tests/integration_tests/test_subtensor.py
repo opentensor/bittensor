@@ -234,6 +234,7 @@ class TestSubtensor(unittest.TestCase):
                                     wait_for_inclusion = True
                                     )
                 assert fail == False
+        
     def test_transfer( self ):
         class success():
             def __init__(self):
