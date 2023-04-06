@@ -59,8 +59,9 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
         logits = self.forward(forward_call.text_inputs)
         logits = logits[:, -1, :]
 
-        # ( jouee ) where *should* these tokenizers come from?
         tokenizer = bittensor.tokenizer()
+        bittensor.prep_tokenizer(tokenizer=tokenizer, std_tokenizer=tokenizer)
+
         topk_values = bittensor.topk_token_phrases(
             logits=logits, tokenizer=tokenizer, topk=forward_call.topk
         )
@@ -122,16 +123,6 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
             serialized_text_outputs = None
         else:
             text_outputs = forward_call.outputs
-
-            # get topk
-            # TODO: ask (joueee) about implementation of bittensor.tokenizer().  Does not contain func expected.
-            # AttributeError: 'tokenizers.Tokenizer' object has no attribute 'std_token_phrases'
-            # tokenizer = bittensor.tokenizer()
-            # topk_values = bittensor.topk_token_phrases(
-            #     logits=text_outputs, tokenizer=tokenizer, topk=forward_call.topk
-            # )
-            # # serialize
-            # serialized_text_outputs = outputs_serializer.serialize(topk_values)
             serialized_text_outputs = outputs_serializer.serialize(text_outputs)
 
         # Return the forward response proto.
