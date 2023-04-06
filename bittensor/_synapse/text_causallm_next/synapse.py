@@ -60,9 +60,7 @@ class TextCausalLMNextSynapse(bittensor.Synapse, bittensor.grpc.TextCausalLMNext
         logits = logits[:, -1, :]
 
         # ( jouee ) where *should* these tokenizers come from?
-        tokenizer = bittensor.prep_tokenizer(
-            tokenizer=bittensor.tokenizer(), std_tokenizer=bittensor.tokenizer()
-        )
+        tokenizer = bittensor.tokenizer()
         topk_values = bittensor.topk_token_phrases(
             logits=logits, tokenizer=tokenizer, topk=forward_call.topk
         )
