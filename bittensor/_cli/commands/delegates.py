@@ -194,7 +194,7 @@ class DelegateStakeCommand:
                     prev_delegates = None
 
             if prev_delegates is None:
-                bittensor.__console__.print(":cross_mark: [red]Could not fetch delegates history[/red]")
+                bittensor.__console__.print(":warning: [yellow]Could not fetch delegates history[/yellow]")
 
             if len(delegates) == 0:
                 console.print(":cross_mark: [red]There are no delegates on {}[/red]".format(subtensor.network))
@@ -299,7 +299,7 @@ class DelegateUnstakeCommand:
                     prev_delegates = None
 
             if prev_delegates is None:
-                bittensor.__console__.print(":cross_mark: [red]Could not fetch delegates history[/red]")
+                bittensor.__console__.print(":warning: [yellow]Could not fetch delegates history[/yellow]")
 
             if len(delegates) == 0:
                 console.print(":cross_mark: [red]There are no delegates on {}[/red]".format(subtensor.network))
@@ -339,7 +339,7 @@ class ListDelegatesCommand:
                 prev_delegates = None
 
         if prev_delegates is None:
-            bittensor.__console__.print(":cross_mark: [red]Could not fetch delegates history[/red]")
+            bittensor.__console__.print(":warning: [yellow]Could not fetch delegates history[/yellow]")
         
         show_delegates( delegates, prev_delegates = prev_delegates, width = cli.config.get('width', None) )
 
