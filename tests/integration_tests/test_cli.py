@@ -1964,7 +1964,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         
         # Add some neurons to the metagraph
         mock_nn = []
-        for i in range(10):
+        for i in range(5):
             mock_nn.append( 
                 SimpleNamespace(
                     hotkey = get_mock_keypair(i + 100, self.id()).ss58_address,

@@ -36,11 +36,6 @@ class TestSubtensor(unittest.TestCase):
         self.mock_neuron = get_mock_neuron_by_uid(0)
         self.balance = Balance.from_tao(1000)
 
-    def test_defaults_to_finney( self ):
-        sub = bittensor.subtensor( )
-        assert sub.network == 'finney'
-        assert sub.chain_endpoint == bittensor.__finney_entrypoint__
-
     def test_network_overrides( self ): 
         """ Tests that the network overrides the chain_endpoint.
         """
@@ -598,6 +593,10 @@ class TestSubtensor(unittest.TestCase):
             sub.validator_batch_size(netuid = 3)
             sub.difficulty(netuid = 3)
 
+def test_defaults_to_finney():
+    sub = bittensor.subtensor()
+    assert sub.network == 'finney'
+    assert sub.chain_endpoint == bittensor.__finney_entrypoint__
 
 def test_subtensor_mock():
     mock_subtensor.kill_global_mock_process()
