@@ -21,12 +21,12 @@ import bittensor
 from tqdm import tqdm
 from rich.table import Table
 from rich.prompt import Prompt
-from .utils import check_netuid_set
+from .utils import check_netuid_set, get_delegates_details, DelegatesDetails
 console = bittensor.__console__
 
 import os
 import bittensor
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Dict
 
 def _get_coldkey_wallets_for_path( path: str ) -> List['bittensor.wallet']:
     try:
@@ -58,7 +58,7 @@ class InspectCommand:
     def run (cli):
         r""" Inspect a cold, hot pair.
         """
-        if cli.config.all == True:
+        if cli.config.get('all', d=False) == True:
             wallets = _get_coldkey_wallets_for_path( cli.config.wallet.path )
         else:
             wallets = [bittensor.wallet( config = cli.config )]
@@ -66,15 +66,9 @@ class InspectCommand:
 
         netuids = subtensor.get_all_subnet_netuids()
 
-        try:
-            package_dir = os.path.dirname(bittensor.__file__)
-            root_dir = os.path.dirname(package_dir)
-            filename = os.path.join(root_dir, 'delegates.json')
-            if os.path.exists(filename):
-                registered_delegate_info = json.load( open(filename, 'r') )
-            else:
-                registered_delegate_info = {}
-        except:
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(url = bittensor.__delegates_details_url__)
+        if registered_delegate_info is None:
+            bittensor.__console__.print( ':warning:[yellow]Could not get delegate info from chain.[/yellow]')
             registered_delegate_info = {}
 
         neuron_state_dict = {}
@@ -108,7 +102,7 @@ class InspectCommand:
             )
             for dele, staked in delegates:
                 if dele.hotkey_ss58 in registered_delegate_info:
-                    delegate_name = registered_delegate_info[dele.hotkey_ss58]['name']
+                    delegate_name = registered_delegate_info[dele.hotkey_ss58].name
                 else:
                     delegate_name = dele.hotkey_ss58
                 table.add_row(
@@ -145,7 +139,7 @@ class InspectCommand:
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        if not config.all and config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
+        if not config.get( 'all', d=None ) and config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 

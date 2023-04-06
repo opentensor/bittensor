@@ -27,7 +27,7 @@ class TestMetagraph(unittest.TestCase):
     def setUp(self):
         mock_subtensor.kill_global_mock_process()
         self.sub = bittensor.subtensor(_mock=True)
-        self.metagraph = bittensor.metagraph( netuid = -1, network="mock")
+        self.metagraph = bittensor.metagraph( netuid = 3, network="mock")
 
     def test_print_empty(self):
         print (self.metagraph)
