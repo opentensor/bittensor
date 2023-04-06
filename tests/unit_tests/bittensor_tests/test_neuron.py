@@ -336,15 +336,18 @@ class TestBlacklist(unittest.TestCase):
             )
         )
 
+        mock_total_stake = [
+                torch.tensor(100), # stake for mock_hotkey, uid 0
+                torch.tensor(1001), # stake for mock_hotkey_1, uid 1
+        ]
+
         mock_metagraph = MagicMock(
             hotkeys=[
                 mock_hotkey,
                 mock_hotkey_1,
             ],
-            total_stake=[
-                torch.tensor(100), # stake for mock_hotkey, uid 0
-                torch.tensor(1001), # stake for mock_hotkey_1, uid 1
-            ]
+            total_stake= mock_total_stake,
+            S=torch.tensor(mock_total_stake),
         )
 
         mock_config = self.construct_config()
