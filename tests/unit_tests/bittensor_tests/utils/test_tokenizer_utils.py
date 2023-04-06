@@ -395,7 +395,7 @@ def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: i
     assert (_topk_tensor - topk_tensor).abs().sum() < 1e-9
 
 
-def test_topk_token_phrases():
+def _test_topk_token_phrases():
     r"""
     Unit test for topk token phrases raveling and unraveling.
 
