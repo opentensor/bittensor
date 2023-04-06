@@ -247,6 +247,7 @@ message BackwardTextCausalLMResponse {
 
 service TextPrompting  {
     rpc Forward (ForwardTextPromptingRequest) returns (ForwardTextPromptingResponse) {}
+    rpc Backward (BackwardTextPromptingRequest) returns (BackwardTextPromptingResponse) {}
 }
 /////////////////////////
 // TextPrompting //
@@ -261,13 +262,18 @@ message ForwardTextPromptingResponse {
     int32 version = 1;
     string hotkey = 2;
     string response = 3;
-		string message = 4;
-		ReturnCode return_code = 5;
+	string message = 4;
+	ReturnCode return_code = 5;
 }
 message BackwardTextPromptingRequest {
     int32 version = 1;
     string hotkey = 2;
-    Tensor reward = 3;
+    ForwardTextPromptingRequest forward_call = 3;
+	repeated float rewards = 4;
+}
+message BackwardTextPromptingResponse {
+    int32 version = 1;
+    string hotkey = 2;
 }
 
 

@@ -203,6 +203,8 @@ from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqResponse
 
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse
+from bittensor._proto.bittensor_pb2 import BackwardTextPromptingRequest
+from bittensor._proto.bittensor_pb2 import BackwardTextPromptingResponse
 
 # ---- Calls -----
 from bittensor._synapse.call import BittensorCall
@@ -213,7 +215,9 @@ from bittensor._synapse.text_causallm.call import TextCausalLMForwardCall
 from bittensor._synapse.text_causallm.call import TextCausalLMBackwardCall
 from bittensor._synapse.text_causallm_next.call import TextCausalLMNextForwardCall
 from bittensor._synapse.text_causallm_next.call import TextCausalLMNextBackwardCall
+
 from bittensor._synapse.text_prompting.call import TextPromptingForwardCall
+from bittensor._synapse.text_prompting.call import TextPromptingBackwardCall
 
 # ---- Synapses -----
 from bittensor._synapse.synapse import Synapse

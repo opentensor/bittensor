@@ -1,11 +1,24 @@
-from typing import List, Dict
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+import torch
 import bittensor
+from typing import List, Dict
 bittensor.logging(debug=True)
-# import openai
-
-
-# openai.api_key = "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"
 
 # Create a synapse that returns zeros.
 class Synapse(bittensor.TextPromptingSynapse):
@@ -15,22 +28,12 @@ class Synapse(bittensor.TextPromptingSynapse):
     def _blacklist(self, forward_call: "bittensor.TextPromptingForwardCall") -> bool:
         return False
 
-    def forward(self, messages: List[Dict[str, str]]) -> str:
+    def backward( self, messages: List[Dict[str, str]], rewards: torch.FloatTensor ) -> str:
+        # Apply PPO.
+        pass
 
-        import openai
-        openai.api_key = "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"
-        resp = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Who won the world series in 2020?"},
-                {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
-                {"role": "user", "content": "Where was it played?"},
-                {"role": "assistant", "content": "The World Series was played in Arlington, Texas."},
-                {"role": "user", "content": "Who was the MVP?"}
-            ]
-        )
-        return resp['choices'][0]['message']['content']
+    def forward(self, messages: List[Dict[str, str]]) -> str:
+        return "hello im a chat bot."
 
 # Create a mock wallet.
 wallet = bittensor.wallet().create_if_non_existent()
@@ -58,10 +61,16 @@ batch_size = 4
 sequence_length = 32
 # Create a text_prompting module and call it.
 module = bittensor.text_prompting( endpoint = local_endpoint, wallet = wallet )
-response = module.forward(
-    roles=['user', 'assistant'],
+forward_response = module.forward(
+    roles = ['user', 'assistant'],
     messages = [{ "user": "Human", "content": "hello"}],
-    timeout=1e6
+    timeout = 1e6
+)
+backward_response = module.backward(
+    roles = ['user', 'assistant'],
+    messages = [{ "user": "Human", "content": "hello"}],
+    rewards = [1,2,3,4,5],
+    timeout = 1e6
 )
 
 

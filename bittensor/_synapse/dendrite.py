@@ -104,11 +104,6 @@ class Dendrite(torch.nn.Module):
         """
         raise NotImplementedError('Must implement post_process_response_proto_to_forward_call() in subclass.')
     
-    def _backward( self, backward_call: 'bittensor.BittensorCall' ) -> 'bittensor.BittensorCall':
-        """ Forward call to remote endpoint."""
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete( self.async_backward( backward_call = backward_call ) )
-
     async def _async_forward( self, forward_call: 'bittensor.BittensorCall' ) -> 'bittensor.BittensorCall':
         """ The function async_forward is a coroutine function that makes an RPC call 
             to a remote endpoint to perform a forward pass. It uses a BittensorCall object which it fills 
@@ -203,7 +198,7 @@ class Dendrite(torch.nn.Module):
             forward_call.end_time = time.time()
             return forward_call
         
-    async def async_backward( self, backward_call: 'bittensor.BittensorCall' ):
+    async def _async_backward( self, backward_call: 'bittensor.BittensorCall' ):
         """ The function async_backward is a coroutine function that makes an RPC call
             to a remote endpoint to perform a backward pass.
 
