@@ -58,7 +58,7 @@ class InspectCommand:
     def run (cli):
         r""" Inspect a cold, hot pair.
         """
-        if cli.config.all == True:
+        if cli.config.get('all', d=False) == True:
             wallets = _get_coldkey_wallets_for_path( cli.config.wallet.path )
         else:
             wallets = [bittensor.wallet( config = cli.config )]
@@ -139,7 +139,7 @@ class InspectCommand:
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        if not config.all and config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
+        if not config.get( 'all', d=None ) and config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
