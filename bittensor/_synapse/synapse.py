@@ -15,23 +15,20 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
-import copy
 import os
+import copy
+import grpc
 import time
+import torch
+import argparse
+import bittensor
+
 from abc import ABC, abstractmethod
 from types import SimpleNamespace
 from typing import Union, Any
 from warnings import warn
 
-import torch
-
-import grpc
-
-import bittensor
-
-
-class Synapse(ABC):
+class Synapse( ABC ):
 
     synapse_name: str = "base"
     default_blacklist_stake: float = -1.0
