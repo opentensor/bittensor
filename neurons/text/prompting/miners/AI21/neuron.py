@@ -29,9 +29,9 @@ class AI21Miner( bittensor.BasePromptingMiner ):
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
+        parser.add_argument('--ai21.api_key', type=str, help='AI21 API key.', required=True)
         parser.add_argument('--ai21.model_name', type=str, help='Name of the model.', default='j2-jumbo-instruct')
         parser.add_argument('--ai21.stop', help='Stop tokens.', default=['user: ', 'bot: ', 'system: '])
-        parser.add_argument('--ai21.api_key', type=str, help='AI21 API key.', default=None)
         
     def __init__( self ):
         super( AI21Miner, self ).__init__()
@@ -41,12 +41,6 @@ class AI21Miner( bittensor.BasePromptingMiner ):
             ai21_api_key = self.config.ai21.api_key, 
             stop = self.config.ai21.stop
         )
-
-    def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
-        return 0.0
-
-    def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
-        return False
 
     @staticmethod
     def _process_history( history:  List[Dict[str, str]] ) -> str:
