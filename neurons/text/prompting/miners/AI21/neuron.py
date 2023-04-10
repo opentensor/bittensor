@@ -49,7 +49,7 @@ class AI21Miner( bittensor.BasePromptingMiner ):
         return False
 
     @staticmethod
-    def _process_history(history: List[dict]) -> str:
+    def _process_history( history:  List[Dict[str, str]] ) -> str:
         processed_history = ''
         for message in history:
             if message['role'] == 'system':

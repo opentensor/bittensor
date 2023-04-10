@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import time
 import queue
 import torch
 import bittensor
@@ -27,8 +26,6 @@ from types import SimpleNamespace
 from typing import List, Optional
 from reward import RewardModel
 from gating import GatingModel
-
-from loguru import logger
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific about science and language.
@@ -107,8 +104,8 @@ class neuron:
 
         # Return zeros weights if there is no history.
         if self.history.qsize() == 0: 
-            bittensor.logging.warning( 'No history to compute weights.' )
-            return torch.zeros((self.metagraph.n))
+            bittensor.logging.warning( 'No history to compute weights returning all ones.' )
+            return torch.ones((self.metagraph.n)) / self.metagraph.n
 
         # Averages the rewards for each uid across non-zero values.
         rewards = []
@@ -133,13 +130,23 @@ class neuron:
 
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
-        avg_rewards = torch.nan_to_num( rewards.sum(1) / (rewards != 0).sum(1), 0 )
-        bittensor.logging.debug( 'avg_rewards', avg_rewards )
-        bittensor.logging.debug( 'top10 values', avg_rewards.sort()[0] )
-        bittensor.logging.debug( 'top10 values', avg_rewards.sort()[1] )
+        raw_weights = torch.nan_to_num( rewards.sum(1) / (rewards != 0).sum(1), 0 )
+        bittensor.logging.debug( 'raw_weights', raw_weights )
+        bittensor.logging.debug( 'top10 values', raw_weights.sort()[0] )
+        bittensor.logging.debug( 'top10 values', raw_weights.sort()[1] )
+     
+        # Return the calculated final_weights
+        processed_weights = bittensor.utils.process_weights_for_netuid(
+            weights = raw_weights,
+            netuid = self.config.netuid,
+            subtensor = self.subtensor,
+            metagraph = self.metagraph
+        )
+        bittensor.logging.debug( 'processed_weights', processed_weights )
+        bittensor.logging.debug( 'top10 values', processed_weights.sort()[0] )
+        bittensor.logging.debug( 'top10 values', processed_weights.sort()[1] )
+        return processed_weights
 
-        # Return the calculated average rewards.
-        return avg_rewards
    
     def forward(
             self, 
@@ -272,7 +279,7 @@ class neuron:
                 # Computes the average reward for each uid across non-zero values 
                 # using the rewards history stored in the self.history list.
                 weights = self.compute_weights()
-                bittensor.logging.debug( 'weights', weights )
+                bittensor.logging.info( 'weights', weights )
 
                 # Set the weights on chain via our subtensor connection.
                 self.subtensor.set_weights(
