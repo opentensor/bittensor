@@ -71,12 +71,12 @@ class neuron:
     @classmethod
     def config ( cls ):
         parser = argparse.ArgumentParser()    
-        cls.add_args( parser )
         bt.wallet.add_args( parser )
         bt.subtensor.add_args( parser )
         bt.metagraph.add_args( parser )
         bt.logging.add_args( parser )
         GatingModel.add_args( parser )
+        cls.add_args( parser )
         return bt.config( parser )
     
     def __init__( self, config=None ):
