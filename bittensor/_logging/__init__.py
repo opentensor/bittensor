@@ -19,23 +19,24 @@
 
 import os
 import sys
-import torch
-
-import argparse
 import copy
-
-from loguru import logger
-
+import torch
+import argparse
 import bittensor
 import bittensor.utils.codes as codes
 
+from loguru import logger
 logger = logger.opt(colors=True)
-
 # Remove default sink.
 try:
     logger.remove( 0 )
 except Exception:
     pass
+
+import re
+def _remove_loguru_ansi_directive( text:str ) -> str:
+    pattern = r'<.*?>'
+    return re.sub(pattern, '', text)
 
 class logging:
     """ Standardize logging for bittensor
@@ -316,6 +317,8 @@ class logging:
     def _format( cls, prefix:object, sufix:object = None ):
         """ Format logging message
         """
+        if isinstance( prefix, torch.Tensor ):
+            prefix = prefix.detach()
         if sufix != None:
             if isinstance( sufix, torch.Tensor ):
                 sufix = 'shape: {}'.format( str(sufix.shape) ) + " data: {}".format( str( sufix.detach() ) )
@@ -325,7 +328,7 @@ class logging:
             sufix = ""
         prefix = prefix.ljust(20)
         log_msg = str( prefix ) + str( sufix )
-        return log_msg
+        return _remove_loguru_ansi_directive( log_msg )
 
     @classmethod
     def success( cls, prefix:object, sufix:object = None ):
