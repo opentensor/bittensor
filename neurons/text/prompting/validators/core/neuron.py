@@ -107,8 +107,8 @@ class neuron:
 
         # Return zeros weights if there is no history.
         if self.history.qsize() == 0: 
-            bittensor.logging.warning( 'No history to compute weights.' )
-            return torch.zeros((self.metagraph.n))
+            bittensor.logging.warning( 'No history to compute weights returning all ones.' )
+            return torch.ones((self.metagraph.n)) / self.metagraph.n
 
         # Averages the rewards for each uid across non-zero values.
         rewards = []
@@ -133,13 +133,18 @@ class neuron:
 
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
-        avg_rewards = torch.nan_to_num( rewards.sum(1) / (rewards != 0).sum(1), 0 )
+        raw_weights = torch.nan_to_num( rewards.sum(1) / (rewards != 0).sum(1), 0 )
         bittensor.logging.debug( 'avg_rewards', avg_rewards )
         bittensor.logging.debug( 'top10 values', avg_rewards.sort()[0] )
         bittensor.logging.debug( 'top10 values', avg_rewards.sort()[1] )
-
-        # Return the calculated average rewards.
-        return avg_rewards
+     
+        # Return the calculated final_weights
+        return bittensor.utils.process_weights_for_netuid(
+            weights = raw_weights,
+            netuid = self.config.netuid,
+            subtensor = self.subtensor,
+            metagraph = self.metagraph
+        )
    
     def forward(
             self, 
@@ -272,7 +277,7 @@ class neuron:
                 # Computes the average reward for each uid across non-zero values 
                 # using the rewards history stored in the self.history list.
                 weights = self.compute_weights()
-                bittensor.logging.debug( 'weights', weights )
+                bittensor.logging.info( 'weights', weights )
 
                 # Set the weights on chain via our subtensor connection.
                 self.subtensor.set_weights(
