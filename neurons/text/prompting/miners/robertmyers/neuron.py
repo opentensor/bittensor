@@ -39,19 +39,13 @@ class RobertMyersMiner( bittensor.BasePromptingMiner ):
         tokenizer = AutoTokenizer.from_pretrained( "robertmyers/bpt-sft" )
         self.model = AutoModelForCausalLM.from_pretrained(  "robertmyers/bpt-sft", torch_dtype=torch.float16 )
         self.model.to( "cuda" )
-        self.pipe = pipeline( "text-generation", self.model, tokenizer=tokenizer, device=0, max_new_tokens = 256 )   
-
-    def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
-        return 0.0
-
-    def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
-        return False
+        self.pipe = pipeline( "text-generation", self.model, tokenizer=tokenizer, device = 0, max_new_tokens = 256 )
+        print("Model loaded")
     
     @staticmethod
     def _process_history( history: List[ Dict[str, str] ] ) -> str:
         processed_history = ''
         for message in history:
-            message = json.loads(message)
             if message['role'] == 'system':
                 processed_history += 'system: ' + message['content'] + '\n'
             if message['role'] == 'assistant':
@@ -62,7 +56,8 @@ class RobertMyersMiner( bittensor.BasePromptingMiner ):
 
     def forward( self, messages: List[Dict[str, str]]  ) -> str:
         history = self._process_history(messages)
-        return self.pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "") 
+        resp = self.pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "") 
+        return resp
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
