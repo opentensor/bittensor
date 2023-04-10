@@ -34,13 +34,10 @@ class OpenAIMiner( bittensor.BasePromptingMiner ):
         parser.add_argument('--openai.temperature', type=float, default=0.7, help="Sampling temperature to use, between 0 and 2.")
         parser.add_argument('--openai.top_p', type=float, default=1, help="Nucleus sampling parameter, top_p probability mass.")
         parser.add_argument('--openai.n', type=int, default=1, help="How many completions to generate for each prompt.")
-        parser.add_argument('--openai.stream', action='store_true', default=False, help="Whether to stream back partial progress.")
-        parser.add_argument('--openai.logprobs', type=int, default=None, help="Include the log probabilities on the logprobs most likely tokens.")
-        parser.add_argument('--openai.echo', action='store_true', default=False, help="Echo back the prompt in addition to the completion.")
-        parser.add_argument('--openai.stop', type=List[str], help='Up to 4 sequences where the API will stop generating further tokens.', default=['user: ', 'bot: ', 'system: '])
         parser.add_argument('--openai.presence_penalty', type=float, default=0, help="Penalty for tokens based on their presence in the text so far.")
         parser.add_argument('--openai.frequency_penalty', type=float, default=0, help="Penalty for tokens based on their frequency in the text so far.")
-        
+        parser.add_argument('--openai.model_name', type=str, default='gpt-3.5-turbo', help="OpenAI model to use for completion.")
+
     def __init__( self ):
         super( OpenAIMiner, self ).__init__()
         print ( self.config )
@@ -53,16 +50,17 @@ class OpenAIMiner( bittensor.BasePromptingMiner ):
         return False
 
     def forward( self, messages: List[Dict[str, str]]  ) -> str:
-        return openai.ChatCompletion.create(
-            model = self.config.neuron.model_name,
+        resp = openai.ChatCompletion.create(
+            model = self.config.openai.model_name,
             messages = messages,
-            temperature = self.config.neuron.temperature,
-            max_tokens = self.config.neuron.max_tokens,
-            top_p = self.config.neuron.top_p,
-            frequency_penalty = self.config.neuron.frequency_penalty,
-            presence_penalty = self.config.neuron.presence_penalty,
-            n = self.config.neuron.n,
+            temperature = self.config.openai.temperature,
+            max_tokens = self.config.openai.max_tokens,
+            top_p = self.config.openai.top_p,
+            frequency_penalty = self.config.openai.frequency_penalty,
+            presence_penalty = self.config.openai.presence_penalty,
+            n = self.config.openai.n,
         )['choices'][0]['message']['content']
+        return resp
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
