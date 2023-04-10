@@ -198,14 +198,15 @@ class Synapse( ABC ):
         Returns:
             bool: True if blacklisted, False otherwise.
         """
-        return False
         assert self.is_attached
+
         # Call subclass blacklist and optionally return if metagraph is None.
-        try:
+        try: # Calls synapse terminal child blacklist
             sub_blacklist = self._blacklist(forward_call)
         except NotImplementedError:
             warn("_blacklist is not defined in the terminal child class, defaulting to blacklist=True.")
             sub_blacklist = True
+
         if self.axon.metagraph is None:
             return sub_blacklist
 
@@ -213,14 +214,14 @@ class Synapse( ABC ):
         def registration_check():
             is_registered = forward_call.hotkey in self.axon.metagraph.hotkeys
             if not is_registered:
-                if self.synapse_config.blacklist.allow_non_registered:
+                if self.config.synapse.text_prompting.blacklist.allow_non_registered:
                     return False
-                raise Exception("Registration blacklist")
-
+                raise Exception("Registration blacklist") 
+        
         # Blacklist based on stake.
         def stake_check() -> bool:
             uid = self.axon.metagraph.hotkeys.index(forward_call.hotkey)
-            if self.axon.metagraph.S[uid].item() < self.config.synapse.blacklist.stake:
+            if self.axon.metagraph.S[uid].item() < self.config.synapse.text_prompting.blacklist.stake:
                 raise Exception("Stake blacklist")
             return False
 
@@ -230,6 +231,7 @@ class Synapse( ABC ):
             stake_check()
             return sub_blacklist
         except Exception as e:
+            warn("Blacklisted. Error in `registration_check` or `stake_check()")
             return True
 
     def attach(self, axon):
@@ -280,6 +282,7 @@ class Synapse( ABC ):
         if not self.is_attached:
             raise Exception("Synapse cannot be called unless it is attached. Call attach() first.")
 
+        print("In synapse base class Forward() [beggining]")
         try:
             # Build forward call.
             forward_call = self.pre_process_request_proto_to_forward_call(request_proto=request)
