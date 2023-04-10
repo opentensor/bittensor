@@ -1,20 +1,19 @@
-## Pythia Miner
-togethercomputer/Pythia-7B Language Model Serving with BitTensor
-This code is for running a language model powered by togethercomputer through the BitTensor framework. 
+
+## RoberMyers Miner
+Robert myers completion miner for bittensor's prompting network. 
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/pythia/requirements.txt
-python3 neurons/text/prompting/miners/pythia/neuron.py
+python3 -m pip install -r neurons/text/prompting/miners/robertmyers/requirements.txt
+python3 neurons/text/prompting/miners/robertmyers/neuron.py
 ```
 
 # Full Usage
 ```
-usage: neuron.py [-h] [--pythia.device PYTHIA.DEVICE] [--pythia.max_new_tokens PYTHIA.MAX_NEW_TOKENS] [--pythia.do_sample] [--pythia.temperature PYTHIA.TEMPERATURE] [--netuid NETUID] [--neuron.name NEURON.NAME]
-                 [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights] [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN]
-                 [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock]
-                 [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS] [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT] [--axon.ip AXON.IP]
-                 [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP] [--axon.max_workers AXON.MAX_WORKERS] [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS]
+usage: neuron.py [-h] [--netuid NETUID] [--neuron.name NEURON.NAME] [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights] [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE]
+                 [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN] [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH]
+                 [--wallet._mock] [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS] [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT]
+                 [--axon.ip AXON.IP] [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP] [--axon.max_workers AXON.MAX_WORKERS] [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS]
                  [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT] [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
                  [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL] [--subtensor.register.no_output_in_place] [--subtensor.register.verbose] [--subtensor.register.cuda.use_cuda]
                  [--subtensor.register.cuda.no_cuda] [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]] [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB]
@@ -22,13 +21,6 @@ usage: neuron.py [-h] [--pythia.device PYTHIA.DEVICE] [--pythia.max_new_tokens P
 
 optional arguments:
   -h, --help            show this help message and exit
-  --pythia.device PYTHIA.DEVICE
-                        Device to load model
-  --pythia.max_new_tokens PYTHIA.MAX_NEW_TOKENS
-                        Max tokens for model output.
-  --pythia.do_sample    Whether to use sampling or not (if not, uses greedy decoding).
-  --pythia.temperature PYTHIA.TEMPERATURE
-                        Sampling temperature of model
   --netuid NETUID       Subnet netuid
   --neuron.name NEURON.NAME
                         Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name
@@ -96,4 +88,4 @@ optional arguments:
   --metagraph._mock     To turn on metagraph mocking for testing purposes.
   --config CONFIG       If set, defaults are overridden by passed file.
   --strict              If flagged, config will check that only exact arguemnts have been set.
-```
+  ```
