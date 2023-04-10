@@ -43,9 +43,6 @@ class OpenAIMiner( bittensor.BasePromptingMiner ):
         print ( self.config )
         openai.api_key = self.config.openai.api_key
 
-    def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
-        return 0.0
-
     def forward( self, messages: List[Dict[str, str]]  ) -> str:
         resp = openai.ChatCompletion.create(
             model = self.config.openai.model_name,

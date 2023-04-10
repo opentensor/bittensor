@@ -174,22 +174,10 @@ class Synapse( ABC ):
         Returns:
             float: priority of the forward call.
         """
-        # TODO: could be min/max of list of priorities (append like blacklist idea)
-        # Call subclass priority, if not implemented use the metagraph priority based on stake.
+        # TODO: should be min/max of list of priorities (append like blacklist idea)
         assert self.is_attached
-        try:
-            priority = self._priority(forward_call)
-            if priority is not None:
-                return priority
-                
-        # TODO: replace notimplemented error with defaults
-        except NotImplementedError:
-            warn("_priority is not implemented in the subclass!")
-            if self.axon.metagraph is not None:
-                uid = self.axon.metagraph.hotkeys.index(forward_call.hotkey)
-                return self.axon.metagraph.S[uid].item()
-            else:
-                return 0.0
+        # Call subclass priority, if not implemented use the metagraph priority based on stake.
+        return self._priority(forward_call)
 
     def blacklist(self, forward_call: bittensor.BittensorCall) -> bool:
         """_blacklist: Checks if the forward call is blacklisted.
