@@ -951,31 +951,20 @@ class Subtensor:
         Returns:
             metagraph ( `bittensor.Metagraph` ):
                 The metagraph for the subnet at the block.
-        """
-        status: Optional['rich.console.Status'] = None
-        # if bittensor.__use_console__:
-        # status = bittensor.__console__.status("Synchronizing Metagraph...", spinner="earth")
-        # status.start()
-        
+        """        
         # Get neurons.
         if lite:
             neurons = self.neurons_lite( netuid = netuid, block = block )
         else:
             neurons = self.neurons( netuid = netuid, block = block )
-        
         # Get subnet info.
         subnet_info: Optional[bittensor.SubnetInfo] = self.get_subnet_info( netuid = netuid, block = block )
         if subnet_info == None:
             # status.stop() if status else ...
             raise ValueError('Could not find subnet info for netuid: {}'.format(netuid))
-
-        # status.stop() if status else ...
-
         # Create metagraph.
         block_number = self.block
-        
         metagraph = bittensor.metagraph.from_neurons( network = self.network, netuid = netuid, info = subnet_info, neurons = neurons, block = block_number )
-        print("Metagraph subtensor: ", self.network)
         return metagraph
 
     ################
@@ -1010,7 +999,7 @@ class Subtensor:
                     )
             result = make_substrate_call_with_retry()
         except scalecodec.exceptions.RemainingScaleBytesNotEmptyException:
-            logger.critical("Your wallet it legacy formatted, you need to run btcli stake --ammount 0 to reformat it." )
+            bittensor.logging.error( "Your wallet it legacy formatted, you need to run btcli stake --ammount 0 to reformat it." )
             return Balance(1000)
         return Balance( result.value['data']['free'] )
 
