@@ -174,14 +174,15 @@ class Synapse( ABC ):
         Returns:
             float: priority of the forward call.
         """
-        # Call subclass priority, if not implemented use the
-        # metagraph priority based on stake.
+        # TODO: could be min/max of list of priorities (append like blacklist idea)
+        # Call subclass priority, if not implemented use the metagraph priority based on stake.
         assert self.is_attached
         try:
             priority = self._priority(forward_call)
             if priority is not None:
                 return priority
-
+                
+        # TODO: replace notimplemented error with defaults
         except NotImplementedError:
             warn("_priority is not implemented in the subclass!")
             if self.axon.metagraph is not None:
@@ -191,48 +192,18 @@ class Synapse( ABC ):
                 return 0.0
 
     def blacklist(self, forward_call: bittensor.BittensorCall) -> bool:
-        """__blacklist: Checks if the forward call is blacklisted.
+        """_blacklist: Checks if the forward call is blacklisted.
         Args:
             forward_call (:obj:`bittensor.BittensorCall`, `required`):
                 forward_call to check.
         Returns:
             bool: True if blacklisted, False otherwise.
         """
+        # TODO: Substrate: List[checks], append checks to list e.g. linearly (...think about this)
         assert self.is_attached
 
-        # Call subclass blacklist and optionally return if metagraph is None.
-        try: # Calls synapse terminal child blacklist
-            sub_blacklist = self._blacklist(forward_call)
-        except NotImplementedError:
-            warn("_blacklist is not defined in the terminal child class, defaulting to blacklist=True.")
-            sub_blacklist = True
-
-        if self.axon.metagraph is None:
-            return sub_blacklist
-
-        # Check for registration
-        def registration_check():
-            is_registered = forward_call.hotkey in self.axon.metagraph.hotkeys
-            if not is_registered:
-                if self.config.synapse.text_prompting.blacklist.allow_non_registered:
-                    return False
-                raise Exception("Registration blacklist") 
-        
-        # Blacklist based on stake.
-        def stake_check() -> bool:
-            uid = self.axon.metagraph.hotkeys.index(forward_call.hotkey)
-            if self.axon.metagraph.S[uid].item() < self.config.synapse.text_prompting.blacklist.stake:
-                raise Exception("Stake blacklist")
-            return False
-
-        # Optionally blacklist based on checks.
-        try:
-            registration_check()
-            stake_check()
-            return sub_blacklist
-        except Exception as e:
-            warn("Blacklisted. Error in `registration_check` or `stake_check()")
-            return True
+        # Calls subclass blacklist (if exists).  Calls super().blacklist() if not implemented in child class.
+        return self._blacklist(forward_call)
 
     def attach(self, axon):
         """Attach Synapse to the axon."""
