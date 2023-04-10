@@ -19,14 +19,16 @@ import os
 import time
 import queue
 import torch
+import bittensor
 import argparse
 import bittensor as bt
 
 from types import SimpleNamespace
-from collections import defaultdict
 from typing import List, Optional
 from reward import RewardModel
 from gating import GatingModel
+
+from loguru import logger
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific about science and language.
@@ -92,7 +94,7 @@ class neuron:
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
 
-    def complute_weights( self ) -> torch.FloatTensor:
+    def compute_weights( self ) -> torch.FloatTensor:
         """
             Computes the average reward for each uid across non-zero values 
             using the rewards history stored in the self.history list.
@@ -101,9 +103,12 @@ class neuron:
                 weights ( torch.FloatTensor, shape = (n) ): 
                     The weights for each uid.
         """
+        bittensor.logging.info( 'compute_weights()' )
+
         # Return zeros weights if there is no history.
         if self.history.qsize() == 0: 
-            print ('no history to compute weights.'); return torch.zeros((self.metagraph.n))
+            bittensor.logging.warning( 'No history to compute weights.' )
+            return torch.zeros((self.metagraph.n))
 
         # Averages the rewards for each uid across non-zero values.
         rewards = []
@@ -112,42 +117,51 @@ class neuron:
         for event in self.history.queue:
             # Normalize the rewards for the current event using softmax normalization.
             normalized_rewards = torch.nn.functional.softmax( event.rewards.to( self.device ), dim=0 )
-            print ('normalized_rewards', normalized_rewards.size(), normalized_rewards)
+            bittensor.logging.debug( 'normalized_rewards', normalized_rewards )
 
             # Use the `uids` of the current event to scatter the normalized rewards
             # into a zero-initialized tensor with the same shape as `self.metagraph.n`.
             scattered_rewards = torch.zeros((self.metagraph.n)).to( self.device ).scatter(0, event.uids.to( self.device ), normalized_rewards.to( self.device ) )
-            print ('scattered_rewards', scattered_rewards.size(), scattered_rewards)
+            bittensor.logging.debug( 'scattered_rewards', scattered_rewards )
 
             # Append the scattered rewards to the `rewards` list.
             rewards.append( scattered_rewards )
 
         # Stack the scattered rewards tensors along the second dimension.
         rewards = torch.stack( rewards, 1 ).to( self.device )
-        print ('rewards', rewards.size(), rewards)
+        bittensor.logging.debug( 'rewards', rewards )
 
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
         avg_rewards = torch.nan_to_num( rewards.sum(1) / (rewards != 0).sum(1), 0 )
-        print ('avg_rewards', avg_rewards.size(), 'top10 values', avg_rewards.sort()[0], 'top10 uids', avg_rewards.sort()[1])
+        bittensor.logging.debug( 'avg_rewards', avg_rewards )
+        bittensor.logging.debug( 'top10 values', avg_rewards.sort()[0] )
+        bittensor.logging.debug( 'top10 values', avg_rewards.sort()[1] )
 
         # Return the calculated average rewards.
         return avg_rewards
    
-    def forward( 
+    def forward(
             self, 
             message: str,
             topk: Optional[int] = None,
         ) -> SimpleNamespace:
-        """ Inference is called by clients seeking the outputs of the model
-            We use the gating network to determine the best models to query 
-            Optionally we use the reward model to train the gating network.
-
-            Args: 
-                message (str): The message to query the network with.
         """
-        print ('forward --------------------' )
-        print ('message', message )
+        Queries the network for a response to the passed message using a gating model to select the best uids.
+        Trains the gating model based on the rewards calculated for the successful completions and passes rewards
+        backward for potential PPO.
+
+        Args:
+            message (str): The message to query the network with.
+            topk (Optional[int]): The number of uids to consider for the query. If None or -1, all uids will be considered.
+                                 If provided, selects the top k uids based on the gating model scores.
+
+        Returns:
+            result (SimpleNamespace): A namespace containing the completion with the highest reward, message, uids,
+                                      rewards, scores, and all completions.
+        """
+        bittensor.logging.info( 'forward()' )
+        bittensor.logging.info( 'message', message.strip() )
 
         # Set `topk` to the number of items in `self.metagraph.n` if `topk` is not provided or is -1.
         # Find the available `uids` that are currently serving.
@@ -155,13 +169,13 @@ class neuron:
         available_uids = torch.tensor( [ uid for uid, ep in enumerate( self.metagraph.endpoint_objs ) if ep.is_serving ], dtype = torch.int64 ).to( self.device )
         if topk is None or topk == -1: topk = self.metagraph.n.item()
         if topk > len(available_uids): topk = len(available_uids)
-        print ('\ntopk', topk)
-        if len( available_uids ) == 0: return print('no available uids'); None
+        bittensor.logging.debug( 'topk', topk)
+        if len( available_uids ) == 0: bittensor.logging.error('no available uids'); return None
 
         # We run the gating network here to get the best uids
         # Use the gating model to generate scores for each `uid`.
         scores = self.gating_model( message ).to( self.device )
-        print ('\nscores', scores.size(), scores)
+        bittensor.logging.debug( 'scores', scores )
 
         # Select the top `topk` `uids` based on the highest `scores`.
         # Use the selected `uids` to query the dendrite pool.
@@ -174,23 +188,24 @@ class neuron:
             return_call = False,
             timeout = float( self.config.neuron.base_timeout + self.config.neuron.length_timeout_multiplier * len( message ) )
         )
-        print ('\ntopk_uids',  len(topk_uids), topk_uids)
-        print ('\ncompletions', len(completions), completions)
+        bittensor.logging.debug( 'topk_uids', topk_uids )
+        bittensor.logging.debug( 'completions', completions )
 
         # Filter out any `None` `completions`.
         successful_uids = torch.tensor( [ uid for uid, completion in list( zip( topk_uids, completions ) ) if completion is not None and len(completion) > 10 ], dtype = torch.int64 ).to( self.device )
         successful_completions = [ completion for completion in completions if completion is not None and len(completion) > 10 ]
-        print ('\nsuccessful_uids', len(successful_uids), successful_uids)
-        print ('\nsuccessful_completions', len(successful_completions), successful_completions)
-        if len( successful_completions ) == 0: print ('no successful completions'); return None
+        bittensor.logging.debug( 'successful_uids', successful_uids )
+        bittensor.logging.debug( 'successful_completions', successful_completions )
+        if len( successful_completions ) == 0: bittensor.logging.error('no successful completions'); return None
 
         # Calculate the rewards for the successful `completions` using the reward model.
         # Print the rewards for all `uids`.
         rewards = self.reward_model.reward( successful_completions ).to( self.device )
-        print ('\nrewards', rewards.size(), rewards)
+        bittensor.logging.debug( 'rewards', rewards )
 
         # Train the gating model using the scores and rewards of the successful `completions`.
         self.gating_model.backward( scores = scores[ successful_uids ], rewards = rewards )
+        bittensor.logging.debug( 'Apply backward to gating model' )
 
         # Pass rewards backward for potential PPO.
         self.dendrite_pool.backward( 
@@ -200,6 +215,7 @@ class neuron:
             rewards = rewards,
             uids = successful_uids, 
         )
+        bittensor.logging.debug( 'Applied backward to network.' )
 
         # Save the query history in a `result` object.
         # Return the `completion` with the highest reward.
@@ -214,12 +230,14 @@ class neuron:
         self.history.put( result )
 
         # Return the completion with the highest reward.
-        print ('result', result )
+        bittensor.logging.debug( 'forward result', result )
         return result
     
     # User queries here.
-    def inference( self, message ) -> str:
+    def inference( self, message: str) -> str:
         """Inference"""
+        bittensor.logging.info( 'inference()' )
+        bittensor.logging.info( 'message', message.strip() )
         result = self.forward( message, topk = self.config.neuron.inference_topk )
         if result == None: return "Failed"
         else: return result.completion
@@ -245,14 +263,16 @@ class neuron:
             
             # Check if enough epoch blocks have elapsed since the last epoch.
             if self.subtensor.block > last_epoch_block: # run every block. # > self.subtensor.validator_epoch_length( self.config.netuid ) :
-                
+                bittensor.logging.info( 'epoch()' )
+                bittensor.logging.info( 'block', self.subtensor.block )
+
                 # Update the last epoch block to the current epoch block.
                 last_epoch_block = self.subtensor.block
                 
                 # Computes the average reward for each uid across non-zero values 
                 # using the rewards history stored in the self.history list.
-                weights = self.complute_weights()
-                print ('\nweights', weights.size(), weights)
+                weights = self.compute_weights()
+                bittensor.logging.debug( 'weights', weights )
 
                 # Set the weights on chain via our subtensor connection.
                 self.subtensor.set_weights(
@@ -262,8 +282,7 @@ class neuron:
                     weights = weights,
                     wait_for_finalization = True,
                 )
-
-            time.sleep(1)
             
 if __name__ == '__main__':
+    bittensor.logging.info( 'neuron().train()' )
     neuron().train()
