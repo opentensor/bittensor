@@ -23,7 +23,6 @@ from typing import List, Dict
 # Torch tooling.
 from langchain.llms import AlephAlpha
 
-
 class AlephAlphaMiner( bittensor.BasePromptingMiner ):
 
     @classmethod
