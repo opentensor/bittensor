@@ -1,34 +1,62 @@
-## Pythia Miner
-togethercomputer/Pythia-7B Language Model Serving with BitTensor
-This code is for running a language model powered by togethercomputer through the BitTensor framework. 
+## GPT4ALL Miner
+GPT4ALL prompting miner for bittensor
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/pythia/requirements.txt
-python3 neurons/text/prompting/miners/pythia/neuron.py
+python3 -m pip install -r neurons/text/prompting/miners/gpt4all/requirements.txt
+python3 neurons/text/prompting/miners/gpt4all/neuron.py
 ```
 
 # Full Usage
 ```
-usage: neuron.py [-h] [--pythia.device PYTHIA.DEVICE] [--pythia.max_new_tokens PYTHIA.MAX_NEW_TOKENS] [--pythia.do_sample] [--pythia.temperature PYTHIA.TEMPERATURE] [--netuid NETUID] [--neuron.name NEURON.NAME]
-                 [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights] [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN]
-                 [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock]
-                 [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS] [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT] [--axon.ip AXON.IP]
-                 [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP] [--axon.max_workers AXON.MAX_WORKERS] [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS]
-                 [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT] [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
-                 [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL] [--subtensor.register.no_output_in_place] [--subtensor.register.verbose] [--subtensor.register.cuda.use_cuda]
-                 [--subtensor.register.cuda.no_cuda] [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]] [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB]
-                 [--logging.debug] [--logging.trace] [--logging.record_log] [--logging.logging_dir LOGGING.LOGGING_DIR] [--metagraph._mock] [--config CONFIG] [--strict]
+usage: neuron.py [-h] [--gpt4all.model GPT4ALL.MODEL] [--gpt4all.n_ctx GPT4ALL.N_CTX] [--gpt4all.n_parts GPT4ALL.N_PARTS] [--gpt4all.seed GPT4ALL.SEED] [--gpt4all.f16_kv] [--gpt4all.logits_all] [--gpt4all.vocab_only]
+                 [--gpt4all.use_mlock] [--gpt4all.embedding] [--gpt4all.n_threads GPT4ALL.N_THREADS] [--gpt4all.n_predict GPT4ALL.N_PREDICT] [--gpt4all.temp GPT4ALL.TEMP] [--gpt4all.top_p GPT4ALL.TOP_P]
+                 [--gpt4all.top_k GPT4ALL.TOP_K] [--gpt4all.echo] [--gpt4all.stop GPT4ALL.STOP] [--gpt4all.repeat_last_n GPT4ALL.REPEAT_LAST_N] [--gpt4all.repeat_penalty GPT4ALL.REPEAT_PENALTY]
+                 [--gpt4all.n_batch GPT4ALL.N_BATCH] [--gpt4all.streaming] [--netuid NETUID] [--neuron.name NEURON.NAME] [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights]
+                 [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN] [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--wallet.name WALLET.NAME]
+                 [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock] [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS]
+                 [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT] [--axon.ip AXON.IP] [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP]
+                 [--axon.max_workers AXON.MAX_WORKERS] [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS] [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT]
+                 [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES] [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL]
+                 [--subtensor.register.no_output_in_place] [--subtensor.register.verbose] [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
+                 [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]] [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug] [--logging.trace]
+                 [--logging.record_log] [--logging.logging_dir LOGGING.LOGGING_DIR] [--metagraph._mock] [--config CONFIG] [--strict]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --pythia.device PYTHIA.DEVICE
-                        Device to load model
-  --pythia.max_new_tokens PYTHIA.MAX_NEW_TOKENS
-                        Max tokens for model output.
-  --pythia.do_sample    Whether to use sampling or not (if not, uses greedy decoding).
-  --pythia.temperature PYTHIA.TEMPERATURE
-                        Sampling temperature of model
+  --gpt4all.model GPT4ALL.MODEL
+                        Path to pretrained gpt4all model in ggml format.
+  --gpt4all.n_ctx GPT4ALL.N_CTX
+                        Token context window.
+  --gpt4all.n_parts GPT4ALL.N_PARTS
+                        Number of parts to split the model into. If -1, the number of parts is automatically determined.
+  --gpt4all.seed GPT4ALL.SEED
+                        Seed. If -1, a random seed is used.
+  --gpt4all.f16_kv      Use half-precision for key/value cache.
+  --gpt4all.logits_all  Return logits for all tokens, not just the last token.
+  --gpt4all.vocab_only  Only load the vocabulary, no weights.
+  --gpt4all.use_mlock   Force system to keep model in RAM.
+  --gpt4all.embedding   Use embedding mode only.
+  --gpt4all.n_threads GPT4ALL.N_THREADS
+                        Number of threads to use.
+  --gpt4all.n_predict GPT4ALL.N_PREDICT
+                        The maximum number of tokens to generate.
+  --gpt4all.temp GPT4ALL.TEMP
+                        The temperature to use for sampling.
+  --gpt4all.top_p GPT4ALL.TOP_P
+                        The top-p value to use for sampling.
+  --gpt4all.top_k GPT4ALL.TOP_K
+                        The top-k value to use for sampling.
+  --gpt4all.echo        Whether to echo the prompt.
+  --gpt4all.stop GPT4ALL.STOP
+                        Stop tokens.
+  --gpt4all.repeat_last_n GPT4ALL.REPEAT_LAST_N
+                        Last n tokens to penalize.
+  --gpt4all.repeat_penalty GPT4ALL.REPEAT_PENALTY
+                        The penalty to apply to repeated tokens.
+  --gpt4all.n_batch GPT4ALL.N_BATCH
+                        Batch size for prompt processing.
+  --gpt4all.streaming   Whether to stream the results or not.
   --netuid NETUID       Subnet netuid
   --neuron.name NEURON.NAME
                         Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name
