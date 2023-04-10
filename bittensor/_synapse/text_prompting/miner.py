@@ -36,9 +36,12 @@ class BasePromptingMiner(ABC):
     def add_args( cls, parser: argparse.ArgumentParser ):
         ...
 
-    @abstractmethod
     def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
-        ...
+        if self.axon.metagraph is not None:
+            uid = self.axon.metagraph.hotkeys.index(forward_call.hotkey)
+            return self.axon.metagraph.S[uid].item()
+        else:
+            return 0.0
 
     def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
         # TODO: ( jason ) Convert this to a list of checks that can be appended in the subclass
