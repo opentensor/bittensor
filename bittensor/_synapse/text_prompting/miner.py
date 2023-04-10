@@ -23,9 +23,11 @@ import argparse
 import bittensor
 
 from rich import print
+from warnings import warn
 from typing import List, Dict
 from datetime import datetime
 from abc import ABC, abstractmethod
+
 
 class BasePromptingMiner(ABC):
 
@@ -38,10 +40,35 @@ class BasePromptingMiner(ABC):
     def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
         ...
 
-    @abstractmethod
     def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
-        ...
+        # TODO: ( jason ) Convert this to a list of checks that can be appended in the subclass
 
+        # Check for registration
+        def registration_check():
+            is_registered = forward_call.hotkey in self.axon.metagraph.hotkeys
+            if not is_registered:
+                if self.synapse.config.synapse.text_prompting.blacklist.allow_non_registered:
+                    return False
+                raise Exception("Registration blacklist") 
+        
+        # Blacklist based on stake.
+        def stake_check() -> bool:
+            uid = self.axon.metagraph.hotkeys.index(forward_call.hotkey)
+            default_stake = self.synapse.config.synapse.text_prompting.blacklist.stake
+            if self.axon.metagraph.S[uid].item() < default_stake:
+                raise Exception("Stake blacklist")
+            return False
+
+        # Optionally blacklist based on checks.
+        try:
+            registration_check()
+            stake_check()
+            return False
+        
+        except Exception as e:
+            warn("Blacklisted. Error in `registration_check` or `stake_check()")
+            return True
+        
     @abstractmethod
     def forward( self, messages: List[Dict[str, str]] ) -> str:
         ...
@@ -176,7 +203,7 @@ class BasePromptingMiner(ABC):
             # --- Wait until next epoch.
             current_block = self.subtensor.get_current_block()
             while (current_block - last_update) < self.config.neuron.blocks_per_epoch:
-                time.sleep( bittensor.__blocktime__ )
+                time.sleep( 0.1 ) #bittensor.__blocktime__
                 current_block = self.subtensor.get_current_block()
             last_update = self.axon.get_current_block()
 

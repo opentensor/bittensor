@@ -46,9 +46,6 @@ class OpenAIMiner( bittensor.BasePromptingMiner ):
     def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
         return 0.0
 
-    def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
-        return False
-
     def forward( self, messages: List[Dict[str, str]]  ) -> str:
         resp = openai.ChatCompletion.create(
             model = self.config.openai.model_name,
