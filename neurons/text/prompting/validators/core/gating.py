@@ -18,12 +18,26 @@
 import torch
 import argparse
 import bittensor
-from transformers import AutoModel ,AutoTokenizer, AutoConfig 
+from transformers import AutoModel, AutoTokenizer, AutoConfig 
 
 class GatingModel( torch.nn.Module ):
+    """
+    This class is a PyTorch module that encapsulates the gating model functionality.
+
+        - The backward method runs a backward pass through the model using the mean squared error between the normalized scores and the normalized rewards as the loss function.
+        - The forward method runs a forward pass through the model, encoding the input message and generating scores for each uid in the network. The scores are returned as a tensor.
+    """
 
     @classmethod
-    def add_args( cls, parser ):
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        """
+        Adds command line arguments to the parser that are used to configure the gating model.
+        The arguments added are:
+        - `--gating.model_name`: Name of the pre-trained transformer-based language model to use as the encoding layer for the gating model. (default: 'EleutherAI/gpt-neo-125m')
+        - `--gating.num_uids`: Number of uids to gate on. (default: 4096)
+        - `--gating.learning_rate`: Learning rate for the gating model optimizer. (default: 0.01)
+        - `--gating.momentum`: Momentum for the gating model optimizer. (default: 0.9)
+        """
         parser.add_argument('--gating.model_name', type=str, default='EleutherAI/gpt-neo-125m', help='Name of the model to use as the encoding layer for the gating model')
         parser.add_argument('--gating.num_uids', type=int, default=4096, help='Number of uids to gate on')
         parser.add_argument('--gating.learning_rate', type=float, default=0.01, help='Learning rate for the gating model')
@@ -31,12 +45,18 @@ class GatingModel( torch.nn.Module ):
 
     @classmethod
     def config ( cls ):
+        """
+        Returns a configuration object that contains the command line arguments for the gating model.
+        """
         parser = argparse.ArgumentParser()    
         cls.add_args( parser )
         return bittensor.config( parser )
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
+        """
+        Validates the configuration object for the gating model.
+        """
         pass
 
     def __init__( 
@@ -46,6 +66,13 @@ class GatingModel( torch.nn.Module ):
             model_name: str = None,
             num_uids: int = None
         ):
+        """
+        Initializes the gating model.
+        - `metagraph`: A reference to the Bittensor metagraph object.
+        - `config`: Configuration object for the gating model. If `None`, the default configuration is used.
+        - `model_name`: Name of the pre-trained transformer-based language model to use as the encoding layer for the gating model. If `None`, the default model name specified in the configuration is used.
+        - `num_uids`: Number of uids to gate on. If `None`, the default number specified in the configuration is used.
+        """
         super(GatingModel, self).__init__()
         if config is None: config = GatingModel.config()
         if model_name is not None: config.gating.model_name = model_name
