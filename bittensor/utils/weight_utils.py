@@ -17,8 +17,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Tuple, List
+
 import torch
+import bittensor
+from typing import Tuple, List
 
 U32_MAX = 4294967295
 U16_MAX = 65535
@@ -139,3 +141,51 @@ def convert_weights_and_uids_for_emit( uids: torch.LongTensor, weights: torch.Fl
             weight_uids.append( uid_i ) 
 
     return weight_uids, weight_vals
+
+def process_weights_for_netuid( 
+            weights: torch.Tensor, 
+            netuid: int, 
+            subtensor: bittensor.subtensor 
+            metagraph: bittensor.metagraph = None,
+        ) -> torch.FloatTensor:
+        bittensor.logging.debug( 'process_weights_for_netuid()' )
+
+        # Get latest metagraph from chain.
+        if metagraph == None:
+            metagraph = subtensor.metagraph( netuid )
+
+        # Cast weights to floats.
+        if not isinstance( weights, torch.FloatTensor ): 
+            weights.cast( dtype = torch.float32 )
+
+        # Network configuration parameters from an subtensor.
+        # These parameters determine the range of acceptable weights for each neuron.
+        quantile = subtensor.validator_exclude_quantile( netuid = netuid )
+        min_allowed_weights = subtensor.min_allowed_weights( netuid = netuid )
+        max_weight_limit = subtensor.max_weight_limit( netuid = netuid ) 
+        bittensor.logging.debug( 'validator_exclude_quantile', validator_exclude_quantile )
+        bittensor.logging.debug( 'min_allowed_weights', min_allowed_weights )
+        bittensor.logging.debug( 'max_weight_limit', max_weight_limit )
+
+        # Find all non zero weights.
+        non_zero_weight_uids = torch.argwhere( raw_weights > 0 ).squeeze( dim = 1 )  
+        non_zero_weights = weights[ non_zero_weight_uids ]  
+        if non_zero_weights.numel() == 0:
+            bittensor.logging.warning( 'No non-zero weights returning all ones.' )
+            return torch.ones( ( metagraph.n ) ) / metagraph.n
+
+        # Compute the exclude quantile and find the weights in the lowest quantile
+        max_exclude = ( len( non_zero_weights ) - min_allowed_weights) / len( non_zero_weights )  
+        exclude_quantile = min([ quantile , max_exclude ]) 
+        lowest_quantile = non_zero_weights.quantile( exclude_quantile ) 
+
+        # Exclude all weights below the allowed quantile.
+        non_zero_weight_uids = non_zero_weight_uids[lowest_quantile <= non_zero_weights] 
+        non_zero_weights = non_zero_weights[ lowest_quantile <= non_zero_weights ] 
+
+        # Normalize weights and return.
+        final_weights = bittensor.utils.weight_utils.normalize_max_weight(
+            x = non_zero_weights,
+            limit = max_weight_limit
+        )
+        return final_weights
