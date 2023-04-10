@@ -21,10 +21,11 @@ import copy
 import torch
 import argparse
 import bittensor
-from typing import List, Dict
-from abc import ABC, abstractmethod
+
 from rich import print
+from typing import List, Dict
 from datetime import datetime
+from abc import ABC, abstractmethod
 
 class BasePromptingMiner(ABC):
 
@@ -78,7 +79,6 @@ class BasePromptingMiner(ABC):
         config.neuron.full_path = os.path.expanduser( full_path )
         if not os.path.exists( config.neuron.full_path ):
             os.makedirs( config.neuron.full_path )
-
 
     @classmethod
     def add_super_args( cls, parser: argparse.ArgumentParser ):
@@ -144,7 +144,6 @@ class BasePromptingMiner(ABC):
         bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
         self.subtensor = bittensor.subtensor( self.config )
         self.wallet = bittensor.wallet( self.config )
-        self.wallet.reregister(netuid = config.netuid, subtensor = self.subtensor )
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
         self.axon = bittensor.axon( 
             wallet = self.wallet,
@@ -158,13 +157,18 @@ class BasePromptingMiner(ABC):
                 return self.blacklist( forward_call )
             def forward( _, messages: List[Dict[str, str]] ) -> str:
                 return self.forward( messages )
-        self.axon.attach( Synapse() )
+        self.synapse = Synapse()
+
+    def run( self ):
+
+        # --- Start the miner.
+        self.wallet.reregister( netuid = self.config.netuid, subtensor = self.subtensor )
+        self.axon.attach( self.synapse )
         self.axon.start()
-        self.axon.netuid = config.netuid
+        self.axon.netuid = self.config.netuid
         self.axon.protocol = 4
         self.subtensor.serve_axon( self.axon )
 
-    def run( self ):
         # --- Run Forever.
         last_update = self.subtensor.get_current_block()
         while True:
