@@ -282,7 +282,6 @@ class Synapse( ABC ):
         if not self.is_attached:
             raise Exception("Synapse cannot be called unless it is attached. Call attach() first.")
 
-        print("In synapse base class Forward() [beggining]")
         try:
             # Build forward call.
             forward_call = self.pre_process_request_proto_to_forward_call(request_proto=request)
@@ -334,7 +333,6 @@ class Synapse( ABC ):
         try:
             # Get the result.
             forward_call = future.result(timeout=forward_call.timeout)
-            print("Forward parent.")
 
         except Exception as e:
             forward_call.response_code = bittensor.proto.ReturnCode.UnknownException
