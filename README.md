@@ -81,7 +81,7 @@ wallet = bittensor.wallet().create_if_non_existent()
 graph = bittensor.metagraph().sync()
 print ( bittensor.dendrite( wallet = wallet ).generate
         ( 
-            endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  // The highest ranked peer.
+            endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  # The highest ranked peer.
             prompt = "The quick brown fox jumped over the lazy dog", 
             num_to_generate = 20
         )
@@ -96,47 +96,103 @@ wallet = bittensor.wallet().create_if_non_existent()
 graph = bittensor.metagraph().sync()
 print ( bittensor.dendrite( wallet = wallet ).text_last_hidden_state
         (
-            endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  // The highest ranked peer.
+            endpoints = graph.endpoints[graph.incentive.sort()[1][-1]],  # The highest ranked peer.
             inputs = "The quick brown fox jumped over the lazy dog"
         )
 )
 ...
-// Apply model. 
+# Apply model. 
 ...
-loss.backward() // Accumulate gradients on endpoints.
+loss.backward() # Accumulate gradients on endpoints.
+```
+
+Querying the network for CausalLMNext
+
+[Example client code](./bittensor/_synapse/example_validator.py)
+```python
+import torch
+
+import bittensor
+
+bittensor.logging(debug=True)
+
+# Create a mock wallet.
+wallet = bittensor.wallet(_mock=True)
+
+# Create a local endpoint receptor grpc connection.
+local_endpoint = bittensor.endpoint(
+    version=bittensor.__version_as_int__,
+    uid=0,
+    ip="127.0.0.1",
+    ip_type=4,
+    port=9090,
+    hotkey=wallet.hotkey.ss58_address,
+    coldkey=wallet.coldkeypub.ss58_address,
+    modality=0, # 0 is text
+)
+
+batch_size = 4
+sequence_length=32
+
+# Create a text_causallm_next module and call it.
+dendrite = bittensor.text_causal_lm_next(endpoint=local_endpoint, wallet=wallet)
+response = dendrite.forward(
+    text_inputs=torch.ones((batch_size, sequence_length), dtype=torch.long),
+    timeout=12
+)
+# # Delete objects.
+del dendrite
 ```
 
 ### 3.2. Server
 
 Serving a custom model.
 
+
+[Example server code](./bittensor/_synapse/example_server.py)
+
 ```python
-import bittensor
+from time import sleep
+
 import torch
-from transformers import GPT2Model, GPT2Config
+from transformers import AutoModelForCausalLM
 
-model = GPT2Model( GPT2Config(vocab_size = bittensor.__vocab_size__, n_embd = bittensor.__network_dim__ , n_head = 8))
-optimizer = torch.optim.SGD( [ {"params": model.parameters()} ], lr = 0.01 )
+import bittensor
 
-def forward_text( pubkey, inputs_x ):
-    return model( inputs_x )
-  
-def backward_text( pubkey, inputs_x, grads_dy ):
-    with torch.enable_grad():
-        outputs_y = model( inputs_x.to(device) ).last_hidden_state
-        torch.autograd.backward (
-            tensors = [ outputs_y.to(device) ],
-            grad_tensors = [ grads_dy.to(device) ]
-        )
-        optimizer.step()
-        optimizer.zero_grad() 
+bittensor.logging(debug=True)
 
-wallet = bittensor.wallet().create().register()
-axon = bittensor.axon (
-    wallet = wallet,
-    forward_text = forward_text,
-    backward_text = backward_text
-).start().serve()
+
+class Synapse(bittensor.TextCausalLMNextSynapse): # Create and inherit from the TextCausalLMNextSynapse class
+
+    model = AutoModelForCausalLM.from_pretrained("distilgpt2")
+
+    def _priority(self, forward_call: "bittensor.TextCausalLMNextForwardCall") -> float:
+        return 0.0
+
+    def _blacklist(self, forward_call: "bittensor.TextCausalLMNextForwardCall") -> bool:
+        return False
+
+    def forward(
+        self, text_inputs: torch.Tensor
+    ) -> torch.Tensor:
+
+        outputs = self.model(input_ids=text_inputs, output_hidden_states=False)
+
+        return outputs.logits
+
+wallet = bittensor.wallet(_mock=True)
+# Use a mock metagraph because we want to test a local endpoint and not register on the network.
+metagraph = bittensor.metagraph(_mock=True)
+
+axon = bittensor.axon(wallet=wallet, metagraph=metagraph, port=9090, ip="127.0.0.1")
+
+synapse = Synapse()
+axon.attach(synapse=synapse)
+axon.start()
+
+print("Serving axon")
+while True: # Adjust this loop to write a miner
+    sleep(0.25)
 ```
 
 ### 3.3. Validator 
