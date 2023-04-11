@@ -89,7 +89,7 @@ class RewardModel(nn.Module):
         output_hidden_states=False,
     ):
         loss = None
-        transformer_outputs = self.transformer(
+        transformer_outputs = self.model(
             input_ids,
             past_key_values=past_key_values,
             attention_mask=attention_mask,
