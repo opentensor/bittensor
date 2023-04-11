@@ -431,16 +431,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 return parts
         raise Exception("Unknown signature format")
 
-    def prune_nonce(self):
-        r"""Remove stored nonce when the size of nonce is too big.""" 
-        if len(self.nonces) > self.nonce_len:
-            nonces = self.nonces.copy()
-            
-            # lower_bound is if the nonce havent been updated in 3 days.
-            lower_bound = clock.monotonic_ns() - 260000 * 1e9
-            for key in nonces:
-                if self.nonces[key][1] < lower_bound:
-                    del self.nonces[key]
 
     def check_signature(
         self,
@@ -461,26 +451,22 @@ class AuthInterceptor(grpc.ServerInterceptor):
             raise Exception("Invalid signature version")
         # Build the key which uniquely identifies the endpoint that has signed the message.
         endpoint_key = f"{sender_hotkey}:{receptor_uuid}"
-            
 
         if endpoint_key in self.nonces.keys():
+            first_nonce = self.nonces[endpoint_key][0]
             previous_nonce = self.nonces[endpoint_key][1]
-            corrected_nonce = self.nonces[endpoint_key][0] + nonce
             # Nonces must be strictly monotonic over time.
-            lower_bound = clock.monotonic_ns() - bittensor.__blocktime__*1e9 # corrected_nonce should not be too much earlier then block_time
-            upper_bound = clock.monotonic_ns() + bittensor.__blocktime__*1e9 # corrected_nonce should not be too much older then block_time
-            if corrected_nonce < lower_bound or corrected_nonce > upper_bound or corrected_nonce <= previous_nonce:
-                raise Exception(f"Nonce {corrected_nonce} is out of range {lower_bound} to {upper_bound} OR nonce is earlier then previous nonce {previous_nonce}.")
+            if nonce <= previous_nonce or nonce > first_nonce + 3.154e+17 : # upper bound is 10 years in time
+                raise Exception(f"Nonce {nonce} is smaller then previous nonce {previous_nonce} or larger then {first_nonce + 3.154e+17}.")
         else:
-            # Initializing the (offset, corrected_nonce = offset + nonce) 
-            corrected_nonce = clock.monotonic_ns()
-            self.nonces[endpoint_key] = (clock.monotonic_ns() - nonce, corrected_nonce)
+            # Initializing the (first_nonce, nonce) 
+            self.nonces[endpoint_key] = (nonce, nonce)
         
         if not keypair.verify(message, signature):
             raise Exception("Signature mismatch")
         
         # update nonce when all checking pass
-        self.nonces[endpoint_key] = (self.nonces[endpoint_key][0], corrected_nonce)
+        self.nonces[endpoint_key] = (self.nonces[endpoint_key][0], nonce)
 
     def black_list_checking(self, hotkey: str, method: str):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
@@ -516,8 +502,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
             # blacklist checking
             self.black_list_checking(sender_hotkey, method)
-
-            self.prune_nonce()
 
             return continuation(handler_call_details)
 
