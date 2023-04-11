@@ -8,7 +8,7 @@ import bittensor
 bittensor.logging(debug=True)
 
 
-class Synapse(bittensor.TextCausalLMNextSynapse): # Create and inherit from the desired synapse
+class Synapse(bittensor.Synapse): # Create and inherit from the Synapse class
 
     model = AutoModelForCausalLM.from_pretrained("distilgpt2")
 
