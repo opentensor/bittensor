@@ -29,35 +29,37 @@ class HelpCommand:
     def run (cli):
         cli.config.to_defaults()
         sys.argv = [sys.argv[0], '--help']
-        # Run miner.
-        if cli.config.model == 'core_server':
-            bittensor.neurons.core_server.neuron().run()
-        elif cli.config.model == 'core_validator':
-            bittensor.neurons.core_validator.neuron().run()
-        elif cli.config.model == 'multitron_server':
-            bittensor.neurons.multitron_server.neuron().run()
+        # # Run miner.
+        # if cli.config.model == 'core_server':
+        #     bittensor.neurons.core_server.neuron().run()
+        # elif cli.config.model == 'core_validator':
+        #     bittensor.neurons.core_validator.neuron().run()
+        # elif cli.config.model == 'multitron_server':
+        #     bittensor.neurons.multitron_server.neuron().run()
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        if config.model == 'None':
-            model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'core_server')
-            config.model = model
+        pass
+        # if config.model == 'None':
+        #     model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'core_server')
+        #     config.model = model
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
-        help_parser = parser.add_parser(
-            'help', 
-            add_help=False,
-            help='''Displays the help '''
-        )
-        help_parser.add_argument(
-            '--model', 
-            type=str, 
-            choices= list(bittensor.neurons.__text_neurons__.keys()), 
-            default='None', 
-        )
-        help_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
-        bittensor.subtensor.add_args( help_parser )
+        pass
+        # help_parser = parser.add_parser(
+        #     'help', 
+        #     add_help=False,
+        #     help='''Displays the help '''
+        # )
+        # help_parser.add_argument(
+        #     '--model', 
+        #     type=str, 
+        #     choices= list(bittensor.neurons.__text_neurons__.keys()), 
+        #     default='None', 
+        # )
+        # help_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
+        # bittensor.subtensor.add_args( help_parser )
 
 class UpdateCommand:
     @staticmethod

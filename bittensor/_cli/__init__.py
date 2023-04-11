@@ -25,7 +25,6 @@ import bittensor
 from . import cli_impl
 from .commands import *
 from typing import List, Optional
-from .naka_cli_impl import CLI as naka_CLI
 console = bittensor.__console__
 
 # Turn off rich console locals trace.
@@ -48,17 +47,10 @@ class cli:
                 args (`List[str]`, `optional`): 
                     The arguments to parse from the command line.
         """
-        if config == None: 
-            config = cli.config(args)
+        if config == None:  
+            config = cli.config( args )
         cli.check_config( config )
-        if config.subtensor:
-            network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
-
-        if network == 'nakamoto':
-            # Use nakamoto version of the CLI
-            return naka_CLI(config=config)
-        else:
-            return cli_impl.CLI( config = config)
+        return cli_impl.CLI( config = config )
 
     @staticmethod   
     def config(args: List[str]) -> 'bittensor.config':
@@ -71,10 +63,7 @@ class cli:
             add_help=True)
 
         cmd_parsers = parser.add_subparsers(dest='command')
-        RunCommand.add_args( cmd_parsers )
-        HelpCommand.add_args( cmd_parsers ) 
         ListCommand.add_args( cmd_parsers )
-        QueryCommand.add_args( cmd_parsers )
         StakeCommand.add_args( cmd_parsers )
         UpdateCommand.add_args( cmd_parsers )
         InspectCommand.add_args( cmd_parsers ) 
@@ -110,9 +99,7 @@ class cli:
     def check_config (config: 'bittensor.Config'):
         """ Check if the essential config exist under different command
         """
-        if config.command == "run":
-            RunCommand.check_config( config )
-        elif config.command == "transfer":
+        if config.command == "transfer":
             TransferCommand.check_config( config )
         elif config.command == "register":
             RegisterCommand.check_config( config )
@@ -142,10 +129,6 @@ class cli:
             ListCommand.check_config( config )
         elif config.command == "inspect":
             InspectCommand.check_config( config )
-        elif config.command == "query":
-            QueryCommand.check_config( config )
-        elif config.command == "help":
-            HelpCommand.check_config( config )
         elif config.command == "update":
             UpdateCommand.check_config( config )
         elif config.command == "nominate":

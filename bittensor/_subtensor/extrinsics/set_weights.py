@@ -109,10 +109,13 @@ def set_weights_extrinsic(
                     return False
 
         except Exception as e:
+
+            # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with loguru.
             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(e))
             bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(e) )
             return False
 
+    # TODO( devs ): this code is dead.
     if response.is_success:
         bittensor.__console__.print("Set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]".format( [float(v/4294967295) for v in weight_vals], weight_uids ))
         message = '<green>Success: </green>' + f'Set {len(uids)} weights, top 5 weights' + str(list(zip(uids.tolist()[:5], [round (w,4) for w in weights.tolist()[:5]] )))

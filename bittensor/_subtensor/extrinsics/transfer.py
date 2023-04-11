@@ -126,7 +126,6 @@ def transfer_extrinsic(
                     'value': transfer_balance.rao
                 }
             )
-
             extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
             response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
             # We only wait here if we expect finalization.

@@ -56,7 +56,6 @@ class TestCLINoNetwork(unittest.TestCase):
         bittensor.subtensor.add_defaults( defaults )
         defaults.subtensor.network = 'mock'
         defaults.no_version_checking = True
-        bittensor.dendrite.add_defaults( defaults )
         bittensor.axon.add_defaults( defaults )
         bittensor.wallet.add_defaults( defaults )
         bittensor.dataset.add_defaults( defaults )
