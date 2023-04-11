@@ -87,7 +87,7 @@ class neuron:
         if not os.path.exists( self.config.neuron.reward_path ):
             os.makedirs(self.config.neuron.reward_path, exist_ok=True)
             os.system(
-                f"wget -O {self.config.neuron.reward_path + 'reward.pt'} \
+                f"wget -O {self.config.neuron.reward_path + '/reward.pt'} \
                 https://huggingface.co/robertmyers/bpt-instruct-rm-6b/resolve/main/bpt-rm-7b.pt"
             )
 
@@ -101,7 +101,7 @@ class neuron:
         self.reward_model = RewardModel()
         self.tokenizer = AutoTokenizer.from_pretrained( './llama_tokenizer' )
         _ = prepare_llama_tokenizer_and_embedding(self.tokenizer, self.reward_model)
-        self.reward_model.load_state_dict( torch.load( self.config.neuron.reward_path + 'reward.pt' ) )
+        self.reward_model.load_state_dict( torch.load( self.config.neuron.reward_path + '/reward.pt' ) )
         self.reward_model.half()
         self.reward_model.to(self.device)
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to(self.device)
