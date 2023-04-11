@@ -395,7 +395,7 @@ class NominateCommand:
                 return
             bittensor.__console__.print("Successfully became a delegate on [white]{}[/white]".format(subtensor.network))
         
-        wallet.coldkey_file.check_and_update_encryption(no_prompt = config.no_prompt)
+        wallet.coldkey_file.check_and_update_encryption(no_prompt = cli.config.no_prompt)
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):

@@ -929,6 +929,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkeypub = mock_coldkey_kp,
                 hotkey_str = hk,
                 hotkey = get_mock_keypair(idx + 100, self.id()),
+                coldkey_file = bittensor.keyfile()
             ) for idx, hk in enumerate(mock_hotkeys)
         ]
 
@@ -1031,6 +1032,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkeypub = mock_coldkey_kp,
                 hotkey_str = hk,
                 hotkey = get_mock_keypair(idx + 100, self.id()),
+                coldkey_file = bittensor.keyfile()
             ) for idx, hk in enumerate(config.hotkeys)
         ]
 
@@ -1137,6 +1139,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkeypub = mock_coldkey_kp,
                 hotkey_str = hk,
                 hotkey = get_mock_keypair(idx + 100, self.id()),
+                coldkey_file = bittensor.keyfile()
             ) for idx, hk in enumerate(config.hotkeys)
         ]
 
@@ -1230,6 +1233,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkeypub = mock_coldkey_kp,
                 hotkey_str = hk,
                 hotkey = get_mock_keypair(idx + 100, self.id()),
+                coldkey_file = bittensor.keyfile()
             ) for idx, hk in enumerate(config.hotkeys)
         ]
 
@@ -1318,6 +1322,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkeypub = mock_coldkey_kp,
                 hotkey_str = hk,
                 hotkey = get_mock_keypair(idx + 100, self.id()),
+                coldkey_file = bittensor.keyfile()
             ) for idx, hk in enumerate(config.hotkeys)
         ]
 
@@ -1412,6 +1417,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkeypub = mock_coldkey_kp,
                 hotkey_str = hk,
                 hotkey = get_mock_keypair(idx + 100, self.id()),
+                coldkey_file = bittensor.keyfile()
             ) for idx, hk in enumerate(config.hotkeys)
         ]
 
@@ -1498,6 +1504,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkeypub = get_mock_keypair(0, self.id()),
                 hotkey_str = 'hk0',
                 hotkey = get_mock_keypair(0 + 100, self.id()),
+                coldkey_file = bittensor.keyfile()
             )
 
         # Register mock wallet and give it a balance
@@ -1564,6 +1571,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         coldkeypub = get_mock_keypair(idx, self.id()),
                         hotkey_str = hk,
                         hotkey = get_mock_keypair(idx * 100 + idx_hk, self.id()),
+                        coldkey_file = bittensor.keyfile()
                     )
                 mock_wallets.append(wallet)
 
@@ -1655,6 +1663,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         coldkeypub = get_mock_keypair(idx, self.id()),
                         hotkey_str = hk,
                         hotkey = get_mock_keypair(idx * 100 + idx_hk, self.id()),
+                        coldkey_file = bittensor.keyfile()
                     )
                 mock_wallets.append(wallet)
 
@@ -1751,7 +1760,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             wallet = SimpleNamespace(
                     name = wallet_name,
                     coldkey = get_mock_keypair(idx, self.id()),
-                    coldkeypub = get_mock_keypair(idx, self.id())
+                    coldkeypub = get_mock_keypair(idx, self.id()),
+                    coldkey_file = bittensor.keyfile()
                 )
             mock_wallets.append(wallet)
 
@@ -1814,7 +1824,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             wallet = SimpleNamespace(
                     name = wallet_name,
                     coldkey = get_mock_keypair(idx, self.id()),
-                    coldkeypub = get_mock_keypair(idx, self.id())
+                    coldkeypub = get_mock_keypair(idx, self.id()),
+                    coldkey_file = bittensor.keyfile()
                 )
             mock_wallets.append(wallet)
 
