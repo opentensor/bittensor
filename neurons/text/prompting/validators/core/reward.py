@@ -94,9 +94,9 @@ class RewardModel(nn.Module):
             attention_mask=attention_mask
         )
 
-        hidden_states = transformer_outputs[0]
+        hidden_states = transformer_outputs['last_hidden_state']
 
-        rewards = self.value_head(hidden_states).squeeze(-1)
+        rewards = self.value_head(hidden_states)[:, :-1]
         chosen_end_scores = []
         rejected_end_scores = []
 
