@@ -19,7 +19,6 @@ import torch
 from torch import nn
 from typing import List
 from transformers import AutoModel, AutoTokenizer, LlamaConfig
-from utils import prepare_llama_tokenizer_and_embedding
 
 class RewardModel(nn.Module):
     def __init__(self, model_path: str, config=None, lora_rank=0, lora_train_bias: str = 'none') -> None:
