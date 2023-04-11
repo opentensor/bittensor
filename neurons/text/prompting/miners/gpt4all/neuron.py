@@ -27,7 +27,7 @@ class GPT4ALLMiner( bittensor.BasePromptingMiner ):
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument('--gpt4all.model', type=str, help='Path to pretrained gpt4all model in ggml format.', default='./gpt4all-lora-converted.bin')
+        parser.add_argument('--gpt4all.model', type=str, help='Path to pretrained gpt4all model in ggml format.', required=True)
         parser.add_argument('--gpt4all.n_ctx', type=int, default=512, help='Token context window.')
         parser.add_argument('--gpt4all.n_parts', type=int, default=-1, help='Number of parts to split the model into. If -1, the number of parts is automatically determined.')
         parser.add_argument('--gpt4all.seed', type=int, default=0, help='Seed. If -1, a random seed is used.')
@@ -51,13 +51,28 @@ class GPT4ALLMiner( bittensor.BasePromptingMiner ):
     def __init__( self ):
         super( GPT4ALLMiner, self ).__init__()
         print ( self.config )
-        self.model = GPT4All( **self.config.gpt4all )
-
-    def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
-        return 0.0
-
-    def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
-        return False
+        self.model = GPT4All(
+            model=self.config.gpt4all.model,
+            n_ctx=self.config.gpt4all.n_ctx,
+            n_parts=self.config.gpt4all.n_parts,
+            seed=self.config.gpt4all.seed,
+            f16_kv=self.config.gpt4all.f16_kv,
+            logits_all=self.config.gpt4all.logits_all,
+            vocab_only=self.config.gpt4all.vocab_only,
+            use_mlock=self.config.gpt4all.use_mlock,
+            embedding=self.config.gpt4all.embedding,
+            n_threads=self.config.gpt4all.n_threads,
+            n_predict=self.config.gpt4all.n_predict,
+            temp=self.config.gpt4all.temp,
+            top_p=self.config.gpt4all.top_p,
+            top_k=self.config.gpt4all.top_k,
+            echo=self.config.gpt4all.echo,
+            stop=self.config.gpt4all.stop,
+            repeat_last_n=self.config.gpt4all.repeat_last_n,
+            repeat_penalty=self.config.gpt4all.repeat_penalty,
+            n_batch=self.config.gpt4all.n_batch,
+            streaming=self.config.gpt4all.streaming,
+        )
     
     @staticmethod
     def _process_history(history: List[dict]) -> str:
