@@ -39,22 +39,24 @@ class CohereMiner( bittensor.BasePromptingMiner ):
         parser.add_argument('--cohere.presence_penalty', type=float, help='Penalizes repeated tokens.', default=0.0)
         parser.add_argument('--cohere.truncate', type=str, help='Specify how the client handles inputs longer than the maximum token length: Truncate from START, END or NONE', default=None)
         parser.add_argument('--cohere.stop', type=str, help='List of tokens to stop generation on.', default=None)
-        parser.add_argument('--cohere.api_key', type=str, help='API key for Cohere.', default=None)
+        parser.add_argument('--cohere.api_key', type=str, help='API key for Cohere.', required=True)
 
     def __init__( self ):
         super( CohereMiner, self ).__init__()
         print ( self.config )
-        # TODO(jason): add cohere specific args to config.
+
         self.model = Cohere(
-            model = self.config.cohere.model_name, 
-            cohere_api_key = self.config.cohere.api_key
+            model=self.config.cohere.model_name,
+            cohere_api_key=self.config.cohere.api_key,
+            max_tokens=self.config.cohere.max_tokens,
+            temperature=self.config.cohere.temperature,
+            k=self.config.cohere.k,
+            p=self.config.cohere.p,
+            frequency_penalty=self.config.cohere.frequency_penalty,
+            presence_penalty=self.config.cohere.presence_penalty,
+            truncate=self.config.cohere.truncate,
+            stop=self.config.cohere.stop,
         )
-
-    def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
-        return 0.0
-
-    def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
-        return False
         
     @staticmethod
     def _process_history( history: List[Dict[str, str]] ) -> str:
