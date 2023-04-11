@@ -36,6 +36,7 @@ class RewardModel(nn.Module):
         self.tokenizer = AutoTokenizer.from_pretrained('EleutherAI/gpt-j-6b')
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.PAD_ID = self.tokenizer(self.tokenizer.pad_token)["input_ids"][0]
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
     def reward( self, completions: List[str] ) -> torch.FloatTensor:
