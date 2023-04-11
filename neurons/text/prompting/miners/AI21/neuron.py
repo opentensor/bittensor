@@ -36,11 +36,14 @@ class AI21Miner( bittensor.BasePromptingMiner ):
     def __init__( self ):
         super( AI21Miner, self ).__init__()
         print ( self.config )
+
+        bittensor.logging.info( 'Loading AI21 Model...' )
         self.model = AI21( 
             model = self.config.ai21.model_name, 
             ai21_api_key = self.config.ai21.api_key, 
             stop = self.config.ai21.stop
         )
+        bittensor.logging.info( 'Model loaded!' )
 
     @staticmethod
     def _process_history( history:  List[Dict[str, str]] ) -> str:
@@ -55,10 +58,8 @@ class AI21Miner( bittensor.BasePromptingMiner ):
         return processed_history
 
     def forward( self, messages: List[Dict[str, str]]  ) -> str:
-        bittensor.logging.info('messages', str(messages))
         history = self._process_history(messages)
         resp = self.model(history)
-        bittensor.logging.info('response', str(resp))
         return resp
 
 if __name__ == "__main__":

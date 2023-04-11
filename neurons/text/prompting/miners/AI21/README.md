@@ -10,23 +10,28 @@ python3 neurons/text/prompting/miners/AI21/miner.py --ai21.api_key <your AI21 ap
 
 # Full Usage
 ```
-usage: neuron.py [-h] [--ai21.model_name AI21.MODEL_NAME] [--ai21.stop AI21.STOP] [--ai21.api_key AI21.API_KEY] [--netuid NETUID] [--neuron.name NEURON.NAME] [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights]
-                 [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN] [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS [NEURON.BLACKLIST.HOTKEYS ...]]] [--wallet.name WALLET.NAME]
-                 [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock] [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS] [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE]
-                 [--axon.port AXON.PORT] [--axon.ip AXON.IP] [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP] [--axon.max_workers AXON.MAX_WORKERS] [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS]
-                 [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT] [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
-                 [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL] [--subtensor.register.no_output_in_place] [--subtensor.register.verbose] [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
-                 [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]] [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug] [--logging.trace] [--logging.record_log]
+usage: neuron.py [-h] --ai21.api_key AI21.API_KEY [--ai21.model_name AI21.MODEL_NAME] [--ai21.stop AI21.STOP] [--netuid NETUID] [--neuron.name NEURON.NAME]
+                 [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights] [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE]
+                 [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN] [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--wallet.name WALLET.NAME]
+                 [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock] [--wallet.reregister WALLET.REREGISTER]
+                 [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS] [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT] [--axon.ip AXON.IP]
+                 [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP] [--axon.max_workers AXON.MAX_WORKERS]
+                 [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS] [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT]
+                 [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
+                 [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL] [--subtensor.register.no_output_in_place] [--subtensor.register.verbose]
+                 [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
+                 [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]]
+                 [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug] [--logging.trace] [--logging.record_log]
                  [--logging.logging_dir LOGGING.LOGGING_DIR] [--metagraph._mock] [--config CONFIG] [--strict]
 
 optional arguments:
   -h, --help            show this help message and exit
+  --ai21.api_key AI21.API_KEY
+                        AI21 API key.
   --ai21.model_name AI21.MODEL_NAME
                         Name of the model.
   --ai21.stop AI21.STOP
                         Stop tokens.
-  --ai21.api_key AI21.API_KEY
-                        AI21 API key.
   --netuid NETUID       Subnet netuid
   --neuron.name NEURON.NAME
                         Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name
@@ -38,7 +43,7 @@ optional arguments:
                         The maximum batch size for forward requests.
   --neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN
                         The maximum sequence length for forward requests.
-  --neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS [NEURON.BLACKLIST.HOTKEYS ...]]
+  --neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]
                         To blacklist certain hotkeys
   --wallet.name WALLET.NAME
                         The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)
@@ -61,12 +66,13 @@ optional arguments:
   --axon.external_ip AXON.EXTERNAL_IP
                         The external ip this axon broadcasts to the network to. ie. [::]
   --axon.max_workers AXON.MAX_WORKERS
-                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes new worker threads to service requests up to this number.
+                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes new worker threads to service requests
+                        up to this number.
   --axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS
                         Maximum number of allowed active connections
   --subtensor.network SUBTENSOR.NETWORK
-                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running network) -- mock (creates a mock connection (for testing)) If this option is set it overloads subtensor.chain_endpoint with
-                        an entry point node from that network.
+                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running network) -- mock (creates a mock connection (for
+                        testing)) If this option is set it overloads subtensor.chain_endpoint with an entry point node from that network.
   --subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT
                         The subtensor endpoint flag. If set, overrides the --network flag.
   --subtensor._mock     To turn on subtensor mocking for testing purposes.
@@ -94,4 +100,4 @@ optional arguments:
   --metagraph._mock     To turn on metagraph mocking for testing purposes.
   --config CONFIG       If set, defaults are overridden by passed file.
   --strict              If flagged, config will check that only exact arguemnts have been set.
-```
+  ```
