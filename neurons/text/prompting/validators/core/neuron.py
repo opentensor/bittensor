@@ -352,8 +352,6 @@ def smart_tokenizer_and_embedding_resize(
     if tokenizer.pad_token is None:
         num_new_tokens = tokenizer.add_special_tokens(special_tokens_dict)
 
-        if isinstance(model, RewardModel):
-            model = model.get_base_model()
 
         model.model.resize_token_embeddings(len(tokenizer))
 
