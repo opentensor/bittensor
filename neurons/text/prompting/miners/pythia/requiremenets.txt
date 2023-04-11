@@ -1,1 +1,3 @@
 transformers
+accelerate # If using 8bit
+bitsandbytes # If using 8bit

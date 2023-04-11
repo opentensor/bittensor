@@ -23,7 +23,7 @@ import argparse
 import bittensor as bt
 
 from types import SimpleNamespace
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from reward import RewardModel
 from gating import GatingModel
 
@@ -91,12 +91,14 @@ class neuron:
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
 
-    def compute_weights( self ) -> torch.FloatTensor:
+    def compute_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
         """
             Computes the average reward for each uid across non-zero values 
             using the rewards history stored in the self.history list.
 
             Returns:
+                uids ( torch.LongTensor, shape = (n) ): 
+                    Uid to set weights on.
                 weights ( torch.FloatTensor, shape = (n) ): 
                     The weights for each uid.
         """
@@ -133,19 +135,18 @@ class neuron:
         raw_weights = torch.nan_to_num( rewards.sum(1) / (rewards != 0).sum(1), 0 )
         bittensor.logging.debug( 'raw_weights', raw_weights )
         bittensor.logging.debug( 'top10 values', raw_weights.sort()[0] )
-        bittensor.logging.debug( 'top10 values', raw_weights.sort()[1] )
+        bittensor.logging.debug( 'top10 uids', raw_weights.sort()[1] )
      
-        # Return the calculated final_weights
-        processed_weights = bittensor.utils.process_weights_for_netuid(
+        # Process the raw weights to final_weights via subtensor limitations.
+        processed_weight_uids, processed_weights = bittensor.utils.weight_utils.process_weights_for_netuid(
             weights = raw_weights,
             netuid = self.config.netuid,
             subtensor = self.subtensor,
             metagraph = self.metagraph
         )
         bittensor.logging.debug( 'processed_weights', processed_weights )
-        bittensor.logging.debug( 'top10 values', processed_weights.sort()[0] )
-        bittensor.logging.debug( 'top10 values', processed_weights.sort()[1] )
-        return processed_weights
+        bittensor.logging.debug( 'processed_weight_uids', processed_weight_uids )
+        return processed_weight_uids, processed_weights
 
    
     def forward(
@@ -278,14 +279,14 @@ class neuron:
                 
                 # Computes the average reward for each uid across non-zero values 
                 # using the rewards history stored in the self.history list.
-                weights = self.compute_weights()
+                uids, weights = self.compute_weights()
                 bittensor.logging.info( 'weights', weights )
 
                 # Set the weights on chain via our subtensor connection.
                 self.subtensor.set_weights(
                     wallet = self.wallet,
                     netuid = self.config.netuid,
-                    uids = self.metagraph.uids,
+                    uids = uids,
                     weights = weights,
                     wait_for_finalization = True,
                 )
