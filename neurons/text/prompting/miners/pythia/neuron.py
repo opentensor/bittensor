@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import torch
-import json
 import argparse
 import bittensor
 from typing import List, Dict
@@ -30,34 +29,49 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument('--pythia.device', type=str, help='Device to load model', default="cuda")
-        parser.add_argument('--pythia.max_new_tokens', type=int, help='Max tokens for model output.', default=256)
-        parser.add_argument('--pythia.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).')
-        parser.add_argument('--pythia.temperature', type=float, help='Sampling temperature of model', default=0.8)
+        parser.add_argument( '--pythia.device', type=str, help='Device to load model', default="cuda" )
+        parser.add_argument( '--pythia.max_new_tokens', type=int, help='Max tokens for model output.', default=64 ) 
+        parser.add_argument( '--pythia.temperature', type=float, help='Sampling temperature of model', default=0.8 )
+        parser.add_argument( '--pythia.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
+        parser.add_argument( '--pythia.load_in_8bit', action='store_true', default=False, help='Whether to use 8bit mapping (requires 12GB GPU memory).' )
         
     def __init__( self ):
         super( PythiaMiner, self ).__init__()
         print ( self.config )
-        model_config = {
-            'model': AutoModelForCausalLM.from_pretrained("togethercomputer/Pythia-Chat-Base-7B"),
-            'tokenizer': AutoTokenizer.from_pretrained("togethercomputer/Pythia-Chat-Base-7B", torch_dtype=torch.float16),
-            'device':0,
-        }
-        pipe_config = {**model_config, **self.config.pythia}
-        pipe_config['model'] = pipe_config['model'].to( self.config.pythia.device )
-        self.pipe = pipeline("text-generation", **pipe_config)
+        
+        tokenizer = AutoTokenizer.from_pretrained("togethercomputer/Pythia-Chat-Base-7B")
 
-    def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
-        return 0.0
+        # TODO: ( jason ) WIP, need cudatoolkit to test with bitsandbytes (8bit loading is currently broken)
+        if self.config.pythia.load_in_8bit: 
+            self.model = AutoModelForCausalLM.from_pretrained(
+                "togethercomputer/Pythia-Chat-Base-7B", 
+                device_map = "auto", 
+                load_in_8bit = True
+            )
+            self.config.pythia.do_sample = True
+        else:
+            self.model = AutoModelForCausalLM.from_pretrained(
+                "togethercomputer/Pythia-Chat-Base-7B", 
+                torch_dtype = torch.float16
+            )
+    
+        if self.config.pythia.device == "cuda":
+            self.model = self.model.to( self.config.pythia.device )
 
-    def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
-        return False
+        self.pipe = pipeline( 
+            "text-generation",
+            self.model, 
+            tokenizer = tokenizer,
+            max_new_tokens = self.config.pythia.max_new_tokens,
+            temperature = self.config.pythia.temperature,
+            do_sample = self.config.pythia.do_sample,
+            device = 0,
+        )
     
     @staticmethod
     def _process_history(history: List[str]) -> str:
         processed_history = ''
         for message in history:
-            message = json.loads(message)
             if message['role'] == 'system':
                 processed_history += 'system: ' + message['content'] + '\n'
             if message['role'] == 'assistant':

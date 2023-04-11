@@ -31,7 +31,7 @@ class AlephAlphaMiner( bittensor.BasePromptingMiner ):
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument('--aleph.api_key', type=str, help='AlephAlpha API key.', required=True)
+        parser.add_argument('--aleph.api_key', type=str, help='AlephAlpha API key.', default="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo5MDg0LCJ0b2tlbl9pZCI6MTExMH0.x5M8vcucPPL9UU9PNHriDHyRdELaL1IPazNvJo6qJK4")
         parser.add_argument('--aleph.model', type=str, help='Model name to use.', default='luminous-base')
         parser.add_argument('--aleph.maximum_tokens', type=int, help='The maximum number of tokens to be generated.', default=64)
         parser.add_argument('--aleph.temperature', type=float, help='A non-negative float that tunes the degree of randomness in generation.', default=0.0)
@@ -52,12 +52,6 @@ class AlephAlphaMiner( bittensor.BasePromptingMiner ):
             top_p = self.config.aleph.top_p,
             stop_sequences = self.config.aleph.stop_sequences
         )
-
-    def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
-        return 0.0
-
-    def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
-        return False
 
     @staticmethod
     def _process_history( history:  List[Dict[str, str]] ) -> str:
