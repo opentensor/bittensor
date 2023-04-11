@@ -81,6 +81,7 @@ class axon:
             forward_timeout: Optional[int] = None,
             backward_timeout: Optional[int] = None,
             compression:Optional[str] = None,
+            path:Optional[str] = None,
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
@@ -165,7 +166,7 @@ class axon:
         if server == None:
             receiver_hotkey = wallet.hotkey.ss58_address
             server = grpc.server( thread_pool,
-                                  interceptors=(AuthInterceptor(receiver_hotkey=receiver_hotkey, blacklist=blacklist),),
+                                  interceptors=(AuthInterceptor(receiver_hotkey=receiver_hotkey, blacklist=blacklist, path = path),),
                                   maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
                                   options = [('grpc.keepalive_time_ms', 100000),
                                              ('grpc.keepalive_timeout_ms', 500000),
@@ -363,6 +364,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self,
         receiver_hotkey: str,
         blacklist: Callable = None,
+        path = None
     ):
         r"""Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
@@ -372,14 +374,24 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 black list function that prevents certain pubkeys from sending messages
         """
         super().__init__()
+        self.path = f"{path}/nonces_dict.txt" if path != None else None
         self.nonces = {}
         self.blacklist = blacklist
         self.receiver_hotkey = receiver_hotkey
-        self.nonce_len = 4096 * 2
+        self.load()
+
+    def load(self):
+        if self.path != None and os.path.exists(self.path):
+            with open(self.path) as nonces_file:
+                self.nonces = json.load(nonces_file)
+
+    def save(self):
+        if self.path != None:
+            with open(self.path, "w") as nonces_file:
+                json.dump(self.nonces, nonces_file)
 
     def close(self):
-        with open("nonces_dict.txt", "w") as nonces_file:
-            json.dump(self.nonces, nonces_file)
+        self.save()
 
     def parse_legacy_signature(
         self, signature: str
