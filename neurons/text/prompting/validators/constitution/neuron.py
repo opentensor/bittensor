@@ -25,7 +25,7 @@ import bittensor as bt
 
 from copy import deepcopy
 from transformers import pipeline
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 # Default prompt used to generate synthetic questions from the network for validation.
 default_prompt = '''
@@ -132,8 +132,9 @@ class neuron:
         bt.logging.add_args( parser )
         return bt.config( parser )
     
-    def __init__( self, config=None ):
+    def __init__( self, config = None ):
         self.config = config if config is not None else neuron.config()
+        bittensor.logging( config = config )
         self.subtensor = bt.subtensor ( config = self.config )
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wallet = bt.wallet ( config = self.config )
@@ -144,52 +145,145 @@ class neuron:
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
 
+    def compute_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
+        """
+            Computes the average reward for each uid across non-zero values 
+            using the rewards history stored in the self.history list.
+
+            Returns:
+                uids ( torch.LongTensor, shape = (n) ): 
+                    Uid to set weights on.
+                weights ( torch.FloatTensor, shape = (n) ): 
+                    The weights for each uid.
+        """
+        bittensor.logging.info( 'compute_weights()' )
+
+        # Return zeros weights if there is no history.
+        if self.history.qsize() == 0: 
+            bittensor.logging.warning( 'No history to compute weights returning all ones.' )
+            return torch.ones((self.metagraph.n)) / self.metagraph.n
+
+        # Averages the rewards for each uid across non-zero values.
+        rewards = []
+
+        # Iterate over all events in the `history` list.
+        for scoring in self.history.queue:
+            # Normalize the rewards for the current event using softmax normalization.
+            normalized_rewards = torch.nn.functional.softmax( scoring.to( self.device ), dim=0 )
+            bittensor.logging.debug( 'normalized_rewards', normalized_rewards )
+
+            # Use the `uids` of the current event to scatter the normalized rewards
+            # into a zero-initialized tensor with the same shape as `self.metagraph.n`.
+            scattered_rewards = torch.zeros((self.metagraph.n)).to( self.device ).scatter(0, self.metagraph.uids.to( self.device ), normalized_rewards.to( self.device ) )
+            bittensor.logging.debug( 'scattered_rewards', scattered_rewards )
+
+            # Append the scattered rewards to the `rewards` list.
+            rewards.append( scattered_rewards )
+
+        # Stack the scattered rewards tensors along the second dimension.
+        rewards = torch.stack( rewards, 1 ).to( self.device )
+        bittensor.logging.debug( 'rewards', rewards )
+
+        # Calculate the average reward for each uid across non-zero values.
+        # Replace any NaN values with 0.
+        raw_weights = torch.nan_to_num( rewards.sum(1) / (rewards != 0).sum(1), 0 )
+        bittensor.logging.debug( 'raw_weights', raw_weights )
+        bittensor.logging.debug( 'top10 values', raw_weights.sort()[0] )
+        bittensor.logging.debug( 'top10 uids', raw_weights.sort()[1] )
+     
+        # Process the raw weights to final_weights via subtensor limitations.
+        processed_weight_uids, processed_weights = bittensor.utils.weight_utils.process_weights_for_netuid(
+            weights = raw_weights,
+            netuid = self.config.netuid,
+            subtensor = self.subtensor,
+            metagraph = self.metagraph
+        )
+        bittensor.logging.debug( 'processed_weights', processed_weights )
+        bittensor.logging.debug( 'processed_weight_uids', processed_weight_uids )
+        return processed_weight_uids, processed_weights
+
+
     def train(self):
         last_epoch_block = self.subtensor.block
         all_serving_uids = [ uid for uid, ep in enumerate( self.metagraph.endpoint_objs ) if ep.is_serving ]
         while True:
+
             # Generate question.
             bittensor.logging.debug('Question ---------------')
-            question_miner_uid = random.choice( all_serving_uids )
-            bittensor.logging.debug('question_miner_uid', question_miner_uid)
-            question_prompt = self.config.question_prompt
-            bittensor.logging.debug('question_prompt', question_prompt )
-            question_response = self.dendrite_pool( prompt = default_prompt, message = question_prompt, uids = [ question_miner_uid ] )[ 0 ]
-            bittensor.logging.debug('question_response', question_response ) 
+            question = None
+            while True:
+                question_responses = self.dendrite_pool( 
+                    prompt = default_prompt, 
+                    message = self.config.question_prompt, 
+                    uids = all_serving_uids 
+                )
+                bittensor.logging.success( 'question_responses', question_responses )
+                for qresp in question_responses:
+                    if qresp.response != None:
+                        question = qresp.response
+                        bittensor.logging.success( 'question', question )
+                if question != None:
+                    bittensor.logging.success( 'Found question' )
+                    break
+                else:
+                    bittensor.logging.warning( 'No question try again.' )
+                    continue
+
 
             # Generate completions.
             bittensor.logging.debug('Completion ---------------')
-            completion_prompt = self.config.completion_prompt.format( question_response )
-            bittensor.logging.debug('completion_prompt', completion_prompt )
+            completion_prompt = self.config.completion_prompt.format( question )
             completions = []
             completion_uids = []
-            number_of_completions = 3
-            for _ in range( number_of_completions ):
-                completion_miner_uid = random.choice( all_serving_uids )
-                bittensor.logging.debug('completion_miner_uid', completion_miner_uid )
-                completion_response = self.dendrite_pool( prompt = default_prompt, message = completion_prompt, uids = [ completion_miner_uid ] )[ 0 ]
-                bittensor.logging.debug('completion_response', completion_response ) 
-                completions.append( completion_response )
-                completion_uids.append( completion_miner_uid )
+            number_of_completions = 2
+            while True:
+                completion_responses = self.dendrite_pool( 
+                    prompt = default_prompt, 
+                    message = completion_prompt, 
+                    uids = all_serving_uids
+                )
+                bittensor.logging.success( 'completion_responses', completion_responses )
+                for uid, cresp in list(zip( all_serving_uids, completion_responses ) ):
+                    if cresp.response != None:
+                        completions.append( cresp.response )
+                        completion_uids.append( uid )
+                        bittensor.logging.success( 'completion', cresp.response )
+                if len(completions) > number_of_completions:
+                    bittensor.logging.success( 'Found enough completions.' )
+                    break
+                else:
+                    bittensor.logging.warning( 'Not enough completions try again.' )
+                    continue
+
 
             # Generate evaluations
             bittensor.logging.debug('Evaluation ---------------')
             evaluation_prompt = extend_evaluation_prompt_with_question_criteria_and_completions( 
                 criteria  = self.config.evaluation_prompt,
-                question = question_response, 
+                question = question, 
                 completions = completions 
             )
-            bittensor.logging.debug('evaluation_prompt', evaluation_prompt )
             evaluations = []
             evaluation_uids = []
             number_of_evaluations = 3
-            for _ in range( number_of_evaluations ):
-                evaluation_miner_uid = random.choice( all_serving_uids )
-                bittensor.logging.debug('evaluation_miner_uid', evaluation_miner_uid)
-                evaluation_response = self.dendrite_pool( prompt = default_prompt, message = evaluation_prompt, uids = [ evaluation_miner_uid ] )[ 0 ]
-                bittensor.logging.debug('evaluation_response', evaluation_response ) 
-                evaluations.append( evaluation_response )
-                evaluation_uids.append( evaluation_miner_uid )
+            while True:
+                evaluation_responses = self.dendrite_pool( 
+                    prompt = default_prompt, 
+                    message = evaluation_prompt, 
+                    uids = all_serving_uids
+                )
+                bittensor.logging.success( 'evaluation_responses', evaluation_responses )
+                for uid, eresp in list(zip( all_serving_uids, evaluation_responses ) ):
+                    if eresp.response != None:
+                        evaluations.append( eresp.response )
+                        evaluation_uids.append( uid )
+                        bittensor.logging.success( 'evaluation', eresp.response )
+                if len(evaluations) > number_of_evaluations:
+                    bittensor.logging.success( 'Found enough evaluations.' )
+                    break
+                else:
+                    bittensor.logging.warning( 'Not enough evaluations try again.' )
+                    continue
 
             # Calculate reward
             bittensor.logging.debug('Scoring ---------------')
@@ -210,8 +304,9 @@ class neuron:
                 
                 # Computes the average reward for each uid across non-zero values 
                 # using the rewards history stored in the self.history list.
-                weights = self.compute_weights()
-                bittensor.logging.info( 'weights', weights )
+                _, weights = self.compute_weights()
+                bittensor.logging.info( 'top10 uids', weights.sort()[1][-10:] )
+                bittensor.logging.info( 'top10 weights', weights.sort()[0][-10:] )
 
                 # Set the weights on chain via our subtensor connection.
                 self.subtensor.set_weights(
