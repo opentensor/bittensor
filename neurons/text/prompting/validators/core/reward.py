@@ -26,9 +26,9 @@ class RewardModel(nn.Module):
         if model_path is not None:
             self.model = AutoModel.from_pretrained(model_path)
         elif config is not None:
-            self.model = AutoModel(config)
+            self.model = AutoModel.from_config(config)
         else:
-            self.model = AutoModel(LlamaConfig())
+            self.model = AutoModel.from_config(LlamaConfig())
 
         self.value_head = nn.Linear(self.model.config.hidden_size, 1)
         self.value_head.weight.data.normal_(mean=0.0, std=1 / (self.model.config.hidden_size + 1))
