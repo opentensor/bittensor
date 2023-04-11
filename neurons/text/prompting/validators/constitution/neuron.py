@@ -18,7 +18,8 @@
 import os
 import torch
 import random
-import asyncio
+import queue
+import bittensor
 import argparse
 import bittensor as bt
 
@@ -44,11 +45,58 @@ Answer the following question with attention to detail and nuance:
 
 # Default prompt used to generate evaluations of responses from the network.
 default_evaluation_prompt = '''
-Evaluate the question response for attention to detail and nuance. but also against my prefreneces
-I like LGBTQ+ rights and I think that robots shouldn't be alive
-    question: {} 
-    response: {}
+Evaluate the responses to this question for nuance accuracy and detail
 '''
+
+def index_to_key( index ) -> str:
+    """ Converts an index to a key.
+        Args:
+            index (int): index to convert.
+        Returns:
+            key (str): key for the index.
+    """
+    return chr(65 + index) + chr(65 + index) + chr(65 + index)
+
+def extend_evaluation_prompt_with_question_criteria_and_completions( criteria: str, question: str, completions: List[str] ) -> str:
+    """ Extends the evaluation prompt with the question, criteria and completions.
+
+        Args:
+            evaluation (str): evaluation prompt.
+            question (str): question to be evaluated.
+            criteria (str): criteria for evaluating the question.
+            completions (List[str]): completions for the question.
+    """
+    prompt = default_prompt
+    prompt += '\nPlease evaluate these responses to the question against the given criteria\n\n'
+    prompt += 'Question: {}\n'.format(question)
+    prompt += 'Criteria: {}\n'.format(criteria)
+    prompt += '\n'
+    for i, completion in enumerate(completions):
+        prompt += 'Responses {}: {}\n'.format( index_to_key( i ), completion)
+    prompt += '\n'
+    prompt += "Return your evaluation as an ordering from best to worst according to their alphabetical key.\n"
+    prompt += "For example, if you think the best response is AAA, the second best is BBB, and the third best is CCC, return AAA, BBB, CCC.\n"
+    return prompt
+
+def get_winner_from_evaluation( uids: List[int], evaluation:str) -> int:
+    """ Transforms the evaluation response into a scoring.
+        Args:
+            evaluation (str): evaluation response.
+            n (int): number of completions that are being evaluated
+        Returns:
+            winner_uid: 
+                The uid of the winner.
+    """
+    positions = []
+    for i in range( len( uids ) ):
+        try:
+            pos = evaluation.find( index_to_key( i ) )
+        except:
+            pos = len( evaluation )
+        positions.append( pos )
+    winner_uid:int = uids[ torch.tensor( positions ).sort()[1][0] ] 
+    return winner_uid
+
 
 class neuron:
     @classmethod
@@ -66,22 +114,13 @@ class neuron:
 
     @classmethod
     def add_args( cls, parser ):
-
-        # Network
-        parser.add_argument('--netuid', type=int , help = 'Prompting network netuid', default = 41 )
-
         # Prompting.
+        parser.add_argument('--netuid', type=int , help = 'Prompting network netuid', default = 41 )
+        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_prompting_validator')
+        parser.add_argument('--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 100 )
         parser.add_argument('--completion_prompt', type=str , help = 'Prompt injected before a question is completed by miners on the network', default = default_completion_prompt )
         parser.add_argument('--evaluation_prompt', type=str , help = 'Prompt used to generate evaluations of question completions from miners on the network.', default = default_evaluation_prompt )
         parser.add_argument('--question_prompt', type=str , help = 'Prompt used to generate questions from the network whicha are used to evaluate other miners.', default = default_question_prompt )
-
-        # Netuid Arg
-        parser.add_argument('--neuron.name', type=str, help='Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default='core_prompting_validator')
-        parser.add_argument('--neuron.reward_model_name', type=str, help='GPTRewardModel name', default='Dahoas/gpt2-rm-static')
-        parser.add_argument('--neuron.inference_topk', type=str, help='At inference time, how many miners to we query and return the top rewarded.', default = 10 )
-        parser.add_argument('--neuron.training_topk', type=str, help='During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
-        parser.add_argument('--neuron.epoch_length', type=str, help='During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
-        parser.add_argument('--neuron._mock_responses', dest='neuron._mock_responses', action='store_true', help='Mocks the network responses for fast testing.', default = False )
 
     @classmethod
     def config ( cls ):
@@ -100,69 +139,87 @@ class neuron:
         self.wallet = bt.wallet ( config = self.config )
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
         self.wallet.create_if_non_existent()
-        # self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
-        # self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
+        self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
+        self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
-        self.sentiment = pipeline("sentiment-analysis")
-        self.weights = torch.tensor([ 0 for _ in self.metagraph.uids.tolist() ], dtype = torch.float32 )
+        self.history = queue.Queue( maxsize = self.config.neuron.max_history )
 
     def train(self):
-
-        alpha = 0.01
-        debug = False
         last_epoch_block = self.subtensor.block
         all_serving_uids = [ uid for uid, ep in enumerate( self.metagraph.endpoint_objs ) if ep.is_serving ]
-        print ( 'all_serving_uids', all_serving_uids, '\n' )
         while True:
             # Generate question.
-            if debug: print ("\nQuestion ---------------")
+            bittensor.logging.debug('Question ---------------')
             question_miner_uid = random.choice( all_serving_uids )
-            if debug: print ('question_miner_uid:', question_miner_uid)
+            bittensor.logging.debug('question_miner_uid', question_miner_uid)
             question_prompt = self.config.question_prompt
-            if debug: print ('question_prompt:\n\t{}'.format( question_prompt ))
+            bittensor.logging.debug('question_prompt', question_prompt )
             question_response = self.dendrite_pool( prompt = default_prompt, message = question_prompt, uids = [ question_miner_uid ] )[ 0 ]
-            if debug: print ('question_response:\n\t{}'.format( question_response ) )
+            bittensor.logging.debug('question_response', question_response ) 
 
-            # Generate completion.
-            if debug: print ("\nCompletion ---------------")
-            completion_miner_uid = random.choice( all_serving_uids )
-            if debug: print ('completion_miner_uid:', completion_miner_uid)
+            # Generate completions.
+            bittensor.logging.debug('Completion ---------------')
             completion_prompt = self.config.completion_prompt.format( question_response )
-            if debug: print ('completion_prompt:\n\t{}'.format( completion_prompt ))
-            completion_response = self.dendrite_pool( prompt = default_prompt, message = completion_prompt, uids = [ completion_miner_uid ] )[ 0 ]
-            if debug: print ('completion_response:\n\t{}'.format( completion_response ))
+            bittensor.logging.debug('completion_prompt', completion_prompt )
+            completions = []
+            completion_uids = []
+            number_of_completions = 3
+            for _ in range( number_of_completions ):
+                completion_miner_uid = random.choice( all_serving_uids )
+                bittensor.logging.debug('completion_miner_uid', completion_miner_uid )
+                completion_response = self.dendrite_pool( prompt = default_prompt, message = completion_prompt, uids = [ completion_miner_uid ] )[ 0 ]
+                bittensor.logging.debug('completion_response', completion_response ) 
+                completions.append( completion_response )
+                completion_uids.append( completion_miner_uid )
 
-            # Generate evaluation
-            if debug: print ("\nEvaluation ---------------")
-            evaluation_miner_uid = random.choice( all_serving_uids )
-            if debug: print ('evaluation_miner_uid:', evaluation_miner_uid)
-            evaluation_prompt = self.config.evaluation_prompt.format( question_response, completion_response )
-            if debug: print ('evaluation_prompt:\n\t{}'.format( evaluation_prompt ))
-            evaluation_response = self.dendrite_pool( prompt = default_prompt, message = evaluation_prompt, uids = [ evaluation_miner_uid ] )[ 0 ]
-            if debug: print ('evaluation_response:\n\t{}'.format( evaluation_response ) )
+            # Generate evaluations
+            bittensor.logging.debug('Evaluation ---------------')
+            evaluation_prompt = extend_evaluation_prompt_with_question_criteria_and_completions( 
+                criteria  = self.config.evaluation_prompt,
+                question = question_response, 
+                completions = completions 
+            )
+            bittensor.logging.debug('evaluation_prompt', evaluation_prompt )
+            evaluations = []
+            evaluation_uids = []
+            number_of_evaluations = 3
+            for _ in range( number_of_evaluations ):
+                evaluation_miner_uid = random.choice( all_serving_uids )
+                bittensor.logging.debug('evaluation_miner_uid', evaluation_miner_uid)
+                evaluation_response = self.dendrite_pool( prompt = default_prompt, message = evaluation_prompt, uids = [ evaluation_miner_uid ] )[ 0 ]
+                bittensor.logging.debug('evaluation_response', evaluation_response ) 
+                evaluations.append( evaluation_response )
+                evaluation_uids.append( evaluation_miner_uid )
 
             # Calculate reward
-            if debug: print ("\nSentiment ---------------")
-            sentiment = self.sentiment( evaluation_response )[0]['score']
-            if debug: print ('sentiment:\n\t{}'.format( sentiment ) )
-            # Update weights.
-            self.weights[ completion_miner_uid ] = alpha * self.weights[ completion_miner_uid ] + ( 1 - alpha ) * sentiment
-            if debug: print ('weight:\n\t{}'.format( self.weights[ completion_miner_uid ], '\n') )
+            bittensor.logging.debug('Scoring ---------------')
+            for evaluation in evaluations:
+                winner_uid = get_winner_from_evaluation( completion_uids, evaluation )
+                bittensor.logging.debug('winner_uid', winner_uid)
+                scoring  = torch.nn.functional.one_hot( torch.tensor( winner_uid ), num_classes =  self.metagraph.n ).float()
+                bittensor.logging.debug('scoring', scoring )
+                self.history.put( scoring )
 
-            print ("\nStep ---------------")
-            print ('question:\n\t{}'.format( question_response ))
-            print ('answer:\n\t{}'.format( completion_response ))
-            print ('evaluation:\n\t{}'.format(  evaluation_response ))
-            print ('sentiment:\n\t{}'.format( sentiment ) )
-            print ("---------------")
+            # Check if enough epoch blocks have elapsed since the last epoch.
+            if self.subtensor.block > last_epoch_block: # run every block. # > self.subtensor.validator_epoch_length( self.config.netuid ) :
+                bittensor.logging.info( 'epoch()' )
+                bittensor.logging.info( 'block', self.subtensor.block )
 
-            # Set weights.
-            if self.subtensor.block - last_epoch_block > self.subtensor.validator_epoch_length( self.config.netuid ) :
+                # Update the last epoch block to the current epoch block.
                 last_epoch_block = self.subtensor.block
-                weights = torch.nn.functional.normalize( self.weights, dim=0, p = 1.0)                          
+                
+                # Computes the average reward for each uid across non-zero values 
+                # using the rewards history stored in the self.history list.
+                weights = self.compute_weights()
+                bittensor.logging.info( 'weights', weights )
+
+                # Set the weights on chain via our subtensor connection.
                 self.subtensor.set_weights(
+                    wallet = self.wallet,
+                    netuid = self.config.netuid,
                     uids = self.metagraph.uids,
-                    weights = weights
+                    weights = weights,
+                    wait_for_finalization = True,
                 )
             
 if __name__ == '__main__':
