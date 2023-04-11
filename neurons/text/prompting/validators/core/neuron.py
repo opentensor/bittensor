@@ -64,7 +64,7 @@ class neuron:
         parser.add_argument( '--neuron.inference_topk', type = str, help = 'At inference time, how many miners to we query and return the top rewarded.', default = 10 )
         parser.add_argument( '--neuron.training_topk', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
         parser.add_argument( '--neuron.epoch_length', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
-        parser.add_argument( '--neuron.reward_path', type = str, help = 'Path to reward model.', default = '~/.bittensor' )
+        parser.add_argument( '--neuron.reward_path', type = str, help = 'Path to reward model.', default = '~/.bittensor/reward_models' )
         parser.add_argument( '--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 100 )
         parser.add_argument( '--neuron.base_timeout', type = int, help = 'Base timeout for all requests.', default = 1 )
         
