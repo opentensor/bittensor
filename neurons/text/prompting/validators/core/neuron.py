@@ -216,7 +216,7 @@ class neuron:
         bittensor.logging.debug( 'completions', completions )
 
         # Filter out any `None` `completions`.
-        successful_uids = torch.tensor( [ uid for uid, completion in list( zip( topk_uids, completions ) ) if completion is not None and len(completion) > 10 ], dtype = torch.int64 ).to( self.device )
+        successful_uids = torch.tensor( [ uid for uid, completion in list( zip( topk_uids, completions ) ) if completion is not None], dtype = torch.int64 ).to( self.device )
         successful_completions = [ completion for completion in completions if completion is not None and len(completion) > 10 ]
         bittensor.logging.debug( 'successful_uids', successful_uids )
         bittensor.logging.debug( 'successful_completions', successful_completions )
