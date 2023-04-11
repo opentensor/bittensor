@@ -33,35 +33,23 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
         parser.add_argument( '--pythia.max_new_tokens', type=int, help='Max tokens for model output.', default=64 ) 
         parser.add_argument( '--pythia.temperature', type=float, help='Sampling temperature of model', default=0.8 )
         parser.add_argument( '--pythia.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
-        parser.add_argument( '--pythia.load_in_8bit', action='store_true', default=False, help='Whether to use 8bit mapping (requires 12GB GPU memory).' )
         
     def __init__( self ):
         super( PythiaMiner, self ).__init__()
         print ( self.config )
         
-        tokenizer = AutoTokenizer.from_pretrained("togethercomputer/Pythia-Chat-Base-7B")
+        bittensor.logging.info( 'Loading togethercomputer/Pythia-Chat-Base-7B model...' )
+        self.tokenizer = AutoTokenizer.from_pretrained( "togethercomputer/Pythia-Chat-Base-7B" )
+        self.model = AutoModelForCausalLM.from_pretrained( "togethercomputer/Pythia-Chat-Base-7B", torch_dtype = torch.float16 )
+        bittensor.logging.info( 'Model loaded!' )
 
-        # TODO: ( jason ) WIP, need cudatoolkit to test with bitsandbytes (8bit loading is currently broken)
-        if self.config.pythia.load_in_8bit: 
-            self.model = AutoModelForCausalLM.from_pretrained(
-                "togethercomputer/Pythia-Chat-Base-7B", 
-                device_map = "auto", 
-                load_in_8bit = True
-            )
-            self.config.pythia.do_sample = True
-        else:
-            self.model = AutoModelForCausalLM.from_pretrained(
-                "togethercomputer/Pythia-Chat-Base-7B", 
-                torch_dtype = torch.float16
-            )
-    
         if self.config.pythia.device == "cuda":
             self.model = self.model.to( self.config.pythia.device )
 
         self.pipe = pipeline( 
             "text-generation",
             self.model, 
-            tokenizer = tokenizer,
+            tokenizer = self.tokenizer,
             max_new_tokens = self.config.pythia.max_new_tokens,
             temperature = self.config.pythia.temperature,
             do_sample = self.config.pythia.do_sample,
