@@ -22,22 +22,21 @@ from transformers import AutoModel, AutoTokenizer, LlamaConfig
 
 class RewardModel(nn.Module):
     def __init__(self, model_path: str, config=None, lora_rank=0, lora_train_bias: str = 'none') -> None:
-
+        super().__init__()
         if model_path is not None:
-            model = AutoModel.from_pretrained(model_path)
+            self.model = AutoModel.from_pretrained(model_path)
         elif config is not None:
-            model = AutoModel(config)
+            self.model = AutoModel(config)
         else:
-            model = AutoModel(LlamaConfig())
+            self.model = AutoModel(LlamaConfig())
 
-        value_head = nn.Linear(model.config.hidden_size, 1)
-        value_head.weight.data.normal_(mean=0.0, std=1 / (model.config.hidden_size + 1))
+        self.value_head = nn.Linear(self.model.config.hidden_size, 1)
+        self.value_head.weight.data.normal_(mean=0.0, std=1 / (self.model.config.hidden_size + 1))
 
-        tokenizer = AutoTokenizer.from_pretrained('EleutherAI/gpt-j-6b')
-        tokenizer.pad_token = tokenizer.eos_token
-        PAD_ID = tokenizer(tokenizer.pad_token)["input_ids"][0]
+        self.tokenizer = AutoTokenizer.from_pretrained('EleutherAI/gpt-j-6b')
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.PAD_ID = self.tokenizer(self.tokenizer.pad_token)["input_ids"][0]
 
-        super().__init__(model, value_head, lora_rank, lora_train_bias, tokenizer, PAD_ID)
 
     def reward( self, completions: List[str] ) -> torch.FloatTensor:
         def reward_fn( samples ):
