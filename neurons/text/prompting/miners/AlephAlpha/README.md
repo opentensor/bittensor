@@ -5,21 +5,25 @@ This code is for running a language model powered by AlephAlpha through the BitT
 # Example Usage
 ```
 python3 -m pip install -r neurons/text/prompting/miners/AlephAlpha/requirements.txt
-python3 neurons/text/prompting/miners/AlephAlpha/miner.py --client.api_key <your AlephAlpha api_key>
+python3 neurons/text/prompting/miners/AlephAlpha/miner.py --aleph.api_key <your AlephAlpha api_key>
 ```
 
 # Full Usage
 ```
-usage: neuron.py [-h] --aleph.api_key ALEPH.API_KEY [--aleph.model ALEPH.MODEL] [--aleph.maximum_tokens ALEPH.MAXIMUM_TOKENS] [--aleph.temperature ALEPH.TEMPERATURE] [--aleph.stop_sequences ALEPH.STOP_SEQUENCES]
-                 [--aleph.top_k ALEPH.TOP_K] [--aleph.top_p ALEPH.TOP_P] [--netuid NETUID] [--neuron.name NEURON.NAME] [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights]
-                 [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN] [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--wallet.name WALLET.NAME]
-                 [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock] [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS]
-                 [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT] [--axon.ip AXON.IP] [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP]
-                 [--axon.max_workers AXON.MAX_WORKERS] [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS] [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT]
-                 [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES] [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL]
-                 [--subtensor.register.no_output_in_place] [--subtensor.register.verbose] [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
-                 [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]] [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug] [--logging.trace]
-                 [--logging.record_log] [--logging.logging_dir LOGGING.LOGGING_DIR] [--metagraph._mock] [--config CONFIG] [--strict]
+usage: neuron.py [-h] --aleph.api_key ALEPH.API_KEY [--aleph.model ALEPH.MODEL] [--aleph.maximum_tokens ALEPH.MAXIMUM_TOKENS] [--aleph.temperature ALEPH.TEMPERATURE]
+                 [--aleph.stop_sequences ALEPH.STOP_SEQUENCES] [--aleph.top_k ALEPH.TOP_K] [--aleph.top_p ALEPH.TOP_P] [--netuid NETUID] [--neuron.name NEURON.NAME]
+                 [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights] [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE]
+                 [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN] [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--wallet.name WALLET.NAME]
+                 [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock] [--wallet.reregister WALLET.REREGISTER]
+                 [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS] [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT] [--axon.ip AXON.IP]
+                 [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP] [--axon.max_workers AXON.MAX_WORKERS]
+                 [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS] [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT]
+                 [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
+                 [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL] [--subtensor.register.no_output_in_place] [--subtensor.register.verbose]
+                 [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
+                 [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]]
+                 [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug] [--logging.trace] [--logging.record_log]
+                 [--logging.logging_dir LOGGING.LOGGING_DIR] [--metagraph._mock] [--config CONFIG] [--strict]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -71,12 +75,13 @@ optional arguments:
   --axon.external_ip AXON.EXTERNAL_IP
                         The external ip this axon broadcasts to the network to. ie. [::]
   --axon.max_workers AXON.MAX_WORKERS
-                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes new worker threads to service requests up to this number.
+                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes new worker threads to service requests
+                        up to this number.
   --axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS
                         Maximum number of allowed active connections
   --subtensor.network SUBTENSOR.NETWORK
-                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running network) -- mock (creates a mock connection (for testing)) If this option is set it
-                        overloads subtensor.chain_endpoint with an entry point node from that network.
+                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running network) -- mock (creates a mock connection (for
+                        testing)) If this option is set it overloads subtensor.chain_endpoint with an entry point node from that network.
   --subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT
                         The subtensor endpoint flag. If set, overrides the --network flag.
   --subtensor._mock     To turn on subtensor mocking for testing purposes.
