@@ -100,7 +100,7 @@ class RewardModel(nn.Module):
 
         hidden_states = transformer_outputs[0]
 
-        rewards = self.v_head(hidden_states).squeeze(-1)
+        rewards = self.value_head(hidden_states).squeeze(-1)
         chosen_end_scores = []
         rejected_end_scores = []
 
