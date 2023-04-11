@@ -17,14 +17,11 @@
 
 import os
 import torch
-import random
 import queue
 import bittensor
 import argparse
 import bittensor as bt
 
-from copy import deepcopy
-from transformers import pipeline
 from typing import List, Optional, Tuple
 
 # Default prompt used to generate synthetic questions from the network for validation.
