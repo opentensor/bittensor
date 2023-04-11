@@ -543,6 +543,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkeypub = mock_coldkey_kp,
                 hotkey_str = hk,
                 hotkey = get_mock_keypair(idx + 100, self.id()),
+                coldkey_file = bittensor.keyfile()
             ) for idx, hk in enumerate(list(mock_stakes.keys()))
         ]
 
@@ -614,6 +615,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkeypub = mock_coldkey_kp,
                 hotkey_str = hk,
                 hotkey = get_mock_keypair(idx + 100, self.id()),
+                coldkey_file = bittensor.keyfile()
             ) for idx, hk in enumerate(list(mock_stakes.keys()))
         ]
 
@@ -692,6 +694,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkeypub = mock_coldkey_kp,
                 hotkey_str = hk,
                 hotkey = get_mock_keypair(idx + 100, self.id()),
+                coldkey_file = bittensor.keyfile()
             ) for idx, hk in enumerate(list(mock_stakes.keys()))
         ]
 
@@ -766,6 +769,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkeypub = mock_coldkey_kp,
                 hotkey_str = hk,
                 hotkey = get_mock_keypair(idx + 100, self.id()),
+                coldkey_file = bittensor.keyfile()
             ) for idx, hk in enumerate(config.hotkeys)
         ]
 
@@ -838,6 +842,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkeypub = mock_coldkey_kp,
                 hotkey_str = hk,
                 hotkey = get_mock_keypair(idx + 100, self.id()),
+                coldkey_file = bittensor.keyfile()
             ) for idx, hk in enumerate(mock_hotkeys)
         ]
 
