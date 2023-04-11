@@ -473,7 +473,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 raise Exception(f"Nonce {corrected_nonce} is out of range {lower_bound} to {upper_bound} OR nonce is earlier then previous nonce {previous_nonce}.")
         else:
             # Initializing the (offset, corrected_nonce = offset + nonce) 
-            corrected_nonce = clock.monotonic_ns() + nonce 
+            corrected_nonce = clock.monotonic_ns()
             self.nonces[endpoint_key] = (clock.monotonic_ns() - nonce, corrected_nonce)
         
         if not keypair.verify(message, signature):
