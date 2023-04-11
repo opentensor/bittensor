@@ -26,6 +26,8 @@ from types import SimpleNamespace
 from typing import List, Optional, Tuple
 from reward import RewardModel
 from gating import GatingModel
+from utils import prepare_llama_tokenizer_and_embedding
+from transformers import AutoTokenizer
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific about science and language.
@@ -62,6 +64,7 @@ class neuron:
         parser.add_argument( '--neuron.inference_topk', type = str, help = 'At inference time, how many miners to we query and return the top rewarded.', default = 10 )
         parser.add_argument( '--neuron.training_topk', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
         parser.add_argument( '--neuron.epoch_length', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
+        parser.add_argument( '--neuron.reward_path', type = str, help = 'Path to reward model.', default = '~/.bittensor/reward.pt' )
         parser.add_argument( '--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 100 )
         parser.add_argument( '--neuron.base_timeout', type = int, help = 'Base timeout for all requests.', default = 1 )
         
@@ -80,14 +83,27 @@ class neuron:
     def __init__( self, config=None ):
         self.config = config if config is not None else neuron.config()
         bt.logging( config = self.config )
+
+        if not os.path.exists( self.config.neuron.reward_path ):
+            os.makedirs(self.config.neuron.reward_path, exist_ok=True)
+            os.system(
+                f"wget -O {self.config.neuron.reward_path} \
+                https://huggingface.co/robertmyers/bpt-instruct-rm-6b/resolve/main/bpt-rm-7b.pt"
+            )
+
         self.subtensor = bt.subtensor ( config = self.config )
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wallet = bt.wallet ( config = self.config )
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
-        self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
-        self.reward_model = RewardModel( self.config.neuron.reward_model_name ).to(self.device)
+        self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )
+        self.reward_model = RewardModel( self.config.neuron.reward_model_name )
+        self.tokenizer = AutoTokenizer.from_pretrained( './llama_tokenizer' )
+        _ = prepare_llama_tokenizer_and_embedding(self.tokenizer, self.reward_model)
+        self.reward_model.load_state_dict( torch.load( self.config.neuron.reward_path ) )
+        self.reward_model.half()
+        self.reward_model.to(self.device)
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to(self.device)
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )

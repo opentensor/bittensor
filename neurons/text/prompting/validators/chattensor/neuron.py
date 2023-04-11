@@ -34,6 +34,8 @@ from uvicorn import Config, Server
 import asyncio
 import uvicorn
 
+from transformers import AutoModelForSequenceClassification
+
 from typing import List, Optional, Union
 from reward import RewardModel
 from gating import GatingModel
@@ -94,6 +96,7 @@ class neuron:
         parser.add_argument('--neuron.training_topk', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
         parser.add_argument('--neuron.epoch_length', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
         parser.add_argument('--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 100 )
+        parser.add_argument('--neuron.model_type', type = str, help = 'Maximum number history values to store at any time.', default = "sequence", choices = ["sequence", "causal"] )
     @classmethod
     def config ( cls ):
         parser = argparse.ArgumentParser()    
@@ -113,8 +116,11 @@ class neuron:
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
-        self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
-        self.reward_model = RewardModel( self.config.neuron.reward_model_name ).to(self.device)
+        self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid ) 
+        if config.neuron.model_type == "sequence":
+            self.reward_model = AutoModelForSequenceClassification.from_pretrained( self.config.neuron.reward_model_name, dtype=torch.float16 ).to(self.device)
+        elif config.neuron.model_type == "causal":
+            self.reward_model = RewardModel( self.config.neuron.reward_model_name ).to(self.device)
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to(self.device)
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
