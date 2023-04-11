@@ -102,7 +102,7 @@ class neuron:
         self.tokenizer = AutoTokenizer.from_pretrained( './llama_tokenizer' )
         _ = prepare_llama_tokenizer_and_embedding(self.tokenizer, self.reward_model)
         self.reward_model.load_state_dict( torch.load( self.config.neuron.reward_path + '/bpt-rm-7b.pt' ) )
-        self.reward_model.half()
+        self.reward_model = self.reward_model.to(torch.float16)
         self.reward_model.to(self.device)
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to(self.device)
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
