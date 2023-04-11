@@ -87,7 +87,7 @@ class neuron:
         if not os.path.exists( self.config.neuron.reward_path ):
             os.makedirs(self.config.neuron.reward_path, exist_ok=True)
             os.system(
-                f"wget -O {self.config.neuron.reward_path} \
+                f"wget -O {self.config.neuron.reward_path + 'reward.pt'} \
                 https://huggingface.co/robertmyers/bpt-instruct-rm-6b/resolve/main/bpt-rm-7b.pt"
             )
 

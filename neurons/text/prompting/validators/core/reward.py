@@ -21,7 +21,7 @@ from typing import List
 from transformers import AutoModel, AutoTokenizer, LlamaConfig
 
 class RewardModel(nn.Module):
-    def __init__(self, model_path: str, config=None, lora_rank=0, lora_train_bias: str = 'none') -> None:
+    def __init__(self, model_path=None, config=None, lora_rank=0, lora_train_bias: str = 'none') -> None:
         super().__init__()
         if model_path is not None:
             self.model = AutoModel.from_pretrained(model_path)
