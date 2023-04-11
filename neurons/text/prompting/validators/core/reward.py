@@ -18,21 +18,27 @@
 import torch
 from torch import nn
 from typing import List
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModel, AutoTokenizer, LlamaConfig
+from utils import prepare_llama_tokenizer_and_embedding
 
 class RewardModel(nn.Module):
-    def __init__( self, model_path: str ):
-        super().__init__()
-        self.model = AutoModelForCausalLM.from_pretrained( model_path )
-        self.config = self.model.config
-        # `gpt-neo(x)` models use `hidden_size` attribute names instead of `n_embd``
-        self.config.n_embd = self.config.hidden_size if hasattr(self.config, "hidden_size") else self.config.n_embd
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.transformer = self.model.transformer
-        self.v_head = nn.Linear(self.config.n_embd, 1, bias=False)
-        self.tokenizer = AutoTokenizer.from_pretrained('EleutherAI/gpt-j-6b')
-        self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.PAD_ID = self.tokenizer(self.tokenizer.pad_token)["input_ids"][0]
+    def __init__(self, model_path: str, config=None, lora_rank=0, lora_train_bias: str = 'none') -> None:
+
+        if model_path is not None:
+            model = AutoModel.from_pretrained(model_path)
+        elif config is not None:
+            model = AutoModel(config)
+        else:
+            model = AutoModel(LlamaConfig())
+
+        value_head = nn.Linear(model.config.hidden_size, 1)
+        value_head.weight.data.normal_(mean=0.0, std=1 / (model.config.hidden_size + 1))
+
+        tokenizer = AutoTokenizer.from_pretrained('EleutherAI/gpt-j-6b')
+        tokenizer.pad_token = tokenizer.eos_token
+        PAD_ID = tokenizer(tokenizer.pad_token)["input_ids"][0]
+
+        super().__init__(model, value_head, lora_rank, lora_train_bias, tokenizer, PAD_ID)
 
     def reward( self, completions: List[str] ) -> torch.FloatTensor:
         def reward_fn( samples ):

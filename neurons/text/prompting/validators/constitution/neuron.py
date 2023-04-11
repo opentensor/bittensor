@@ -21,6 +21,8 @@ import queue
 import argparse
 import bittensor as bt
 
+from pprint import pprint
+
 from typing import List, Optional, Tuple
 
 # Default prompt used to generate synthetic questions from the network for validation.
