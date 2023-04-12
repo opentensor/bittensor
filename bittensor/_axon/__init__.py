@@ -26,6 +26,8 @@ import time
 from concurrent import futures
 from typing import Dict, List, Callable, Optional, Tuple, Union
 from bittensor._threadpool import prioritythreadpool
+from grpc_interceptor import ServerInterceptor
+from grpc_interceptor.exceptions import GrpcException
 
 import torch
 import grpc
@@ -354,7 +356,7 @@ class axon:
         sample_input = torch.randint(0,1,(3, 3))
         forward_callback([sample_input], synapses, hotkey='')
 
-class AuthInterceptor(grpc.ServerInterceptor):
+class AuthInterceptor(ServerInterceptor):
     """Creates a new server interceptor that authenticates incoming messages from passed arguments."""
 
     def __init__(
@@ -413,11 +415,15 @@ class AuthInterceptor(grpc.ServerInterceptor):
         sender_hotkey: str,
         signature: str,
         receptor_uuid: str,
+        request: 'TensorMessage', 
     ):
         r"""verification of signature in metadata. Uses the pubkey and nonce"""
         keypair = Keypair(ss58_address=sender_hotkey)
         # Build the expected message which was used to build the signature.
         message = f"{nonce}.{sender_hotkey}.{self.receiver_hotkey}.{receptor_uuid}"
+
+        print(request)
+
 
         # Build the key which uniquely identifies the endpoint that has signed
         # the message.
@@ -435,8 +441,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
     def black_list_checking(self, hotkey: str, method: str):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
-        if self.blacklist == None:
-            return
+
 
         request_type = {
             "/Bittensor/Forward": bittensor.proto.RequestType.FORWARD,
@@ -445,16 +450,39 @@ class AuthInterceptor(grpc.ServerInterceptor):
         if request_type is None:
             raise Exception("Unknown request type")
 
+        if self.blacklist == None:
+            return
         failed, error_message =  self.blacklist(hotkey, request_type)
         if failed:
             raise Exception(str(error_message))
 
+    def intercept(
+        self,
+        method: 'Callable',
+        request: 'TensorMessage',
+        context: grpc.ServicerContext,
+        method_name: str,
+        metadata: dict,
+    ):
+        """Override this method to implement a custom interceptor.
 
-    def intercept_service(self, continuation, handler_call_details):
-        r"""Authentication between bittensor nodes. Intercepts messages and checks them"""
-        method = handler_call_details.method
-        metadata = dict(handler_call_details.invocation_metadata)
+         You should call method(request, context) to invoke the
+         next handler (either the RPC method implementation, or the
+         next interceptor in the list).
 
+         Args:
+             method: The next interceptor, or method implementation.
+             request: The RPC request, as a protobuf message.
+             context: The ServicerContext pass by gRPC to the service.
+             method_name: A string of the form
+                 "/protobuf.package.Service/Method"
+
+         Returns:
+             This should generally return the result of
+             method(request, context), which is typically the RPC
+             method response, as a protobuf message. The interceptor
+             is free to modify this in some way, however.
+         """
         try:
             (
                 nonce,
@@ -465,15 +493,52 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
             # signature checking
             self.check_signature(
-                nonce, sender_hotkey, signature, receptor_uuid
+                nonce, sender_hotkey, signature, receptor_uuid, request
             )
 
             # blacklist checking
-            self.black_list_checking(sender_hotkey, method)
+            self.black_list_checking(sender_hotkey, method_name)
 
-            return continuation(handler_call_details)
+            return method(request, context)
+        except Exception as e:
+            message = str(e)
+            context.set_code(grpc.StatusCode.UNAUTHENTICATED)
+            context.set_details(message)
+            raise
+            
+    # Implementation of grpc.ServerInterceptor, do not override.
+    def intercept_service(self, continuation, handler_call_details):
+        """Implementation of grpc.ServerInterceptor.
+        This is not part of the grpc_interceptor.ServerInterceptor API, but must have
+        a public name. Do not override it, unless you know what you're doing.
+        """
+        next_handler = continuation(handler_call_details)
+        # Returns None if the method isn't implemented.
+        if next_handler is None:
+            return
 
+        handler_factory, next_handler_method = self._get_factory_and_method(next_handler)
+
+        def invoke_intercept_method(request_or_iterator, context):
+            method_name = handler_call_details.method
+            metadata = handler_call_details.invocation_metadata
+            return self.intercept(
+                next_handler_method, request_or_iterator, context, method_name, dict(metadata)
+            )
+        try:
+            return handler_factory(
+                invoke_intercept_method,
+                request_deserializer=next_handler.request_deserializer,
+                response_serializer=next_handler.response_serializer,
+            )
         except Exception as e:
             message = str(e)
             abort = lambda _, ctx: ctx.abort(grpc.StatusCode.UNAUTHENTICATED, message)
             return grpc.unary_unary_rpc_method_handler(abort)
+    
+
+    def _get_factory_and_method(
+        self,
+        rpc_handler: grpc.RpcMethodHandler,
+    ) :
+        return grpc.unary_unary_rpc_method_handler, rpc_handler.unary_unary

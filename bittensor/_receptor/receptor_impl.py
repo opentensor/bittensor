@@ -123,14 +123,15 @@ class Receptor(nn.Module):
     def __exit__ ( self ):
         self.__del__()
 
-    def sign(self):
+    def sign(self, inputs=None, grads=None):
+        inputs_sum =  inputs.sum() if inputs != None else 0
+        grads_sum = grads.sum() if grads != None else 0 
         nonce = f"{self.nonce()}"
         sender_hotkey = self.wallet.hotkey.ss58_address
         receiver_hotkey = self.endpoint.hotkey
-        message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{self.receptor_uid}"
+        message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{self.receptor_uid}.{inputs_sum}.{grads_sum}"
         signature = f"0x{self.wallet.hotkey.sign(message).hex()}"
         return ".".join([nonce, sender_hotkey, signature, self.receptor_uid])
-
 
     def nonce ( self ):
         r"""creates a string representation of the time
@@ -332,6 +333,7 @@ class Receptor(nn.Module):
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
 
+
         # ==========================
         # ==== Serialize inputs ====
         # ==========================
@@ -373,6 +375,11 @@ class Receptor(nn.Module):
             return synapse_responses, synapse_codes, synapse_call_times
 
 
+        # ==========================
+        # ==== Create Signature ====
+        # ==========================
+        signature = self.sign(grpc_request)
+
         # ===============================
         # ==== Fire Asyncio RPC Call ====
         # ===============================
@@ -385,7 +392,7 @@ class Receptor(nn.Module):
                 timeout = timeout,
                 metadata = (
                     ('rpc-auth-header','Bittensor'),
-                    ('bittensor-signature',self.sign()),
+                    ('bittensor-signature',signature),
                     ('bittensor-version',str(bittensor.__version_as_int__)),
                     ('request_type', str(bittensor.proto.RequestType.FORWARD)),
                 ))
