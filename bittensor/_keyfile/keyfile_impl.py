@@ -475,12 +475,14 @@ class Keyfile( object ):
             bittensor.__console__.print(f"Keyfile is not writable. {self.path}")
             return False
         
+        update_keyfile = False
         if not no_prompt:
             keyfile_data = self._read_keyfile_data_from_file()
             if keyfile_data_is_encrypted( keyfile_data ) and not keyfile_data_is_encrypted_nacl( keyfile_data ):
 
                 bittensor.__console__.print(f":exclamation_mark:You may update the keyfile to improve the security for storing your keys. \nWhile the key and the password stays the same, it would require providing your password once. \n:key: {self}")
-                if Confirm.ask("Update keyfile?"):
+                update_keyfile = Confirm.ask("Update keyfile?"):
+                if update_keyfile:
                     decrypted_keyfile_data = None
                     while decrypted_keyfile_data == None:
                         try: 
@@ -493,18 +495,18 @@ class Keyfile( object ):
 
                     encrypted_keyfile_data = encrypt_keyfile_data( decrypted_keyfile_data, password = password )
                     self._write_keyfile_data_to_file( encrypted_keyfile_data, overwrite = True )
-        
-        
-        keyfile_data = self._read_keyfile_data_from_file()
-        if not keyfile_data_is_encrypted( keyfile_data ):
-            if print_result: bittensor.__console__.print(f"Keyfile is not encrypted. \n:key: {self}")
-            return False
-        elif keyfile_data_is_encrypted_nacl( keyfile_data ):
-            if print_result: bittensor.__console__.print(f":white_heavy_check_mark: Keyfile is already updated. \n:key: {self}")
-            return True
-        else:
-            if print_result: bittensor.__console__.print(f':cross_mark: Keyfile is outdated, please update with "btcli update_wallet" \n:key: {self}')
-            return False
+
+        if print_result or update_keyfile: 
+            keyfile_data = self._read_keyfile_data_from_file()
+            if not keyfile_data_is_encrypted( keyfile_data ):
+                if print_result: bittensor.__console__.print(f"Keyfile is not encrypted. \n:key: {self}")
+                return False
+            elif keyfile_data_is_encrypted_nacl( keyfile_data ):
+                if print_result: bittensor.__console__.print(f":white_heavy_check_mark: Keyfile is already updated. \n:key: {self}")
+                return True
+            else:
+                if print_result: bittensor.__console__.print(f':cross_mark: Keyfile is outdated, please update with "btcli update_wallet" \n:key: {self}')
+                return False
 
     def encrypt( self, password: str = None):
         """ Encrypts file under path.

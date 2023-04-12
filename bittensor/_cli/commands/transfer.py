@@ -29,8 +29,8 @@ class TransferCommand:
         r""" Transfer token of amount to destination."""
         wallet = bittensor.wallet( config = cli.config )
         subtensor = bittensor.subtensor( config = cli.config )
-        subtensor.transfer( wallet = wallet, dest = cli.config.dest, amount = cli.config.amount, wait_for_inclusion = True, prompt = not cli.config.no_prompt )
-        wallet.coldkey_file.check_and_update_encryption(no_prompt = cli.config.no_prompt)
+        subtensor.transfer( wallet = wallet, dest = cli.config.dest, amount = cli.config.amount, wait_for_finalization = True, wait_for_inclusion = True, prompt = not cli.config.no_prompt )
+        wallet.coldkey_file.check_and_update_encryption(no_prompt = cli.config.no_prompt, print_result = False)
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
