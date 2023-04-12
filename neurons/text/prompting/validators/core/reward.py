@@ -102,9 +102,8 @@ class RewardModel(nn.Module):
         self.PAD_ID = self.tokenizer(self.tokenizer.pad_token)["input_ids"][0]
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
-    def reward( self, completions: List[str] ) -> torch.FloatTensor:
-        def reward_fn( samples ):
+    def reward(self, completions: List[str]) -> torch.FloatTensor:
+        def reward_fn(samples):
             samples = [s + self.tokenizer.eos_token for s in samples]
             input = self.tokenizer(samples, padding=True, truncation=True, max_length=1024, return_tensors="pt").to(
                 self.device
@@ -119,13 +118,15 @@ class RewardModel(nn.Module):
                 out.extend(rewards)
 
             return out
-        
+
         with torch.no_grad():
             rewards = [reward_fn([completion]) for completion in completions]
             for completion, reward in zip(completions, rewards):
                 print(completion)
                 print(reward)
-            return torch.tensor(rewards, dtype=torch.float32)
+            # Convert the list of single-element lists containing torch tensors to a 1D torch tensor.
+            rewards_tensor = torch.cat(rewards).view(-1)
+            return rewards_tensor
         
     def forward(
         self,
