@@ -46,12 +46,13 @@ class RewardModel(nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-    def reward( self, completions: List[str] ) -> torch.FloatTensor:
-        def reward_fn( samples ):
+    def reward(self, completions: List[str]) -> torch.FloatTensor:
+        def reward_fn(samples):
             samples = [s + self.tokenizer.eos_token for s in samples]
-            input = self.tokenizer(samples, padding=True, truncation=True, max_length=1024, return_tensors="pt").to(
-                self.device
-            )
+            input = self.tokenizer(samples, padding=True, truncation=True, max_length=1024, return_tensors="pt")
+            
+            # Move input to the same device as the model
+            input = input.to(self.device)
 
             mbs = 24
             out = []
@@ -62,7 +63,7 @@ class RewardModel(nn.Module):
                 out.extend(rewards.cpu().tolist())
 
             return out
-        
+
         with torch.no_grad():
             rewards = [reward_fn([completion]) for completion in completions]
             for completion, reward in zip(completions, rewards):
