@@ -34,7 +34,7 @@ class RewardModel(nn.Module):
         self.value_head = nn.Linear(self.model.config.hidden_size, 1)
         self.value_head.weight.data.normal_(mean=0.0, std=1 / (self.model.config.hidden_size + 1))
 
-        self.tokenizer = AutoTokenizer.from_pretrained('EleutherAI/gpt-j-6b')
+        self.tokenizer = AutoTokenizer.from_pretrained('./llama_tokenizer')
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.PAD_ID = self.tokenizer(self.tokenizer.pad_token)["input_ids"][0]
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -69,7 +69,6 @@ class RewardModel(nn.Module):
         input_ids=None,
         attention_mask=None,
     ):
-        loss = None
         transformer_outputs = self.model(
             input_ids,
             attention_mask=attention_mask
@@ -77,7 +76,6 @@ class RewardModel(nn.Module):
 
         hidden_states = transformer_outputs['last_hidden_state']
 
-        rewards = self.value_head(hidden_states).squeeze(-1)
-        ends = torch.argmax((input_ids == self.eos_token_id).float(), dim=1).view(-1, 1)
-        returns = torch.gather(rewards, 1, ends).squeeze(-1)
-        return returns
+        values = self.value_head(hidden_states)[:, :-1]
+        value = values.mean(dim=1).squeeze(1)    # ensure shape is (B)
+        return value
