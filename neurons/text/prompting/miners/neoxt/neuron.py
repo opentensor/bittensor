@@ -70,7 +70,9 @@ class NeoxtMiner( bittensor.BasePromptingMiner ):
 
     def forward( self, messages: List[Dict[str, str]]  ) -> str:
         history = self._process_history(messages)
-        return self.pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "") 
+        prompt = history + "<bot>:"
+        generation = self.pipe( prompt )[0]['generated_text'].replace(prompt,"").split("<human>")[0].strip()
+        return generation
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
