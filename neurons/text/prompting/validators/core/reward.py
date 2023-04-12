@@ -115,8 +115,8 @@ class RewardModel(nn.Module):
             for i in range(math.ceil(len(samples) / mbs)):
                 batch_ixs = slice(i * mbs, (i + 1) * mbs)
                 input_ids = input.input_ids[batch_ixs]
-                rewards = self.model(input_ids)
-                out.extend(rewards.cpu().tolist())
+                rewards = self.forward(input_ids)
+                out.extend(rewards)
 
             return out
         
