@@ -49,10 +49,9 @@ class RewardModel(nn.Module):
     def reward(self, completions: List[str]) -> torch.FloatTensor:
         def reward_fn(samples):
             samples = [s + self.tokenizer.eos_token for s in samples]
-            input = self.tokenizer(samples, padding=True, truncation=True, max_length=1024, return_tensors="pt")
-            
-            # Move input to the same device as the model
-            input = input.to(self.device)
+            input = self.tokenizer(samples, padding=True, truncation=True, max_length=1024, return_tensors="pt").to(
+                self.device
+            )
 
             mbs = 24
             out = []
@@ -60,16 +59,19 @@ class RewardModel(nn.Module):
                 batch_ixs = slice(i * mbs, (i + 1) * mbs)
                 input_ids = input.input_ids[batch_ixs]
                 rewards = self.forward(input_ids)
-                out.extend(rewards.cpu().tolist())
+                out.extend(rewards)
 
-            return out
+            # Return a single torch tensor instead of a list of torch tensors.
+            return torch.cat(out)
 
         with torch.no_grad():
             rewards = [reward_fn([completion]) for completion in completions]
             for completion, reward in zip(completions, rewards):
                 print(completion)
                 print(reward)
-            return torch.tensor(rewards, dtype=torch.float32)
+            # Convert the list of torch tensors to a 1D torch tensor.
+            rewards_tensor = torch.cat(rewards).view(-1)
+            return rewards_tensor
         
     def forward(
         self,
