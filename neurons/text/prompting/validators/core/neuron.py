@@ -84,28 +84,45 @@ class neuron:
         self.config = config if config is not None else neuron.config()
         bt.logging( config = self.config )
 
-        if not os.path.exists( self.config.neuron.reward_path + '/bpt-rm-7b.pt' ):
+        if not os.path.exists( self.config.neuron.reward_path + '/pytorch_model.bin' ):
             os.makedirs(self.config.neuron.reward_path, exist_ok=True)
             os.system(
-                f"wget -O {self.config.neuron.reward_path + '/bpt-rm-7b.pt'} \
-                https://huggingface.co/robertmyers/bpt-instruct-rm-6b/resolve/main/bpt-rm-7b.pt"
+                f"wget -O {self.config.neuron.reward_path + '/pytorch_model.bin'} \
+                https://huggingface.co/Dahoas/gptj-rm-static/resolve/main/pytorch_model.bin"
             )
 
         self.subtensor = bt.subtensor ( config = self.config )
+        
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
         self.wallet = bt.wallet ( config = self.config )
+        
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
+        
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
+        
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )
-        self.reward_model = RewardModel()
-        self.tokenizer = AutoTokenizer.from_pretrained( './llama_tokenizer' )
-        _ = prepare_llama_tokenizer_and_embedding(self.tokenizer, self.reward_model)
-        self.reward_model.load_state_dict( torch.load( self.config.neuron.reward_path + '/bpt-rm-7b.pt' ) )
-        self.reward_model = self.reward_model.to(torch.float16)
-        self.reward_model.to(self.device)
+        
+        self.tokenizer = AutoTokenizer.from_pretrained( 'EleutherAI/gpt-j-6b' )
+
+        #reward model
+        self.reward_model = RewardModel('EleutherAI/gpt-j-6b')
+        for fpath in os.listdir( self.config.neuron.reward_path ):
+            if fpath.endswith(".pt") or fpath.endswith(".bin"):
+                checkpoint = os.path.join( self.config.neuron.reward_path, fpath )
+                break
+        ckpt_state = torch.load(checkpoint)
+        ckpt_state = {k:v for k, v in ckpt_state.items() if not k.startswith('model.')}
+        self.reward_model.load_state_dict(ckpt_state)
+        self.reward_model.eval()
+        self.reward_model.requires_grad_(False)
+
+        #gating model
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to(self.device)
+        
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
+        
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
 
     def compute_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
