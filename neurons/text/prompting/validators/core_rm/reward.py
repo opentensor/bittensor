@@ -70,6 +70,7 @@ class RewardModel(nn.Module):
                 print(completion)
                 print(reward)
             # Convert the list of torch tensors to a 1D torch tensor.
+            rewards_tensor = torch.cat(rewards).view(-1)
             rewards_tensor = rewards_tensor.squeeze(-1)
             return rewards_tensor
         
