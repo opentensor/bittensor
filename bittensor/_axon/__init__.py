@@ -131,6 +131,8 @@ class axon:
                     timeout on the forward requests. 
                 backward_timeout (:type:`Optional[int]`, `optional`):
                     timeout on the backward requests.    
+                path (:type:`Optional[str]`, `optional`):
+                    Path to save axon data.    
         """   
         if config == None: 
             config = axon.config()
@@ -372,6 +374,8 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 the SS58 address of the hotkey which should be targeted by RPCs
             black_list (Function, `optional`):
                 black list function that prevents certain pubkeys from sending messages
+            path (:type:`Optional[str]`, `optional`):
+                Path to save axon data.    
         """
         super().__init__()
         self.path = f"{path}/nonces_dict.txt" if path != None else None
@@ -379,6 +383,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self.blacklist = blacklist
         self.receiver_hotkey = receiver_hotkey
         self.load()
+        self.upper_bound = 3.154e+17 # 10 years in nano second
 
     def load(self):
         if self.path != None and os.path.exists(self.path):
@@ -443,7 +448,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 return parts
         raise Exception("Unknown signature format")
 
-
     def check_signature(
         self,
         nonce: int,
@@ -468,7 +472,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             first_nonce = self.nonces[endpoint_key][0]
             previous_nonce = self.nonces[endpoint_key][1]
             # Nonces must be strictly monotonic over time.
-            if nonce <= previous_nonce or nonce > first_nonce + 3.154e+17 : # upper bound is 10 years in time
+            if nonce <= previous_nonce or nonce > first_nonce + self.upper_bound:
                 raise Exception(f"Nonce {nonce} is smaller then previous nonce {previous_nonce} or larger then {first_nonce + 3.154e+17}.")
         else:
             # Initializing the (first_nonce, nonce) 
