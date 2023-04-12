@@ -76,7 +76,7 @@ class RewardModel(nn.Module):
         input_ids=None,
     ):
         states = self.model.transformer(input_ids)[0]
-        rewards = self.v_head(states).squeeze(-1)
+        rewards = self.v_head(states.float()).squeeze(-1)
         ends = torch.argmax((input_ids == self.eos_token_id).float(), dim=1).view(-1, 1)
         returns = torch.gather(rewards, 1, ends).squeeze(-1)
         return returns
