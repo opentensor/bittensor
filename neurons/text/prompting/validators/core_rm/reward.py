@@ -41,6 +41,7 @@ class RewardModel(nn.Module):
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
         self.PAD_ID = self.tokenizer.pad_token_id
+        self.eos_token_id = self.tokenizer.eos_token_id
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
