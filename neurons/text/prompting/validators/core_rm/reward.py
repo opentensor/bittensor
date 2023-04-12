@@ -37,7 +37,7 @@ class RewardModel(nn.Module):
         self.transformer = self.model.gpt_neox if hasattr(self.model, "gpt_neox") else self.model.transformer
         dtype = self.config.torch_dtype if hasattr(self.config, "torch_dtype") is not None else torch.float32
         dtype = torch.float16 if dtype == "float16" else torch.float32
-        self.v_head = nn.Linear(self.config.n_embd, 1, bias=False, dtype=torch.float16)
+        self.v_head = nn.Linear(self.model.config.n_embd, 1, bias=False)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
         self.PAD_ID = self.tokenizer.pad_token_id
@@ -76,7 +76,7 @@ class RewardModel(nn.Module):
         input_ids=None,
     ):
         states = self.model.transformer(input_ids)[0]
-        rewards = self.v_head(states.float()).squeeze(-1)
+        rewards = self.v_head(states).squeeze(-1)
         ends = torch.argmax((input_ids == self.eos_token_id).float(), dim=1).view(-1, 1)
         returns = torch.gather(rewards, 1, ends).squeeze(-1)
         return returns
