@@ -39,6 +39,7 @@ class RewardModel(nn.Module):
         dtype = torch.float16 if dtype == "float16" else torch.float32
         self.v_head = nn.Linear(self.config.n_embd, 1, bias=False, dtype=torch.float16)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+        self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
         self.PAD_ID = self.tokenizer.pad_token_id
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
