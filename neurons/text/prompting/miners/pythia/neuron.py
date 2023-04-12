@@ -57,20 +57,22 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
         )
     
     @staticmethod
-    def _process_history(history: List[str]) -> str:
+    def _process_history(self, history: List[str]) -> str:
         processed_history = ''
         for message in history:
             if message['role'] == 'system':
-                processed_history += 'system: ' + message['content'] + '\n'
+                processed_history += '<human>: ' + message['content'] + '\n'
             if message['role'] == 'assistant':
-                processed_history += 'assistant: ' + message['content'] + '\n'
+                processed_history += '<bot>: ' + message['content'] + '\n'
             if message['role'] == 'user':
-                processed_history += 'user: ' + message['content'] + '\n'
+                processed_history += '<human>: ' + message['content'] + '\n'
         return processed_history
 
     def forward( self, messages: List[Dict[str, str]]  ) -> str:
         history = self._process_history(messages)
-        return self.pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "") 
+        prompt = history + "<bot>:"
+        generation = self.pipe( prompt )[0]['generated_text'].replace(prompt,"").split("<human>")[0].strip()
+        return generation
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
