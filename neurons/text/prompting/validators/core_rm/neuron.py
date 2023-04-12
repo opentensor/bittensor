@@ -116,6 +116,7 @@ class neuron:
         self.reward_model.load_state_dict( ckpt_state )
         self.reward_model.eval()
         self.reward_model.requires_grad_( False )
+        self.reward_model.to( self.device )
 
         #gating model
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to( self.device )
