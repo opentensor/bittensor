@@ -17,9 +17,72 @@
 
 import torch
 from torch import nn
-from typing import List
+from typing import List,Dict
 from transformers import AutoModel, AutoTokenizer, LlamaConfig
 import math
+
+import transformers
+
+
+DEFAULT_PAD_TOKEN = "[PAD]"
+DEFAULT_EOS_TOKEN = "</s>"
+DEFAULT_BOS_TOKEN = "</s>"
+DEFAULT_UNK_TOKEN = "</s>"
+
+
+def prepare_llama_tokenizer_and_embedding(
+        tokenizer: transformers.PreTrainedTokenizer,
+        model: transformers.PreTrainedModel,
+        special_tokens_dict: Dict = dict(pad_token=DEFAULT_PAD_TOKEN),
+):
+    """prepare llama tokenizer and embedding.
+
+    """
+
+    if tokenizer.pad_token is None:
+        smart_tokenizer_and_embedding_resize(
+            special_tokens_dict=dict(pad_token=DEFAULT_PAD_TOKEN),
+            tokenizer=tokenizer,
+            model=model,
+        )
+
+    tokenizer.add_special_tokens({
+        "eos_token": DEFAULT_EOS_TOKEN,
+        "bos_token": DEFAULT_BOS_TOKEN,
+        "unk_token": DEFAULT_UNK_TOKEN,
+    })
+
+    return tokenizer
+
+
+def smart_tokenizer_and_embedding_resize(
+        tokenizer: transformers.PreTrainedTokenizer,
+        model: transformers.PreTrainedModel,
+        special_tokens_dict: Dict = dict(pad_token=DEFAULT_PAD_TOKEN),
+):
+    """Resize tokenizer and embedding.
+
+    Note: This is the unoptimized version that may make your embedding size not be divisible by 64.
+    """
+
+    if tokenizer.pad_token is None:
+        num_new_tokens = tokenizer.add_special_tokens(special_tokens_dict)
+
+        if isinstance(model, RewardModel):
+            model = model.get_base_model()
+
+        model.model.resize_token_embeddings(len(tokenizer))
+
+        if num_new_tokens > 0:
+            input_embeddings = model.model.get_input_embeddings().weight.data
+            # output_embeddings = model.model.get_output_embeddings().weight.data
+
+            input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
+            # output_embeddings_avg = output_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
+
+            input_embeddings[-num_new_tokens:] = input_embeddings_avg
+            # output_embeddings[-num_new_tokens:] = output_embeddings_avg
+
 
 class RewardModel(nn.Module):
     def __init__(self, model_path=None, config=None, lora_rank=0, lora_train_bias: str = 'none') -> None:
@@ -35,7 +98,7 @@ class RewardModel(nn.Module):
         self.value_head.weight.data.normal_(mean=0.0, std=1 / (self.model.config.hidden_size + 1))
 
         self.tokenizer = AutoTokenizer.from_pretrained('./llama_tokenizer')
-        self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.tokenizer = prepare_llama_tokenizer_and_embedding(self.tokenizer, self.model)
         self.PAD_ID = self.tokenizer(self.tokenizer.pad_token)["input_ids"][0]
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
