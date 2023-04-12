@@ -82,7 +82,7 @@ class ExternalIPNotFound(Exception):
     """ Raised if we cannot attain your external ip from CURL/URLLIB/IPIFY/AWS """
 
 def get_external_ip(timeout:int = 12) -> str:
-    r""" Checks CURL/URLLIB/IPIFY/AWS for your external ip.
+    r""" Checks URLLIB/IPIFY/AWS/WIKI for your external ip.
         Returns:
             external_ip  (:obj:`str` `required`):
                 Your routers external facing ip as a string.
@@ -120,7 +120,9 @@ def get_external_ip(timeout:int = 12) -> str:
                 assert isinstance(ip_to_int(external_ip), int)
                 return str(external_ip)
         except Exception:
-            print(get_ip)
+            logger.info(f'Failed to get ecternal IP from {get_ip}')
+            
+
             pass
 
     raise ExternalIPNotFound
