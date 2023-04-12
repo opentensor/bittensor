@@ -113,7 +113,7 @@ class neuron:
                 checkpoint = os.path.join( self.config.neuron.reward_path, fpath )
                 break
         ckpt_state = torch.load(checkpoint)
-        ckpt_state = {k:v for k, v in ckpt_state.items() if not k.startswith('model.')}
+        # ckpt_state = {k:v for k, v in ckpt_state.items() if not k.startswith('model.')}
         self.reward_model.load_state_dict(ckpt_state)
         self.reward_model.eval()
         self.reward_model.requires_grad_(False)
