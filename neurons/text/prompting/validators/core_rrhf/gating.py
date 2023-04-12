@@ -81,7 +81,7 @@ class GatingModel( torch.nn.Module ):
         self.metagraph = metagraph
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.gating.model_name )
-        self.model = AutoModel.from_config( AutoConfig.from_pretrained(self.config.gating.model_name) )
+        self.model = AutoModel.from_config( AutoConfig.from_pretrained(self.config.gating.model_name) ) #TODO: add pretrained flag
         self.linear = torch.nn.Linear( self.model.config.hidden_size, self.metagraph.n )
         self.optimizer = torch.optim.SGD(
             [ {"params": self.parameters()} ],
@@ -99,7 +99,7 @@ class GatingModel( torch.nn.Module ):
         """   
         normalized_scores = torch.nn.functional.softmax( scores, dim=0 ).to( self.device )
         nomralized_rewards = torch.nn.functional.softmax( rewards, dim=0 ).to( self.device )
-        loss = torch.nn.functional.mse_loss( normalized_scores, nomralized_rewards )
+        loss = torch.nn.functional.mse_loss( normalized_scores, nomralized_rewards.detach() )
         loss.backward()
         self.optimizer.step()
 
