@@ -217,6 +217,8 @@ class neuron:
         # We run the gating network here to get the best uids
         # Use the gating model to generate scores for each `uid`.
         scores = self.gating_model( message ).to( self.device )
+
+        # TODO: add stochasticity by querying random uids with probability epsilon.
         bittensor.logging.debug( 'scores', scores )
 
         # Select the top `topk` `uids` based on the highest `scores`.
@@ -227,7 +229,7 @@ class neuron:
             prompt = self.config.neuron.base_prompt, 
             message = message, 
             uids = topk_uids, 
-            timeout = float( self.config.neuron.base_timeout + self.config.neuron.length_timeout_multiplier * len( message ) )
+            # timeout = float( self.config.neuron.base_timeout + self.config.neuron.length_timeout_multiplier * len( message ) ) #TODO: add timeout
         )
         bittensor.logging.debug( 'topk_uids', topk_uids )
         bittensor.logging.debug( 'completions', completions )
@@ -292,7 +294,7 @@ class neuron:
             the question and the resulting completions.
         """
         # Store the current epoch block number for comparison later.
-        last_epoch_block = self.subtensor.block
+        last_epoch_block = self.subtensor.block + 100
         
         # Start an infinite loop for training.
         while True:
@@ -326,65 +328,6 @@ class neuron:
                     wait_for_finalization = True,
                 )
 
-
-DEFAULT_PAD_TOKEN = "[PAD]"
-DEFAULT_EOS_TOKEN = "</s>"
-DEFAULT_BOS_TOKEN = "</s>"
-DEFAULT_UNK_TOKEN = "</s>"
-
-
-def prepare_llama_tokenizer_and_embedding(
-        tokenizer: transformers.PreTrainedTokenizer,
-        model: transformers.PreTrainedModel,
-        special_tokens_dict: Dict = dict(pad_token=DEFAULT_PAD_TOKEN),
-):
-    """prepare llama tokenizer and embedding.
-
-    """
-
-    if tokenizer.pad_token is None:
-        smart_tokenizer_and_embedding_resize(
-            special_tokens_dict=dict(pad_token=DEFAULT_PAD_TOKEN),
-            tokenizer=tokenizer,
-            model=model,
-        )
-
-    tokenizer.add_special_tokens({
-        "eos_token": DEFAULT_EOS_TOKEN,
-        "bos_token": DEFAULT_BOS_TOKEN,
-        "unk_token": DEFAULT_UNK_TOKEN,
-    })
-
-    return tokenizer
-
-
-def smart_tokenizer_and_embedding_resize(
-        tokenizer: transformers.PreTrainedTokenizer,
-        model: transformers.PreTrainedModel,
-        special_tokens_dict: Dict = dict(pad_token=DEFAULT_PAD_TOKEN),
-):
-    """Resize tokenizer and embedding.
-
-    Note: This is the unoptimized version that may make your embedding size not be divisible by 64.
-    """
-
-    if tokenizer.pad_token is None:
-        num_new_tokens = tokenizer.add_special_tokens(special_tokens_dict)
-
-
-        model.model.resize_token_embeddings(len(tokenizer))
-
-        if num_new_tokens > 0:
-            input_embeddings = model.model.get_input_embeddings().weight.data
-            # output_embeddings = model.model.get_output_embeddings().weight.data
-
-            input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
-            # output_embeddings_avg = output_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
-
-            input_embeddings[-num_new_tokens:] = input_embeddings_avg
-            # output_embeddings[-num_new_tokens:] = output_embeddings_avg
-
-            
 if __name__ == '__main__':
     bittensor.logging.info( 'neuron().train()' )
     neuron().train()
