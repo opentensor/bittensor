@@ -117,17 +117,17 @@ class RewardModel(nn.Module):
                 rewards = self.forward(input_ids)
                 out.extend(rewards)
 
-            return out
+            # Return a single torch tensor instead of a list of torch tensors.
+            return torch.cat(out)
 
         with torch.no_grad():
             rewards = [reward_fn([completion]) for completion in completions]
             for completion, reward in zip(completions, rewards):
                 print(completion)
                 print(reward)
-            # Convert the list of single-element lists containing torch tensors to a 1D torch tensor.
+            # Convert the list of torch tensors to a 1D torch tensor.
             rewards_tensor = torch.cat(rewards).view(-1)
             return rewards_tensor
-        
     def forward(
         self,
         input_ids=None,
