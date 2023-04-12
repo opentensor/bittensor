@@ -59,7 +59,7 @@ class RewardModel(nn.Module):
                 batch_ixs = slice(i * mbs, (i + 1) * mbs)
                 input_ids = input.input_ids[batch_ixs]
                 rewards = self.forward(input_ids)
-                out.extend(rewards)
+                out.extend(rewards.view(-1, 1))
 
             # Return a single torch tensor instead of a list of torch tensors.
             return torch.cat(out)
@@ -70,7 +70,7 @@ class RewardModel(nn.Module):
                 print(completion)
                 print(reward)
             # Convert the list of torch tensors to a 1D torch tensor.
-            rewards_tensor = torch.cat(rewards).view(-1)
+            rewards_tensor = rewards_tensor.squeeze(-1)
             return rewards_tensor
         
     def forward(
