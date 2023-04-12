@@ -29,9 +29,9 @@ from typing import List
 class RewardModel(nn.Module):
     def __init__(self, model_path: str) -> None:
         super().__init__()
-        model = AutoModelForCausalLM.from_config(model_path)
-        self.transformer = model.transformer
-        self.v_head = nn.Linear(model.config.n_embd, 1, bias=False)
+        self.model = AutoModelForCausalLM.from_pretrained(model_path)
+        
+        self.v_head = nn.Linear(self.model.config.n_embd, 1, bias=False)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.eos_token_id = self.tokenizer.eos_token_id
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -65,7 +65,7 @@ class RewardModel(nn.Module):
         self,
         input_ids=None,
     ):
-        states = self.transformer(input_ids)[0]
+        states = self.model.transformer(input_ids)[0]
         rewards = self.v_head(states).squeeze(-1)
         ends = torch.argmax((input_ids == self.eos_token_id).float(), dim=1).view(-1, 1)
         returns = torch.gather(rewards, 1, ends).squeeze(-1)
