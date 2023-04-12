@@ -30,10 +30,17 @@ class RewardModel(nn.Module):
     def __init__(self, model_path: str) -> None:
         super().__init__()
         self.model = AutoModelForCausalLM.from_pretrained(model_path)
-        
-        self.v_head = nn.Linear(self.model.config.n_embd, 1, bias=False)
+        self.config = self.model.config
+        self.neox = "neox" in self.config.model_type
+        # gpt-neo models have hidden_size instead of n_embd
+        self.config.n_embd = self.config.hidden_size if hasattr(self.config, "hidden_size") else self.config.n_embd
+        self.transformer = self.model.gpt_neox if hasattr(self.model, "gpt_neox") else self.model.transformer
+        dtype = self.config.torch_dtype if hasattr(self.config, "torch_dtype") is not None else torch.float32
+        dtype = torch.float16 if dtype == "float16" else torch.float32
+        self.v_head = nn.Linear(self.config.n_embd, 1, bias=False, dtype=torch.float16)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-        self.eos_token_id = self.tokenizer.eos_token_id
+        self.PAD_ID = self.tokenizer.pad_token_id
+
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
