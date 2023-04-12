@@ -29,7 +29,7 @@ from typing import List
 class RewardModel(nn.Module):
     def __init__(self, model_path: str) -> None:
         super().__init__()
-        model = AutoModelForCausalLM.from_pretrained(model_path)
+        model = AutoModelForCausalLM.from_config(model_path)
         self.transformer = model.transformer
         self.v_head = nn.Linear(model.config.n_embd, 1, bias=False)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
