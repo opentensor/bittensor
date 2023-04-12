@@ -102,37 +102,56 @@ class RewardModel(nn.Module):
         self.PAD_ID = self.tokenizer(self.tokenizer.pad_token)["input_ids"][0]
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def reward(self, completions: List[str]) -> torch.FloatTensor:
-        def reward_fn(samples):
-            samples = [s + self.tokenizer.eos_token for s in samples]
-            input = self.tokenizer(samples, padding=True, truncation=True, max_length=1024, return_tensors="pt").to(
-                self.device
-            )
-
-            mbs = 24
-            out = []
-            for i in range(math.ceil(len(samples) / mbs)):
-                batch_ixs = slice(i * mbs, (i + 1) * mbs)
-                input_ids = input.input_ids[batch_ixs]
-                rewards = self.forward(input_ids)
-                out.extend(rewards)
-
-            # Return a single torch tensor instead of a list of torch tensors.
-            return torch.cat(out)
-
+    def reward( self, completions: List[str] ) -> torch.FloatTensor:
+        def reward_fn( samples ):
+            if samples is None: return 0
+            scores_list = []
+            batch_size = 1
+            for i in range(0, len(samples), batch_size):
+                sub_samples = samples[i : i + batch_size]
+                sub_samples = [
+                    "<|startoftext|>" + chosen + "<|endoftext|>" for chosen in sub_samples
+                ]
+                encodings_dict = self.tokenizer(
+                    sub_samples,
+                    truncation=False,
+                    max_length=550,
+                    padding="max_length",
+                    return_tensors="pt",
+                )
+                input_ids = encodings_dict["input_ids"].to( self.device )
+                attn_masks = encodings_dict["attention_mask"].to( self.device )
+                input_ids = input_ids.repeat(2, 1)
+                attn_masks = attn_masks.repeat(2, 1)
+                with torch.no_grad():
+                    sub_scores = self.forward(input_ids=input_ids, attention_mask=attn_masks)
+                scores_list.append(sub_scores["chosen_end_scores"])
+            scores = torch.cat(scores_list, dim=0).mean().item()
+            return scores
+        
         with torch.no_grad():
             rewards = [reward_fn([completion]) for completion in completions]
             for completion, reward in zip(completions, rewards):
                 print(completion)
                 print(reward)
-            # Convert the list of torch tensors to a 1D torch tensor.
-            rewards_tensor = torch.cat(rewards).view(-1)
-            return rewards_tensor
+            return torch.tensor(rewards, dtype=torch.float32)
+        
     def forward(
         self,
         input_ids=None,
+        past_key_values=None,
         attention_mask=None,
+        token_type_ids=None,
+        position_ids=None,
+        head_mask=None,
+        inputs_embeds=None,
+        mc_token_ids=None,
+        labels=None,
+        return_dict=False,
+        output_attentions=False,
+        output_hidden_states=False,
     ):
+        loss = None
         transformer_outputs = self.model(
             input_ids,
             attention_mask=attention_mask
@@ -140,6 +159,61 @@ class RewardModel(nn.Module):
 
         hidden_states = transformer_outputs['last_hidden_state']
 
-        values = self.value_head(hidden_states)[:, :-1]
-        value = values.mean(dim=1).squeeze(1)    # ensure shape is (B)
-        return value
+        rewards = self.value_head(hidden_states)[:, :-1]
+        chosen_end_scores = []
+        rejected_end_scores = []
+
+        # Split the inputs and rewards into two parts, chosen and rejected
+        assert len(input_ids.shape) == 2
+        bs = input_ids.shape[0] // 2
+        chosen = input_ids[:bs]
+        rejected = input_ids[bs:]
+        chosen_rewards = rewards[:bs]
+        rejected_rewards = rewards[bs:]
+
+        loss = 0
+        inference = False
+        for i in range(bs):
+            if torch.all(torch.eq(chosen[i], rejected[i])).item():
+                c_inds = (chosen[i] == self.PAD_ID).nonzero()
+                c_ind = c_inds[0].item() if len(c_inds) > 0 else chosen.shape[1]
+                chosen_end_scores.append(chosen_rewards[i, c_ind - 1])
+                inference = True
+                continue
+
+            # Check if there is any padding otherwise take length of sequence
+            c_inds = (chosen[i] == self.PAD_ID).nonzero()
+            c_ind = c_inds[0].item() if len(c_inds) > 0 else chosen.shape[1]
+            r_inds = (rejected[i] == self.PAD_ID).nonzero()
+            r_ind = r_inds[0].item() if len(r_inds) > 0 else rejected.shape[1]
+            end_ind = max(c_ind, r_ind)
+
+            # Retrieve first index where trajectories diverge
+            divergence_ind = (chosen[i] != rejected[i]).nonzero()[0]
+            assert divergence_ind > 0
+
+            # Index into the correct rewards
+            c_truncated_reward = chosen_rewards[i][divergence_ind:end_ind]
+            r_truncated_reward = rejected_rewards[i][divergence_ind:end_ind]
+
+            # Append the last rewards to the list of end scores
+            chosen_end_scores.append(c_truncated_reward[-1])
+            rejected_end_scores.append(r_truncated_reward[-1])
+
+            # Compute loss based on truncated rewards (ignore padding)
+            loss += -torch.log(torch.sigmoid(c_truncated_reward - r_truncated_reward)).mean()
+        loss = loss / bs
+
+        if not inference:
+            chosen_end_scores = torch.stack(chosen_end_scores)
+            rejected_end_scores = torch.stack(rejected_end_scores)
+
+        if inference:
+            chosen_end_scores = torch.stack(chosen_end_scores)
+            return {"chosen_end_scores": chosen_end_scores}
+
+        return {
+            "loss": loss,
+            "chosen_end_scores": chosen_end_scores,
+            "rejected_end_scores": rejected_end_scores,
+        }
