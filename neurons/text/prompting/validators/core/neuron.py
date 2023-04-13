@@ -327,6 +327,10 @@ class neuron:
                 train_gating_model = True,
             )
 
+            # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
+            if last_epoch_block % 75 == 0:
+                self.metagraph = self.metagraph.sync(netuid=self.config.netuid, subtensor=self.subtensor)
+
             # Check if enough epoch blocks have elapsed since the last epoch.
             if self.subtensor.block - last_epoch_block > self.subtensor.validator_epoch_length( self.config.netuid ): 
                 bittensor.logging.info( 'epoch()' )
