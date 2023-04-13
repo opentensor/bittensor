@@ -84,6 +84,7 @@ class neuron:
         self.config = config if config is not None else neuron.config()
         bt.logging( config = self.config )
 
+        self.config.neuron.reward_path = os.path.expanduser(self.config.neuron.reward_path)
         if not os.path.exists( self.config.neuron.reward_path + '/hf_ckpt.pt' ):
             os.makedirs(self.config.neuron.reward_path, exist_ok=True)
             os.system(
@@ -112,6 +113,7 @@ class neuron:
             if fpath.endswith(".pt") or fpath.endswith(".bin"):
                 checkpoint = os.path.join( self.config.neuron.reward_path, fpath )
                 break
+
         ckpt_state = torch.load( checkpoint )
         self.reward_model.load_state_dict( ckpt_state )
         self.reward_model.eval()
@@ -173,6 +175,7 @@ class neuron:
      
         # Process the raw weights to final_weights via subtensor limitations.
         processed_weight_uids, processed_weights = bittensor.utils.weight_utils.process_weights_for_netuid(
+            uids = torch.tensor(list(range(raw_weights))), #TODO: make surethe reward match
             weights = raw_weights,
             netuid = self.config.netuid,
             subtensor = self.subtensor,

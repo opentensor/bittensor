@@ -191,6 +191,7 @@ class neuron:
      
         # Process the raw weights to final_weights via subtensor limitations.
         processed_weight_uids, processed_weights = bt.utils.weight_utils.process_weights_for_netuid(
+            uids = torch.tensor(list(range(raw_weights))), #TODO: make surethe reward match
             weights = raw_weights,
             netuid = self.config.netuid,
             subtensor = self.subtensor,
