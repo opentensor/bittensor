@@ -37,28 +37,28 @@ class BasePromptingMiner(ABC):
         ...
 
     def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
-        if self.axon.metagraph is not None:
-            uid = self.axon.metagraph.hotkeys.index(forward_call.hotkey)
-            return self.axon.metagraph.S[uid].item()
+        if self.metagraph is not None:
+            uid = self.metagraph.hotkeys.index(forward_call.hotkey)
+            return self.metagraph.S[uid].item()
         else:
             return 0.0
 
     def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
-        # TODO: ( jason ) Convert this to a list of checks that can be appended in the subclass
-
         # Check for registration
         def registration_check():
-            is_registered = forward_call.hotkey in self.axon.metagraph.hotkeys
+            is_registered = forward_call.hotkey in self.metagraph.hotkeys
             if not is_registered:
-                if self.synapse.config.synapse.text_prompting.blacklist.allow_non_registered:
+                if self.config.neuron.blacklist.allow_non_registered:
                     return False
                 raise Exception("Registration blacklist") 
         
         # Blacklist based on stake.
         def stake_check() -> bool:
-            uid = self.axon.metagraph.hotkeys.index(forward_call.hotkey)
-            default_stake = self.synapse.config.synapse.text_prompting.blacklist.stake
-            if self.axon.metagraph.S[uid].item() < default_stake:
+            default_stake = self.config.neuron.blacklist.default_stake
+            if default_stake <= 0.0:
+                return False
+            uid = self.metagraph.hotkeys.index(forward_call.hotkey)
+            if self.metagraph.S[uid].item() < default_stake:
                 raise Exception("Stake blacklist")
             return False
 
@@ -156,6 +156,18 @@ class BasePromptingMiner(ABC):
             nargs = '*', 
             action = 'store',
             help = 'To blacklist certain hotkeys', default=[]
+        )
+        parser.add_argument(
+            '--neuron.blacklist.allow_non_registered',
+            action = 'store_true',
+            help = 'If True, the miner will allow non-registered hotkeys to mine.',
+            default = False
+        )
+        parser.add_argument(
+            '--neuron.blacklist.default_stake',
+            type = float,
+            help = 'If True, the miner will allow non-registered hotkeys to mine.',
+            default = 0.0
         )
         bittensor.wallet.add_args( parser )
         bittensor.axon.add_args( parser )
