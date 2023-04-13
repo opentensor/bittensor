@@ -278,7 +278,7 @@ class neuron:
             hotkeys = copy.deepcopy( self.metagraph.hotkeys ),
             block = self.metagraph.block,
         )
-        self.history.push( result )
+        self.history.put( result )
 
         # Return the completion with the highest reward.
         bittensor.logging.debug( 'forward result', result )
