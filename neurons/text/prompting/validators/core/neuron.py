@@ -158,8 +158,8 @@ class neuron:
 
             # If the hotkeys have changed, reset the moving averaged scores for the new hotkeys.
             if last_hotkeys is not None:
-                for uid, hotkey in enumerate( event.hotkeys ):
-                    if hotkey != last_hotkeys[ uid ]:
+                for uid, hotkey in enumerate( last_hotkeys ):
+                    if hotkey != event.hotkeys[ uid ]:
                         moving_averaged_scores[ uid ] = 0
             # Update the last hotkeys.
             last_hotkeys = event.hotkeys
