@@ -27,7 +27,6 @@ from typing import List, Optional, Tuple, Dict
 from reward import RewardModel
 from gating import GatingModel
 from transformers import AutoTokenizer
-import transformers 
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific about science and language.
@@ -92,18 +91,12 @@ class neuron:
             )
 
         self.subtensor = bt.subtensor ( config = self.config )
-        
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
         self.wallet = bt.wallet ( config = self.config )
-        
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
-        
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
-        
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )
-        
         self.tokenizer = AutoTokenizer.from_pretrained( 'EleutherAI/gpt-j-6b' )
 
         #reward model
