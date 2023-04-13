@@ -29,6 +29,7 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
+        parser.add_argument( '--pythia.model_name', type=str, help='Name of model to load', default="togethercomputer/Pythia-Chat-Base-7B" )
         parser.add_argument( '--pythia.device', type=str, help='Device to load model', default="cuda" )
         parser.add_argument( '--pythia.max_new_tokens', type=int, help='Max tokens for model output.', default=64 ) 
         parser.add_argument( '--pythia.temperature', type=float, help='Sampling temperature of model', default=0.8 )
@@ -38,12 +39,12 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
         super( PythiaMiner, self ).__init__()
         print ( self.config )
         
-        bittensor.logging.info( 'Loading togethercomputer/Pythia-Chat-Base-7B model...' )
-        self.tokenizer = AutoTokenizer.from_pretrained( "togethercomputer/Pythia-Chat-Base-7B" )
-        self.model = AutoModelForCausalLM.from_pretrained( "togethercomputer/Pythia-Chat-Base-7B", torch_dtype = torch.float16 )
+        bittensor.logging.info( 'Loading ' + str(self.config.pythia.model_name))
+        self.tokenizer = AutoTokenizer.from_pretrained( self.config.pythia.model_name )
+        self.model = AutoModelForCausalLM.from_pretrained( self.config.pythia.model_name, torch_dtype = torch.float16 )
         bittensor.logging.info( 'Model loaded!' )
 
-        if self.config.pythia.device == "cuda":
+        if self.config.pythia.device != "cpu":
             self.model = self.model.to( self.config.pythia.device )
 
 
