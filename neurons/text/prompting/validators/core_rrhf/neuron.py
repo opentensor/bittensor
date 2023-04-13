@@ -45,7 +45,6 @@ class stats(dict):
             bittensor.logging.warning(f'Entry for uid {uid} has already been created! {self[uid]}')
             return
         super().__setitem__(uid, stat(uid, hotkey))
-    
     def update(self, uids, rewards, metagraph):
         for uid, reward in zip(uids, rewards):
             if uid not in self.keys():
@@ -63,7 +62,7 @@ class stats(dict):
             stat.reset_epoch()
 
     def data_as_dict(self):
-        return { uid: stat.dict for uid, stat in self.items()}
+        return { uid: stat.dict() for uid, stat in self.items()}
     
 @dataclass
 class stat:
@@ -161,9 +160,15 @@ class neuron:
     
     def __init__( self, config=None ):
         self.config = config if config is not None else neuron.config()
+        self.check_config(self.config)
+
         bt.logging( config = self.config )
 
         self.config.neuron.reward_path = os.path.expanduser(self.config.neuron.reward_path)
+        
+        if not os.path.exists( self.config.neuron.full_path):
+            os.makedirs(self.config.neuron.full_path, exist_ok=True)
+        
         if not os.path.exists( self.config.neuron.reward_path + '/hf_ckpt.pt' ):
             os.makedirs(self.config.neuron.reward_path, exist_ok=True)
             os.system(
@@ -222,16 +227,17 @@ class neuron:
 
         # Return zeros weights if there is no history.
 
-        if len(self.neuron_stats.keys) == 0:
+        if len(self.neuron_stats.keys()) == 0:
             return torch.ones((self.metagraph.n)) / self.metagraph.n  
         # Process the raw weights to final_weights via subtensor limitations.
         uids, weights = bittensor.utils.weight_utils.process_weights_for_netuid(
-            uids = list(self.neuron_stats.keys()),
-            weights = self.neuron_stats.scores(),
+            uids = torch.tensor(list(self.neuron_stats.keys())),
+            weights = torch.tensor(self.neuron_stats.scores()),
             netuid = self.config.netuid,
             subtensor = self.subtensor,
             metagraph = self.metagraph
         )
+
         return uids, weights
 
     def metagraph_sync(self):
@@ -375,7 +381,7 @@ class neuron:
 
     def update_stats(self, uids, rewards):
         normalized_rewards = torch.nn.functional.softmax( rewards.to( self.device ), dim=0 )
-        self.neuron_stats.update(uids, normalized_rewards, self.metagraph)
+        self.neuron_stats.update(uids.tolist(), normalized_rewards.detach().tolist(), self.metagraph)
 
     # User queries here.
     def inference( self, message: str) -> str:
@@ -404,8 +410,8 @@ class neuron:
             
             # Ask the network to complete the random question, training the gating network.
             forward_result = self.forward( question.completion, topk = self.config.neuron.training_topk )
-            self.update_stats(forward_result.uids, forward_result.rewards)
-            
+            if forward_result:
+                self.update_stats(forward_result.uids, forward_result.rewards)
             # Check if enough epoch blocks have elapsed since the last epoch.
             if self.subtensor.block > last_epoch_block: # run every block. # > self.subtensor.validator_epoch_length( self.config.netuid ) :
                 bittensor.logging.info( 'epoch()' )
@@ -428,7 +434,11 @@ class neuron:
                     wait_for_finalization = True,
                 )
 
+                self.save()
+                
                 self.neuron_stats.reset_epoch()
+
+                self.metagraph_sync()
 
 if __name__ == '__main__':
     bittensor.logging.info( 'neuron().train()' )
