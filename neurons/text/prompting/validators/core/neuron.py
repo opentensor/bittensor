@@ -49,9 +49,17 @@ class neuron:
         bt.subtensor.check_config( config )
         bt.metagraph.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}/netuid{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.netuid, config.neuron.name ))
-        config.neuron.full_path = os.path.expanduser(full_path)
-        if not os.path.exists(config.neuron.full_path):
-            os.makedirs(config.neuron.full_path)
+        config.neuron.full_path = os.path.expanduser( full_path )
+        config.neuron.reward_path = os.path.expanduser( config.neuron.reward_path )
+        if not os.path.exists( config.neuron.full_path ):
+            os.makedirs( config.neuron.full_path, exist_ok = True)
+        if not os.path.exists( config.neuron.reward_path + '/hf_ckpt.pt' ):
+            os.makedirs( config.neuron.reward_path, exist_ok = True )
+            os.system(
+                f"wget -O { config.neuron.reward_path + '/hf_ckpt.pt'} \
+                https://huggingface.co/Dahoas/gptj-rm-static/resolve/main/hf_ckpt.pt"
+            )
+
 
     @classmethod
     def add_args( cls, parser ):
@@ -80,19 +88,10 @@ class neuron:
         cls.add_args( parser )
         return bt.config( parser )
     
-    def __init__( self, config=None ):
-        self.config = config if config is not None else neuron.config()
-        self.check_config(self.config)
-        bt.logging( config = self.config )
-        self.config.neuron.reward_path = os.path.expanduser(self.config.neuron.reward_path)
-        if not os.path.exists( self.config.neuron.full_path):
-            os.makedirs(self.config.neuron.full_path, exist_ok=True)
-        if not os.path.exists( self.config.neuron.reward_path + '/hf_ckpt.pt' ):
-            os.makedirs(self.config.neuron.reward_path, exist_ok=True)
-            os.system(
-                f"wget -O {self.config.neuron.reward_path + '/hf_ckpt.pt'} \
-                https://huggingface.co/Dahoas/gptj-rm-static/resolve/main/hf_ckpt.pt"
-            )
+    def __init__( self ):
+        self.config = neuron.config()
+        self.check_config( self.config )
+        bt.logging( config = self.config, logging_dir = self.config.neuron.full_path )
 
         self.subtensor = bt.subtensor ( config = self.config )
         self.device = torch.device( self.config.neuron.device )
