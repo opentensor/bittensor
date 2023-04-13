@@ -330,7 +330,7 @@ class neuron:
                 self.metagraph = self.metagraph.sync(netuid=self.config.netuid, subtensor=self.subtensor)
 
             # Check if enough epoch blocks have elapsed since the last epoch.
-            epoch_length =  self.config.neuron.epoch_length_override if self.config.neuron.epoch_length_override is not -1 else self.subtensor.validator_epoch_length(self.config.netuid)
+            epoch_length = self.subtensor.validator_epoch_length(self.config.netuid) if self.config.neuron.epoch_length_override == -1 else self.config.neuron.epoch_length_override
             if self.subtensor.block - last_epoch_block > epoch_length: 
                 bittensor.logging.info( 'epoch()' )
                 bittensor.logging.info( 'block', self.subtensor.block )
