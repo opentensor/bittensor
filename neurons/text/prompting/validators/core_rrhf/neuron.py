@@ -40,27 +40,30 @@ You are designed to assist with a wide range of tasks, from answering simple que
 '''
 
 class stats(dict):
-    def update(self, uids, rewards, metagraph):
-        for uid, reward in zip(uids, rewards):
-            if uid not in self.keys():
-                self.create_entry(uid, metagraph.hotkeys[uid])
-            self[uid].update(reward)
-    
     def create_entry(self, uid, hotkey):
         if uid in self.keys():
             bittensor.logging.warning(f'Entry for uid {uid} has already been created! {self[uid]}')
             return
         super().__setitem__(uid, stat(uid, hotkey))
+    
+    def update(self, uids, rewards, metagraph):
+        for uid, reward in zip(uids, rewards):
+            if uid not in self.keys():
+                self.create_entry(uid, metagraph.hotkeys[uid])
+            self[uid].update(reward)
 
-    def rewards(self):
+    def scores(self):
         results = []
         for stat in self.values():
-            results.append(stat.avg_epoch_reward)
+            results.append(stat.score)
         return results
 
     def reset_epoch(self):
         for stat in self.values():
             stat.reset_epoch()
+
+    def data_as_dict(self):
+        return { uid: stat.dict for uid, stat in self.items()}
     
 @dataclass
 class stat:
@@ -85,21 +88,28 @@ class stat:
         
         else: # assume reward to be 0 with a failing request 
             self.epoch_rewards.append(None)
-            # ema_reward excludes failed requests
             self.ema_reward_with_none = self.ema_reward_with_none * self.alpha if self.ema_reward_with_none != None else 0
 
         return True
 
     @property
     def avg_epoch_reward(self):
+        if len(self.epoch_rewards) == 0:
+            return 0
         rewards = [r for r in self.epoch_rewards if r != None]
         return sum(rewards) / len(rewards)
     
     @property
     def avg_epoch_reward_with_none(self):
+        if len(self.epoch_rewards) == 0:
+            return 0
         rewards = [r if r!= None else 0 for r in self.epoch_rewards]
         return sum(rewards) / len(rewards)
 
+    @property
+    def score(self):
+        return self.avg_epoch_reward_with_none
+    
     def reset_epoch(self):
         self.epoch_rewards = []
 
@@ -135,6 +145,7 @@ class neuron:
         parser.add_argument( '--neuron.reward_path', type = str, help = 'Path to reward model.', default = '~/.bittensor/reward_models' )
         parser.add_argument( '--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 100 )
         parser.add_argument( '--neuron.base_timeout', type = int, help = 'Base timeout for all requests.', default = 1 )
+        parser.add_argument('--neuron.track_hotkey_changes', action='store_true', help='If True, track hotkey changes.', default=False)
         
 
     @classmethod
@@ -194,8 +205,9 @@ class neuron:
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
         
         self.neuron_stats = stats()
+        self.neuron_hotkeys = []
 
-    def compute_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
+    def get_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
         """
             Computes the average reward for each uid across non-zero values 
             using the rewards history stored in the self.history list.
@@ -209,51 +221,64 @@ class neuron:
         bittensor.logging.info( 'compute_weights()' )
 
         # Return zeros weights if there is no history.
-        if self.history.qsize() == 0: 
-            bittensor.logging.warning( 'No history to compute weights returning all ones.' )
-            return torch.ones((self.metagraph.n)) / self.metagraph.n
 
-        # Averages the rewards for each uid across non-zero values.
-        rewards = []
-
-        # Iterate over all events in the `history` list.
-        for event in self.history.queue:
-            # Normalize the rewards for the current event using softmax normalization.
-            normalized_rewards = torch.nn.functional.softmax( event.rewards.to( self.device ), dim=0 )
-            bittensor.logging.debug( 'normalized_rewards', normalized_rewards )
-
-            # Use the `uids` of the current event to scatter the normalized rewards
-            # into a zero-initialized tensor with the same shape as `self.metagraph.n`.
-            scattered_rewards = torch.zeros((self.metagraph.n)).to( self.device ).scatter(0, event.uids.to( self.device ), normalized_rewards.to( self.device ) )
-            bittensor.logging.debug( 'scattered_rewards', scattered_rewards )
-
-            # Append the scattered rewards to the `rewards` list.
-            rewards.append( scattered_rewards )
-
-        # Stack the scattered rewards tensors along the second dimension.
-        rewards = torch.stack( rewards, 1 ).to( self.device )
-        bittensor.logging.debug( 'rewards', rewards )
-
-        # Calculate the average reward for each uid across non-zero values.
-        # Replace any NaN values with 0.
-        raw_weights = torch.nan_to_num( rewards.sum(1) / (rewards != 0).sum(1), 0 )
-        bittensor.logging.debug( 'raw_weights', raw_weights )
-        bittensor.logging.debug( 'top10 values', raw_weights.sort()[0] )
-        bittensor.logging.debug( 'top10 uids', raw_weights.sort()[1] )
-     
+        if len(self.neuron_stats.keys) == 0:
+            return torch.ones((self.metagraph.n)) / self.metagraph.n  
         # Process the raw weights to final_weights via subtensor limitations.
-        processed_weight_uids, processed_weights = bittensor.utils.weight_utils.process_weights_for_netuid(
-            uids = torch.tensor(list(range(raw_weights))), #TODO: make surethe reward match
-            weights = raw_weights,
+        uids, weights = bittensor.utils.weight_utils.process_weights_for_netuid(
+            uids = list(self.neuron_stats.keys()),
+            weights = self.neuron_stats.scores(),
             netuid = self.config.netuid,
             subtensor = self.subtensor,
             metagraph = self.metagraph
         )
-        bittensor.logging.debug( 'processed_weights', processed_weights )
-        bittensor.logging.debug( 'processed_weight_uids', processed_weight_uids )
-        return processed_weight_uids, processed_weights
+        return uids, weights
 
-   
+    def metagraph_sync(self):
+        r""" Syncing metagraph together with other metagraph-size related objects
+        """
+        old_hotkeys = self.neuron_hotkeys + [] if self.neuron_hotkeys else self.metagraph.hotkeys
+        self.metagraph.sync( subtensor=self.subtensor, netuid=self.config.netuid)
+        self.neuron_hotkeys = self.metagraph.hotkeys
+
+        changed_hotkeys = []
+        # === Reset neuron stats if uid got replaced
+        for uid, old_hotkey in enumerate(old_hotkeys):
+            if old_hotkey != self.neuron_hotkeys[uid]:
+                if self.config.neuron.track_hotkey_changes:
+                    block = self.subtensor.block
+                    self.neuron_changes.setdefault(uid, {})  # [uid] -> dict() of blocks
+                    self.neuron_changes[uid][block] = {'new_hotkey': self.neuron_hotkeys[uid], 'old_hotkey': old_hotkey}
+                    if uid in self.neuron_stats:
+                        self.neuron_changes[uid][block]['old_stats'] = self.neuron_stats[uid]
+
+                if uid in self.neuron_stats:
+                    del self.neuron_stats[uid]
+                    changed_hotkeys += [uid]
+
+        if len(changed_hotkeys):
+            self.save()  # save neuron_stats, neuron_hotkeys, and neuron_changes to filesystem
+
+    def save(self, path=None):
+        r""" Save validated hotkeys and neuron_stats to filesystem. """
+        try:
+            if path is None:
+                path = self.config.neuron.full_path
+
+            state_dict = {
+                'neuron_stats': self.neuron_stats.data_as_dict(),
+                'neuron_hotkeys': self.neuron_hotkeys
+            }
+
+            if self.config.neuron.track_hotkey_changes:
+                state_dict['neuron_changes'] = self.neuron_changes
+
+            torch.save(state_dict, f'{path}/model.torch')
+            bittensor.logging.success(prefix='Saved model', sufix=f'<blue>{path}/model.torch</blue>')
+
+        except Exception as e:
+            logger.warning(f'Failed to save model with error: {e}')
+
     def forward(
             self, 
             message: str,
@@ -392,13 +417,7 @@ class neuron:
                 # Computes the average reward for each uid across non-zero values 
                 # using the rewards history stored in the self.history list.
 
-                uids, weights = bittensor.utils.weight_utils.process_weights_for_netuid(
-                    uids = list(self.neuron_stats.keys()),
-                    weights = self.neuron_stats.rewards(),
-                    netuid = self.config.netuid,
-                    subtensor = self.subtensor,
-                    metagraph = self.metagraph
-                )
+                uids, weights = self.get_weights()
 
                 # Set the weights on chain via our subtensor connection.
                 self.subtensor.set_weights(
