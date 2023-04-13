@@ -336,7 +336,7 @@ class neuron:
             epoch_length = self.subtensor.validator_epoch_length(self.config.netuid) if self.config.neuron.epoch_length_override == -1 else self.config.neuron.epoch_length_override
             blocks_until_epoch = epoch_length - ( self.subtensor.block - last_epoch_block )
             bittensor.logging.info( 'blocks_until_epoch', blocks_until_epoch )
-            if blocks_until_epoch == 0: 
+            if blocks_until_epoch <= 0: 
                 bittensor.logging.info( 'epoch()' )
                 bittensor.logging.info( 'block', self.subtensor.block )
 
