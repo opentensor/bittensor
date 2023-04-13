@@ -225,7 +225,7 @@ class BasePromptingMiner(ABC):
             while (current_block - last_update) < self.config.neuron.blocks_per_epoch:
                 time.sleep( 0.1 ) #bittensor.__blocktime__
                 current_block = self.subtensor.get_current_block()
-            last_update = self.axon.get_current_block()
+            last_update = self.subtensor.get_current_block()
 
             # --- Update the metagraph with the latest network state.
             self.metagraph.sync(netuid=self.config.netuid, subtensor=self.subtensor)
