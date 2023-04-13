@@ -16,26 +16,28 @@
 # DEALINGS IN THE SOFTWARE.
 
 #### The code is modified from trlX
-import json
-import math
-import os
 import torch
 from torch import nn
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
 from tqdm import tqdm
 from typing import List
+import argparse
+
+import bittensor
 
 
 class RewardModel(nn.Module):
-    def __init__( self, model_path: str ):
+
+    def __init__( self, model_path: str, config: 'bittensor.config' = None ):
         super().__init__()
         config = AutoConfig.from_pretrained( model_path )
         self.model = AutoModelForCausalLM.from_config( config )
-        # self.model = AutoModelForCausalLM.from_pretrained( model_path )
         self.config = self.model.config
         # `gpt-neo(x)` models use `hidden_size` attribute names instead of `n_embd``
+        if config is None: config = RewardModel.config()
+
         self.config.n_embd = self.config.hidden_size if hasattr(self.config, "hidden_size") else self.config.n_embd
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device( self.config.neuron.device )
         self.transformer = self.model.transformer
         self.v_head = nn.Linear(self.config.n_embd, 1, bias=False)
         self.tokenizer = AutoTokenizer.from_pretrained('EleutherAI/gpt-j-6b')
@@ -162,61 +164,3 @@ class RewardModel(nn.Module):
             "chosen_end_scores": chosen_end_scores,
             "rejected_end_scores": rejected_end_scores,
         }
-
-# class RewardModel(nn.Module):
-#     def __init__(self, model_path: str) -> None:
-#         super().__init__()
-#         self.model = AutoModelForCausalLM.from_pretrained(model_path)
-#         self.config = self.model.config
-#         self.neox = "neox" in self.config.model_type
-#         # gpt-neo models have hidden_size instead of n_embd
-#         self.config.n_embd = self.config.hidden_size if hasattr(self.config, "hidden_size") else self.config.n_embd
-#         self.transformer = self.model.gpt_neox if hasattr(self.model, "gpt_neox") else self.model.transformer
-#         dtype = self.config.torch_dtype if hasattr(self.config, "torch_dtype") is not None else torch.float32
-#         dtype = torch.float16 if dtype == "float16" else torch.float32
-#         self.v_head = nn.Linear(self.model.config.n_embd, 1, bias=False)
-#         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-#         self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-#         self.PAD_ID = self.tokenizer.pad_token_id
-#         self.eos_token_id = self.tokenizer.eos_token_id
-
-#         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-#     def reward(self, completions: List[str]) -> torch.FloatTensor:
-#         def reward_fn(samples):
-#             samples = [s + self.tokenizer.eos_token for s in samples]
-#             input = self.tokenizer(samples, padding=True, truncation=True, max_length=1024, return_tensors="pt").to(
-#                 self.device
-#             )
-
-#             mbs = 24
-#             out = []
-#             for i in range(math.ceil(len(samples) / mbs)):
-#                 batch_ixs = slice(i * mbs, (i + 1) * mbs)
-#                 input_ids = input.input_ids[batch_ixs]
-#                 rewards = self.forward(input_ids)
-#                 out.extend(rewards.view(-1, 1))
-
-#             # Return a single torch tensor instead of a list of torch tensors.
-#             return torch.cat(out)
-
-#         with torch.no_grad():
-#             rewards = [reward_fn([completion]) for completion in completions]
-#             for completion, reward in zip(completions, rewards):
-#                 print(completion)
-#                 print(reward)
-#             # Convert the list of torch tensors to a 1D torch tensor.
-#             rewards_tensor = torch.cat(rewards).view(-1)
-#             rewards_tensor = rewards_tensor.squeeze(-1)
-#             return rewards_tensor
-        
-#     def forward(
-#         self,
-#         input_ids=None,
-#     ):
-#         states = self.model.transformer(input_ids)[0]
-#         rewards = self.v_head(states).squeeze(-1)
-#         ends = torch.argmax((input_ids == self.eos_token_id).float(), dim=1).view(-1, 1)
-#         returns = torch.gather(rewards, 1, ends).squeeze(-1)
-#         return returns
