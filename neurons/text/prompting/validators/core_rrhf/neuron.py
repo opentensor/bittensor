@@ -277,7 +277,7 @@ class neuron:
             bittensor.logging.success(prefix='Saved model', sufix=f'<blue>{path}/model.torch</blue>')
 
         except Exception as e:
-            logger.warning(f'Failed to save model with error: {e}')
+            bittensor.logging.warning(f'Failed to save model with error: {e}')
 
     def forward(
             self, 
