@@ -23,9 +23,11 @@ import argparse
 import bittensor as bt
 
 from types import SimpleNamespace
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from reward import RewardModel
 from gating import GatingModel
+from transformers import AutoTokenizer
+import transformers 
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific about science and language.
@@ -62,6 +64,7 @@ class neuron:
         parser.add_argument( '--neuron.inference_topk', type = str, help = 'At inference time, how many miners to we query and return the top rewarded.', default = 10 )
         parser.add_argument( '--neuron.training_topk', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
         parser.add_argument( '--neuron.epoch_length', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
+        parser.add_argument( '--neuron.reward_path', type = str, help = 'Path to reward model.', default = '~/.bittensor/reward_models' )
         parser.add_argument( '--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 100 )
         parser.add_argument( '--neuron.base_timeout', type = int, help = 'Base timeout for all requests.', default = 1 )
         
@@ -80,16 +83,46 @@ class neuron:
     def __init__( self, config=None ):
         self.config = config if config is not None else neuron.config()
         bt.logging( config = self.config )
+
+        if not os.path.exists( self.config.neuron.reward_path + '/hf_ckpt.pt' ):
+            os.makedirs(self.config.neuron.reward_path, exist_ok=True)
+            os.system(
+                f"wget -O {self.config.neuron.reward_path + '/hf_ckpt.pt'} \
+                https://huggingface.co/Dahoas/gptj-rm-static/resolve/main/hf_ckpt.pt"
+            )
+
         self.subtensor = bt.subtensor ( config = self.config )
+        
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
         self.wallet = bt.wallet ( config = self.config )
+        
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
+        
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
-        self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )  
-        self.reward_model = RewardModel( self.config.neuron.reward_model_name ).to(self.device)
-        self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to(self.device)
+        
+        self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )
+        
+        self.tokenizer = AutoTokenizer.from_pretrained( 'EleutherAI/gpt-j-6b' )
+
+        #reward model
+        self.reward_model = RewardModel('EleutherAI/gpt-j-6b')
+        for fpath in os.listdir( self.config.neuron.reward_path ):
+            if fpath.endswith(".pt") or fpath.endswith(".bin"):
+                checkpoint = os.path.join( self.config.neuron.reward_path, fpath )
+                break
+        ckpt_state = torch.load( checkpoint )
+        self.reward_model.load_state_dict( ckpt_state )
+        self.reward_model.eval()
+        self.reward_model.requires_grad_( False )
+        self.reward_model.to( self.device )
+
+        #gating model
+        self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to( self.device )
+        
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
+        
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
 
     def compute_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
@@ -184,6 +217,8 @@ class neuron:
         # We run the gating network here to get the best uids
         # Use the gating model to generate scores for each `uid`.
         scores = self.gating_model( message ).to( self.device )
+
+        # TODO: add stochasticity by querying random uids with probability epsilon.
         bittensor.logging.debug( 'scores', scores )
 
         # Select the top `topk` `uids` based on the highest `scores`.
@@ -194,7 +229,7 @@ class neuron:
             prompt = self.config.neuron.base_prompt, 
             message = message, 
             uids = topk_uids, 
-            timeout = float( self.config.neuron.base_timeout + self.config.neuron.length_timeout_multiplier * len( message ) )
+            # timeout = float( self.config.neuron.base_timeout + self.config.neuron.length_timeout_multiplier * len( message ) ) #TODO: add timeout
         )
         bittensor.logging.debug( 'topk_uids', topk_uids )
         bittensor.logging.debug( 'completions', completions )
@@ -259,7 +294,7 @@ class neuron:
             the question and the resulting completions.
         """
         # Store the current epoch block number for comparison later.
-        last_epoch_block = self.subtensor.block
+        last_epoch_block = self.subtensor.block + 100
         
         # Start an infinite loop for training.
         while True:
@@ -292,7 +327,7 @@ class neuron:
                     weights = weights,
                     wait_for_finalization = True,
                 )
-            
+
 if __name__ == '__main__':
     bittensor.logging.info( 'neuron().train()' )
     neuron().train()
