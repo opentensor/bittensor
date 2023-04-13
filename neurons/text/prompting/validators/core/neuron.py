@@ -29,7 +29,6 @@ from typing import List, Optional, Tuple, Dict
 from reward import RewardModel
 from gating import GatingModel
 from transformers import AutoTokenizer
-from dataclasses import dataclass, field, asdict
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific. Do not include the answer in the question.
