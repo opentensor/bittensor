@@ -4,14 +4,19 @@ The following is a set of guidelines for contributing to Bittensor, which are ho
 
 ## Table Of Contents
 
-1. [I don't want to read this whole thing, I just have a question!!!](#i-dont-want-to-read-this-whole-thing-i-just-have-a-question)
-1. [What should I know before I get started?](#what-should-i-know-before-i-get-started)
-1. [How Can I Contribute?](#how-can-i-contribute)
-  1. [Reporting Bugs](#reporting-bugs)
-  1. [Suggesting Enhancements](#suggesting-enhancements)
-  1. [Your First Code Contribution](#your-first-code-contribution)
-  1. [Pull Requests](#pull-requests)
-    1. [Development-Workflow](#development-workflow)
+- [Contributing to Bittensor](#contributing-to-bittensor)
+  - [Table Of Contents](#table-of-contents)
+  - [I don't want to read this whole thing I just have a question!!!](#i-dont-want-to-read-this-whole-thing-i-just-have-a-question)
+  - [What should I know before I get started?](#what-should-i-know-before-i-get-started)
+  - [How Can I Contribute?](#how-can-i-contribute)
+    - [Reporting Bugs](#reporting-bugs)
+      - [Before Submitting A Bug Report](#before-submitting-a-bug-report)
+      - [How Do I Submit A (Good) Bug Report?](#how-do-i-submit-a-good-bug-report)
+    - [Suggesting Enhancements](#suggesting-enhancements)
+      - [Before Submitting An Enhancement Suggestion](#before-submitting-an-enhancement-suggestion)
+      - [How Do I Submit A (Good) Enhancement Suggestion?](#how-do-i-submit-a-good-enhancement-suggestion)
+    - [Your First Code Contribution](#your-first-code-contribution)
+    - [Pull Requests](#pull-requests)
 
 ## I don't want to read this whole thing I just have a question!!!
 
@@ -20,13 +25,13 @@ The following is a set of guidelines for contributing to Bittensor, which are ho
 We have an official Discord server where the community chimes in with helpful advice if you have questions. 
 This is the fastest way to get an answer is the development team is active on Discord.
 
-* [Official Bittensor Discord](https://discord.gg/7wvFuPJZgq)
+* [Official Bittensor Discord](https://discord.gg/bittensor)
 
 ## What should I know before I get started?
 Bittensor is still in the Alpha stages, and as such you will likely run into some problems in deploying your model or installing Bittensor itself. If you run into an issue 
-or resolve an issue yourself, feel free to create a pull request with a fix or with a fix to the documentation. The documentation repository can be found [here](https://github.com/opentensor/opentensor.github.io). 
+or resolve an issue yourself, feel free to create a pull request with a fix or with a fix to the documentation. The documentation repository can be found [here](https://github.com/opentensor/docs). 
 
-Additionally, note that the entire implementation of Bittensor cnosists of two separate repositories: [The core Bittensor code](https://github.com/opentensor/bittensor) and the Bittensor Blockchain [subtensor](https://github.com/opentensor/subtensor).
+Additionally, note that the entire implementation of Bittensor consists of two separate repositories: [The core Bittensor code](https://github.com/opentensor/bittensor) and the Bittensor Blockchain [subtensor](https://github.com/opentensor/subtensor).
 
 ## How Can I Contribute?
 
@@ -68,11 +73,11 @@ Provide more context by answering these questions:
 
 Include details about your configuration and environment:
 
-* **Which version of Bittensor are you using?** You can get the exact version by checking for `__version__` in `[bittensor/bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/master/bittensor/__init__.py#L9).
+* **Which version of Bittensor are you using?** You can get the exact version by checking for `__version__` in `[bittensor/bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/9443c66f8c230b0984e5ae423026f514d51f763a/bittensor/__init__.py#L26).
 * **What's the name and version of the OS you're using**?
 * **Are you running Bittensor in a virtual machine?** If so, which VM software are you using and which operating systems and versions are used for the host and the guest?
 * **Are you running Bittensor in a dockerized container?** If so, have you made sure that your docker container contains your latest changes and is up to date with Master branch?
-* **Are you using [local configuration files](https://opentensor.github.io/getting-started/configuration.html)** `config.yaml` to customize your Bittensor experiment? If so, provide the contents of that config file, preferably in a [code block](https://help.github.com/articles/markdown-basics/#multiple-lines) or with a link to a [gist](https://gist.github.com/).
+* **Are you using [local configuration files](https://docs.bittensor.com/cli/ConfigurationMethods.html)** `config.yaml` to customize your Bittensor experiment? If so, provide the contents of that config file, preferably in a [code block](https://help.github.com/articles/markdown-basics/#multiple-lines) or with a link to a [gist](https://gist.github.com/).
 
 ### Suggesting Enhancements
 
@@ -93,7 +98,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://guides.github.com
 * **Provide a step-by-step description of the suggested enhancement** in as many details as possible.
 * **Provide specific examples to demonstrate the steps**. Include copy/pasteable snippets which you use in those examples, as [Markdown code blocks](https://help.github.com/articles/markdown-basics/#multiple-lines).
 * **Describe the current behavior** and **explain which behavior you expected to see instead** and why.
-* **Include screenshots and animated GIFs** which help you demonstrate the steps or point out the part of Bittensor which the suggestion is related to. You can use [this tool](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and [this tool](https://github.com/colinkeenan/silentcast) or [this tool](https://github.com/GNOME/byzanz) on Linux.
+* **Include screenshots and animated GIFs** which help you demonstrate the steps or point out the part of Bittensor which the suggestion is related to. You can use [this tool](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and [this tool](https://github.com/colinkeenan/silentcast) on Linux.
 * **Explain why this enhancement would be useful** to most Bittensor users.
 * **List some other text editors or applications where this enhancement exists.**
 * **Specify which version of Bittensor are you using?** You can get the exact version by checking for `__version__` in `[bittensor/bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/master/bittensor/__init__.py#L18).
@@ -108,7 +113,7 @@ Unsure where to begin contributing to Bittensor? You can start by looking throug
 
 Both issue lists are sorted by total number of comments. While not perfect, number of comments is a reasonable proxy for impact a given change will have.
 
-If you want to read about using Bittensor or developing models in Bittensor, the [Bittensor Documentation](https://opentensor.github.io) is free and available online. You can find the source to the manual in [opentensor/opentensor.github.io](http://github.com/opentensor/opentensor.github.io).
+If you want to read about using Bittensor or developing models in Bittensor, the [Bittensor Documentation](https://docs.bittensor.com/) is free and available online. You can find the source to the manual in [[opentensor/opentensor.github.io](https://github.com/opentensor/docs).
 
 ### Pull Requests
 
