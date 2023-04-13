@@ -28,7 +28,7 @@ from reward import RewardModel
 from gating import GatingModel
 from transformers import AutoTokenizer
 import transformers 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific about science and language.
@@ -40,38 +40,71 @@ You are designed to assist with a wide range of tasks, from answering simple que
 '''
 
 class stats(dict):
+    def update(self, uids, rewards, metagraph):
+        for uid, reward in zip(uids, rewards):
+            if uid not in self.keys():
+                self.create_entry(uid, metagraph.hotkeys[uid])
+            self[uid].update(reward)
+    
     def create_entry(self, uid, hotkey):
         if uid in self.keys():
             bittensor.logging.warning(f'Entry for uid {uid} has already been created! {self[uid]}')
             return
         super().__setitem__(uid, stat(uid, hotkey))
 
+    def rewards(self):
+        results = []
+        for stat in self.values():
+            results.append(stat.avg_epoch_reward)
+        return results
+
+    def reset_epoch(self):
+        for stat in self.values():
+            stat.reset_epoch()
+    
 @dataclass
 class stat:
     uid: int
     hotkey: str
     num_queries:int = 0 #number of queries
     success:int = 0 #number of successful response
-    rewards: list = field(default_factory = lambda: [] ) #normalized rewards
+    epoch_rewards: list = field(default_factory = lambda: [] ) #normalized rewards
     alpha: float = 0.1
     ema_reward: float = None
     ema_reward_with_none: int = None
     
-    def update(self, success, reward) -> bool:
+    def update(self, reward) -> bool:
         self.num_queries += 1
             
-        if success: 
+        # reward = None when a peer fail to respond
+        if reward != None and reward != 0: 
             self.success += 1
-            self.rewards.append(reward)
+            self.epoch_rewards.append(reward)
             self.ema_reward = reward * (1 - self.alpha) + self.ema_reward * self.alpha if self.ema_reward != None else reward
             self.ema_reward_with_none = reward * (1 - self.alpha) + self.ema_reward_with_none * self.alpha if self.ema_reward_with_none != None else reward
         
         else: # assume reward to be 0 with a failing request 
-            self.rewards.append(None)
+            self.epoch_rewards.append(None)
             # ema_reward excludes failed requests
             self.ema_reward_with_none = self.ema_reward_with_none * self.alpha if self.ema_reward_with_none != None else 0
 
         return True
+
+    @property
+    def avg_epoch_reward(self):
+        rewards = [r for r in self.epoch_rewards if r != None]
+        return sum(rewards) / len(rewards)
+    
+    @property
+    def avg_epoch_reward_with_none(self):
+        rewards = [r if r!= None else 0 for r in self.epoch_rewards]
+        return sum(rewards) / len(rewards)
+
+    def reset_epoch(self):
+        self.epoch_rewards = []
+
+    def dict(self):
+        return {k: v for k, v in asdict(self).items()}
         
 class neuron:
     @classmethod
@@ -159,6 +192,8 @@ class neuron:
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to( self.device )
         
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
+        
+        self.neuron_stats = stats()
 
     def compute_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
         """
@@ -312,8 +347,10 @@ class neuron:
         # Return the completion with the highest reward.
         bittensor.logging.debug( 'forward result', result )
         return result
-    
-    def update_stats(self, forward_result):
+
+    def update_stats(self, uids, rewards):
+        normalized_rewards = torch.nn.functional.softmax( rewards.to( self.device ), dim=0 )
+        self.neuron_stats.update(uids, normalized_rewards, self.metagraph)
 
     # User queries here.
     def inference( self, message: str) -> str:
@@ -342,7 +379,7 @@ class neuron:
             
             # Ask the network to complete the random question, training the gating network.
             forward_result = self.forward( question.completion, topk = self.config.neuron.training_topk )
-            self.update_stats(forward_result)
+            self.update_stats(forward_result.uids, forward_result.rewards)
             
             # Check if enough epoch blocks have elapsed since the last epoch.
             if self.subtensor.block > last_epoch_block: # run every block. # > self.subtensor.validator_epoch_length( self.config.netuid ) :
@@ -354,8 +391,14 @@ class neuron:
                 
                 # Computes the average reward for each uid across non-zero values 
                 # using the rewards history stored in the self.history list.
-                uids, weights = self.compute_weights()
-                bittensor.logging.info( 'weights', weights )
+
+                uids, weights = bittensor.utils.weight_utils.process_weights_for_netuid(
+                    uids = list(self.neuron_stats.keys()),
+                    weights = self.neuron_stats.rewards(),
+                    netuid = self.config.netuid,
+                    subtensor = self.subtensor,
+                    metagraph = self.metagraph
+                )
 
                 # Set the weights on chain via our subtensor connection.
                 self.subtensor.set_weights(
@@ -365,6 +408,8 @@ class neuron:
                     weights = weights,
                     wait_for_finalization = True,
                 )
+
+                self.neuron_stats.reset_epoch()
 
 if __name__ == '__main__':
     bittensor.logging.info( 'neuron().train()' )
