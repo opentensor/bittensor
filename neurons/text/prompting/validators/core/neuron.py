@@ -174,6 +174,7 @@ class neuron:
         # Process the raw weights to final_weights via subtensor limitations.
         processed_weight_uids, processed_weights = bittensor.utils.weight_utils.process_weights_for_netuid(
             weights = raw_weights,
+            uids = self.metagraph.uids,
             netuid = self.config.netuid,
             subtensor = self.subtensor,
             metagraph = self.metagraph
