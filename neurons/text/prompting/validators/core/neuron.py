@@ -67,6 +67,7 @@ class neuron:
         parser.add_argument( '--neuron.reward_path', type = str, help = 'Path to reward model.', default = '~/.bittensor/reward_models' )
         parser.add_argument( '--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 1000 )
         parser.add_argument( '--neuron.device', type = str, help = 'Device to run the validator on.', default = "cuda" if torch.cuda.is_available() else "cpu" )
+        parser.add_argument( '--neuron.timeout', type = int, help = 'Query timeout.', default = 24 )
 
     @classmethod
     def config ( cls ):
@@ -236,6 +237,7 @@ class neuron:
             prompt = self.config.neuron.base_prompt, 
             message = message, 
             uids = topk_uids, 
+            timeout = self.config.neuron.timeout,
         )
         bittensor.logging.debug( 'topk_uids', topk_uids )
         bittensor.logging.debug( 'completions', completions )
