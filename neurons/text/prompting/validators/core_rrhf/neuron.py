@@ -28,6 +28,7 @@ from reward import RewardModel
 from gating import GatingModel
 from transformers import AutoTokenizer
 import transformers 
+from dataclasses import dataclass, field
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific about science and language.
@@ -38,6 +39,40 @@ __default_base_prompt__ = '''
 You are designed to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics.
 '''
 
+class stats(dict):
+    def create_entry(self, uid, hotkey):
+        if uid in self.keys():
+            bittensor.logging.warning(f'Entry for uid {uid} has already been created! {self[uid]}')
+            return
+        super().__setitem__(uid, stat(uid, hotkey))
+
+@dataclass
+class stat:
+    uid: int
+    hotkey: str
+    num_queries:int = 0 #number of queries
+    success:int = 0 #number of successful response
+    rewards: list = field(default_factory = lambda: [] ) #normalized rewards
+    alpha: float = 0.1
+    ema_reward: float = None
+    ema_reward_with_none: int = None
+    
+    def update(self, success, reward) -> bool:
+        self.num_queries += 1
+            
+        if success: 
+            self.success += 1
+            self.rewards.append(reward)
+            self.ema_reward = reward * (1 - self.alpha) + self.ema_reward * self.alpha if self.ema_reward != None else reward
+            self.ema_reward_with_none = reward * (1 - self.alpha) + self.ema_reward_with_none * self.alpha if self.ema_reward_with_none != None else reward
+        
+        else: # assume reward to be 0 with a failing request 
+            self.rewards.append(None)
+            # ema_reward excludes failed requests
+            self.ema_reward_with_none = self.ema_reward_with_none * self.alpha if self.ema_reward_with_none != None else 0
+
+        return True
+        
 class neuron:
     @classmethod
     def check_config( cls, config: 'bt.Config' ):
@@ -124,8 +159,6 @@ class neuron:
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to( self.device )
         
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
-        
-        self.history = queue.Queue( maxsize = self.config.neuron.max_history )
 
     def compute_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
         """
@@ -275,12 +308,13 @@ class neuron:
             scores = scores,
             all_completions = completions
         )
-        self.history.put( result )
 
         # Return the completion with the highest reward.
         bittensor.logging.debug( 'forward result', result )
         return result
     
+    def update_stats(self, forward_result):
+
     # User queries here.
     def inference( self, message: str) -> str:
         """Inference"""
@@ -307,7 +341,8 @@ class neuron:
             if question == None: continue # no responses from network.
             
             # Ask the network to complete the random question, training the gating network.
-            self.forward( question.completion, topk = self.config.neuron.training_topk )
+            forward_result = self.forward( question.completion, topk = self.config.neuron.training_topk )
+            self.update_stats(forward_result)
             
             # Check if enough epoch blocks have elapsed since the last epoch.
             if self.subtensor.block > last_epoch_block: # run every block. # > self.subtensor.validator_epoch_length( self.config.netuid ) :
