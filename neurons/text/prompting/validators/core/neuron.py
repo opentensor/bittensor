@@ -327,7 +327,7 @@ class neuron:
             )
 
             # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
-            if last_epoch_block % 75 == 0:
+            if last_epoch_block % 10 == 0:
                 self.metagraph = self.metagraph.sync(netuid=self.config.netuid, subtensor=self.subtensor)
 
             # Check if enough epoch blocks have elapsed since the last epoch.
