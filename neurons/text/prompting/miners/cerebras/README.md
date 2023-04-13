@@ -9,20 +9,27 @@ python3 neurons/text/prompting/miners/cerebras/neuron.py
 
 # Full Usage
 ```
-usage: neuron.py [-h] [--cerebras.model_size CEREBRAS.MODEL_SIZE] [--cerebras.device CEREBRAS.DEVICE] [--cerebras.max_length CEREBRAS.MAX_LENGTH] [--cerebras.do_sample] [--cerebras.no_repeat_ngram_size CEREBRAS.NO_REPEAT_NGRAM_SIZE] [--netuid NETUID]
-                 [--neuron.name NEURON.NAME] [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights] [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE]
-                 [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN] [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH]
-                 [--wallet._mock] [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS] [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT]
-                 [--axon.ip AXON.IP] [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP] [--axon.max_workers AXON.MAX_WORKERS] [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS]
-                 [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT] [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
-                 [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL] [--subtensor.register.no_output_in_place] [--subtensor.register.verbose] [--subtensor.register.cuda.use_cuda]
-                 [--subtensor.register.cuda.no_cuda] [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]] [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB]
-                 [--logging.debug] [--logging.trace] [--logging.record_log] [--logging.logging_dir LOGGING.LOGGING_DIR] [--metagraph._mock] [--config CONFIG] [--strict]
+usage: neuron.py [-h] [--cerebras.device CEREBRAS.DEVICE] [--cerebras.max_length CEREBRAS.MAX_LENGTH] [--cerebras.do_sample]
+                 [--cerebras.no_repeat_ngram_size CEREBRAS.NO_REPEAT_NGRAM_SIZE] [--cerebras.model_size {1.3B,2.7B,6.7B,13B}]
+                 [--netuid NETUID] [--neuron.name NEURON.NAME] [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights]
+                 [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN]
+                 [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--neuron.blacklist.allow_non_registered]
+                 [--neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE] [--neuron.default_priority NEURON.DEFAULT_PRIORITY]
+                 [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock]
+                 [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS]
+                 [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT] [--axon.ip AXON.IP]
+                 [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP] [--axon.max_workers AXON.MAX_WORKERS]
+                 [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS] [--subtensor.network SUBTENSOR.NETWORK]
+                 [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT] [--subtensor._mock]
+                 [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
+                 [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL] [--subtensor.register.no_output_in_place]
+                 [--subtensor.register.verbose] [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
+                 [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]]
+                 [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug] [--logging.trace] [--logging.record_log]
+                 [--logging.logging_dir LOGGING.LOGGING_DIR] [--metagraph._mock] [--config CONFIG] [--strict]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --cerebras.model_size CEREBRAS.MODEL_SIZE
-                        What size model to use: ['1.3B', '2.7B', '6.7B', '13B']
   --cerebras.device CEREBRAS.DEVICE
                         Device to load model
   --cerebras.max_length CEREBRAS.MAX_LENGTH
@@ -30,6 +37,8 @@ optional arguments:
   --cerebras.do_sample  Whether to use sampling or not (if not, uses greedy decoding).
   --cerebras.no_repeat_ngram_size CEREBRAS.NO_REPEAT_NGRAM_SIZE
                         The size of the n-grams to avoid repeating in the generated text.
+  --cerebras.model_size {1.3B,2.7B,6.7B,13B}
+                        Model size to use.
   --netuid NETUID       Subnet netuid
   --neuron.name NEURON.NAME
                         Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name
@@ -43,6 +52,12 @@ optional arguments:
                         The maximum sequence length for forward requests.
   --neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]
                         To blacklist certain hotkeys
+  --neuron.blacklist.allow_non_registered
+                        If True, the miner will allow non-registered hotkeys to mine.
+  --neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE
+                        Set default stake for miners.
+  --neuron.default_priority NEURON.DEFAULT_PRIORITY
+                        Set default priority for miners.
   --wallet.name WALLET.NAME
                         The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)
   --wallet.hotkey WALLET.HOTKEY
@@ -64,12 +79,14 @@ optional arguments:
   --axon.external_ip AXON.EXTERNAL_IP
                         The external ip this axon broadcasts to the network to. ie. [::]
   --axon.max_workers AXON.MAX_WORKERS
-                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes new worker threads to service requests up to this number.
+                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes
+                        new worker threads to service requests up to this number.
   --axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS
                         Maximum number of allowed active connections
   --subtensor.network SUBTENSOR.NETWORK
-                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running network) -- mock (creates a mock connection (for testing)) If this option is set it
-                        overloads subtensor.chain_endpoint with an entry point node from that network.
+                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running network) --
+                        mock (creates a mock connection (for testing)) If this option is set it overloads subtensor.chain_endpoint with an
+                        entry point node from that network.
   --subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT
                         The subtensor endpoint flag. If set, overrides the --network flag.
   --subtensor._mock     To turn on subtensor mocking for testing purposes.
@@ -97,4 +114,4 @@ optional arguments:
   --metagraph._mock     To turn on metagraph mocking for testing purposes.
   --config CONFIG       If set, defaults are overridden by passed file.
   --strict              If flagged, config will check that only exact arguemnts have been set.
-```
+  ```
