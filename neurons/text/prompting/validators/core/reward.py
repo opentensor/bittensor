@@ -21,7 +21,7 @@ import math
 import os
 import torch
 from torch import nn
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
 from tqdm import tqdm
 from typing import List
 
@@ -29,7 +29,9 @@ from typing import List
 class RewardModel(nn.Module):
     def __init__( self, model_path: str ):
         super().__init__()
-        self.model = AutoModelForCausalLM.from_pretrained( model_path )
+        config = AutoConfig.from_pretrained( model_path )
+        self.model = AutoModelForCausalLM.from_config( config )
+        # self.model = AutoModelForCausalLM.from_pretrained( model_path )
         self.config = self.model.config
         # `gpt-neo(x)` models use `hidden_size` attribute names instead of `n_embd``
         self.config.n_embd = self.config.hidden_size if hasattr(self.config, "hidden_size") else self.config.n_embd
