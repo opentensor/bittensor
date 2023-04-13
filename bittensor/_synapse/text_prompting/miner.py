@@ -27,7 +27,6 @@ from typing import List, Dict
 from datetime import datetime
 from abc import ABC, abstractmethod
 
-
 class BasePromptingMiner(ABC):
 
     @classmethod
@@ -161,7 +160,7 @@ class BasePromptingMiner(ABC):
             '--neuron.blacklist.allow_non_registered',
             action = 'store_true',
             help = 'If True, the miner will allow non-registered hotkeys to mine.',
-            default = False
+            default = True
         )
         parser.add_argument(
             '--neuron.blacklist.default_stake',

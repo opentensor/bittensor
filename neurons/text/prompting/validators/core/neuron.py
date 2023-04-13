@@ -277,6 +277,7 @@ class neuron:
             scores = scores,
             all_completions = completions,
             hotkeys = copy.deepcopy( self.metagraph.hotkeys ),
+            block = self.metagraph.block,
         )
         self.history.push( result )
 
