@@ -155,7 +155,7 @@ class neuron:
             bittensor.logging.debug( 'moving_averaged_scores', moving_averaged_scores )
 
             # If the hotkeys have changed, reset the moving averaged scores for the new hotkeys.
-            if last_hotkeys is None:
+            if last_hotkeys is not None:
                 for uid, hotkey in enumerate( event.hotkeys ):
                     if hotkey != last_hotkeys[ uid ]:
                         moving_averaged_scores[ uid ] = 0
