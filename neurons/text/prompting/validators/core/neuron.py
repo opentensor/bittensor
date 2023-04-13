@@ -329,29 +329,30 @@ class neuron:
                 self.metagraph = self.metagraph.sync(netuid=self.config.netuid, subtensor=self.subtensor)
 
             # Check if enough epoch blocks have elapsed since the last epoch.
-            if self.subtensor.block - last_epoch_block > self.subtensor.validator_epoch_length( self.config.netuid ): 
-                bittensor.logging.info( 'epoch()' )
-                bittensor.logging.info( 'block', self.subtensor.block )
+            #if self.subtensor.block - last_epoch_block > self.subtensor.validator_epoch_length( self.config.netuid ): 
+              
+            bittensor.logging.info( 'epoch()' )
+            bittensor.logging.info( 'block', self.subtensor.block )
 
-                # Synce the metagraph.
-                self.metagraph = self.subtensor.metagraph( self.config.netuid )
+            # Synce the metagraph.
+            self.metagraph = self.subtensor.metagraph( self.config.netuid )
 
-                # Update the last epoch block to the current epoch block.
-                last_epoch_block = self.subtensor.block
-                
-                # Computes the average reward for each uid across non-zero values 
-                # using the rewards history stored in the self.history list.
-                uids, weights = self.compute_weights()
-                bittensor.logging.info( 'weights', weights )
+            # Update the last epoch block to the current epoch block.
+            last_epoch_block = self.subtensor.block
+            
+            # Computes the average reward for each uid across non-zero values 
+            # using the rewards history stored in the self.history list.
+            uids, weights = self.compute_weights()
+            bittensor.logging.info( 'weights', weights )
 
-                # Set the weights on chain via our subtensor connection.
-                self.subtensor.set_weights(
-                    wallet = self.wallet,
-                    netuid = self.config.netuid,
-                    uids = uids,
-                    weights = weights,
-                    wait_for_finalization = True,
-                )
+            # Set the weights on chain via our subtensor connection.
+            self.subtensor.set_weights(
+                wallet = self.wallet,
+                netuid = self.config.netuid,
+                uids = uids,
+                weights = weights,
+                wait_for_finalization = True,
+            )
 
 if __name__ == '__main__':
     bittensor.logging.info( 'neuron().train()' )
