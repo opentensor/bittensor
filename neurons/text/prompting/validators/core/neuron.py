@@ -269,7 +269,7 @@ class neuron:
 
         # Save the query history in a `result` object.
         # Return the `completion` with the highest reward.
-        result = SimpleNamespace( 
+        event = SimpleNamespace( 
             completion = successful_completions[ rewards.argmax( dim = 0 ) ],
             message = message,  
             uids = successful_uids,
@@ -279,11 +279,8 @@ class neuron:
             hotkeys = copy.deepcopy( self.metagraph.hotkeys ),
             block = self.metagraph.block,
         )
-        self.history.put( result )
-
-        # Return the completion with the highest reward.
-        bittensor.logging.debug( 'forward result', result )
-        return result
+        self.history.put( event )
+        return event
 
     # User queries here.
     def inference( self, message: str) -> str:
