@@ -41,7 +41,7 @@ class BasePromptingMiner(ABC):
             uid = self.metagraph.hotkeys.index(forward_call.hotkey)
             return self.metagraph.S[uid].item()
         else:
-            return 0.0
+            return self.config.neuron.default_priority
 
     def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
         # Check for registration
@@ -166,7 +166,13 @@ class BasePromptingMiner(ABC):
         parser.add_argument(
             '--neuron.blacklist.default_stake',
             type = float,
-            help = 'If True, the miner will allow non-registered hotkeys to mine.',
+            help = 'Set default stake for miners.',
+            default = 0.0
+        )
+        parser.add_argument(
+            '--neuron.default_priority',
+            type = float,
+            help = 'Set default priority for miners.',
             default = 0.0
         )
         bittensor.wallet.add_args( parser )
