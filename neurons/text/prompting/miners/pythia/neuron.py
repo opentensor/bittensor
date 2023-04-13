@@ -57,7 +57,7 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
         )
     
     @staticmethod
-    def _process_history(self, history: List[str]) -> str:
+    def _process_history(history: List[str]) -> str:
         processed_history = ''
         for message in history:
             if message['role'] == 'system':
