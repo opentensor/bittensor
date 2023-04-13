@@ -23,7 +23,6 @@ import argparse
 import bittensor
 
 from rich import print
-from warnings import warn
 from typing import List, Dict
 from datetime import datetime
 from abc import ABC, abstractmethod
@@ -50,6 +49,7 @@ class BasePromptingMiner(ABC):
             if not is_registered:
                 if self.config.neuron.blacklist.allow_non_registered:
                     return False
+                bittensor.logging.debug( "Blacklisted. Not registered.")
                 raise Exception("Registration blacklist") 
         
         # Blacklist based on stake.
@@ -59,6 +59,7 @@ class BasePromptingMiner(ABC):
                 return False
             uid = self.metagraph.hotkeys.index(forward_call.hotkey)
             if self.metagraph.S[uid].item() < default_stake:
+                bittensor.logging.debug( "Blacklisted. Stake too low.")
                 raise Exception("Stake blacklist")
             return False
 
@@ -67,9 +68,8 @@ class BasePromptingMiner(ABC):
             registration_check()
             stake_check()
             return False
-        
         except Exception as e:
-            warn("Blacklisted. Error in `registration_check` or `stake_check()")
+            bittensor.logging.warning( "Blacklisted. Error in `registration_check` or `stake_check()" )
             return True
         
     @abstractmethod
