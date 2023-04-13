@@ -25,18 +25,21 @@ python3 neurons/text/prompting/miners/gooseai/neuron.py --gooseai.api_key <your 
 
 # Full Usage
 ```
-usage: neuron.py [-h] --gooseai.api_key GOOSEAI.API_KEY [--gooseai.model_name GOOSEAI.MODEL_NAME] [--gooseai.temperature GOOSEAI.TEMPERATURE]
-                 [--gooseai.max_tokens GOOSEAI.MAX_TOKENS] [--gooseai.top_p GOOSEAI.TOP_P] [--gooseai.min_tokens GOOSEAI.MIN_TOKENS]
-                 [--gooseai.frequency_penalty GOOSEAI.FREQUENCY_PENALTY] [--gooseai.presence_penalty GOOSEAI.PRESENCE_PENALTY]
-                 [--gooseai.n GOOSEAI.N] [--gooseai.model_kwargs GOOSEAI.MODEL_KWARGS] [--gooseai.logit_bias GOOSEAI.LOGIT_BIAS]
-                 [--netuid NETUID] [--neuron.name NEURON.NAME] [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights]
+usage: neuron.py [-h] --gooseai.api_key GOOSEAI.API_KEY [--gooseai.model_name GOOSEAI.MODEL_NAME]
+                 [--gooseai.temperature GOOSEAI.TEMPERATURE] [--gooseai.max_tokens GOOSEAI.MAX_TOKENS] [--gooseai.top_p GOOSEAI.TOP_P]
+                 [--gooseai.min_tokens GOOSEAI.MIN_TOKENS] [--gooseai.frequency_penalty GOOSEAI.FREQUENCY_PENALTY]
+                 [--gooseai.presence_penalty GOOSEAI.PRESENCE_PENALTY] [--gooseai.n GOOSEAI.N] [--gooseai.model_kwargs GOOSEAI.MODEL_KWARGS]
+                 [--gooseai.logit_bias GOOSEAI.LOGIT_BIAS] [--netuid NETUID] [--neuron.name NEURON.NAME]
+                 [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights]
                  [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN]
-                 [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY]
-                 [--wallet.path WALLET.PATH] [--wallet._mock] [--wallet.reregister WALLET.REREGISTER]
-                 [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS] [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE]
-                 [--axon.port AXON.PORT] [--axon.ip AXON.IP] [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP]
-                 [--axon.max_workers AXON.MAX_WORKERS] [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS]
-                 [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT] [--subtensor._mock]
+                 [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--neuron.blacklist.allow_non_registered]
+                 [--neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE] [--neuron.default_priority NEURON.DEFAULT_PRIORITY]
+                 [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock]
+                 [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS]
+                 [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT] [--axon.ip AXON.IP]
+                 [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP] [--axon.max_workers AXON.MAX_WORKERS]
+                 [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS] [--subtensor.network SUBTENSOR.NETWORK]
+                 [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT] [--subtensor._mock]
                  [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
                  [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL] [--subtensor.register.no_output_in_place]
                  [--subtensor.register.verbose] [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
@@ -81,6 +84,12 @@ optional arguments:
                         The maximum sequence length for forward requests.
   --neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]
                         To blacklist certain hotkeys
+  --neuron.blacklist.allow_non_registered
+                        If True, the miner will allow non-registered hotkeys to mine.
+  --neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE
+                        Set default stake for miners.
+  --neuron.default_priority NEURON.DEFAULT_PRIORITY
+                        Set default priority for miners.
   --wallet.name WALLET.NAME
                         The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)
   --wallet.hotkey WALLET.HOTKEY
@@ -107,9 +116,9 @@ optional arguments:
   --axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS
                         Maximum number of allowed active connections
   --subtensor.network SUBTENSOR.NETWORK
-                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running network) -- mock
-                        (creates a mock connection (for testing)) If this option is set it overloads subtensor.chain_endpoint with an entry
-                        point node from that network.
+                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running network) --
+                        mock (creates a mock connection (for testing)) If this option is set it overloads subtensor.chain_endpoint with an
+                        entry point node from that network.
   --subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT
                         The subtensor endpoint flag. If set, overrides the --network flag.
   --subtensor._mock     To turn on subtensor mocking for testing purposes.
