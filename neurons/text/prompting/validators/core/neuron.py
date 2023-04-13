@@ -32,8 +32,7 @@ from transformers import AutoTokenizer
 from dataclasses import dataclass, field, asdict
 
 __default_question_prompt__ = '''
-Ask me a random question about anything. Make the question very domain specific about science and language.
-Do not include the answer in the question.
+Ask me a random question about anything. Make the question very domain specific. Do not include the answer in the question.
 '''
 
 __default_base_prompt__ = '''
