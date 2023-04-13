@@ -176,7 +176,6 @@ def process_weights_for_netuid(
     non_zero_weight_idx = torch.argwhere( weights > 0 ).squeeze( dim = 1 )  
     non_zero_weight_uids = uids[non_zero_weight_idx]
     non_zero_weights = weights[non_zero_weight_idx]  
-
     if non_zero_weights.numel() == 0 or metagraph.n < min_allowed_weights:
         bittensor.logging.warning( 'No non-zero weights returning all ones.' )
         final_weights = torch.ones( ( metagraph.n ) ) / metagraph.n
@@ -215,7 +214,6 @@ def process_weights_for_netuid(
         x = non_zero_weights,
         limit = max_weight_limit
     )
-
     bittensor.logging.debug( 'final_weights', normalized_weights )
 
     return non_zero_weight_uids, normalized_weights
