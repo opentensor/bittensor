@@ -218,8 +218,9 @@ class neuron:
         available_uids = torch.tensor( [ uid for uid, ep in enumerate( self.metagraph.endpoint_objs ) if ep.is_serving ], dtype = torch.int64 ).to( self.device )
         if topk is None or topk == -1: topk = self.metagraph.n.item()
         if topk > len( available_uids ): topk = len( available_uids )
-        bittensor.logging.debug( 'topk', topk)
         if len( available_uids ) == 0: bittensor.logging.error('no available uids'); return None
+        bittensor.logging.debug( 'available_uids', available_uids )
+        bittensor.logging.debug( 'topk', topk)
 
         # We run the gating network here to get the best uids
         # Use the gating model to generate scores for each `uid`.
