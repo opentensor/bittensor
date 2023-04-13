@@ -304,7 +304,7 @@ class neuron:
             the question and the resulting completions.
         """
         # Store the current epoch block number for comparison later.
-        last_epoch_block = self.subtensor.block + 100
+        last_epoch_block = self.subtensor.block
         
         # Start an infinite loop for training.
         while True:

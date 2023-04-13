@@ -228,8 +228,8 @@ class BasePromptingMiner(ABC):
             last_update = self.subtensor.get_current_block()
 
             # --- Update the metagraph with the latest network state.
-            self.metagraph.sync(netuid=self.config.netuid, subtensor=self.subtensor)
-            uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+            self.metagraph.sync( netuid = self.config.netuid, subtensor = self.subtensor )
+            uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
 
             # --- Log performance.
             print(
@@ -243,7 +243,7 @@ class BasePromptingMiner(ABC):
             if not self.config.neuron.no_set_weights:
                 try:
                     # --- query the chain for the most current number of peers on the network
-                    chain_weights = torch.zeros(self.subtensor.subnetwork_n(netuid=self.config.netuid))
+                    chain_weights = torch.zeros( self.subtensor.subnetwork_n( netuid = self.config.netuid ))
                     chain_weights[uid] = 1
                     did_set = self.subtensor.set_weights(
                         uids=torch.arange(0, len(chain_weights)),
