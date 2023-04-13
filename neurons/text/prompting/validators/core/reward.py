@@ -28,7 +28,7 @@ import bittensor
 
 class RewardModel(nn.Module):
 
-    def __init__( self, model_path: str, config: 'bittensor.config' = None ):
+    def __init__( self, model_path: str, device: str, config: 'bittensor.config' = None):
         super().__init__()
         config = AutoConfig.from_pretrained( model_path )
         self.model = AutoModelForCausalLM.from_config( config )
@@ -37,7 +37,7 @@ class RewardModel(nn.Module):
         if config is None: config = RewardModel.config()
 
         self.config.n_embd = self.config.hidden_size if hasattr(self.config, "hidden_size") else self.config.n_embd
-        self.device = torch.device( self.config.neuron.device )
+        self.device = torch.device( device )
         self.transformer = self.model.transformer
         self.v_head = nn.Linear(self.config.n_embd, 1, bias=False)
         self.tokenizer = AutoTokenizer.from_pretrained('EleutherAI/gpt-j-6b')

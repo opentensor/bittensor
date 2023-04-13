@@ -104,7 +104,7 @@ class neuron:
         self.tokenizer = AutoTokenizer.from_pretrained( 'EleutherAI/gpt-j-6b' )
 
         # Reward model
-        self.reward_model = RewardModel('EleutherAI/gpt-j-6b')
+        self.reward_model = RewardModel( model_path = 'EleutherAI/gpt-j-6b', device = self.config.neuron.device )
         for fpath in os.listdir( self.config.neuron.reward_path ):
             if fpath.endswith(".pt") or fpath.endswith(".bin"):
                 checkpoint = os.path.join( self.config.neuron.reward_path, fpath )
