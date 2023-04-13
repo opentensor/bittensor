@@ -19,7 +19,7 @@ import torch
 import argparse
 import bittensor
 from typing import List, Dict
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 class NeoxtMiner( bittensor.BasePromptingMiner ):
 
@@ -46,32 +46,37 @@ class NeoxtMiner( bittensor.BasePromptingMiner ):
         if self.config.neoxt.device == "cuda":
             self.model = self.model.to( self.config.neoxt.device )
 
-        self.pipe = pipeline( 
-            "text-generation",
-            self.model, 
-            tokenizer = self.tokenizer,
-            max_new_tokens = self.config.neoxt.max_new_tokens,
-            temperature = self.config.neoxt.temperature,
-            do_sample = self.config.neoxt.do_sample,
-            device = 0,
-        )
-    
+
     @staticmethod
     def _process_history(history: List[str]) -> str:
         processed_history = ''
         for message in history:
             if message['role'] == 'system':
-                processed_history += '<human>: ' + message['content'] + '\n'
+                processed_history += '<human>: ' + message['content'].strip() + '\n'
             if message['role'] == 'assistant':
-                processed_history += '<bot>: ' + message['content'] + '\n'
+                processed_history += '<bot>: ' + message['content'].strip() + '\n'
             if message['role'] == 'user':
-                processed_history += '<human>: ' + message['content'] + '\n'
+                processed_history += '<human>: ' + message['content'].strip() + '\n'
         return processed_history
 
-    def forward( self, messages: List[Dict[str, str]]  ) -> str:
+    def forward(self, messages: List[Dict[str, str]]) -> str:
+
         history = self._process_history(messages)
         prompt = history + "<bot>:"
-        generation = self.pipe( prompt )[0]['generated_text'].replace(prompt,"").split("<human>")[0].strip()
+
+        input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.config.neoxt.device)
+
+        output = self.model.generate(
+        input_ids,
+        max_length=input_ids.shape[1] + self.config.neoxt.max_new_tokens,
+        temperature=self.config.neoxt.temperature,
+        do_sample=self.config.neoxt.do_sample,
+        pad_token_id=self.tokenizer.eos_token_id,
+        )
+
+        generated_text = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
+        generation = generated_text.split("<human>")[0].strip()
+            
         return generation
 
 if __name__ == "__main__":
