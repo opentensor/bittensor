@@ -238,7 +238,6 @@ class neuron:
             timeout = self.config.neuron.timeout,
         )
         bittensor.logging.debug( 'topk_uids', topk_uids )
-        bittensor.logging.debug( 'completions', completions )
 
         # Filter out any `None` `completions`.
         successful_uids = torch.tensor([uid for uid, completion in list(zip(topk_uids, completions)) if completion is not None and completion.response is not None and len(completion.response) > 10], dtype=torch.int64).to(self.device)
