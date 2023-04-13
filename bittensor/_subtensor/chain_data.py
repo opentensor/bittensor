@@ -643,7 +643,7 @@ class SubnetInfo:
                 str(int(netuid)): bittensor.utils.U16_NORMALIZED_FLOAT(int(req)) for netuid, req in decoded['network_connect']
             },
             emission_value= decoded['emission_values'],
-            burn = Balance(0)#Balance.from_rao(decoded['burn'])
+            burn = Balance.from_rao(decoded['burn'])
         )
     
     def to_parameter_dict( self ) -> 'torch.nn.ParameterDict':
