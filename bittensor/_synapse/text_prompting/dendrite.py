@@ -14,11 +14,277 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import grpc
+import time
 import json
 import torch
 import asyncio
 import bittensor
 from typing import Callable, List, Dict, Union
+
+class TextPromptingDendrite:
+    """Dendrite for the text_prompting dendrite."""
+
+    def __init__(
+            self,
+            wallet: 'bittensor.wallet',
+            endpoint: Union[ 'bittensor.Endpoint', torch.Tensor ], 
+        ):
+        """ Initializes the Dendrite
+            Args:
+                wallet (:obj:`bittensor.wallet`, `required`):
+                    bittensor wallet object.
+                endpoint (:obj:Union[]`bittensor.endpoint`, `required`):
+                    bittensor endpoint object.
+        """
+        self.wallet = wallet
+        if isinstance( endpoint, torch.Tensor ): 
+            endpoint = bittensor.endpoint.from_tensor( endpoint )
+        self.endpoint = endpoint
+        self.receptor = bittensor.receptor( wallet = self.wallet, endpoint = self.endpoint )
+
+    #################
+    #### Forward ####
+    #################
+    def forward(
+            self,
+            roles: List[ str ] ,
+            messages: List[ str ],
+            return_dict: bool = True,
+            timeout: float = bittensor.__blocktime__,
+        ) -> Union[ str, dict ]:
+        loop = asyncio.get_event_loop()
+        result = loop.run_until_complete( 
+            self._call_forward( 
+                roles = roles,
+                messages = messages,
+                timeout = timeout,
+                return_dict = return_dict
+            ) 
+        )
+        if return_dict: return result
+        else: return result.response
+
+    async def async_forward(
+        self,
+        roles: List[ str ],
+        messages: List[ str ],
+        return_dict: bool = True,
+        timeout: float = bittensor.__blocktime__,
+    ) -> Union[ str, dict ]:
+        result = self._call_forward( 
+                roles = roles,
+                messages = messages,
+                timeout = timeout,
+                return_dict = return_dict
+            ) 
+        if return_dict: return result
+        else: return result.response
+
+    async def _call_forward( 
+            self, 
+            roles: List[ str ] ,
+            messages: List[ str ],
+            timeout: float = bittensor.__blocktime__, 
+        ) -> dict:
+        start_time = time.time()
+        packed_messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)]
+        request_proto = bittensor.ForwardTextPromptingRequest( 
+            messages = packed_messages, 
+            timeout = timeout, 
+            hotkey = self.wallet.hotkey.ss58_address,
+            version = bittensor.__version_as_int__
+        )
+        asyncio_future = bittensor.grpc.TextPromptingStub( self.receptor.channel ).Forward(
+            request = request_proto,
+            timeout = timeout,
+            metadata = (
+                ('rpc-auth-header','Bittensor'),
+                ('bittensor-signature', self.receptor.sign() ),
+                ('bittensor-version', str( bittensor.__version_as_int__ ) ),
+            ))
+        bittensor.logging.rpc_log ( 
+            axon = False, 
+            forward = True, 
+            is_response = False, 
+            code = bittensor.proto.ReturnCode.Success, 
+            call_time = time.time() - start_time, 
+            pubkey = self.endpoint.hotkey, 
+            uid = self.endpoint.uid, 
+            inputs = torch.Size( [len(message) for message in packed_messages ] ),
+            outputs = None,
+            message = "Success",
+            synapse = "text_prompting"
+        )
+        try:
+            response_proto = await asyncio.wait_for( asyncio_future, timeout = timeout )
+            bittensor.logging.rpc_log(
+                axon = False, 
+                forward = True, 
+                is_response = True, 
+                code = bittensor.proto.ReturnCode.Success, 
+                call_time = time.time() - start_time, 
+                pubkey = self.endpoint.hotkey, 
+                uid = self.endpoint.uid, 
+                inputs = torch.Size( [len(message) for message in packed_messages] ), 
+                outputs = torch.Size([len( response_proto.response )]),
+                message = "Success",
+                synapse = "text_prompting",
+            )
+            return {
+                "response": response_proto.response,
+                "hotkey": self.endpoint.hotkey,
+                "uid": self.endpoint.uid,
+                "start_time": start_time,
+                "end_time": time.time(),
+                "code": bittensor.proto.ReturnCode.Success,
+            }
+            
+        except grpc.RpcError as rpc_error_call:
+            # Request failed with GRPC code.
+            code = rpc_error_call.code()
+            error_message = 'GRPC error code: {}, details: {}'.format( rpc_error_call.code(), str(rpc_error_call.details()) )
+        except asyncio.TimeoutError:
+            # Catch timeout errors.
+            code = bittensor.proto.ReturnCode.Timeout
+            error_message = 'GRPC request timeout after: {}s'.format( timeout )
+        except Exception as e:
+            # Catch unknown errors.
+            code = bittensor.proto.ReturnCode.UnknownException
+            error_message = str( e )
+        finally:
+            bittensor.logging.rpc_log(
+                axon = False, 
+                forward = True, 
+                is_response = True, 
+                code = code, 
+                call_time = time.time() - start_time, 
+                pubkey = self.endpoint.hotkey, 
+                uid = self.endpoint.uid, 
+                inputs = torch.Size( [len(message) for message in self.messages] ),
+                outputs = None,
+                message = error_message,
+                synapse = "text_prompting",
+            )
+            return {
+                "response": response_proto.response,
+                "hotkey": self.endpoint.hotkey,
+                "uid": self.endpoint.uid,
+                "start_time": start_time,
+                "end_time": time.time(),
+                "code": code,
+            }
+    
+    
+        
+    #################
+    #### Backward ###
+    #################
+    def backward(
+            self, 
+            roles: List[ str ],
+            messages: List[ str ],
+            response: str,
+            rewards: Union[ List[ float], torch.FloatTensor ],
+            timeout: float = bittensor.__blocktime__
+        ):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete( 
+            self._call_backward( 
+                roles = roles,
+                messages = messages,
+                response = response,
+                rewards = rewards,
+                timeout = timeout,
+            ) 
+        )
+
+    async def async_backward(
+            self,
+            roles: List[ str ],
+            messages: List[ str ],
+            response: str,        
+            rewards: Union[ List[ float], torch.FloatTensor ],
+            return_call: bool = True,
+            timeout: float = bittensor.__blocktime__,
+        ):
+        await self._call_backward( 
+            roles = roles,
+            messages = messages,
+            response = response,
+            rewards = rewards,
+            timeout = timeout,
+        ) 
+
+    async def _call_backward( 
+            self, 
+            roles: List[ str ],
+            messages: List[ str ],
+            response: str,
+            rewards: Union[ List[ float ], torch.FloatTensor ],
+            timeout: float = bittensor.__blocktime__
+        ) -> dict:
+        try:
+            start_time = time.time()
+            if isinstance( rewards, torch.FloatTensor ): rewards = rewards.tolist()
+            packed_messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)]
+            request_proto = bittensor.BackwardTextPromptingRequest( 
+                messages = packed_messages, 
+                response = response,
+                rewards = rewards,
+                hotkey = self.wallet.hotkey.ss58_address,
+                version = bittensor.__version_as_int__
+            )
+            bittensor.grpc.TextPromptingStub( self.receptor.channel ).Backward(
+                request = request_proto,
+                metadata = (
+                    ('rpc-auth-header','Bittensor'),
+                    ('bittensor-signature', self.receptor.sign() ),
+                    ('bittensor-version',str( bittensor.__version_as_int__ )),
+                )
+            )
+            bittensor.logging.rpc_log ( 
+                axon = False, 
+                forward = False, 
+                is_response = False, 
+                code = bittensor.proto.Success, 
+                call_time = time.time() - start_time, 
+                pubkey = self.endpoint.hotkey, 
+                uid = self.endpoint.uid, 
+                inputs = torch.Size( [ len(self.rewards) ] ),
+                outputs = None,
+                message = "Success",
+                synapse = "text_prompting"
+            )
+        except grpc.RpcError as rpc_error_call:
+            # Request failed with GRPC code.
+            code = rpc_error_call.code()
+            error_message = 'GRPC error code: {}, details: {}'.format( rpc_error_call.code(), str(rpc_error_call.details()) )
+        except asyncio.TimeoutError:
+            # Catch timeout errors.
+            code = bittensor.proto.ReturnCode.Timeout
+            error_message = 'GRPC request timeout after: {}s'.format( timeout )
+        except Exception as e:
+            # Catch unknown errors.
+            code = bittensor.proto.ReturnCode.UnknownException
+            error_message = str( e )
+        finally:
+            bittensor.logging.rpc_log ( 
+                axon = False, 
+                forward = False, 
+                is_response = False, 
+                code = code, 
+                call_time = time.time() - start_time, 
+                pubkey = self.endpoint.hotkey, 
+                uid = self.endpoint.uid, 
+                inputs = torch.Size( [ len(self.rewards) ] ),
+                outputs = None,
+                message = error_message,
+                synapse = "text_prompting"
+            )
+        
+    
+
 
 class TextPromptingDendritePool( torch.nn.Module ):
 
@@ -232,111 +498,6 @@ class TextPromptingDendritePool( torch.nn.Module ):
         
         return await query() 
 
-class TextPromptingDendrite(bittensor.Dendrite):
-    """Dendrite for the text_prompting synapse."""
-
-    # Dendrite name.
-    name: str = "text_prompting"
-
-    def __str__(self) -> str:
-        return "TextPrompting"
-
-    def get_stub(self, channel) -> Callable:
-        return bittensor.grpc.TextPromptingStub(channel)
-
-    def pre_process_forward_call_to_request_proto(
-        self, forward_call: "bittensor.TextPromptingForwardCall"
-    ) -> "bittensor.ForwardTextPromptingRequest":
-        return bittensor.ForwardTextPromptingRequest( timeout = forward_call.timeout, messages = forward_call.messages )
-
-    def pre_process_backward_call_to_request_proto( 
-            self, backward_call: 'bittensor.TextPromptingBackwardCall' 
-    ) -> 'bittensor.BackwardTextPromptingRequest':
-        return bittensor.BackwardTextPromptingRequest( 
-            messages = backward_call.messages, 
-            response = backward_call.response,
-            rewards = backward_call.rewards 
-        )
-
-    def post_process_response_proto_to_forward_call(
-        self,
-        forward_call: bittensor.TextPromptingForwardCall,
-        response_proto: bittensor.ForwardTextPromptingResponse,
-    ) -> bittensor.TextPromptingForwardCall:
-        forward_call.response_code = response_proto.return_code
-        forward_call.response_message = response_proto.message
-        forward_call.response = response_proto.response
-        return forward_call
-
-    def forward(
-            self,
-            roles: List[ str ] ,
-            messages: List[ str ],
-            return_call:bool = True,
-            timeout: float = bittensor.__blocktime__,
-        ) -> "bittensor.TextPromptingForwardCall":
-        forward_call=bittensor.TextPromptingForwardCall(
-            messages=[json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
-            timeout=timeout,
-        )
-        loop = asyncio.get_event_loop()
-        response_call = loop.run_until_complete( self._async_forward( forward_call = forward_call ) )
-        if return_call: return response_call
-        else: return response_call.response
-    
-    async def async_forward(
-        self,
-        roles: List[ str ],
-        messages: List[ str ],
-        return_call: bool = True,
-        timeout: float = bittensor.__blocktime__,
-    ) -> "bittensor.TextPromptingForwardCall":
-        forward_call=bittensor.TextPromptingForwardCall(
-            messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
-            timeout = timeout,
-        )
-        response_call = await self._async_forward( forward_call = forward_call )
-        if return_call: return response_call
-        else: return response_call.response
-
-    def backward(
-            self,
-            roles: List[ str ],
-            messages: List[ str ],
-            response: str,
-            rewards: Union[ List[ float], torch.FloatTensor ],
-            return_call: bool = True,
-            timeout: float = bittensor.__blocktime__,
-        ) -> "bittensor.TextPromptingBackwardCall":
-        if isinstance( rewards, torch.FloatTensor ): rewards = rewards.tolist()
-        backward_call = bittensor.TextPromptingBackwardCall(
-            messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
-            response = response,
-            rewards = rewards
-        )
-        loop = asyncio.get_event_loop()
-        response_call =  loop.run_until_complete( self._async_backward( backward_call = backward_call ) )
-        if return_call: return response_call
-        else: return response_call.response
-
-    async def async_backward(
-        self,
-        roles: List[ str ],
-        messages: List[ str ],
-        response: str,        
-        rewards: Union[ List[ float], torch.FloatTensor ],
-        return_call: bool = True,
-        timeout: float = bittensor.__blocktime__,
-    ) -> "bittensor.TextPromptingBackwardCall":
-        if isinstance( rewards, torch.FloatTensor ): rewards = rewards.tolist()
-        backward_call = bittensor.TextPromptingBackwardCall(
-            messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)],
-            response = response,
-            rewards = rewards
-        )
-        response_call = await self._async_backward( backward_call = backward_call ) 
-        if return_call: return response_call
-        else: return response_call.response
 
 
 

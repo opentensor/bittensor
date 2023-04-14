@@ -185,59 +185,15 @@ from bittensor._ipfs.ipfs_impl import Ipfs as Ipfs
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 
 # ---- Synapse Protos -----
-from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateRequest
-from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateResponse
-from bittensor._proto.bittensor_pb2 import BackwardTextLastHiddenStateRequest
-from bittensor._proto.bittensor_pb2 import BackwardTextLastHiddenStateResponse
-
-from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMRequest
-from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMResponse
-from bittensor._proto.bittensor_pb2 import BackwardTextCausalLMRequest
-
-from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMNextRequest
-from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMNextResponse
-from bittensor._proto.bittensor_pb2 import BackwardTextCausalLMNextRequest
-
-from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqRequest
-from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqResponse
-
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingResponse
 
-# ---- Calls -----
-from bittensor._synapse.call import BittensorCall
-from bittensor._synapse.text_seq2seq.call import TextSeq2SeqBittensorCall 
-from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateForwardCall
-from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateBackwardCall
-from bittensor._synapse.text_causallm.call import TextCausalLMForwardCall
-from bittensor._synapse.text_causallm.call import TextCausalLMBackwardCall
-from bittensor._synapse.text_causallm_next.call import TextCausalLMNextForwardCall
-from bittensor._synapse.text_causallm_next.call import TextCausalLMNextBackwardCall
-
-from bittensor._synapse.text_prompting.call import TextPromptingForwardCall
-from bittensor._synapse.text_prompting.call import TextPromptingBackwardCall
-
 # ---- Synapses -----
-from bittensor._synapse.synapse import Synapse
-from bittensor._synapse.text_seq2seq.synapse import TextSeq2SeqSynapse
-from bittensor._synapse.text_last_hidden_state.synapse import TextLastHiddenStateSynapse
-from bittensor._synapse.text_causallm.synapse import TextCausalLMSynapse
-from bittensor._synapse.text_causallm_next.synapse import TextCausalLMNextSynapse
 from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
-
-# ---- Dendrites -----
-from bittensor._synapse.dendrite import Dendrite
-from bittensor._synapse.text_seq2seq.dendrite import TextSeq2SeqDendrite as text_seq2seq
-from bittensor._synapse.text_last_hidden_state.dendrite import TextLastHiddenStateDendrite as text_last_hidden_state
-from bittensor._synapse.text_causallm.dendrite import TextCausalLMDendrite as text_causal_lm
-from bittensor._synapse.text_causallm_next.dendrite import TextCausalLMNextDendrite as text_causal_lm_next
 from bittensor._synapse.text_prompting.dendrite import TextPromptingDendrite as text_prompting
 from bittensor._synapse.text_prompting.dendrite import TextPromptingDendritePool as text_prompting_pool
-
-# ---- Base Miners -----
-from bittensor._synapse.text_prompting.miner import BasePromptingMiner
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
