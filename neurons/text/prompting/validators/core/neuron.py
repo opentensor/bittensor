@@ -24,6 +24,7 @@ import bittensor
 import argparse
 import bittensor as bt
 
+from loguru import logger
 from types import SimpleNamespace
 from typing import List, Optional, Tuple, Dict
 from reward import RewardModel
@@ -37,7 +38,7 @@ Ask me a random question about anything. Make the question very domain specific.
 __default_base_prompt__ = '''
 You are designed to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics.
 '''
-        
+ 
 class neuron:
     @classmethod
     def check_config( cls, config: 'bt.Config' ):
@@ -58,7 +59,28 @@ class neuron:
                 f"wget -O { config.neuron.reward_path + '/hf_ckpt.pt'} \
                 https://huggingface.co/Dahoas/gptj-rm-static/resolve/main/hf_ckpt.pt"
             )
+        
+        # Add custom event logger for the events.
+        logger.level("EVENT", icon="📝")
+        logger.add( 
+            config.neuron.full_path + "/" + "completions.log", 
+            rotation="500 MB", serialize=True, enqueue=True, backtrace=True, diagnose=True, level="SNAKY", 
+            format= "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message} | {extra[message]} {extra[completion]} {extra[uids]} {extra[rewards]} {extra[scores]} {extra[all_completions]} {extra[hotkeys]} {extra[block]}"
+        )
 
+    def record_event( self, event: SimpleNamespace ):
+        self.history.put( event )
+        logger.log(
+            "EVENT", 
+            "event", 
+            message = event.message,
+            completion = event.completion,
+            uids = event.uids,
+            rewards = event.rewards.tolist(),
+            scores = event.scores.tolist(),
+            all_completions = event.all_completions,
+            block = event.block.item(),
+        )
 
     @classmethod
     def add_args( cls, parser ):
@@ -76,6 +98,7 @@ class neuron:
         parser.add_argument( '--neuron.device', type = str, help = 'Device to run the validator on.', default = "cuda" if torch.cuda.is_available() else "cpu" )
         parser.add_argument( '--neuron.timeout', type = int, help = 'Query timeout.', default = 24 )
         parser.add_argument( '--neuron.epoch_length_override', type = int, help = 'Override the default timeout', default = -1 )
+        parser.add_argument( '--neuron.save_events', type = bool, action = 'store_true', help = 'Save events to a log file.', default = False )
 
     @classmethod
     def config ( cls ):
@@ -282,7 +305,7 @@ class neuron:
             hotkeys = copy.deepcopy( self.metagraph.hotkeys ),
             block = self.metagraph.block,
         )
-        self.history.put( event )
+        self.record_event( event ) 
         return event
 
     # User queries here.
