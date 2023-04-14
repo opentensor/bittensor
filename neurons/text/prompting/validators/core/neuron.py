@@ -308,7 +308,8 @@ class neuron:
             block = self.metagraph.block,
             is_question = message == self.config.neuron.question_prompt,
         )
-        self.record_event( event ) 
+        self.history.put( event )
+        #self.record_event( event ) 
         return event
 
     # User queries here.
