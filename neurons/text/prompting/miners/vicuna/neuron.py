@@ -32,7 +32,7 @@ class VicunaMiner( bittensor.BasePromptingMiner ):
         parser.add_argument( '--vicuna.model_name', type=str, required=True, help='Name/path of model to load' )
         parser.add_argument( '--vicuna.device', type=str, help='Device to load model', default="cuda" )
         parser.add_argument( '--vicuna.max_new_tokens', type=int, help='Max tokens for model output.', default=64 ) 
-        parser.add_argument( '--vicuna.temperature', type=float, help='Sampling temperature of model', default=0.8 )
+        parser.add_argument( '--vicuna.temperature', type=float, help='Sampling temperature of model', default=0.5 )
         parser.add_argument( '--vicuna.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
         
     def __init__( self ):
@@ -40,7 +40,7 @@ class VicunaMiner( bittensor.BasePromptingMiner ):
         print ( self.config )
         
         bittensor.logging.info( 'Loading ' + str(self.config.vicuna.model_name))
-        self.tokenizer = AutoTokenizer.from_pretrained( self.config.vicuna.model_name )
+        self.tokenizer = AutoTokenizer.from_pretrained( self.config.vicuna.model_name, use_fast=False )
         self.model = AutoModelForCausalLM.from_pretrained( self.config.vicuna.model_name, torch_dtype = torch.float16 )
         bittensor.logging.info( 'Model loaded!' )
 
