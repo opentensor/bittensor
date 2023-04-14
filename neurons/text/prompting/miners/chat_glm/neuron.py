@@ -77,9 +77,6 @@ class ChatGLMMiner( bittensor.BasePromptingMiner ):
             pad_token_id=self.tokenizer.eos_token_id,
         )
 
-        # Uncomment to print input and output
-        bittensor.logging.debug("Message: " + str(messages).replace("<","-").replace(">","-"))
-        bittensor.logging.debug("Generation: " + str(generation).replace("<","-").replace(">","-"))
         return generation
 
 if __name__ == "__main__":
