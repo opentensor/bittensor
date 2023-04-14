@@ -20,11 +20,10 @@ import argparse
 import bittensor
 from typing import Union
 from typing import List, Dict
-bittensor.logging( debug = True )
 
 class Synapse( bittensor.TextPromptingSynapse ):
 
-    def __init__( self, config: "bittensor.Config" = None ):
+    def __init__( self, config: "bittensor.Config" = bittensor.TextPromptingSynapse.config() ):
         super().__init__( config )
 
     @classmethod
@@ -51,10 +50,10 @@ class Synapse( bittensor.TextPromptingSynapse ):
 config = Synapse.config()
 config.axon.port = 9090
 config.axon.ip = "127.0.0.1"
-print ( config )
 syn = Synapse( config = config )
 print ( config )
 
+bittensor.logging( debug = True )
 
 wallet = bittensor.wallet().create_if_non_existent()
 local_endpoint = bittensor.endpoint(
@@ -71,7 +70,15 @@ module = bittensor.text_prompting( endpoint = local_endpoint, wallet = wallet )
 forward_response = module.forward(
     roles = ['user', 'assistant'],
     messages = [{ "user": "Human", "content": "hello"}],
-    timeout = 1e6
+    timeout = 1e6,
+    return_dict = True,
+)
+print (forward_response)
+module.backward(
+    roles = ['user', 'assistant'],
+    messages = [{ "user": "Human", "content": "hello"}],
+    response = forward_response.response,
+    rewards = [1,2,3,4,5],
 )
 
 

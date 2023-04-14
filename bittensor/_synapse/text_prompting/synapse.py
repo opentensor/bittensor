@@ -52,6 +52,7 @@ class TextPromptingSynapse( ABC, bittensor.grpc.TextPromptingServicer ):
             config = self.config,
         )
         bittensor.grpc.add_TextPromptingServicer_to_server( self, self.axon.server )
+        self.axon.start()
 
     ##############
     #### Args ####
@@ -223,8 +224,8 @@ class TextPromptingSynapse( ABC, bittensor.grpc.TextPromptingServicer ):
         return bittensor.ForwardTextPromptingResponse(
             version = bittensor.__version_as_int__,
             hotkey = self.axon.wallet.hotkey.ss58_address,
-            response = completion.response,
-            return_code = bittensor.proto.ReturnCode.ReturnCode.Success,
+            response = completion,
+            return_code = bittensor.proto.ReturnCode.Success,
         )
     
     def Forward( self, request: bittensor.ForwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.ForwardTextPromptingResponse:
@@ -255,12 +256,12 @@ class TextPromptingSynapse( ABC, bittensor.grpc.TextPromptingServicer ):
         bittensor.logging.rpc_log(
             axon = True,
             forward = True,
-            is_response = False,
+            is_response = True,
             code = bittensor.proto.ReturnCode.Success,
             call_time = time.time() - start_time,
             pubkey = request.hotkey,
             uid = uid,
-            inputs = torch.Size( [len(message) for message in self.messages] ),
+            inputs = torch.Size( [len(message) for message in request.messages] ),
             outputs = None,
             message = "Success",
             synapse = "TextPrompting",
@@ -269,13 +270,13 @@ class TextPromptingSynapse( ABC, bittensor.grpc.TextPromptingServicer ):
         bittensor.logging.rpc_log(
             axon = True,
             forward = True,
-            is_response = True,
+            is_response = False,
             code = bittensor.proto.ReturnCode.Success,
             call_time = time.time() - start_time,
             pubkey = request.hotkey,
             uid = uid,
-            inputs = torch.Size( [len(message) for message in self.messages] ),
-            outputs = torch.Size([len(self.response)]),
+            inputs = torch.Size( [len(message) for message in request.messages] ),
+            outputs = torch.Size([len(response.response)]),
             message = "Success",
             synapse = "TextPrompting",
         )
@@ -296,7 +297,7 @@ class TextPromptingSynapse( ABC, bittensor.grpc.TextPromptingServicer ):
             rewards = formatted_rewards
         )    
 
-    def Backward( self, request: bittensor.BackwardTextPromptingRequest, context: grpc.ServicerContext):
+    def Backward( self, request: bittensor.BackwardTextPromptingRequest, context: grpc.ServicerContext) -> bittensor.BackwardTextPromptingResponse:
         """BackwardTextPrompting
         ----------------------------
          Args:
@@ -309,28 +310,56 @@ class TextPromptingSynapse( ABC, bittensor.grpc.TextPromptingServicer ):
             uid = self.metagraph.hotkeys.index( request.hotkey )
         except:
             uid = None
-        start_time = time.time()
-        if self.blacklist( request ):
-            raise Exception("Blacklisted")
-        priority = self.priority( request )
-        self.axon.priority_threadpool.submit(
-            self.apply_backward_request,
-            request = request,
-            priority = priority,
-        )
-        bittensor.logging.rpc_log(
-            axon = True,
-            forward = False,
-            is_response = False,
-            code = bittensor.proto.ReturnCode.Success,
-            call_time = time.time() - start_time,
-            pubkey = request.hotkey,
-            uid = uid,
-            inputs = torch.Size( [ len(self.rewards) ] ),
-            outputs = None,
-            message = 'Success',
-            synapse = 'Text Prompting',
-        )
+        
+        try:
+            start_time = time.time()
+            if self.blacklist( request ):
+                raise Exception("Blacklisted")
+            priority = self.priority( request )
+            self.axon.priority_threadpool.submit(
+                self.apply_backward_request,
+                request = request,
+                priority = priority,
+            )
+            bittensor.logging.rpc_log(
+                axon = True,
+                forward = False,
+                is_response = True,
+                code = bittensor.proto.ReturnCode.Success,
+                call_time = time.time() - start_time,
+                pubkey = request.hotkey,
+                uid = uid,
+                inputs = torch.Size( [ len(request.rewards) ] ),
+                outputs = None,
+                message = 'Success',
+                synapse = 'Text Prompting',
+            )
+            code = bittensor.proto.ReturnCode.Success
+            message = "Success"
+            
+        except Exception as e:
+            code = bittensor.proto.ReturnCode.UnknownException
+            message = str(e)
+        finally:
+            bittensor.logging.rpc_log(
+                axon = True,
+                forward = False,
+                is_response = False,
+                code = code,
+                call_time = time.time() - start_time,
+                pubkey = request.hotkey,
+                uid = uid,
+                inputs = torch.Size( [ len(request.rewards) ] ),
+                outputs = None,
+                message = message,
+                synapse = 'Text Prompting',
+            )
+            return bittensor.ForwardTextPromptingResponse(
+                version = bittensor.__version_as_int__,
+                hotkey = self.axon.wallet.hotkey.ss58_address,
+                return_code = code
+            )
+
 
     ##################
     #### RUN ####
@@ -339,8 +368,6 @@ class TextPromptingSynapse( ABC, bittensor.grpc.TextPromptingServicer ):
 
         # --- Start the miner.
         self.wallet.reregister( netuid = self.config.netuid, subtensor = self.subtensor )
-        self.axon.attach( self.synapse )
-        self.axon.start()
         self.axon.netuid = self.config.netuid
         self.axon.protocol = 4
         self.subtensor.serve_axon( self.axon )

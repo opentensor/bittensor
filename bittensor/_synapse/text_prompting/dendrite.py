@@ -60,7 +60,6 @@ class TextPromptingDendrite:
                 roles = roles,
                 messages = messages,
                 timeout = timeout,
-                return_dict = return_dict
             ) 
         )
         if return_dict: return result
@@ -74,11 +73,10 @@ class TextPromptingDendrite:
         timeout: float = bittensor.__blocktime__,
     ) -> Union[ str, dict ]:
         result = self._call_forward( 
-                roles = roles,
-                messages = messages,
-                timeout = timeout,
-                return_dict = return_dict
-            ) 
+            roles = roles,
+            messages = messages,
+            timeout = timeout,
+        ) 
         if return_dict: return result
         else: return result.response
 
@@ -88,72 +86,72 @@ class TextPromptingDendrite:
             messages: List[ str ],
             timeout: float = bittensor.__blocktime__, 
         ) -> dict:
-        start_time = time.time()
-        packed_messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)]
-        request_proto = bittensor.ForwardTextPromptingRequest( 
-            messages = packed_messages, 
-            timeout = timeout, 
-            hotkey = self.wallet.hotkey.ss58_address,
-            version = bittensor.__version_as_int__
-        )
-        asyncio_future = bittensor.grpc.TextPromptingStub( self.receptor.channel ).Forward(
-            request = request_proto,
-            timeout = timeout,
-            metadata = (
-                ('rpc-auth-header','Bittensor'),
-                ('bittensor-signature', self.receptor.sign() ),
-                ('bittensor-version', str( bittensor.__version_as_int__ ) ),
-            ))
-        bittensor.logging.rpc_log ( 
-            axon = False, 
-            forward = True, 
-            is_response = False, 
-            code = bittensor.proto.ReturnCode.Success, 
-            call_time = time.time() - start_time, 
-            pubkey = self.endpoint.hotkey, 
-            uid = self.endpoint.uid, 
-            inputs = torch.Size( [len(message) for message in packed_messages ] ),
-            outputs = None,
-            message = "Success",
-            synapse = "text_prompting"
-        )
+
         try:
-            response_proto = await asyncio.wait_for( asyncio_future, timeout = timeout )
-            bittensor.logging.rpc_log(
+            # Init call params.
+            start_time = time.time()
+            message = "Success"
+            code = bittensor.proto.ReturnCode.Success
+            
+            # Build the proto.
+            packed_messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)]
+            request_proto = bittensor.ForwardTextPromptingRequest( 
+                messages = packed_messages, 
+                timeout = timeout, 
+                hotkey = self.wallet.hotkey.ss58_address,
+                version = bittensor.__version_as_int__
+            )
+
+            # Construct the future.
+            asyncio_future = bittensor.grpc.TextPromptingStub( self.receptor.channel ).Forward(
+                request = request_proto,
+                timeout = timeout,
+                metadata = (
+                    ('rpc-auth-header','Bittensor'),
+                    ('bittensor-signature', self.receptor.sign() ),
+                    ('bittensor-version', str( bittensor.__version_as_int__ ) ),
+                ))
+
+            # Make forward log.
+            bittensor.logging.rpc_log ( 
                 axon = False, 
                 forward = True, 
-                is_response = True, 
+                is_response = False, 
                 code = bittensor.proto.ReturnCode.Success, 
                 call_time = time.time() - start_time, 
                 pubkey = self.endpoint.hotkey, 
                 uid = self.endpoint.uid, 
-                inputs = torch.Size( [len(message) for message in packed_messages] ), 
-                outputs = torch.Size([len( response_proto.response )]),
+                inputs = torch.Size( [len(message) for message in packed_messages ] ),
+                outputs = None,
                 message = "Success",
-                synapse = "text_prompting",
+                synapse = "text_prompting"
             )
-            return SimpleNamespace(
-                response = response_proto.response,
-                hotkey = self.endpoint.hotkey,
-                uid =  self.endpoint.uid,
-                start_time = start_time,
-                end_time = time.time(),
-                code =  bittensor.proto.ReturnCode.Success,
-            )
-            
+
+            # Fill the response.
+            response_proto = await asyncio.wait_for( asyncio_future, timeout = timeout )
+            response = response_proto.response
+
         except grpc.RpcError as rpc_error_call:
             # Request failed with GRPC code.
             code = rpc_error_call.code()
-            error_message = 'GRPC error code: {}, details: {}'.format( rpc_error_call.code(), str(rpc_error_call.details()) )
+            message = 'GRPC error code: {}, details: {}'.format( rpc_error_call.code(), str(rpc_error_call.details()) )
+            response = ""
+
         except asyncio.TimeoutError:
             # Catch timeout errors.
             code = bittensor.proto.ReturnCode.Timeout
-            error_message = 'GRPC request timeout after: {}s'.format( timeout )
+            message = 'GRPC request timeout after: {}s'.format( timeout )
+            response = ""
+
         except Exception as e:
             # Catch unknown errors.
             code = bittensor.proto.ReturnCode.UnknownException
-            error_message = str( e )
+            message = str( e )
+            response = ""
+
         finally:
+
+            # Log response.
             bittensor.logging.rpc_log(
                 axon = False, 
                 forward = True, 
@@ -162,20 +160,21 @@ class TextPromptingDendrite:
                 call_time = time.time() - start_time, 
                 pubkey = self.endpoint.hotkey, 
                 uid = self.endpoint.uid, 
-                inputs = torch.Size( [len(message) for message in self.messages] ),
-                outputs = None,
-                message = error_message,
+                inputs = torch.Size( [len(message) for message in packed_messages] ), 
+                outputs = torch.Size([len( response )]),
+                message = message,
                 synapse = "text_prompting",
             )
+
+            # Return call namespace.
             return SimpleNamespace(
-                response = response_proto.response,
+                response = response,
                 hotkey = self.endpoint.hotkey,
-                uid = self.endpoint.uid,
+                uid =  self.endpoint.uid,
                 start_time = start_time,
                 end_time = time.time(),
-                code = code,
+                code =  bittensor.proto.ReturnCode.Success,
             )
-    
     
         
     #################
@@ -225,8 +224,14 @@ class TextPromptingDendrite:
             rewards: Union[ List[ float ], torch.FloatTensor ],
             timeout: float = bittensor.__blocktime__
         ) -> dict:
+
         try:
+            # Init call params.
             start_time = time.time()
+            message = 'Success'
+            code = bittensor.proto.ReturnCode.Success
+
+            # Serialize to request.
             if isinstance( rewards, torch.FloatTensor ): rewards = rewards.tolist()
             packed_messages = [json.dumps({"role": role, "content": message}) for role, message in zip(roles, messages)]
             request_proto = bittensor.BackwardTextPromptingRequest( 
@@ -236,40 +241,19 @@ class TextPromptingDendrite:
                 hotkey = self.wallet.hotkey.ss58_address,
                 version = bittensor.__version_as_int__
             )
-            bittensor.grpc.TextPromptingStub( self.receptor.channel ).Backward(
+
+            # Construct future.
+            asyncio_future = bittensor.grpc.TextPromptingStub( self.receptor.channel ).Backward(
                 request = request_proto,
+                timeout = timeout,
                 metadata = (
                     ('rpc-auth-header','Bittensor'),
                     ('bittensor-signature', self.receptor.sign() ),
                     ('bittensor-version',str( bittensor.__version_as_int__ )),
                 )
             )
-            bittensor.logging.rpc_log ( 
-                axon = False, 
-                forward = False, 
-                is_response = False, 
-                code = bittensor.proto.Success, 
-                call_time = time.time() - start_time, 
-                pubkey = self.endpoint.hotkey, 
-                uid = self.endpoint.uid, 
-                inputs = torch.Size( [ len(self.rewards) ] ),
-                outputs = None,
-                message = "Success",
-                synapse = "text_prompting"
-            )
-        except grpc.RpcError as rpc_error_call:
-            # Request failed with GRPC code.
-            code = rpc_error_call.code()
-            error_message = 'GRPC error code: {}, details: {}'.format( rpc_error_call.code(), str(rpc_error_call.details()) )
-        except asyncio.TimeoutError:
-            # Catch timeout errors.
-            code = bittensor.proto.ReturnCode.Timeout
-            error_message = 'GRPC request timeout after: {}s'.format( timeout )
-        except Exception as e:
-            # Catch unknown errors.
-            code = bittensor.proto.ReturnCode.UnknownException
-            error_message = str( e )
-        finally:
+
+            # Log outbound.
             bittensor.logging.rpc_log ( 
                 axon = False, 
                 forward = False, 
@@ -278,13 +262,48 @@ class TextPromptingDendrite:
                 call_time = time.time() - start_time, 
                 pubkey = self.endpoint.hotkey, 
                 uid = self.endpoint.uid, 
-                inputs = torch.Size( [ len(self.rewards) ] ),
+                inputs = torch.Size( [ len( rewards ) ] ),
                 outputs = None,
-                message = error_message,
+                message = message,
                 synapse = "text_prompting"
-            )
+            )   
+            
+            # Wait for response.
+            response_proto = await asyncio.wait_for( asyncio_future, timeout = timeout )
+
+        # Catch grpc errors.
+        except grpc.RpcError as rpc_error_call:
+            # Request failed with GRPC code.
+            code = rpc_error_call.code()
+            message = 'GRPC error code: {}, details: {}'.format( rpc_error_call.code(), str(rpc_error_call.details()) )
+
+        # Catch timeout errors
+        except asyncio.TimeoutError:
+            # Catch timeout errors.
+            code = bittensor.proto.ReturnCode.Timeout
+            message = 'GRPC request timeout after: {}s'.format( timeout )
         
-    
+        # Catch unknown exceptions.
+        except Exception as e:
+            # Catch unknown errors.
+            code = bittensor.proto.ReturnCode.UnknownException
+            message = str( e )
+
+        # Finally log inbound.
+        finally:
+            bittensor.logging.rpc_log ( 
+                axon = False, 
+                forward = False, 
+                is_response = True, 
+                code = code, 
+                call_time = time.time() - start_time, 
+                pubkey = self.endpoint.hotkey, 
+                uid = self.endpoint.uid, 
+                inputs = torch.Size( [ len( rewards ) ] ),
+                outputs = None,
+                message = message,
+                synapse = "text_prompting"
+            )    
 
 
 class TextPromptingDendritePool( torch.nn.Module ):
