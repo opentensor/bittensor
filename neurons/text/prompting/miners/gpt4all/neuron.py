@@ -42,7 +42,6 @@ class GPT4ALLMiner( bittensor.BasePromptingMiner ):
         parser.add_argument('--gpt4all.top_p', type=float, default=0.95, help='The top-p value to use for sampling.')
         parser.add_argument('--gpt4all.top_k', type=int, default=40, help='The top-k value to use for sampling.')
         parser.add_argument('--gpt4all.echo', action='store_true', default=False, help='Whether to echo the prompt.')
-        parser.add_argument('--gpt4all.stop', type=list[str], help='Stop tokens.', default=['user: ', 'bot: ', 'system: '])
         parser.add_argument('--gpt4all.repeat_last_n', type=int, default=64, help='Last n tokens to penalize.')
         parser.add_argument('--gpt4all.repeat_penalty', type=float, default=1.3, help='The penalty to apply to repeated tokens.')
         parser.add_argument('--gpt4all.n_batch', type=int, default=1, help='Batch size for prompt processing.')
@@ -67,7 +66,7 @@ class GPT4ALLMiner( bittensor.BasePromptingMiner ):
             top_p=self.config.gpt4all.top_p,
             top_k=self.config.gpt4all.top_k,
             echo=self.config.gpt4all.echo,
-            stop=self.config.gpt4all.stop,
+            stop=['user: ', 'bot: ', 'system: '],
             repeat_last_n=self.config.gpt4all.repeat_last_n,
             repeat_penalty=self.config.gpt4all.repeat_penalty,
             n_batch=self.config.gpt4all.n_batch,

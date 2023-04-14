@@ -79,7 +79,7 @@ class GatingModel( torch.nn.Module ):
         if num_uids is not None: config.gating.num_uids = num_uids
         self.config = config
         self.metagraph = metagraph
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device( self.config.neuron.device )
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.gating.model_name )
         self.model = AutoModel.from_config( AutoConfig.from_pretrained(self.config.gating.model_name) ) #TODO: add pretrained flag
         self.linear = torch.nn.Linear( self.model.config.hidden_size, self.metagraph.n )
