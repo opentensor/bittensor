@@ -78,8 +78,9 @@ class NeoxtMiner( bittensor.BasePromptingMiner ):
         generated_text = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
         generation = generated_text.split("<human>")[0].strip()
         
-        bittensor.logging.debug("Message: " + str(messages).replace("<","-").replace(">","-"))
-        bittensor.logging.debug("Generation: " + str(generation).replace("<","-").replace(">","-"))
+        # Uncomment to print input and output
+        # bittensor.logging.debug("Message: " + str(messages).replace("<","-").replace(">","-"))
+        # bittensor.logging.debug("Generation: " + str(generation).replace("<","-").replace(">","-"))
         return generation
 
 if __name__ == "__main__":
