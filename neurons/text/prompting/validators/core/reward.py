@@ -15,16 +15,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-#### The code is modified from trlX
-import torch
-from torch import nn
-from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
-from tqdm import tqdm
-from typing import List
-import argparse
+#### NOTE(carro): This code is modified from trlX
 
+import torch
+import argparse
 import bittensor
 
+from torch import nn
+from typing import List
+from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
 
 class RewardModel(nn.Module):
 
