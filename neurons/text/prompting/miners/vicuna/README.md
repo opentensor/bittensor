@@ -1,4 +1,4 @@
-## Pythia Miner
+## Vicuna Miner
 Vicuna Language Model Serving with BitTensor
 This code is for running the Vicuna model through the BitTensor framework.
 
@@ -14,7 +14,7 @@ This code is for running the Vicuna model through the BitTensor framework.
 # Installing Dependencies
 
 ```
-python3 -m pip install -r neurons/text/prompting/miners/pythia/requirements.txt
+python3 -m pip install -r neurons/text/prompting/miners/vicuna/requirements.txt
 ```
 
 # Converting Weights Into Model
@@ -30,6 +30,11 @@ You can add our delta to the original LLaMA weights to obtain the Vicuna weights
 **NOTE**:
 Weights v1.1 are only compatible with the latest main branch of huggingface/transformers and ``fschat >= 0.2.0``.
 Please update your local packages accordingly. If you follow the above commands to do a fresh install, then you should get all the correct versions.
+
+Depending on which conversion script was used to create the Huggingface checkpoint of Llama, you might get an error that the tokenizer can not be found when loading the tokenizer. You can then replace all AutoTokenizers command with the correct tokenizer (in the exampel "LlamaTokenizer"), using this command:
+```
+find /path/to/fastchat -type f -name '*.py' -exec sed -i 's/AutoTokenizer/LlamaTokenizer/g' {} +
+```
 
 ### Vicuna-7B
 This conversion command needs around 30 GB of CPU RAM.
@@ -59,8 +64,8 @@ python3 neurons/text/prompting/miners/vicuna/neuron.py
 
 # Full Usage
 ```
-usage: neuron.py [-h] [--pythia.model_name PYTHIA.MODEL_NAME] [--pythia.device PYTHIA.DEVICE] [--pythia.max_new_tokens PYTHIA.MAX_NEW_TOKENS]
-                 [--pythia.temperature PYTHIA.TEMPERATURE] [--pythia.do_sample] [--netuid NETUID] [--neuron.name NEURON.NAME]
+usage: neuron.py [-h] [--vicuna.model_name VICUNA.MODEL_NAME] [--vicuna.device VICUNA.DEVICE] [--vicuna.max_new_tokens VICUNA.MAX_NEW_TOKENS]
+                 [--vicuna.temperature VICUNA.TEMPERATURE] [--vicuna.do_sample] [--netuid NETUID] [--neuron.name NEURON.NAME]
                  [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights]
                  [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN]
                  [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--neuron.blacklist.allow_non_registered]
@@ -82,13 +87,13 @@ optional arguments:
   -h, --help            show this help message and exit
   --neoxt.model_name NEOXT.MODEL_NAME
                         Name/path of model to load of model to load
-  --pythia.device PYTHIA.DEVICE
+  --vicuna.device VICUNA.DEVICE
                         Device to load model
-  --pythia.max_new_tokens PYTHIA.MAX_NEW_TOKENS
+  --vicuna.max_new_tokens VICUNA.MAX_NEW_TOKENS
                         Max tokens for model output.
-  --pythia.temperature PYTHIA.TEMPERATURE
+  --vicuna.temperature VICUNA.TEMPERATURE
                         Sampling temperature of model
-  --pythia.do_sample    Whether to use sampling or not (if not, uses greedy decoding).
+  --vicuna.do_sample    Whether to use sampling or not (if not, uses greedy decoding).
   --netuid NETUID       Subnet netuid
   --neuron.name NEURON.NAME
                         Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name
