@@ -346,7 +346,6 @@ class TestBlacklist(unittest.TestCase):
                 mock_hotkey,
                 mock_hotkey_1,
             ],
-            total_stake= mock_total_stake,
             S=torch.tensor(mock_total_stake),
         )
 
@@ -382,12 +381,13 @@ class TestBlacklist(unittest.TestCase):
             # args, kwargs
             _, kwargs = mock_new_axon.call_args
             blacklist = kwargs['blacklist']
-
             # Check that the blacklist rejects below min stake
-            assert blacklist(mock_hotkey, bittensor.proto.RequestType.FORWARD) == True
+            check, error = blacklist(mock_hotkey, bittensor.proto.RequestType.FORWARD)
+            assert check == True
 
             # Check that the blacklist accepts above min stake
-            assert blacklist(mock_hotkey_1, bittensor.proto.RequestType.FORWARD) == False
+            check, error = blacklist(mock_hotkey_1, bittensor.proto.RequestType.FORWARD) 
+            assert check == False
 
 
 if __name__ == '__main__':

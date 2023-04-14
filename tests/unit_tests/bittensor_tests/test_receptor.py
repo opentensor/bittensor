@@ -433,13 +433,6 @@ def test_receptor_backward_endpoint_exception():
         assert ops == [bittensor.proto.ReturnCode.UnknownException] * len(synapses)
 
 def test_receptor_signature_output():
-    def verify_v1(signature: str):
-        (nonce, sender_address, signature, receptor_uuid) = signature.split("bitxx")
-        assert nonce == "123"
-        assert sender_address == "5Ey8t8pBJSYqLYCzeC3HiPJu5DxzXy2Dzheaj29wRHvhjoai"
-        assert receptor_uuid == "6d8b8788-6b6a-11ed-916f-0242c0a85003"
-        message = f"{nonce}{sender_address}{receptor_uuid}"
-        assert wallet.hotkey.verify(message, signature)
 
     def verify_v2(signature: str):
         (nonce, sender_address, signature, receptor_uuid) = signature.split(".")
@@ -450,7 +443,6 @@ def test_receptor_signature_output():
         assert wallet.hotkey.verify(message, signature)
 
     matrix = {
-        bittensor.__new_signature_version__ - 1: verify_v1,
         bittensor.__new_signature_version__: verify_v2,
     }
 
