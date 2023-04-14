@@ -29,7 +29,7 @@ class VicunaMiner( bittensor.BasePromptingMiner ):
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument( '--vicuna.model_name', type=str, help='Name/path of model to load', default="togethercomputer/Vicuna-Chat-Base-7B" )
+        parser.add_argument( '--vicuna.model_name', type=str, required=True, help='Name/path of model to load' )
         parser.add_argument( '--vicuna.device', type=str, help='Device to load model', default="cuda" )
         parser.add_argument( '--vicuna.max_new_tokens', type=int, help='Max tokens for model output.', default=64 ) 
         parser.add_argument( '--vicuna.temperature', type=float, help='Sampling temperature of model', default=0.8 )
@@ -53,17 +53,17 @@ class VicunaMiner( bittensor.BasePromptingMiner ):
         processed_history = ''
         for message in history:
             if message['role'] == 'system':
-                processed_history += '<human>: ' + message['content'].strip() + '\n'
-            if message['role'] == 'assistant':
-                processed_history += '<bot>: ' + message['content'].strip() + '\n'
+                processed_history += ' _ : ' + message['content'].strip() + ' '
+            if message['role'] == 'Assistant':
+                processed_history += 'ASSISTANT:: ' + message['content'].strip() + ' '
             if message['role'] == 'user':
-                processed_history += '<human>: ' + message['content'].strip() + '\n'
+                processed_history += 'USER: ' + message['content'].strip() + ' '
         return processed_history
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
 
         history = self._process_history(messages)
-        prompt = history + "<bot>:"
+        prompt = history + "ASSISTANT:"
 
         input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.config.vicuna.device)
 
