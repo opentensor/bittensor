@@ -61,7 +61,7 @@ class neuron:
             )
         
         # Add custom event logger for the events.
-        logger.level("EVENT", icon="📝")
+        logger.level("EVENT", no=38, icon="📝")
         logger.add( 
             config.neuron.full_path + "/" + "completions.log", 
             rotation="500 MB", serialize=True, enqueue=True, backtrace=True, diagnose=True, level="SNAKY", 
