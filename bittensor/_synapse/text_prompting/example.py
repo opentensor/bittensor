@@ -22,7 +22,6 @@ from typing import Union
 from typing import List, Dict
 bittensor.logging( debug = True )
 
-# Create a synapse that returns zeros.
 class Synapse( bittensor.TextPromptingSynapse ):
 
     def __init__( self, config: "bittensor.Config" = None ):
@@ -45,7 +44,7 @@ class Synapse( bittensor.TextPromptingSynapse ):
     def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ):
         pass
 
-    def forward( self, messages: List[Dict[str, str]] ) -> str:
+    def forward( self, messages: List[ Dict[ str, str ] ] ) -> str:
         return "hello im a chat bot."
     
 

@@ -21,7 +21,7 @@ import bittensor
 from typing import List, Dict
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
-class PythiaMiner( bittensor.BasePromptingMiner ):
+class PythiaMiner( bittensor.TextPromptingSynapse ):
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):

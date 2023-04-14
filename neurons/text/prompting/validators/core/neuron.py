@@ -266,6 +266,7 @@ class neuron:
             message = message, 
             uids = topk_uids, 
             timeout = self.config.neuron.timeout,
+            return_dict = True
         )
         bittensor.logging.debug( 'topk_uids', topk_uids )
 

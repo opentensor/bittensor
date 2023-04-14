@@ -20,7 +20,7 @@ import argparse
 import bittensor
 from typing import List, Dict
 
-class OpenAIMiner( bittensor.BasePromptingMiner ):
+class OpenAIMiner( bittensor.TextPromptingSynapse ):
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):

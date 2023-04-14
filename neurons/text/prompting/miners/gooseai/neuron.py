@@ -20,7 +20,7 @@ import bittensor
 from typing import List, Dict, Any, Optional
 from langchain.llms import GooseAI
 
-class GooseAIMiner( bittensor.BasePromptingMiner ):
+class GooseAIMiner( bittensor.TextPromptingSynapse  ):
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ): pass

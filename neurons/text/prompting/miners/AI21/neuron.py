@@ -21,7 +21,7 @@ import bittensor
 from typing import List, Dict
 from langchain.llms import AI21
 
-class AI21Miner( bittensor.BasePromptingMiner ):
+class AI21Miner( bittensor.TextPromptingSynapse ):
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):

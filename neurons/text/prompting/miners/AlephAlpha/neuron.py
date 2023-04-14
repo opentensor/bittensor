@@ -22,7 +22,7 @@ from typing import List, Dict
 
 from langchain.llms import AlephAlpha
 
-class AlephAlphaMiner( bittensor.BasePromptingMiner ):
+class AlephAlphaMiner( bittensor.TextPromptingSynapse ):
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):

@@ -22,7 +22,7 @@ import bittensor
 from typing import List, Dict
 from langchain.llms import Cohere
 
-class CohereMiner( bittensor.BasePromptingMiner ):
+class CohereMiner( bittensor.TextPromptingSynapse ):
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):

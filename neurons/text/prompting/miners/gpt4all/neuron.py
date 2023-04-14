@@ -20,7 +20,7 @@ import bittensor
 from typing import List, Dict
 from langchain.llms import GPT4All
 
-class GPT4ALLMiner( bittensor.BasePromptingMiner ):
+class GPT4ALLMiner( bittensor.TextPromptingSynapse  ):
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ): pass

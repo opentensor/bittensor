@@ -20,6 +20,7 @@ import json
 import torch
 import asyncio
 import bittensor
+from types import SimpleNamespace
 from typing import Callable, List, Dict, Union
 
 class TextPromptingDendrite:
@@ -131,14 +132,14 @@ class TextPromptingDendrite:
                 message = "Success",
                 synapse = "text_prompting",
             )
-            return {
-                "response": response_proto.response,
-                "hotkey": self.endpoint.hotkey,
-                "uid": self.endpoint.uid,
-                "start_time": start_time,
-                "end_time": time.time(),
-                "code": bittensor.proto.ReturnCode.Success,
-            }
+            return SimpleNamespace(
+                response = response_proto.response,
+                hotkey = self.endpoint.hotkey,
+                uid =  self.endpoint.uid,
+                start_time = start_time,
+                end_time = time.time(),
+                code =  bittensor.proto.ReturnCode.Success,
+            )
             
         except grpc.RpcError as rpc_error_call:
             # Request failed with GRPC code.
@@ -166,14 +167,14 @@ class TextPromptingDendrite:
                 message = error_message,
                 synapse = "text_prompting",
             )
-            return {
-                "response": response_proto.response,
-                "hotkey": self.endpoint.hotkey,
-                "uid": self.endpoint.uid,
-                "start_time": start_time,
-                "end_time": time.time(),
-                "code": code,
-            }
+            return SimpleNamespace(
+                response = response_proto.response,
+                hotkey = self.endpoint.hotkey,
+                uid = self.endpoint.uid,
+                start_time = start_time,
+                end_time = time.time(),
+                code = code,
+            )
     
     
         
