@@ -10,7 +10,7 @@ python3 neurons/text/prompting/miners/neoxt/neuron.py
 
 # Full Usage
 ```
-usage: neuron.py [-h] [--neoxt.device NEOXT.DEVICE] [--neoxt.max_new_tokens NEOXT.MAX_NEW_TOKENS] [--neoxt.temperature NEOXT.TEMPERATURE] [--neoxt.do_sample]
+usage: neuron.py [-h] [--neoxt.model_name NEOXT.MODEL_NAME] [--neoxt.device NEOXT.DEVICE] [--neoxt.max_new_tokens NEOXT.MAX_NEW_TOKENS] [--neoxt.temperature NEOXT.TEMPERATURE] [--neoxt.do_sample]
                  [--netuid NETUID] [--neuron.name NEURON.NAME] [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights]
                  [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN] [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]]
                  [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock] [--wallet.reregister WALLET.REREGISTER]
