@@ -53,7 +53,7 @@ class VicunaMiner( bittensor.BasePromptingMiner ):
         processed_history = ''
         for message in history:
             if message['role'] == 'system':
-                processed_history += ' _ : ' + message['content'].strip() + ' '
+                processed_history += '' + message['content'].strip() + ' '
             if message['role'] == 'Assistant':
                 processed_history += 'ASSISTANT:: ' + message['content'].strip() + ' '
             if message['role'] == 'user':
@@ -75,8 +75,7 @@ class VicunaMiner( bittensor.BasePromptingMiner ):
         pad_token_id=self.tokenizer.eos_token_id,
         )
 
-        generated_text = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
-        generation = generated_text.split("<human>")[0].strip()
+        generation = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
         
         # Uncomment to print input and output
         bittensor.logging.debug("Message: " + str(messages).replace("<","-").replace(">","-"))
