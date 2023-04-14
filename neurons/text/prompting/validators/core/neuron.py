@@ -64,7 +64,7 @@ class neuron:
         logger.level("EVENT", no=38, icon="📝")
         logger.add( 
             config.neuron.full_path + "/" + "completions.log", 
-            rotation="500 MB", serialize=True, enqueue=True, backtrace=True, diagnose=True, level="SNAKY", 
+            rotation="500 MB", serialize=True, enqueue=True, backtrace=True, diagnose=True, level="EVENT", 
             format= "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message} | {extra[message]} {extra[completion]} {extra[uids]} {extra[rewards]} {extra[scores]} {extra[all_completions]} {extra[hotkeys]} {extra[block]}"
         )
 
