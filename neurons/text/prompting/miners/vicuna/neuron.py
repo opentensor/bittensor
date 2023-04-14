@@ -31,7 +31,7 @@ class VicunaMiner( bittensor.BasePromptingMiner ):
     def add_args( cls, parser: argparse.ArgumentParser ):
         parser.add_argument( '--vicuna.model_name', type=str, required=True, help='Name/path of model to load' )
         parser.add_argument( '--vicuna.device', type=str, help='Device to load model', default="cuda" )
-        parser.add_argument( '--vicuna.max_new_tokens', type=int, help='Max tokens for model output.', default=64 ) 
+        parser.add_argument( '--vicuna.max_new_tokens', type=int, help='Max tokens for model output.', default=256 ) 
         parser.add_argument( '--vicuna.temperature', type=float, help='Sampling temperature of model', default=0.5 )
         parser.add_argument( '--vicuna.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
         
