@@ -59,29 +59,30 @@ class neuron:
                 f"wget -O { config.neuron.reward_path + '/hf_ckpt.pt'} \
                 https://huggingface.co/Dahoas/gptj-rm-static/resolve/main/hf_ckpt.pt"
             )
-        
-        # Add custom event logger for the events.
-        logger.level("EVENTS", no=38, icon="📝")
-        logger.add( 
-            config.neuron.full_path + "/" + "completions.log", 
-            rotation="500 MB", serialize=True, enqueue=True, backtrace=False, diagnose=False, level="EVENTS", 
-            format = "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message} | {extra[prompt]} {extra[completion]} {extra[uids]} {extra[all_uids]} {extra[rewards]} {extra[scores]} {extra[all_completions]} {extra[block]}"
-        )
+        if not config.neuron.dont_save_events:
+            # Add custom event logger for the events.
+            logger.level("EVENTS", no=38, icon="📝")
+            logger.add( 
+                config.neuron.full_path + "/" + "completions.log", 
+                rotation=config.neuron.events_retention_size, serialize=True, enqueue=True, backtrace=False, diagnose=False, level="EVENTS", 
+                format = "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message} | {extra[prompt]} {extra[completion]} {extra[uids]} {extra[all_uids]} {extra[rewards]} {extra[scores]} {extra[all_completions]} {extra[block]}"
+            )
 
     def record_event( self, event: SimpleNamespace ):
         self.history.put( event )
-        logger.log(
-            "EVENTS", 
-            "events", 
-            prompt = event.message,
-            completion = event.completion,
-            uids = event.uids.tolist(),
-            all_uids = event.all_uids.tolist(),
-            rewards = event.rewards.tolist(),
-            scores = event.scores.tolist(),
-            all_completions = event.all_completions,
-            block = event.block.item(),
-        )
+        if not self.config.neuron.dont_save_events:
+            logger.log(
+                "EVENTS", 
+                "events", 
+                prompt = event.message,
+                completion = event.completion,
+                uids = event.uids.tolist(),
+                all_uids = event.all_uids.tolist(),
+                rewards = event.rewards.tolist(),
+                scores = event.scores.tolist(),
+                all_completions = event.all_completions,
+                block = event.block.item(),
+            )
 
     @classmethod
     def add_args( cls, parser ):
@@ -99,7 +100,8 @@ class neuron:
         parser.add_argument( '--neuron.device', type = str, help = 'Device to run the validator on.', default = "cuda" if torch.cuda.is_available() else "cpu" )
         parser.add_argument( '--neuron.timeout', type = int, help = 'Query timeout.', default = 24 )
         parser.add_argument( '--neuron.epoch_length_override', type = int, help = 'Override the default timeout', default = -1 )
-        parser.add_argument( '--neuron.save_events', action = 'store_true', help = 'Save events to a log file.', default = False )
+        parser.add_argument( '--neuron.dont_save_events', action = 'store_true', help = 'If set, we dont save events to a log file.', default = False )
+        parser.add_argument( '--neuron.events_retention_size',  type = str,  help = 'Events retention size.', default = "500 MB" )
 
     @classmethod
     def config ( cls ):
