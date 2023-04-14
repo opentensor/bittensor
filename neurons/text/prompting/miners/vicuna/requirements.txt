@@ -1,2 +1,2 @@
-transformers>=4.27.4
+transformers>=4.28.0
 fschat
