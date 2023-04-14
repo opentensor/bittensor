@@ -181,8 +181,8 @@ class neuron:
 
             # If the hotkeys have changed, reset the moving averaged scores for the new hotkeys.
             if last_hotkeys is not None:
-                for uid, hotkey in enumerate( event.hotkeys ):
-                    if hotkey != last_hotkeys[ uid ]:
+                for uid, hotkey in enumerate( last_hotkeys ):
+                    if hotkey != event.hotkeys[ uid ]:
                         moving_averaged_scores[ uid ] = 0
             # Update the last hotkeys.
             last_hotkeys = event.hotkeys
@@ -196,8 +196,8 @@ class neuron:
      
         # Process the raw weights to final_weights via subtensor limitations.
         processed_weight_uids, processed_weights = bittensor.utils.weight_utils.process_weights_for_netuid(
-            uids = self.metagraph.uids.to( self.device ),
-            weights = raw_weights.to( self.device ),
+            uids = self.metagraph.uids.to( "cpu" ),
+            weights = raw_weights.to( "cpu" ),
             netuid = self.config.netuid,
             subtensor = self.subtensor,
             metagraph = self.metagraph
@@ -359,7 +359,7 @@ class neuron:
             epoch_length = self.subtensor.validator_epoch_length(self.config.netuid) if self.config.neuron.epoch_length_override == -1 else self.config.neuron.epoch_length_override
             blocks_until_epoch = epoch_length - ( self.subtensor.block - last_epoch_block )
             bittensor.logging.info( 'blocks_until_epoch', blocks_until_epoch )
-            if blocks_until_epoch == 0: 
+            if blocks_until_epoch <= 0: 
                 bittensor.logging.info( 'epoch()' )
                 bittensor.logging.info( 'block', self.subtensor.block )
 
