@@ -29,7 +29,7 @@ class NeoxtMiner( bittensor.BasePromptingMiner ):
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument( '--neoxt.model_name', type=str, help='Name of model to load', default="togethercomputer/GPT-NeoXT-Chat-Base-20B" )
+        parser.add_argument( '--neoxt.model_name', type=str, help='Name/path of model to load', default="togethercomputer/GPT-NeoXT-Chat-Base-20B" )
         parser.add_argument( '--neoxt.device', type=str, help='Device to load model', default="cuda" )
         parser.add_argument( '--neoxt.max_new_tokens', type=int, help='Max tokens for model output.', default=64 ) 
         parser.add_argument( '--neoxt.temperature', type=float, help='Sampling temperature of model', default=0.8 )

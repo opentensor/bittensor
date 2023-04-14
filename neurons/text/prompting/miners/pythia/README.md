@@ -31,6 +31,8 @@ usage: neuron.py [-h] [--pythia.model_name PYTHIA.MODEL_NAME] [--pythia.device P
 
 optional arguments:
   -h, --help            show this help message and exit
+  --neoxt.model_name NEOXT.MODEL_NAME
+                        Name/path of model to load of model to load
   --pythia.device PYTHIA.DEVICE
                         Device to load model
   --pythia.max_new_tokens PYTHIA.MAX_NEW_TOKENS
