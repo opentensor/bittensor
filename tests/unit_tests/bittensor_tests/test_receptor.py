@@ -33,7 +33,7 @@ endpoint = bittensor.endpoint(
     uid = 0,
     ip = '0.0.0.0',
     ip_type = 4,
-    port = 8060,
+    port = get_random_unused_port(),
     hotkey = wallet.hotkey.ss58_address,
     coldkey = wallet.coldkey.ss58_address,
     protocol = 0
@@ -103,7 +103,6 @@ def test_receptor_backward_request_serialize_error():
     out, ops, time = receptor.backward( synapses, x,grads, timeout=1)
     assert ops == [bittensor.proto.ReturnCode.RequestSerializationException]*len(synapses)
 
-# -- forward testing --
 
 def test_receptor_neuron_text():
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
@@ -113,6 +112,18 @@ def test_receptor_neuron_text():
                                             [2, 4, bittensor.__vocab_size__],
                                             [2, (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1],
                                             [2, 70]]
+
+def test_receptor_neuron_text_backward():
+    x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
+    hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
+    causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
+    causallmnext_grads = torch.ones((x.size(0), (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1))
+    seq_2_seq_grads = torch.tensor([])
+
+    out, ops, time = receptor.backward(synapses, x, [hidden_grads, causal_grads, causallmnext_grads, seq_2_seq_grads], timeout=1)
+    assert ops == [bittensor.proto.ReturnCode.Success] * len(synapses)
+
+# -- forward testing --
 
 def test_receptor_neuron_request_empty():
     x = torch.tensor([])
@@ -279,16 +290,6 @@ def test_receptor_neuron_server_response_with_nans():
     assert out[3][0][0] != np.nan
 
 # -- backwards testing --
-
-def test_receptor_neuron_text_backward():
-    x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
-    hidden_grads = torch.ones((x.size(0), x.size(1), bittensor.__network_dim__))
-    causal_grads = torch.ones((x.size(0), x.size(1), bittensor.__vocab_size__))
-    causallmnext_grads = torch.ones((x.size(0), (bittensor.synapse.TextCausalLMNext().topk + 1), 1 + 1))
-    seq_2_seq_grads = torch.tensor([])
-    out, ops, time = receptor.backward(synapses, x, [hidden_grads, causal_grads, causallmnext_grads, seq_2_seq_grads], timeout=1)
-    assert ops == [bittensor.proto.ReturnCode.Unavailable] * len(synapses)
-
 def test_receptor_neuron_grads_misshape():
     x = torch.tensor([[1,2,3,4],[5,6,7,8]], dtype=torch.long)
     grads = torch.zeros([0,1,2,3,4])
@@ -432,13 +433,6 @@ def test_receptor_backward_endpoint_exception():
         assert ops == [bittensor.proto.ReturnCode.UnknownException] * len(synapses)
 
 def test_receptor_signature_output():
-    def verify_v1(signature: str):
-        (nonce, sender_address, signature, receptor_uuid) = signature.split("bitxx")
-        assert nonce == "123"
-        assert sender_address == "5Ey8t8pBJSYqLYCzeC3HiPJu5DxzXy2Dzheaj29wRHvhjoai"
-        assert receptor_uuid == "6d8b8788-6b6a-11ed-916f-0242c0a85003"
-        message = f"{nonce}{sender_address}{receptor_uuid}"
-        assert wallet.hotkey.verify(message, signature)
 
     def verify_v2(signature: str):
         (nonce, sender_address, signature, receptor_uuid) = signature.split(".")
@@ -449,7 +443,6 @@ def test_receptor_signature_output():
         assert wallet.hotkey.verify(message, signature)
 
     matrix = {
-        bittensor.__new_signature_version__ - 1: verify_v1,
         bittensor.__new_signature_version__: verify_v2,
     }
 
@@ -849,7 +842,7 @@ if __name__ == "__main__":
     # test_axon_receptor_connection_forward_works()
     # test_axon_receptor_connection_forward_unauthenticated()
     #test_axon_receptor_connection_forward_timeout()
-    test_axon_receptor_connection_backward_timeout()
+    test_receptor_neuron_text_backward()
     # test_axon_receptor_connection_backward_works()
     # test_axon_receptor_connection_backward_unimplemented()
     # test_axon_receptor_connection_forward_works()
