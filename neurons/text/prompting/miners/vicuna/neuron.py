@@ -21,7 +21,7 @@ import bittensor
 from typing import List, Dict
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-class PythiaMiner( bittensor.BasePromptingMiner ):
+class VicunaMiner( bittensor.BasePromptingMiner ):
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -29,23 +29,23 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument( '--pythia.model_name', type=str, help='Name/path of model to load', default="togethercomputer/Pythia-Chat-Base-7B" )
-        parser.add_argument( '--pythia.device', type=str, help='Device to load model', default="cuda" )
-        parser.add_argument( '--pythia.max_new_tokens', type=int, help='Max tokens for model output.', default=64 ) 
-        parser.add_argument( '--pythia.temperature', type=float, help='Sampling temperature of model', default=0.8 )
-        parser.add_argument( '--pythia.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
+        parser.add_argument( '--vicuna.model_name', type=str, help='Name/path of model to load', default="togethercomputer/Vicuna-Chat-Base-7B" )
+        parser.add_argument( '--vicuna.device', type=str, help='Device to load model', default="cuda" )
+        parser.add_argument( '--vicuna.max_new_tokens', type=int, help='Max tokens for model output.', default=64 ) 
+        parser.add_argument( '--vicuna.temperature', type=float, help='Sampling temperature of model', default=0.8 )
+        parser.add_argument( '--vicuna.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
         
     def __init__( self ):
-        super( PythiaMiner, self ).__init__()
+        super( VicunaMiner, self ).__init__()
         print ( self.config )
         
-        bittensor.logging.info( 'Loading ' + str(self.config.pythia.model_name))
-        self.tokenizer = AutoTokenizer.from_pretrained( self.config.pythia.model_name )
-        self.model = AutoModelForCausalLM.from_pretrained( self.config.pythia.model_name, torch_dtype = torch.float16 )
+        bittensor.logging.info( 'Loading ' + str(self.config.vicuna.model_name))
+        self.tokenizer = AutoTokenizer.from_pretrained( self.config.vicuna.model_name )
+        self.model = AutoModelForCausalLM.from_pretrained( self.config.vicuna.model_name, torch_dtype = torch.float16 )
         bittensor.logging.info( 'Model loaded!' )
 
-        if self.config.pythia.device != "cpu":
-            self.model = self.model.to( self.config.pythia.device )
+        if self.config.vicuna.device != "cpu":
+            self.model = self.model.to( self.config.vicuna.device )
 
 
     @staticmethod
@@ -65,13 +65,13 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
         history = self._process_history(messages)
         prompt = history + "<bot>:"
 
-        input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.config.pythia.device)
+        input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.config.vicuna.device)
 
         output = self.model.generate(
         input_ids,
-        max_length=input_ids.shape[1] + self.config.pythia.max_new_tokens,
-        temperature=self.config.pythia.temperature,
-        do_sample=self.config.pythia.do_sample,
+        max_length=input_ids.shape[1] + self.config.vicuna.max_new_tokens,
+        temperature=self.config.vicuna.temperature,
+        do_sample=self.config.vicuna.do_sample,
         pad_token_id=self.tokenizer.eos_token_id,
         )
 
@@ -85,4 +85,4 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
-    PythiaMiner().run()
+    VicunaMiner().run()
