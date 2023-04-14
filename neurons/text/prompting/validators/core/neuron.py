@@ -65,7 +65,7 @@ class neuron:
         logger.add( 
             config.neuron.full_path + "/" + "completions.log", 
             rotation="500 MB", serialize=True, enqueue=True, backtrace=True, diagnose=True, level="EVENT", 
-            format= "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message} | {extra[message]} {extra[completion]} {extra[uids]} {extra[rewards]} {extra[scores]} {extra[all_completions]} {extra[hotkeys]} {extra[block]}"
+            format = "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message} | {extra[prompt]} {extra[completion]} {extra[uids]} {extra[uids]} {extra[all_uids]} {extra[rewards]} {extra[scores]} {extra[all_completions]} {extra[hotkeys]} {extra[block]}"
         )
 
     def record_event( self, event: SimpleNamespace ):
@@ -73,9 +73,10 @@ class neuron:
         logger.log(
             "EVENT", 
             "event", 
-            message = event.message,
+            prompt = event.message,
             completion = event.completion,
             uids = event.uids,
+            all_uids = event.all_uids,
             rewards = event.rewards.tolist(),
             scores = event.scores.tolist(),
             all_completions = event.all_completions,
@@ -301,9 +302,11 @@ class neuron:
             uids = successful_uids,
             rewards = rewards,
             scores = scores,
-            all_completions = completions,
+            all_uids = topk_uids,
+            all_completions = successful_completions,
             hotkeys = copy.deepcopy( self.metagraph.hotkeys ),
             block = self.metagraph.block,
+            is_question = message == self.config.neuron.question_prompt,
         )
         self.record_event( event ) 
         return event
