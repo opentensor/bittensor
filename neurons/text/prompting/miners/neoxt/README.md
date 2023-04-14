@@ -26,6 +26,8 @@ usage: neuron.py [-h] [--neoxt.model_name NEOXT.MODEL_NAME] [--neoxt.device NEOX
 
 optional arguments:
   -h, --help            show this help message and exit
+  --neoxt.model_name NEOXT.MODEL_NAME
+                        Name/path of model to load of model to load
   --neoxt.device NEOXT.DEVICE
                         Device to load model
   --neoxt.max_new_tokens NEOXT.MAX_NEW_TOKENS
