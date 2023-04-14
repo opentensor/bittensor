@@ -38,7 +38,7 @@ Ask me a random question about anything. Make the question very domain specific.
 __default_base_prompt__ = '''
 You are designed to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics.
 '''
- 
+
 class neuron:
     @classmethod
     def check_config( cls, config: 'bt.Config' ):
@@ -98,7 +98,7 @@ class neuron:
         parser.add_argument( '--neuron.device', type = str, help = 'Device to run the validator on.', default = "cuda" if torch.cuda.is_available() else "cpu" )
         parser.add_argument( '--neuron.timeout', type = int, help = 'Query timeout.', default = 24 )
         parser.add_argument( '--neuron.epoch_length_override', type = int, help = 'Override the default timeout', default = -1 )
-        parser.add_argument( '--neuron.save_events', type = bool, action = 'store_true', help = 'Save events to a log file.', default = False )
+        parser.add_argument( '--neuron.save_events', action = 'store_true', help = 'Save events to a log file.', default = False )
 
     @classmethod
     def config ( cls ):
