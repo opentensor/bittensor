@@ -61,18 +61,18 @@ class neuron:
             )
         
         # Add custom event logger for the events.
-        logger.level("EVENT", no=38, icon="📝")
+        logger.level("EVENTS", no=38, icon="📝")
         logger.add( 
             config.neuron.full_path + "/" + "completions.log", 
-            rotation="500 MB", serialize=True, enqueue=True, backtrace=True, diagnose=True, level="EVENT", 
+            rotation="500 MB", serialize=True, enqueue=True, backtrace=False, diagnose=False, level="EVENTS", 
             format = "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message} | {extra[prompt]} {extra[completion]} {extra[uids]} {extra[all_uids]} {extra[rewards]} {extra[scores]} {extra[all_completions]} {extra[block]}"
         )
 
     def record_event( self, event: SimpleNamespace ):
         self.history.put( event )
         logger.log(
-            "EVENT", 
-            "event", 
+            "EVENTS", 
+            "events", 
             prompt = event.message,
             completion = event.completion,
             uids = event.uids.tolist(),
@@ -308,8 +308,7 @@ class neuron:
             block = self.metagraph.block,
             is_question = message == self.config.neuron.question_prompt,
         )
-        self.history.put( event )
-        #self.record_event( event ) 
+        self.record_event( event ) 
         return event
 
     # User queries here.
