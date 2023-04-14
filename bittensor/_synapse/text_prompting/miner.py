@@ -109,6 +109,29 @@ class BasePromptingMiner(ABC):
         if not os.path.exists( config.neuron.full_path ):
             os.makedirs( config.neuron.full_path )
 
+        # Add custom event logger for the events.
+        logger.level("EVENTS", no=38, icon="📝")
+        logger.add( 
+            config.neuron.full_path + "/" + "completions.log", 
+            rotation="500 MB", serialize=True, enqueue=True, backtrace=False, diagnose=False, level="EVENTS", 
+            format = "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message} | {extra[prompt]} {extra[completion]} {extra[uids]} {extra[all_uids]} {extra[rewards]} {extra[scores]} {extra[all_completions]} {extra[block]}"
+        )
+
+    def record_event( self, event: SimpleNamespace ):
+        self.history.put( event )
+        logger.log(
+            "EVENTS", 
+            "events", 
+            prompt = event.message,
+            completion = event.completion,
+            uids = event.uids.tolist(),
+            all_uids = event.all_uids.tolist(),
+            rewards = event.rewards.tolist(),
+            scores = event.scores.tolist(),
+            all_completions = event.all_completions,
+            block = event.block.item(),
+        )
+
     @classmethod
     def add_super_args( cls, parser: argparse.ArgumentParser ):
         cls.add_args(parser)
@@ -225,11 +248,11 @@ class BasePromptingMiner(ABC):
             while (current_block - last_update) < self.config.neuron.blocks_per_epoch:
                 time.sleep( 0.1 ) #bittensor.__blocktime__
                 current_block = self.subtensor.get_current_block()
-            last_update = self.axon.get_current_block()
+            last_update = self.subtensor.get_current_block()
 
             # --- Update the metagraph with the latest network state.
-            self.metagraph.sync(netuid=self.config.netuid, subtensor=self.subtensor)
-            uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+            self.metagraph.sync( netuid = self.config.netuid, subtensor = self.subtensor )
+            uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
 
             # --- Log performance.
             print(
@@ -243,7 +266,7 @@ class BasePromptingMiner(ABC):
             if not self.config.neuron.no_set_weights:
                 try:
                     # --- query the chain for the most current number of peers on the network
-                    chain_weights = torch.zeros(self.subtensor.subnetwork_n(netuid=self.config.netuid))
+                    chain_weights = torch.zeros( self.subtensor.subnetwork_n( netuid = self.config.netuid ))
                     chain_weights[uid] = 1
                     did_set = self.subtensor.set_weights(
                         uids=torch.arange(0, len(chain_weights)),

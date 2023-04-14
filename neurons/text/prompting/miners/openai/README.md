@@ -20,22 +20,31 @@ To run the OpenAI Bittensor Miner with default settings, use the following comma
 
 ```
 python3 -m pip install -r neurons/text/prompting/miners/openai/requirements.txt 
-python3 neurons/text/prompting/miners/openai/neuron.py --neuron.api_key <your OpenAI api_key>
+python3 neurons/text/prompting/miners/openai/neuron.py --openai.api_key <your OpenAI api_key>
 ```
 
 # Full Usage
 ```
-usage: neuron.py [-h] [--openai.api_key OPENAI.API_KEY] [--openai.suffix OPENAI.SUFFIX] [--openai.max_tokens OPENAI.MAX_TOKENS] [--openai.temperature OPENAI.TEMPERATURE] [--openai.top_p OPENAI.TOP_P]
-                 [--openai.n OPENAI.N] [--openai.stream] [--openai.logprobs OPENAI.LOGPROBS] [--openai.echo] [--openai.stop OPENAI.STOP] [--openai.presence_penalty OPENAI.PRESENCE_PENALTY]
-                 [--openai.frequency_penalty OPENAI.FREQUENCY_PENALTY] [--netuid NETUID] [--neuron.name NEURON.NAME] [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights]
-                 [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN] [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--wallet.name WALLET.NAME]
-                 [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock] [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS]
-                 [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT] [--axon.ip AXON.IP] [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP]
-                 [--axon.max_workers AXON.MAX_WORKERS] [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS] [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT]
-                 [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES] [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL]
-                 [--subtensor.register.no_output_in_place] [--subtensor.register.verbose] [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
-                 [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]] [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug] [--logging.trace]
-                 [--logging.record_log] [--logging.logging_dir LOGGING.LOGGING_DIR] [--metagraph._mock] [--config CONFIG] [--strict]
+usage: neuron.py [-h] [--openai.api_key OPENAI.API_KEY] [--openai.suffix OPENAI.SUFFIX] [--openai.max_tokens OPENAI.MAX_TOKENS]
+                 [--openai.temperature OPENAI.TEMPERATURE] [--openai.top_p OPENAI.TOP_P] [--openai.n OPENAI.N]
+                 [--openai.presence_penalty OPENAI.PRESENCE_PENALTY] [--openai.frequency_penalty OPENAI.FREQUENCY_PENALTY]
+                 [--openai.model_name OPENAI.MODEL_NAME] [--netuid NETUID] [--neuron.name NEURON.NAME]
+                 [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights]
+                 [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN]
+                 [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--neuron.blacklist.allow_non_registered]
+                 [--neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE] [--neuron.default_priority NEURON.DEFAULT_PRIORITY]
+                 [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock]
+                 [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS]
+                 [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT] [--axon.ip AXON.IP]
+                 [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP] [--axon.max_workers AXON.MAX_WORKERS]
+                 [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS] [--subtensor.network SUBTENSOR.NETWORK]
+                 [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT] [--subtensor._mock]
+                 [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
+                 [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL] [--subtensor.register.no_output_in_place]
+                 [--subtensor.register.verbose] [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
+                 [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]]
+                 [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug] [--logging.trace] [--logging.record_log]
+                 [--logging.logging_dir LOGGING.LOGGING_DIR] [--metagraph._mock] [--config CONFIG] [--strict]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -50,16 +59,12 @@ optional arguments:
   --openai.top_p OPENAI.TOP_P
                         Nucleus sampling parameter, top_p probability mass.
   --openai.n OPENAI.N   How many completions to generate for each prompt.
-  --openai.stream       Whether to stream back partial progress.
-  --openai.logprobs OPENAI.LOGPROBS
-                        Include the log probabilities on the logprobs most likely tokens.
-  --openai.echo         Echo back the prompt in addition to the completion.
-  --openai.stop OPENAI.STOP
-                        Up to 4 sequences where the API will stop generating further tokens.
   --openai.presence_penalty OPENAI.PRESENCE_PENALTY
                         Penalty for tokens based on their presence in the text so far.
   --openai.frequency_penalty OPENAI.FREQUENCY_PENALTY
                         Penalty for tokens based on their frequency in the text so far.
+  --openai.model_name OPENAI.MODEL_NAME
+                        OpenAI model to use for completion.
   --netuid NETUID       Subnet netuid
   --neuron.name NEURON.NAME
                         Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name
@@ -73,6 +78,12 @@ optional arguments:
                         The maximum sequence length for forward requests.
   --neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]
                         To blacklist certain hotkeys
+  --neuron.blacklist.allow_non_registered
+                        If True, the miner will allow non-registered hotkeys to mine.
+  --neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE
+                        Set default stake for miners.
+  --neuron.default_priority NEURON.DEFAULT_PRIORITY
+                        Set default priority for miners.
   --wallet.name WALLET.NAME
                         The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)
   --wallet.hotkey WALLET.HOTKEY
@@ -94,12 +105,14 @@ optional arguments:
   --axon.external_ip AXON.EXTERNAL_IP
                         The external ip this axon broadcasts to the network to. ie. [::]
   --axon.max_workers AXON.MAX_WORKERS
-                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes new worker threads to service requests up to this number.
+                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes
+                        new worker threads to service requests up to this number.
   --axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS
                         Maximum number of allowed active connections
   --subtensor.network SUBTENSOR.NETWORK
-                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running network) -- mock (creates a mock connection (for testing)) If this option is set it
-                        overloads subtensor.chain_endpoint with an entry point node from that network.
+                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running network) --
+                        mock (creates a mock connection (for testing)) If this option is set it overloads subtensor.chain_endpoint with an
+                        entry point node from that network.
   --subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT
                         The subtensor endpoint flag. If set, overrides the --network flag.
   --subtensor._mock     To turn on subtensor mocking for testing purposes.

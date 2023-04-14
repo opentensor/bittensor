@@ -24,12 +24,12 @@ import bittensor
 import argparse
 import bittensor as bt
 
+from loguru import logger
 from types import SimpleNamespace
 from typing import List, Optional, Tuple, Dict
 from reward import RewardModel
 from gating import GatingModel
 from transformers import AutoTokenizer
-from dataclasses import dataclass, field, asdict
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific. Do not include the answer in the question.
@@ -38,7 +38,7 @@ Ask me a random question about anything. Make the question very domain specific.
 __default_base_prompt__ = '''
 You are designed to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics.
 '''
-        
+
 class neuron:
     @classmethod
     def check_config( cls, config: 'bt.Config' ):
@@ -49,9 +49,40 @@ class neuron:
         bt.subtensor.check_config( config )
         bt.metagraph.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}/netuid{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.netuid, config.neuron.name ))
-        config.neuron.full_path = os.path.expanduser(full_path)
-        if not os.path.exists(config.neuron.full_path):
-            os.makedirs(config.neuron.full_path)
+        config.neuron.full_path = os.path.expanduser( full_path )
+        config.neuron.reward_path = os.path.expanduser( config.neuron.reward_path )
+        if not os.path.exists( config.neuron.full_path ):
+            os.makedirs( config.neuron.full_path, exist_ok = True)
+        if not os.path.exists( config.neuron.reward_path + '/hf_ckpt.pt' ):
+            os.makedirs( config.neuron.reward_path, exist_ok = True )
+            os.system(
+                f"wget -O { config.neuron.reward_path + '/hf_ckpt.pt'} \
+                https://huggingface.co/Dahoas/gptj-rm-static/resolve/main/hf_ckpt.pt"
+            )
+        if not config.neuron.dont_save_events:
+            # Add custom event logger for the events.
+            logger.level("EVENTS", no=38, icon="📝")
+            logger.add( 
+                config.neuron.full_path + "/" + "completions.log", 
+                rotation=config.neuron.events_retention_size, serialize=True, enqueue=True, backtrace=False, diagnose=False, level="EVENTS", 
+                format = "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message} | {extra[prompt]} {extra[completion]} {extra[uids]} {extra[all_uids]} {extra[rewards]} {extra[scores]} {extra[all_completions]} {extra[block]}"
+            )
+
+    def record_event( self, event: SimpleNamespace ):
+        self.history.put( event )
+        if not self.config.neuron.dont_save_events:
+            logger.log(
+                "EVENTS", 
+                "events", 
+                prompt = event.message,
+                completion = event.completion,
+                uids = event.uids.tolist(),
+                all_uids = event.all_uids.tolist(),
+                rewards = event.rewards.tolist(),
+                scores = event.scores.tolist(),
+                all_completions = event.all_completions,
+                block = event.block.item(),
+            )
 
     @classmethod
     def add_args( cls, parser ):
@@ -66,6 +97,11 @@ class neuron:
         parser.add_argument( '--neuron.training_topk', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
         parser.add_argument( '--neuron.reward_path', type = str, help = 'Path to reward model.', default = '~/.bittensor/reward_models' )
         parser.add_argument( '--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 1000 )
+        parser.add_argument( '--neuron.device', type = str, help = 'Device to run the validator on.', default = "cuda" if torch.cuda.is_available() else "cpu" )
+        parser.add_argument( '--neuron.timeout', type = int, help = 'Query timeout.', default = 24 )
+        parser.add_argument( '--neuron.epoch_length_override', type = int, help = 'Override the default timeout', default = -1 )
+        parser.add_argument( '--neuron.dont_save_events', action = 'store_true', help = 'If set, we dont save events to a log file.', default = False )
+        parser.add_argument( '--neuron.events_retention_size',  type = str,  help = 'Events retention size.', default = "500 MB" )
 
     @classmethod
     def config ( cls ):
@@ -78,22 +114,14 @@ class neuron:
         cls.add_args( parser )
         return bt.config( parser )
     
-    def __init__( self, config=None ):
-        self.config = config if config is not None else neuron.config()
-        self.check_config(self.config)
-        bt.logging( config = self.config )
-        self.config.neuron.reward_path = os.path.expanduser(self.config.neuron.reward_path)
-        if not os.path.exists( self.config.neuron.full_path):
-            os.makedirs(self.config.neuron.full_path, exist_ok=True)
-        if not os.path.exists( self.config.neuron.reward_path + '/hf_ckpt.pt' ):
-            os.makedirs(self.config.neuron.reward_path, exist_ok=True)
-            os.system(
-                f"wget -O {self.config.neuron.reward_path + '/hf_ckpt.pt'} \
-                https://huggingface.co/Dahoas/gptj-rm-static/resolve/main/hf_ckpt.pt"
-            )
-
+    def __init__( self ):
+        self.config = neuron.config()
+        self.check_config( self.config )
+        bt.logging( config = self.config, logging_dir = self.config.neuron.full_path )
+        print( self.config )
+        
         self.subtensor = bt.subtensor ( config = self.config )
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device( self.config.neuron.device )
         self.wallet = bt.wallet ( config = self.config )
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
         self.wallet.create_if_non_existent()
@@ -102,7 +130,7 @@ class neuron:
         self.tokenizer = AutoTokenizer.from_pretrained( 'EleutherAI/gpt-j-6b' )
 
         # Reward model
-        self.reward_model = RewardModel('EleutherAI/gpt-j-6b')
+        self.reward_model = RewardModel( model_path = 'EleutherAI/gpt-j-6b', device = self.config.neuron.device )
         for fpath in os.listdir( self.config.neuron.reward_path ):
             if fpath.endswith(".pt") or fpath.endswith(".bin"):
                 checkpoint = os.path.join( self.config.neuron.reward_path, fpath )
@@ -155,9 +183,9 @@ class neuron:
             bittensor.logging.debug( 'moving_averaged_scores', moving_averaged_scores )
 
             # If the hotkeys have changed, reset the moving averaged scores for the new hotkeys.
-            if last_hotkeys is None:
-                for uid, hotkey in enumerate( event.hotkeys ):
-                    if hotkey != last_hotkeys[ uid ]:
+            if last_hotkeys is not None:
+                for uid, hotkey in enumerate( last_hotkeys ):
+                    if hotkey != event.hotkeys[ uid ]:
                         moving_averaged_scores[ uid ] = 0
             # Update the last hotkeys.
             last_hotkeys = event.hotkeys
@@ -171,7 +199,8 @@ class neuron:
      
         # Process the raw weights to final_weights via subtensor limitations.
         processed_weight_uids, processed_weights = bittensor.utils.weight_utils.process_weights_for_netuid(
-            weights = raw_weights,
+            uids = self.metagraph.uids.to( "cpu" ),
+            weights = raw_weights.to( "cpu" ),
             netuid = self.config.netuid,
             subtensor = self.subtensor,
             metagraph = self.metagraph
@@ -216,8 +245,9 @@ class neuron:
         available_uids = torch.tensor( [ uid for uid, ep in enumerate( self.metagraph.endpoint_objs ) if ep.is_serving ], dtype = torch.int64 ).to( self.device )
         if topk is None or topk == -1: topk = self.metagraph.n.item()
         if topk > len( available_uids ): topk = len( available_uids )
-        bittensor.logging.debug( 'topk', topk)
         if len( available_uids ) == 0: bittensor.logging.error('no available uids'); return None
+        bittensor.logging.debug( 'available_uids', available_uids )
+        bittensor.logging.debug( 'topk', topk)
 
         # We run the gating network here to get the best uids
         # Use the gating model to generate scores for each `uid`.
@@ -235,9 +265,9 @@ class neuron:
             prompt = self.config.neuron.base_prompt, 
             message = message, 
             uids = topk_uids, 
+            timeout = self.config.neuron.timeout,
         )
         bittensor.logging.debug( 'topk_uids', topk_uids )
-        bittensor.logging.debug( 'completions', completions )
 
         # Filter out any `None` `completions`.
         successful_uids = torch.tensor([uid for uid, completion in list(zip(topk_uids, completions)) if completion is not None and completion.response is not None and len(completion.response) > 10], dtype=torch.int64).to(self.device)
@@ -268,21 +298,20 @@ class neuron:
 
         # Save the query history in a `result` object.
         # Return the `completion` with the highest reward.
-        result = SimpleNamespace( 
+        event = SimpleNamespace( 
             completion = successful_completions[ rewards.argmax( dim = 0 ) ],
             message = message,  
             uids = successful_uids,
             rewards = rewards,
             scores = scores,
-            all_completions = completions,
+            all_uids = topk_uids,
+            all_completions = successful_completions,
             hotkeys = copy.deepcopy( self.metagraph.hotkeys ),
             block = self.metagraph.block,
+            is_question = message == self.config.neuron.question_prompt,
         )
-        self.history.put( result )
-
-        # Return the completion with the highest reward.
-        bittensor.logging.debug( 'forward result', result )
-        return result
+        self.record_event( event ) 
+        return event
 
     # User queries here.
     def inference( self, message: str) -> str:
@@ -305,7 +334,7 @@ class neuron:
             the question and the resulting completions.
         """
         # Store the current epoch block number for comparison later.
-        last_epoch_block = self.subtensor.block + 100
+        last_epoch_block = self.subtensor.block
         
         # Start an infinite loop for training.
         while True:
@@ -328,11 +357,14 @@ class neuron:
             )
 
             # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
-            if last_epoch_block % 75 == 0:
+            if last_epoch_block % 10 == 0:
                 self.metagraph = self.metagraph.sync(netuid=self.config.netuid, subtensor=self.subtensor)
 
             # Check if enough epoch blocks have elapsed since the last epoch.
-            if self.subtensor.block - last_epoch_block > self.subtensor.validator_epoch_length( self.config.netuid ): 
+            epoch_length = self.subtensor.validator_epoch_length(self.config.netuid) if self.config.neuron.epoch_length_override == -1 else self.config.neuron.epoch_length_override
+            blocks_until_epoch = epoch_length - ( self.subtensor.block - last_epoch_block )
+            bittensor.logging.info( 'blocks_until_epoch', blocks_until_epoch )
+            if blocks_until_epoch <= 0: 
                 bittensor.logging.info( 'epoch()' )
                 bittensor.logging.info( 'block', self.subtensor.block )
 
