@@ -65,7 +65,7 @@ class ChatGLMMiner( bittensor.BasePromptingMiner ):
         history = self._process_history(messages)
         prompt = history[-1][-1]
         if len(history) == 1:
-            histroy = []
+            history = []
 
         generation, history = self.model.chat(
             self.tokenizer,
