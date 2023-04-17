@@ -48,11 +48,9 @@ local_endpoint = bittensor.endpoint(
     modality=0,
 )
 
-metagraph = None # Allow offline testing with unregistered keys.
-axon = bittensor.axon(wallet=wallet, port=9090, ip="127.0.0.1", metagraph=metagraph)
+axon = bittensor.axon(wallet=wallet, port=9090, ip="127.0.0.1", metagraph=None)
 
-synapse = Synapse()
-axon.attach(synapse=synapse)
+synapse = Synapse( axon = axon )
 axon.start()
 
 batch_size = 4
@@ -67,7 +65,7 @@ forward_response = module.forward(
 backward_response = module.backward(
     roles = ['user', 'assistant'],
     messages = [{ "user": "Human", "content": "hello"}],
-    response = forward_response.response,
+    completion = forward_response.completion,
     rewards = [1,2,3,4,5],
     timeout = 1e6
 )

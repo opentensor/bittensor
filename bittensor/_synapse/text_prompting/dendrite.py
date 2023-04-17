@@ -21,7 +21,7 @@ import asyncio
 import bittensor
 from typing import Callable, List, Dict, Union
 
-class TextPromptingForwardCall( bittensor.DendriteCall ):
+class DendriteForwardCall( bittensor.DendriteCall ):
 
     name: str = "text_prompting_forward"
     is_forward: bool = True
@@ -29,7 +29,7 @@ class TextPromptingForwardCall( bittensor.DendriteCall ):
 
     def __init__(
         self,
-        dendrite: bittensor.TextPromptingDendrite,
+        dendrite: 'bittensor.TextPromptingDendrite',
         messages: List[str],
         roles: List[str],
         timeout: float = bittensor.__blocktime__,
@@ -39,8 +39,8 @@ class TextPromptingForwardCall( bittensor.DendriteCall ):
         self.roles = roles
         self.packed_messages = [json.dumps({"role": role, "content": message}) for role, message in zip(self.roles, self.messages)]
 
-    def callable( self ) -> Callable:
-        bittensor.grpc.TextPromptingStub( self.dendrite.receptor.channel ).Forward
+    def get_callable( self ) -> Callable:
+        return bittensor.grpc.TextPromptingStub( self.dendrite.receptor.channel ).Forward
 
     def get_request_proto( self ) -> bittensor.proto.ForwardTextPromptingRequest:
         return bittensor.ForwardTextPromptingRequest( timeout = self.timeout, messages = self.packed_messages )
@@ -48,20 +48,20 @@ class TextPromptingForwardCall( bittensor.DendriteCall ):
     def apply_response_proto( self, response_proto: bittensor.ForwardTextPromptingResponse ):
         self.completion = response_proto.response
         
-    def get_inputs_shape(self) -> Union[torch.Size, None]: 
+    def get_inputs_shape(self) -> torch.Size: 
         return torch.Size( [len(message) for message in self.packed_messages] )
 
-    def get_outputs_shape(self) -> Union[torch.Size, None]:
+    def get_outputs_shape(self) -> torch.Size:
         return torch.Size([ len(self.completion) ] )
     
-class TextPromptingBackwardCall( bittensor.DendriteCall ):
+class DendriteBackwardCall( bittensor.DendriteCall ):
 
     name: str = "text_prompting_backward"
     is_forward: bool = False
     
     def __init__(
         self,
-        dendrite: bittensor.TextPromptingDendrite,
+        dendrite: 'bittensor.TextPromptingDendrite',
         completion: str,
         messages: List[str],
         roles: List[str],
@@ -75,19 +75,19 @@ class TextPromptingBackwardCall( bittensor.DendriteCall ):
         self.rewards = rewards if not isinstance( rewards, torch.FloatTensor ) else rewards.tolist()
         self.packed_messages = [ json.dumps({"role": role, "content": message}) for role, message in zip(self.roles, self.messages)]
 
-    def callable( self ) -> Callable:
-        bittensor.grpc.TextPromptingStub( self.dendrite.receptor.channel ).Backward
+    def get_callable( self ) -> Callable:
+        return bittensor.grpc.TextPromptingStub( self.dendrite.receptor.channel ).Backward
 
-    def get_request_proto( self ) -> bittensor.proto.ForwardTextPromptingRequest:
-        return bittensor.BackwardTextPromptingRequest( messages = self.packed_messages, response = self.completion, rewards = self.rewards )
+    def get_request_proto( self ) -> bittensor.proto.BackwardTextPromptingRequest:
+        return bittensor.BackwardTextPromptingRequest( messages = self.packed_messages, response = self.completion, rewards = self.rewards, timeout = self.timeout )
     
     def apply_response_proto( self, response_proto: bittensor.ForwardTextPromptingResponse ):
         pass
         
-    def get_inputs_shape(self) -> Union[torch.Size, None]:
+    def get_inputs_shape(self) -> torch.Size:
         return torch.Size( [len(message) for message in self.packed_messages] )
 
-    def get_outputs_shape(self) -> Union[torch.Size, None]:
+    def get_outputs_shape(self) -> torch.Size:
         return torch.Size( [0] )
 
 
@@ -102,8 +102,8 @@ class TextPromptingDendrite( bittensor.Dendrite ):
             messages: List[ str ],
             timeout: float = bittensor.__blocktime__,
             return_call:bool = True,
-        ) -> Union[ str, TextPromptingForwardCall ]:
-        forward_call = TextPromptingForwardCall(
+        ) -> Union[ str, DendriteForwardCall ]:
+        forward_call = DendriteForwardCall(
             dendrite = self, 
             messages = messages,
             roles = roles,
@@ -120,8 +120,8 @@ class TextPromptingDendrite( bittensor.Dendrite ):
         messages: List[ str ],
         timeout: float = bittensor.__blocktime__,
         return_call: bool = True,
-    ) -> Union[ str, TextPromptingForwardCall ]:
-        forward_call = TextPromptingForwardCall(
+    ) -> Union[ str, DendriteForwardCall ]:
+        forward_call = DendriteForwardCall(
             dendrite = self, 
             messages = messages,
             roles = roles,
@@ -138,8 +138,8 @@ class TextPromptingDendrite( bittensor.Dendrite ):
             completion: str,
             rewards: Union[ List[ float], torch.FloatTensor ],
             timeout: float = bittensor.__blocktime__,
-        ) -> TextPromptingBackwardCall:
-        backward_call = TextPromptingBackwardCall(
+        ) -> DendriteBackwardCall:
+        backward_call = DendriteBackwardCall(
             dendrite = self,
             completion = completion,
             messages = messages,
@@ -157,8 +157,8 @@ class TextPromptingDendrite( bittensor.Dendrite ):
         completion: str,        
         rewards: Union[ List[ float], torch.FloatTensor ],
         timeout: float = bittensor.__blocktime__,
-    ) -> TextPromptingBackwardCall:
-        backward_call = TextPromptingBackwardCall(
+    ) -> DendriteBackwardCall:
+        backward_call = DendriteBackwardCall(
             dendrite = self,
             completion = completion,
             messages = messages,
