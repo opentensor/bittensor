@@ -23,7 +23,7 @@ from loguru import logger
 from substrateinterface.base import Keypair
 
 import bittensor
-from bittensor.utils import CUDASolver
+from bittensor.utils.registration import _CUDASolver
 
 
 @fixture(scope="function")
@@ -108,7 +108,7 @@ class TestRegistrationHelpers(unittest.TestCase):
         block_and_hotkey_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
         block_and_hotkey_hash_bytes = bytes.fromhex(block_and_hotkey_hash[2:])
         nonce = 10
-        seal_hash = bittensor.utils.create_seal_hash(block_and_hotkey_hash_bytes, nonce)
+        seal_hash = bittensor.utils.registration._create_seal_hash(block_and_hotkey_hash_bytes, nonce)
         self.assertEqual(seal_hash, b'\xc5\x01B6"\xa8\xa5FDPK\xe49\xad\xdat\xbb:\x87d\x13/\x86\xc6:I8\x9b\x88\xf0\xc20')
 
     def test_seal_meets_difficulty(self):
@@ -121,11 +121,11 @@ class TestRegistrationHelpers(unittest.TestCase):
         seal = hashlib.sha256( bytearray(pre_seal) ).digest()
 
         difficulty = 1
-        meets = bittensor.utils.seal_meets_difficulty( seal, difficulty, limit )
+        meets = bittensor.utils.registration._seal_meets_difficulty( seal, difficulty, limit )
         assert meets == True
 
         difficulty = 10
-        meets = bittensor.utils.seal_meets_difficulty( seal, difficulty, limit )
+        meets = bittensor.utils.registration._seal_meets_difficulty( seal, difficulty, limit )
         assert meets == False
 
     def test_solve_for_difficulty_fast(self):
@@ -142,15 +142,15 @@ class TestRegistrationHelpers(unittest.TestCase):
         num_proc: int = 1
         limit = int(math.pow(2,256))- 1  
 
-        solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )   
+        solution = bittensor.utils.registration._solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )   
         seal = solution.seal
 
-        assert bittensor.utils.seal_meets_difficulty(seal, 1, limit)
+        assert bittensor.utils.registration._seal_meets_difficulty(seal, 1, limit)
         
         subtensor.difficulty = MagicMock( return_value=10 )
-        solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
+        solution = bittensor.utils.registration._solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
         seal = solution.seal
-        assert bittensor.utils.seal_meets_difficulty(seal, 10, limit)
+        assert bittensor.utils.registration._seal_meets_difficulty(seal, 10, limit)
     
     def test_solve_for_difficulty_fast_registered_already(self):
         # tests if the registration stops after the first block of nonces
@@ -171,7 +171,7 @@ class TestRegistrationHelpers(unittest.TestCase):
             )
 
             # all arugments should return None to indicate an early return
-            solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes = 1, update_interval = 1000)
+            solution = bittensor.utils.registration._solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes = 1, update_interval = 1000)
 
             assert solution is None
             # called every time until True
@@ -191,29 +191,29 @@ class TestRegistrationHelpers(unittest.TestCase):
         num_proc: int = 1
         limit = int(math.pow(2,256))- 1  
 
-        solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
+        solution = bittensor.utils.registration._solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
         seal = solution.seal
-        assert bittensor.utils.seal_meets_difficulty(seal, 1, limit)
+        assert bittensor.utils.registration._seal_meets_difficulty(seal, 1, limit)
         
         subtensor.difficulty = MagicMock( return_value=10 )
-        solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
+        solution = bittensor.utils.registration._solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
         seal = solution.seal
-        assert bittensor.utils.seal_meets_difficulty(seal, 10, limit)
+        assert bittensor.utils.registration._seal_meets_difficulty(seal, 10, limit)
 
     def test_registration_diff_pack_unpack_under_32_bits(self):
         fake_diff = pow(2, 31)# this is under 32 bits
         
         mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
         
-        bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
-        assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
+        bittensor.utils.registration._registration_diff_pack(fake_diff, mock_diff)
+        assert bittensor.utils.registration._registration_diff_unpack(mock_diff) == fake_diff
 
     def test_registration_diff_pack_unpack_over_32_bits(self):
         mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
         fake_diff = pow(2, 32) * pow(2, 4) # this should be too large if the bit shift is wrong (32 + 4 bits)
         
-        bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
-        assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
+        bittensor.utils.registration._registration_diff_pack(fake_diff, mock_diff)
+        assert bittensor.utils.registration._registration_diff_unpack(mock_diff) == fake_diff
 
     def test_hash_block_with_hotkey(self):
         block_hash_bytes = bytes.fromhex('ba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279')
@@ -223,7 +223,7 @@ class TestRegistrationHelpers(unittest.TestCase):
         hotkey_bytes = hotkey.public_key
         
         expected_hash = '3917916c324bb85e06ca3931b3defda25e38dcd9272b4b28c37c32cf1b2df8b9ad4d2acedc84ee8f0e82a47d7b54b0be1bccd25b0b159b09c54ba306862cb638'
-        result_hash = bittensor.utils.hash_block_with_hotkey(block_hash_bytes, hotkey_bytes)
+        result_hash = bittensor.utils.registration._hash_block_with_hotkey(block_hash_bytes, hotkey_bytes)
         self.assertEqual(result_hash.hex(), expected_hash)
 
     def test_update_curr_block(self):
@@ -237,18 +237,17 @@ class TestRegistrationHelpers(unittest.TestCase):
         hotkey_bytes = bytes.fromhex('0'*64)
         lock: Union[multiprocessing.Lock, MagicMock] = MagicMock()
 
-        bittensor.utils.update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, diff, hotkey_bytes, lock)
+        bittensor.utils.registration._update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, diff, hotkey_bytes, lock)
 
         self.assertEqual(curr_block_num.value, block_number)
         
         self.assertEqual(curr_diff[0], diff >> 32)
         self.assertEqual(curr_diff[1], diff & 0xFFFFFFFF)
 
-        hash_of_block_and_hotkey = bittensor.utils.hash_block_with_hotkey(block_bytes, hotkey_bytes)
+        hash_of_block_and_hotkey = bittensor.utils.registration._hash_block_with_hotkey(block_bytes, hotkey_bytes)
         self.assertEqual(curr_block[:], [int(byte_) for byte_ in hash_of_block_and_hotkey])
 
     def test_solve_for_nonce_block(self):
-        solver = MagicMock()
         nonce_start = 0
         nonce_end = 10_000
         block_and_hotkey_hash_bytes = bytes.fromhex('9dda24e4199df410e18a43044b3069078f796922b0247b8749aecb577b09bd59')
@@ -257,25 +256,25 @@ class TestRegistrationHelpers(unittest.TestCase):
         block_number = 1
 
         difficulty = 1
-        result = bittensor.utils.solve_for_nonce_block(solver, nonce_start, nonce_end, block_and_hotkey_hash_bytes, difficulty, limit, block_number)
+        result = bittensor.utils.registration._solve_for_nonce_block(nonce_start, nonce_end, block_and_hotkey_hash_bytes, difficulty, limit, block_number)
 
         self.assertIsNotNone(result)
         self.assertEqual(result.block_number, block_number)
         self.assertEqual(result.difficulty, difficulty)
 
         # Make sure seal meets difficulty
-        self.assertTrue(bittensor.utils.seal_meets_difficulty(result.seal, difficulty, limit))
+        self.assertTrue(bittensor.utils.registration._seal_meets_difficulty(result.seal, difficulty, limit))
 
         # Test with a higher difficulty
         difficulty = 10
-        result = bittensor.utils.solve_for_nonce_block(solver, nonce_start, nonce_end, block_and_hotkey_hash_bytes, difficulty, limit, block_number)
+        result = bittensor.utils.registration._solve_for_nonce_block(nonce_start, nonce_end, block_and_hotkey_hash_bytes, difficulty, limit, block_number)
 
         self.assertIsNotNone(result)
         self.assertEqual(result.block_number, block_number)
         self.assertEqual(result.difficulty, difficulty)
 
         # Make sure seal meets difficulty
-        self.assertTrue(bittensor.utils.seal_meets_difficulty(result.seal, difficulty, limit))
+        self.assertTrue(bittensor.utils.registration._seal_meets_difficulty(result.seal, difficulty, limit))
 
 class TestSS58Utils(unittest.TestCase):
     def test_is_valid_ss58_address(self):
@@ -325,7 +324,7 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
         current_block_num: int = 1
         subtensor.get_current_block = MagicMock( return_value=current_block_num )
 
-        self.assertEqual(bittensor.utils.check_for_newest_block_and_update(
+        self.assertEqual(bittensor.utils.registration._check_for_newest_block_and_update(
             subtensor,
             -1, # netuid
             MagicMock(),
@@ -377,7 +376,7 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
             difficulty=0,
         )
 
-        self.assertEqual(bittensor.utils.check_for_newest_block_and_update(
+        self.assertEqual(bittensor.utils.registration._check_for_newest_block_and_update(
             subtensor,
             -1, # netuid
             MagicMock(),
@@ -403,17 +402,20 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
         self.assertEqual(mock_curr_stats.difficulty, current_diff + 1)
 
 class TestGetBlockWithRetry(unittest.TestCase):
+    class MockException(Exception):
+        pass
+
     def test_get_block_with_retry_network_error_exit(self):
         mock_subtensor = MagicMock(
             get_current_block=MagicMock(return_value=1),
             difficulty=MagicMock(return_value=1),
             substrate=MagicMock(
-                get_block_hash=MagicMock(side_effect=Exception('network error'))
+                get_block_hash=MagicMock(side_effect=self.MockException('network error'))
             )
         )
-        with pytest.raises(Exception):
+        with pytest.raises(self.MockException):
             # this should raise an exception because the network error is retried only 3 times
-            bittensor.utils.get_block_with_retry(mock_subtensor)
+            bittensor.utils.registration._get_block_with_retry(mock_subtensor, -1)
 
     def test_get_block_with_retry_network_error_no_error(self):
         mock_subtensor = MagicMock(
@@ -425,7 +427,7 @@ class TestGetBlockWithRetry(unittest.TestCase):
         )
 
         # this should not raise an exception because there is no error
-        bittensor.utils.get_block_with_retry(mock_subtensor, -1)
+        bittensor.utils.registration._get_block_with_retry(mock_subtensor, -1)
 
     def test_get_block_with_retry_network_error_none_twice(self):
         # Should retry twice then succeed on the third try
@@ -448,55 +450,70 @@ class TestGetBlockWithRetry(unittest.TestCase):
         )
         
         # this should not raise an exception because there is no error on the third try
-        bittensor.utils.get_block_with_retry(mock_subtensor, -1)
+        bittensor.utils.registration._get_block_with_retry(mock_subtensor, -1)
 class TestPOWNotStale(unittest.TestCase):
     def test_pow_not_stale_same_block_number(self):
         mock_subtensor = MagicMock(
             get_current_block=MagicMock(return_value=1),
         )
-        mock_solution = {
-            "block_number": 1,
-        }
+        mock_solution = bittensor.utils.registration.POWSolution(
+            block_number= 1, # 3 less than current block number
+            nonce= 1,
+            difficulty= 1,
+            seal= b'',
+        )
 
-        assert bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+        assert not mock_solution.is_stale(mock_subtensor)
 
     def test_pow_not_stale_diff_block_number(self):
         mock_subtensor = MagicMock(
             get_current_block=MagicMock(return_value=2),
         )
-        mock_solution = {
-            "block_number": 1, # 1 less than current block number
-        }
+        mock_solution = bittensor.utils.registration.POWSolution(
+            block_number= 1, # 1 less than current block number
+            nonce= 1,
+            difficulty= 1,
+            seal= b'',
+        )
 
-        assert bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+        assert not mock_solution.is_stale(mock_subtensor)
 
         mock_subtensor = MagicMock(
             get_current_block=MagicMock(return_value=3),
         )
-        mock_solution = {
-            "block_number": 1, # 2 less than current block number
-        }
+        mock_solution = bittensor.utils.registration.POWSolution(
+            block_number= 1, # 2 less than current block number
+            nonce= 1,
+            difficulty= 1,
+            seal= b'',
+        )
 
-        assert bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+        assert not mock_solution.is_stale(mock_subtensor)
 
         mock_subtensor = MagicMock(
             get_current_block=MagicMock(return_value=4),
         )
-        mock_solution = {
-            "block_number": 1, # 3 less than current block number
-        }
+        mock_solution = bittensor.utils.registration.POWSolution(
+            block_number= 1, # 3 less than current block number
+            nonce= 1,
+            difficulty= 1,
+            seal= b'',
+        )
 
-        assert bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+        assert not mock_solution.is_stale(mock_subtensor)
 
     def test_pow_not_stale_diff_block_number_too_old(self):
         mock_subtensor = MagicMock(
             get_current_block=MagicMock(return_value=5),
         )
-        mock_solution = {
-            "block_number": 1, # 4 less than current block number, stale
-        }
+        mock_solution = bittensor.utils.registration.POWSolution(
+            block_number= 1, # 4 less than current block number
+            nonce= 1,
+            difficulty= 1,
+            seal= b'',
+        )
 
-        assert not bittensor.utils.POWNotStale(mock_subtensor, mock_solution)
+        assert mock_solution.is_stale(mock_subtensor)
     
 class TestPOWCalled(unittest.TestCase):
     def test_pow_called_for_cuda(self):
@@ -514,42 +531,48 @@ class TestPOWCalled(unittest.TestCase):
         )
 
         mock_wallet = SimpleNamespace(
-            hotkey=SimpleNamespace(
-                ss58_address=''
+            hotkey=bittensor.Keypair.create_from_seed(
+                '0x' + '0' * 64, ss58_format=bittensor.__ss58_format__
             ),
             coldkeypub=SimpleNamespace(
                 ss58_address=''
             )
         )
 
-        mock_result = {
-            "block_number": 1,
-            'nonce': random.randint(0, pow(2, 32)),
-            'work': b'\x00' * 64,
-        }
+        mock_pow_is_stale = MagicMock(return_value=False)
+
+        mock_result = MagicMock(
+            spec = bittensor.utils.registration.POWSolution,
+            block_number=1,
+            nonce=random.randint(0, pow(2, 32)),
+            difficulty=1,
+            seal=b'\x00' * 64,
+            is_stale=mock_pow_is_stale,
+        )
         
-        with patch('bittensor.utils.POWNotStale', return_value=True) as mock_pow_not_stale:
-            with patch('torch.cuda.is_available', return_value=True) as mock_cuda_available:
-                with patch('bittensor.utils.create_pow', return_value=mock_result) as mock_create_pow:
-                    with patch('bittensor.utils.hex_bytes_to_u8_list', return_value=b''):
-                    
-                        # Should exit early
-                        with pytest.raises(MockException):
-                            mock_subtensor.register(mock_wallet, netuid=-1, cuda=True, prompt=False)
 
-                        mock_pow_not_stale.assert_called_once()
-                        mock_create_pow.assert_called_once()
-                        mock_cuda_available.assert_called_once()
+        with patch('torch.cuda.is_available', return_value=True) as mock_cuda_available:
+            with patch(
+                'bittensor._subtensor.extrinsics.registration.create_pow',
+                return_value=mock_result
+            ) as mock_create_pow:
+                # Should exit early
+                with pytest.raises(MockException):
+                    mock_subtensor.register(mock_wallet, netuid=-1, cuda=True, prompt=False)
 
-                        call0 = mock_pow_not_stale.call_args
-                        assert call0[0][0] == mock_subtensor
-                        assert call0[0][1] == mock_result
+                mock_pow_is_stale.assert_called_once()
+                mock_create_pow.assert_called_once()
+                mock_cuda_available.assert_called_once()
 
-                        mock_compose_call.assert_called_once()
-                        call1 = mock_compose_call.call_args
-                        assert call1[1]['call_function'] == 'register'
-                        call_params = call1[1]['call_params']
-                        assert call_params['nonce'] == mock_result['nonce']
+                call0 = mock_pow_is_stale.call_args
+                _, kwargs = call0
+                assert kwargs['subtensor'] == mock_subtensor
+
+                mock_compose_call.assert_called_once()
+                call1 = mock_compose_call.call_args
+                assert call1[1]['call_function'] == 'register'
+                call_params = call1[1]['call_params']
+                assert call_params['nonce'] == mock_result['nonce']
 
 class TestCUDASolverRun(unittest.TestCase):      
     def test_multi_cuda_run_updates_nonce_start(self):
@@ -561,7 +584,7 @@ class TestCUDASolverRun(unittest.TestCase):
         nonce_limit: int = int(math.pow(2, 64)) - 1
 
         mock_solver_self = MagicMock(
-            spec=CUDASolver,
+            spec=_CUDASolver,
             TPB=TPB,
             dev_id=0,
             update_interval=update_interval,
@@ -573,13 +596,13 @@ class TestCUDASolverRun(unittest.TestCase):
         )  
 
         
-        with patch('bittensor.utils.registration.solve_for_nonce_block_cuda',
+        with patch('bittensor.utils.registration._solve_for_nonce_block_cuda',
             side_effect=[None, MockException] # first call returns mocked no solution, second call raises exception
         ) as mock_solve_for_nonce_block_cuda: 
         
             # Should exit early
             with pytest.raises(MockException):
-                CUDASolver.run(mock_solver_self)
+                _CUDASolver.run(mock_solver_self)
             
             mock_solve_for_nonce_block_cuda.assert_called()
             calls = mock_solve_for_nonce_block_cuda.call_args_list
