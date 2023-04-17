@@ -53,15 +53,15 @@ class Endpoint:
             Raises:
                 Multiple assertion errors.
         """
-        assert self.version > 0, 'endpoint version must be positive. - got {}'.format(self.version)
-        assert self.version < MAX_VERSION, 'endpoint version must be less than 999. - got {}'.format(self.version)
-        assert self.uid >= 0 and self.uid < MAXUID, 'endpoint uid must positive and be less than u32 max: 4294967295. - got {}'.format(self.uid)
-        assert len(self.ip) < MAX_IP_LENGTH, 'endpoint ip string must have length less than 8*4. - got {}'.format(self.ip) 
-        assert self.ip_type in ACCEPTABLE_IPTYPES, 'endpoint ip_type must be either 4 or 6.- got {}'.format(self.ip_type)
-        assert self.port > 0 and self.port < MAXPORT , 'port must be positive and less than 65535 - got {}'.format(self.port)
-        assert len(self.coldkey) == SS58_LENGTH, 'coldkey string must be length 48 - got {}'.format(self.coldkey)
-        assert len(self.hotkey) == SS58_LENGTH, 'hotkey string must be length 48 - got {}'.format(self.hotkey)
-        assert self.protocol in ACCEPTABLE_PROTOCOLS, 'protocol must be 0 (for now) - got {}'.format(self.protocol)
+        if not (self.version > 0): print( 'endpoint version must be positive. - got {}'.format(self.version))
+        if not (self.version < MAX_VERSION): print( 'endpoint version must be less than 999. - got {}'.format(self.version))
+        if not (self.uid >= 0 and self.uid < MAXUID): print( 'endpoint uid must positive and be less than u32 max: 4294967295. - got {}'.format(self.uid))
+        if not (len(self.ip) < MAX_IP_LENGTH): print( 'endpoint ip string must have length less than 8*4. - got {}'.format(self.ip) )
+        if not (self.ip_type in ACCEPTABLE_IPTYPES): print( 'endpoint ip_type must be either 4 or 6.- got {}'.format(self.ip_type))
+        if not (self.port > 0 and self.port < MAXPORT ): print( 'port must be positive and less than 65535 - got {}'.format(self.port))
+        if not (len(self.coldkey) == SS58_LENGTH): print( 'coldkey string must be length 48 - got {}'.format(self.coldkey))
+        if not (len(self.hotkey) == SS58_LENGTH): print( 'hotkey string must be length 48 - got {}'.format(self.hotkey))
+        if not (self.protocol in ACCEPTABLE_PROTOCOLS): print( 'protocol must be 0 (for now) - got {}'.format(self.protocol))
 
     @property
     def is_serving(self) -> bool:
