@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import math
 import copy
 import queue
 import torch
@@ -87,7 +88,7 @@ class neuron:
     @classmethod
     def add_args( cls, parser ):
         # Netuid Arg
-        parser.add_argument( '--netuid', type = int, help = 'Prompting network netuid', default = 41 )
+        parser.add_argument( '--netuid', type = int, help = 'Prompting network netuid', default = 1 )
         parser.add_argument( '--neuron.name', type = str, help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default = 'core_prompting_validator')
         parser.add_argument( '--neuron.base_prompt', type=str, help = 'Prompt injected before a question is completed by miners on the network', default = __default_base_prompt__ )
         parser.add_argument( '--neuron.question_prompt', type=str, help = 'Prompt used to generate questions from the network whicha are used to evaluate other miners.', default = __default_question_prompt__ )
@@ -110,6 +111,7 @@ class neuron:
         bt.subtensor.add_args( parser )
         bt.metagraph.add_args( parser )
         bt.logging.add_args( parser )
+        bt.axon.add_args( parser )
         GatingModel.add_args( parser )
         cls.add_args( parser )
         return bt.config( parser )
@@ -139,6 +141,7 @@ class neuron:
         ckpt_state = torch.load( checkpoint )
         self.reward_model.load_state_dict( ckpt_state )
         self.reward_model.eval()
+        self.reward_model.half()
         self.reward_model.requires_grad_( False )
         self.reward_model.to( self.device )
 
@@ -149,28 +152,58 @@ class neuron:
         # History of forward events.
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
 
+        # Get a list of peers delegating to me
+        self.my_nominators = { nomin[0]: nomin[1] for nomin in self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )[0][0].nominators }
+
         # Build synapse entrypoint.
         class Synapse( bittensor.TextPromptingSynapse ):
 
             def priority( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
-                # TODO(const): This is should be based on the amount delegated.
-                return 0.0
+                # Give messages priority.
+                if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: 
+                    # It is myself.
+                    return math.inf
+                elif forward_call.src_hotkey in self.my_nominators:
+                    # Delegates.
+                    return self.my_nominators[ forward_call.src_hotkey ].tao
+                else:
+                    # Everyone else.
+                    return 0.0
 
             def blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
-                # TODO(const): We should check things here.
-                return False
+                # Give messages priority.
+                if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: 
+                    # It is myself, dont blacklist me.
+                    return False
+                elif forward_call.src_hotkey in self.my_nominators:
+                    # Delegates, dont blacklist.
+                    return False
+                else:
+                    # Everyone else, blacklist.
+                    return True
+
+            def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
+                pass
 
             def forward( _, messages: List[Dict[str, str]] ) -> str:
-                # TODO(const): this is wrong the messages are not formatted the same.
+                roles = []; content = []
+                for message in messages:
+                    roles.append( message['role'] )
+                    content.append( message['content'] )
                 return self.forward( 
-                    message = messages, 
-                    topk = 10,
+                    roles = roles,
+                    messages = content, 
+                    topk = self.config.neuron.inference_topk,
                     random_sample_uids = False,
                     train_gating_model = False
                 ).completion
                 
         # Serve axon.
-        self.axon = bittensor.axon()
+        self.axon = bittensor.axon( 
+            wallet = self.wallet,
+            metagraph = self.metagraph,
+            config = self.config,
+        )
         self.synapse = Synapse( axon = self.axon )
         self.axon.start()
         self.axon.netuid = self.config.netuid
@@ -206,9 +239,9 @@ class neuron:
             scattered_rewards = moving_averaged_scores.scatter(0, event.uids.to( self.device ), normalized_rewards.to( self.device ) )
             # We now perform a moving average of the scattered rewards.
             moving_averaged_scores = alpha * moving_averaged_scores + ( 1 - alpha ) * scattered_rewards
-            bittensor.logging.debug( 'normalized_rewards', normalized_rewards )
-            bittensor.logging.debug( 'scattered_rewards', scattered_rewards )
-            bittensor.logging.debug( 'moving_averaged_scores', moving_averaged_scores )
+            bittensor.logging.trace( 'normalized_rewards', normalized_rewards )
+            bittensor.logging.trace( 'scattered_rewards', scattered_rewards )
+            bittensor.logging.trace( 'moving_averaged_scores', moving_averaged_scores )
 
             # If the hotkeys have changed, reset the moving averaged scores for the new hotkeys.
             if last_hotkeys is not None:
@@ -221,9 +254,9 @@ class neuron:
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
         raw_weights = torch.nn.functional.normalize( moving_averaged_scores, p=1, dim=0 )
-        bittensor.logging.debug( 'raw_weights', raw_weights )
-        bittensor.logging.debug( 'top10 values', raw_weights.sort()[0] )
-        bittensor.logging.debug( 'top10 uids', raw_weights.sort()[1] )
+        bittensor.logging.trace( 'raw_weights', raw_weights )
+        bittensor.logging.trace( 'top10 values', raw_weights.sort()[0] )
+        bittensor.logging.trace( 'top10 uids', raw_weights.sort()[1] )
      
         # Process the raw weights to final_weights via subtensor limitations.
         processed_weight_uids, processed_weights = bittensor.utils.weight_utils.process_weights_for_netuid(
@@ -233,16 +266,18 @@ class neuron:
             subtensor = self.subtensor,
             metagraph = self.metagraph
         )
-        bittensor.logging.debug( 'processed_weights', processed_weights )
-        bittensor.logging.debug( 'processed_weight_uids', processed_weight_uids )
+        bittensor.logging.trace( 'processed_weights', processed_weights )
+        bittensor.logging.trace( 'processed_weight_uids', processed_weight_uids )
         return processed_weight_uids, processed_weights
 
     def forward(
             self, 
-            message: str,
+            roles: List[ str ],
+            messages: List[ str ],
             topk: Optional[int] = None,
             random_sample_uids: Optional[ bool ] = False,
             train_gating_model: Optional[ bool ] = False,
+            train_network: Optional[ bool ] = False,
         ) -> SimpleNamespace:
         """
         Queries the network for a response to the passed message using a gating model to select the best uids.
@@ -250,8 +285,10 @@ class neuron:
         backward for potential PPO.
 
         Args:
-            message (str): 
-                The message to query the network with.
+            roles ( List[ str ] ): 
+                roles associated with messages.
+            message ( List[ str ] ): 
+                messages content for each role. 
             topk (Optional[int]): 
                 The number of uids to consider for the query. If None or -1, all uids will be considered.
                 If provided, selects the top k uids based on the gating model scores.
@@ -259,13 +296,23 @@ class neuron:
                 If True, randomly samples the uids to query rather than using topk.
             train_gating_model ( bool, default = False ):
                 If True, trains the gating model based on the rewards calculated for the successful completions.
+            train_network ( bool, default = False ):
+                If True, sends backward messages to the network.
         Returns:
             result (SimpleNamespace): 
                 A namespace containing the completion with the highest reward, message, uids,
                 rewards, scores, and all completions.
         """
         bittensor.logging.info( 'forward()' )
-        bittensor.logging.info( 'message', message.strip() )
+        bittensor.logging.debug( 'roles', roles )
+        bittensor.logging.debug( 'message', messages )
+
+        # Format the messages for the query.
+        unravelled_message = ''
+        for role, message in list(zip( roles, messages )):
+            if role == 'system': unravelled_message += 'system: ' + message + '\n'
+            if role== 'assistant': unravelled_message += 'assistant: ' + message + '\n'
+            if role == 'user': unravelled_message += 'user: ' + message + '\n'
 
         # Set `topk` to the number of items in `self.metagraph.n` if `topk` is not provided or is -1.
         # Find the available `uids` that are currently serving.
@@ -274,13 +321,13 @@ class neuron:
         if topk is None or topk == -1: topk = self.metagraph.n.item()
         if topk > len( available_uids ): topk = len( available_uids )
         if len( available_uids ) == 0: bittensor.logging.error('no available uids'); return None
-        bittensor.logging.debug( 'available_uids', available_uids )
-        bittensor.logging.debug( 'topk', topk)
+        bittensor.logging.trace( 'available_uids', available_uids )
+        bittensor.logging.trace( 'topk', topk)
 
         # We run the gating network here to get the best uids
         # Use the gating model to generate scores for each `uid`.
-        scores = self.gating_model( message ).to( self.device )
-        bittensor.logging.debug( 'scores', scores )
+        scores = self.gating_model( unravelled_message ).to( self.device )
+        bittensor.logging.trace( 'scores', scores )
 
         # Select the top `topk` `uids` based on the highest `scores`.
         # Use the selected `uids` to query the dendrite pool.
@@ -289,40 +336,38 @@ class neuron:
             topk_uids = torch.tensor( random.sample( available_uids.tolist(), topk ), dtype = torch.int64 ).to( self.device )
         else:
             topk_uids = available_uids[ scores[ available_uids ].sort()[ 1 ][ -topk: ]]
-        completions = self.dendrite_pool( 
-            prompt = self.config.neuron.base_prompt, 
-            message = message, 
+        forward_calls = self.dendrite_pool( 
+            roles = roles, 
+            messages = messages, 
             uids = topk_uids, 
             timeout = self.config.neuron.timeout,
         )
-        bittensor.logging.debug( 'topk_uids', topk_uids )
+        bittensor.logging.trace( 'topk_uids', topk_uids )
 
         # Filter out any `None` `completions`.
-        successful_uids = torch.tensor([uid for uid, completion in list(zip(topk_uids, completions)) if completion is not None and completion.response is not None and len(completion.response) > 10], dtype=torch.int64).to(self.device)
-        successful_completions = [completion.response for completion in completions if completion is not None and completion.response is not None and len(completion.response) > 10]
-        bittensor.logging.debug( 'successful_uids', successful_uids )
-        bittensor.logging.debug( 'successful_completions', successful_completions )
+        successful_uids = torch.tensor([uid for uid, call in list(zip(topk_uids, forward_calls)) if call is not None and call.completion is not None and len(call.completion) > 10], dtype=torch.int64).to(self.device)
+        successful_completions = [call.completion for call in forward_calls if call is not None and call.completion is not None and len(call.completion) > 10]
+        bittensor.logging.trace( 'successful_uids', successful_uids )
+        bittensor.logging.trace( 'successful_completions', successful_completions )
         if len( successful_completions ) == 0: bittensor.logging.error('no successful completions'); return None
 
         # Calculate the rewards for the successful `completions` using the reward model.
         # Print the rewards for all `uids`.
         rewards = self.reward_model.reward( successful_completions ).to( self.device )
-        bittensor.logging.debug( 'rewards', rewards )
+        bittensor.logging.trace( 'rewards', rewards )
 
         # Train the gating model using the scores and rewards of the successful `completions`.
         if train_gating_model:
             self.gating_model.backward( scores = scores[ successful_uids ], rewards = rewards )
-            bittensor.logging.debug( 'Apply backward to gating model' )
+            bittensor.logging.trace( 'Apply backward to gating model' )
 
         # Pass rewards backward for potential PPO.
-        self.dendrite_pool.backward( 
-            prompt = self.config.neuron.base_prompt, 
-            message = message, 
-            completions = successful_completions,
-            rewards = rewards,
-            uids = successful_uids, 
-        )
-        bittensor.logging.debug( 'Applied backward to network.' )
+        if train_network:
+            self.dendrite_pool.backward( 
+                forwar_calls = forward_calls,
+                rewards = rewards,
+            )
+            bittensor.logging.trace( 'Applied backward to network.' )
 
         # Save the query history in a `result` object.
         # Return the `completion` with the highest reward.
@@ -341,20 +386,6 @@ class neuron:
         self.record_event( event ) 
         return event
 
-    # User queries here.
-    def inference( self, message: str) -> str:
-        """Inference"""
-        bittensor.logging.info( 'inference()' )
-        bittensor.logging.info( 'message', message.strip() )
-        result = self.forward( 
-            message = message, 
-            topk = self.config.neuron.inference_topk,
-            random_sample_uids = False,
-            train_gating_model = True
-        )
-        if result == None: return "Failed"
-        else: return result.completion
-
     def train( self ):
         """ Training 
             The function uses an infinite loop to repeatedly generate a random question, 
@@ -369,7 +400,8 @@ class neuron:
             
             # Query the network for a random question.
             question = self.forward( 
-                self.config.neuron.question_prompt,
+                roles = ['system', 'user' ],
+                messages = [ self.config.neuron.base_prompt, self.config.neuron.question_prompt ],
                 topk = self.config.neuron.training_topk,
                 random_sample_uids = True,
                 train_gating_model = True,
@@ -378,7 +410,8 @@ class neuron:
             
             # Ask the network to complete the random question, training the gating network.
             self.forward( 
-                message = question.completion, 
+                roles = ['system', 'user' ],
+                messages = [ self.config.neuron.base_prompt, question.completion ],
                 topk = self.config.neuron.training_topk,
                 random_sample_uids = True,
                 train_gating_model = True,
@@ -386,15 +419,15 @@ class neuron:
 
             # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
             if last_epoch_block % 10 == 0:
-                self.metagraph = self.metagraph.sync(netuid=self.config.netuid, subtensor=self.subtensor)
-                self.delegates = self.subtensor.get_delegated( coldkey_ss58 = self.wallet.coldkeypub.ss58_address )
+                self.metagraph = self.metagraph.sync( netuid = self.config.netuid, subtensor = self.subtensor )
+                self.my_nominators = { nomin[0]: nomin[1] for nomin in self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )[0][0].nominators }
 
             # Check if enough epoch blocks have elapsed since the last epoch.
             epoch_length = self.subtensor.validator_epoch_length(self.config.netuid) if self.config.neuron.epoch_length_override == -1 else self.config.neuron.epoch_length_override
             blocks_until_epoch = epoch_length - ( self.subtensor.block - last_epoch_block )
-            bittensor.logging.info( 'blocks_until_epoch', blocks_until_epoch )
+            bittensor.logging.debug( 'blocks_until_epoch', blocks_until_epoch )
             if blocks_until_epoch <= 0: 
-                bittensor.logging.info( 'epoch()' )
+                bittensor.logging.trace( 'epoch()' )
                 bittensor.logging.info( 'block', self.subtensor.block )
 
                 # Synce the metagraph.

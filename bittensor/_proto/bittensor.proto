@@ -352,7 +352,6 @@ message Tensor {
 	bool requires_grad = 8;
 }
 
-
 enum Serializer {
 	// PICKLE = 0; // PICKLE serializer (REMOVED for security reasons.)
 	MSGPACK = 0; // MSGPACK serializer
@@ -379,6 +378,5 @@ enum DataType {
 	FLOAT16 = 6;
 	BOOL = 7;
 }
-
 
 
