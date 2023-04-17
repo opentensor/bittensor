@@ -312,9 +312,9 @@ class axon:
     def check_config(cls, config: 'bittensor.Config' ):
         """ Check config for axon port and wallet
         """
-        if not (config.axon.port > 1024 and config.axon.port < 65535): print( 'port must be in range [1024): print( 65535]' )
-        if not (config.axon.external_port is None or (config.axon.external_port > 1024 and config.axon.external_port < 65535)): print( 'external port must be in range [1024): print( 65535]' )
-        if not (config.axon.prometheus.level in [l.name for l in list(bittensor.prometheus.level)]): print( "axon.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)]) )
+        if not (config.axon.port > 1024 and config.axon.port < 65535): raise(ValueError('port must be in range [1024, 65535]'))
+        if not (config.axon.external_port is None or (config.axon.external_port > 1024 and config.axon.external_port < 65535)): raise(ValueError('external port must be in range [1024, 65535]'))
+        if not (config.axon.prometheus.level in [l.name for l in list(bittensor.prometheus.level)]): raise(ValueError("axon.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])))
         bittensor.wallet.check_config( config )
 
     @classmethod   
