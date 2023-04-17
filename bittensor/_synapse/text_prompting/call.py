@@ -32,16 +32,16 @@ class TextPromptingForwardCall(bittensor.BittensorCall):
     def __str__(self) -> str:
         return f"""
             bittensor.TextPromptingForwardCall( 
-                description: Returns the logits for the last predicted item in a given sequence.
+                description: Returns completions from the endpoint based on the passed message and prompt.
                 caller: {self.hotkey},
                 version: {self.version},
                 timeout: {self.timeout}, 
                 start_time: {self.start_time},
                 end_time: {self.end_time},
-                elapsed: {time.time() - self.start_time},
+                elapsed: {self.end_time - self.start_time},
                 Args:
                     messages: List[str] = {self.messages}, 
-                    response: List[str] = {self.response if self.response is not None else "To be filled by the forward call."},
+                    response: List[str] = {self.response if self.response is not None else "To be filled by the forward call."}
             )
         """
 
@@ -89,7 +89,7 @@ class TextPromptingBackwardCall(bittensor.BittensorCall):
                 timeout: {self.timeout}, 
                 start_time: {self.start_time},
                 end_time: {self.end_time},
-                elapsed: {time.time() - self.start_time},
+                elapsed: {self.end_time - self.start_time},
                 Args:
                     messages: List[Dict[str,str]] = {self.messages}, 
                     response: str = {self.response}, 
