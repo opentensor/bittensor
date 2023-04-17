@@ -93,5 +93,5 @@ class prioritythreadpool:
     def check_config(cls, config: 'bittensor.Config' ):
         """ Check config for threadpool worker number and size
         """
-        assert isinstance(config.axon.priority.max_workers, int), 'axon.priority.max_workers must be a int'
-        assert isinstance(config.axon.priority.maxsize, int), 'axon.priority.maxsize must be a int'
+        if not (isinstance(config.axon.priority.max_workers, int)): raise(ValueError('axon.priority.max_workers must be a int'))
+        if not (isinstance(config.axon.priority.maxsize, int)): raise(ValueError('axon.priority.maxsize must be a int'))
