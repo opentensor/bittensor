@@ -24,49 +24,19 @@ class CUDAException(Exception):
     """An exception raised when an error occurs in the CUDA environment."""
     pass
 
-
-def hex_bytes_to_u8_list( hex_bytes: bytes ):
-    hex_chunks = [int(hex_bytes[i:i+2], 16) for i in range(0, len(hex_bytes), 2)]
-    return hex_chunks
-
-
-def u8_list_to_hex( values: list ):
-    total = 0
-    for val in reversed(values):
-        total = (total << 8) + val
-    return total 
-
-
-def create_seal_hash( block_hash:bytes, nonce:int ) -> bytes:
-    block_bytes = block_hash.encode('utf-8')[2:]
-    nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
-    pre_seal = nonce_bytes + block_bytes
-    seal_sh256 = hashlib.sha256( bytearray(hex_bytes_to_u8_list(pre_seal)) ).digest()
+def create_seal_hash( block_and_hotkey_hash_bytes: bytes, nonce:int ) -> bytes:
+    nonce_bytes = nonce.to_bytes(8, 'little')
+    pre_seal = nonce_bytes + block_and_hotkey_hash_bytes
+    seal_sh256 = hashlib.sha256( bytearray(pre_seal) ).digest()
     kec = keccak.new(digest_bits=256)
     seal = kec.update( seal_sh256 ).digest()
     return seal
 
 
-def seal_meets_difficulty( seal:bytes, difficulty:int ):
+def seal_meets_difficulty( seal:bytes, difficulty:int, limit: int ):
     seal_number = int.from_bytes(seal, "big")
     product = seal_number * difficulty
-    limit = int(math.pow(2,256))- 1
-    if product > limit:
-        return False
-    else:
-        return True
-    
-
-def solve_for_difficulty( block_hash, difficulty ):
-    meets = False
-    nonce = -1
-    while not meets:
-        nonce += 1 
-        seal = create_seal_hash( block_hash, nonce )
-        meets = seal_meets_difficulty( seal, difficulty )
-        if nonce > 1:
-            break
-    return nonce, seal
+    return product < limit
 
 
 def get_human_readable(num, suffix="H"):
@@ -278,16 +248,10 @@ def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, bloc
     """Tries to solve the POW for a block of nonces (nonce_start, nonce_end)""" 
     for nonce in range(nonce_start, nonce_end):
         # Create seal.
-        nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
-        pre_seal = nonce_bytes + block_and_hotkey_hash_bytes
-        seal_sh256 = hashlib.sha256( bytearray(hex_bytes_to_u8_list(pre_seal)) ).digest()
-        kec = keccak.new(digest_bits=256)
-        seal = kec.update( seal_sh256 ).digest()
-        seal_number = int.from_bytes(seal, "big")
+        seal = create_seal_hash(block_and_hotkey_hash_bytes, nonce)
 
         # Check if seal meets difficulty
-        product = seal_number * difficulty
-        if product < limit:
+        if seal_meets_difficulty(seal, difficulty, limit):
             # Found a solution, save it.
             return POWSolution(nonce, block_number, difficulty, seal)
 
