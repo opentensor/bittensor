@@ -102,8 +102,8 @@ class TextPromptingDendrite( bittensor.Dendrite ):
             messages: List[ str ],
             timeout: float = bittensor.__blocktime__,
             return_call:bool = True,
-        ) -> Union[ str, "bittensor.TextPromptingForwardCall" ]:
-        forward_call = bittensor.TextPromptingForwardCall(
+        ) -> Union[ str, TextPromptingForwardCall ]:
+        forward_call = TextPromptingForwardCall(
             dendrite = self, 
             messages = messages,
             roles = roles,
@@ -120,8 +120,8 @@ class TextPromptingDendrite( bittensor.Dendrite ):
         messages: List[ str ],
         timeout: float = bittensor.__blocktime__,
         return_call: bool = True,
-    ) -> Union[ str, "bittensor.TextPromptingForwardCall" ]:
-        forward_call = bittensor.TextPromptingForwardCall(
+    ) -> Union[ str, TextPromptingForwardCall ]:
+        forward_call = TextPromptingForwardCall(
             dendrite = self, 
             messages = messages,
             roles = roles,
@@ -138,12 +138,13 @@ class TextPromptingDendrite( bittensor.Dendrite ):
             completion: str,
             rewards: Union[ List[ float], torch.FloatTensor ],
             timeout: float = bittensor.__blocktime__,
-        ) -> "bittensor.TextPromptingBackwardCall":
-        backward_call = bittensor.TextPromptingBackwardCall(
+        ) -> TextPromptingBackwardCall:
+        backward_call = TextPromptingBackwardCall(
+            dendrite = self,
             completion = completion,
             messages = messages,
             roles = roles,
-            rewards = rewards
+            rewards = rewards,
             timeout = timeout,
         )
         loop = asyncio.get_event_loop()
@@ -156,8 +157,9 @@ class TextPromptingDendrite( bittensor.Dendrite ):
         completion: str,        
         rewards: Union[ List[ float], torch.FloatTensor ],
         timeout: float = bittensor.__blocktime__,
-    ) -> "bittensor.TextPromptingBackwardCall":
-        backward_call = bittensor.TextPromptingBackwardCall(
+    ) -> TextPromptingBackwardCall:
+        backward_call = TextPromptingBackwardCall(
+            dendrite = self,
             completion = completion,
             messages = messages,
             roles = roles,

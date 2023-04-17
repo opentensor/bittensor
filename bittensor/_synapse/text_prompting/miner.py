@@ -27,7 +27,7 @@ from typing import List, Dict
 from datetime import datetime
 from abc import ABC, abstractmethod
 
-class BasePromptingMiner(ABC):
+class BasePromptingMiner( ABC ):
 
     @classmethod
     @abstractmethod

@@ -21,17 +21,15 @@ import torch
 import asyncio
 import bittensor
 
+from typing import Union, Optional, Callable, List, Dict
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from abc import ABC, abstractmethod
 
 @dataclass
 class SynapseCall( ABC ):
-    # If it is an forward of backward
-    is_forward: bool = True
-    # The name of the call.
-    name: str = 'synapse_call'
-    
+    is_forward: bool # If it is an forward of backward
+    name: str # The name of the call.
+
     def __init__(
         self,
         synapse: bittensor.Synapse,
@@ -101,7 +99,13 @@ class Synapse( ABC ):
     def __init__( self, axon: bittensor.axon ):
         self.axon = axon
 
-    def apply( self, call: bittensor.SynapseCall ) -> object:
+    @abstractmethod
+    def blacklist( self, call: SynapseCall ) -> bool: ...
+
+    @abstractmethod
+    def priority( self, call: SynapseCall ) -> float: ...
+
+    def apply( self, call: SynapseCall ) -> object:
         try:
             call.log_inbound()
 

@@ -27,7 +27,7 @@ from abc import ABC, abstractmethod
 
 @dataclass
 class DendriteCall( ABC ):
-    
+
     is_forward: bool
     name: str
 
@@ -36,13 +36,14 @@ class DendriteCall( ABC ):
             dendrite: bittensor.Dendrite,
             timeout: float = bittensor.__blocktime__
         ):
+        self.dendrite = dendrite
         self.completed = False
         self.timeout = timeout
         self.start_time = time.time()
-        self.src_hotkey = dendrite.endpoint.hotkey
+        self.src_hotkey = self.dendrite.wallet.hotkey.ss58_address 
         self.src_version = bittensor.__version_as_int__
-        self.dest_hotkey = dendrite.wallet.hotkey.ss58_address
-        self.dest_version = dendrite.endpoint.version  
+        self.dest_hotkey = self.dendrite.endpoint.hotkey
+        self.dest_version = self.dendrite.endpoint.version  
         self.return_code: bittensor.proto.ReturnCode = bittensor.proto.ReturnCode.Success
         self.return_message: str = 'Success'
 
@@ -89,7 +90,7 @@ class DendriteCall( ABC ):
             synapse = self.name,
         )
 
-    def log_outbound(self):
+    def log_inbound(self):
         bittensor.logging.rpc_log( 
             axon = False, 
             forward = self.is_forward, 
@@ -114,7 +115,6 @@ class Dendrite( ABC, torch.nn.Module ):
         self.wallet = wallet
         self.endpoint = endpoint
         self.receptor = bittensor.receptor( wallet = self.wallet, endpoint = self.endpoint )
-
 
     @abstractmethod
     def to_future( self, dendrite_call: DendriteCall ) -> object:
