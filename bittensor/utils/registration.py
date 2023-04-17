@@ -435,7 +435,7 @@ def solve_for_difficulty_fast( subtensor, wallet: bittensor.Wallet, netuid: int,
     hotkey_bytes = wallet.hotkey.public_key
     
     # Start consumers
-    solvers = [ Solver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, hotkey_bytes, curr_block, curr_block_num, curr_diff, check_block, limit)
+    solvers = [ Solver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, hotkey_bytes, check_block, limit)
                 for i in range(num_processes) ]
 
     # Get first block
@@ -719,9 +719,11 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         solution_queue = multiprocessing.Queue()
         finished_queues = [multiprocessing.Queue() for _ in range(num_processes)]
         check_block = multiprocessing.Lock()
+
+        hotkey_bytes = wallet.hotkey.public_key
         
         # Start workers
-        solvers = [ CUDASolver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit, dev_id[i], TPB)
+        solvers = [ CUDASolver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, hotkey_bytes, check_block, limit, dev_id[i], TPB)
                     for i in range(num_processes) ]
 
 
