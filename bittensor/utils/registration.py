@@ -151,13 +151,14 @@ class SolverBase(multiprocessing.Process):
     solution_queue: multiprocessing.Queue
     newBlockEvent: multiprocessing.Event
     stopEvent: multiprocessing.Event
+    hotkey_bytes: bytes
     curr_block: multiprocessing.Array
     curr_block_num: multiprocessing.Value
     curr_diff: multiprocessing.Array
     check_block: multiprocessing.Lock
     limit: int
 
-    def __init__(self, proc_num, num_proc, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit):
+    def __init__(self, proc_num, num_proc, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, hotkey_bytes: bytes, check_block, limit):
         multiprocessing.Process.__init__(self, daemon=True)
         self.proc_num = proc_num
         self.num_proc = num_proc
@@ -172,6 +173,8 @@ class SolverBase(multiprocessing.Process):
         self.check_block = check_block
         self.stopEvent = stopEvent
         self.limit = limit
+
+        self.hotkey_bytes = hotkey_bytes
 
     def run(self):
         raise NotImplementedError("SolverBase is an abstract class")
@@ -197,7 +200,7 @@ class Solver(SolverBase):
                 self.newBlockEvent.clear()
                 
             # Do a block of nonces
-            solution = solve_for_nonce_block(self, nonce_start, nonce_end, block_bytes, block_difficulty, self.limit, block_number)
+            solution = solve_for_nonce_block(self, nonce_start, nonce_end, block_bytes, block_difficulty, self.hotkey_bytes, self.limit, block_number)
             if solution is not None:
                 self.solution_queue.put(solution)
 
@@ -216,8 +219,8 @@ class CUDASolver(SolverBase):
     dev_id: int
     TPB: int
 
-    def __init__(self, proc_num, num_proc, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit, dev_id: int, TPB: int):
-        super().__init__(proc_num, num_proc, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit)
+    def __init__(self, proc_num, num_proc, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, hotkey_bytes: bytes, check_block, limit, dev_id: int, TPB: int):
+        super().__init__(proc_num, num_proc, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, hotkey_bytes, check_block, limit)
         self.dev_id = dev_id
         self.TPB = TPB
 
@@ -239,7 +242,7 @@ class CUDASolver(SolverBase):
                 self.newBlockEvent.clear()
                 
             # Do a block of nonces
-            solution = solve_for_nonce_block_cuda(self, nonce_start, self.update_interval, block_bytes, block_difficulty, self.limit, block_number, self.dev_id, self.TPB)
+            solution = solve_for_nonce_block_cuda(self, nonce_start, self.update_interval, block_bytes, block_difficulty, self.hotkey_bytes, self.limit, block_number, self.dev_id, self.TPB)
             if solution is not None:
                 self.solution_queue.put(solution)
 
@@ -255,7 +258,7 @@ class CUDASolver(SolverBase):
             nonce_start = nonce_start % nonce_limit
 
 
-def solve_for_nonce_block_cuda(solver: CUDASolver, nonce_start: int, update_interval: int, block_bytes: bytes, difficulty: int, limit: int, block_number: int, dev_id: int, TPB: int) -> Optional[POWSolution]:
+def solve_for_nonce_block_cuda(solver: CUDASolver, nonce_start: int, update_interval: int, block_bytes: bytes, difficulty: int, hotkey_bytes: bytes, limit: int, block_number: int, dev_id: int, TPB: int) -> Optional[POWSolution]:
     """Tries to solve the POW on a CUDA device for a block of nonces (nonce_start, nonce_start + update_interval * TPB"""
     solution, seal = solve_cuda(nonce_start,
                     update_interval,
@@ -263,6 +266,7 @@ def solve_for_nonce_block_cuda(solver: CUDASolver, nonce_start: int, update_inte
                     block_bytes, 
                     block_number,
                     difficulty, 
+                    hotkey_bytes,
                     limit,
                     dev_id)
 
@@ -273,12 +277,12 @@ def solve_for_nonce_block_cuda(solver: CUDASolver, nonce_start: int, update_inte
     return None
 
 
-def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, block_bytes: bytes, difficulty: int, limit: int, block_number: int) -> Optional[POWSolution]:
+def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, block_bytes: bytes, difficulty: int, hotkey_bytes: bytes, limit: int, block_number: int) -> Optional[POWSolution]:
     """Tries to solve the POW for a block of nonces (nonce_start, nonce_end)""" 
     for nonce in range(nonce_start, nonce_end):
         # Create seal.
         nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
-        pre_seal = nonce_bytes + block_bytes
+        pre_seal = nonce_bytes + block_bytes + hotkey_bytes
         seal_sh256 = hashlib.sha256( bytearray(hex_bytes_to_u8_list(pre_seal)) ).digest()
         kec = keccak.new(digest_bits=256)
         seal = kec.update( seal_sh256 ).digest()
@@ -378,7 +382,7 @@ class RegistrationStatisticsLogger:
             self.console.log( self.get_status_message(stats, verbose=verbose), )
 
 
-def solve_for_difficulty_fast( subtensor, wallet, netuid: int, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None,  n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast( subtensor, wallet: bittensor.Wallet, netuid: int, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None,  n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the POW for registration using multiprocessing.
     Args:
@@ -427,9 +431,11 @@ def solve_for_difficulty_fast( subtensor, wallet, netuid: int, output_in_place: 
     solution_queue = multiprocessing.Queue()
     finished_queues = [multiprocessing.Queue() for _ in range(num_processes)]
     check_block = multiprocessing.Lock()
+
+    hotkey_bytes = wallet.hotkey.public_key
     
     # Start consumers
-    solvers = [ Solver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit)
+    solvers = [ Solver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, hotkey_bytes, curr_block, curr_block_num, curr_diff, check_block, limit)
                 for i in range(num_processes) ]
 
     # Get first block

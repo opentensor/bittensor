@@ -10,7 +10,7 @@ from contextlib import redirect_stdout
 import io
 
 
-def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block_bytes: bytes, bn: int, difficulty: int, limit: int, dev_id: int = 0) -> Tuple[np.int64, bytes]:
+def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block_bytes: bytes, bn: int, difficulty: int, hotkey_bytes: bytes, limit: int, dev_id: int = 0) -> Tuple[np.int64, bytes]:
     """
     Solves the PoW problem using CUDA.
     Args:
@@ -24,6 +24,8 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
             Bytes of the block hash. 64 bytes.
         difficulty: int256
             Difficulty of the PoW problem.
+        hotkey_bytes: bytes
+            Bytes of the hotkey. 32 bytes.
         limit: int256
             Upper limit of the nonce.
         dev_id: int (default=0)
@@ -55,9 +57,9 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
         hex_chunks = [int(hex_bytes[i:i+2], 16) for i in range(0, len(hex_bytes), 2)]
         return hex_chunks
 
-    def create_seal_hash( block_bytes:bytes, nonce:int ) -> bytes:
+    def create_seal_hash( block_bytes:bytes, nonce:int, hotkey_bytes: bytes ) -> bytes:
         nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
-        pre_seal = nonce_bytes + block_bytes
+        pre_seal = nonce_bytes + block_bytes + hotkey_bytes
         seal_sh256 = hashlib.sha256( bytearray(hex_bytes_to_u8_list(pre_seal)) ).digest()
         kec = keccak.new(digest_bits=256)
         seal = kec.update( seal_sh256 ).digest()
@@ -66,10 +68,10 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
     # Call cython function
     # int blockSize, uint64 nonce_start, uint64 update_interval, const unsigned char[:] limit,
     # const unsigned char[:] block_bytes, int dev_id
-    solution = cubit.solve_cuda(TPB, nonce_start, update_interval, upper_bytes, block_bytes, dev_id) # 0 is first GPU
+    solution = cubit.solve_cuda(TPB, nonce_start, update_interval, upper_bytes, block_bytes, hotkey_bytes, dev_id) # 0 is first GPU
     seal = None
     if solution != -1:
-        seal = create_seal_hash(block_bytes, solution)
+        seal = create_seal_hash(block_bytes, solution, hotkey_bytes)
         if seal_meets_difficulty(seal, difficulty):
             return solution, seal
         else:
