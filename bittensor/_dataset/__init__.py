@@ -178,7 +178,7 @@ class dataset:
     def check_config( cls, config: 'bittensor.Config' ):
         """ Check config for batch size, block size, corpus size, num_workers and dataset
         """
-        assert config.dataset.batch_size > 0, 'Batch size must be larger than 0'
-        assert config.dataset.block_size > 0, 'Block size must be larger than 0'
-        assert config.dataset.num_workers >= 0, 'num_workers must be equal to or larger than 0'
-        assert isinstance(config.dataset.save_dataset, bool) , 'save_dataset must be True/False only'
+        if not (config.dataset.batch_size > 0): raise(ValueError('Batch size must be larger than 0'))
+        if not (config.dataset.block_size > 0): raise(ValueError('Block size must be larger than 0'))
+        if not (config.dataset.num_workers >= 0): raise(ValueError('num_workers must be equal to or larger than 0'))
+        if not (isinstance(config.dataset.save_dataset, bool)): raise(ValueError('save_dataset must be True/False only'))
