@@ -17,7 +17,7 @@ from Crypto.Hash import keccak
 from rich import console as rich_console
 from rich import status as rich_status
 
-from .register_cuda import solve_cuda
+from ._register_cuda import solve_cuda
 
 
 class CUDAException(Exception):
