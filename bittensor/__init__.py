@@ -198,7 +198,7 @@ from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
 from bittensor._synapse.dendrite import Dendrite
 from bittensor._synapse.dendrite import DendriteCall
 from bittensor._synapse.text_prompting.dendrite import TextPromptingDendrite as text_prompting
-from bittensor._synapse.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
+from bittensor._synapse.text_prompting.pool import TextPromptingDendritePool as text_prompting_pool
 
 # ---- Base Miners -----
 from bittensor._synapse.text_prompting.miner import BasePromptingMiner

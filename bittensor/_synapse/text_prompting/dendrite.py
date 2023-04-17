@@ -72,7 +72,6 @@ class DendriteForwardCall( bittensor.DendriteCall ):
             timeout = self.timeout if timeout is None else bittensor.__blocktime__
         )
     
-    
 class DendriteBackwardCall( bittensor.DendriteCall ):
 
     name: str = "text_prompting_backward"

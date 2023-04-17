@@ -271,6 +271,7 @@ message BackwardTextPromptingRequest {
 	repeated float rewards = 3;
 	repeated string messages = 4;
 	string response = 5;
+    float timeout = 6;
 }
 message BackwardTextPromptingResponse {
     int32 version = 1;
@@ -351,7 +352,6 @@ message Tensor {
 	bool requires_grad = 8;
 }
 
-
 enum Serializer {
 	// PICKLE = 0; // PICKLE serializer (REMOVED for security reasons.)
 	MSGPACK = 0; // MSGPACK serializer
@@ -378,6 +378,5 @@ enum DataType {
 	FLOAT16 = 6;
 	BOOL = 7;
 }
-
 
 

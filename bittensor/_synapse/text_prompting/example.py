@@ -19,6 +19,8 @@ import torch
 import bittensor
 from typing import List, Dict
 bittensor.logging(debug=True)
+bittensor.logging.set_trace(True)
+
 
 class Synapse( bittensor.TextPromptingSynapse ):
     def priority(self, forward_call: "bittensor.TextPromptingForwardCall") -> float:
@@ -56,19 +58,14 @@ axon.start()
 batch_size = 4
 sequence_length = 32
 # Create a text_prompting module and call it.
+bittensor.logging.debug( "Start example")
 module = bittensor.text_prompting( endpoint = local_endpoint, wallet = wallet )
-forward_response = module.forward(
+forward_call = module.forward(
     roles = ['user', 'assistant'],
     messages = [{ "user": "Human", "content": "hello"}],
     timeout = 1e6
 )
-backward_response = module.backward(
-    roles = ['user', 'assistant'],
-    messages = [{ "user": "Human", "content": "hello"}],
-    completion = forward_response.completion,
-    rewards = [1,2,3,4,5],
-    timeout = 1e6
-)
+forward_call.backward( 1 )
 
 
 # # Delete objects.
