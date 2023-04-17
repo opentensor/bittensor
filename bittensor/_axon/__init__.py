@@ -481,24 +481,15 @@ class AuthInterceptor(ServerInterceptor):
         method_name: str,
         metadata: dict,
     ):
-        """Override this method to implement a custom interceptor.
-
-         You should call method(request, context) to invoke the
-         next handler (either the RPC method implementation, or the
-         next interceptor in the list).
+        """A custom bittensor interceptor.
 
          Args:
              method: The next interceptor, or method implementation.
              request: The RPC request, as a protobuf message.
              context: The ServicerContext pass by gRPC to the service.
              method_name: A string of the form
-                 "/protobuf.package.Service/Method"
+             metadata: The invocation_metadata of the message 
 
-         Returns:
-             This should generally return the result of
-             method(request, context), which is typically the RPC
-             method response, as a protobuf message. The interceptor
-             is free to modify this in some way, however.
          """
         try:
             (
@@ -526,9 +517,7 @@ class AuthInterceptor(ServerInterceptor):
             
     # Implementation of grpc.ServerInterceptor, do not override.
     def intercept_service(self, continuation, handler_call_details):
-        """Implementation of grpc.ServerInterceptor.
-        This is not part of the grpc_interceptor.ServerInterceptor API, but must have
-        a public name. Do not override it, unless you know what you're doing.
+        """Intercept service and passes the request, metadata and context into the intercept function
         """
         next_handler = continuation(handler_call_details)
         # Returns None if the method isn't implemented.

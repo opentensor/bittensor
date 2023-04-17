@@ -124,8 +124,8 @@ class Receptor(nn.Module):
         self.__del__()
 
     def sign(self, inputs=None, grads=None):
-        inputs_sum =  inputs.sum() if inputs != None else 0
-        grads_sum = grads.sum() if grads != None else 0 
+        inputs_sum =  inputs.sum().int().item() if inputs != None else 0
+        grads_sum = grads.sum().int().item() if grads != None else 0 
         nonce = f"{self.nonce()}"
         sender_hotkey = self.wallet.hotkey.ss58_address
         receiver_hotkey = self.endpoint.hotkey
@@ -378,7 +378,7 @@ class Receptor(nn.Module):
         # ==========================
         # ==== Create Signature ====
         # ==========================
-        signature = self.sign(grpc_request)
+        signature = self.sign(inputs=inputs)
 
         # ===============================
         # ==== Fire Asyncio RPC Call ====
@@ -631,7 +631,11 @@ class Receptor(nn.Module):
         if check_if_should_return():
             finalize_stats_and_logs()
             return synapse_responses, synapse_codes, synapse_call_times
-
+        
+        # ==========================
+        # ==== Create Signature ====
+        # ==========================
+        signature = self.sign(inputs=inputs, grads=grads[0])
 
         # =============================
         # ==== Build proto request ====
@@ -668,7 +672,7 @@ class Receptor(nn.Module):
                 timeout = timeout,
                 metadata = (
                     ('rpc-auth-header','Bittensor'),
-                    ('bittensor-signature',self.sign()),
+                    ('bittensor-signature',signature),
                     ('bittensor-version',str(bittensor.__version_as_int__)),
                     ('request_type', str(bittensor.proto.RequestType.BACKWARD)),
                 ))
