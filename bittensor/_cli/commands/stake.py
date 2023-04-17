@@ -73,7 +73,7 @@ class StakeCommand:
         else:
             # Only config.wallet.hotkey is specified.
             #  so we stake to that single hotkey.
-            assert config.wallet.hotkey is not None
+            if not (config.wallet.hotkey is not None): raise(ValueError)
             hotkeys_to_stake_to = [ (None, bittensor.wallet( config = config ).hotkey.ss58_address) ]
         
         # Get coldkey balance
