@@ -19,18 +19,15 @@ import torch
 import bittensor
 from typing import List, Dict
 bittensor.logging(debug=True)
-# import openai
 
-# Create a synapse that returns zeros.
-class Synapse(bittensor.TextPromptingSynapse):
-    def _priority(self, forward_call: "bittensor.TextPromptingForwardCall") -> float:
+class Synapse( bittensor.TextPromptingSynapse ):
+    def priority(self, forward_call: "bittensor.TextPromptingForwardCall") -> float:
         return 0.0
 
-    def _blacklist(self, forward_call: "bittensor.TextPromptingForwardCall") -> bool:
+    def blacklist(self, forward_call: "bittensor.TextPromptingForwardCall") -> bool:
         return False
 
     def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
-        # Apply PPO.
         pass
 
     def forward(self, messages: List[Dict[str, str]]) -> str:

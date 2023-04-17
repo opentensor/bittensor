@@ -27,6 +27,8 @@ from dataclasses import dataclass
 
 @dataclass
 class SynapseCall( ABC ):
+    """ Base class for all synapse calls."""
+    
     is_forward: bool # If it is an forward of backward
     name: str # The name of the call.
 
@@ -44,6 +46,7 @@ class SynapseCall( ABC ):
         self.dest_version = bittensor.__version_as_int__ 
         self.return_code: bittensor.proto.ReturnCode = bittensor.proto.ReturnCode.Success
         self.return_message: str = 'Success'
+        self.priority: float = 0
 
     @abstractmethod
     def get_inputs_shape( self ) -> torch.Shape: ...    
@@ -95,6 +98,7 @@ class SynapseCall( ABC ):
         )      
 
 class Synapse( ABC ):
+    name: str
 
     def __init__( self, axon: bittensor.axon ):
         self.axon = axon
@@ -106,6 +110,7 @@ class Synapse( ABC ):
     def priority( self, call: SynapseCall ) -> float: ...
 
     def apply( self, call: SynapseCall ) -> object:
+        bittensor.logging.debug( 'Synapse: {} received call: {}'.format( self.name, call ) )
         try:
             call.log_inbound()
 
@@ -113,25 +118,30 @@ class Synapse( ABC ):
             if self.blacklist( call ):
                 call.request_code = bittensor.proto.ReturnCode.Blacklisted
                 call.request_message = "Blacklisted"
+                bittensor.logging.debug( 'Synapse: {} blacklisted call: {}'.format( self.name, call ) )
             
             # Make call.
             else:
                 # Queue the forward call with priority.
+                call.priority = self.priority( call )
                 future = self.axon.priority_threadpool.submit(
                     call._apply,
-                    priority = self.priority( call ),
+                    priority = call.priority,
                 )
                 future.result( timeout = call.timeout )
+                bittensor.logging.debug( 'Synapse: {} completed call: {}'.format( self.name, call ) )
 
         # Catch timeouts
         except asyncio.TimeoutError:
             call.return_code = bittensor.proto.ReturnCode.Timeout
             call.return_message = 'GRPC request timeout after: {}s'.format( call.timeout)
+            bittensor.logging.debug( 'Synapse: {} timeout call: {}'.format( self.name, call ) )
 
         # Catch unknown exceptions.
         except Exception as e:
             call.return_code = bittensor.proto.ReturnCode.UnknownException
             call.return_message = str(e)
+            bittensor.logging.debug( 'Synapse: {} timeout call: {}'.format( self.name, call ) )
 
         # Finally return the call.
         finally:

@@ -27,6 +27,7 @@ from abc import ABC, abstractmethod
 
 @dataclass
 class DendriteCall( ABC ):
+    """ Base class for all dendrite calls."""
 
     is_forward: bool
     name: str
@@ -111,16 +112,27 @@ class Dendrite( ABC, torch.nn.Module ):
             wallet: 'bittensor.wallet',
             endpoint: Union[ 'bittensor.Endpoint', torch.Tensor ], 
         ):
+        """ Dendrite abstract class
+            Args:
+                wallet (:obj:`bittensor.Wallet`, `required`):
+                    bittensor wallet object.
+                endpoint (:obj:`bittensor.Endpoint`, `required`):   
+                    bittensor endpoint object.
+        """
         super(Dendrite, self).__init__()
         self.wallet = wallet
         self.endpoint = endpoint
         self.receptor = bittensor.receptor( wallet = self.wallet, endpoint = self.endpoint )
-
-    @abstractmethod
-    def to_future( self, dendrite_call: DendriteCall ) -> object:
-        raise NotImplementedError('Dendrite.get_forward_stub() not implemented.')
     
     async def apply( self, dendrite_call: DendriteCall ) -> DendriteCall:
+        """ Applies a dendrite call to the endpoint.
+            Args:
+                dendrite_call (:obj:`DendriteCall`, `required`):
+                    Dendrite call to apply.
+            Returns:
+                DendriteCall: Dendrite call with response.
+        """
+        bittensor.logging.debug('Dendrite.apply()')
         try:
             dendrite_call.log_outbound()
             asyncio_future = dendrite_call.get_callable()(
@@ -132,20 +144,29 @@ class Dendrite( ABC, torch.nn.Module ):
                     ('bittensor-version',str(bittensor.__version_as_int__)),
                 )
             )
+            bittensor.debug.dendrite( 'Dendrite.apply() awaiting response from: {}'.format( self.endpoint.hotkey ) )
             response_proto = await asyncio.wait_for( asyncio_future, timeout = dendrite_call.timeout )
             dendrite_call._apply_response_proto( response_proto )
+            bittensor.debug.dendrite( 'Dendrite.apply() received response from: {}'.format( self.endpoint.hotkey ) )
+
         # Request failed with GRPC code.
         except grpc.RpcError as rpc_error_call:
             dendrite_call.return_code = rpc_error_call.code()
             dendrite_call.return_message = 'GRPC error code: {}, details: {}'.format( rpc_error_call.code(), str(rpc_error_call.details()) )
+            bittensor.logging.debug( 'Dendrite.apply() rpc error: {}'.format( dendrite_call.return_message ) )
+                                    
         # Catch timeout errors.
         except asyncio.TimeoutError:
             dendrite_call.return_code = bittensor.proto.ReturnCode.Timeout
             dendrite_call.return_message = 'GRPC request timeout after: {}s'.format( dendrite_call.timeout)
+            bittensor.logging.debug( 'Denrite.apply() timeout error: {}'.format( dendrite_call.return_message ) )
+
         except Exception as e:
             # Catch unknown errors.
             dendrite_call.return_code = bittensor.proto.ReturnCode.UnknownException
-            dendrite_call.return_message = str(e)
+            dendrite_call.return_message = str(e)   
+            bittensor.logging.debug( 'Dendrite.apply() unknown error: {}'.format( dendrite_call.return_message ) )
+
         finally:
             dendrite_call.log_outbound()           
             return dendrite_call

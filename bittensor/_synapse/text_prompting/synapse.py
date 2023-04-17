@@ -84,6 +84,7 @@ class TextPromptingSynapseBackward( bittensor.SynapseCall ):
 
 
 class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServicer ):
+    name: str = "text_prompting"
 
     def __init__(self, axon: "bittensor.axon" ):
         super().__init__( axon = axon )
