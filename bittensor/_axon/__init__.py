@@ -415,15 +415,14 @@ class AuthInterceptor(ServerInterceptor):
         sender_hotkey: str,
         signature: str,
         receptor_uuid: str,
-        request: 'TensorMessage', 
+        request_sum: int,
+        grads_sum: int,
     ):
         r"""verification of signature in metadata. Uses the pubkey and nonce"""
         keypair = Keypair(ss58_address=sender_hotkey)
+
         # Build the expected message which was used to build the signature.
-        message = f"{nonce}.{sender_hotkey}.{self.receiver_hotkey}.{receptor_uuid}"
-
-        print(request)
-
+        message = f"{nonce}.{sender_hotkey}.{self.receiver_hotkey}.{receptor_uuid}.{request_sum}.{grads_sum}"
 
         # Build the key which uniquely identifies the endpoint that has signed
         # the message.
@@ -438,6 +437,24 @@ class AuthInterceptor(ServerInterceptor):
         if not keypair.verify(message, signature):
             raise Exception("Signature mismatch")
         self.nonces[endpoint_key] = nonce
+
+    def request_deserialization(
+            self,
+            request
+    ):
+        r"""deserialization of request in payload. Used for authenication"""
+        
+        try: 
+            synapse = bittensor.synapse.deserialize(request.synapses[0])
+            request_matrix = synapse.deserialize_forward_request_tensor(request.tensors[0])
+            request_sum = request_matrix.sum().int().item()
+            grads_sum = 0 
+            if len(request.tensors) > len( request.synapses ):
+                grads_sum = synapse.deserialize_backward_request_gradient ( request_matrix,  request.tensors[ len( request.synapses )] ).sum().int().item()
+            return request_sum, grads_sum
+        
+        except Exception as e:
+            raise Exception('Incorrect formatting of request and tensors')
 
     def black_list_checking(self, hotkey: str, method: str):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
@@ -491,11 +508,12 @@ class AuthInterceptor(ServerInterceptor):
                 receptor_uuid,
             ) = self.parse_signature(metadata)
 
+            request_sum, grads_sum = self.request_deserialization(request)
+
             # signature checking
             self.check_signature(
-                nonce, sender_hotkey, signature, receptor_uuid, request
+                nonce, sender_hotkey, signature, receptor_uuid, request_sum, grads_sum
             )
-
             # blacklist checking
             self.black_list_checking(sender_hotkey, method_name)
 

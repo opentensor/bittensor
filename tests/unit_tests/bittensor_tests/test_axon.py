@@ -40,17 +40,19 @@ def gen_nonce():
     return f"{time.monotonic_ns()}"
 
 
-def sign_v2(sender_wallet, receiver_wallet):
+def sign_v2(sender_wallet, receiver_wallet, inputs=None, grads=None):
+    inputs_sum =  inputs.sum().int().item() if inputs != None else 0
+    grads_sum = grads.sum().int().item() if grads != None else 0 
     nonce, receptor_uid = gen_nonce(), str(uuid.uuid1())
     sender_hotkey = sender_wallet.hotkey.ss58_address
     receiver_hotkey = receiver_wallet.hotkey.ss58_address
-    message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{receptor_uid}"
+    message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{receptor_uid}.{inputs_sum}.{grads_sum}"
     signature = f"0x{sender_wallet.hotkey.sign(message).hex()}"
     return ".".join([nonce, sender_hotkey, signature, receptor_uid])
 
-def sign(sender_wallet, receiver_wallet, receiver_version):
+def sign(sender_wallet, receiver_wallet, receiver_version, inputs=None, grads=None):
     
-    return sign_v2(sender_wallet, receiver_wallet)
+    return sign_v2(sender_wallet, receiver_wallet, inputs, grads)
 
 def test_sign_v2():
     sign_v2(sender_wallet, wallet)
@@ -930,7 +932,7 @@ def run_test_grpc_forward_works(receiver_version):
     response = stub.Forward(request,
                             metadata = (
                                         ('rpc-auth-header','Bittensor'),
-                                        ('bittensor-signature',sign(sender_wallet, wallet, receiver_version)),
+                                        ('bittensor-signature',sign(sender_wallet, wallet, receiver_version, inputs=inputs_raw)),
                                         ('bittensor-version',str(bittensor.__version_as_int__)),
                                         ))
 
@@ -976,7 +978,7 @@ def run_test_grpc_backward_works(receiver_version):
     response = stub.Backward(request,
                              metadata = (
                                     ('rpc-auth-header','Bittensor'),
-                                    ('bittensor-signature',sign(sender_wallet, wallet, receiver_version)),
+                                    ('bittensor-signature',sign(sender_wallet, wallet, receiver_version, inputs=inputs_raw, grads=grads_raw)),
                                     ('bittensor-version',str(bittensor.__version_as_int__)),
                                     ))
     assert response.return_code == bittensor.proto.ReturnCode.Success
