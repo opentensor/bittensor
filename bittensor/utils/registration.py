@@ -17,6 +17,7 @@ from Crypto.Hash import keccak
 from rich import console as rich_console
 from rich import status as rich_status
 
+from .formatting import get_human_readable, millify
 from ._register_cuda import solve_cuda
 
 
@@ -38,31 +39,6 @@ def seal_meets_difficulty( seal:bytes, difficulty:int, limit: int ):
     product = seal_number * difficulty
     return product < limit
 
-
-def get_human_readable(num, suffix="H"):
-    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
-        if abs(num) < 1000.0:
-            return f"{num:3.1f}{unit}{suffix}"
-        num /= 1000.0
-    return f"{num:.1f}Y{suffix}"
-
-
-def millify(n: int):
-    millnames = ['',' K',' M',' B',' T']
-    n = float(n)
-    millidx = max(0,min(len(millnames)-1,
-                        int(math.floor(0 if n == 0 else math.log10(abs(n))/3))))
-
-    return '{:.2f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
-
-
-def POWNotStale(subtensor: 'bittensor.Subtensor', pow_result: Dict) -> bool:
-    """Returns True if the POW is not stale.
-    This means the block the POW is solved for is within 3 blocks of the current block.
-    """
-    return pow_result['block_number'] >= subtensor.get_current_block() - 3
-
-
 @dataclass
 class POWSolution:
     """A solution to the registration PoW problem."""
@@ -71,6 +47,11 @@ class POWSolution:
     difficulty: int
     seal: bytes
 
+    def is_stale(self, subtensor: 'bittensor.Subtensor') -> bool:
+        """Returns True if the POW is stale.
+        This means the block the POW is solved for is within 3 blocks of the current block.
+        """
+        return self.block_number < subtensor.get_current_block() - 3
 
 class SolverBase(multiprocessing.Process):
     """
