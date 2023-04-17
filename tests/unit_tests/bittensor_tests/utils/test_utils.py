@@ -247,6 +247,35 @@ class TestRegistrationHelpers(unittest.TestCase):
         hash_of_block_and_hotkey = bittensor.utils.hash_block_with_hotkey(block_bytes, hotkey_bytes)
         self.assertEqual(curr_block[:], [int(byte_) for byte_ in hash_of_block_and_hotkey])
 
+    def test_solve_for_nonce_block(self):
+        solver = MagicMock()
+        nonce_start = 0
+        nonce_end = 10_000
+        block_and_hotkey_hash_bytes = bytes.fromhex('9dda24e4199df410e18a43044b3069078f796922b0247b8749aecb577b09bd59')
+        
+        limit = limit = int(math.pow(2,256)) - 1  
+        block_number = 1
+
+        difficulty = 1
+        result = bittensor.utils.solve_for_nonce_block(solver, nonce_start, nonce_end, block_and_hotkey_hash_bytes, difficulty, limit, block_number)
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result.block_number, block_number)
+        self.assertEqual(result.difficulty, difficulty)
+
+        # Make sure seal meets difficulty
+        self.assertTrue(bittensor.utils.seal_meets_difficulty(result.seal, difficulty, limit))
+
+        # Test with a higher difficulty
+        difficulty = 10
+        result = bittensor.utils.solve_for_nonce_block(solver, nonce_start, nonce_end, block_and_hotkey_hash_bytes, difficulty, limit, block_number)
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result.block_number, block_number)
+        self.assertEqual(result.difficulty, difficulty)
+
+        # Make sure seal meets difficulty
+        self.assertTrue(bittensor.utils.seal_meets_difficulty(result.seal, difficulty, limit))
 
 class TestSS58Utils(unittest.TestCase):
     def test_is_valid_ss58_address(self):
