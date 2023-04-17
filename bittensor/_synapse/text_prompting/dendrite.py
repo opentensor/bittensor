@@ -201,7 +201,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
                 The responses from the forward call.
         """
         # We optionally set the uids to all if uids is None.
-        if uids is None: uids = range( len( self.dendrites ))
+        if uids is None: uids = range( self.metagraph.n.item() )
         if isinstance( uids, torch.Tensor ): uids = uids.tolist()
 
         # We optionally set the prompt to the message if prompt is None.
