@@ -53,6 +53,25 @@ class DendriteForwardCall( bittensor.DendriteCall ):
 
     def get_outputs_shape(self) -> torch.Size:
         return torch.Size([ len(self.completion) ] )
+
+    def backward( self, reward: float, timeout: float = None ) -> 'DendriteBackwardCall':
+        return self.dendrite.backward(
+            roles = self.roles,
+            messages = self.messages,
+            completion = self.completion,
+            rewards = [ reward ],
+            timeout = self.timeout if timeout is None else bittensor.__blocktime__
+        )
+
+    async def async_backward( self, reward: float, timeout: float = None ) -> 'DendriteBackwardCall':
+        return await self.dendrite.async_backward(
+            roles = self.roles,
+            messages = self.messages,
+            completion = self.completion,
+            rewards = [ reward ],
+            timeout = self.timeout if timeout is None else bittensor.__blocktime__
+        )
+    
     
 class DendriteBackwardCall( bittensor.DendriteCall ):
 
