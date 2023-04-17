@@ -306,8 +306,8 @@ def registration_diff_pack(diff: int, packed_diff: multiprocessing.Array):
 
 
 def hash_block_with_hotkey(block_bytes: bytes, hotkey_bytes: bytes) -> bytes:
-    """Hashes the block with the hotkey using Keccak-256."""
-    kec = keccak.new(digest_bits=256)
+    """Hashes the block with the hotkey using Keccak-512."""
+    kec = keccak.new(digest_bits=512)
     kec = kec.update(block_bytes + hotkey_bytes)
     block_and_hotkey_hash_bytes = kec.digest()
     return block_and_hotkey_hash_bytes
@@ -316,6 +316,7 @@ def hash_block_with_hotkey(block_bytes: bytes, hotkey_bytes: bytes) -> bytes:
 def update_curr_block(curr_diff: multiprocessing.Array, curr_block: multiprocessing.Array, curr_block_num: multiprocessing.Value, block_number: int, block_bytes: bytes, diff: int, hotkey_bytes: bytes, lock: multiprocessing.Lock):
     with lock:
         curr_block_num.value = block_number
+        # Hash the block with the hotkey
         block_and_hotkey_hash_bytes = hash_block_with_hotkey(block_bytes, hotkey_bytes)
         for i in range(64):
             curr_block[i] = block_and_hotkey_hash_bytes[i]
