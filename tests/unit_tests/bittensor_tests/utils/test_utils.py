@@ -10,7 +10,7 @@ import time
 import unittest
 from sys import platform
 from types import SimpleNamespace
-from typing import Dict
+from typing import Dict, Union
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -104,51 +104,29 @@ def test_unbiased_topk():
     assert torch.all(torch.eq(topk[1], torch.Tensor([9, 8])))
 
 class TestRegistrationHelpers(unittest.TestCase):
-    def test_hex_bytes_to_u8_list(self):
-        nonce = 1
-        nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
-        hex_bytes_list = bittensor.utils.hex_bytes_to_u8_list(nonce_bytes)
-
-        assert len(hex_bytes_list) == 8
-        assert hex_bytes_list[0] == 1
-        assert hex_bytes_list[-1] == 0
-
-    def test_u8_list_to_hex(self):
-        hex_bytes_list = [1, 0, 0, 0, 0, 0, 0, 0]
-        assert bittensor.utils.u8_list_to_hex(hex_bytes_list) == 1
-
     def test_create_seal_hash(self):
-        block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
+        block_and_hotkey_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
+        block_and_hotkey_hash_bytes = bytes.fromhex(block_and_hotkey_hash[2:])
         nonce = 10
-        seal_hash = bittensor.utils.create_seal_hash(block_hash, nonce)
-        assert seal_hash == b'\xc5\x01B6"\xa8\xa5FDPK\xe49\xad\xdat\xbb:\x87d\x13/\x86\xc6:I8\x9b\x88\xf0\xc20'
+        seal_hash = bittensor.utils.create_seal_hash(block_and_hotkey_hash_bytes, nonce)
+        self.assertEqual(seal_hash, b'\xc5\x01B6"\xa8\xa5FDPK\xe49\xad\xdat\xbb:\x87d\x13/\x86\xc6:I8\x9b\x88\xf0\xc20')
 
     def test_seal_meets_difficulty(self):
         block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
         nonce = 10
-        nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
+        limit = int(math.pow(2,256))- 1  
+        nonce_bytes = nonce.to_bytes(8, 'little')
         block_bytes = block_hash.encode('utf-8')[2:]
         pre_seal = nonce_bytes + block_bytes
-        seal = hashlib.sha256( bytearray(bittensor.utils.hex_bytes_to_u8_list(pre_seal)) ).digest()
+        seal = hashlib.sha256( bytearray(pre_seal) ).digest()
 
         difficulty = 1
-        meets = bittensor.utils.seal_meets_difficulty( seal, difficulty )
+        meets = bittensor.utils.seal_meets_difficulty( seal, difficulty, limit )
         assert meets == True
 
         difficulty = 10
-        meets = bittensor.utils.seal_meets_difficulty( seal, difficulty )
+        meets = bittensor.utils.seal_meets_difficulty( seal, difficulty, limit )
         assert meets == False
-
-    def test_solve_for_difficulty(self):
-        block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
-        nonce, seal = bittensor.utils.solve_for_difficulty(block_hash, 1)
-
-        assert nonce == 0
-        assert seal == b'\xe2d\xbc\x10Tu|\xd0nQ\x1f\x15wTd\xb0\x18\x8f\xc7\xe7:\x12\xc6>\\\xbe\xac\xc5/v\xa7\xce'
-
-        nonce, seal = bittensor.utils.solve_for_difficulty(block_hash, 10)
-        assert nonce == 2
-        assert seal == b'\x19\xf2H1mB3\xa3y\xda\xe7)\xc7P\x93t\xe5o\xbc$\x14sQ\x10\xc3M\xc6\x90M8vq'
 
     def test_solve_for_difficulty_fast(self):
         block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
@@ -157,19 +135,22 @@ class TestRegistrationHelpers(unittest.TestCase):
         subtensor.difficulty = MagicMock( return_value=1 )
         subtensor.substrate = MagicMock()
         subtensor.substrate.get_block_hash = MagicMock( return_value=block_hash )
-        wallet = MagicMock()
-        wallet.is_registered = MagicMock( return_value=False )
+        wallet = MagicMock(
+            hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
+            is_registered = MagicMock( return_value=False )
+        )
         num_proc: int = 1
+        limit = int(math.pow(2,256))- 1  
 
         solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )   
         seal = solution.seal
 
-        assert bittensor.utils.seal_meets_difficulty(seal, 1)
+        assert bittensor.utils.seal_meets_difficulty(seal, 1, limit)
         
         subtensor.difficulty = MagicMock( return_value=10 )
         solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
         seal = solution.seal
-        assert bittensor.utils.seal_meets_difficulty(seal, 10)
+        assert bittensor.utils.seal_meets_difficulty(seal, 10, limit)
     
     def test_solve_for_difficulty_fast_registered_already(self):
         # tests if the registration stops after the first block of nonces
@@ -184,8 +165,10 @@ class TestRegistrationHelpers(unittest.TestCase):
             subtensor.difficulty = MagicMock( return_value=int(1e10)) # set high to make solving take a long time
             subtensor.substrate = MagicMock()
             subtensor.substrate.get_block_hash = MagicMock( return_value=block_hash )
-            wallet = MagicMock()
-            wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
+            wallet = MagicMock(
+                hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
+                is_registered = MagicMock( side_effect=is_registered_return_values )
+            )
 
             # all arugments should return None to indicate an early return
             solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes = 1, update_interval = 1000)
@@ -201,18 +184,21 @@ class TestRegistrationHelpers(unittest.TestCase):
         subtensor.difficulty = MagicMock( return_value=1 )
         subtensor.substrate = MagicMock()
         subtensor.substrate.get_block_hash = MagicMock( side_effect= [None, None] + [block_hash]*20)
-        wallet = MagicMock()
-        wallet.is_registered = MagicMock( return_value=False )
+        wallet = MagicMock(
+            hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
+            is_registered = MagicMock( return_value=False )
+        )
         num_proc: int = 1
+        limit = int(math.pow(2,256))- 1  
 
         solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
         seal = solution.seal
-        assert bittensor.utils.seal_meets_difficulty(seal, 1)
+        assert bittensor.utils.seal_meets_difficulty(seal, 1, limit)
         
         subtensor.difficulty = MagicMock( return_value=10 )
         solution = bittensor.utils.solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
         seal = solution.seal
-        assert bittensor.utils.seal_meets_difficulty(seal, 10)
+        assert bittensor.utils.seal_meets_difficulty(seal, 10, limit)
 
     def test_registration_diff_pack_unpack_under_32_bits(self):
         fake_diff = pow(2, 31)# this is under 32 bits
@@ -228,6 +214,39 @@ class TestRegistrationHelpers(unittest.TestCase):
         
         bittensor.utils.registration_diff_pack(fake_diff, mock_diff)
         assert bittensor.utils.registration_diff_unpack(mock_diff) == fake_diff
+
+    def test_hash_block_with_hotkey(self):
+        block_hash_bytes = bytes.fromhex('ba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279')
+        hotkey: 'bittensor.Keypair' = bittensor.Keypair.create_from_seed(
+            '0x' + '0'*63 + '1', ss58_format=bittensor.__ss58_format__
+        )
+        hotkey_bytes = hotkey.public_key
+        
+        expected_hash = '3917916c324bb85e06ca3931b3defda25e38dcd9272b4b28c37c32cf1b2df8b9ad4d2acedc84ee8f0e82a47d7b54b0be1bccd25b0b159b09c54ba306862cb638'
+        result_hash = bittensor.utils.hash_block_with_hotkey(block_hash_bytes, hotkey_bytes)
+        self.assertEqual(result_hash.hex(), expected_hash)
+
+    def test_update_curr_block(self):
+        curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
+        curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
+        curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+
+        block_number: int = 1
+        block_bytes = bytes.fromhex('9dda24e4199df410e18a43044b3069078f796922b0247b8749aecb577b09bd59')
+        diff: int = 1
+        hotkey_bytes = bytes.fromhex('0'*64)
+        lock: Union[multiprocessing.Lock, MagicMock] = MagicMock()
+
+        bittensor.utils.update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, diff, hotkey_bytes, lock)
+
+        self.assertEqual(curr_block_num.value, block_number)
+        
+        self.assertEqual(curr_diff[0], diff >> 32)
+        self.assertEqual(curr_diff[1], diff & 0xFFFFFFFF)
+
+        hash_of_block_and_hotkey = bittensor.utils.hash_block_with_hotkey(block_bytes, hotkey_bytes)
+        self.assertEqual(curr_block[:], [int(byte_) for byte_ in hash_of_block_and_hotkey])
+
 
 class TestSS58Utils(unittest.TestCase):
     def test_is_valid_ss58_address(self):
