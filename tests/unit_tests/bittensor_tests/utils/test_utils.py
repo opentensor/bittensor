@@ -572,7 +572,7 @@ class TestPOWCalled(unittest.TestCase):
                 call1 = mock_compose_call.call_args
                 assert call1[1]['call_function'] == 'register'
                 call_params = call1[1]['call_params']
-                assert call_params['nonce'] == mock_result['nonce']
+                assert call_params['nonce'] == mock_result.nonce
 
 class TestCUDASolverRun(unittest.TestCase):      
     def test_multi_cuda_run_updates_nonce_start(self):
@@ -610,11 +610,11 @@ class TestCUDASolverRun(unittest.TestCase):
             
             # args, kwargs
             args_call_0, _ = calls[0]
-            initial_nonce_start: int = args_call_0[1] # second arg should be nonce_start
+            initial_nonce_start: int = args_call_0[0] # fist arg should be nonce_start
             self.assertIsInstance(initial_nonce_start, int)
             
             args_call_1, _ = calls[1]
-            nonce_start_after_iteration: int = args_call_1[1] # second arg should be nonce_start
+            nonce_start_after_iteration: int = args_call_1[0] # first arg should be nonce_start
             self.assertIsInstance(nonce_start_after_iteration, int)
 
             # verify nonce_start is updated after each iteration
