@@ -41,7 +41,7 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
         
         bittensor.logging.info( 'Loading ' + str(self.config.pythia.model_name))
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.pythia.model_name )
-        self.model = AutoModelForCausalLM.from_pretrained( self.config.pythia.model_name, torch_dtype = torch.float16 )
+        self.model = AutoModelForCausalLM.from_pretrained( self.config.pythia.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
         bittensor.logging.info( 'Model loaded!' )
 
         if self.config.pythia.device != "cpu":
@@ -78,9 +78,9 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
         generated_text = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
         generation = generated_text.split("<human>")[0].strip()
         
-        # Uncomment to print input and output
-        # bittensor.logging.debug("Message: " + str(messages).replace("<","-").replace(">","-"))
-        # bittensor.logging.debug("Generation: " + str(generation).replace("<","-").replace(">","-"))
+        # Logging input and generation if debugging is active
+        bittensor.logging.debug("Message: " + str(messages).replace("<","-").replace(">","-"))
+        bittensor.logging.debug("Generation: " + str(generation).replace("<","-").replace(">","-"))
         return generation
 
 if __name__ == "__main__":
