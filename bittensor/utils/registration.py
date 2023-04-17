@@ -861,10 +861,3 @@ def create_pow(
         )
 
     return solution
-
-    return None if solution is None else {
-        'nonce': solution.nonce, 
-        'difficulty': solution.difficulty,
-        'block_number': solution.block_number, 
-        'work': binascii.hexlify(solution.seal)
-    }
