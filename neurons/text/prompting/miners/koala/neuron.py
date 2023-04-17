@@ -41,7 +41,7 @@ class KoalaMiner( bittensor.BasePromptingMiner ):
         
         bittensor.logging.info( 'Loading ' + str(self.config.koala.model_name))
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.koala.model_name, use_fast=False )
-        self.model = AutoModelForCausalLM.from_pretrained( self.config.koala.model_name, torch_dtype = torch.float16 )
+        self.model = AutoModelForCausalLM.from_pretrained( self.config.koala.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
         bittensor.logging.info( 'Model loaded!' )
 
         if self.config.koala.device != "cpu":
@@ -77,9 +77,9 @@ class KoalaMiner( bittensor.BasePromptingMiner ):
 
         generation = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
         
-        # Outputting input and generation if debugging is active
-        bittensor.logging.debug("Message: " + str(messages).replace("<","-").replace(">","-"))
-        bittensor.logging.debug("Generation: " + str(generation).replace("<","-").replace(">","-"))
+        # Logging input and generation if debugging is active
+        bittensor.logging.debug("Message: " + str(messages))
+        bittensor.logging.debug("Generation: " + str(generation))
         return generation
 
 if __name__ == "__main__":
