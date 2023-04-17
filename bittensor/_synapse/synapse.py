@@ -34,7 +34,7 @@ class SynapseCall( ABC ):
 
     def __init__(
         self,
-        synapse: bittensor.Synapse,
+        synapse: 'bittensor.Synapse',
         request_proto: object
     ):
         self.completed = False
@@ -49,10 +49,10 @@ class SynapseCall( ABC ):
         self.priority: float = 0
 
     @abstractmethod
-    def get_inputs_shape( self ) -> torch.Shape: ...    
+    def get_inputs_shape( self ) -> torch.Size: ...    
 
     @abstractmethod
-    def get_outputs_shape( self ) -> torch.Shape: ...     
+    def get_outputs_shape( self ) -> torch.Size: ...     
 
     @abstractmethod
     def get_response_proto( self ) -> object: ...
@@ -76,13 +76,13 @@ class SynapseCall( ABC ):
             call_time = 0, 
             pubkey = self.src_hotkey, 
             uid = None,
-            inputs = self.get_inputs_shape(), 
+            inputs = self.get_outputs_shape(), 
             outputs = self.get_outputs_shape(),
             message = self.return_message,
             synapse = self.name,
         )
 
-    def log_outbound( self ):
+    def log_inbound( self ):
         bittensor.logging.rpc_log( 
             axon = True, 
             forward = self.is_forward, 
@@ -92,7 +92,7 @@ class SynapseCall( ABC ):
             pubkey = self.src_hotkey, 
             uid = None, 
             inputs = self.get_inputs_shape(),
-            outputs = self.get_outputs_shape(),
+            outputs = self.get_inputs_shape(),
             message = self.return_message,
             synapse = self.name
         )      
@@ -110,7 +110,7 @@ class Synapse( ABC ):
     def priority( self, call: SynapseCall ) -> float: ...
 
     def apply( self, call: SynapseCall ) -> object:
-        bittensor.logging.debug( 'Synapse: {} received call: {}'.format( self.name, call ) )
+        bittensor.logging.trace( 'Synapse: {} received call: {}'.format( self.name, call ) )
         try:
             call.log_inbound()
 
@@ -118,7 +118,7 @@ class Synapse( ABC ):
             if self.blacklist( call ):
                 call.request_code = bittensor.proto.ReturnCode.Blacklisted
                 call.request_message = "Blacklisted"
-                bittensor.logging.debug( 'Synapse: {} blacklisted call: {}'.format( self.name, call ) )
+                bittensor.logging.trace( 'Synapse: {} blacklisted call: {}'.format( self.name, call ) )
             
             # Make call.
             else:
@@ -129,23 +129,23 @@ class Synapse( ABC ):
                     priority = call.priority,
                 )
                 future.result( timeout = call.timeout )
-                bittensor.logging.debug( 'Synapse: {} completed call: {}'.format( self.name, call ) )
+                bittensor.logging.trace( 'Synapse: {} completed call: {}'.format( self.name, call ) )
 
         # Catch timeouts
         except asyncio.TimeoutError:
             call.return_code = bittensor.proto.ReturnCode.Timeout
             call.return_message = 'GRPC request timeout after: {}s'.format( call.timeout)
-            bittensor.logging.debug( 'Synapse: {} timeout call: {}'.format( self.name, call ) )
+            bittensor.logging.trace( 'Synapse: {} timeout call: {}'.format( self.name, call ) )
 
         # Catch unknown exceptions.
         except Exception as e:
             call.return_code = bittensor.proto.ReturnCode.UnknownException
             call.return_message = str(e)
-            bittensor.logging.debug( 'Synapse: {} timeout call: {}'.format( self.name, call ) )
+            bittensor.logging.trace( 'Synapse: {} timeout call: {}'.format( self.name, call ) )
 
         # Finally return the call.
         finally:
             call.log_outbound()
-            return call.get_reponse_proto()
+            return call.get_response_proto()
         
    

@@ -271,6 +271,7 @@ message BackwardTextPromptingRequest {
 	repeated float rewards = 3;
 	repeated string messages = 4;
 	string response = 5;
+    float timeout = 6;
 }
 message BackwardTextPromptingResponse {
     int32 version = 1;
