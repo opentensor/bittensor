@@ -22,260 +22,134 @@ import asyncio
 import bittensor
 from typing import Union, Optional, Callable
 
-class Dendrite(torch.nn.Module):
-    """ Dendrite object.
-        Dendrites are the forward pass of the bittensor network. They are responsible for making the forward call to the receptor.
-    """
+from dataclasses import dataclass
+from abc import ABC, abstractmethod
+
+@dataclass
+class DendriteCall( ABC ):
+    
+    is_forward: bool
+    name: str
+
+    def __init__(
+            self, 
+            dendrite: bittensor.Dendrite,
+            timeout: float = bittensor.__blocktime__
+        ):
+        self.completed = False
+        self.timeout = timeout
+        self.start_time = time.time()
+        self.src_hotkey = dendrite.endpoint.hotkey
+        self.src_version = bittensor.__version_as_int__
+        self.dest_hotkey = dendrite.wallet.hotkey.ss58_address
+        self.dest_version = dendrite.endpoint.version  
+        self.return_code: bittensor.proto.ReturnCode = bittensor.proto.ReturnCode.Success
+        self.return_message: str = 'Success'
+
+    @abstractmethod
+    def get_callable(self) -> Callable: ...
+
+    @abstractmethod
+    def get_inputs_shape(self) -> torch.Shape: ...
+    
+    @abstractmethod
+    def get_outputs_shape(self) -> torch.Shape: ...
+
+    @abstractmethod
+    def get_request_proto(self) -> object: ...
+
+    def _get_request_proto(self) -> object:
+        request_proto = self.request_proto    
+        request_proto.version = self.src_version
+        request_proto.timeout = self.timeout, 
+        request_proto.hotkey = self.src_hotkey
+        return request_proto
+    
+    @abstractmethod
+    def apply_response_proto( self, response_proto: object ): ...
+
+    def _apply_response_proto( self, response_proto: object ):
+        self.apply_response_proto( response_proto )
+        self.end_time = time.time()
+        self.elapsed = self.end_time - self.start_time
+        self.completed = True
+
+    def log_outbound(self):
+        bittensor.logging.rpc_log(
+            axon = False, 
+            forward = self.is_forward, 
+            is_response = True, 
+            code = self.return_code, 
+            call_time = self.elapsed if self.completed else 0, 
+            pubkey = self.dest_hotkey, 
+            uid = None,
+            inputs = self.get_inputs_shape(), 
+            outputs = self.get_outputs_shape(),
+            message = self.return_message,
+            synapse = self.name,
+        )
+
+    def log_outbound(self):
+        bittensor.logging.rpc_log( 
+            axon = False, 
+            forward = self.is_forward, 
+            is_response = False, 
+            code = self.return_code, 
+            call_time = 0, 
+            pubkey = self.dest_hotkey, 
+            uid = None, 
+            inputs = self.get_inputs_shape(),
+            outputs = self.get_outputs_shape(),
+            message = self.return_message,
+            synapse = self.name
+        )      
+
+class Dendrite( ABC, torch.nn.Module ):
     def __init__(
             self,
             wallet: 'bittensor.wallet',
             endpoint: Union[ 'bittensor.Endpoint', torch.Tensor ], 
         ):
-        """ Initializes the Dendrite
-            Args:
-                wallet (:obj:`bittensor.wallet`, `required`):
-                    bittensor wallet object.
-                endpoint (:obj:Union[]`bittensor.endpoint`, `required`):
-                    bittensor endpoint object.
-        """
         super(Dendrite, self).__init__()
         self.wallet = wallet
-        if isinstance(endpoint, torch.Tensor ): 
-            endpoint = bittensor.endpoint.from_tensor( endpoint )
         self.endpoint = endpoint
         self.receptor = bittensor.receptor( wallet = self.wallet, endpoint = self.endpoint )
 
-    def __str__( self ) -> str:
-        """ Returns the name of the dendrite."""
-        return "Dendrite"
 
-    def __del__(self):
-        del self.receptor
-
-    def get_stub( self ) -> object:
-        """ Returns the channel stub for the dendrite. """
+    @abstractmethod
+    def to_future( self, dendrite_call: DendriteCall ) -> object:
         raise NotImplementedError('Dendrite.get_forward_stub() not implemented.')
     
-    def pre_process_forward_call_to_request_proto( 
-            self, 
-            forward_call: 'bittensor.BittensorCall' 
-        ) -> 'bittensor.ForwardRequest':
-        """ Preprocesses the request proto to a forward call.
-            --------------------------------------------
-            Args:
-                forward_call (:obj:`bittensor.BittensorCall`, `required`):
-                    forward_call to preprocess.
-            Returns:
-                request_proto (:obj:`bittensor.ForwardRequest`, `required`):
-                    bittensor forward call object.
-        """
-        raise NotImplementedError('Must implement pre_process_forward_call_to_request_proto() in subclass.')
-    
-    def pre_process_backward_call_to_request_proto( 
-            self, 
-            backward_call: 'bittensor.BittensorCall' 
-        ) -> 'bittensor.BackwardRequest':
-        """ Preprocesses the forward call to a request proto.
-            --------------------------------------------
-            Args:
-                backward_call (:obj:`bittensor.BittensorCall`, `required`):
-                    backward_call to preprocess.
-            Returns:
-                request_proto (:obj:`bittensor.BackwardRequest`, `required`):
-                    bittensor backward request proto object.
-        """
-        raise NotImplementedError('Must implement pre_process_backward_call_to_request_proto() in subclass.')
-    
-    def post_process_response_proto_to_forward_call( 
-            self, 
-            forward_call: bittensor.BittensorCall,
-            response_proto: 'bittensor.ForwardResponse'
-        ) -> bittensor.BittensorCall:
-        """ Postprocesses the response proto to fill forward call.
-            --------------------------------------------
-            Args:
-                forward_call (:obj:`bittensor.BittensorCall`, `required`):
-                    bittensor forward call object to fill.
-                response_proto (:obj:`bittensor.ForwardResponse`, `required`):
-                    bittensor forward response proto.
-            Returns:
-                forward_call (:obj:`bittensor.BittensorCall`, `required`):
-                    filled bittensor forward call object.
-        """
-        raise NotImplementedError('Must implement post_process_response_proto_to_forward_call() in subclass.')
-    
-    async def _async_forward( self, forward_call: 'bittensor.BittensorCall' ) -> 'bittensor.BittensorCall':
-        """ The function async_forward is a coroutine function that makes an RPC call 
-            to a remote endpoint to perform a forward pass. It uses a BittensorCall object which it fills 
-            using the subclass inherited functions _fill_forward_request and _process_forward_response.
-            It returns the BittensorCall object with the filled responses.
-
-            The function also logs the request and response messages using bittensor.logging.rpc_log.
-            Args:
-                forward_call (:obj:bittensor.BittensorCall, required): 
-                    The BittensorCall object containing the request to be made to the remote endpoint.
-            Returns:
-                forward_call (:obj:bittensor.BittensorCall, required):
-                    The BittensorCall object containing the response from the remote endpoint.
-        """
-        forward_call.hotkey = self.wallet.hotkey.ss58_address
-        forward_call.version = bittensor.__version_as_int__
+    async def apply( self, dendrite_call: DendriteCall ) -> DendriteCall:
         try:
-            forward_call.request_proto = self.pre_process_forward_call_to_request_proto( forward_call = forward_call )
-            forward_call.request_proto.hotkey = self.wallet.hotkey.ss58_address
-            forward_call.request_proto.version = bittensor.__version_as_int__
-            forward_call.request_proto.timeout = forward_call.timeout
-        except Exception as e:
-            forward_call.request_code = bittensor.proto.ReturnCode.RequestSerializationException
-            forward_call.request_message = str(e)
-        finally:
-            # Log accepted request
-            bittensor.logging.rpc_log ( 
-                axon = False, 
-                forward = True, 
-                is_response = False, 
-                code = forward_call.request_code, 
-                call_time = time.time() - forward_call.start_time, 
-                pubkey = self.endpoint.hotkey, 
-                uid = self.endpoint.uid, 
-                inputs = forward_call.get_inputs_shape() if forward_call.request_code == bittensor.proto.ReturnCode.Success else None,
-                outputs = None,
-                message = forward_call.request_message,
-                synapse = self.__str__()
-            )
-            # Optionally return.
-            if forward_call.request_code != bittensor.proto.ReturnCode.Success:
-                forward_call.end_time = time.time()
-                return forward_call
-
-        # Make the call and wait for response.
-        try:
-            # Make asyncio call.
-            asyncio_future = self.get_stub( self.receptor.channel ).Forward(
-                request = forward_call.request_proto,
-                timeout = forward_call.timeout,
+            dendrite_call.log_outbound()
+            asyncio_future = dendrite_call.get_callable()(
+                request = dendrite_call._get_request_proto(),
+                timeout = dendrite_call.timeout,
                 metadata = (
                     ('rpc-auth-header','Bittensor'),
                     ('bittensor-signature', self.receptor.sign() ),
                     ('bittensor-version',str(bittensor.__version_as_int__)),
-                ))
-
-            # Wait for response.
-            forward_call.response_proto = await asyncio.wait_for( asyncio_future, timeout = forward_call.timeout )
-
-            # Process response.
-            forward_call = self.post_process_response_proto_to_forward_call( 
-                forward_call = forward_call,
-                response_proto = forward_call.response_proto
+                )
             )
+            response_proto = await asyncio.wait_for( asyncio_future, timeout = dendrite_call.timeout )
+            dendrite_call._apply_response_proto( response_proto )
+        # Request failed with GRPC code.
         except grpc.RpcError as rpc_error_call:
-            # Request failed with GRPC code.
-            forward_call.response_code = rpc_error_call.code()
-            forward_call.response_message = 'GRPC error code: {}, details: {}'.format( rpc_error_call.code(), str(rpc_error_call.details()) )
+            dendrite_call.return_code = rpc_error_call.code()
+            dendrite_call.return_message = 'GRPC error code: {}, details: {}'.format( rpc_error_call.code(), str(rpc_error_call.details()) )
+        # Catch timeout errors.
         except asyncio.TimeoutError:
-            # Catch timeout errors.
-            forward_call.response_code = bittensor.proto.ReturnCode.Timeout
-            forward_call.response_message = 'GRPC request timeout after: {}s'.format( forward_call.timeout)
+            dendrite_call.return_code = bittensor.proto.ReturnCode.Timeout
+            dendrite_call.return_message = 'GRPC request timeout after: {}s'.format( dendrite_call.timeout)
         except Exception as e:
             # Catch unknown errors.
-            forward_call.response_code = bittensor.proto.ReturnCode.UnknownException
-            forward_call.response_message = str(e)
+            dendrite_call.return_code = bittensor.proto.ReturnCode.UnknownException
+            dendrite_call.return_message = str(e)
         finally:
-            # Log Response
-            bittensor.logging.rpc_log(
-                axon = False, 
-                forward = True, 
-                is_response = True, 
-                code = forward_call.response_code, 
-                call_time = time.time() - forward_call.start_time, 
-                pubkey = self.endpoint.hotkey, 
-                uid = self.endpoint.uid, 
-                inputs = forward_call.get_inputs_shape(), 
-                outputs = forward_call.get_outputs_shape() if forward_call.response_code == bittensor.proto.ReturnCode.Success else None,
-                message = forward_call.response_message,
-                synapse = self.__str__(),
-            )
-            forward_call.end_time = time.time()
-            return forward_call
-        
-    async def _async_backward( self, backward_call: 'bittensor.BittensorCall' ):
-        """ The function async_backward is a coroutine function that makes an RPC call
-            to a remote endpoint to perform a backward pass.
+            dendrite_call.log_outbound()           
+            return dendrite_call
 
-            The function also logs the request and response messages using bittensor.logging.rpc_log.
-            Args:
-                backward_call (:obj:bittensor.BittensorBackwardCall, required): 
-                    The BittensorBackwardCall object containing the request to be made to the remote endpoint.
-        """
-        backward_call.hotkey = self.wallet.hotkey.ss58_address
-        backward_call.version = bittensor.__version_as_int__
-        try:
-            backward_call.request_proto = self.pre_process_backward_call_to_request_proto( backward_call = backward_call )
-            backward_call.request_proto.hotkey = self.wallet.hotkey.ss58_address
-            backward_call.request_proto.version = bittensor.__version_as_int__
-        except Exception as e:
-            backward_call.request_code = bittensor.proto.ReturnCode.RequestSerializationException
-            backward_call.request_message = str(e)
-        finally:
-            # Log accepted request
-            bittensor.logging.rpc_log ( 
-                axon = False, 
-                forward = False, 
-                is_response = False, 
-                code = backward_call.request_code, 
-                call_time = time.time() - backward_call.start_time, 
-                pubkey = self.endpoint.hotkey, 
-                uid = self.endpoint.uid, 
-                inputs = backward_call.get_inputs_shape() if backward_call.request_code == bittensor.proto.ReturnCode.Success else None,
-                outputs = None,
-                message = backward_call.request_message,
-                synapse = self.__str__()
-            )
-            # Optionally return.
-            if backward_call.request_code != bittensor.proto.ReturnCode.Success:
-                backward_call.end_time = time.time()
-                return
-        
-        try:
-            # Make the asyncio call, do not wait for response.
-            asyncio_future = self.get_stub( self.receptor.channel ).Backward(
-                request = backward_call.request_proto,
-                metadata = (
-                    ('rpc-auth-header','Bittensor'),
-                    ('bittensor-signature', self.receptor.sign() ),
-                    ('bittensor-version',str(bittensor.__version_as_int__)),
-                ))
-            backward_call.response_proto = await asyncio.wait_for( asyncio_future, timeout = bittensor.__blocktime__ )
-            
-        except grpc.RpcError as rpc_error_call:
-            # Request failed with GRPC code.
-            backward_call.response_code = rpc_error_call.code()
-            backward_call.response_message = 'GRPC error code: {}, details: {}'.format( rpc_error_call.code(), str(rpc_error_call.details()) )
-        except asyncio.TimeoutError:
-            # Catch timeout errors.
-            backward_call.response_code = bittensor.proto.ReturnCode.Timeout
-            backward_call.response_message = 'GRPC request timeout after: {}s'.format( backward_call.timeout)
-        except Exception as e:
-            # Catch unknown errors.
-            backward_call.response_code = bittensor.proto.ReturnCode.UnknownException
-            backward_call.response_message = str(e)
-        finally:
-            # Log Response 
-            bittensor.logging.rpc_log( 
-                axon = False, 
-                forward = True, 
-                is_response = True, 
-                code = backward_call.response_code, 
-                call_time = time.time() - backward_call.start_time, 
-                pubkey = self.endpoint.hotkey, 
-                uid = self.endpoint.uid, 
-                inputs = backward_call.get_inputs_shape(), 
-                outputs = backward_call.get_outputs_shape() if backward_call.response_code == bittensor.proto.ReturnCode.Success else None,
-                message = backward_call.response_message,
-                synapse = self.__str__(),
-            )
-            backward_call.end_time = time.time()
-            return backward_call
 
 
     

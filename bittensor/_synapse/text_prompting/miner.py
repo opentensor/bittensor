@@ -198,19 +198,18 @@ class BasePromptingMiner(ABC):
             config = self.config,
         )
         class Synapse( bittensor.TextPromptingSynapse ):
-            def _priority( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
+            def priority( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
                 return self.priority( forward_call )
-            def _blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
+            def blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
                 return self.blacklist( forward_call )
             def forward( _, messages: List[Dict[str, str]] ) -> str:
                 return self.forward( messages )
-        self.synapse = Synapse()
+        self.synapse = Synapse( axon = self.axon )
 
     def run( self ):
 
         # --- Start the miner.
         self.wallet.reregister( netuid = self.config.netuid, subtensor = self.subtensor )
-        self.axon.attach( self.synapse )
         self.axon.start()
         self.axon.netuid = self.config.netuid
         self.axon.protocol = 4

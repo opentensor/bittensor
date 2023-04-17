@@ -21,8 +21,6 @@ from typing import List, Dict
 bittensor.logging(debug=True)
 # import openai
 
-
-
 # Create a synapse that returns zeros.
 class Synapse(bittensor.TextPromptingSynapse):
     def _priority(self, forward_call: "bittensor.TextPromptingForwardCall") -> float:
