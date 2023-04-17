@@ -209,14 +209,15 @@ class _CUDASolver(_SolverBase):
 
 def _solve_for_nonce_block_cuda(nonce_start: int, update_interval: int, block_and_hotkey_hash_bytes: bytes, difficulty: int, limit: int, block_number: int, dev_id: int, TPB: int) -> Optional[POWSolution]:
     """Tries to solve the POW on a CUDA device for a block of nonces (nonce_start, nonce_start + update_interval * TPB"""
-    solution, seal = solve_cuda(nonce_start,
+    solution, seal = solve_cuda(
+                    nonce_start,
                     update_interval,
                     TPB,
                     block_and_hotkey_hash_bytes, 
-                    block_number,
                     difficulty, 
                     limit,
                     dev_id)
+    
 
     if (solution != -1):
         # Check if solution is valid (i.e. not -1)

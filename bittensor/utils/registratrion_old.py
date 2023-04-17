@@ -256,11 +256,11 @@ class CUDASolver(SolverBase):
 
 def solve_for_nonce_block_cuda(solver: CUDASolver, nonce_start: int, update_interval: int, block_bytes: bytes, difficulty: int, limit: int, block_number: int, dev_id: int, TPB: int) -> Optional[POWSolution]:
     """Tries to solve the POW on a CUDA device for a block of nonces (nonce_start, nonce_start + update_interval * TPB"""
-    solution, seal = solve_cuda(nonce_start,
+    solution, seal = solve_cuda(
+                    nonce_start,
                     update_interval,
                     TPB,
                     block_bytes, 
-                    block_number,
                     difficulty, 
                     limit,
                     dev_id)

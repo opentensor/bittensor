@@ -10,7 +10,7 @@ from contextlib import redirect_stdout
 import io
 
 
-def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block_and_hotkey_hash_bytes: bytes, bn: int, difficulty: int, hotkey_bytes: bytes, limit: int, dev_id: int = 0) -> Tuple[np.int64, bytes]:
+def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block_and_hotkey_hash_bytes: bytes, difficulty: int, limit: int, dev_id: int = 0) -> Tuple[np.int64, bytes]:
     """
     Solves the PoW problem using CUDA.
     Args:
