@@ -51,14 +51,10 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
 
         return product < limit
 
-    def hex_bytes_to_u8_list( hex_bytes: bytes ):
-        hex_chunks = [int(hex_bytes[i:i+2], 16) for i in range(0, len(hex_bytes), 2)]
-        return hex_chunks
-
     def create_seal_hash( block_and_hotkey_hash_bytes: bytes, nonce: int ) -> bytes:
-        nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
+        nonce_bytes = nonce.to_bytes(8, 'little')
         pre_seal = nonce_bytes + block_and_hotkey_hash_bytes
-        seal_sh256 = hashlib.sha256( bytearray(hex_bytes_to_u8_list(pre_seal)) ).digest()
+        seal_sh256 = hashlib.sha256( bytearray(pre_seal) ).digest()
         kec = keccak.new(digest_bits=256)
         seal = kec.update( seal_sh256 ).digest()
         return seal
