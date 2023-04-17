@@ -860,6 +860,8 @@ def create_pow(
             num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose
         )
 
+    return solution
+
     return None if solution is None else {
         'nonce': solution.nonce, 
         'difficulty': solution.difficulty,
