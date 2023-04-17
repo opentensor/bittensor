@@ -29,6 +29,9 @@ class TextPromptingForwardCall(bittensor.BittensorCall):
     name: str = "forward_prompting"
     messages = None  # To be filled by the forward call
 
+    def __repr__(self) -> str:
+        return f"TextPromptingForwardCall( version: {self.version}, code: {self.response_code}, message: {self.response_message}, caller: {self.hotkey}, timeout: {self.timeout}, start_time: {self.start_time} end_time: {self.end_time}, messages: {self.messages}, response: {self.response} )"
+
     def __str__(self) -> str:
         return f"""
             bittensor.TextPromptingForwardCall( 
@@ -41,7 +44,7 @@ class TextPromptingForwardCall(bittensor.BittensorCall):
                 elapsed: {self.end_time - self.start_time},
                 Args:
                     messages: List[str] = {self.messages}, 
-                    response: List[str] = {self.response if self.response is not None else "To be filled by the forward call."}
+                    response: List[str] = {self.response}
             )
         """
 
@@ -75,14 +78,18 @@ class TextPromptingForwardCall(bittensor.BittensorCall):
         return None
 
 class TextPromptingBackwardCall(bittensor.BittensorCall):
-    """Call state for the text_prompting synapse."""
+    """Call state for the text prompting backward call """
 
     # The name of the synapse call.
     name: str = "backward_prompting"
 
+    def __repr__(self) -> str:
+        return f"TextPromptingBackwardCall( version: {self.version}, code: {self.response_code}, message: {self.response_message}, caller: {self.hotkey}, timeout: {self.timeout}, start_time: {self.start_time} end_time: {self.end_time}, messages: {self.messages}, response: {self.response}, rewards: {self.rewards} )"
+
+
     def __str__(self) -> str:
         return f"""
-            bittensor.TextPromptingForwardCall( 
+            bittensor.TextPromptingBackwardCall( 
                 description: Returns RL rewards to miner based on reward model scoring.
                 caller: {self.hotkey},
                 version: {self.version},
@@ -93,7 +100,7 @@ class TextPromptingBackwardCall(bittensor.BittensorCall):
                 Args:
                     messages: List[Dict[str,str]] = {self.messages}, 
                     response: str = {self.response}, 
-                    rewards: List[float] = {self.rewards},
+                    rewards: List[float] = {self.rewards}
             )
         """
 
