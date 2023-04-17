@@ -149,6 +149,33 @@ class neuron:
         # History of forward events.
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
 
+        # Build entrypoint.
+        class Synapse( bittensor.TextPromptingSynapse ):
+
+            def priority( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
+                # TODO(const): This is should be based on the amount delegated.
+                return 0.0
+
+            def blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
+                # TODO(const): We should check things here.
+                return False
+
+            def forward( _, messages: List[Dict[str, str]] ) -> str:
+                # TODO(const): this is wrong the messages are not formatted the same.
+                return self.forward( 
+                    message = messages, 
+                    topk = 10,
+                    random_sample_uids = False,
+                    train_gating_model = False
+                ).completion
+                
+        self.axon = bittensor.axon()
+        self.synapse = Synapse( axon = self.axon )
+        self.axon.start()
+        self.axon.netuid = self.config.netuid
+        self.axon.protocol = 4
+        self.subtensor.serve_axon( self.axon )
+
     def compute_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
         """
             Computes the average reward for each uid across non-zero values 
@@ -359,6 +386,7 @@ class neuron:
             # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
             if last_epoch_block % 10 == 0:
                 self.metagraph = self.metagraph.sync(netuid=self.config.netuid, subtensor=self.subtensor)
+                self.delegates = self.subtensor.get_delegated( coldkey_ss58 = self.wallet.coldkeypub.ss58_address )
 
             # Check if enough epoch blocks have elapsed since the last epoch.
             epoch_length = self.subtensor.validator_epoch_length(self.config.netuid) if self.config.neuron.epoch_length_override == -1 else self.config.neuron.epoch_length_override
