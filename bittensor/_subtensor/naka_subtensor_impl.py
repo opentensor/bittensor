@@ -968,7 +968,7 @@ class Subtensor:
                 staking_all = True
             else:
                 # Amounts are cast to balance earlier in the function
-                assert isinstance(amount, bittensor.Balance)
+                if not isinstance(amount, bittensor.Balance): raise(ValueError)
                 staking_balance = amount
 
             # Estimate staking fee.
