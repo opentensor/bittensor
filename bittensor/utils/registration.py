@@ -158,7 +158,7 @@ class SolverBase(multiprocessing.Process):
     check_block: multiprocessing.Lock
     limit: int
 
-    def __init__(self, proc_num, num_proc, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, hotkey_bytes: bytes, check_block, limit):
+    def __init__(self, proc_num, num_proc, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit):
         multiprocessing.Process.__init__(self, daemon=True)
         self.proc_num = proc_num
         self.num_proc = num_proc
@@ -174,8 +174,6 @@ class SolverBase(multiprocessing.Process):
         self.stopEvent = stopEvent
         self.limit = limit
 
-        self.hotkey_bytes = hotkey_bytes
-
     def run(self):
         raise NotImplementedError("SolverBase is an abstract class")
 
@@ -183,7 +181,7 @@ class SolverBase(multiprocessing.Process):
 class Solver(SolverBase):
     def run(self):
         block_number: int
-        block_bytes: bytes
+        block_and_hotkey_hash_bytes: bytes
         block_difficulty: int
         nonce_limit = int(math.pow(2,64)) - 1
 
@@ -194,13 +192,13 @@ class Solver(SolverBase):
             if self.newBlockEvent.is_set():
                 with self.check_block:
                     block_number = self.curr_block_num.value
-                    block_bytes = bytes(self.curr_block)
+                    block_and_hotkey_hash_bytes = bytes(self.curr_block)
                     block_difficulty = registration_diff_unpack(self.curr_diff)
 
                 self.newBlockEvent.clear()
                 
             # Do a block of nonces
-            solution = solve_for_nonce_block(self, nonce_start, nonce_end, block_bytes, block_difficulty, self.hotkey_bytes, self.limit, block_number)
+            solution = solve_for_nonce_block(self, nonce_start, nonce_end, block_and_hotkey_hash_bytes, block_difficulty, self.limit, block_number)
             if solution is not None:
                 self.solution_queue.put(solution)
 
@@ -219,14 +217,14 @@ class CUDASolver(SolverBase):
     dev_id: int
     TPB: int
 
-    def __init__(self, proc_num, num_proc, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, hotkey_bytes: bytes, check_block, limit, dev_id: int, TPB: int):
-        super().__init__(proc_num, num_proc, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, hotkey_bytes, check_block, limit)
+    def __init__(self, proc_num, num_proc, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit, dev_id: int, TPB: int):
+        super().__init__(proc_num, num_proc, update_interval, finished_queue, solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit)
         self.dev_id = dev_id
         self.TPB = TPB
 
     def run(self):
         block_number: int = 0 # dummy value
-        block_bytes: bytes = b'0' * 32 # dummy value
+        block_and_hotkey_hash_bytes: bytes = b'0' * 32 # dummy value
         block_difficulty: int = int(math.pow(2,64)) - 1 # dummy value
         nonce_limit = int(math.pow(2,64)) - 1 # U64MAX
 
@@ -236,13 +234,13 @@ class CUDASolver(SolverBase):
             if self.newBlockEvent.is_set():
                 with self.check_block:
                     block_number = self.curr_block_num.value
-                    block_bytes = bytes(self.curr_block)
+                    block_and_hotkey_hash_bytes = bytes(self.curr_block)
                     block_difficulty = registration_diff_unpack(self.curr_diff)
 
                 self.newBlockEvent.clear()
                 
             # Do a block of nonces
-            solution = solve_for_nonce_block_cuda(self, nonce_start, self.update_interval, block_bytes, block_difficulty, self.hotkey_bytes, self.limit, block_number, self.dev_id, self.TPB)
+            solution = solve_for_nonce_block_cuda(self, nonce_start, self.update_interval, block_and_hotkey_hash_bytes, block_difficulty, self.limit, block_number, self.dev_id, self.TPB)
             if solution is not None:
                 self.solution_queue.put(solution)
 
@@ -258,15 +256,14 @@ class CUDASolver(SolverBase):
             nonce_start = nonce_start % nonce_limit
 
 
-def solve_for_nonce_block_cuda(solver: CUDASolver, nonce_start: int, update_interval: int, block_bytes: bytes, difficulty: int, hotkey_bytes: bytes, limit: int, block_number: int, dev_id: int, TPB: int) -> Optional[POWSolution]:
+def solve_for_nonce_block_cuda(solver: CUDASolver, nonce_start: int, update_interval: int, block_and_hotkey_hash_bytes: bytes, difficulty: int, limit: int, block_number: int, dev_id: int, TPB: int) -> Optional[POWSolution]:
     """Tries to solve the POW on a CUDA device for a block of nonces (nonce_start, nonce_start + update_interval * TPB"""
     solution, seal = solve_cuda(nonce_start,
                     update_interval,
                     TPB,
-                    block_bytes, 
+                    block_and_hotkey_hash_bytes, 
                     block_number,
                     difficulty, 
-                    hotkey_bytes,
                     limit,
                     dev_id)
 
@@ -277,12 +274,12 @@ def solve_for_nonce_block_cuda(solver: CUDASolver, nonce_start: int, update_inte
     return None
 
 
-def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, block_bytes: bytes, difficulty: int, hotkey_bytes: bytes, limit: int, block_number: int) -> Optional[POWSolution]:
+def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, block_and_hotkey_hash_bytes: bytes, difficulty: int, limit: int, block_number: int) -> Optional[POWSolution]:
     """Tries to solve the POW for a block of nonces (nonce_start, nonce_end)""" 
     for nonce in range(nonce_start, nonce_end):
         # Create seal.
         nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
-        pre_seal = nonce_bytes + block_bytes + hotkey_bytes
+        pre_seal = nonce_bytes + block_and_hotkey_hash_bytes
         seal_sh256 = hashlib.sha256( bytearray(hex_bytes_to_u8_list(pre_seal)) ).digest()
         kec = keccak.new(digest_bits=256)
         seal = kec.update( seal_sh256 ).digest()
@@ -308,11 +305,20 @@ def registration_diff_pack(diff: int, packed_diff: multiprocessing.Array):
     packed_diff[1] = diff & 0xFFFFFFFF # low 32 bits
 
 
-def update_curr_block(curr_diff: multiprocessing.Array, curr_block: multiprocessing.Array, curr_block_num: multiprocessing.Value, block_number: int, block_bytes: bytes, diff: int, lock: multiprocessing.Lock):
+def hash_block_with_hotkey(block_bytes: bytes, hotkey_bytes: bytes) -> bytes:
+    """Hashes the block with the hotkey using Keccak-256."""
+    kec = keccak.new(digest_bits=256)
+    kec = kec.update(block_bytes + hotkey_bytes)
+    block_and_hotkey_hash_bytes = kec.digest()
+    return block_and_hotkey_hash_bytes
+
+
+def update_curr_block(curr_diff: multiprocessing.Array, curr_block: multiprocessing.Array, curr_block_num: multiprocessing.Value, block_number: int, block_bytes: bytes, diff: int, hotkey_bytes: bytes, lock: multiprocessing.Lock):
     with lock:
         curr_block_num.value = block_number
+        block_and_hotkey_hash_bytes = hash_block_with_hotkey(block_bytes, hotkey_bytes)
         for i in range(64):
-            curr_block[i] = block_bytes[i]
+            curr_block[i] = block_and_hotkey_hash_bytes[i]
         registration_diff_pack(diff, curr_diff)
 
 
@@ -435,7 +441,7 @@ def solve_for_difficulty_fast( subtensor, wallet: bittensor.Wallet, netuid: int,
     hotkey_bytes = wallet.hotkey.public_key
     
     # Start consumers
-    solvers = [ Solver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, hotkey_bytes, check_block, limit)
+    solvers = [ Solver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit)
                 for i in range(num_processes) ]
 
     # Get first block
@@ -444,7 +450,7 @@ def solve_for_difficulty_fast( subtensor, wallet: bittensor.Wallet, netuid: int,
     block_bytes = block_hash.encode('utf-8')[2:]
     old_block_number = block_number
     # Set to current block
-    update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
+    update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, hotkey_bytes, check_block)
 
     # Set new block events for each solver to start at the initial block
     for worker in solvers:
@@ -494,6 +500,7 @@ def solve_for_difficulty_fast( subtensor, wallet: bittensor.Wallet, netuid: int,
         old_block_number = check_for_newest_block_and_update(
             subtensor = subtensor,
             netuid = netuid,
+            hotkey_bytes = hotkey_bytes,
             old_block_number=old_block_number,
             curr_diff=curr_diff,
             curr_block=curr_block,
@@ -608,6 +615,7 @@ def check_for_newest_block_and_update(
     subtensor: 'bittensor.Subtensor',
     netuid: int,
     old_block_number: int,
+    hotkey_bytes: bytes,
     curr_diff: multiprocessing.Array,
     curr_block: multiprocessing.Array,
     curr_block_num: multiprocessing.Value,
@@ -626,6 +634,8 @@ def check_for_newest_block_and_update(
             The netuid to use for retrieving the difficulty.
         old_block_number (:obj:`int`, `required`):
             The old block number to check against.
+        hotkey_bytes (:obj:`bytes`, `required`):
+            The bytes of the hotkey's pubkey.
         curr_diff (:obj:`multiprocessing.Array`, `required`):
             The current difficulty as a multiprocessing array.
         curr_block (:obj:`multiprocessing.Array`, `required`):
@@ -651,7 +661,7 @@ def check_for_newest_block_and_update(
         block_number, difficulty, block_hash = get_block_with_retry(subtensor = subtensor, netuid = netuid)
         block_bytes = block_hash.encode('utf-8')[2:]
 
-        update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
+        update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, hotkey_bytes, check_block)
         # Set new block events for each solver
 
         for worker in solvers:
@@ -723,7 +733,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         hotkey_bytes = wallet.hotkey.public_key
         
         # Start workers
-        solvers = [ CUDASolver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, hotkey_bytes, check_block, limit, dev_id[i], TPB)
+        solvers = [ CUDASolver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit, dev_id[i], TPB)
                     for i in range(num_processes) ]
 
 
@@ -734,7 +744,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         old_block_number = block_number
         
         # Set to current block
-        update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
+        update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, hotkey_bytes, check_block)
 
         # Set new block events for each solver to start at the initial block
         for worker in solvers:
@@ -782,6 +792,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             old_block_number = check_for_newest_block_and_update(
                 subtensor = subtensor,
                 netuid = netuid,
+                hotkey_bytes = hotkey_bytes,
                 curr_diff=curr_diff,
                 curr_block=curr_block,
                 curr_block_num=curr_block_num,
