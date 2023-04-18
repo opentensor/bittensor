@@ -439,7 +439,7 @@ def test_receptor_signature_output():
         assert nonce == "123"
         assert sender_address == "5Ey8t8pBJSYqLYCzeC3HiPJu5DxzXy2Dzheaj29wRHvhjoai"
         assert receptor_uuid == "6d8b8788-6b6a-11ed-916f-0242c0a85003"
-        message = f"{nonce}.{sender_address}.5CSbZ7wG456oty4WoiX6a1J88VUbrCXLhrKVJ9q95BsYH4TZ.{receptor_uuid}"
+        message = f"{nonce}.{sender_address}.5CSbZ7wG456oty4WoiX6a1J88VUbrCXLhrKVJ9q95BsYH4TZ.{receptor_uuid}.{0}.{0}"
         assert wallet.hotkey.verify(message, signature)
 
     matrix = {

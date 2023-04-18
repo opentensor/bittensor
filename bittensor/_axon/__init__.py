@@ -400,14 +400,14 @@ class AuthInterceptor(ServerInterceptor):
         signature = metadata.get("bittensor-signature")
         version = metadata.get('bittensor-version')
         if signature is None:
-            raise Exception("Request signature missing")
+            raise GrpcException("Request signature missing")
         if int(version) < 370:
-            raise Exception("Incorrect Version")
+            raise GrpcException("Incorrect Version")
         
         parts = self.parse_signature_v2(signature)
         if parts is not None:
             return parts
-        raise Exception("Unknown signature format")
+        raise GrpcException("Unknown signature format")
 
     def check_signature(
         self,
@@ -432,10 +432,10 @@ class AuthInterceptor(ServerInterceptor):
             previous_nonce = self.nonces[endpoint_key]
             # Nonces must be strictly monotonic over time.
             if nonce <= previous_nonce:
-                raise Exception("Nonce is too small")
+                raise GrpcException("Nonce is too small")
 
         if not keypair.verify(message, signature):
-            raise Exception("Signature mismatch")
+            raise GrpcException("Signature mismatch")
         self.nonces[endpoint_key] = nonce
 
     def request_deserialization(
@@ -453,8 +453,8 @@ class AuthInterceptor(ServerInterceptor):
                 grads_sum = synapse.deserialize_backward_request_gradient ( request_matrix,  request.tensors[ len( request.synapses )] ).sum().int().item()
             return request_sum, grads_sum
         
-        except Exception as e:
-            raise Exception('Incorrect formatting of request and tensors')
+        except GrpcException as e:
+            raise GrpcException('Incorrect formatting of request and tensors')
 
     def black_list_checking(self, hotkey: str, method: str):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
@@ -465,13 +465,13 @@ class AuthInterceptor(ServerInterceptor):
             "/Bittensor/Backward": bittensor.proto.RequestType.BACKWARD,
         }.get(method)
         if request_type is None:
-            raise Exception("Unknown request type")
+            raise GrpcException("Unknown request type")
 
         if self.blacklist == None:
             return
         failed, error_message =  self.blacklist(hotkey, request_type)
         if failed:
-            raise Exception(str(error_message))
+            raise GrpcException(str(error_message))
 
     def intercept(
         self,
@@ -509,11 +509,11 @@ class AuthInterceptor(ServerInterceptor):
             self.black_list_checking(sender_hotkey, method_name)
 
             return method(request, context)
-        except Exception as e:
+        except GrpcException as e:
             message = str(e)
             context.set_code(grpc.StatusCode.UNAUTHENTICATED)
             context.set_details(message)
-            raise
+            raise 
             
     # Implementation of grpc.ServerInterceptor, do not override.
     def intercept_service(self, continuation, handler_call_details):
@@ -532,18 +532,13 @@ class AuthInterceptor(ServerInterceptor):
             return self.intercept(
                 next_handler_method, request_or_iterator, context, method_name, dict(metadata)
             )
-        try:
-            return handler_factory(
-                invoke_intercept_method,
-                request_deserializer=next_handler.request_deserializer,
-                response_serializer=next_handler.response_serializer,
-            )
-        except Exception as e:
-            message = str(e)
-            abort = lambda _, ctx: ctx.abort(grpc.StatusCode.UNAUTHENTICATED, message)
-            return grpc.unary_unary_rpc_method_handler(abort)
+        
+        return handler_factory(
+            invoke_intercept_method,
+            request_deserializer=next_handler.request_deserializer,
+            response_serializer=next_handler.response_serializer,
+        )
     
-
     def _get_factory_and_method(
         self,
         rpc_handler: grpc.RpcMethodHandler,
