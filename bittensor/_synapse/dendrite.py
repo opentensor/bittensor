@@ -50,6 +50,12 @@ class DendriteCall( ABC ):
         self.return_code: bittensor.proto.ReturnCode = bittensor.proto.ReturnCode.Success
         self.return_message: str = 'Success'
 
+    def __repr__(self) -> str: 
+        return f"DendriteCall( {bittensor.utils.codes.code_to_string(self.return_code)}, to:{self.dest_hotkey[:4]} + ... + {self.dest_hotkey[-4:]}, msg:{self.return_message})"
+    
+    def __str__(self) -> str: 
+        return self.__repr__()
+
     @abstractmethod
     def get_callable(self) -> Callable: ...
 
@@ -74,6 +80,8 @@ class DendriteCall( ABC ):
 
     def _apply_response_proto( self, response_proto: object ):
         self.apply_response_proto( response_proto )
+    
+    def end(self):
         self.end_time = time.time()
         self.elapsed = self.end_time - self.start_time
         self.completed = True
@@ -131,7 +139,7 @@ class Dendrite( ABC, torch.nn.Module ):
         """
         super(Dendrite, self).__init__()
         self.uuid = str(uuid.uuid1())
-        self.keypair = keypair.hotkey if isinstance( keypair, bittensor.wallet ) else keypair
+        self.keypair = keypair.hotkey if isinstance( keypair, bittensor.Wallet ) else keypair
         self.endpoint = endpoint
         if self.endpoint.ip == bittensor.utils.networking.get_external_ip(): self.endpoint_str = "localhost:" + str(self.endpoint.port)
         else: self.endpoint_str = self.endpoint.ip + ':' + str(self.endpoint.port)
@@ -182,7 +190,8 @@ class Dendrite( ABC, torch.nn.Module ):
             bittensor.logging.trace( 'Dendrite.apply() unknown error: {}'.format( dendrite_call.return_message ) )
 
         finally:
-            dendrite_call.log_inbound()           
+            dendrite_call.log_inbound()  
+            dendrite_call.end()         
             return dendrite_call
 
     def __exit__ ( self ): 
@@ -206,10 +215,10 @@ class Dendrite( ABC, torch.nn.Module ):
     def sign(self) -> str:
         """ Creates a signature for the dendrite and returns it as a string."""
         nonce = f"{self.nonce()}"
-        sender_hotkey = self.wallet.hotkey.ss58_address
+        sender_hotkey = self.keypair.ss58_address
         receiver_hotkey = self.endpoint.hotkey
         message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{self.uuid}"
-        signature = f"0x{self.wallet.hotkey.sign(message).hex()}"
+        signature = f"0x{self.keypair.sign(message).hex()}"
         return ".".join([nonce, sender_hotkey, signature, self.uuid])
         
     def state ( self ):

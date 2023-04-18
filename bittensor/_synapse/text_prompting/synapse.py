@@ -41,6 +41,7 @@ class SynapseForward( bittensor.SynapseCall ):
     def apply( self ):
         bittensor.logging.trace( "SynapseForward.apply()" )
         self.completion = self.forward_callback( messages = self.formatted_messages )
+        bittensor.logging.trace( "SynapseForward.apply() = ", self.completion )
 
     def get_response_proto( self ) -> bittensor.proto.ForwardTextPromptingResponse: 
         bittensor.logging.trace( "SynapseForward.get_response_proto()" )

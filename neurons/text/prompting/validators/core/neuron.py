@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import json
 import math
 import copy
 import queue
@@ -132,18 +133,18 @@ class neuron:
         self.tokenizer = AutoTokenizer.from_pretrained( 'EleutherAI/gpt-j-6b' )
 
         # Reward model
-        self.reward_model = RewardModel( model_path = 'EleutherAI/gpt-j-6b', device = self.config.neuron.device )
-        for fpath in os.listdir( self.config.neuron.reward_path ):
-            if fpath.endswith(".pt") or fpath.endswith(".bin"):
-                checkpoint = os.path.join( self.config.neuron.reward_path, fpath )
-                break
+        # self.reward_model = RewardModel( model_path = 'EleutherAI/gpt-j-6b', device = self.config.neuron.device )
+        # for fpath in os.listdir( self.config.neuron.reward_path ):
+        #     if fpath.endswith(".pt") or fpath.endswith(".bin"):
+        #         checkpoint = os.path.join( self.config.neuron.reward_path, fpath )
+        #         break
 
-        ckpt_state = torch.load( checkpoint )
-        self.reward_model.load_state_dict( ckpt_state )
-        self.reward_model.eval()
-        self.reward_model.half()
-        self.reward_model.requires_grad_( False )
-        self.reward_model.to( self.device )
+        # ckpt_state = torch.load( checkpoint )
+        # self.reward_model.load_state_dict( ckpt_state )
+        # self.reward_model.eval()
+        # self.reward_model.half()
+        # self.reward_model.requires_grad_( False )
+        # self.reward_model.to( self.device )
 
         # Init the gating model which learns which miners to select for each query.
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to( self.device )
@@ -161,6 +162,7 @@ class neuron:
             def priority( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
                 # Give messages priority.
                 if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: 
+                    bittensor.logging.success('THIS IS ME, give super high priority.')
                     # It is myself.
                     return math.inf
                 elif forward_call.src_hotkey in self.my_nominators:
@@ -173,6 +175,7 @@ class neuron:
             def blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
                 # Give messages priority.
                 if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: 
+                    bittensor.logging.success('THIS IS ME.')
                     # It is myself, dont blacklist me.
                     return False
                 elif forward_call.src_hotkey in self.my_nominators:
@@ -182,20 +185,20 @@ class neuron:
                     # Everyone else, blacklist.
                     return False
 
-            def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
-                pass
+            def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
 
             def forward( _, messages: List[Dict[str, str]] ) -> str:
                 roles = []; content = []
-                for message in messages:
-                    roles.append( message['role'] )
-                    content.append( message['content'] )
+                for message_dict in messages:
+                    message_dict = json.loads( message_dict )
+                    roles.append( message_dict['role'] )
+                    content.append( message_dict['content'] )
                 return self.forward( 
-                    roles = roles,
-                    messages = content, 
-                    topk = self.config.neuron.inference_topk,
-                    random_sample_uids = False,
-                    train_gating_model = False
+                     roles = roles,
+                     messages = content, 
+                     topk = self.config.neuron.inference_topk,
+                     random_sample_uids = False,
+                     train_gating_model = False
                 ).completion
                 
         # Serve axon.
@@ -353,7 +356,8 @@ class neuron:
 
         # Calculate the rewards for the successful `completions` using the reward model.
         # Print the rewards for all `uids`.
-        rewards = self.reward_model.reward( successful_completions ).to( self.device )
+        #rewards = self.reward_model.reward( successful_completions ).to( self.device )
+        rewards = scores
         bittensor.logging.trace( 'rewards', rewards )
 
         # Train the gating model using the scores and rewards of the successful `completions`.
@@ -452,4 +456,7 @@ class neuron:
 
 if __name__ == '__main__':
     bittensor.logging.info( 'neuron().train()' )
-    neuron().train()
+    neuron()#.train()
+    import time
+    while True:
+        time.sleep(1)

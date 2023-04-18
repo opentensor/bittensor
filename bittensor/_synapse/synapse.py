@@ -128,23 +128,25 @@ class Synapse( ABC ):
                     call._apply,
                     priority = call.priority,
                 )
+                bittensor.logging.trace( 'Synapse: {} loaded future: {}'.format( self.name, future ) )
                 future.result( timeout = call.timeout )
                 bittensor.logging.trace( 'Synapse: {} completed call: {}'.format( self.name, call ) )
 
         # Catch timeouts
         except asyncio.TimeoutError:
+            bittensor.logging.trace( 'Synapse: {} timeout: {}'.format( self.name, call.timeout ) )
             call.return_code = bittensor.proto.ReturnCode.Timeout
             call.return_message = 'GRPC request timeout after: {}s'.format( call.timeout)
-            bittensor.logging.trace( 'Synapse: {} timeout call: {}'.format( self.name, call ) )
 
         # Catch unknown exceptions.
         except Exception as e:
+            bittensor.logging.trace( 'Synapse: {} unknown error: {}'.format( self.name, str(e) ) )
             call.return_code = bittensor.proto.ReturnCode.UnknownException
             call.return_message = str(e)
-            bittensor.logging.trace( 'Synapse: {} timeout call: {}'.format( self.name, call ) )
 
         # Finally return the call.
         finally:
+            bittensor.logging.trace( 'Synapse: {} finalize call {}'.format( self.name, call ) )
             call.log_outbound()
             return call.get_response_proto()
         

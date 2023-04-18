@@ -39,6 +39,12 @@ class DendriteForwardCall( bittensor.DendriteCall ):
         self.roles = roles
         self.packed_messages = [json.dumps({"role": role, "content": message}) for role, message in zip(self.roles, self.messages)]
 
+    def __repr__(self) -> str:
+        return f"DendriteForwardCall( {bittensor.utils.codes.code_to_string(self.return_code)}, to:{self.dest_hotkey[:4]}...{self.dest_hotkey[-4:]}, msg:{self.return_message}, completion:{self.completion} )"
+    
+    def __str__(self) -> str: 
+        return f"DendriteForwardCall( {bittensor.utils.codes.code_to_string(self.return_code)}, to:{self.dest_hotkey[:4]}...{self.dest_hotkey[-4:]}, msg:{self.return_message}, completion:{self.completion} )"
+
     def get_callable( self ) -> Callable:
         return bittensor.grpc.TextPromptingStub( self.dendrite.channel ).Forward
 
@@ -93,6 +99,12 @@ class DendriteBackwardCall( bittensor.DendriteCall ):
         self.completion = completion
         self.rewards = rewards if not isinstance( rewards, torch.FloatTensor ) else rewards.tolist()
         self.packed_messages = [ json.dumps({"role": role, "content": message}) for role, message in zip(self.roles, self.messages)]
+
+    def __repr__(self) -> str:
+        return f"DendriteBackwardCall( {bittensor.utils.codes.code_to_string(self.return_code)}, to:{self.dest_hotkey[:4]}...{self.dest_hotkey[-4:]}, msg:{self.return_message} )"
+    
+    def __str__(self) -> str: 
+        return f"DendriteBackwardCall( {bittensor.utils.codes.code_to_string(self.return_code)}, to:{self.dest_hotkey[:4]}...{self.dest_hotkey[-4:]}, msg:{self.return_message} )"
 
     def get_callable( self ) -> Callable:
         return bittensor.grpc.TextPromptingStub( self.dendrite.channel ).Backward
