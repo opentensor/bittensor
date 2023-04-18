@@ -330,7 +330,7 @@ class neuron:
             roles = roles, 
             messages = contents, 
             uids = uids, 
-            timeout = 5,
+            timeout = 2,
         )
 
         # Return longest completion.

@@ -96,7 +96,7 @@ class DendriteCall( ABC ):
             forward = self.is_forward, 
             is_response = False, 
             code = self.return_code, 
-            call_time = self.elapsed if self.completed else 0, 
+            call_time = 0, 
             pubkey = self.dest_hotkey, 
             uid = None,
             inputs = self.get_inputs_shape(), 
@@ -111,7 +111,7 @@ class DendriteCall( ABC ):
             forward = self.is_forward, 
             is_response = True, 
             code = self.return_code, 
-            call_time = 0, 
+            call_time = self.elapsed, 
             pubkey = self.dest_hotkey, 
             uid = None, 
             inputs = self.get_inputs_shape(),
@@ -194,8 +194,8 @@ class Dendrite( ABC, torch.nn.Module ):
             bittensor.logging.trace( 'Dendrite.apply() unknown error: {}'.format( dendrite_call.return_message ) )
 
         finally:
-            dendrite_call.log_inbound()  
             dendrite_call.end()         
+            dendrite_call.log_inbound()  
             return dendrite_call
 
     def __exit__ ( self ): 

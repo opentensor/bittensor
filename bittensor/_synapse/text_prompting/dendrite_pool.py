@@ -33,14 +33,14 @@ class TextPromptingDendritePool( torch.nn.Module ):
         self.metagraph = metagraph
         self.keypair = keypair
         self.dendrites = [ bittensor.text_prompting( endpoint = end, keypair = self.keypair ) for end in self.metagraph.endpoint_objs ]
+        self.loop = asyncio.get_event_loop()
 
     def backward( self,
             forward_calls: List[ 'DendriteForwardCall' ],
             rewards: Union[ List[ float ], torch.FloatTensor ],
             timeout: float = 12.0
         ):
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete( 
+        return self.loop.run_until_complete( 
             self.async_backward (
                 forward_calls = forward_calls,
                 timeout = timeout,
@@ -67,13 +67,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
             return_call:bool = True,
             timeout: float = 12 
         ) -> List['DendriteForwardCall']:
-        try:
-            loop = asyncio.get_event_loop()
-        except:
-            # No current event loop.
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop( loop )
-        return loop.run_until_complete( 
+        return self.loop.run_until_complete( 
             self.async_forward (
                 messages = messages,
                 roles = roles,

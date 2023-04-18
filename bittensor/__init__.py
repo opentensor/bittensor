@@ -228,13 +228,13 @@ class prompting ( torch.nn.Module ):
 
     def __init__(
         self,
-        hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
         wallet_name: str = "default",
+        hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
     ):
         super(prompting, self).__init__()
         self._hotkey = hotkey
         self._subtensor = subtensor()
-        self._keypair = wallet( name = wallet_name ).coldkey
+        self._keypair = wallet( name = wallet_name ).create_if_non_existent().coldkey
         self._metagraph = self._subtensor.metagraph( 1 )
         self._endpoint = self._metagraph.endpoint_objs[ self._metagraph.hotkeys.index( self._hotkey ) ]
         self._dendrite = text_prompting(
