@@ -131,6 +131,16 @@ class _SolverBase(multiprocessing.Process):
 
     def run(self):
         raise NotImplementedError("_SolverBase is an abstract class")
+    
+    @staticmethod
+    def create_shared_memory() -> Tuple[multiprocessing.Array, multiprocessing.Value, multiprocessing.Array]:
+        """Creates shared memory for the solver processes to use.
+        """
+        curr_block = multiprocessing.Array('h', 32, lock=True) # byte array
+        curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
+        curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+
+        return curr_block, curr_block_num, curr_diff
 
 
 class _Solver(_SolverBase):
@@ -376,9 +386,7 @@ def _solve_for_difficulty_fast( subtensor, wallet: 'bittensor.Wallet', netuid: i
         
     limit = int(math.pow(2,256)) - 1
 
-    curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
-    curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
-    curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+    curr_block, curr_block_num, curr_diff = _Solver.create_shared_memory()
 
     # Establish communication queues
     ## See the _Solver class for more information on the queues.
@@ -667,9 +675,7 @@ def _solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: '
 
     # Set mp start to use spawn so CUDA doesn't complain
     with _UsingSpawnStartMethod(force=True):
-        curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
-        curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
-        curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+        curr_block, curr_block_num, curr_diff = _CUDASolver.create_shared_memory()
 
         ## Create a worker per CUDA device
         num_processes = len(dev_id)
