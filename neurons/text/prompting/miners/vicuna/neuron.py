@@ -35,7 +35,7 @@ class VicunaMiner( bittensor.BasePromptingMiner ):
         parser.add_argument( '--vicuna.temperature', type=float, help='Sampling temperature of model', default=0.5 )
         parser.add_argument( '--vicuna.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
         parser.add_argument( '--vicuna.do_prompt_injection', action='store_true', default=False, help='Whether to use a custom "system" prompt instead of the one sent by bittensor.' )
-        parser.add_argument( '--vicuna.system_prompt', type=str, help='What prompt to replace the system prompt with', default= "A chat between a user and an assistant." )
+        parser.add_argument( '--vicuna.system_prompt', type=str, help='What prompt to replace the system prompt with', default= "A chat between a curious user and an artificial intelligence assistant.\nThe assistant gives helpful, detailed, and polite answers to the user's questions. " )
 
     def __init__( self ):
         super( VicunaMiner, self ).__init__()
