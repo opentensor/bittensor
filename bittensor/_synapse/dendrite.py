@@ -111,7 +111,7 @@ class DendriteCall( ABC ):
             forward = self.is_forward, 
             is_response = True, 
             code = self.return_code, 
-            call_time = self.elapsed, 
+            call_time = self.elapsed,
             pubkey = self.dest_hotkey, 
             uid = None, 
             inputs = self.get_inputs_shape(),
