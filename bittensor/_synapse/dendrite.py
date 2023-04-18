@@ -80,6 +80,10 @@ class DendriteCall( ABC ):
 
     def _apply_response_proto( self, response_proto: object ):
         self.apply_response_proto( response_proto )
+        try: self.return_message = response_proto.return_message
+        except: pass
+        try: self.return_code = response_proto.return_code
+        except: pass
     
     def end(self):
         self.end_time = time.time()

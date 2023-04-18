@@ -75,6 +75,8 @@ def code_to_string( code: 'bittensor.proto.ReturnCode' ) -> str:
         return 'Unauthenticated'
     elif code == 24:
         return 'BadEndpoint'
+    elif code == 25:
+        return 'Blacklisted'
     else:
         return 'UnknownCode'
 
@@ -127,6 +129,12 @@ def code_to_loguru_color( code: 'bittensor.proto.ReturnCode' ) -> str:
         return 'red'
     elif code == 22:
         return 'red'
+    elif code == 23:
+        return 'red'
+    elif code == 24:
+        return 'red'
+    elif code == 25:
+        return 'magenta'
     else:
         return 'red'
 

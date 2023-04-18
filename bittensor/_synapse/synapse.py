@@ -21,7 +21,7 @@ import torch
 import asyncio
 import bittensor
 
-from typing import Union, Optional, Callable, List, Dict
+from typing import Union, Optional, Callable, List, Dict, Tuple
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -56,6 +56,12 @@ class SynapseCall( ABC ):
 
     @abstractmethod
     def get_response_proto( self ) -> object: ...
+
+    def _get_response_proto( self ) -> object:
+        proto = self.get_response_proto()
+        proto.return_code = self.return_code
+        proto.return_message = self.return_message
+        return proto
 
     @abstractmethod
     def apply( self ): ...
@@ -104,7 +110,14 @@ class Synapse( ABC ):
         self.axon = axon
 
     @abstractmethod
-    def blacklist( self, call: SynapseCall ) -> bool: ...
+    def blacklist( self, call: SynapseCall ) -> Union[ Tuple[bool, str], bool ]: ...
+
+    def _blacklist( self, call: SynapseCall ) -> [bool, str]: 
+        blacklist = self.blacklist( call )
+        if isinstance( blacklist, tuple ): return blacklist
+        elif isinstance( blacklist, bool ): return blacklist, "no reason specified"
+        else:
+            raise ValueError('Blacklist response had type {} expected one of bool or Tuple[bool, str]'.format( blacklist ))
 
     @abstractmethod
     def priority( self, call: SynapseCall ) -> float: ...
@@ -115,10 +128,11 @@ class Synapse( ABC ):
             call.log_inbound()
 
             # Check blacklist.
-            if self.blacklist( call ):
-                call.request_code = bittensor.proto.ReturnCode.Blacklisted
-                call.request_message = "Blacklisted"
-                bittensor.logging.trace( 'Synapse: {} blacklisted call: {}'.format( self.name, call ) )
+            blacklist, reason = self._blacklist( call )
+            if blacklist:
+                call.return_code = bittensor.proto.ReturnCode.Blacklisted
+                call.return_message = reason
+                bittensor.logging.info( 'Synapse: {} blacklisted call: {} reason: {}'.format( self.name, call, reason) )
             
             # Make call.
             else:
@@ -148,6 +162,6 @@ class Synapse( ABC ):
         finally:
             bittensor.logging.trace( 'Synapse: {} finalize call {}'.format( self.name, call ) )
             call.log_outbound()
-            return call.get_response_proto()
+            return call._get_response_proto()
         
    

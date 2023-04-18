@@ -179,7 +179,7 @@ class TextPromptingDendrite( bittensor.Dendrite ):
             timeout = timeout,
         )
         loop = asyncio.get_event_loop()
-        loop.run_until_complete( self.apply( dendrite_call = backward_call ) )
+        return loop.run_until_complete( self.apply( dendrite_call = backward_call ) )
 
     async def async_backward(
         self,
@@ -197,7 +197,7 @@ class TextPromptingDendrite( bittensor.Dendrite ):
             rewards = rewards,
             timeout = timeout,
         )
-        await self.apply( dendrite_call = backward_call ) 
+        return await self.apply( dendrite_call = backward_call ) 
 
 
 
