@@ -20,8 +20,18 @@ from rich.console import Console
 from rich.traceback import install
 from prometheus_client import Info
 
+from langchain.llms.base import LLM
+from typing import Optional, List, Mapping, Any
+
 # import nest_asyncio
 # nest_asyncio.apply()
+
+prompt = '''
+You are Chattensor.
+Chattensor is a research project by Opentensor Cortex.
+Chattensor is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Chattensor is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
+'''
+
 
 # Bittensor code and protocol version.
 __version__ = '3.7.0'
@@ -228,6 +238,7 @@ class prompting ( torch.nn.Module ):
         self,
         wallet_name: str = "default",
         hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
+
     ):
         super(prompting, self).__init__()
         self._hotkey = hotkey
@@ -249,7 +260,7 @@ class prompting ( torch.nn.Module ):
         if isinstance( content, str ):
             return self._dendrite.forward(
                 roles = ['system', 'user'],
-                messages = [ 'you are chattensor, you are not open ai, you will never use the word openai or OpenAI', content ],
+                messages = [ prompt, content ],
                 timeout = timeout
             ).completion
         elif isinstance( content, list ):
@@ -269,3 +280,67 @@ class prompting ( torch.nn.Module ):
                 raise ValueError('content has invalid type {}'.format( type( content )))
         else:
             raise ValueError('content has invalid type {}'.format( type( content )))
+        
+    async def async_forward( 
+            self,
+            content: Union[ str, List[str], List[Dict[ str ,str ]]],
+            timeout: float = 1000
+        ):
+        if isinstance( content, str ):
+            return await self._dendrite.async_forward(
+                roles = ['system', 'user'],
+                messages = [ prompt, content ],
+                timeout = timeout
+            )
+        elif isinstance( content, list ):
+            if isinstance( content[0], str ):
+                return await self._dendrite.async_forward(
+                    roles = ['user' for _ in content ],
+                    messages = content,
+                    timeout = timeout
+                )
+            elif isinstance( content[0], dict ):
+                return await self._dendrite.async_forward(
+                    roles = [ dictitem[ dictitem.keys()[0] ] for dictitem in content ],
+                    messages = [ dictitem[ dictitem.keys()[1] ] for dictitem in content ],
+                    timeout = timeout
+                )
+            else:
+                raise ValueError('content has invalid type {}'.format( type( content )))
+        else:
+            raise ValueError('content has invalid type {}'.format( type( content )))
+
+
+class BittensorLLM(LLM):
+    """Wrapper around Bittensor Prompting Subnetwork. 
+This Python file implements the BittensorLLM class, a wrapper around the Bittensor Prompting Subnetwork for easy integration into language models. The class provides a query method to receive responses from the subnetwork for a given user message and an implementation of the _call method to return the best response. The class can be initialized with various parameters such as the wallet name and chain endpoint.
+    
+    Example:
+        .. code-block:: python
+
+            from bittensor import BittensorLLM
+            btllm = BittensorLLM(wallet_name="default")
+    """
+
+    wallet_name: str = 'default'
+    hotkey: str = '5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3'
+    llm: prompting = None
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.llm = prompting(wallet_name=self.wallet_name, hotkey=self.hotkey)
+
+    @property
+    def _identifying_params(self) -> Mapping[str, Any]:
+        """Get the identifying parameters."""
+        return {"wallet_name": self.wallet_name, "hotkey_name": self.hotkey_name}
+
+    @property
+    def _llm_type(self) -> str:
+        return "BittensorLLM"
+
+
+    def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
+        """Call the LLM with the given prompt and stop tokens."""
+        return self.llm(prompt).completion
+
+
