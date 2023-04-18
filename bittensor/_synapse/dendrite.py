@@ -130,10 +130,12 @@ class Dendrite( ABC, torch.nn.Module ):
                     grpc options to pass through to channel.
         """
         super(Dendrite, self).__init__()
+        self.uuid = str(uuid.uuid1())
         self.keypair = keypair.hotkey if isinstance( keypair, bittensor.wallet ) else keypair
         self.endpoint = endpoint
-        self.channel = grpc.aio.insecure_channel( endpoint_str, options = grpc_options )
-        self.uid = str(uuid.uuid1())
+        if self.endpoint.ip == bittensor.utils.networking.get_external_ip(): self.endpoint_str = "localhost:" + str(self.endpoint.port)
+        else: self.endpoint_str = self.endpoint.ip + ':' + str(self.endpoint.port)
+        self.channel = grpc.aio.insecure_channel( self.endpoint_str, options = grpc_options )
         self.state_dict = _common.CYGRPC_CONNECTIVITY_STATE_TO_CHANNEL_CONNECTIVITY
     
     async def apply( self, dendrite_call: 'DendriteCall' ) -> DendriteCall:
@@ -183,15 +185,13 @@ class Dendrite( ABC, torch.nn.Module ):
             dendrite_call.log_inbound()           
             return dendrite_call
 
-    def __exit__ ( self ):
+    def __exit__ ( self ): 
         self.__del__()
 
-    def close ( self ):
+    def close ( self ): 
         self.__exit__()
-    
+
     def __del__ ( self ):
-        """ Destructor for dendrite.
-        """
         try:
             result = self.channel._channel.check_connectivity_state(True)
             if self.state_dict[result] != self.state_dict[result].SHUTDOWN: 
@@ -199,6 +199,9 @@ class Dendrite( ABC, torch.nn.Module ):
                 loop.run_until_complete ( self.channel.close() )
         except:
             pass
+
+    def nonce ( self ): 
+        return time.monotonic_ns()
 
     def sign(self) -> str:
         """ Creates a signature for the dendrite and returns it as a string."""
@@ -208,11 +211,6 @@ class Dendrite( ABC, torch.nn.Module ):
         message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{self.uuid}"
         signature = f"0x{self.wallet.hotkey.sign(message).hex()}"
         return ".".join([nonce, sender_hotkey, signature, self.uuid])
-
-    def nonce ( self ):
-        r"""creates a string representation of the time
-        """
-        return time.monotonic_ns()
         
     def state ( self ):
         """ Returns the state of the dendrite channel."""
