@@ -22,11 +22,9 @@ import argparse
 import os
 import copy
 import inspect
-import time as clock
 from concurrent import futures
 from typing import Dict, List, Callable, Optional, Tuple, Union
 from bittensor._threadpool import prioritythreadpool
-from substrateinterface.utils.ss58 import ss58_decode
 
 import torch
 import grpc
@@ -366,7 +364,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self,
         receiver_hotkey: str,
         blacklist: Callable = None,
-        path = None
+        path:str = None
     ):
         r"""Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
@@ -383,12 +381,14 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self.blacklist = blacklist
         self.receiver_hotkey = receiver_hotkey
         self.load()
-        self.upper_bound = 3.154e+17 # 10 years in nano second
+        self.upper_bound = int(3.154e+17) # 10 years in nano second
 
     def load(self):
         if self.path != None and os.path.exists(self.path):
             with open(self.path) as nonces_file:
                 self.nonces = json.load(nonces_file)
+        else:
+            self.nonces = {}
 
     def save(self):
         if self.path != None:
@@ -447,12 +447,17 @@ class AuthInterceptor(grpc.ServerInterceptor):
         # the message.
         endpoint_key = f"{sender_hotkey}:{receptor_uuid}"
 
+        # nonce must be int
+        nonce = int(nonce)
+
+        if nonce < 0: raise Exception('Nonce cannot be smaller then 0.')
+
         if endpoint_key in self.nonces.keys():
             first_nonce = self.nonces[endpoint_key][0]
             previous_nonce = self.nonces[endpoint_key][1]
             # Nonces must be strictly monotonic over time.
             if nonce <= previous_nonce or nonce > first_nonce + self.upper_bound:
-                raise Exception(f"Nonce {nonce} is smaller then previous nonce {previous_nonce} or larger then {first_nonce + 3.154e+17}.")
+                raise Exception(f"Nonce {nonce} is smaller or equal to previous nonce {previous_nonce} or larger then {first_nonce + 3.154e+17}.")
         else:
             # Initializing the (first_nonce, nonce) 
             self.nonces[endpoint_key] = (nonce, nonce)
