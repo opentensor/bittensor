@@ -34,6 +34,8 @@ class NeoxtMiner( bittensor.BasePromptingMiner ):
         parser.add_argument( '--neoxt.max_new_tokens', type=int, help='Max tokens for model output.', default=64 ) 
         parser.add_argument( '--neoxt.temperature', type=float, help='Sampling temperature of model', default=0.8 )
         parser.add_argument( '--neoxt.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
+        parser.add_argument( '--neoxt.do_prompt_injection', action='store_true', default=False, help='Whether to use a custom "system" prompt instead of the one sent by bittensor.' )
+        parser.add_argument( '--neoxt.system_prompt', type=str, help='What prompt to replace the system prompt with', default= "" )
         
     def __init__( self ):
         super( NeoxtMiner, self ).__init__()
@@ -48,12 +50,17 @@ class NeoxtMiner( bittensor.BasePromptingMiner ):
             self.model = self.model.to( self.config.neoxt.device )
 
 
-    @staticmethod
-    def _process_history(history: List[str]) -> str:
+    def _process_history(self, history: List[str]) -> str:
         processed_history = ''
+        
+        if self.config.neoxt.do_prompt_injection:
+            processed_history += self.config.neoxt.system_prompt
+
         for message in history:
             if message['role'] == 'system':
-                processed_history += '<human>: ' + message['content'].strip() + '\n'
+                if not self.config.neoxt.do_prompt_injection and message == history[0]:
+                    processed_history += '<human>: ' + message['content'].strip() + '\n'
+                
             if message['role'] == 'assistant':
                 processed_history += '<bot>: ' + message['content'].strip() + '\n'
             if message['role'] == 'user':

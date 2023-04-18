@@ -34,7 +34,9 @@ class VicunaMiner( bittensor.BasePromptingMiner ):
         parser.add_argument( '--vicuna.max_new_tokens', type=int, help='Max tokens for model output.', default=256 ) 
         parser.add_argument( '--vicuna.temperature', type=float, help='Sampling temperature of model', default=0.5 )
         parser.add_argument( '--vicuna.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
-        
+        parser.add_argument( '--vicuna.do_prompt_injection', action='store_true', default=False, help='Whether to use a custom "system" prompt instead of the one sent by bittensor.' )
+        parser.add_argument( '--vicuna.system_prompt', type=str, help='What prompt to replace the system prompt with', default= "A chat between a user and an assistant." )
+
     def __init__( self ):
         super( VicunaMiner, self ).__init__()
         print ( self.config )
@@ -47,13 +49,17 @@ class VicunaMiner( bittensor.BasePromptingMiner ):
         if self.config.vicuna.device != "cpu":
             self.model = self.model.to( self.config.vicuna.device )
 
-
-    @staticmethod
-    def _process_history(history: List[str]) -> str:
+    def _process_history(self, history: List[str]) -> str:
         processed_history = ''
+
+        if self.config.vicuna.do_prompt_injection:
+            processed_history += self.config.vicuna.system_prompt
+
         for message in history:
             if message['role'] == 'system':
-                processed_history += '' + message['content'].strip() + ' '
+                if not self.config.vicuna.do_prompt_injection or message != history[0]:
+                    processed_history += '' + message['content'].strip() + ' '
+
             if message['role'] == 'Assistant':
                 processed_history += 'ASSISTANT:' + message['content'].strip() + ' '
             if message['role'] == 'user':
