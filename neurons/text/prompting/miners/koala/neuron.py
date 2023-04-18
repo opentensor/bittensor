@@ -34,7 +34,9 @@ class KoalaMiner( bittensor.BasePromptingMiner ):
         parser.add_argument( '--koala.max_new_tokens', type=int, help='Max tokens for model output.', default=256 ) 
         parser.add_argument( '--koala.temperature', type=float, help='Sampling temperature of model', default=0.5 )
         parser.add_argument( '--koala.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
-        
+        parser.add_argument( '--koala.do_prompt_injection', action='store_true', default=False, help='Whether to use a custom "system" prompt instead of the one sent by bittensor.' )
+        parser.add_argument( '--koala.system_prompt', type=str, help='What prompt to replace the system prompt with', default= "BEGINNING OF CONVERSATION:" )
+
     def __init__( self ):
         super( KoalaMiner, self ).__init__()
         print ( self.config )
@@ -48,12 +50,17 @@ class KoalaMiner( bittensor.BasePromptingMiner ):
             self.model = self.model.to( self.config.koala.device )
 
 
-    @staticmethod
-    def _process_history(history: List[str]) -> str:
+    def _process_history(self, history: List[str]) -> str:
         processed_history = ''
+
+        if self.config.koala.do_prompt_injection:
+            processed_history += self.config.koala.system_prompt
+
         for message in history:
             if message['role'] == 'system':
-                processed_history += '' + message['content'].strip() + ' '
+                if not self.config.koala.do_prompt_injection or message != history[0]:
+                    processed_history += '' + message['content'].strip() + ' '
+
             if message['role'] == 'Assistant':
                 processed_history += 'GPT:' + message['content'].strip() + '</s>' #No blankspace after GPT: since that is where generation starts.
             if message['role'] == 'user':
