@@ -29,7 +29,7 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument( '--pythia.model_name', type=str, help='Name/path of model to load', default="togethercomputer/GPT-Pythia-Chat-Base-20B" )
+        parser.add_argument( '--pythia.model_name', type=str, help='Name/path of model to load', default="togethercomputer/Pythia-Chat-Base-7B" )
         parser.add_argument( '--pythia.device', type=str, help='Device to load model', default="cuda" )
         parser.add_argument( '--pythia.max_new_tokens', type=int, help='Max tokens for model output.', default=64 ) 
         parser.add_argument( '--pythia.temperature', type=float, help='Sampling temperature of model', default=0.8 )
