@@ -58,7 +58,7 @@ class NeoxtMiner( bittensor.BasePromptingMiner ):
 
         for message in history:
             if message['role'] == 'system':
-                if not self.config.neoxt.do_prompt_injection and message == history[0]:
+                if not self.config.neoxt.do_prompt_injection or message == history[0]:
                     processed_history += '<human>: ' + message['content'].strip() + '\n'
                 
             if message['role'] == 'assistant':
