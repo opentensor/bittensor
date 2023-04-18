@@ -25,10 +25,14 @@ class CUDAException(Exception):
     """An exception raised when an error occurs in the CUDA environment."""
     pass
 
+def _hex_bytes_to_u8_list( hex_bytes: bytes ):
+    hex_chunks = [int(hex_bytes[i:i+2], 16) for i in range(0, len(hex_bytes), 2)]
+    return hex_chunks
+
 def _create_seal_hash( block_and_hotkey_hash_bytes: bytes, nonce:int ) -> bytes:
-    nonce_bytes = nonce.to_bytes(8, 'little')
-    pre_seal = nonce_bytes + block_and_hotkey_hash_bytes
-    seal_sh256 = hashlib.sha256( bytearray(pre_seal) ).digest()
+    nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
+    pre_seal = nonce_bytes + binascii.hexlify(block_and_hotkey_hash_bytes)[:64]
+    seal_sh256 = hashlib.sha256( bytearray(_hex_bytes_to_u8_list(pre_seal)) ).digest()
     kec = keccak.new(digest_bits=256)
     seal = kec.update( seal_sh256 ).digest()
     return seal
@@ -252,7 +256,7 @@ def _registration_diff_pack(diff: int, packed_diff: multiprocessing.Array):
 
 
 def _hash_block_with_hotkey(block_bytes: bytes, hotkey_bytes: bytes) -> bytes:
-    """Hashes the block with the hotkey using Keccak-512."""
+    """Hashes the block with the hotkey using Keccak-256 to get 32 bytes"""
     kec = keccak.new(digest_bits=512)
     kec = kec.update(block_bytes + hotkey_bytes)
     block_and_hotkey_hash_bytes = kec.digest()
@@ -264,7 +268,7 @@ def _update_curr_block(curr_diff: multiprocessing.Array, curr_block: multiproces
         curr_block_num.value = block_number
         # Hash the block with the hotkey
         block_and_hotkey_hash_bytes = _hash_block_with_hotkey(block_bytes, hotkey_bytes)
-        for i in range(64):
+        for i in range(32):
             curr_block[i] = block_and_hotkey_hash_bytes[i]
         _registration_diff_pack(diff, curr_diff)
 

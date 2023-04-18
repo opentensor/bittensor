@@ -44,29 +44,35 @@ def solve_cuda(nonce_start: np.int64, update_interval: np.int64, TPB: int, block
 
     upper_bytes = upper.to_bytes(32, byteorder='little', signed=False)
 
-    def seal_meets_difficulty( seal:bytes, difficulty:int ):
-        seal_number = int.from_bytes(seal, "big")
-        product = seal_number * difficulty
-        limit = int(math.pow(2,256))- 1  
+    def _hex_bytes_to_u8_list( hex_bytes: bytes ):
+        hex_chunks = [int(hex_bytes[i:i+2], 16) for i in range(0, len(hex_bytes), 2)]
+        return hex_chunks
 
-        return product < limit
-
-    def create_seal_hash( block_and_hotkey_hash_bytes: bytes, nonce: int ) -> bytes:
-        nonce_bytes = nonce.to_bytes(8, 'little')
-        pre_seal = nonce_bytes + block_and_hotkey_hash_bytes
-        seal_sh256 = hashlib.sha256( bytearray(pre_seal) ).digest()
+    def _create_seal_hash( block_and_hotkey_hash_hex: bytes, nonce:int ) -> bytes:
+        nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
+        pre_seal = nonce_bytes + block_and_hotkey_hash_hex
+        seal_sh256 = hashlib.sha256( bytearray(_hex_bytes_to_u8_list(pre_seal)) ).digest()
         kec = keccak.new(digest_bits=256)
         seal = kec.update( seal_sh256 ).digest()
         return seal
 
+    def _seal_meets_difficulty( seal:bytes, difficulty:int ):
+        seal_number = int.from_bytes(seal, "big")
+        product = seal_number * difficulty
+        limit = int(math.pow(2,256)) - 1  
+
+        return product < limit
+
     # Call cython function
     # int blockSize, uint64 nonce_start, uint64 update_interval, const unsigned char[:] limit,
     # const unsigned char[:] block_bytes, int dev_id
-    solution = cubit.solve_cuda(TPB, nonce_start, update_interval, upper_bytes, block_and_hotkey_hash_bytes, dev_id) # 0 is first GPU
+    block_and_hotkey_hash_hex = binascii.hexlify(block_and_hotkey_hash_bytes)[:64]
+
+    solution = cubit.solve_cuda(TPB, nonce_start, update_interval, upper_bytes, block_and_hotkey_hash_hex, dev_id) # 0 is first GPU
     seal = None
     if solution != -1:
-        seal = create_seal_hash(block_and_hotkey_hash_bytes, solution)
-        if seal_meets_difficulty(seal, difficulty):
+        seal = _create_seal_hash(block_and_hotkey_hash_hex, solution)
+        if _seal_meets_difficulty(seal, difficulty):
             return solution, seal
         else:
             return -1, b'\x00' * 32
