@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import json
 import torch
 import bittensor
 from typing import List, Dict, Union, Tuple
@@ -27,12 +28,27 @@ class Synapse( bittensor.TextPromptingSynapse ):
         return 0.0
 
     def blacklist(self, forward_call: "bittensor.TextPromptingForwardCall") -> Union[ Tuple[bool, str], bool ]:
-        return True
+        return False
 
     def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
         pass
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
+        unravelled_message = ''
+        roles = []; contents = []
+        for message_dict in messages:
+            message_dict = json.loads( message_dict )
+            item_role = message_dict['role']
+            item_content = message_dict['content']
+            bittensor.logging.success(str(message_dict))
+            roles.append( item_role )
+            contents.append( item_content )
+            if item_role == 'system': unravelled_message += 'system: ' + item_content + '\n'
+            if item_role == 'assistant': unravelled_message += 'assistant: ' + item_content + '\n'
+            if item_role == 'user': unravelled_message += 'user: ' + item_content + '\n'
+        print('unrav', unravelled_message)
+        print ('roles', roles)
+        print ('contents', contents)
         return "hello im a chat bot."
 
 # Create a mock wallet.
@@ -61,8 +77,8 @@ sequence_length = 32
 bittensor.logging.debug( "Start example")
 module = bittensor.text_prompting( endpoint = local_endpoint, keypair = wallet.hotkey )
 forward_call = module.forward(
-    roles = ['user', 'assistant'],
-    messages = [{ "user": "Human", "content": "hello"}],
+    roles = ['system', 'assistant'],
+    messages = ['you are chat bot', 'what is the whether'],
     timeout = 1e6
 )
 backward_call = forward_call.backward( 1 )

@@ -250,7 +250,7 @@ class prompting ( torch.nn.Module ):
         if isinstance( content, str ):
             return self._dendrite.forward(
                 roles = ['user'],
-                messages = ['content'],
+                messages = [ content ],
                 timeout = timeout
             )
         elif isinstance( content, list ):

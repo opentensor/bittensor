@@ -53,6 +53,8 @@ class GooseAIMiner( bittensor.BasePromptingMiner ):
         }
         self.model = GooseAI(gooseai_api_key=self.config.gooseai.api_key, model_kwargs=model_kwargs)
 
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+
     @staticmethod
     def _process_history(history: List[dict]) -> str:
         processed_history = ''

@@ -312,8 +312,7 @@ class logging:
                 sufix = "{}".format( str( sufix ) )
         else:
             sufix = ""
-        prefix = prefix.ljust(20)
-        log_msg = str( prefix ) + str( sufix )
+        log_msg = str( prefix ).ljust(30) + str( sufix )
         return _remove_loguru_ansi_directive( log_msg )
 
     @classmethod

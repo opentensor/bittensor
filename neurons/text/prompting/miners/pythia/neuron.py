@@ -56,6 +56,8 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
             device = 0,
         )
     
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+
     @staticmethod
     def _process_history(history: List[str]) -> str:
         processed_history = ''

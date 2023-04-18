@@ -38,6 +38,8 @@ class OpenAIMiner( bittensor.BasePromptingMiner ):
         parser.add_argument('--openai.frequency_penalty', type=float, default=0, help="Penalty for tokens based on their frequency in the text so far.")
         parser.add_argument('--openai.model_name', type=str, default='gpt-3.5-turbo', help="OpenAI model to use for completion.")
 
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+
     def __init__( self ):
         super( OpenAIMiner, self ).__init__()
         print ( self.config )

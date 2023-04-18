@@ -176,8 +176,8 @@ class neuron:
                 # Give messages priority.
                 if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: 
                     bittensor.logging.success('THIS IS ME.')
-                    # It is myself, dont blacklist me.
-                    return False
+                    # It is myself makes sure not to create recursive calls.
+                    return True
                 elif forward_call.src_hotkey in self.my_nominators:
                     # Delegates, dont blacklist.
                     return False
@@ -188,18 +188,37 @@ class neuron:
             def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
 
             def forward( _, messages: List[Dict[str, str]] ) -> str:
-                roles = []; content = []
+                unravelled_message = ''
+                roles = []; contents = []
                 for message_dict in messages:
                     message_dict = json.loads( message_dict )
-                    roles.append( message_dict['role'] )
-                    content.append( message_dict['content'] )
-                return self.forward( 
-                     roles = roles,
-                     messages = content, 
-                     topk = self.config.neuron.inference_topk,
-                     random_sample_uids = False,
-                     train_gating_model = False
-                ).completion
+                    item_role = message_dict['role']
+                    item_content = message_dict['content']
+                    bittensor.logging.success(str(message_dict))
+                    roles.append( item_role )
+                    contents.append( item_content )
+                    if item_role == 'system': unravelled_message += 'system: ' + item_content + '\n'
+                    if item_role == 'assistant': unravelled_message += 'assistant: ' + item_content + '\n'
+                    if item_role == 'user': unravelled_message += 'user: ' + item_content + '\n'
+
+                bittensor.logging.success( str(unravelled_message) )
+                scores = self.gating_model( unravelled_message ).to( self.device )
+                bittensor.logging.success( str(scores) )
+                uids = scores.sort()[ 1 ]
+                bittensor.logging.success( str(uids) )
+                forward_calls = self.dendrite_pool( 
+                    roles = roles, 
+                    messages = contents, 
+                    uids = uids, 
+                    timeout = 5,
+                )
+                bittensor.logging.success( str(forward_calls) )
+                longest_completion = ""
+                for call in forward_calls:
+                    if len(call.completion) >= len(longest_completion): 
+                        longest_completion = call.completion
+                bittensor.logging.success( str(forward_calls) )
+                return longest_completion
                 
         # Serve axon.
         self.axon = bittensor.axon( 
@@ -213,66 +232,6 @@ class neuron:
         self.axon.protocol = 4
         self.subtensor.serve_axon( self.axon )
 
-    def compute_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
-        """
-            Computes the average reward for each uid across non-zero values 
-            using the rewards history stored in the self.history list.
-
-            Returns:
-                uids ( torch.LongTensor, shape = (n) ): 
-                    Uid to set weights on.
-                weights ( torch.FloatTensor, shape = (n) ): 
-                    The weights for each uid.
-        """
-        bittensor.logging.info( 'compute_weights()' )
-
-        # Return zeros weights if there is no history.
-        if self.history.qsize() == 0: 
-            bittensor.logging.warning( 'No history to compute weights returning all ones.' )
-            return torch.ones((self.metagraph.n)) / self.metagraph.n
-
-        # Iterate over all events in the `history` and perform a moving average of the normalized rewards.
-        alpha = 0.01
-        last_hotkeys = None
-        moving_averaged_scores = torch.zeros((self.metagraph.n)).to( self.device )
-        for event in self.history.queue:    
-            # First we normalize the rewards with a softmax.
-            normalized_rewards = torch.nn.functional.softmax( event.rewards.to( self.device ), dim=0 )
-            # We scatter the normalized onto the moving averaged scores (updating them but not changing the source)
-            scattered_rewards = moving_averaged_scores.scatter(0, event.uids.to( self.device ), normalized_rewards.to( self.device ) )
-            # We now perform a moving average of the scattered rewards.
-            moving_averaged_scores = alpha * moving_averaged_scores + ( 1 - alpha ) * scattered_rewards
-            bittensor.logging.trace( 'normalized_rewards', normalized_rewards )
-            bittensor.logging.trace( 'scattered_rewards', scattered_rewards )
-            bittensor.logging.trace( 'moving_averaged_scores', moving_averaged_scores )
-
-            # If the hotkeys have changed, reset the moving averaged scores for the new hotkeys.
-            if last_hotkeys is not None:
-                for uid, hotkey in enumerate( last_hotkeys ):
-                    if hotkey != event.hotkeys[ uid ]:
-                        moving_averaged_scores[ uid ] = 0
-            # Update the last hotkeys.
-            last_hotkeys = event.hotkeys
-
-        # Calculate the average reward for each uid across non-zero values.
-        # Replace any NaN values with 0.
-        raw_weights = torch.nn.functional.normalize( moving_averaged_scores, p=1, dim=0 )
-        bittensor.logging.trace( 'raw_weights', raw_weights )
-        bittensor.logging.trace( 'top10 values', raw_weights.sort()[0] )
-        bittensor.logging.trace( 'top10 uids', raw_weights.sort()[1] )
-     
-        # Process the raw weights to final_weights via subtensor limitations.
-        processed_weight_uids, processed_weights = bittensor.utils.weight_utils.process_weights_for_netuid(
-            uids = self.metagraph.uids.to( "cpu" ),
-            weights = raw_weights.to( "cpu" ),
-            netuid = self.config.netuid,
-            subtensor = self.subtensor,
-            metagraph = self.metagraph
-        )
-        bittensor.logging.trace( 'processed_weights', processed_weights )
-        bittensor.logging.trace( 'processed_weight_uids', processed_weight_uids )
-        return processed_weight_uids, processed_weights
-
     def forward(
             self, 
             roles: List[ str ],
@@ -281,6 +240,7 @@ class neuron:
             random_sample_uids: Optional[ bool ] = False,
             train_gating_model: Optional[ bool ] = False,
             train_network: Optional[ bool ] = False,
+            timeout: float = None,
         ) -> SimpleNamespace:
         """
         Queries the network for a response to the passed message using a gating model to select the best uids.
@@ -343,7 +303,7 @@ class neuron:
             roles = roles, 
             messages = messages, 
             uids = topk_uids, 
-            timeout = self.config.neuron.timeout,
+            timeout = self.config.neuron.timeout if timeout is None else timeout,
         )
         bittensor.logging.trace( 'topk_uids', topk_uids )
 
@@ -453,6 +413,67 @@ class neuron:
                     weights = weights,
                     wait_for_finalization = True,
                 )
+
+    
+    def compute_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
+        """
+            Computes the average reward for each uid across non-zero values 
+            using the rewards history stored in the self.history list.
+
+            Returns:
+                uids ( torch.LongTensor, shape = (n) ): 
+                    Uid to set weights on.
+                weights ( torch.FloatTensor, shape = (n) ): 
+                    The weights for each uid.
+        """
+        bittensor.logging.info( 'compute_weights()' )
+
+        # Return zeros weights if there is no history.
+        if self.history.qsize() == 0: 
+            bittensor.logging.warning( 'No history to compute weights returning all ones.' )
+            return torch.ones((self.metagraph.n)) / self.metagraph.n
+
+        # Iterate over all events in the `history` and perform a moving average of the normalized rewards.
+        alpha = 0.01
+        last_hotkeys = None
+        moving_averaged_scores = torch.zeros((self.metagraph.n)).to( self.device )
+        for event in self.history.queue:    
+            # First we normalize the rewards with a softmax.
+            normalized_rewards = torch.nn.functional.softmax( event.rewards.to( self.device ), dim=0 )
+            # We scatter the normalized onto the moving averaged scores (updating them but not changing the source)
+            scattered_rewards = moving_averaged_scores.scatter(0, event.uids.to( self.device ), normalized_rewards.to( self.device ) )
+            # We now perform a moving average of the scattered rewards.
+            moving_averaged_scores = alpha * moving_averaged_scores + ( 1 - alpha ) * scattered_rewards
+            bittensor.logging.trace( 'normalized_rewards', normalized_rewards )
+            bittensor.logging.trace( 'scattered_rewards', scattered_rewards )
+            bittensor.logging.trace( 'moving_averaged_scores', moving_averaged_scores )
+
+            # If the hotkeys have changed, reset the moving averaged scores for the new hotkeys.
+            if last_hotkeys is not None:
+                for uid, hotkey in enumerate( last_hotkeys ):
+                    if hotkey != event.hotkeys[ uid ]:
+                        moving_averaged_scores[ uid ] = 0
+            # Update the last hotkeys.
+            last_hotkeys = event.hotkeys
+
+        # Calculate the average reward for each uid across non-zero values.
+        # Replace any NaN values with 0.
+        raw_weights = torch.nn.functional.normalize( moving_averaged_scores, p=1, dim=0 )
+        bittensor.logging.trace( 'raw_weights', raw_weights )
+        bittensor.logging.trace( 'top10 values', raw_weights.sort()[0] )
+        bittensor.logging.trace( 'top10 uids', raw_weights.sort()[1] )
+     
+        # Process the raw weights to final_weights via subtensor limitations.
+        processed_weight_uids, processed_weights = bittensor.utils.weight_utils.process_weights_for_netuid(
+            uids = self.metagraph.uids.to( "cpu" ),
+            weights = raw_weights.to( "cpu" ),
+            netuid = self.config.netuid,
+            subtensor = self.subtensor,
+            metagraph = self.metagraph
+        )
+        bittensor.logging.trace( 'processed_weights', processed_weights )
+        bittensor.logging.trace( 'processed_weight_uids', processed_weight_uids )
+        return processed_weight_uids, processed_weights
 
 if __name__ == '__main__':
     bittensor.logging.info( 'neuron().train()' )
