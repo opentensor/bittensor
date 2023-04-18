@@ -25,7 +25,7 @@ Original documentation for creating the model from weights can be found [here](h
 ## Obtaining the Wegith Diff of Koala
 Due to the licence of the LLaMA model, the fine-tuned
 Koala model weights can not be directly released. Instead, the diff of weights, which can be used
-to recover the Koala model weights with the origina LLaMA model weights, is released. The diff
+to recover the Koala model weights with the original LLaMA model weights, is released. The diff
 weights can be downloaded from the following sources:
 * [HuggingFace Hub](https://huggingface.co/young-geng/koala/tree/main).
 * [Google Drive](https://drive.google.com/drive/folders/10f7wrlAFoPIy-TECHsx9DKIvbQYunCfl?usp=sharing).
