@@ -23,7 +23,7 @@ import asyncio
 import bittensor
 
 from grpc import _common
-from typing import Union, Optional, Callable
+from typing import Union, Optional, Callable, List, Tuple
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
@@ -114,9 +114,9 @@ class Dendrite( ABC, torch.nn.Module ):
             keypair: Union[ 'bittensor.Wallet', 'bittensor.Keypair'],
             endpoint: Union[ 'bittensor.Endpoint', torch.Tensor ], 
             grpc_options: List[Tuple[str,object]] = 
-                    [('grpc.max_send_message_length', grpc_max_send_message_length),
-                     ('grpc.max_receive_message_length', grpc_max_receive_message_length),
-                     ('grpc.keepalive_time_ms', grpc_keepalive_time_ms) ]
+                    [('grpc.max_send_message_length', -1),
+                     ('grpc.max_receive_message_length', -1),
+                     ('grpc.keepalive_time_ms', 100000) ]
         ):
         """ Dendrite abstract class
             Args:
