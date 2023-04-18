@@ -245,7 +245,7 @@ class prompting ( torch.nn.Module ):
     def forward( 
             self,
             content: Union[ str, List[str], List[Dict[ str ,str ]]],
-            timeout: float = __blocktime__
+            timeout: float = 1000
         ):
         if isinstance( content, str ):
             return self._dendrite.forward(

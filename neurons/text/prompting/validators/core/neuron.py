@@ -160,65 +160,18 @@ class neuron:
         class Synapse( bittensor.TextPromptingSynapse ):
 
             def priority( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
-                # Give messages priority.
-                if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: 
-                    bittensor.logging.success('THIS IS ME, give super high priority.')
-                    # It is myself.
-                    return math.inf
-                elif forward_call.src_hotkey in self.my_nominators:
-                    # Delegates.
-                    return self.my_nominators[ forward_call.src_hotkey ].tao
-                else:
-                    # Everyone else.
-                    return 0.0
+                if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: return math.inf # myself.
+                elif forward_call.src_hotkey in self.my_nominators: return self.my_nominators[ forward_call.src_hotkey ].tao # Delegates.
+                else: return 0.0 # Everyone else.
 
             def blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
                 # Give messages priority.
-                if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: 
-                    bittensor.logging.success('THIS IS ME.')
-                    # It is myself makes sure not to create recursive calls.
-                    return True
-                elif forward_call.src_hotkey in self.my_nominators:
-                    # Delegates, dont blacklist.
-                    return False
-                else:
-                    # Everyone else, blacklist.
-                    return False
+                if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: return True
+                elif forward_call.src_hotkey in self.my_nominators: return False # Delegates, dont blacklist.
+                else: return False # Everyone else, dont blacklist.
 
             def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
-
-            def forward( _, messages: List[Dict[str, str]] ) -> str:
-                unravelled_message = ''
-                roles = []; contents = []
-                for message_dict in messages:
-                    message_dict = json.loads( message_dict )
-                    item_role = message_dict['role']
-                    item_content = message_dict['content']
-                    bittensor.logging.success(str(message_dict))
-                    roles.append( item_role )
-                    contents.append( item_content )
-                    if item_role == 'system': unravelled_message += 'system: ' + item_content + '\n'
-                    if item_role == 'assistant': unravelled_message += 'assistant: ' + item_content + '\n'
-                    if item_role == 'user': unravelled_message += 'user: ' + item_content + '\n'
-
-                bittensor.logging.success( str(unravelled_message) )
-                scores = self.gating_model( unravelled_message ).to( self.device )
-                bittensor.logging.success( str(scores) )
-                uids = scores.sort()[ 1 ]
-                bittensor.logging.success( str(uids) )
-                forward_calls = self.dendrite_pool( 
-                    roles = roles, 
-                    messages = contents, 
-                    uids = uids, 
-                    timeout = 5,
-                )
-                bittensor.logging.success( str(forward_calls) )
-                longest_completion = ""
-                for call in forward_calls:
-                    if len(call.completion) >= len(longest_completion): 
-                        longest_completion = call.completion
-                bittensor.logging.success( str(forward_calls) )
-                return longest_completion
+            def forward( _, messages: List[Dict[str, str]] ) -> str: return self.inference( messages )
                 
         # Serve axon.
         self.axon = bittensor.axon( 
@@ -349,6 +302,46 @@ class neuron:
         )
         self.record_event( event ) 
         return event
+
+    def inference( self, messages: List[Dict[str, str]] ) -> str:
+        bittensor.logging.info( 'inference()')
+
+        # pre-process messages
+        roles = []; contents = []; unravelled_message = ''
+        for message_i in messages:
+            message_dict = json.loads( message_i )
+            roles.append( message_dict['role'] )
+            contents.append( message_dict['content'] )
+            if message_dict['role'] == 'system': unravelled_message += 'system: ' + message_dict['content'] + '\n'
+            if message_dict['role'] == 'assistant': unravelled_message += 'assistant: ' + message_dict['content'] + '\n'
+            if message_dict['role'] == 'user': unravelled_message += 'user: ' + message_dict['content'] + '\n'
+        bittensor.logging.info( 'inference message', str(unravelled_message) )
+        
+        # Get scores for query.
+        scores = self.gating_model( unravelled_message ).to( self.device )
+        bittensor.logging.info( 'inference scores', str(scores) )
+
+        # Get uids for query.
+        uids = scores.sort()[ 1 ]
+        bittensor.logging.info( 'inference uids', str(uids) )
+
+        # Query using dendrite pool
+        forward_calls = self.dendrite_pool( 
+            roles = roles, 
+            messages = contents, 
+            uids = uids, 
+            timeout = 5,
+        )
+
+        # Return longest completion.
+        longest_completion = ""
+        for call in forward_calls:
+            bittensor.logging.info( 'completion', call.completion)
+            if len(call.completion) >= len(longest_completion): 
+                longest_completion = call.completion
+
+        bittensor.logging.info( 'best completion', longest_completion)
+        return longest_completion
 
     def train( self ):
         """ Training 

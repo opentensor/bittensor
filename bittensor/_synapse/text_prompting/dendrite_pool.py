@@ -32,6 +32,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
         super(TextPromptingDendritePool, self).__init__()
         self.metagraph = metagraph
         self.keypair = keypair
+        self.dendrites = [ bittensor.text_prompting( endpoint = end, keypair = self.keypair ) for end in self.metagraph.endpoint_objs ]
 
     def backward( self,
             forward_calls: List[ 'DendriteForwardCall' ],
@@ -98,8 +99,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
         # The following asyncio defintion queries a single endpoint with the message
         # prompt and returns the response.
         async def call_single_uid( uid: int ) -> str:
-            module = bittensor.text_prompting( endpoint = self.metagraph.endpoint_objs[ uid ], keypair = self.keypair )
-            return await module.async_forward( 
+            return await self.dendrites[uid].async_forward( 
                 roles = roles, 
                 messages = messages,
                 return_call = return_call, 
