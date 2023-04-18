@@ -193,7 +193,6 @@ if [[ "$OS" == "Linux" ]]; then
     ohai "This script will install:"
     echo "git"
     echo "curl"
-    echo "git"
     echo "cmake"
     echo "build-essential"
     echo "python3"
