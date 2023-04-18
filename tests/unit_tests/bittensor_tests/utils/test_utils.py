@@ -216,15 +216,17 @@ class TestRegistrationHelpers(unittest.TestCase):
         assert bittensor.utils.registration._registration_diff_unpack(mock_diff) == fake_diff
 
     def test_hash_block_with_hotkey(self):
-        block_hash_bytes = bytes.fromhex('ba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279')
-        hotkey: 'bittensor.Keypair' = bittensor.Keypair.create_from_seed(
-            '0x' + '0'*63 + '1', ss58_format=bittensor.__ss58_format__
-        )
-        hotkey_bytes = hotkey.public_key
+        block_hash = "0xc444e4205857add79a0427401aa2518d11e85f32377eff9a946d180a54697459"
+        block_hash_bytes = bytes.fromhex(block_hash[2:])
         
-        expected_hash = '3917916c324bb85e06ca3931b3defda25e38dcd9272b4b28c37c32cf1b2df8b9ad4d2acedc84ee8f0e82a47d7b54b0be1bccd25b0b159b09c54ba306862cb638'
+        hotkey_pubkey_hex = "0xba3189e99e75b6097cd94a5ecc771016b83c8432d35d14a03ab731b07112f559"
+        hotkey_bytes = bytes.fromhex(hotkey_pubkey_hex[2:])
+        
+        expected_hash_hex = '0x7869b61229641b33a355dc34d4ef48f8d82166635237f9f10bcb215b8cb48161'
+        expected_hash = bytes.fromhex(expected_hash_hex[2:])
+
         result_hash = bittensor.utils.registration._hash_block_with_hotkey(block_hash_bytes, hotkey_bytes)
-        self.assertEqual(result_hash.hex(), expected_hash)
+        self.assertEqual(result_hash, expected_hash)
 
     def test_update_curr_block(self):
         curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
