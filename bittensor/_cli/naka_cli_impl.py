@@ -355,7 +355,7 @@ class CLI:
         else:
             # Only self.config.wallet.hotkey is specified.
             #  so we stake to that single hotkey.
-            if not (self.config.wallet.hotkey is not None): raise(ValueError('Wallet hotkey is None.'))
+            if self.config.wallet.hotkey is None: raise(ValueError('Wallet hotkey is None.'))
             wallets_to_stake_to = [ bittensor.wallet( config = self.config ) ]
            
         # Otherwise we stake to multiple wallets

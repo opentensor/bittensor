@@ -179,4 +179,4 @@ class prometheus:
         if not(config.prometheus.level in [l.name for l in list(prometheus.level)]): raise(ValueError("config.prometheus.level must be in: {}".format([l.name for l in list(prometheus.level)])))
         if not(config.prometheus.port > 1024 and config.prometheus.port < 65535): raise(ValueError('config.prometheus.port must be in range [1024, 65535]'))
         if "axon" in config and "port" in config.axon:
-            if not(config.prometheus.port != config.axon.port): raise(ValueError('config.prometheus.port != config.axon.port'))
+            if config.prometheus.port == config.axon.port: raise(ValueError('config.prometheus.port should not be equal to config.axon.port'))
