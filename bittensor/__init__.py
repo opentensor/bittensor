@@ -159,7 +159,6 @@ from bittensor._subtensor import subtensor as subtensor
 from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
 from bittensor._dataset import dataset as dataset
-from bittensor._wandb import wandb as wandb
 from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----
@@ -218,7 +217,6 @@ prioritythreadpool.add_defaults( defaults )
 prometheus.add_defaults( defaults )
 wallet.add_defaults( defaults )
 dataset.add_defaults( defaults )
-wandb.add_defaults( defaults )
 logging.add_defaults( defaults )
 
 from substrateinterface import Keypair as Keypair

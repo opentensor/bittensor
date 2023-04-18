@@ -402,14 +402,6 @@ class Metagraph( torch.nn.Module ):
         except Exception as e:
             bittensor.logging.error('failed metagraph.to_dataframe()', str(e))
             return pandas.DataFrame()
-
-    def to_wandb(self):
-        wandb_info = {
-            'metagraph_n': self.n.item(),
-            'metagraph_tau': self.tau.item(),
-            'metagraph_block': self.block.item(),
-        }
-        return wandb_info
             
     def __str__(self):
         return "Metagraph(netuid:{}, n:{}, block:{}, network:{})".format(self.netuid, self.n.item(), self.block.item(), self.network)
