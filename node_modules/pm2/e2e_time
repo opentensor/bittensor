@@ -1,0 +1,9 @@
+[V] ./test/e2e/cli/reload.sh succeeded and took 54 seconds
+[V] ./test/e2e/cli/start-app.sh succeeded and took 8 seconds
+[V] ./test/e2e/cli/operate-regex.sh succeeded and took 4 seconds
+[V] ./test/e2e/cli/interpreter.sh succeeded and took 8 seconds
+[V] ./test/e2e/cli/app-configuration.sh succeeded and took 9 seconds
+[V] ./test/e2e/cli/binary.sh succeeded and took 5 seconds
+[V] ./test/e2e/cli/startOrX.sh succeeded and took 4 seconds
+[V] ./test/e2e/cli/reset.sh succeeded and took 9 seconds
+[V] ./test/e2e/cli/env-refresh.sh succeeded and took 13 seconds

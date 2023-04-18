@@ -84,12 +84,10 @@ class TextPromptingDendritePool( torch.nn.Module ):
             uids: Union[ torch.LongTensor, List[int] ] = None, 
             return_call:bool = True,
             timeout: float = 12 
-        ) -> List['DendriteForwardCall']:
-      
+        ) -> List['DendriteForwardCall']:      
         # We optionally set the uids to all if uids is None.
         if uids is None: uids = range( self.metagraph.n.item() )
         if isinstance( uids, torch.Tensor ): uids = uids.tolist()
-
         # The following asyncio defintion queries a single endpoint with the message
         # prompt and returns the response.
         async def call_single_uid( uid: int ) -> str:
@@ -99,12 +97,10 @@ class TextPromptingDendritePool( torch.nn.Module ):
                 return_call = return_call, 
                 timeout = timeout 
             )
-        
         # The following asyncio definition gathers the responses
         # from multiple coroutines for each uid.
         async def query():
             coroutines = [ call_single_uid( uid ) for uid in uids ]                
             all_responses = await asyncio.gather(*coroutines)
             return all_responses
-        
         return await query() 

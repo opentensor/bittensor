@@ -149,7 +149,8 @@ class Dendrite( ABC, torch.nn.Module ):
         else: self.endpoint_str = self.endpoint.ip + ':' + str(self.endpoint.port)
         self.channel = grpc.aio.insecure_channel( self.endpoint_str, options = grpc_options )
         self.state_dict = _common.CYGRPC_CONNECTIVITY_STATE_TO_CHANNEL_CONNECTIVITY
-    
+        self.loop = asyncio.get_event_loop()
+
     async def apply( self, dendrite_call: 'DendriteCall' ) -> DendriteCall:
         """ Applies a dendrite call to the endpoint.
             Args:

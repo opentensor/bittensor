@@ -69,6 +69,8 @@ class SynapseCall( ABC ):
     def _apply( self ): 
         # TODO(const): measure apply time.
         self.apply()
+
+    def end(self):
         self.end_time = time.time()
         self.elapsed = self.end_time - self.start_time
         self.completed = True
@@ -161,6 +163,7 @@ class Synapse( ABC ):
         # Finally return the call.
         finally:
             bittensor.logging.trace( 'Synapse: {} finalize call {}'.format( self.name, call ) )
+            call.end()
             call.log_outbound()
             return call._get_response_proto()
         
