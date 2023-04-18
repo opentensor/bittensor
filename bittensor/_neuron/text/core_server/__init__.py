@@ -425,7 +425,13 @@ class neuron:
 
         """
         ## Uid that sent the request
-        incoming_uid = self.metagraph.hotkeys.index(hotkey)
+        try:
+            incoming_uid = self.metagraph.hotkeys.index(hotkey)
+        except Exception as e:
+            if self.config.neuron.blacklist_allow_non_registered:
+                return False
+            return True
+
         batch_size, sequence_len  =  inputs_x[0].size()
         if synapse.synapse_type == bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE:
             if self.metagraph.S[incoming_uid] < self.config.neuron.lasthidden_stake \
@@ -643,10 +649,10 @@ class neuron:
             time_check()
             stake_check()      
             hotkey_check()      
-            return False
-        except Exception as e:
+            return False, None
+        except Exception as error:
             self.prometheus_counters.labels("blacklisted").inc()
-            return True
+            return True, error
 
     def get_neuron(self):
         if self.subtensor.network == 'nakamoto':
