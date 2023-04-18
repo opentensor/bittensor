@@ -247,7 +247,7 @@ class prompting ( torch.nn.Module ):
             content: Union[ str, List[str], List[Dict[ str ,str ]]],
             timeout: float = 1000,
             return_call: bool = False
-        ):
+        ) -> str:
         if isinstance( content, str ):
             return self._dendrite.forward(
                 roles = ['system', 'user'],

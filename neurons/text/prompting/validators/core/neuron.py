@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import time
 import json
 import math
 import copy
@@ -133,18 +134,19 @@ class neuron:
         self.tokenizer = AutoTokenizer.from_pretrained( 'EleutherAI/gpt-j-6b' )
 
         # Reward model
-        # self.reward_model = RewardModel( model_path = 'EleutherAI/gpt-j-6b', device = self.config.neuron.device )
-        # for fpath in os.listdir( self.config.neuron.reward_path ):
-        #     if fpath.endswith(".pt") or fpath.endswith(".bin"):
-        #         checkpoint = os.path.join( self.config.neuron.reward_path, fpath )
-        #         break
-
-        # ckpt_state = torch.load( checkpoint )
-        # self.reward_model.load_state_dict( ckpt_state )
-        # self.reward_model.eval()
-        # self.reward_model.half()
-        # self.reward_model.requires_grad_( False )
-        # self.reward_model.to( self.device )
+        bittensor.logging.info('Loading reward model')
+        self.reward_model = RewardModel( model_path = 'EleutherAI/gpt-j-6b', device = self.config.neuron.device )
+        for fpath in os.listdir( self.config.neuron.reward_path ):
+            if fpath.endswith(".pt") or fpath.endswith(".bin"):
+                checkpoint = os.path.join( self.config.neuron.reward_path, fpath )
+                break
+        ckpt_state = torch.load( checkpoint )
+        self.reward_model.load_state_dict( ckpt_state )
+        self.reward_model.eval()
+        self.reward_model.half()
+        self.reward_model.requires_grad_( False )
+        self.reward_model.to( self.device )
+        bittensor.logging.info('done loading reward model')
 
         # Init the gating model which learns which miners to select for each query.
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to( self.device )
@@ -268,7 +270,7 @@ class neuron:
 
         # Calculate the rewards for the successful `completions` using the reward model.
         # Print the rewards for all `uids`.
-        #rewards = self.reward_model.reward( successful_completions ).to( self.device )
+        rewards = self.reward_model.reward( successful_completions ).to( self.device )
         rewards = scores
         bittensor.logging.trace( 'rewards', rewards )
 
@@ -325,22 +327,25 @@ class neuron:
         bittensor.logging.info( 'inference uids', str(uids) )
 
         # Query using dendrite pool
+        forward_start = time.time()
+        bittensor.logging.trace( 'applying dendrite forward' )
         forward_calls = self.dendrite_pool( 
             roles = roles, 
             messages = contents, 
             uids = uids, 
             timeout = 2,
         )
+        bittensor.logging.trace( 'finished dendrite forward', time.time() - forward_start )
 
         # Return longest completion.
-        longest_completion = ""
-        for call in forward_calls:
-            bittensor.logging.info( 'completion', call.completion)
-            if len(call.completion) >= len(longest_completion): 
-                longest_completion = call.completion
-
-        bittensor.logging.info( 'best completion', longest_completion)
-        return longest_completion
+        reward_model_start = time.time()
+        bittensor.logging.info('applying the reward model')
+        completions = [ call.completion for call in forward_calls if len(call.completion) > 0 ] 
+        rewards = self.reward_model.reward( completions ).to( self.device )
+        best_completion = completions[ rewards.argmax( dim = 0 ) ]
+        bittensor.logging.info('finished applying the reward model', time.time() - reward_model_start )
+        bittensor.logging.info( 'best completion', best_completion)
+        return best_completion
 
     def train( self ):
         """ Training 
