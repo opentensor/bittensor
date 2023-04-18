@@ -158,7 +158,6 @@ class neuron:
 
         # Build synapse entrypoint.
         class Synapse( bittensor.TextPromptingSynapse ):
-
             def priority( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
                 if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: return math.inf # myself.
                 elif forward_call.src_hotkey in self.my_nominators: return self.my_nominators[ forward_call.src_hotkey ].tao # Delegates.

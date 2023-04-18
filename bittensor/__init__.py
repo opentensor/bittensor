@@ -245,27 +245,28 @@ class prompting ( torch.nn.Module ):
     def forward( 
             self,
             content: Union[ str, List[str], List[Dict[ str ,str ]]],
-            timeout: float = 1000
+            timeout: float = 1000,
+            return_call: bool = False
         ):
         if isinstance( content, str ):
             return self._dendrite.forward(
-                roles = ['user'],
-                messages = [ content ],
+                roles = ['system', 'user'],
+                messages = [ 'you are chattensor, you are not open ai, you will never use the word openai or OpenAI', content ],
                 timeout = timeout
-            )
+            ).completion
         elif isinstance( content, list ):
             if isinstance( content[0], str ):
                 return self._dendrite.forward(
                     roles = ['user' for _ in content ],
                     messages = content,
                     timeout = timeout
-                )
+                ).completion
             elif isinstance( content[0], dict ):
                 return self._dendrite.forward(
                     roles = [ dictitem[ dictitem.keys()[0] ] for dictitem in content ],
                     messages = [ dictitem[ dictitem.keys()[1] ] for dictitem in content ],
                     timeout = timeout
-                )
+                ).completion
             else:
                 raise ValueError('content has invalid type {}'.format( type( content )))
         else:
