@@ -40,7 +40,7 @@ class DendriteForwardCall( bittensor.DendriteCall ):
         self.packed_messages = [json.dumps({"role": role, "content": message}) for role, message in zip(self.roles, self.messages)]
 
     def get_callable( self ) -> Callable:
-        return bittensor.grpc.TextPromptingStub( self.dendrite.receptor.channel ).Forward
+        return bittensor.grpc.TextPromptingStub( self.dendrite.channel ).Forward
 
     def get_request_proto( self ) -> bittensor.proto.ForwardTextPromptingRequest:
         return bittensor.ForwardTextPromptingRequest( timeout = self.timeout, messages = self.packed_messages )
@@ -95,7 +95,7 @@ class DendriteBackwardCall( bittensor.DendriteCall ):
         self.packed_messages = [ json.dumps({"role": role, "content": message}) for role, message in zip(self.roles, self.messages)]
 
     def get_callable( self ) -> Callable:
-        return bittensor.grpc.TextPromptingStub( self.dendrite.receptor.channel ).Backward
+        return bittensor.grpc.TextPromptingStub( self.dendrite.channel ).Backward
 
     def get_request_proto( self ) -> bittensor.proto.BackwardTextPromptingRequest:
         return bittensor.BackwardTextPromptingRequest( messages = self.packed_messages, response = self.completion, rewards = self.rewards, timeout = self.timeout )

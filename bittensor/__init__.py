@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+from typing import Union, List, Dict
 from rich.console import Console
 from rich.traceback import install
 from prometheus_client import Info
@@ -151,7 +152,6 @@ from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon
 from bittensor._wallet import wallet as wallet
 from bittensor._keyfile import keyfile as keyfile
-from bittensor._receptor import receptor as receptor
 from bittensor._endpoint import endpoint as endpoint
 from bittensor._metagraph import metagraph as metagraph
 from bittensor._prometheus import prometheus as prometheus
@@ -222,3 +222,51 @@ wandb.add_defaults( defaults )
 logging.add_defaults( defaults )
 
 from substrateinterface import Keypair as Keypair
+
+import torch
+class prompting ( torch.nn.Module ):
+
+    def __init__(
+        self,
+        hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
+        wallet_name: str = "default",
+    ):
+        super(prompting, self).__init__()
+        self._hotkey = hotkey
+        self._subtensor = subtensor()
+        self._wallet = wallet( name = wallet_name )
+        self._metagraph = self._subtensor.metagraph( 1 )
+        self._endpoint = self._metagraph.endpoint_objs[ self._metagraph.hotkeys.index( self._hotkey ) ]
+        self._dendrite = text_prompting(
+            wallet = self._wallet,
+            endpoint = self._endpoint
+        )
+
+    def forward( 
+            self,
+            content: Union[ str, List[str], List[Dict[ str ,str ]]],
+            timeout: float = __blocktime__
+        ):
+        if isinstance( content, str ):
+            return self._dendrite.forward(
+                roles = ['user'],
+                messages = ['content'],
+                timeout = timeout
+            )
+        elif isinstance( content, list ):
+            if isinstance( content[0], str ):
+                return self._dendrite.forward(
+                    roles = ['user' for _ in content ],
+                    messages = content,
+                    timeout = timeout
+                )
+            elif isinstance( content[0], dict ):
+                return self._dendrite.forward(
+                    roles = [ dictitem[ dictitem.keys()[0] ] for dictitem in content ],
+                    messages = [ dictitem[ dictitem.keys()[1] ] for dictitem in content ],
+                    timeout = timeout
+                )
+            else:
+                raise ValueError('content has invalid type {}'.format( type( content )))
+        else:
+            raise ValueError('content has invalid type {}'.format( type( content )))

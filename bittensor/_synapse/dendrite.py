@@ -15,13 +15,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import uuid
 import grpc
 import time
 import torch
 import asyncio
 import bittensor
-from typing import Union, Optional, Callable
 
+from grpc import _common
+from typing import Union, Optional, Callable
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
@@ -41,7 +43,7 @@ class DendriteCall( ABC ):
         self.completed = False
         self.timeout = timeout
         self.start_time = time.time()
-        self.src_hotkey = self.dendrite.wallet.hotkey.ss58_address 
+        self.src_hotkey = self.dendrite.keypair.ss58_address 
         self.src_version = bittensor.__version_as_int__
         self.dest_hotkey = self.dendrite.endpoint.hotkey
         self.dest_version = self.dendrite.endpoint.version  
@@ -109,20 +111,30 @@ class DendriteCall( ABC ):
 class Dendrite( ABC, torch.nn.Module ):
     def __init__(
             self,
-            wallet: 'bittensor.wallet',
+            keypair: Union[ 'bittensor.Wallet', 'bittensor.Keypair'],
             endpoint: Union[ 'bittensor.Endpoint', torch.Tensor ], 
+            grpc_options: List[Tuple[str,object]] = 
+                    [('grpc.max_send_message_length', grpc_max_send_message_length),
+                     ('grpc.max_receive_message_length', grpc_max_receive_message_length),
+                     ('grpc.keepalive_time_ms', grpc_keepalive_time_ms) ]
         ):
         """ Dendrite abstract class
             Args:
-                wallet (:obj:`bittensor.Wallet`, `required`):
-                    bittensor wallet object.
+                keypair (:obj:`Union[ 'bittensor.Wallet', 'bittensor.Keypair']`, `required`):
+                    bittensor keypair used for signing messages.
                 endpoint (:obj:`bittensor.Endpoint`, `required`):   
                     bittensor endpoint object.
+                external_ip (:obj:`str`, `optional`, defaults to None):
+                    external ip of the machine, if None, will use the ip from the endpoint.
+                grpc_options (:obj:`List[Tuple[str,object]]`, `optional`):
+                    grpc options to pass through to channel.
         """
         super(Dendrite, self).__init__()
-        self.wallet = wallet
+        self.keypair = keypair.hotkey if isinstance( keypair, bittensor.wallet ) else keypair
         self.endpoint = endpoint
-        self.receptor = bittensor.receptor( wallet = self.wallet, endpoint = self.endpoint )
+        self.channel = grpc.aio.insecure_channel( endpoint_str, options = grpc_options )
+        self.uid = str(uuid.uuid1())
+        self.state_dict = _common.CYGRPC_CONNECTIVITY_STATE_TO_CHANNEL_CONNECTIVITY
     
     async def apply( self, dendrite_call: 'DendriteCall' ) -> DendriteCall:
         """ Applies a dendrite call to the endpoint.
@@ -140,7 +152,7 @@ class Dendrite( ABC, torch.nn.Module ):
                 timeout = dendrite_call.timeout,
                 metadata = (
                     ('rpc-auth-header','Bittensor'),
-                    ('bittensor-signature', self.receptor.sign() ),
+                    ('bittensor-signature', self.sign() ),
                     ('bittensor-version',str(bittensor.__version_as_int__)),
                 )
             )
@@ -170,6 +182,45 @@ class Dendrite( ABC, torch.nn.Module ):
         finally:
             dendrite_call.log_inbound()           
             return dendrite_call
+
+    def __exit__ ( self ):
+        self.__del__()
+
+    def close ( self ):
+        self.__exit__()
+    
+    def __del__ ( self ):
+        """ Destructor for dendrite.
+        """
+        try:
+            result = self.channel._channel.check_connectivity_state(True)
+            if self.state_dict[result] != self.state_dict[result].SHUTDOWN: 
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete ( self.channel.close() )
+        except:
+            pass
+
+    def sign(self) -> str:
+        """ Creates a signature for the dendrite and returns it as a string."""
+        nonce = f"{self.nonce()}"
+        sender_hotkey = self.wallet.hotkey.ss58_address
+        receiver_hotkey = self.endpoint.hotkey
+        message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{self.uuid}"
+        signature = f"0x{self.wallet.hotkey.sign(message).hex()}"
+        return ".".join([nonce, sender_hotkey, signature, self.uuid])
+
+    def nonce ( self ):
+        r"""creates a string representation of the time
+        """
+        return time.monotonic_ns()
+        
+    def state ( self ):
+        """ Returns the state of the dendrite channel."""
+        try: 
+            return self.state_dict[self.channel._channel.check_connectivity_state(True)]
+        except ValueError:
+            return "Channel closed"
+
 
 
 

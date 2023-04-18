@@ -211,8 +211,6 @@ class logging:
         extra = record['extra']
         if 'rpc' in extra:
             return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[uid_str]} | {extra[inputs]} | {extra[call_time]} | {extra[key_str]} | {extra[rpc_message]} | {extra[synapse]} \n"
-        elif 'receptor' in extra:
-            return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
         else:
             return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | <level>{level: ^16}</level> | {message}\n"
    
@@ -221,8 +219,6 @@ class logging:
         extra = record['extra']
         if 'rpc' in extra:
             return "{time:YYYY-MM-DD HH:mm:ss.SSS} | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[uid_str]} | {extra[inputs]} | {extra[call_time]} | {extra[key_str]} | {extra[rpc_message]} \n"
-        if 'receptor' in extra:
-            return "{time:YYYY-MM-DD HH:mm:ss.SSS} | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
         else:
             if cls.__trace_on__:
                 return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | {message}\n"
@@ -302,13 +298,6 @@ class logging:
                     rpc_message = rpc_message,
                     synapse = synapse
         )
-
-    @classmethod
-    def update_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
-        """ Debug logging for updating the connection with endpoint
-        """
-        logger.debug( 'endpoint', receptor=True, action = '<blue>' + 'Update'.center(16) + '</blue>', uid=str(endpoint.uid).center(4), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(27) )
-
 
     @classmethod
     def _format( cls, prefix:object, sufix:object = None ):

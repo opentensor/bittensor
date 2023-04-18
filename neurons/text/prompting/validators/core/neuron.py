@@ -148,7 +148,7 @@ class neuron:
         # Init the gating model which learns which miners to select for each query.
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to( self.device )
         # Denddrite pool for querying the network.
-        self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, wallet = self.wallet )
+        self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, keypair = self.wallet.hotkey )
         # History of forward events.
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
 
@@ -180,7 +180,7 @@ class neuron:
                     return False
                 else:
                     # Everyone else, blacklist.
-                    return True
+                    return False
 
             def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
                 pass

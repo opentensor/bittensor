@@ -38,7 +38,7 @@ class Synapse( bittensor.TextPromptingSynapse ):
 # Create a mock wallet.
 wallet = bittensor.wallet().create_if_non_existent()
 
-# Create a local endpoint receptor grpc connection.
+# Create a local endpoint dendrite grpc connection.
 local_endpoint = bittensor.endpoint(
     version=bittensor.__version_as_int__,
     uid=0,
