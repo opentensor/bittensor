@@ -61,7 +61,7 @@ class VicunaMiner( bittensor.BasePromptingMiner ):
                     processed_history += '' + message['content'].strip() + ' '
 
             if message['role'] == 'Assistant':
-                processed_history += 'ASSISTANT:' + message['content'].strip() + ' '
+                processed_history += 'ASSISTANT:' + message['content'].strip() + '</s>'
             if message['role'] == 'user':
                 processed_history += 'USER: ' + message['content'].strip() + ' '
         return processed_history
