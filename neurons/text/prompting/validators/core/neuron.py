@@ -335,7 +335,7 @@ class neuron:
             uids = uids, 
             timeout = 2,
         )
-        bittensor.logging.trace( 'finished dendrite forward', time.time() - forward_start )
+        bittensor.logging.trace( 'finished dendrite forward ', time.time() - forward_start )
 
         # Return longest completion.
         reward_model_start = time.time()
@@ -343,7 +343,7 @@ class neuron:
         completions = [ call.completion for call in forward_calls if len(call.completion) > 0 ] 
         rewards = self.reward_model.reward( completions ).to( self.device )
         best_completion = completions[ rewards.argmax( dim = 0 ) ]
-        bittensor.logging.info('finished applying the reward model', time.time() - reward_model_start )
+        bittensor.logging.info('finished applying the reward model ', time.time() - reward_model_start )
         bittensor.logging.info( 'best completion', best_completion)
         return best_completion
 
