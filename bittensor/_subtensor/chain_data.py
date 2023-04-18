@@ -45,6 +45,7 @@ custom_rpc_type_registry = {
                 ["max_weights_limit", "Compact<u16>"],
                 ["scaling_law_power", "Compact<u16>"],
                 ["synergy_scaling_law_power", "Compact<u16>"],
+                ["quadratic_voting_power", "Compact<u16>"],
                 ["subnetwork_n", "Compact<u16>"],
                 ["max_allowed_uids", "Compact<u16>"],
                 ["blocks_since_last_step", "Compact<u64>"],
@@ -578,6 +579,7 @@ class SubnetInfo:
     max_weight_limit: float
     scaling_law_power: float
     synergy_scaling_law_power: float
+    quadratic_voting_power: float
     subnetwork_n: int
     max_n: int
     blocks_since_epoch: int
@@ -634,6 +636,7 @@ class SubnetInfo:
             max_weight_limit = decoded['max_weights_limit'],
             scaling_law_power = decoded['scaling_law_power'],
             synergy_scaling_law_power= decoded['synergy_scaling_law_power'],
+            quadratic_voting_power = decoded['quadratic_voting_power'],
             subnetwork_n = decoded['subnetwork_n'],
             max_n = decoded['max_allowed_uids'],
             blocks_since_epoch = decoded['blocks_since_last_step'],
