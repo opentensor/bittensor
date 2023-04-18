@@ -145,8 +145,8 @@ class wallet:
     def check_config(cls, config: 'bittensor.Config' ):
         """ Check config for wallet name/hotkey/path/hotkeys/sort_by
         """
-        if not ('wallet' in config): raise(ValueError)
-        if not (isinstance(config.wallet.get('name', bittensor.defaults.wallet.name), str)): raise(ValueError)
-        if not (isinstance(config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), str ) or config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey) == None): raise(ValueError)
-        if not (isinstance(config.wallet.path, str)): raise(ValueError)
-        if not (isinstance(config.wallet.reregister, bool)): raise(ValueError)
+        if not ('wallet' in config): raise(ValueError('Wallet not in config.'))
+        if not (isinstance(config.wallet.get('name', bittensor.defaults.wallet.name), str)): raise(ValueError('wallet.name should be a string.'))
+        if not (isinstance(config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), str ) or config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey) == None): raise(ValueError('wallet.hotkey should be a string.'))
+        if not (isinstance(config.wallet.path, str)): raise(ValueError('wallet.path should be a string.'))
+        if not (isinstance(config.wallet.reregister, bool)): raise(ValueError('wallet.reregister should be a bool.'))

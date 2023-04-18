@@ -163,7 +163,7 @@ class logging:
     def check_config( cls, config: 'bittensor.Config' ):
         """ Check config
         """
-        if not config.logging: raise(ValueError)
+        if not config.logging: raise(ValueError('config.logging is None.'))
 
     @classmethod
     def set_debug(cls, debug_on: bool = True ):

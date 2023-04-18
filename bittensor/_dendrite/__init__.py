@@ -156,9 +156,9 @@ class dendrite:
     def check_config( cls, config: 'bittensor.Config' ):
         """ Check config for dendrite worker and receptors
         """
-        if not (config.dendrite): raise(ValueError)
-        if not ('timeout' in config.dendrite): raise(ValueError)
-        if not ('requires_grad' in config.dendrite): raise(ValueError)
+        if not (config.dendrite): raise(ValueError('config.dendrite is None.'))
+        if not ('timeout' in config.dendrite): raise(ValueError('timeout is not specified in config.dendrite.'))
+        if not ('requires_grad' in config.dendrite): raise(ValueError('requires_grad is not specified in config.dendrite.'))
         if not (config.dendrite.max_active_receptors >= 0): raise(ValueError('max_active_receptors must be larger or eq to 0'))
         if not (config.dendrite.prometheus.level in [l.name for l in list(bittensor.prometheus.level)]): raise(ValueError("dendrite.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])))  
         bittensor.wallet.check_config( config )

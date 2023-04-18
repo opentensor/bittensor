@@ -30,7 +30,7 @@ class IntListPrompt(PromptBase):
     """ Prompt for a list of integers. """
     
     def check_choice( self, value: str ) -> bool:
-        if not (self.choices is not None): raise(ValueError)
+        if not (self.choices is not None): raise(ValueError('List choices is None.'))
         # check if value is a valid choice or all the values in a list of ints are valid choices
         return value == "All" or \
             value in self.choices or \
