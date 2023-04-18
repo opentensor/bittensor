@@ -257,8 +257,8 @@ def _registration_diff_pack(diff: int, packed_diff: multiprocessing.Array):
 
 def _hash_block_with_hotkey(block_bytes: bytes, hotkey_bytes: bytes) -> bytes:
     """Hashes the block with the hotkey using Keccak-256 to get 32 bytes"""
-    kec = keccak.new(digest_bits=512)
-    kec = kec.update(block_bytes + hotkey_bytes)
+    kec = keccak.new(digest_bits=256)
+    kec = kec.update(bytearray(block_bytes + hotkey_bytes))
     block_and_hotkey_hash_bytes = kec.digest()
     return block_and_hotkey_hash_bytes
 
@@ -398,7 +398,7 @@ def _solve_for_difficulty_fast( subtensor, wallet: 'bittensor.Wallet', netuid: i
     # Get first block
     block_number, difficulty, block_hash = _get_block_with_retry(subtensor = subtensor, netuid = netuid)
 
-    block_bytes = block_hash.encode('utf-8')[2:]
+    block_bytes = bytes.fromhex(block_hash[2:])
     old_block_number = block_number
     # Set to current block
     _update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, hotkey_bytes, check_block)
@@ -610,7 +610,7 @@ def _check_for_newest_block_and_update(
         old_block_number = block_number
         # update block information
         block_number, difficulty, block_hash = _get_block_with_retry(subtensor = subtensor, netuid = netuid)
-        block_bytes = block_hash.encode('utf-8')[2:]
+        block_bytes = bytes.fromhex(block_hash[2:])
 
         update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, hotkey_bytes, check_block)
         # Set new block events for each solver
@@ -691,7 +691,7 @@ def _solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: '
         # Get first block
         block_number, difficulty, block_hash = _get_block_with_retry(subtensor = subtensor, netuid = netuid)
 
-        block_bytes = block_hash.encode('utf-8')[2:]
+        block_bytes = bytes.fromhex(block_hash[2:])
         old_block_number = block_number
         
         # Set to current block
