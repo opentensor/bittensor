@@ -2096,6 +2096,13 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         Verify that the btcli run command does not reregister a not registered wallet
             if --wallet.reregister is False
         """
+        mock_wallet = SimpleNamespace(
+                        name = "mock_wallet",
+                        coldkey = get_mock_keypair(0, self.id()),
+                        coldkeypub = get_mock_keypair(0, self.id()),
+                        hotkey_str = "mock_hotkey",
+                        hotkey = get_mock_keypair(100, self.id()),
+                    )
 
         # SHOULD NOT BE REGISTERED
         self.assertFalse(_subtensor_mock.is_hotkey_registered( 
@@ -2103,19 +2110,20 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
             netuid = 1
         ), "Wallet should not be registered before test")
         
-        with patch('bittensor.Subtensor.register', MagicMock(side_effect=Exception("shouldn't register during test"))):
-            with pytest.raises(SystemExit):
-                cli = bittensor.cli(args=[
-                    'run',
-                    '--netuid', '1',
-                    '--wallet.name', 'mock',
-                    '--wallet.hotkey', 'mock_hotkey',
-                    '--wallet._mock', 'True',
-                    '--subtensor.network', 'mock', # Mock network
-                    '--no_prompt',
-                    '--wallet.reregister', 'False' # Don't reregister
-                ])
-                cli.run()
+        with patch('bittensor.wallet', return_value=mock_wallet) as mock_create_wallet:
+            with patch('bittensor.Subtensor.register', MagicMock(side_effect=Exception("shouldn't register during test"))):
+                with pytest.raises(SystemExit):
+                    cli = bittensor.cli(args=[
+                        'run',
+                        '--netuid', '1',
+                        '--wallet.name', 'mock',
+                        '--wallet.hotkey', 'mock_hotkey',
+                        '--wallet._mock', 'True',
+                        '--subtensor.network', 'mock', # Mock network
+                        '--no_prompt',
+                        '--wallet.reregister', 'False' # Don't reregister
+                    ])
+                    cli.run()
 
     def test_run_synapse_all(self):
         """
