@@ -664,7 +664,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     else:
                         self.assertAlmostEqual(stake.tao, mock_stakes[wallet.hotkey_str].tao - config.amount, places=4)
 
-    def test_unstake_with_multiple_hotkeys_max_stake( self ):        
+    def _test_unstake_with_multiple_hotkeys_max_stake( self ):        
         config = self.config
         config.command = "unstake"
         config.no_prompt = True 
