@@ -31,7 +31,7 @@ You can add our delta to the original LLaMA weights to obtain the Vicuna weights
 Weights v1.1 are only compatible with the latest main branch of huggingface/transformers and ``fschat >= 0.2.0``.
 Please update your local packages accordingly. If you follow the above commands to do a fresh install, then you should get all the correct versions.
 
-Depending on which conversion script was used to create the Huggingface checkpoint of Llama, you might get an error that the tokenizer can not be found when loading the tokenizer. You can then replace all AutoTokenizers command with the correct tokenizer (in the exampel "LlamaTokenizer"), using this command:
+Depending on which conversion script was used to create the Huggingface checkpoint of Llama, you might get an error that the tokenizer can not be found when loading the tokenizer. You can then replace all AutoTokenizers command with the correct tokenizer (in the example "LlamaTokenizer"), using this command:
 ```
 find /path/to/fastchat -type f -name '*.py' -exec sed -i 's/AutoTokenizer/LlamaTokenizer/g' {} +
 ```
