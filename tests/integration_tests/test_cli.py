@@ -2097,12 +2097,11 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
             if --wallet.reregister is False
         """
 
-        # Mock wallet SHOULD NOT BE REGISTERED
-        mock_wallet = bittensor.wallet(_mock = True)
+        # SHOULD NOT BE REGISTERED
         self.assertFalse(_subtensor_mock.is_hotkey_registered( 
-            hotkey_ss58 = mock_wallet.hotkey.ss58_address,
+            hotkey_ss58 = get_mock_keypair(0, self.id()).ss58_address,
             netuid = 1
-        ))
+        ), "Wallet should not be registered before test")
         
         with patch('bittensor.Subtensor.register', MagicMock(side_effect=Exception("shouldn't register during test"))):
             with pytest.raises(SystemExit):
