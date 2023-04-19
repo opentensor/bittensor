@@ -68,20 +68,16 @@ class KoalaMiner( bittensor.BasePromptingMiner ):
         return processed_history
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
-
         history = self._process_history(messages)
         prompt = history + "GPT:"
-
         input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.config.koala.device)
-
         output = self.model.generate(
-        input_ids,
-        max_length=input_ids.shape[1] + self.config.koala.max_new_tokens,
-        temperature=self.config.koala.temperature,
-        do_sample=self.config.koala.do_sample,
-        pad_token_id=self.tokenizer.eos_token_id,
+            input_ids,
+            max_length=input_ids.shape[1] + self.config.koala.max_new_tokens,
+            temperature=self.config.koala.temperature,
+            do_sample=self.config.koala.do_sample,
+            pad_token_id=self.tokenizer.eos_token_id,
         )
-
         generation = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
         
         # Logging input and generation if debugging is active
