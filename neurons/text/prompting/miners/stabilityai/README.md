@@ -8,8 +8,10 @@ python3 neurons/text/prompting/miners/stabilityai/neuron.py --stabilityai.api_ke
 ```
 
 # Full Usage
-usage: neuron.py [-h] [--stabilityai.api_key STABILITYAI.API_KEY] [--stabilityai.device STABILITYAI.DEVICE]
-                 [--stabilityai.suffix STABILITYAI.SUFFIX] [--stabilityai.max_tokens STABILITYAI.MAX_TOKENS]
+```
+usage: neuron.py [-h] [--stabilityai.api_key STABILITYAI.API_KEY] [--stabilityai.model_size {3,7}]
+                 [--stabilityai.device STABILITYAI.DEVICE] [--stabilityai.suffix STABILITYAI.SUFFIX]
+                 [--stabilityai.max_tokens STABILITYAI.MAX_TOKENS]
                  [--stabilityai.num_return_sequences STABILITYAI.NUM_RETURN_SEQUENCES]
                  [--stabilityai.num_beams STABILITYAI.NUM_BEAMS] [--stabilityai.do_sample STABILITYAI.DO_SAMPLE]
                  [--stabilityai.temperature STABILITYAI.TEMPERATURE] [--stabilityai.top_p STABILITYAI.TOP_P]
@@ -18,18 +20,19 @@ usage: neuron.py [-h] [--stabilityai.api_key STABILITYAI.API_KEY] [--stabilityai
                  [--neuron.no_set_weights] [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE]
                  [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN]
                  [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS [NEURON.BLACKLIST.HOTKEYS ...]]]
-                 [--neuron.blacklist.allow_non_registered] [--neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE]
-                 [--neuron.default_priority NEURON.DEFAULT_PRIORITY] [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY]
-                 [--wallet.path WALLET.PATH] [--wallet._mock] [--wallet.reregister WALLET.REREGISTER]
-                 [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS] [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE]
-                 [--axon.port AXON.PORT] [--axon.ip AXON.IP] [--axon.external_port AXON.EXTERNAL_PORT]
-                 [--axon.external_ip AXON.EXTERNAL_IP] [--axon.max_workers AXON.MAX_WORKERS]
-                 [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS] [--subtensor.network SUBTENSOR.NETWORK]
-                 [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT] [--subtensor._mock]
-                 [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
+                 [--neuron.blacklist.allow_non_registered]
+                 [--neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE]
+                 [--neuron.default_priority NEURON.DEFAULT_PRIORITY] [--wallet.name WALLET.NAME]
+                 [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock]
+                 [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS]
+                 [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT] [--axon.ip AXON.IP]
+                 [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP]
+                 [--axon.max_workers AXON.MAX_WORKERS] [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS]
+                 [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT]
+                 [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
                  [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL]
-                 [--subtensor.register.no_output_in_place] [--subtensor.register.verbose] [--subtensor.register.cuda.use_cuda]
-                 [--subtensor.register.cuda.no_cuda]
+                 [--subtensor.register.no_output_in_place] [--subtensor.register.verbose]
+                 [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
                  [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]]
                  [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug] [--logging.trace]
                  [--logging.record_log] [--logging.logging_dir LOGGING.LOGGING_DIR] [--config CONFIG] [--strict]
@@ -38,6 +41,8 @@ optional arguments:
   -h, --help            show this help message and exit
   --stabilityai.api_key STABILITYAI.API_KEY
                         huggingface api key
+  --stabilityai.model_size {3,7}
+                        Run the 3B or 7B model.
   --stabilityai.device STABILITYAI.DEVICE
                         Device to load model
   --stabilityai.suffix STABILITYAI.SUFFIX
@@ -78,7 +83,8 @@ optional arguments:
   --neuron.default_priority NEURON.DEFAULT_PRIORITY
                         Set default priority for miners.
   --wallet.name WALLET.NAME
-                        The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)
+                        The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this
+                        wallet)
   --wallet.hotkey WALLET.HOTKEY
                         The name of wallet's hotkey.
   --wallet.path WALLET.PATH
@@ -98,14 +104,14 @@ optional arguments:
   --axon.external_ip AXON.EXTERNAL_IP
                         The external ip this axon broadcasts to the network to. ie. [::]
   --axon.max_workers AXON.MAX_WORKERS
-                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server
-                        distributes new worker threads to service requests up to this number.
+                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc
+                        server distributes new worker threads to service requests up to this number.
   --axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS
                         Maximum number of allowed active connections
   --subtensor.network SUBTENSOR.NETWORK
-                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running
-                        network) -- mock (creates a mock connection (for testing)) If this option is set it overloads
-                        subtensor.chain_endpoint with an entry point node from that network.
+                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local
+                        running network) -- mock (creates a mock connection (for testing)) If this option is set it
+                        overloads subtensor.chain_endpoint with an entry point node from that network.
   --subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT
                         The subtensor endpoint flag. If set, overrides the --network flag.
   --subtensor._mock     To turn on subtensor mocking for testing purposes.
@@ -132,3 +138,4 @@ optional arguments:
                         Logging default root directory.
   --config CONFIG       If set, defaults are overridden by passed file.
   --strict              If flagged, config will check that only exact arguemnts have been set.
+```

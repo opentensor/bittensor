@@ -41,6 +41,7 @@ class StabilityAIMiner( bittensor.BasePromptingMiner ):
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
         parser.add_argument('--stabilityai.api_key', type=str, help='huggingface api key', default="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")
+        parser.add_argument('--stabilityai.model_size', type=int, choices=[3, 7], default=7, help='Run the 3B or 7B model.')
         parser.add_argument('--stabilityai.device', type=str, help='Device to load model', default="cuda" )
         parser.add_argument('--stabilityai.suffix', type=str, default=None, help="The suffix that comes after a completion of inserted text.")
         parser.add_argument('--stabilityai.max_tokens', type=int, default=20, help="The maximum number of tokens to generate in the completion.")
@@ -52,18 +53,17 @@ class StabilityAIMiner( bittensor.BasePromptingMiner ):
         parser.add_argument('--stabilityai.top_k', type=int, default=10, help='Description of top_k')
         parser.add_argument('--stabilityai.stopping_criteria', type=str, default='stop', help='Description of stopping_criteria')
 
-    
     def __init__( self ):
         super( StabilityAIMiner, self ).__init__()
         print ( self.config )
-        bittensor.logging.info( 'Loading togethercomputer/StabilityAI model...' )
+        bittensor.logging.info( 'Loading togethercomputer/StabilityAI {}B model...'.format( self.config.stabilityai.model_size ) )
         self.model = AutoModelForCausalLM.from_pretrained( 
-            "stabilityai/stablelm-tuned-alpha-7b", 
+            "stabilityai/stablelm-tuned-alpha-{}b".format( self.config.stabilityai.model_size ), 
             use_auth_token=self.config.stabilityai.api_key, 
             torch_dtype=torch.float16 
         ).cuda()
         self.tokenizer = AutoTokenizer.from_pretrained( 
-            "stabilityai/stablelm-tuned-alpha-7b", 
+            "stabilityai/stablelm-tuned-alpha-{}b".format( self.config.stabilityai.model_size ), 
             use_auth_token=self.config.stabilityai.api_key 
         )
 
@@ -84,7 +84,7 @@ class StabilityAIMiner( bittensor.BasePromptingMiner ):
             top_k = self.config.stabilityai.top_k,
             stopping_criteria=StoppingCriteriaList([StopOnTokens()])
         )
-        print("Model loaded")
+        bittensor.logging.info( "StabilityAI {}B model loaded".format( self.config.stabilityai.model_size ) )
     
     def blacklist( self, foward_call ) -> bool:
         return False
