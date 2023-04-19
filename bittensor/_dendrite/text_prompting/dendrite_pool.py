@@ -32,7 +32,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
         super(TextPromptingDendritePool, self).__init__()
         self.metagraph = metagraph
         self.keypair = keypair
-        self.dendrites = [ bittensor.text_prompting( endpoint = axon, keypair = self.keypair ) for axon in self.metagraph.axons ]
+        self.dendrites = [ bittensor.text_prompting( axon = axon, keypair = self.keypair ) for axon in self.metagraph.axons ]
         self.loop = asyncio.get_event_loop()
 
     def backward( self,
