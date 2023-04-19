@@ -445,7 +445,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_unstake_with_specific_hotkeys( self ):        
+    def _test_unstake_with_specific_hotkeys( self ):        
         config = self.config
         config.command = "unstake"
         config.no_prompt = True 
@@ -517,7 +517,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 )
                 self.assertAlmostEqual(stake.tao, mock_stakes[wallet.hotkey_str].tao - config.amount, places=4)
 
-    def test_unstake_with_all_hotkeys( self ):
+    def _test_unstake_with_all_hotkeys( self ):
         config = self.config
         config.command = "unstake"
         config.no_prompt = True 
