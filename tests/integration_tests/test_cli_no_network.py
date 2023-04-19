@@ -318,6 +318,7 @@ class TestCLINoNetwork(unittest.TestCase):
                 "--no_prompt",
                 "--cuda.dev_id", "0",
                 "--netuid", "1"
+                "--network", "mock"
             ]
             bittensor.subtensor.check_config = MagicMock(return_value = True)  
             with patch('torch.cuda.is_available', return_value=True):
