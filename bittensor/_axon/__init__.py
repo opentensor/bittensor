@@ -437,66 +437,28 @@ class axon_info:
     
     def __repr__(self):
         return self.__str__()
-    
-    def dumps(self):
-        """ Return json with the info's specification """ 
-        return json.dumps( { 'version': self.version, 'hotkey': self.hotkey, 'ip': self.ip, 'ip_type': self.ip_type, 'port': self.port, 'coldkey': self.coldkey })
-
-    def to_tensor( self ) -> torch.LongTensor: 
-        """ Return the specification of an axon as a tensor """ 
-        string_json = self.dumps()
-        bytes_json = bytes(string_json, 'utf-8')
-        ints_json = list(bytes_json)
-        if len(ints_json) > METADATA_BUFFER_SIZE:
-            raise ValueError( f"axon_info {self.__str__()} representation is too large, got size {len(ints_json)} should be less than {METADATA_BUFFER_SIZE}" )
-        ints_json += [-1] * (METADATA_BUFFER_SIZE - len(ints_json))
-        axon_info_tensor = torch.tensor( ints_json, dtype=torch.int64, requires_grad=False)
-        return axon_info_tensor
-
-    @classmethod
-    def from_tensor( cls, tensor: torch.LongTensor) -> 'bittensor.Endpoint':
-        """ Return an endpoint with spec from tensor """
-        if len(tensor.shape) == 2:
-            if tensor.shape[0] != 1:
-                error_msg = 'Endpoints tensor should have a single first dimension or none got {}'.format( tensor.shape[0] )
-                raise ValueError(error_msg)
-            tensor = tensor[0]
-
-        if tensor.shape[0] != METADATA_BUFFER_SIZE:
-            error_msg = 'Endpoints tensor should be length {}, got {}'.format( tensor.shape[0], METADATA_BUFFER_SIZE)
-            raise ValueError(error_msg)
-            
-        endpoint_list = tensor.tolist()
-        if -1 in endpoint_list:
-            endpoint_list = endpoint_list[ :endpoint_list.index(-1)]
-            
-        if len(endpoint_list) == 0:
-            return cls.dummy()
-        else:
-            endpoint_bytes = bytearray( endpoint_list )
-            endpoint_string = endpoint_bytes.decode('utf-8')
-            endpoint_dict = json.loads( endpoint_string )
-            return cls( **endpoint_dict )
-
+        
     @classmethod
     def from_neuron_info(cls, neuron_info: dict ) -> 'axon_info':
         """ Converts a dictionary to an axon_info object. """
         return cls(
             version = neuron_info['axon_info']['version'],
-            ip = neuron_info['axon_info']['ip'],
+            ip = bittensor.utils.networking.int_to_ip(int(neuron_info['axon_info']['ip'])),
             port = neuron_info['axon_info']['port'],
             ip_type = neuron_info['axon_info']['ip_type'],
             hotkey = neuron_info['hotkey'],
             coldkey = neuron_info['coldkey'],
         )
 
-    @classmethod
-    def dummy( cls ) -> 'axon_info':
-        return cls( 
-            version=0, 
-            hotkey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", 
-            coldkey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-            ip_type = 4, 
-            ip = '0.0.0.0', 
-            port = 0
+    def to_parameter_dict( self ) -> 'torch.nn.ParameterDict':
+        r""" Returns a torch tensor of the subnet info.
+        """
+        return torch.nn.ParameterDict( 
+            self.__dict__
         )
+    
+    @classmethod
+    def from_parameter_dict( cls, parameter_dict: 'torch.nn.ParameterDict' ) -> 'SubnetInfo':
+        r""" Returns a SubnetInfo object from a torch parameter_dict.
+        """
+        return cls( **dict(parameter_dict) )

@@ -110,7 +110,6 @@ class metagraph( torch.nn.Module ):
         self.bonds = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
         self.uids = torch.nn.Parameter( torch.tensor([], dtype = torch.int64),requires_grad=False )
         self.axons = []
-        self.taxons = torch.nn.Parameter( torch.tensor([], dtype = torch.int64),requires_grad=False )
         if sync:
             self.sync( block = None, lite = lite )
 
@@ -138,8 +137,7 @@ class metagraph( torch.nn.Module ):
         self.validator_trust = torch.nn.Parameter( torch.tensor( [ neuron.validator_trust for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
         self.total_stake = torch.nn.Parameter( torch.tensor( [ neuron.total_stake.tao for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
         self.stake = torch.nn.Parameter( torch.tensor( [ neuron.stake for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
-        self.axons = [ neuron.axon_info for neuron in self.neurons ]
-        self.taxons = torch.nn.Parameter( torch.stack([ neuron.axon_info.to_tensor() for neuron in self.neurons ]), requires_grad=False )
+        self.axons = [ n.axon_info for n in self.neurons ]
         if not lite:
             weights_array = []
             for n in self.neurons:
@@ -158,7 +156,10 @@ class metagraph( torch.nn.Module ):
         save_directory = get_save_dir( self.network, self.netuid  )
         os.makedirs( save_directory, exist_ok=True )
         graph_file = save_directory + f'/block-{self.block.item()}.pt'
-        torch.save( self.state_dict(), graph_file) 
+        state_dict = self.state_dict()
+        state_dict['axons'] = self.axons
+        torch.save(state_dict, graph_file) 
+        state_dict = torch.load( graph_file )
         return self
 
     def load( self ) -> 'metagraph':
@@ -187,8 +188,7 @@ class metagraph( torch.nn.Module ):
         self.last_update = torch.nn.Parameter( state_dict['last_update'], requires_grad=False )
         self.validator_permit = torch.nn.Parameter( state_dict['validator_permit'], requires_grad=False )
         self.uids = torch.nn.Parameter( state_dict['uids'], requires_grad=False )
-        self.taxons = torch.nn.Parameter( state_dict['taxons'], requires_grad=False )
-        self.axons = [ bittensor.axon_info.from_tensor( taxon ) for taxon in self.taxons ]
+        self.axons = state_dict['axons']
         if 'weights' in state_dict:
             self.weights = torch.nn.Parameter( state_dict['weights'], requires_grad=False )
         if 'bonds' in state_dict:
