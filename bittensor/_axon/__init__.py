@@ -107,7 +107,7 @@ class axon:
         # Build axon objects.
         self.ip = self.config.axon.ip
         self.port = self.config.axon.port
-        self.external_ip = self.config.axon.external_ip if self.config.axon.external_ip != None else self.config.axon.ip
+        self.external_ip = self.config.axon.external_ip if self.config.axon.external_ip != None else bittensor.utils.networking.get_external_ip()
         self.external_port = self.config.axon.external_port if self.config.axon.external_port != None else self.config.axon.port
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
         self.blacklist = blacklist
