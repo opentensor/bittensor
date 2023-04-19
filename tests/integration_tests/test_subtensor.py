@@ -31,12 +31,13 @@ from tests.helpers import get_mock_neuron, get_mock_hotkey, get_mock_coldkey, ge
 
 class TestSubtensor(unittest.TestCase):
     _mock_console_patcher = None
+    _mock_subtensor: bittensor.Subtensor
 
     def setUp(self):
-        self.subtensor = bittensor.subtensor( network = 'mock' )
         self.wallet = bittensor.wallet(_mock=True)
         self.mock_neuron = get_mock_neuron_by_uid(0)
         self.balance = Balance.from_tao(1000)
+        self.subtensor = bittensor.subtensor( network = 'mock' ) # own instance per test
     
     @classmethod
     def setUpClass(cls) -> None:
@@ -44,6 +45,9 @@ class TestSubtensor(unittest.TestCase):
         mock_console = MockConsole()
         cls._mock_console_patcher = patch('bittensor.__console__', mock_console)
         cls._mock_console_patcher.start()
+
+        # Keeps the same mock network for all tests. This stops the network from being re-setup for each test.
+        cls._mock_subtensor = bittensor.subtensor( network = 'mock' ) 
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -512,13 +516,8 @@ class TestSubtensor(unittest.TestCase):
                 self.subtensor.get_current_block = MagicMock(side_effect=current_block)
                 self.subtensor.substrate.submit_extrinsic = submit_extrinsic_mock
 
-                with patch('bittensor.__console__.status') as mock_set_status:
-                    # Need to patch the console status to avoid opening a parallel live display
-                    mock_set_status.__enter__ = MagicMock(return_value=True)
-                    mock_set_status.__exit__ = MagicMock(return_value=True)
-
-                    # should return True
-                    assert self.subtensor.register(wallet=wallet, netuid = 3, num_processes=3, update_interval=5) == True
+                # should return True
+                self.assertTrue( self.subtensor.register(wallet=wallet, netuid = 3, num_processes=3, update_interval=5), msg="Registration should succeed" )
 
     def test_registration_failed( self ):
         class failed():
