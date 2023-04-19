@@ -113,6 +113,8 @@ class Config ( Munch ):
                 a = self
                 keys = key.split('.')
                 for key_ in keys[:-1]:
+                    if key_ not in a:
+                        a[key_] = {}
                     a = a[key_]
                 # Set leaf to default value
                 a[keys[-1]] = val
