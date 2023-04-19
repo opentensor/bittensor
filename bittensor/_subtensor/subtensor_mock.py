@@ -121,7 +121,7 @@ class mock_subtensor():
         time.sleep(2) # Buffer to ensure the processes actually die
 
     @classmethod
-    def create_global_mock_process(self):
+    def create_global_mock_process(self) -> 'subprocess.Popen[bytes]':
         r""" Creates a global mocked subtensor process running in the backgroun with name GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME.
         """
         try:
@@ -331,7 +331,34 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                     call_function='sudo_set_max_difficulty',
                     call_params = {
                         'netuid': netuid,
-                        'difficulty': max_difficulty
+                        'max_difficulty': max_difficulty
+                    }
+                )
+
+            wrapped_call = self.wrap_sudo(call)
+
+            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
+            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+
+            if not wait_for_finalization:
+                return True, None
+            
+            response.process_events()
+            if response.is_success:
+                return True, None
+            else:
+                return False, response.error_message
+
+    def sudo_set_min_difficulty(self, netuid: int, min_difficulty: int, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
+        r""" Sets the min difficulty of the mock chain using the sudo key.
+        """
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                    call_module='SubtensorModule',
+                    call_function='sudo_set_min_difficulty',
+                    call_params = {
+                        'netuid': netuid,
+                        'min_difficulty': min_difficulty
                     }
                 )
 

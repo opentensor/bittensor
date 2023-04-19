@@ -56,10 +56,15 @@ def setUpModule():
     # Make registration difficulty 0. Instant registration.
     set_diff, err = _subtensor_mock.sudo_set_difficulty( netuid = 1, difficulty = 0, wait_for_finalization=False )
     assert err == None
-
-    # Make registration difficulty 0. Instant registration.
-    set_max_diff, err = _subtensor_mock.sudo_set_max_difficulty( netuid = 1, max_difficulty = 0, wait_for_finalization=False )
+    
+    # Make registration min difficulty 0.
+    set_min_diff, err = _subtensor_mock.sudo_set_min_difficulty( netuid = 1, min_difficulty = 0, wait_for_finalization=False )
     assert err == None
+
+    # Make registration max difficulty 1.
+    set_max_diff, err = _subtensor_mock.sudo_set_max_difficulty( netuid = 1, max_difficulty = 1, wait_for_finalization=False )
+    assert err == None
+
 
     set_tx_limit, err = _subtensor_mock.sudo_set_tx_rate_limit( netuid = 1, tx_rate_limit = 0, wait_for_finalization=False ) # No tx limit
     assert err == None
