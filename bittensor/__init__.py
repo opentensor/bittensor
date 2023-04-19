@@ -291,24 +291,27 @@ class prompting ( torch.nn.Module ):
             timeout: float = 1000
         ):
         if isinstance( content, str ):
-            return await self._dendrite.async_forward(
+            resp = await self._dendrite.async_forward(
                 roles = ['system', 'user'],
                 messages = [ prompt, content ],
                 timeout = timeout
             )
+            return resp.completion
         elif isinstance( content, list ):
             if isinstance( content[0], str ):
-                return await self._dendrite.async_forward(
+                resp = await self._dendrite.async_forward(
                     roles = ['user' for _ in content ],
                     messages = content,
                     timeout = timeout
                 )
+                return resp.completion
             elif isinstance( content[0], dict ):
-                return await self._dendrite.async_forward(
+                resp = await self._dendrite.async_forward(
                     roles = [ dictitem[ dictitem.keys()[0] ] for dictitem in content ],
                     messages = [ dictitem[ dictitem.keys()[1] ] for dictitem in content ],
                     timeout = timeout
                 )
+                return resp.completion
             else:
                 raise ValueError('content has invalid type {}'.format( type( content )))
         else:
@@ -336,7 +339,7 @@ This Python file implements the BittensorLLM class, a wrapper around the Bittens
     @property
     def _identifying_params(self) -> Mapping[str, Any]:
         """Get the identifying parameters."""
-        return {"wallet_name": self.wallet_name, "hotkey_name": self.hotkey_name}
+        return {"wallet_name": self.wallet_name, "hotkey_name": self.hotkey}
 
     @property
     def _llm_type(self) -> str:
@@ -345,6 +348,6 @@ This Python file implements the BittensorLLM class, a wrapper around the Bittens
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
         """Call the LLM with the given prompt and stop tokens."""
-        return self.llm(prompt).completion
+        return self.llm(prompt)
 
 
