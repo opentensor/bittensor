@@ -75,7 +75,7 @@ class metagraph( torch.nn.Module ):
     @property
     def W(self) -> torch.FloatTensor: return self.weights
     @property
-    def hotkeys( self ) -> List[str]: return [ axon.coldkey for axon in self.axons ]
+    def hotkeys( self ) -> List[str]: return [ axon.hotkey for axon in self.axons ]
     @property
     def coldkeys( self ) -> List[str]: return [ axon.coldkey for axon in self.axons ]
     @property
