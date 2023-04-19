@@ -1,12 +1,12 @@
-## Vicuna Miner
-Vicuna Language Model Serving with BitTensor
-This code is for running the Vicuna model through the BitTensor framework.
+# Koala Miner
+Koala Language Model Serving with BitTensor
+This code is for running the Koala model through the BitTensor framework.
 
 # Overview
 
 ## Contents
 
-- [Installing Dependencies](#installing-dependencies)
+- [Installing Dependencies](#installing-Dependencies)
 - [Converting Weights Into Model](#converting-weights-into-model)
 - [Starting Miner](#starting-miner)
 
@@ -14,58 +14,61 @@ This code is for running the Vicuna model through the BitTensor framework.
 # Installing Dependencies
 
 ```
-python3 -m pip install -r neurons/text/prompting/miners/vicuna/requirements.txt
+python3 -m pip install -r neurons/text/prompting/miners/koala/requirements.txt
 ```
 
 # Converting Weights Into Model
 If you already have a converted checkpoint of the model, you can skip this step.
 
-## Vicuna Weights
-The [Vicuna](https://vicuna.lmsys.org/) weights as delta weights to comply with the LLaMA model license.
-You can add our delta to the original LLaMA weights to obtain the Vicuna weights. Instructions:
+Original documentation for creating the model from weights can be found [here](https://github.com/young-geng/EasyLM/blob/main/docs/koala.md)
 
-1. Get the original LLaMA weights in the huggingface format by following the instructions [here](https://huggingface.co/docs/transformers/main/model_doc/llama).
-2. Use the following scripts to get Vicuna weights by applying our delta. They will automatically download delta weights from our Hugging Face [account](https://huggingface.co/lmsys).
+## Obtaining the Wegith Diff of Koala
+Due to the licence of the LLaMA model, the fine-tuned
+Koala model weights can not be directly released. Instead, the diff of weights, which can be used
+to recover the Koala model weights with the original LLaMA model weights, is released. The diff
+weights can be downloaded from the following sources:
+* [HuggingFace Hub](https://huggingface.co/young-geng/koala/tree/main).
+* [Google Drive](https://drive.google.com/drive/folders/10f7wrlAFoPIy-TECHsx9DKIvbQYunCfl?usp=sharing).
 
-**NOTE**:
-Weights v1.1 are only compatible with the latest main branch of huggingface/transformers and ``fschat >= 0.2.0``.
-Please update your local packages accordingly. If you follow the above commands to do a fresh install, then you should get all the correct versions.
+## Recovering the Koala Model Weights
+The first step of recovering the Koala model weights is to obtain the original
+LLaMA model weights and convert it to EasyLM checkpoint format. To convert the weights,
+use the following command:
 
-Depending on which conversion script was used to create the Huggingface checkpoint of Llama, you might get an error that the tokenizer can not be found when loading the tokenizer. You can then replace all AutoTokenizers command with the correct tokenizer (in the example "LlamaTokenizer"), using this command:
-```
-find /path/to/fastchat -type f -name '*.py' -exec sed -i 's/AutoTokenizer/LlamaTokenizer/g' {} +
-```
-
-### Vicuna-7B
-This conversion command needs around 30 GB of CPU RAM.
-If you do not have enough memory, you can create a large swap file that allows the operating system to automatically utilize the disk as virtual memory.
-```bash
-python3 -m fastchat.model.apply_delta \
-    --base /path/to/llama-7b \
-    --target /output/path/to/vicuna-7b \
-    --delta lmsys/vicuna-7b-delta-v1.1
+``` shell
+python -m EasyLM.models.llama.convert_torch_to_easylm \
+    --checkpoint_dir='path/to/torch/llama/checkpoint/directory' \
+    --output_file='path/to/output/easylm/checkpoint/file' \
+    --streaming=True
 ```
 
-### Vicuna-13B
-This conversion command needs around 60 GB of CPU RAM.
-If you do not have enough memory, you can create a large swap file that allows the operating system to automatically utilize the disk as virtual memory.
-```bash
-python3 -m fastchat.model.apply_delta \
-    --base /path/to/llama-13b \
-    --target /output/path/to/vicuna-13b \
-    --delta lmsys/vicuna-13b-delta-v1.1
+This script will convert the official torch checkpoint from Meta to the
+streaming checkpoint format used by EasyLM. For more information
+about the checkpoint format of EasyLM, see [the checkpointing documentation](checkpointing.md).
+
+
+After converting the original LLaMA model weights, you can recover the Koala
+model weights with the following command:
+
+``` shell
+python -m EasyLM.scripts.diff_checkpoint \
+    --recover_diff=True \
+    --load_base_checkpoint='params::path/to/llama/checkpoint/file' \
+    --load_target_checkpoint='params::path/to/koala/diff/checkpoint/file' \
+    --output_file='path/to/output/checkpoint/file' \
+    --streaming=True
 ```
 
 
 # Starting Miner
 ```
-python3 neurons/text/prompting/miners/vicuna/neuron.py
+python3 neurons/text/prompting/miners/koala/neuron.py
 ```
 
 # Full Usage
 ```
-usage: neuron.py [-h] [--vicuna.model_name VICUNA.MODEL_NAME] [--vicuna.device VICUNA.DEVICE] [--vicuna.max_new_tokens VICUNA.MAX_NEW_TOKENS]
-                 [--vicuna.temperature VICUNA.TEMPERATURE] [--vicuna.do_sample] [--netuid NETUID] [--neuron.name NEURON.NAME]
+usage: neuron.py [-h] [--koala.model_name KOALA.MODEL_NAME] [--koala.device KOALA.DEVICE] [--koala.max_new_tokens KOALA.MAX_NEW_TOKENS]
+                 [--koala.temperature KOALA.TEMPERATURE] [--koala.do_sample] [--netuid NETUID] [--neuron.name NEURON.NAME]
                  [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights]
                  [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN]
                  [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--neuron.blacklist.allow_non_registered]
@@ -87,13 +90,13 @@ optional arguments:
   -h, --help            show this help message and exit
   --neoxt.model_name NEOXT.MODEL_NAME
                         Name/path of model to load of model to load
-  --vicuna.device VICUNA.DEVICE
+  --koala.device KOALA.DEVICE
                         Device to load model
-  --vicuna.max_new_tokens VICUNA.MAX_NEW_TOKENS
+  --koala.max_new_tokens KOALA.MAX_NEW_TOKENS
                         Max tokens for model output.
-  --vicuna.temperature VICUNA.TEMPERATURE
+  --koala.temperature KOALA.TEMPERATURE
                         Sampling temperature of model
-  --vicuna.do_sample    Whether to use sampling or not (if not, uses greedy decoding).
+  --koala.do_sample    Whether to use sampling or not (if not, uses greedy decoding).
   --netuid NETUID       Subnet netuid
   --neuron.name NEURON.NAME
                         Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name
