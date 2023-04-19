@@ -15,22 +15,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import torch
 from typing import Union, List, Dict
 from rich.console import Console
 from rich.traceback import install
 from prometheus_client import Info
-
 from langchain.llms.base import LLM
 from typing import Optional, List, Mapping, Any
 
 # import nest_asyncio
 # nest_asyncio.apply()
-
-prompt = '''
-You are Chattensor.
-Chattensor is a research project by Opentensor Cortex.
-Chattensor is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Chattensor is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
-'''
 
 
 # Bittensor code and protocol version.
@@ -235,7 +229,12 @@ def trace():
 def debug():
     logging.set_debug(True)
 
-import torch
+
+default_prompt = '''
+You are Chattensor.
+Chattensor is a research project by Opentensor Cortex.
+Chattensor is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Chattensor is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
+'''
 class prompting ( torch.nn.Module ):
 
     def __init__(
@@ -264,7 +263,7 @@ class prompting ( torch.nn.Module ):
         if isinstance( content, str ):
             return self._dendrite.forward(
                 roles = ['system', 'user'],
-                messages = [ prompt, content ],
+                messages = [ default_prompt, content ],
                 timeout = timeout
             ).completion
         elif isinstance( content, list ):
@@ -293,7 +292,7 @@ class prompting ( torch.nn.Module ):
         if isinstance( content, str ):
             resp = await self._dendrite.async_forward(
                 roles = ['system', 'user'],
-                messages = [ prompt, content ],
+                messages = [ default_prompt, content ],
                 timeout = timeout
             )
             return resp.completion
@@ -317,6 +316,19 @@ class prompting ( torch.nn.Module ):
         else:
             raise ValueError('content has invalid type {}'.format( type( content )))
 
+__context_llm = None
+def prompt( 
+        content: Union[ str, List[str], List[Dict[ str ,str ]]],
+        wallet_name: str = "default",
+        hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
+    ) -> str:
+    global __context_llm
+    if __context_llm == None:
+        __context_llm = prompting( 
+            wallet_name = wallet_name,
+            hotkey = hotkey
+        )
+    return __context_llm( content = content )
 
 class BittensorLLM(LLM):
     """Wrapper around Bittensor Prompting Subnetwork. 
