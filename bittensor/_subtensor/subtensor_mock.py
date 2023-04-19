@@ -321,6 +321,33 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                 return True, None
             else:
                 return False, response.error_message
+            
+    def sudo_set_max_difficulty(self, netuid: int, max_difficulty: int, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
+        r""" Sets the max difficulty of the mock chain using the sudo key.
+        """
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                    call_module='SubtensorModule',
+                    call_function='sudo_set_max_difficulty',
+                    call_params = {
+                        'netuid': netuid,
+                        'difficulty': max_difficulty
+                    }
+                )
+
+            wrapped_call = self.wrap_sudo(call)
+
+            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
+            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+
+            if not wait_for_finalization:
+                return True, None
+            
+            response.process_events()
+            if response.is_success:
+                return True, None
+            else:
+                return False, response.error_message
 
     def sudo_add_network(self, netuid: int, tempo: int = 0, modality: int = 0, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
         r""" Adds a network to the mock chain using the sudo key.
