@@ -507,6 +507,8 @@ class Keyfile( object ):
             else:
                 if print_result: bittensor.__console__.print(f':cross_mark: Keyfile is outdated, please update with "btcli update_wallet" \n:key: {self}')
                 return False
+        
+        return False
 
     def encrypt( self, password: str = None):
         """ Encrypts file under path.
