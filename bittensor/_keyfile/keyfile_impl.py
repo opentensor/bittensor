@@ -466,13 +466,13 @@ class Keyfile( object ):
                     return True if the keyfile is the most updated with nacl, else False.
         """
         if not self.exists_on_device():
-            bittensor.__console__.print(f"Keyfile does not exist. {self.path}")
+            if print_result: bittensor.__console__.print(f"Keyfile does not exist. {self.path}")
             return False
         if not self.is_readable():
-            bittensor.__console__.print(f"Keyfile is not redable. {self.path}")
+            if print_result: bittensor.__console__.print(f"Keyfile is not redable. {self.path}")
             return False
         if not self.is_writable():
-            bittensor.__console__.print(f"Keyfile is not writable. {self.path}")
+            if print_result: bittensor.__console__.print(f"Keyfile is not writable. {self.path}")
             return False
         
         update_keyfile = False
