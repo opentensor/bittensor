@@ -146,6 +146,7 @@ def serve_extrinsic (
 
 def serve_axon_extrinsic (
     subtensor: 'bittensor.Subtensor',
+    netuid: int,
     axon: 'bittensor.Axon',
     use_upnpc: bool = False,
     wait_for_inclusion: bool = False,
@@ -154,6 +155,8 @@ def serve_axon_extrinsic (
 ) -> bool:
     r""" Serves the axon to the network.
     Args:
+        netuid ( int ):
+            The netuid being served on. 
         axon (bittensor.Axon):
             Axon to serve.
         use_upnpc (:type:bool, `optional`): 
@@ -205,7 +208,7 @@ def serve_axon_extrinsic (
             wallet = axon.wallet,
             ip = external_ip,
             port = external_port,
-            netuid = axon.netuid,
+            netuid = netuid,
             protocol = axon.protocol,
             wait_for_inclusion = wait_for_inclusion,
             wait_for_finalization = wait_for_finalization,

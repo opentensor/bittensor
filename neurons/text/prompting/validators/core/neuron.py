@@ -180,9 +180,7 @@ class neuron:
         )
         self.synapse = Synapse( axon = self.axon )
         self.axon.start()
-        self.axon.netuid = self.config.netuid
-        self.axon.protocol = 4
-        self.subtensor.serve_axon( self.axon )
+        self.subtensor.serve_axon( self.config.netuid, self.axon )
 
     def forward(
             self, 

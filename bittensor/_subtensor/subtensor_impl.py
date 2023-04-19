@@ -278,13 +278,14 @@ class Subtensor:
 
     def serve_axon (
         self,
+        netuid: int, 
         axon: 'bittensor.Axon',
         use_upnpc: bool = False,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False,
     ) -> bool:
-        return serve_axon_extrinsic( self, axon, use_upnpc, wait_for_inclusion, wait_for_finalization)
+        return serve_axon_extrinsic( self, netuid, axon, use_upnpc, wait_for_inclusion, wait_for_finalization)
 
     def serve_prometheus (
         self,

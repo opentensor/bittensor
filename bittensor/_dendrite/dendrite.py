@@ -147,7 +147,7 @@ class Dendrite( ABC, torch.nn.Module ):
         self.axon_info = axon.info() if isinstance( axon, bittensor.axon ) else axon
         print (self.axon_info)
         if self.axon_info.ip == bittensor.utils.networking.get_external_ip(): 
-            self.endpoint_str = "localhost:" + str(self.endpoint.port)
+            self.endpoint_str = "localhost:" + str(self.axon_info.port)
         else: 
             self.endpoint_str = self.axon_info.ip + ':' + str(self.axon_info.port)
         self.channel = grpc.aio.insecure_channel( self.endpoint_str, options = grpc_options )

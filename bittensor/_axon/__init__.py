@@ -79,7 +79,6 @@ class axon:
             blacklist (:obj:`Optional[callable]`, `optional`):
                 function to blacklist requests.
         """
-
         self.metagraph = metagraph
         self.wallet = wallet
 
@@ -110,10 +109,6 @@ class axon:
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
         self.blacklist = blacklist
         self.started = False
-
-        # Synapse storage.
-        # NOTE: @joey, do we want to store these text names somehwere? Or create keys as we go?
-        self.synapses: Dict[str, bittensor.Synapse] = {}
 
         # Build priority thread pool
         self.priority_threadpool = bittensor.prioritythreadpool(config=self.config.axon)
@@ -234,15 +229,6 @@ class axon:
         assert config.axon.external_port is None or (
             config.axon.external_port > 1024 and config.axon.external_port < 65535
         ), "external port must be in range [1024, 65535]"
-
-    def attach(self, synapse: "bittensor.Synapse") -> "bittensor.axon":
-        r"""Attaches a synapse to this axon."""
-        synapse.attach(axon=self)
-        if (self.synapses.get(name := synapse.synapse_name)) is None:
-            self.synapses[name] = synapse
-        else:
-            raise RuntimeError("Synapse {} already attached to axon.".format(name))
-        return self
 
     def __str__(self) -> str:
         return "Axon({}, {}, {}, {})".format(
