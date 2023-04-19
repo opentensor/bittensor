@@ -40,34 +40,39 @@ def setUpModule():
     global _subtensor_mock
     # Start a mock instance of subtensor.
     _subtensor_mock = bittensor.subtensor( _mock = True, network='finney' )
-
-    # create mock subnet 2
-    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 2, tempo = 90, modality = 0, wait_for_finalization=False  )
-    assert err == None
-
-    # create mock subnet 3
-    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 3, tempo = 90, modality = 0, wait_for_finalization=False )
-    assert err == None
-
-    # create a mock subnet 1
-    created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 1, tempo = 99, modality = 0, wait_for_finalization=False )
-    assert err == None
-
-    # Make registration difficulty 0. Instant registration.
-    set_diff, err = _subtensor_mock.sudo_set_difficulty( netuid = 1, difficulty = 0, wait_for_finalization=False )
-    assert err == None
     
-    # Make registration min difficulty 0.
-    set_min_diff, err = _subtensor_mock.sudo_set_min_difficulty( netuid = 1, min_difficulty = 0, wait_for_finalization=False )
-    assert err == None
+    try:
+        # create mock subnet 2
+        created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 2, tempo = 90, modality = 0, wait_for_finalization=False  )
+        assert err == None
 
-    # Make registration max difficulty 1.
-    set_max_diff, err = _subtensor_mock.sudo_set_max_difficulty( netuid = 1, max_difficulty = 1, wait_for_finalization=False )
-    assert err == None
+        # create mock subnet 3
+        created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 3, tempo = 90, modality = 0, wait_for_finalization=False )
+        assert err == None
 
+        # create a mock subnet 1
+        created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 1, tempo = 99, modality = 0, wait_for_finalization=False )
+        assert err == None
 
-    set_tx_limit, err = _subtensor_mock.sudo_set_tx_rate_limit( netuid = 1, tx_rate_limit = 0, wait_for_finalization=False ) # No tx limit
-    assert err == None
+        # Make registration difficulty 0. Instant registration.
+        set_diff, err = _subtensor_mock.sudo_set_difficulty( netuid = 1, difficulty = 0, wait_for_finalization=False )
+        assert err == None
+        
+        # Make registration min difficulty 0.
+        set_min_diff, err = _subtensor_mock.sudo_set_min_difficulty( netuid = 1, min_difficulty = 0, wait_for_finalization=False )
+        assert err == None
+
+        # Make registration max difficulty 1.
+        set_max_diff, err = _subtensor_mock.sudo_set_max_difficulty( netuid = 1, max_difficulty = 1, wait_for_finalization=False )
+        assert err == None
+
+        set_tx_limit, err = _subtensor_mock.sudo_set_tx_rate_limit( netuid = 1, tx_rate_limit = 0, wait_for_finalization=False ) # No tx limit
+        assert err == None
+    
+    except Exception as e:
+        print("Error in setup: ", e)
+        raise e
+
 
 def tearDownModule() -> None:
     # Kill the mock instance of subtensor.
