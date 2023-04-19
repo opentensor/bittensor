@@ -524,18 +524,18 @@ class TestSubtensor(unittest.TestCase):
         mock_neuron = MagicMock()           
         mock_neuron.is_null = True
 
-        with patch('bittensor.utils.create_pow' ):
-            bittensor.utils.create_pow = MagicMock(return_value=None)
+        with patch('bittensor._subtensor.extrinsics.registration.create_pow', return_value=None) as mock_create_pow:
             wallet = bittensor.wallet(_mock=True)
             wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
 
             self.subtensor.get_current_block = MagicMock(side_effect=current_block)
             self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock( return_value=mock_neuron )
+            self.subtensor.substrate.get_block_hash = MagicMock( return_value = '0x' + '0' * 64 )
             self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed())
 
             # should return True
-            assert self.subtensor.register(wallet=wallet, netuid = 3 ) == False
-            assert bittensor.utils.create_pow.call_count == 3 
+            self.assertIsNot( self.subtensor.register(wallet=wallet, netuid = 3 ), True, msg="Registration should fail" )
+            self.assertEqual( mock_create_pow.call_count, 3 ) 
 
     def test_registration_stale_then_continue( self ):
         # verifty that after a stale solution, the solve will continue without exiting
@@ -543,38 +543,40 @@ class TestSubtensor(unittest.TestCase):
         class ExitEarly(Exception):
             pass
 
-        mock_not_stale = MagicMock(
-            side_effect = [False, True]
+        mock_is_stale = MagicMock(
+            side_effect = [True, False]
         )
 
         mock_substrate_enter = MagicMock(
-                    side_effect=ExitEarly()
+            side_effect=ExitEarly()
         )
 
         mock_subtensor_self = MagicMock(
             neuron_for_pubkey = MagicMock( return_value = MagicMock(is_null = True) ), # not registered
             substrate=MagicMock(
-                __enter__ = mock_substrate_enter
+                __enter__ = mock_substrate_enter,
+                get_block_hash = MagicMock( return_value = '0x' + '0'*64 ),
             )
         )
 
         mock_wallet = MagicMock()
 
         mock_create_pow = MagicMock(
-            return_value = MagicMock()
+            return_value = MagicMock(
+                is_stale = mock_is_stale
+            )
         )
 
         with patch('bittensor.Subtensor.get_neuron_for_pubkey_and_subnet', return_value=bittensor.NeuronInfo._null_neuron() ):
-            with patch('bittensor.utils.create_pow', mock_create_pow):
-                with patch('bittensor.utils.POWNotStale', mock_not_stale):
-                    # should create a pow and check if it is stale
-                    # then should create a new pow and check if it is stale
-                    # then should enter substrate and exit early because of test
-                    with pytest.raises(ExitEarly):
-                        bittensor.Subtensor.register(mock_subtensor_self, mock_wallet, netuid = 3)
-                    assert mock_create_pow.call_count == 2 # must try another pow after stale
-                    assert mock_not_stale.call_count == 2
-                    assert mock_substrate_enter.call_count == 1 # only tries to submit once, then exits
+            with patch('bittensor._subtensor.extrinsics.registration.create_pow', mock_create_pow):
+                # should create a pow and check if it is stale
+                # then should create a new pow and check if it is stale
+                # then should enter substrate and exit early because of test
+                with pytest.raises(ExitEarly):
+                    bittensor.Subtensor.register( mock_subtensor_self, mock_wallet, netuid = 3 )
+                self.assertEqual( mock_create_pow.call_count, 2, msg="must try another pow after stale" )
+                self.assertEqual( mock_is_stale.call_count, 2 )
+                self.assertEqual( mock_substrate_enter.call_count, 1, msg="only tries to submit once, then exits" )
 
     def test_subtensor_mock_functions(self):
         with patch('substrateinterface.SubstrateInterface.query'):
