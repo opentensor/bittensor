@@ -6,7 +6,7 @@ This code is for running the Vicuna model through the BitTensor framework.
 
 ## Contents
 
-- [Installing Dependencies](#installing-Dependencies)
+- [Installing Dependencies](#installing-dependencies)
 - [Converting Weights Into Model](#converting-weights-into-model)
 - [Starting Miner](#starting-miner)
 
