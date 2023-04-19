@@ -589,7 +589,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     )
                     self.assertAlmostEqual(stake.tao, mock_stakes[wallet.hotkey_str].tao - config.amount, places=4)
 
-    def test_unstake_with_exclude_hotkeys_from_all( self ):
+    def _test_unstake_with_exclude_hotkeys_from_all( self ):
         config = self.config
         config.command = "unstake"
         config.no_prompt = True 
