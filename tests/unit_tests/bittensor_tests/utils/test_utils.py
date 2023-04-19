@@ -323,11 +323,13 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
         subtensor = MagicMock()
         current_block_num: int = 1
         subtensor.get_current_block = MagicMock( return_value=current_block_num )
+        mock_hotkey_bytes = bytes.fromhex('0'*63 + '1')
 
         self.assertEqual(bittensor.utils.registration._check_for_newest_block_and_update(
             subtensor,
             -1, # netuid
-            MagicMock(),
+            current_block_num, # current block number is the same as the new block number
+            mock_hotkey_bytes, # mock hotkey bytes
             MagicMock(),
             MagicMock(),
             MagicMock(),
@@ -340,6 +342,7 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
     def test_check_for_newest_block_and_update_new_block(self):
         # if the block is new, the function should return the new block_number
         mock_block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
+        mock_hotkey_bytes = bytes.fromhex('0'*63 + '1')
 
         current_block_num: int = 1
         current_diff: int = 0
@@ -380,6 +383,7 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
             subtensor,
             -1, # netuid
             MagicMock(),
+            mock_hotkey_bytes,
             MagicMock(),
             MagicMock(),
             MagicMock(),
