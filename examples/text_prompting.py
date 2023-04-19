@@ -22,7 +22,6 @@ from typing import List, Dict, Union, Tuple
 bittensor.logging(debug=True)
 bittensor.logging.set_trace(True)
 
-
 class Synapse( bittensor.TextPromptingSynapse ):
     def priority(self, forward_call: "bittensor.TextPromptingForwardCall") -> float:
         return 0.0
@@ -53,39 +52,17 @@ class Synapse( bittensor.TextPromptingSynapse ):
 
 # Create a mock wallet.
 wallet = bittensor.wallet().create_if_non_existent()
-
-# Create a local endpoint dendrite grpc connection.
-local_endpoint = bittensor.endpoint(
-    version=bittensor.__version_as_int__,
-    uid=0,
-    ip="127.0.0.1",
-    ip_type=4,
-    port=9090,
-    hotkey=wallet.hotkey.ss58_address,
-    coldkey=wallet.coldkeypub.ss58_address,
-    modality=0,
-)
-
-axon = bittensor.axon(wallet=wallet, port=9090, ip="127.0.0.1", metagraph=None)
-
+axon = bittensor.axon( wallet = wallet, port = 9090, ip = "127.0.0.1", metagraph = None )
+dendrite = bittensor.text_prompting( axon = axon.info(), keypair = wallet.hotkey )
 synapse = Synapse( axon = axon )
 axon.start()
 
-batch_size = 4
-sequence_length = 32
-# Create a text_prompting module and call it.
 bittensor.logging.debug( "Start example")
-module = bittensor.text_prompting( endpoint = local_endpoint, keypair = wallet.hotkey )
-forward_call = module.forward(
+forward_call = dendrite.forward(
     roles = ['system', 'assistant'],
     messages = ['you are chat bot', 'what is the whether'],
     timeout = 1e6
 )
-backward_call = forward_call.backward( 1 )
 print ( forward_call )
+backward_call = forward_call.backward( 1 )
 print ( backward_call )
-
-# # Delete objects.
-del axon
-del synapse
-del module

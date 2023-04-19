@@ -17,30 +17,33 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
-import argparse
-import copy
 import os
-from concurrent import futures
-from typing import Callable, Dict, Optional, Tuple, Union
-
+import json
 import grpc
-from substrateinterface import Keypair
-
+import copy
+import torch
+import argparse
 import bittensor
 
+from concurrent import futures
+from dataclasses import dataclass
+from substrateinterface import Keypair
+import bittensor.utils.networking as net
+from typing import Callable, Dict, Optional, Tuple, Union
 
 class axon:
-    """Encapsulates a bittensor grpc server that services forward and backward requests from other neurons.
-    Examples::
-            >>> wallet = bittensor.wallet()
-            >>> axon = bittensor.axon( config = bittensor.axon.config() )
-            >>> class TextLastHiddenStateSynapse( bittensor.proto.TextLastHiddenStateSynapse ):
-            >>>     def forward( self, text_inputs: torch.LongTensor ) -> torch.FloatTensor:
-            >>>         return torch.zeros( ( text_inputs.shape[0], text_inputs.shape[1], bittensor.__network_dim__ ) )
-            >>> axon.attach( TextLastHiddenStateSynapse() )
-            >>> axon.start()
-    """
+    """ Axon object for serving synapse receptors. """
+
+    def info(self) -> 'axon_info':
+        """Returns the axon info object associate with this axon.""" 
+        return axon_info(
+            version = bittensor.__version_as_int__,
+            ip = self.external_ip,
+            ip_type = 4,
+            port = self.external_port,
+            hotkey = self.wallet.hotkey.ss58_address,
+            coldkey = self.wallet.coldkeypub.ss58_address,
+        )
 
     def __init__(
         self,
@@ -102,8 +105,8 @@ class axon:
         # Build axon objects.
         self.ip = self.config.axon.ip
         self.port = self.config.axon.port
-        self.external_ip = self.config.axon.external_ip
-        self.external_port = self.config.axon.external_port or self.config.axon.port
+        self.external_ip = self.config.axon.external_ip if self.config.axon.external_ip != None else self.config.axon.ip
+        self.external_port = self.config.axon.external_port if self.config.axon.external_port != None else self.config.axon.port
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
         self.blacklist = blacklist
         self.started = False
@@ -400,3 +403,100 @@ class AuthInterceptor(grpc.ServerInterceptor):
             message = str(e)
             abort = lambda _, ctx: ctx.abort(grpc.StatusCode.UNAUTHENTICATED, message)
             return grpc.unary_unary_rpc_method_handler(abort)
+
+
+METADATA_BUFFER_SIZE = 250
+
+@dataclass
+class axon_info:
+
+    version: int
+    ip: str
+    port: int
+    ip_type: int
+    hotkey: str 
+    coldkey: str
+
+    @property
+    def is_serving(self) -> bool:
+        """ True if the endpoint is serving. """
+        if self.ip == '0.0.0.0': return False
+        else:return True
+
+    def ip_str(self) -> str:
+        """ Return the whole ip as string """ 
+        return net.ip__str__(self.ip_type, self.ip, self.port)
+
+    def __eq__ (self, other: 'axon_info'):
+        if other == None: return False
+        if self.version == other.version and self.ip == other.ip and self.port == other.port and self.ip_type == other.ip_type and self.coldkey == other.coldkey and self.hotkey == other.hotkey: return True
+        else: return False 
+
+    def __str__(self): 
+        return "axon_info( {}, {}, {}, {} )".format( str(self.ip_str()), str(self.hotkey), str(self.coldkey), self.version)
+    
+    def __repr__(self):
+        return self.__str__()
+    
+    def dumps(self):
+        """ Return json with the info's specification """ 
+        return json.dumps( { 'version': self.version, 'hotkey': self.hotkey, 'ip': self.ip, 'ip_type': self.ip_type, 'port': self.port, 'coldkey': self.coldkey })
+
+    def to_tensor( self ) -> torch.LongTensor: 
+        """ Return the specification of an axon as a tensor """ 
+        string_json = self.dumps()
+        bytes_json = bytes(string_json, 'utf-8')
+        ints_json = list(bytes_json)
+        if len(ints_json) > METADATA_BUFFER_SIZE:
+            raise ValueError( f"axon_info {self.__str__()} representation is too large, got size {len(ints_json)} should be less than {METADATA_BUFFER_SIZE}" )
+        ints_json += [-1] * (METADATA_BUFFER_SIZE - len(ints_json))
+        axon_info_tensor = torch.tensor( ints_json, dtype=torch.int64, requires_grad=False)
+        return axon_info_tensor
+
+    @classmethod
+    def from_tensor( cls, tensor: torch.LongTensor) -> 'bittensor.Endpoint':
+        """ Return an endpoint with spec from tensor """
+        if len(tensor.shape) == 2:
+            if tensor.shape[0] != 1:
+                error_msg = 'Endpoints tensor should have a single first dimension or none got {}'.format( tensor.shape[0] )
+                raise ValueError(error_msg)
+            tensor = tensor[0]
+
+        if tensor.shape[0] != METADATA_BUFFER_SIZE:
+            error_msg = 'Endpoints tensor should be length {}, got {}'.format( tensor.shape[0], METADATA_BUFFER_SIZE)
+            raise ValueError(error_msg)
+            
+        endpoint_list = tensor.tolist()
+        if -1 in endpoint_list:
+            endpoint_list = endpoint_list[ :endpoint_list.index(-1)]
+            
+        if len(endpoint_list) == 0:
+            return cls.dummy()
+        else:
+            endpoint_bytes = bytearray( endpoint_list )
+            endpoint_string = endpoint_bytes.decode('utf-8')
+            endpoint_dict = json.loads( endpoint_string )
+            return cls( **endpoint_dict )
+
+    @classmethod
+    def from_neuron_info(cls, neuron_info: dict ) -> 'axon_info':
+        """ Converts a dictionary to an axon_info object. """
+        return cls(
+            version = neuron_info['axon_info']['version'],
+            ip = neuron_info['axon_info']['ip'],
+            port = neuron_info['axon_info']['port'],
+            ip_type = neuron_info['axon_info']['ip_type'],
+            hotkey = neuron_info['hotkey'],
+            coldkey = neuron_info['coldkey'],
+        )
+
+    @classmethod
+    def dummy( cls ) -> 'axon_info':
+        return cls( 
+            version=0, 
+            hotkey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", 
+            coldkey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+            ip_type = 4, 
+            ip = '0.0.0.0', 
+            port = 0
+        )

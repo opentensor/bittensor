@@ -160,9 +160,9 @@ from bittensor._cli.commands import utils as cli_utils
 from bittensor.utils.balance import Balance as Balance
 from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon
+from bittensor._axon import axon_info as axon_info
 from bittensor._wallet import wallet as wallet
 from bittensor._keyfile import keyfile as keyfile
-from bittensor._endpoint import endpoint as endpoint
 from bittensor._metagraph import metagraph as metagraph
 from bittensor._prometheus import prometheus as prometheus
 from bittensor._subtensor import subtensor as subtensor
@@ -173,13 +173,10 @@ from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
-from bittensor._subtensor.chain_data import AxonInfo as AxonInfo
 from bittensor._config.config_impl import Config as Config
 from bittensor._subtensor.chain_data import DelegateInfo as DelegateInfo
 from bittensor._wallet.wallet_impl import Wallet as Wallet
 from bittensor._keyfile.keyfile_impl import Keyfile as Keyfile
-from bittensor._endpoint.endpoint_impl import Endpoint as Endpoint
-from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
 from bittensor._subtensor.chain_data import NeuronInfo as NeuronInfo
 from bittensor._subtensor.chain_data import NeuronInfoLite as NeuronInfoLite
 from bittensor._subtensor.chain_data import PrometheusInfo as PrometheusInfo
@@ -204,10 +201,10 @@ from bittensor._synapse.synapse import SynapseCall
 from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
 
 # ---- Dendrites -----
-from bittensor._synapse.dendrite import Dendrite
-from bittensor._synapse.dendrite import DendriteCall
-from bittensor._synapse.text_prompting.dendrite import TextPromptingDendrite as text_prompting
-from bittensor._synapse.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
+from bittensor._dendrite.dendrite import Dendrite
+from bittensor._dendrite.dendrite import DendriteCall
+from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as text_prompting
+from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
 
 # ---- Base Miners -----
 from bittensor._synapse.text_prompting.miner import BasePromptingMiner

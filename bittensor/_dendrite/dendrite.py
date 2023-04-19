@@ -45,8 +45,8 @@ class DendriteCall( ABC ):
         self.start_time = time.time()
         self.src_hotkey = self.dendrite.keypair.ss58_address 
         self.src_version = bittensor.__version_as_int__
-        self.dest_hotkey = self.dendrite.endpoint.hotkey
-        self.dest_version = self.dendrite.endpoint.version  
+        self.dest_hotkey = self.dendrite.axon_info.hotkey
+        self.dest_version = self.dendrite.axon_info.version  
         self.return_code: bittensor.proto.ReturnCode = bittensor.proto.ReturnCode.Success
         self.return_message: str = 'Success'
 
@@ -124,7 +124,7 @@ class Dendrite( ABC, torch.nn.Module ):
     def __init__(
             self,
             keypair: Union[ 'bittensor.Wallet', 'bittensor.Keypair'],
-            endpoint: Union[ 'bittensor.Endpoint', torch.Tensor ], 
+            axon: Union[ 'bittensor.axon_info', 'bittensor.axon' ], 
             grpc_options: List[Tuple[str,object]] = 
                     [('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1),
@@ -134,8 +134,8 @@ class Dendrite( ABC, torch.nn.Module ):
             Args:
                 keypair (:obj:`Union[ 'bittensor.Wallet', 'bittensor.Keypair']`, `required`):
                     bittensor keypair used for signing messages.
-                endpoint (:obj:`bittensor.Endpoint`, `required`):   
-                    bittensor endpoint object.
+                axon (:obj:Union[`bittensor.axon_info`, 'bittensor.axon'], `required`):   
+                    bittensor axon object or its info used to create the connection.
                 external_ip (:obj:`str`, `optional`, defaults to None):
                     external ip of the machine, if None, will use the ip from the endpoint.
                 grpc_options (:obj:`List[Tuple[str,object]]`, `optional`):
@@ -144,9 +144,12 @@ class Dendrite( ABC, torch.nn.Module ):
         super(Dendrite, self).__init__()
         self.uuid = str(uuid.uuid1())
         self.keypair = keypair.hotkey if isinstance( keypair, bittensor.Wallet ) else keypair
-        self.endpoint = endpoint
-        if self.endpoint.ip == bittensor.utils.networking.get_external_ip(): self.endpoint_str = "localhost:" + str(self.endpoint.port)
-        else: self.endpoint_str = self.endpoint.ip + ':' + str(self.endpoint.port)
+        self.axon_info = axon.info() if isinstance( axon, bittensor.axon ) else axon
+        print (self.axon_info)
+        if self.axon_info.ip == bittensor.utils.networking.get_external_ip(): 
+            self.endpoint_str = "localhost:" + str(self.endpoint.port)
+        else: 
+            self.endpoint_str = self.axon_info.ip + ':' + str(self.axon_info.port)
         self.channel = grpc.aio.insecure_channel( self.endpoint_str, options = grpc_options )
         self.state_dict = _common.CYGRPC_CONNECTIVITY_STATE_TO_CHANNEL_CONNECTIVITY
         self.loop = asyncio.get_event_loop()
@@ -171,10 +174,10 @@ class Dendrite( ABC, torch.nn.Module ):
                     ('bittensor-version',str(bittensor.__version_as_int__)),
                 )
             )
-            bittensor.logging.trace( 'Dendrite.apply() awaiting response from: {}'.format( self.endpoint.hotkey ) )
+            bittensor.logging.trace( 'Dendrite.apply() awaiting response from: {}'.format( self.axon_info.hotkey ) )
             response_proto = await asyncio.wait_for( asyncio_future, timeout = dendrite_call.timeout )
             dendrite_call._apply_response_proto( response_proto )
-            bittensor.logging.trace( 'Dendrite.apply() received response from: {}'.format( self.endpoint.hotkey ) )
+            bittensor.logging.trace( 'Dendrite.apply() received response from: {}'.format( self.axon_info.hotkey ) )
 
         # Request failed with GRPC code.
         except grpc.RpcError as rpc_error_call:
@@ -221,7 +224,7 @@ class Dendrite( ABC, torch.nn.Module ):
         """ Creates a signature for the dendrite and returns it as a string."""
         nonce = f"{self.nonce()}"
         sender_hotkey = self.keypair.ss58_address
-        receiver_hotkey = self.endpoint.hotkey
+        receiver_hotkey = self.axon_info.hotkey
         message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{self.uuid}"
         signature = f"0x{self.keypair.sign(message).hex()}"
         return ".".join([nonce, sender_hotkey, signature, self.uuid])
@@ -232,7 +235,6 @@ class Dendrite( ABC, torch.nn.Module ):
             return self.state_dict[self.channel._channel.check_connectivity_state(True)]
         except ValueError:
             return "Channel closed"
-
 
 
 

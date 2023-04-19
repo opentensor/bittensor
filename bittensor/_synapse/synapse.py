@@ -48,6 +48,11 @@ class SynapseCall( ABC ):
         self.return_message: str = 'Success'
         self.priority: float = 0
 
+    def __repr__(self) -> str:
+        return f"SynapseCall( from: {self.src_hotkey}, forward: {self.is_forward}, start: {self.start_time}, timeout: {self.timeout}, priority: {self.priority}, completed: {self.completed})"
+    
+    def __str__(self) -> str: return self.__repr__()
+
     @abstractmethod
     def get_inputs_shape( self ) -> torch.Size: ...    
 

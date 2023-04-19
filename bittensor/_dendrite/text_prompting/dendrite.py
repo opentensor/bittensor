@@ -42,7 +42,7 @@ class DendriteForwardCall( bittensor.DendriteCall ):
     def __repr__(self) -> str:
         return f"DendriteForwardCall( {bittensor.utils.codes.code_to_string(self.return_code)}, to: {self.dest_hotkey[:4]}...{self.dest_hotkey[-4:]}, msg: {self.return_message}, completion: {self.completion.strip()})"
     
-    def __str__(self) -> str: self.__repr__()
+    def __str__(self) -> str: return self.__repr__()
     
     def get_callable( self ) -> Callable:
         return bittensor.grpc.TextPromptingStub( self.dendrite.channel ).Forward
@@ -102,8 +102,7 @@ class DendriteBackwardCall( bittensor.DendriteCall ):
     def __repr__(self) -> str:
         return f"DendriteBackwardCall( {bittensor.utils.codes.code_to_string(self.return_code)}, to:{self.dest_hotkey[:4]}...{self.dest_hotkey[-4:]}, msg:{self.return_message} )"
     
-    def __str__(self) -> str: 
-        return f"DendriteBackwardCall( {bittensor.utils.codes.code_to_string(self.return_code)}, to:{self.dest_hotkey[:4]}...{self.dest_hotkey[-4:]}, msg:{self.return_message} )"
+    def __str__(self) -> str: return self.__repr__()
 
     def get_callable( self ) -> Callable:
         return bittensor.grpc.TextPromptingStub( self.dendrite.channel ).Backward
@@ -139,8 +138,7 @@ class TextPromptingDendrite( bittensor.Dendrite ):
             roles = roles,
             timeout = timeout,
         )
-        loop = asyncio.get_event_loop()
-        response_call = loop.run_until_complete( self.apply( dendrite_call = forward_call ) )
+        response_call = self.loop.run_until_complete( self.apply( dendrite_call = forward_call ) )
         if return_call: return response_call
         else: return response_call.completion
     
@@ -177,8 +175,7 @@ class TextPromptingDendrite( bittensor.Dendrite ):
             rewards = rewards,
             timeout = timeout,
         )
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete( self.apply( dendrite_call = backward_call ) )
+        return self.loop.run_until_complete( self.apply( dendrite_call = backward_call ) )
 
     async def async_backward(
         self,
