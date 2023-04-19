@@ -59,11 +59,10 @@ class cli:
             return naka_CLI(config=config)
         else:
             return cli_impl.CLI( config = config)
-
-    @staticmethod   
-    def config(args: List[str]) -> 'bittensor.config':
-        """ From the argument parser, add config to bittensor.executor and local config 
-            Return: bittensor.config object
+        
+    @staticmethod
+    def __create_parser__() -> 'argparse.ArgumentParser':
+        """ Creates the argument parser for the bittensor cli.
         """
         parser = argparse.ArgumentParser(
             description=f"bittensor cli v{bittensor.__version__}",
@@ -74,7 +73,6 @@ class cli:
         RunCommand.add_args( cmd_parsers )
         HelpCommand.add_args( cmd_parsers ) 
         ListCommand.add_args( cmd_parsers )
-        QueryCommand.add_args( cmd_parsers )
         StakeCommand.add_args( cmd_parsers )
         UpdateCommand.add_args( cmd_parsers )
         InspectCommand.add_args( cmd_parsers ) 
@@ -86,9 +84,7 @@ class cli:
         NominateCommand.add_args( cmd_parsers )
         NewHotkeyCommand.add_args( cmd_parsers )
         MetagraphCommand.add_args( cmd_parsers )
-        SetWeightsCommand.add_args( cmd_parsers )
         NewColdkeyCommand.add_args( cmd_parsers )
-        NewHotkeyCommand.add_args( cmd_parsers )
         MyDelegatesCommand.add_args( cmd_parsers )
         ListSubnetsCommand.add_args( cmd_parsers )
         RegenHotkeyCommand.add_args( cmd_parsers )
@@ -98,6 +94,15 @@ class cli:
         ListDelegatesCommand.add_args( cmd_parsers )
         RegenColdkeypubCommand.add_args( cmd_parsers )
         RecycleRegisterCommand.add_args( cmd_parsers )
+
+        return parser
+
+    @staticmethod   
+    def config(args: List[str]) -> 'bittensor.config':
+        """ From the argument parser, add config to bittensor.executor and local config 
+            Return: bittensor.config object
+        """
+        parser = cli.__create_parser__()
 
         # If no arguments are passed, print help text.
         if len(args) == 0:
@@ -136,14 +141,10 @@ class cli:
             MetagraphCommand.check_config( config )
         elif config.command == "weights":
             WeightsCommand.check_config( config )
-        elif config.command == "set_weights":
-            SetWeightsCommand.check_config( config )
         elif config.command == "list":
             ListCommand.check_config( config )
         elif config.command == "inspect":
             InspectCommand.check_config( config )
-        elif config.command == "query":
-            QueryCommand.check_config( config )
         elif config.command == "help":
             HelpCommand.check_config( config )
         elif config.command == "update":

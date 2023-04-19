@@ -19,6 +19,7 @@
 import bittensor
 
 from rich.prompt import Confirm
+from time import sleep
 from typing import List, Dict, Union, Optional
 from bittensor.utils.balance import Balance
 from ..errors import * 
@@ -245,7 +246,7 @@ def unstake_multiple_extrinsic (
             old_stakes.append(old_stake) # None if not registered.
 
     successful_unstakes = 0
-    for hotkey_ss58, amount, old_stake in zip(hotkey_ss58s, amounts, old_stakes):
+    for idx, (hotkey_ss58, amount, old_stake) in enumerate(zip(hotkey_ss58s, amounts, old_stakes)):
         # Covert to bittensor.Balance
         if amount == None:
             # Unstake it all.
@@ -279,6 +280,14 @@ def unstake_multiple_extrinsic (
 
             if staking_response: # If we successfully unstaked.
                 # We only wait here if we expect finalization.
+
+                if idx < len(hotkey_ss58s) - 1:
+                    # Wait for tx rate limit.
+                    tx_rate_limit_blocks = subtensor.tx_rate_limit()
+                    if tx_rate_limit_blocks > 0:
+                        bittensor.__console__.print(":hourglass: [yellow]Waiting for tx rate limit: [white]{}[/white] blocks[/yellow]".format(tx_rate_limit_blocks))
+                        sleep( tx_rate_limit_blocks * 12 ) # 12 seconds per block
+
                 if not wait_for_finalization and not wait_for_inclusion:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                     successful_unstakes += 1

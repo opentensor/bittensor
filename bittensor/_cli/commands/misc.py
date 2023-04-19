@@ -27,7 +27,6 @@ console = bittensor.__console__
 class HelpCommand:
     @staticmethod
     def run (cli):
-        cli.config.to_defaults()
         sys.argv = [sys.argv[0], '--help']
         # Run miner.
         if cli.config.model == 'core_server':

@@ -25,6 +25,9 @@ class TestMetagraph(unittest.TestCase):
     """
     
     def test_from_neurons(self):
+        mock_info_dict = {k: 0 for k in list(bittensor.SubnetInfo.__annotations__.keys())}
+        mock_info_dict['burn'] = bittensor.Balance(0)
+
         metagraph = bittensor.metagraph.from_neurons(
             network = "mock",
             netuid = -1, 
@@ -35,7 +38,10 @@ class TestMetagraph(unittest.TestCase):
                     hotkey = get_mock_hotkey(i + 1), # +1 to avoid 0 as this gives null neuron
                     coldkey = get_mock_coldkey(i + 1),
                 )
-            for i in range(2000)]
+            for i in range(2000)],
+            info = bittensor.SubnetInfo(
+                **mock_info_dict
+            )
         )
 
         # Test each property.

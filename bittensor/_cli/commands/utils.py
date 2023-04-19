@@ -20,8 +20,10 @@ import sys
 import os
 import torch
 import bittensor
-from typing import List, Dict
+from typing import List, Dict, Any, Optional
 from rich.prompt import Confirm, Prompt, PromptBase
+import requests
+from dataclasses import dataclass
 console = bittensor.__console__
 
 class IntListPrompt(PromptBase):
@@ -127,3 +129,38 @@ def get_all_wallets_for_path( path:str ) -> List['bittensor.wallet']:
         if cold_wallet.coldkeypub_file.exists_on_device() and not cold_wallet.coldkeypub_file.is_encrypted():
             all_wallets.extend( get_hotkey_wallets_for_wallet(cold_wallet) )
     return all_wallets
+
+@dataclass
+class DelegatesDetails:
+    name: str
+    url: str
+    description: str
+    signature: str
+
+    @classmethod
+    def from_json(cls, json: Dict[str, any]) -> 'DelegatesDetails':
+        return cls(
+            name=json['name'],
+            url=json['url'],
+            description=json['description'],
+            signature=json['signature'],
+        )
+
+def _get_delegates_details_from_github(requests_get, url: str) -> Dict[str, DelegatesDetails]:
+    response = requests_get(url)
+    
+
+    if response.status_code == 200:
+        all_delegates: Dict[str, Any] = response.json()
+        all_delegates_details = {}
+        for delegate_hotkey, delegates_details in all_delegates.items():
+            all_delegates_details[delegate_hotkey] = DelegatesDetails.from_json(delegates_details)
+        return all_delegates_details
+    else:
+        return {}
+    
+def get_delegates_details(url: str) -> Optional[Dict[str, DelegatesDetails]]: 
+    try:
+        return _get_delegates_details_from_github(requests.get, url)
+    except Exception:
+        return None # Fail silently
