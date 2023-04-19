@@ -27,7 +27,7 @@ from bittensor.utils.balance import Balance
 from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
 
 # Local imports.
-from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo, SubnetInfo, NeuronInfoLite
+from .chain_data import NeuronInfo, axon_info, DelegateInfo, PrometheusInfo, SubnetInfo, NeuronInfoLite
 from .errors import *
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
@@ -543,10 +543,10 @@ class Subtensor:
             return None
 
     """ Returns the axon information for this hotkey account """
-    def get_axon_info( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[AxonInfo]:
+    def get_axon_info( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[axon_info]:
         result = self.query_subtensor( 'Axons', block, [hotkey_ss58 ] )        
         if result != None:
-            return AxonInfo(
+            return axon_info(
                 ip = bittensor.utils.networking.ip_from_int( result.value.ip ),
                 ip_type = result.value.ip_type,
                 port = result.value.port,
@@ -559,7 +559,7 @@ class Subtensor:
             return None
 
     """ Returns the prometheus information for this hotkey account """
-    def get_prometheus_info( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[AxonInfo]:
+    def get_prometheus_info( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[axon_info]:
         result = self.query_subtensor( 'Prometheus', block, [hotkey_ss58 ] )        
         if result != None:
             return PrometheusInfo (
