@@ -23,7 +23,7 @@ from loguru import logger
 from substrateinterface.base import Keypair
 
 import bittensor
-from bittensor.utils.registration import _CUDASolver
+from bittensor.utils.registration import _CUDASolver, _SolverBase
 
 
 @fixture(scope="function")
@@ -229,9 +229,7 @@ class TestRegistrationHelpers(unittest.TestCase):
         self.assertEqual(result_hash, expected_hash)
 
     def test_update_curr_block(self):
-        curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
-        curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
-        curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+        curr_block, curr_block_num, curr_diff = _SolverBase.create_shared_memory()
 
         block_number: int = 1
         block_bytes = bytes.fromhex('9dda24e4199df410e18a43044b3069078f796922b0247b8749aecb577b09bd59')
