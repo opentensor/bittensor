@@ -381,45 +381,7 @@ class Metagraph( torch.nn.Module ):
         """
             Retrieves cached metagraph syncs from IPFS. 
         """
-        ipfs = bittensor.Ipfs()
-        ipns_hash = ipfs.latest_neurons_ipns
-        ipfs_hash = ipfs.cat
-        
-        if block != None:
-            ipns_hash = ipfs.historical_neurons_ipns
-            ipfs_hash = ipfs.node_get
-        
-        try:
-            # Ping IPNS for latest IPFS hash
-            ipns_resolve =  ipfs.retrieve_directory(ipfs.ipns_resolve, (('arg', ipns_hash),))
-
-            # Extract IPFS hash from IPNS response
-            ipfs_path = ast.literal_eval(ipns_resolve.text)
-        except Exception as e:
-            logger.error("Error detected in metagraph sync: {} with sample text {}".format(e,ipns_resolve.text))
-
-            # Try Again
-            # Ping IPNS for latest IPFS hash
-            ipns_resolve =  ipfs.retrieve_directory(ipfs.ipns_resolve, (('arg', ipns_hash),))
-
-            # Extract IPFS hash from IPNS response
-            ipfs_path = ast.literal_eval(ipns_resolve.text)
-
-        ipfs_resolved_hash = ipfs_path['Path'].split("ipfs/")[1]
-        ipfs_response = ipfs.retrieve_directory(ipfs_hash, (('arg', ipfs_resolved_hash),))
-
-        # Extract all neuron sync hashes
-        if block != None:
-            historical_neurons = json.loads(ipfs_response.content)['Links']
-            # Find the one that corresponds to our block
-            sync_data = next(item for item in historical_neurons if item["Name"] == "nakamoto-{}.pkl".format(block))
-            # Retrieve Neuron contents
-            ipfs_response = ipfs.retrieve_directory(ipfs.cat, (('arg', sync_data['Hash']),))
-
-        # Unpickle the response
-        neurons = pickle.loads(ipfs_response.content)
-
-        return neurons
+        raise Exception('Nakamoto is deprecated. Please use finney instead')
 
     def sync ( self, block: int = None, cached: bool = True, subtensor = None, netuid: int = 1 ) -> 'Metagraph':
         r""" Synchronizes this metagraph with the chain state.

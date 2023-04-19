@@ -19,6 +19,7 @@
 import bittensor
 
 from rich.prompt import Confirm
+from time import sleep
 from typing import List, Dict, Union, Optional
 from bittensor.utils.balance import Balance
 from ..errors import *
@@ -68,7 +69,7 @@ def add_stake_extrinsic(
         hotkey_ss58 = wallet.hotkey.ss58_address 
 
     # Flag to indicate if we are using the wallet's own hotkey.
-    own_hotkey: bool = (wallet.hotkey.ss58_address == hotkey_ss58)
+    own_hotkey: bool
 
     with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(subtensor.network)):
         old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
@@ -240,7 +241,7 @@ def add_stake_multiple_extrinsic (
         amounts = [Balance.from_tao(amount.tao * percent_reduction) for amount in amounts]
     
     successful_stakes = 0
-    for hotkey_ss58, amount, old_stake in zip(hotkey_ss58s, amounts, old_stakes):
+    for idx, (hotkey_ss58, amount, old_stake) in enumerate(zip(hotkey_ss58s, amounts, old_stakes)):
         staking_all = False
         # Convert to bittensor.Balance
         if amount == None:
@@ -271,9 +272,17 @@ def add_stake_multiple_extrinsic (
                 wait_for_inclusion = wait_for_inclusion,
                 wait_for_finalization = wait_for_finalization,
             )
-
+        
             if staking_response: # If we successfully staked.
                 # We only wait here if we expect finalization.
+
+                if idx < len(hotkey_ss58s) - 1:
+                    # Wait for tx rate limit.
+                    tx_rate_limit_blocks = subtensor.tx_rate_limit()
+                    if tx_rate_limit_blocks > 0:
+                        bittensor.__console__.print(":hourglass: [yellow]Waiting for tx rate limit: [white]{}[/white] blocks[/yellow]".format(tx_rate_limit_blocks))
+                        sleep( tx_rate_limit_blocks * 12 ) # 12 seconds per block
+
                 if not wait_for_finalization and not wait_for_inclusion:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                     old_balance -= staking_balance
@@ -356,7 +365,6 @@ def __do_add_stake_single(
     """
     # Decrypt keys,
     wallet.coldkey
-    wallet.hotkey
     
     hotkey_owner = subtensor.get_hotkey_owner( hotkey_ss58 )
     own_hotkey = (wallet.coldkeypub.ss58_address == hotkey_owner)

@@ -32,12 +32,12 @@ class UnStakeCommand:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if not config.hotkey_ss58address and config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.get('all_hotkeys') and not config.get('hotkeys'):
+        if not config.get('hotkey_ss58address') and config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.get('all_hotkeys') and not config.get('hotkeys'):
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
                     
         # Get amount.
-        if not config.hotkey_ss58address and not config.get('amount') and not config.get('unstake_all') and not config.get('max_stake'):
+        if not config.get('hotkey_ss58address') and not config.get('amount') and not config.get('unstake_all') and not config.get('max_stake'):
             hotkeys: str = ''
             if config.get('all_hotkeys'):
                 hotkeys = "all hotkeys"

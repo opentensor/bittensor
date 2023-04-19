@@ -39,12 +39,6 @@ sender_wallet = bittensor.wallet.mock()
 def gen_nonce():
     return f"{time.monotonic_ns()}"
 
-def sign_v1(wallet):
-    nonce, receptor_uid = gen_nonce(), str(uuid.uuid1())
-    message  = "{}{}{}".format(nonce, str(wallet.hotkey.ss58_address), receptor_uid)
-    spliter = 'bitxx'
-    signature = spliter.join([ nonce, str(wallet.hotkey.ss58_address), "0x" + wallet.hotkey.sign(message).hex(), receptor_uid])
-    return signature
 
 def sign_v2(sender_wallet, receiver_wallet):
     nonce, receptor_uid = gen_nonce(), str(uuid.uuid1())
@@ -55,13 +49,8 @@ def sign_v2(sender_wallet, receiver_wallet):
     return ".".join([nonce, sender_hotkey, signature, receptor_uid])
 
 def sign(sender_wallet, receiver_wallet, receiver_version):
-    if receiver_version >= bittensor.__new_signature_version__:
-        return sign_v2(sender_wallet, receiver_wallet)
-    return sign_v1(sender_wallet)
-
-def test_sign_v1():
-    sign_v1(wallet)
-    sign_v1(axon.wallet)
+    
+    return sign_v2(sender_wallet, receiver_wallet)
 
 def test_sign_v2():
     sign_v2(sender_wallet, wallet)
@@ -82,7 +71,6 @@ def test_forward_not_implemented():
     assert synapses[0].return_code == bittensor.proto.ReturnCode.NotImplemented
 
 def test_forward_last_hidden_success():
-    bittensor.logging(debug = True)
     def forward( inputs_x: torch.FloatTensor, synapse , model_output = None):
         return None, dict(), torch.zeros( [inputs_x.shape[0], inputs_x.shape[1], bittensor.__network_dim__])
     axon.attach_synapse_callback( forward, synapse_type = bittensor.proto.Synapse.SynapseType.TEXT_LAST_HIDDEN_STATE)
@@ -865,12 +853,9 @@ def test_forward_priority_2nd_request_timeout():
         synapses= [ syn.serialize_to_wire_proto() for syn in synapses ],
         hotkey = axon.wallet.hotkey.ss58_address,
     )
-    start_time = time.time()
     executor = ThreadPoolExecutor(2)
     future = executor.submit(axon._forward, (request))
     future2 = executor.submit(axon._forward, (request))
-    response, code, synapses = future.result()
-    assert code == bittensor.proto.ReturnCode.Success
     
     try: 
         future2.result(timeout = 1)
@@ -878,6 +863,9 @@ def test_forward_priority_2nd_request_timeout():
         pass
     else:
         raise AssertionError('Expected to Timeout')
+    
+    _, code, _ = future.result()
+    assert code == bittensor.proto.ReturnCode.Success
 
     axon.stop()
 
@@ -952,7 +940,7 @@ def run_test_grpc_forward_works(receiver_version):
     axon.stop()
 
 def test_grpc_forward_works():
-    for receiver_version in [341, bittensor.__new_signature_version__, bittensor.__version_as_int__]:
+    for receiver_version in [bittensor.__new_signature_version__, bittensor.__version_as_int__]:
         run_test_grpc_forward_works(receiver_version)
 
 def run_test_grpc_backward_works(receiver_version):
@@ -995,7 +983,7 @@ def run_test_grpc_backward_works(receiver_version):
     axon.stop()
 
 def test_grpc_backward_works():
-    for receiver_version in [341, bittensor.__new_signature_version__, bittensor.__version_as_int__]:
+    for receiver_version in [bittensor.__new_signature_version__, bittensor.__version_as_int__]:
         run_test_grpc_backward_works(receiver_version)
 
 def test_grpc_forward_fails():
@@ -1277,7 +1265,7 @@ class TestExternalAxon(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    test_grpc_forward_fails()
     # test_forward_joint_success()
     # test_forward_joint_missing_synapse()
     # test_forward_priority_timeout()
