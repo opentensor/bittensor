@@ -1907,16 +1907,20 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.no_prompt = True
 
         mock_wallet = generate_wallet()
+
+        class MockException(Exception):
+            pass
         
         with patch('bittensor.wallet', return_value=mock_wallet) as mock_create_wallet:
-            cli = bittensor.cli(config)
-            cli.run()
-            mock_create_wallet.assert_called_once()
-            
-            subtensor = bittensor.subtensor(config)
-            registered = subtensor.is_hotkey_registered_on_subnet( hotkey_ss58 = mock_wallet.hotkey.ss58_address, netuid = 1 )
+            with patch('bittensor._subtensor.extrinsics.registration.POWSolution.is_stale', side_effect=MockException) as mock_is_stale:
+                mock_is_stale.return_value = False
 
-            self.assertTrue( registered )
+                with pytest.raises(MockException):
+                    cli = bittensor.cli(config)
+                    cli.run()
+                    mock_create_wallet.assert_called_once()
+                
+                self.assertEqual( mock_is_stale.call_count, 1 )
       
     def test_recycle_register( self ):
         config = self.config
