@@ -19,8 +19,8 @@ import json
 import torch
 import bittensor
 from typing import List, Dict, Union, Tuple
-bittensor.logging(debug=True)
-bittensor.logging.set_trace(True)
+
+bittensor.logging( bittensor.logging.config() )
 
 class Synapse( bittensor.TextPromptingSynapse ):
     def priority(self, forward_call: "bittensor.TextPromptingForwardCall") -> float:

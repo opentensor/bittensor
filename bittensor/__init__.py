@@ -228,6 +228,13 @@ logging.add_defaults( defaults )
 
 from substrateinterface import Keypair as Keypair
 
+# Logging helpers.
+def trace():
+    logging.set_trace(True)
+
+def debug():
+    logging.set_debug(True)
+
 import torch
 class prompting ( torch.nn.Module ):
 

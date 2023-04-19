@@ -50,7 +50,6 @@ class neuron:
         bt.logging.check_config( config )
         bt.wallet.check_config( config )
         bt.subtensor.check_config( config )
-        bt.metagraph.check_config( config )
         full_path = os.path.expanduser('{}/{}/{}/netuid{}/{}'.format( config.logging.logging_dir, config.wallet.name, config.wallet.hotkey, config.netuid, config.neuron.name ))
         config.neuron.full_path = os.path.expanduser( full_path )
         config.neuron.reward_path = os.path.expanduser( config.neuron.reward_path )
@@ -111,7 +110,6 @@ class neuron:
         parser = argparse.ArgumentParser()    
         bt.wallet.add_args( parser )
         bt.subtensor.add_args( parser )
-        bt.metagraph.add_args( parser )
         bt.logging.add_args( parser )
         bt.axon.add_args( parser )
         GatingModel.add_args( parser )
@@ -127,7 +125,7 @@ class neuron:
         self.subtensor = bt.subtensor ( config = self.config )
         self.device = torch.device( self.config.neuron.device )
         self.wallet = bt.wallet ( config = self.config )
-        self.metagraph = self.subtensor.metagraph( self.config.netuid )
+        self.metagraph = bt.metagraph( netuid = self.config.netuid, network = self.subtensor.network )
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )
@@ -234,7 +232,7 @@ class neuron:
         # Set `topk` to the number of items in `self.metagraph.n` if `topk` is not provided or is -1.
         # Find the available `uids` that are currently serving.
         # If `topk` is larger than the number of available `uids`, set `topk` to the number of available `uids`.
-        available_uids = torch.tensor( [ uid for uid, ep in enumerate( self.metagraph.endpoint_objs ) if ep.is_serving ], dtype = torch.int64 ).to( self.device )
+        available_uids = torch.tensor( [ uid for uid, ax in enumerate( self.metagraph.axons ) if ax.is_serving ], dtype = torch.int64 ).to( self.device )
         if topk is None or topk == -1: topk = self.metagraph.n.item()
         if topk > len( available_uids ): topk = len( available_uids )
         if len( available_uids ) == 0: bittensor.logging.error('no available uids'); return None
@@ -380,7 +378,7 @@ class neuron:
 
             # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
             if last_epoch_block % 10 == 0:
-                self.metagraph = self.metagraph.sync( netuid = self.config.netuid, subtensor = self.subtensor )
+                self.metagraph.sync()
                 self.my_nominators = { nomin[0]: nomin[1] for nomin in self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )[0][0].nominators }
 
             # Check if enough epoch blocks have elapsed since the last epoch.
@@ -390,9 +388,6 @@ class neuron:
             if blocks_until_epoch <= 0: 
                 bittensor.logging.trace( 'epoch()' )
                 bittensor.logging.info( 'block', self.subtensor.block )
-
-                # Synce the metagraph.
-                self.metagraph = self.subtensor.metagraph( self.config.netuid )
 
                 # Update the last epoch block to the current epoch block.
                 last_epoch_block = self.subtensor.block
