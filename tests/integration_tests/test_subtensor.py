@@ -27,14 +27,27 @@ import pytest
 from bittensor._subtensor.subtensor_mock import mock_subtensor
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
-from tests.helpers import get_mock_neuron, get_mock_hotkey, get_mock_coldkey, get_mock_neuron_by_uid
+from tests.helpers import get_mock_neuron, get_mock_hotkey, get_mock_coldkey, get_mock_neuron_by_uid, MockConsole
 
 class TestSubtensor(unittest.TestCase):
+    _mock_console_patcher = None
+
     def setUp(self):
         self.subtensor = bittensor.subtensor( network = 'mock' )
         self.wallet = bittensor.wallet(_mock=True)
         self.mock_neuron = get_mock_neuron_by_uid(0)
         self.balance = Balance.from_tao(1000)
+    
+    @classmethod
+    def setUpClass(cls) -> None:
+        # mock rich console status
+        mock_console = MockConsole()
+        cls._mock_console_patcher = patch('bittensor.__console__', mock_console)
+        cls._mock_console_patcher.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._mock_console_patcher.stop()
 
     def test_network_overrides( self ): 
         """ Tests that the network overrides the chain_endpoint.
@@ -69,8 +82,6 @@ class TestSubtensor(unittest.TestCase):
                 assert sub3.network == "local"
                 assert sub3.chain_endpoint == bittensor.__local_entrypoint__
             
-
-
     def test_neurons( self ):
         def mock_get_neuron_by_uid(_):
             return get_mock_neuron_by_uid(1)
@@ -97,7 +108,6 @@ class TestSubtensor(unittest.TestCase):
                         assert type(neuron.axon_info.protocol) == int
                         assert type(neuron.hotkey) == str
                         assert type(neuron.coldkey) == str
-
 
     def test_get_current_block( self ):
         block = self.subtensor.get_current_block()
