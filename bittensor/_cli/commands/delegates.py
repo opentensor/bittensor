@@ -139,7 +139,8 @@ class DelegateStakeCommand:
             wait_for_inclusion = True, 
             prompt = not config.no_prompt 
         )
-        wallet.coldkey_file.check_and_update_encryption( no_prompt = config.no_prompt, print_result= False)
+        # check if wallet needs to be updated.
+        wallet.coldkey_file.check_and_update_encryption( no_prompt = config.no_prompt, print_result = False)
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):

@@ -32,6 +32,7 @@ import bittensor
 from typing import List
 
 def _get_coldkey_wallets_for_path( path: str ) -> List['bittensor.wallet']:
+    '''Get all coldkey wallet names from path.'''
     try:
         wallet_names = next(os.walk(os.path.expanduser(path)))[1]
         return [ bittensor.wallet( path= path, name=name ) for name in wallet_names ]
@@ -46,7 +47,7 @@ class UpdateWalletCommand:
 
     @staticmethod
     def run( cli ):
-        '''Delegates stake to a chain delegate.'''
+        '''Check if any of the wallets needs an update.'''
         config = cli.config.copy()
         if config.all == True:
             wallets = _get_coldkey_wallets_for_path( config.wallet.path )
@@ -80,6 +81,7 @@ class UpdateWalletCommand:
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
+        # Ask the user to specify the wallet if the wallet name is not clear. 
         if config.all == False and config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)

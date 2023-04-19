@@ -147,12 +147,12 @@ def ask_password_to_encrypt() -> str:
     return password
 
 def keyfile_data_is_encrypted_nacl( keyfile_data:bytes ) -> bool:
-    """ Returns true if the keyfile data is ansible encrypted.
+    """ Returns true if the keyfile data is NaCl encrypted.
         Args:
             keyfile_data ( bytes, required ):
                 Bytes to validate
         Returns:
-            is_ansible (bool):
+            is_nacl (bool):
                 True if data is ansible encrypted.
     """
     return keyfile_data[:len('$NACL')] == b'$NACL'
@@ -219,8 +219,8 @@ def encrypt_keyfile_data ( keyfile_data:bytes, password: str = None ) -> bytes:
                 Ansible encrypted data.
     """
     password = ask_password_to_encrypt() if password == None else password
+    password = bytes(password, 'utf-8')
     kdf = pwhash.argon2i.kdf
-    password = b"" if password == None else bytes(password, 'utf-8')
     key = kdf(secret.SecretBox.KEY_SIZE, password, NACL_SALT, opslimit=pwhash.argon2i.OPSLIMIT_SENSITIVE, memlimit=pwhash.argon2i.MEMLIMIT_SENSITIVE)
     box = secret.SecretBox(key)
     encrypted = box.encrypt(keyfile_data)
@@ -262,7 +262,7 @@ def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name
             
             # NaCl SecretBox decrypt.
             if keyfile_data_is_encrypted_nacl( keyfile_data ):
-                password = b"" if password == None else bytes(password, 'utf-8')
+                password = bytes(password, 'utf-8')
                 kdf = pwhash.argon2i.kdf
                 key = kdf(secret.SecretBox.KEY_SIZE, password, NACL_SALT, opslimit=pwhash.argon2i.OPSLIMIT_SENSITIVE, memlimit=pwhash.argon2i.MEMLIMIT_SENSITIVE)
                 box = secret.SecretBox(key)
@@ -478,8 +478,9 @@ class Keyfile( object ):
         update_keyfile = False
         if not no_prompt:
             keyfile_data = self._read_keyfile_data_from_file()
-            if keyfile_data_is_encrypted( keyfile_data ) and not keyfile_data_is_encrypted_nacl( keyfile_data ):
 
+            # If the key is not nacl encrypted. 
+            if keyfile_data_is_encrypted( keyfile_data ) and not keyfile_data_is_encrypted_nacl( keyfile_data ):
                 bittensor.__console__.print(f":exclamation_mark:You may update the keyfile to improve the security for storing your keys. \nWhile the key and the password stays the same, it would require providing your password once. \n:key: {self}")
                 update_keyfile = Confirm.ask("Update keyfile?")
                 if update_keyfile:
@@ -491,7 +492,6 @@ class Keyfile( object ):
                         except KeyFileError:
                             if not Confirm.ask("Invalid password, retry and continue this keyfile update?"):
                                 return False
-
 
                     encrypted_keyfile_data = encrypt_keyfile_data( decrypted_keyfile_data, password = password )
                     self._write_keyfile_data_to_file( encrypted_keyfile_data, overwrite = True )

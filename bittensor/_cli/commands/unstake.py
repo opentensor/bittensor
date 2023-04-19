@@ -226,4 +226,6 @@ class UnStakeCommand:
             )
 
         subtensor.unstake_multiple( wallet = wallet, hotkey_ss58s=[hotkey_ss58 for _, hotkey_ss58 in final_hotkeys], amounts =  None if cli.config.get('unstake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
+
+        # check if wallet needs to be updated.
         wallet.coldkey_file.check_and_update_encryption(no_prompt = cli.config.no_prompt, print_result = False)
