@@ -654,6 +654,9 @@ class MockKeyfile( object ):
     def decrypt( self, password: str = None):
         return
 
+    def check_and_update_encryption(self, no_prompt = None, print_result = False):
+        return
+
 
 
 

@@ -78,9 +78,9 @@ def generate_wallet(coldkey : 'Keypair' = None, hotkey: 'Keypair' = None):
 
     return wallet
 
-class TestCLIWithNetworkAndConfig(unittest.TestCase):
+class TestCLIWithNetworkAndConfigOverview(unittest.TestCase):
     def setUp(self):
-        self._config = TestCLIWithNetworkAndConfig.construct_config()
+        self._config = TestCLIWithNetworkAndConfigOverview.construct_config()
     
     @property
     def config(self):
@@ -445,6 +445,32 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
+class TestCLIWithNetworkAndConfigStake(unittest.TestCase):
+    def setUp(self):
+        self._config = TestCLIWithNetworkAndConfigStake.construct_config()
+    
+    @property
+    def config(self):
+        copy_ = deepcopy(self._config)
+        return copy_
+
+    @staticmethod
+    def construct_config():
+        defaults = bittensor.Config()
+        defaults.netuid = 1
+        bittensor.subtensor.add_defaults( defaults )
+        # Always use mock subtensor.
+        defaults.subtensor.network = 'finney'
+        defaults.subtensor._mock = True
+        # Skip version checking.
+        defaults.no_version_checking = True
+        bittensor.dendrite.add_defaults( defaults )
+        bittensor.axon.add_defaults( defaults )
+        bittensor.wallet.add_defaults( defaults )
+        bittensor.dataset.add_defaults( defaults )
+        
+        return defaults
+
     def test_unstake_with_specific_hotkeys( self ):        
         config = self.config
         config.command = "unstake"
@@ -473,6 +499,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkeypub = mock_coldkey_kp,
                 hotkey_str = hk,
                 hotkey = get_mock_keypair(idx + 100, self.id()),
+                coldkey_file = bittensor.keyfile()
             ) for idx, hk in enumerate(config.hotkeys)
         ]
 
@@ -1493,7 +1520,33 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 address=wallet.coldkeypub.ss58_address
             )
             self.assertAlmostEqual(balance.tao, mock_balance.tao, places=4)
+
+class TestCLIWithNetworkAndConfigOthers(unittest.TestCase):
+    def setUp(self):
+        self._config = TestCLIWithNetworkAndConfigOthers.construct_config()
+    
+    @property
+    def config(self):
+        copy_ = deepcopy(self._config)
+        return copy_
+
+    @staticmethod
+    def construct_config():
+        defaults = bittensor.Config()
+        defaults.netuid = 1
+        bittensor.subtensor.add_defaults( defaults )
+        # Always use mock subtensor.
+        defaults.subtensor.network = 'finney'
+        defaults.subtensor._mock = True
+        # Skip version checking.
+        defaults.no_version_checking = True
+        bittensor.dendrite.add_defaults( defaults )
+        bittensor.axon.add_defaults( defaults )
+        bittensor.wallet.add_defaults( defaults )
+        bittensor.dataset.add_defaults( defaults )
         
+        return defaults
+     
     def test_nominate( self ):
         config = self.config
         config.command = "nominate"
