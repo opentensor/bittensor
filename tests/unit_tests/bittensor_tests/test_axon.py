@@ -853,12 +853,9 @@ def test_forward_priority_2nd_request_timeout():
         synapses= [ syn.serialize_to_wire_proto() for syn in synapses ],
         hotkey = axon.wallet.hotkey.ss58_address,
     )
-    start_time = time.time()
     executor = ThreadPoolExecutor(2)
     future = executor.submit(axon._forward, (request))
     future2 = executor.submit(axon._forward, (request))
-    response, code, synapses = future.result()
-    assert code == bittensor.proto.ReturnCode.Success
     
     try: 
         future2.result(timeout = 1)
@@ -866,6 +863,9 @@ def test_forward_priority_2nd_request_timeout():
         pass
     else:
         raise AssertionError('Expected to Timeout')
+    
+    _, code, _ = future.result()
+    assert code == bittensor.proto.ReturnCode.Success
 
     axon.stop()
 
