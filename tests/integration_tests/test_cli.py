@@ -254,7 +254,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register each wallet to it's subnet
+        print("Registering mock wallets to subnets...")
         for netuid, wallet in mock_registrations:
+            print("Registering wallet {} to subnet {}".format(wallet.hotkey_str, netuid))
             _subtensor_mock.sudo_register(
                 netuid = netuid,
                 coldkey = wallet.coldkey.ss58_address,
@@ -710,7 +712,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register mock wallets and give them stakes
+        print("Registering mock wallets...")
         for wallet in mock_wallets:
+            print("Registering mock wallet {}".format(wallet.hotkey_str))
             success, err = _subtensor_mock.sudo_register(
                 netuid = 1,
                 hotkey = wallet.hotkey.ss58_address,
@@ -784,7 +788,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register mock wallets and give them balances
+        print("Registering mock wallets...")
         for wallet in mock_wallets:
+            print("Registering mock wallet {}".format(wallet.hotkey_str))
             success, err = _subtensor_mock.sudo_register(
                 netuid = 1,
                 hotkey = wallet.hotkey.ss58_address,
@@ -856,7 +862,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register mock wallets and give them no stake
+        print("Registering mock wallets...")
         for wallet in mock_wallets:
+            print("Registering mock wallet {}".format(wallet.hotkey_str))
             success, err = _subtensor_mock.sudo_register(
                 netuid = 1,
                 hotkey = wallet.hotkey.ss58_address,
@@ -947,7 +955,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register mock wallets and give them balances
+        print("Registering mock wallets...")
         for wallet in mock_wallets:
+            print("Registering mock wallet {}".format(wallet.hotkey_str))
             success, err = _subtensor_mock.sudo_register(
                 netuid = 1,
                 hotkey = wallet.hotkey.ss58_address,
@@ -1049,7 +1059,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register mock wallets and give them balances
+        print("Registering mock wallets...")
         for wallet in mock_wallets:
+            print("Registering mock wallet {}".format(wallet.hotkey_str))
             if wallet.hotkey_str == 'hk1':
                 # Set the stake for hk1
                 success, err = _subtensor_mock.sudo_register(
@@ -1155,7 +1167,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register mock wallets and give them balances
+        print("Registering mock wallets...")
         for wallet in mock_wallets:
+            print("Registering mock wallet {}".format(wallet.hotkey_str))
             success, err = _subtensor_mock.sudo_register(
                 netuid = 1,
                 hotkey = wallet.hotkey.ss58_address,
@@ -1248,7 +1262,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register mock wallets and give them balances
+        print("Registering mock wallets...")
         for wallet in mock_wallets:
+            print("Registering mock wallet {}".format(wallet.hotkey_str))
             success, err = _subtensor_mock.sudo_register(
                 netuid = 1,
                 hotkey = wallet.hotkey.ss58_address,
