@@ -93,8 +93,6 @@ def main():
     # --- PPO
     strategy = NaiveStrategy()
 
-
-
     # --- Turn on logging.
     bittensor.logging(config=config, logging_dir=config.neuron.full_path)
     

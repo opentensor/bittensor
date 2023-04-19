@@ -67,6 +67,8 @@ def serve_extrinsic (
     # Decrypt hotkey
     wallet.hotkey
 
+    print (ip)
+
     params = {
         'version': bittensor.__version_as_int__,
         'ip': net.ip_to_int(ip),
@@ -209,7 +211,7 @@ def serve_axon_extrinsic (
             ip = external_ip,
             port = external_port,
             netuid = netuid,
-            protocol = axon.protocol,
+            protocol = 4,
             wait_for_inclusion = wait_for_inclusion,
             wait_for_finalization = wait_for_finalization,
             prompt = prompt

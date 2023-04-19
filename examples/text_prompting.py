@@ -56,6 +56,7 @@ axon = bittensor.axon( wallet = wallet, port = 9090, ip = "127.0.0.1", metagraph
 dendrite = bittensor.text_prompting( axon = axon.info(), keypair = wallet.hotkey )
 synapse = Synapse( axon = axon )
 axon.start()
+bittensor.subtensor().serve_axon( netuid = 1, axon = axon )
 
 bittensor.logging.debug( "Start example")
 forward_call = dendrite.forward(

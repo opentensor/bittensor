@@ -132,18 +132,18 @@ class neuron:
         self.tokenizer = AutoTokenizer.from_pretrained( 'EleutherAI/gpt-j-6b' )
 
         # Reward model
-        bittensor.logging.info('Loading reward model')
-        self.reward_model = RewardModel( model_path = 'EleutherAI/gpt-j-6b', device = self.config.neuron.device )
-        for fpath in os.listdir( self.config.neuron.reward_path ):
-            if fpath.endswith(".pt") or fpath.endswith(".bin"):
-                checkpoint = os.path.join( self.config.neuron.reward_path, fpath )
-                break
-        ckpt_state = torch.load( checkpoint )
-        self.reward_model.load_state_dict( ckpt_state )
-        self.reward_model.eval()
-        self.reward_model.half()
-        self.reward_model.requires_grad_( False )
-        self.reward_model.to( self.device )
+        # bittensor.logging.info('Loading reward model')
+        # self.reward_model = RewardModel( model_path = 'EleutherAI/gpt-j-6b', device = self.config.neuron.device )
+        # for fpath in os.listdir( self.config.neuron.reward_path ):
+        #     if fpath.endswith(".pt") or fpath.endswith(".bin"):
+        #         checkpoint = os.path.join( self.config.neuron.reward_path, fpath )
+        #         break
+        # ckpt_state = torch.load( checkpoint )
+        # self.reward_model.load_state_dict( ckpt_state )
+        # self.reward_model.eval()
+        # self.reward_model.half()
+        # self.reward_model.requires_grad_( False )
+        # self.reward_model.to( self.device )
         bittensor.logging.info('done loading reward model')
 
         # Init the gating model which learns which miners to select for each query.
@@ -152,7 +152,6 @@ class neuron:
         self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, keypair = self.wallet.hotkey )
         # History of forward events.
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
-
         # Get a list of peers delegating to me
         self.my_nominators = { nomin[0]: nomin[1] for nomin in self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )[0][0].nominators }
 
@@ -266,7 +265,8 @@ class neuron:
 
         # Calculate the rewards for the successful `completions` using the reward model.
         # Print the rewards for all `uids`.
-        rewards = self.reward_model.reward( successful_completions ).to( self.device )
+        #rewards = self.reward_model.reward( successful_completions ).to( self.device )
+        rewards = scores
         bittensor.logging.trace( 'rewards', rewards )
 
         # Train the gating model using the scores and rewards of the successful `completions`.

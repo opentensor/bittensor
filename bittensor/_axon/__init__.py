@@ -43,6 +43,9 @@ class axon:
             port = self.external_port,
             hotkey = self.wallet.hotkey.ss58_address,
             coldkey = self.wallet.coldkeypub.ss58_address,
+            protocol = 4,
+            placeholder1 = 0,
+            placeholder2 = 0,
         )
 
     def __init__(
@@ -402,6 +405,9 @@ class axon_info:
     ip_type: int
     hotkey: str 
     coldkey: str
+    protocol:int = 4,
+    placeholder1:int = 0,
+    placeholder2:int = 0,
 
     @property
     def is_serving(self) -> bool:

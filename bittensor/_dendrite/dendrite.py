@@ -145,7 +145,6 @@ class Dendrite( ABC, torch.nn.Module ):
         self.uuid = str(uuid.uuid1())
         self.keypair = keypair.hotkey if isinstance( keypair, bittensor.Wallet ) else keypair
         self.axon_info = axon.info() if isinstance( axon, bittensor.axon ) else axon
-        print (self.axon_info)
         if self.axon_info.ip == bittensor.utils.networking.get_external_ip(): 
             self.endpoint_str = "localhost:" + str(self.axon_info.port)
         else: 
