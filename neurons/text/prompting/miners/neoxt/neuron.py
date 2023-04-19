@@ -68,20 +68,16 @@ class NeoxtMiner( bittensor.BasePromptingMiner ):
         return processed_history
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
-
         history = self._process_history(messages)
         prompt = history + "<bot>:"
-
         input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.config.neoxt.device)
-
         output = self.model.generate(
-        input_ids,
-        max_length=input_ids.shape[1] + self.config.neoxt.max_new_tokens,
-        temperature=self.config.neoxt.temperature,
-        do_sample=self.config.neoxt.do_sample,
-        pad_token_id=self.tokenizer.eos_token_id,
+            input_ids,
+            max_length=input_ids.shape[1] + self.config.neoxt.max_new_tokens,
+            temperature=self.config.neoxt.temperature,
+            do_sample=self.config.neoxt.do_sample,
+            pad_token_id=self.tokenizer.eos_token_id,
         )
-
         generated_text = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
         generation = generated_text.split("<human>")[0].strip()
         
