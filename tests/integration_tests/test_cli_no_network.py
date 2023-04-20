@@ -93,6 +93,7 @@ class TestCLINoNetwork(unittest.TestCase):
         config.no_version_checking = True
         config.ss58_address = bittensor.Keypair.create_from_seed( b'0' * 32 ).ss58_address
         config.public_key_hex = None
+        config.all = False
 
         cli = bittensor.cli
 
@@ -110,6 +111,8 @@ class TestCLINoNetwork(unittest.TestCase):
                 return "mock"
             elif "hotkey" in prompt:
                 return "mock"
+            elif "wallet name" in prompt:
+                return "default"
         
         with patch('rich.prompt.Prompt.ask', ask_response):
             for cmd in commands:
