@@ -156,7 +156,8 @@ class neuron:
         # History of forward events.
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
         # Get a list of peers delegating to me
-        self.my_nominators = { nomin[0]: nomin[1] for nomin in self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )[0][0].nominators }
+        delegated = self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )
+        self.my_nominators = { nomin[0]: nomin[1] for nomin in delegated[0][0].nominators } if len(delegated) else {}
 
         # Build synapse entrypoint.
         class Synapse( bittensor.TextPromptingSynapse ):
@@ -371,6 +372,7 @@ class neuron:
             flattened_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in completions ] 
 
             # Return best via reward model.
+            reward_model_start = time.time()
             rewards = self.reward_model.reward( flattened_completions_for_reward ).to( self.device )
             best_completion = completions[ rewards.argmax( dim = 0 ) ]
             bittensor.logging.info('finished applying the reward model ', time.time() - reward_model_start )
