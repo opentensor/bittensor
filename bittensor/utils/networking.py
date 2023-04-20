@@ -24,7 +24,7 @@ import miniupnpc
 import netaddr
 import requests
 from loguru import logger
-import bittensor
+from .. import __blocktime__
 
 def int_to_ip(int_val: int) -> str:
     r""" Maps an integer to a unique ip-string 
@@ -82,7 +82,7 @@ def ip__str__(ip_type:int, ip_str:str, port:int):
 class ExternalIPNotFound(Exception):
     """ Raised if we cannot attain your external ip from CURL/URLLIB/IPIFY/AWS """
 
-def get_external_ip(timeout:int = bittensor.__blocktime__) -> str:
+def get_external_ip(timeout:int = __blocktime__) -> str:
     r""" Checks URLLIB/IPIFY/AWS/WIKI for your external ip.
         Returns:
             external_ip  (:obj:`str` `required`):
@@ -121,9 +121,6 @@ def get_external_ip(timeout:int = bittensor.__blocktime__) -> str:
                 if not isinstance(ip_to_int(external_ip), int): raise(ValueError('IP could not be converted to int.'))
                 return str(external_ip)
         except Exception:
-            logger.info(f'Failed to get external IP from {get_ip.__name__}')
-            
-
             pass
 
     raise ExternalIPNotFound
