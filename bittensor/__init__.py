@@ -15,12 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+import torch
+from typing import Union, List, Dict
 from rich.console import Console
 from rich.traceback import install
 from prometheus_client import Info
+from langchain.llms.base import LLM
+from typing import Optional, List, Mapping, Any
 
 # import nest_asyncio
 # nest_asyncio.apply()
+
 
 # Bittensor code and protocol version.
 __version__ = '4.0.0'
@@ -149,28 +154,23 @@ from bittensor._cli.commands import utils as cli_utils
 from bittensor.utils.balance import Balance as Balance
 from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon
+from bittensor._axon import axon_info as axon_info
 from bittensor._wallet import wallet as wallet
 from bittensor._keyfile import keyfile as keyfile
-from bittensor._receptor import receptor as receptor
-from bittensor._endpoint import endpoint as endpoint
 from bittensor._metagraph import metagraph as metagraph
 from bittensor._prometheus import prometheus as prometheus
 from bittensor._subtensor import subtensor as subtensor
 from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
 from bittensor._dataset import dataset as dataset
-from bittensor._wandb import wandb as wandb
 from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
-from bittensor._subtensor.chain_data import AxonInfo as AxonInfo
 from bittensor._config.config_impl import Config as Config
 from bittensor._subtensor.chain_data import DelegateInfo as DelegateInfo
 from bittensor._wallet.wallet_impl import Wallet as Wallet
 from bittensor._keyfile.keyfile_impl import Keyfile as Keyfile
-from bittensor._endpoint.endpoint_impl import Endpoint as Endpoint
-from bittensor._metagraph.metagraph_impl import Metagraph as Metagraph
 from bittensor._subtensor.chain_data import NeuronInfo as NeuronInfo
 from bittensor._subtensor.chain_data import NeuronInfoLite as NeuronInfoLite
 from bittensor._subtensor.chain_data import PrometheusInfo as PrometheusInfo
@@ -184,57 +184,21 @@ from bittensor._ipfs.ipfs_impl import Ipfs as Ipfs
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 
-# ---- Synapse Protos -----
-from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateRequest
-from bittensor._proto.bittensor_pb2 import ForwardTextLastHiddenStateResponse
-from bittensor._proto.bittensor_pb2 import BackwardTextLastHiddenStateRequest
-from bittensor._proto.bittensor_pb2 import BackwardTextLastHiddenStateResponse
-
-from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMRequest
-from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMResponse
-from bittensor._proto.bittensor_pb2 import BackwardTextCausalLMRequest
-
-from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMNextRequest
-from bittensor._proto.bittensor_pb2 import ForwardTextCausalLMNextResponse
-from bittensor._proto.bittensor_pb2 import BackwardTextCausalLMNextRequest
-
-from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqRequest
-from bittensor._proto.bittensor_pb2 import ForwardTextSeq2SeqResponse
-
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingResponse
 
-# ---- Calls -----
-from bittensor._synapse.call import BittensorCall
-from bittensor._synapse.text_seq2seq.call import TextSeq2SeqBittensorCall 
-from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateForwardCall
-from bittensor._synapse.text_last_hidden_state.call import TextLastHiddenStateBackwardCall
-from bittensor._synapse.text_causallm.call import TextCausalLMForwardCall
-from bittensor._synapse.text_causallm.call import TextCausalLMBackwardCall
-from bittensor._synapse.text_causallm_next.call import TextCausalLMNextForwardCall
-from bittensor._synapse.text_causallm_next.call import TextCausalLMNextBackwardCall
-
-from bittensor._synapse.text_prompting.call import TextPromptingForwardCall
-from bittensor._synapse.text_prompting.call import TextPromptingBackwardCall
-
 # ---- Synapses -----
 from bittensor._synapse.synapse import Synapse
-from bittensor._synapse.text_seq2seq.synapse import TextSeq2SeqSynapse
-from bittensor._synapse.text_last_hidden_state.synapse import TextLastHiddenStateSynapse
-from bittensor._synapse.text_causallm.synapse import TextCausalLMSynapse
-from bittensor._synapse.text_causallm_next.synapse import TextCausalLMNextSynapse
+from bittensor._synapse.synapse import SynapseCall
 from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
 
 # ---- Dendrites -----
-from bittensor._synapse.dendrite import Dendrite
-from bittensor._synapse.text_seq2seq.dendrite import TextSeq2SeqDendrite as text_seq2seq
-from bittensor._synapse.text_last_hidden_state.dendrite import TextLastHiddenStateDendrite as text_last_hidden_state
-from bittensor._synapse.text_causallm.dendrite import TextCausalLMDendrite as text_causal_lm
-from bittensor._synapse.text_causallm_next.dendrite import TextCausalLMNextDendrite as text_causal_lm_next
-from bittensor._synapse.text_prompting.dendrite import TextPromptingDendrite as text_prompting
-from bittensor._synapse.text_prompting.dendrite import TextPromptingDendritePool as text_prompting_pool
+from bittensor._dendrite.dendrite import Dendrite
+from bittensor._dendrite.dendrite import DendriteCall
+from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as text_prompting
+from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
 
 # ---- Base Miners -----
 from bittensor._synapse.text_prompting.miner import BasePromptingMiner
@@ -254,7 +218,148 @@ prioritythreadpool.add_defaults( defaults )
 prometheus.add_defaults( defaults )
 wallet.add_defaults( defaults )
 dataset.add_defaults( defaults )
-wandb.add_defaults( defaults )
 logging.add_defaults( defaults )
 
 from substrateinterface import Keypair as Keypair
+
+# Logging helpers.
+def trace():
+    logging.set_trace(True)
+
+def debug():
+    logging.set_debug(True)
+
+
+default_prompt = '''
+You are Chattensor.
+Chattensor is a research project by Opentensor Cortex.
+Chattensor is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Chattensor is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
+'''
+class prompting ( torch.nn.Module ):
+
+    def __init__(
+        self,
+        wallet_name: str = "default",
+        hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
+
+    ):
+        super(prompting, self).__init__()
+        self._hotkey = hotkey
+        self._subtensor = subtensor()
+        self._keypair = wallet( name = wallet_name ).create_if_non_existent().coldkey
+        self._metagraph = metagraph( 1 )
+        self._axon = self._metagraph.axons[ self._metagraph.hotkeys.index( self._hotkey ) ]
+        self._dendrite = text_prompting(
+            keypair = self._keypair,
+            axon = self._axon
+        )
+
+    def forward( 
+            self,
+            content: Union[ str, List[str], List[Dict[ str ,str ]]],
+            timeout: float = 1000,
+            return_call: bool = False
+        ) -> str:
+        if isinstance( content, str ):
+            return self._dendrite.forward(
+                roles = ['system', 'user'],
+                messages = [ default_prompt, content ],
+                timeout = timeout
+            ).completion
+        elif isinstance( content, list ):
+            if isinstance( content[0], str ):
+                return self._dendrite.forward(
+                    roles = ['user' for _ in content ],
+                    messages = content,
+                    timeout = timeout
+                ).completion
+            elif isinstance( content[0], dict ):
+                return self._dendrite.forward(
+                    roles = [ dictitem[ dictitem.keys()[0] ] for dictitem in content ],
+                    messages = [ dictitem[ dictitem.keys()[1] ] for dictitem in content ],
+                    timeout = timeout
+                ).completion
+            else:
+                raise ValueError('content has invalid type {}'.format( type( content )))
+        else:
+            raise ValueError('content has invalid type {}'.format( type( content )))
+        
+    async def async_forward( 
+            self,
+            content: Union[ str, List[str], List[Dict[ str ,str ]]],
+            timeout: float = 1000
+        ):
+        if isinstance( content, str ):
+            resp = await self._dendrite.async_forward(
+                roles = ['system', 'user'],
+                messages = [ default_prompt, content ],
+                timeout = timeout
+            )
+            return resp.completion
+        elif isinstance( content, list ):
+            if isinstance( content[0], str ):
+                resp = await self._dendrite.async_forward(
+                    roles = ['user' for _ in content ],
+                    messages = content,
+                    timeout = timeout
+                )
+                return resp.completion
+            elif isinstance( content[0], dict ):
+                resp = await self._dendrite.async_forward(
+                    roles = [ dictitem[ dictitem.keys()[0] ] for dictitem in content ],
+                    messages = [ dictitem[ dictitem.keys()[1] ] for dictitem in content ],
+                    timeout = timeout
+                )
+                return resp.completion
+            else:
+                raise ValueError('content has invalid type {}'.format( type( content )))
+        else:
+            raise ValueError('content has invalid type {}'.format( type( content )))
+
+__context_llm = None
+def prompt( 
+        content: Union[ str, List[str], List[Dict[ str ,str ]]],
+        wallet_name: str = "default",
+        hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
+    ) -> str:
+    global __context_llm
+    if __context_llm == None:
+        __context_llm = prompting( 
+            wallet_name = wallet_name,
+            hotkey = hotkey
+        )
+    return __context_llm( content = content )
+
+class BittensorLLM(LLM):
+    """Wrapper around Bittensor Prompting Subnetwork. 
+This Python file implements the BittensorLLM class, a wrapper around the Bittensor Prompting Subnetwork for easy integration into language models. The class provides a query method to receive responses from the subnetwork for a given user message and an implementation of the _call method to return the best response. The class can be initialized with various parameters such as the wallet name and chain endpoint.
+    
+    Example:
+        .. code-block:: python
+
+            from bittensor import BittensorLLM
+            btllm = BittensorLLM(wallet_name="default")
+    """
+
+    wallet_name: str = 'default'
+    hotkey: str = '5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3'
+    llm: prompting = None
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.llm = prompting(wallet_name=self.wallet_name, hotkey=self.hotkey)
+
+    @property
+    def _identifying_params(self) -> Mapping[str, Any]:
+        """Get the identifying parameters."""
+        return {"wallet_name": self.wallet_name, "hotkey_name": self.hotkey}
+
+    @property
+    def _llm_type(self) -> str:
+        return "BittensorLLM"
+
+
+    def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
+        """Call the LLM with the given prompt and stop tokens."""
+        return self.llm(prompt)
+
+

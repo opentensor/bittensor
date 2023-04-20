@@ -46,7 +46,7 @@ class MetagraphCommand:
         total_dividends = 0.0
         total_emission = 0  
         for uid in metagraph.uids:
-            ep = metagraph.endpoint_objs[uid]
+            ep = metagraph.axons[uid]
             row = [
                 str(ep.uid), 
                 '{:.5f}'.format( metagraph.total_stake[uid]),

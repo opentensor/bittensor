@@ -1,254 +1,11 @@
 // python3 -m grpc.tools.protoc bittensor/_proto/bittensor.proto  -I. --python_out=. --grpc_python_out=. --proto_path bittensor/_proto/
 syntax = "proto3";
 
-service TextLastHiddenState {
-	rpc Forward (ForwardTextLastHiddenStateRequest) returns (ForwardTextLastHiddenStateResponse) {}
-	rpc Backward (BackwardTextLastHiddenStateRequest) returns (BackwardTextLastHiddenStateResponse) {}
-}
-
-service TextCausalLM {
-	rpc Forward (ForwardTextCausalLMRequest) returns (ForwardTextCausalLMResponse) {}
-	rpc Backward (BackwardTextCausalLMRequest) returns (BackwardTextCausalLMResponse) {}
-}
-
-service TextCausalLMNext {
-	rpc Forward (ForwardTextCausalLMNextRequest) returns (ForwardTextCausalLMNextResponse) {}
-	rpc Backward (BackwardTextCausalLMNextRequest) returns (BackwardTextCausalLMNextResponse) {}
-}
-
-service TextSeq2Seq  {
-	rpc Forward (ForwardTextSeq2SeqRequest) returns (ForwardTextSeq2SeqResponse) {}
-}
-
-/////////////////
-// TextSeq2Seq //
-/////////////////
-// Forward Request.
-message ForwardTextSeq2SeqRequest {
-    // Caller information.
-    int32 version = 1;
-	string hotkey = 2;
-
-    // Serializers required on forward messages.
-	Serializer text_prompt_serializer_type = 3;
-	Serializer generations_serializer_type = 4;
-
-    // Tokenized text response.
-	Tensor serialized_text_prompt = 5;
-
-    // Specifies the number of Topk logits to return.
-    // Logit values are packed (pos, value) according
-    // to the bittensor tokenizer vocab size.
-    int32 topk = 6;
-
-    // Number of tokens to predict
-    int32 num_to_generate = 7;
-
-    //Generate Arguments
-    // Number of beams
-    int32 num_beams = 8;
-
-    //Number of repeat words
-    int32 no_repeat_ngram_size = 9;
-
-    //Early Stopping
-    bool early_stopping = 10;
-    
-    //Number of return sequences
-    int32 num_return_sequences = 11;
-
-    //If sampling should be used
-    bool do_sample = 12;
-
-    //The probability cutoff
-    float top_p = 13;
-
-    //temperature of the softmax function
-    float temperature = 15;
-
-    //penalty for repeated words
-    float repetition_penalty = 16; 
-
-    //penalty for length 
-    float length_penalty = 17;
-
-    //maximum amount of time 
-    float max_time = 18;
-
-    //groups for beam search
-    int32 num_beam_groups = 19;
-
-	// QueryTimeout
-	float timeout = 20;
-}
-
-// Forward Response.
-message ForwardTextSeq2SeqResponse {
-    int32 version = 1;
-	string hotkey = 2;	
-
-    // Logits containing generated text.
-	Tensor serialized_generations = 3;
-
-	string message = 4;
-	ReturnCode return_code = 5; 
-}
-
-/////////////////////////
-// TextLastHiddenState //
-/////////////////////////
-message ForwardTextLastHiddenStateRequest {
-	int32 version = 1;
-	string hotkey = 2;	
-
-	Serializer mask_serializer_type = 3;
-	Serializer text_inputs_serializer_type = 4;
-	Serializer hidden_states_serializer_type = 5;
-
-	Tensor serialized_text_inputs = 6;
-	Tensor serialized_mask = 7;
-
-	// QueryTimeout
-	float timeout = 8;
-}
-
-message ForwardTextLastHiddenStateResponse {
-	int32 version = 1;
-	string hotkey = 2;	
-
-	Tensor serialized_hidden_states = 3;
-
-	string message = 4;
-	ReturnCode return_code = 5; 
-}
-
-message BackwardTextLastHiddenStateRequest {
-	int32 version = 1;
-	string hotkey = 2;	
-
-	Serializer mask_serializer_type = 3;
-	Serializer hidden_states_serializer_type = 4;
-	Serializer hidden_states_grads_serializer_type = 5;
-	Serializer text_inputs_serializer_type = 6;
-
-	Tensor serialized_text_inputs = 7;
-	Tensor serialized_hidden_states = 8;
-	Tensor serialized_hidden_states_grads = 9;
-	Tensor serialized_mask = 10;
-}
-
-message BackwardTextLastHiddenStateResponse {
-	int32 version = 1;
-	string hotkey = 2;	
-	string message = 3;
-	ReturnCode return_code = 4; 
-}
-
-/////////////////////////
-// TextCausalLMNext //
-/////////////////////////
-message ForwardTextCausalLMNextRequest {
-	int32 version = 1;
-	string hotkey = 2;
-
-	Serializer mask_serializer_type = 3;
-	Serializer text_inputs_serializer_type = 4;
-	Serializer text_outputs_serializer_type = 5;
-
-	Tensor serialized_text_inputs = 6;
-
-	// QueryTimeout
-	float timeout = 7;
-	int32 topk = 8;
-}
-
-message ForwardTextCausalLMNextResponse {
-	int32 version = 1;
-	string hotkey = 2;
-
-	Tensor serialized_text_outputs = 3;
-
-	string message = 4;
-	ReturnCode return_code = 5;
-}
-
-message BackwardTextCausalLMNextRequest {
-	int32 version = 1;
-	string hotkey = 2;
-
-	Serializer mask_serializer_type = 3;
-	Serializer text_outputs_serializer_type = 4;
-	Serializer text_outputs_grads_serializer_type = 5;
-	Serializer text_inputs_serializer_type = 6;
-
-	Tensor serialized_text_inputs = 7;
-	Tensor serialized_text_outputs = 8;
-	Tensor serialized_text_outputs_grads = 9;
-}
-
-message BackwardTextCausalLMNextResponse {
-	int32 version = 1;
-	string hotkey = 2;
-	string message = 3;
-	ReturnCode return_code = 4;
-}
-
-/////////////////////////
-// TextCausalLM //
-/////////////////////////
-
-message ForwardTextCausalLMRequest {
-	int32 version = 1;
-	string hotkey = 2;
-
-	Serializer mask_serializer_type = 3;
-	Serializer text_inputs_serializer_type = 4;
-	Serializer text_outputs_serializer_type = 5;
-
-	Tensor serialized_text_inputs = 6;
-
-	// QueryTimeout
-	float timeout = 7;
-	int32 topk = 8;
-}
-
-message ForwardTextCausalLMResponse {
-	int32 version = 1;
-	string hotkey = 2;
-
-	Tensor serialized_text_outputs = 3;
-
-	string message = 4;
-	ReturnCode return_code = 5;
-}
-
-
-// TODO: Modify these to match LMNext, simply copied from ForwardTextCausalLMRequest
-message BackwardTextCausalLMRequest {
-	int32 version = 1;
-	string hotkey = 2;
-
-	Serializer mask_serializer_type = 3;
-	Serializer text_outputs_serializer_type = 4;
-	Serializer text_outputs_grads_serializer_type = 5;
-	Serializer text_inputs_serializer_type = 6;
-
-	Tensor serialized_text_inputs = 7;
-	Tensor serialized_text_outputs = 8;
-	Tensor serialized_text_outputs_grads = 9;
-}
-
-message BackwardTextCausalLMResponse {
-	int32 version = 1;
-	string hotkey = 2;
-	string message = 3;
-	ReturnCode return_code = 4;
-}
-
 service TextPrompting  {
     rpc Forward (ForwardTextPromptingRequest) returns (ForwardTextPromptingResponse) {}
     rpc Backward (BackwardTextPromptingRequest) returns (BackwardTextPromptingResponse) {}
 }
+
 /////////////////////////
 // TextPrompting //
 /////////////////////////
@@ -262,7 +19,7 @@ message ForwardTextPromptingResponse {
     int32 version = 1;
     string hotkey = 2;
     string response = 3;
-	string message = 4;
+	string return_message = 4;
 	ReturnCode return_code = 5;
 }
 message BackwardTextPromptingRequest {
@@ -271,10 +28,13 @@ message BackwardTextPromptingRequest {
 	repeated float rewards = 3;
 	repeated string messages = 4;
 	string response = 5;
+    float timeout = 6;
 }
 message BackwardTextPromptingResponse {
     int32 version = 1;
     string hotkey = 2;
+	string return_message = 4;
+	ReturnCode return_code = 5;
 }
 
 
@@ -305,6 +65,7 @@ enum ReturnCode {
 	UnknownException = 22; // Unknown exception.
 	Unauthenticated = 23; // Authentication failed.
 	BadEndpoint = 24; // Dummy endpoint
+	Blacklisted = 25; // Blacklisted
 }
 
 /////////////////
@@ -351,7 +112,6 @@ message Tensor {
 	bool requires_grad = 8;
 }
 
-
 enum Serializer {
 	// PICKLE = 0; // PICKLE serializer (REMOVED for security reasons.)
 	MSGPACK = 0; // MSGPACK serializer
@@ -378,6 +138,5 @@ enum DataType {
 	FLOAT16 = 6;
 	BOOL = 7;
 }
-
 
 

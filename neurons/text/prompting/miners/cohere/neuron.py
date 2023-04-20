@@ -57,6 +57,8 @@ class CohereMiner( bittensor.BasePromptingMiner ):
             truncate=self.config.cohere.truncate,
             stop=self.config.cohere.stop,
         )
+
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
         
     @staticmethod
     def _process_history( history: List[Dict[str, str]] ) -> str:

@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import torch
 import openai
 import argparse
 import bittensor
@@ -37,6 +38,8 @@ class OpenAIMiner( bittensor.BasePromptingMiner ):
         parser.add_argument('--openai.presence_penalty', type=float, default=0, help="Penalty for tokens based on their presence in the text so far.")
         parser.add_argument('--openai.frequency_penalty', type=float, default=0, help="Penalty for tokens based on their frequency in the text so far.")
         parser.add_argument('--openai.model_name', type=str, default='gpt-3.5-turbo', help="OpenAI model to use for completion.")
+
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
 
     def __init__( self ):
         super( OpenAIMiner, self ).__init__()

@@ -52,6 +52,8 @@ class AlephAlphaMiner( bittensor.BasePromptingMiner ):
             stop_sequences = self.config.aleph.stop_sequences
         )
 
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+
     @staticmethod
     def _process_history( history:  List[Dict[str, str]] ) -> str:
         processed_history = ''

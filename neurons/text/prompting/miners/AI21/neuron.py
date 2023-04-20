@@ -45,6 +45,8 @@ class AI21Miner( bittensor.BasePromptingMiner ):
         )
         bittensor.logging.info( 'Model loaded!' )
 
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+
     @staticmethod
     def _process_history( history:  List[Dict[str, str]] ) -> str:
         processed_history = ''

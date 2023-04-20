@@ -94,6 +94,7 @@ class logging:
         # Add filtered sys.stdout.
         cls.__std_sink__ = logger.add (
             sys.stdout,
+            level = 0,
             filter = cls.log_filter,
             colorize = True,
             enqueue = True,
@@ -184,20 +185,24 @@ class logging:
         cls.__trace_on__ = trace_on
 
     @classmethod
+    def get_level( cls ) -> int:
+        return 5 if cls.__trace_on__ else 10 if cls.__debug_on__ else 20
+
+    @classmethod
     def log_filter(cls, record ):
         """ Filter out debug log if debug is not on
         """
-        if cls.__debug_on__ or cls.__trace_on__:
+        if cls.get_level() <= record["level"].no:
             return True
         else:
             return False
 
     @classmethod
     def log_save_filter(cls, record ):
-        if cls.__debug_on__ or cls.__trace_on__:
+        if cls.get_level() < record["level"].no:
             return True
         else:
-            return record["level"].name != "DEBUG"
+            return False
 
     @classmethod
     def log_formatter(cls, record):
@@ -205,27 +210,15 @@ class logging:
         """
         extra = record['extra']
         if 'rpc' in extra:
-            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[uid_str]} | {extra[inputs]} | {extra[call_time]} | {extra[key_str]} | {extra[rpc_message]} | {extra[synapse]} \n"
-            return log_format
-        elif 'receptor' in extra:
-            log_format = "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
-            return log_format
+            return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[uid_str]} | {extra[inputs]} | {extra[call_time]} | {extra[key_str]} | {extra[rpc_message]} | {extra[synapse]} \n"
         else:
-            if cls.__trace_on__:
-                return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | {message}\n"
-            else:
-                return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | {message}\n"
-
+            return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | <level>{level: ^16}</level> | {message}\n"
    
     @classmethod
     def log_save_formatter(cls, record):
         extra = record['extra']
         if 'rpc' in extra:
-            log_format = "{time:YYYY-MM-DD HH:mm:ss.SSS} | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[uid_str]} | {extra[inputs]} | {extra[call_time]} | {extra[key_str]} | {extra[rpc_message]} \n"
-            return log_format
-        if 'receptor' in extra:
-            log_format = "{time:YYYY-MM-DD HH:mm:ss.SSS} | " + extra['action'] + " | uid:{extra[uid]} | {extra[ip_str]} | hotkey:{extra[hotkey]} | coldkey:{extra[coldkey]} \n"
-            return log_format
+            return "{time:YYYY-MM-DD HH:mm:ss.SSS} | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[uid_str]} | {extra[inputs]} | {extra[call_time]} | {extra[key_str]} | {extra[rpc_message]} \n"
         else:
             if cls.__trace_on__:
                 return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | {message}\n"
@@ -307,13 +300,6 @@ class logging:
         )
 
     @classmethod
-    def update_receptor_log( cls, endpoint: 'bittensor.Endpoint' ):
-        """ Debug logging for updating the connection with endpoint
-        """
-        logger.debug( 'endpoint', receptor=True, action = '<blue>' + 'Update'.center(16) + '</blue>', uid=str(endpoint.uid).center(4), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(27) )
-
-
-    @classmethod
     def _format( cls, prefix:object, sufix:object = None ):
         """ Format logging message
         """
@@ -326,8 +312,7 @@ class logging:
                 sufix = "{}".format( str( sufix ) )
         else:
             sufix = ""
-        prefix = prefix.ljust(20)
-        log_msg = str( prefix ) + str( sufix )
+        log_msg = str( prefix ).ljust(30) + str( sufix )
         return _remove_loguru_ansi_directive( log_msg )
 
     @classmethod

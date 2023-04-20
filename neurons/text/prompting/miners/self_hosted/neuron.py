@@ -93,8 +93,6 @@ def main():
     # --- PPO
     strategy = NaiveStrategy()
 
-
-
     # --- Turn on logging.
     bittensor.logging(config=config, logging_dir=config.neuron.full_path)
     
@@ -151,9 +149,7 @@ def main():
         def _blacklist(self, forward_call: "bittensor.TextPromptingForwardCall") -> bool:
             return False
 
-        def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
-            # Apply PPO here.
-            pass
+        def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
 
         def forward(self, messages: List[str]) -> str:
             history = _process_history(messages)
