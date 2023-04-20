@@ -193,19 +193,6 @@ def encrypt_keyfile_data ( keyfile_data:bytes, password: str = None ) -> bytes:
         vault = Vault( password )
     return vault.vault.encrypt ( keyfile_data )
 
-
-def get_coldkey_password_from_environment(coldkey_name: str) -> Optional[str]:
-
-    for env_var in os.environ:
-        if (
-            env_var.upper().startswith("BT_COLD_PW_")
-            and env_var.upper().endswith(coldkey_name.upper())
-        ):
-            return os.getenv(env_var)
-
-    return None
-
-
 def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name: Optional[str] = None) -> bytes:
     """ Decrypts passed keyfile data using ansible vault.
         Args:
@@ -220,9 +207,6 @@ def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name
             KeyFileError:
                 Raised if the file is corrupted or if the password is incorrect.
     """
-    if coldkey_name is not None and password is None:
-        password = get_coldkey_password_from_environment(coldkey_name)
-
     try:
         password = getpass.getpass("Enter password to unlock key: ") if password is None else password
         console = bittensor.__console__;             
