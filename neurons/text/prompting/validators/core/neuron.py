@@ -372,6 +372,7 @@ class neuron:
             flattened_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in completions ] 
 
             # Return best via reward model.
+            reward_model_start = time.time()
             rewards = self.reward_model.reward( flattened_completions_for_reward ).to( self.device )
             best_completion = completions[ rewards.argmax( dim = 0 ) ]
             bittensor.logging.info('finished applying the reward model ', time.time() - reward_model_start )
