@@ -266,7 +266,7 @@ class neuron:
         # Calculate the rewards for the successful `completions` using the reward model.
         # Print the rewards for all `uids`.
         #rewards = self.reward_model.reward( successful_completions ).to( self.device )
-        rewards = scores
+        rewards = scores[ successful_uids ]
         bittensor.logging.trace( 'rewards', rewards )
 
         # Train the gating model using the scores and rewards of the successful `completions`.
