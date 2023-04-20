@@ -149,7 +149,7 @@ class neuron:
         # Init the gating model which learns which miners to select for each query.
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to( self.device )
         # Denddrite pool for querying the network.
-        self.dendrite_pool = bt.text_prompting_pool( metagraph = self.metagraph, keypair = self.wallet.hotkey )
+        self.dendrite_pool = bt.text_prompting_pool( keypair = self.wallet.hotkey, metagraph = self.metagraph )
         # History of forward events.
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
         # Get a list of peers delegating to me
