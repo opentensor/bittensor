@@ -95,8 +95,8 @@ class neuron:
         parser.add_argument( '--neuron.question_prompt', type=str, help = 'Prompt used to generate questions from the network whicha are used to evaluate other miners.', default = __default_question_prompt__ )
         parser.add_argument( '--neuron.reward_model_name', type = str, help = 'GPTRewardModel name', default = 'Dahoas/gpt2-rm-static')
         parser.add_argument( '--neuron.length_timeout_multiplier', type = int, help = 'Base timeout for all requests.', default = 0.01 )
-        parser.add_argument( '--neuron.inference_topk', type = str, help = 'At inference time, how many miners to we query and return the top rewarded.', default = 10 )
-        parser.add_argument( '--neuron.training_topk', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
+        parser.add_argument( '--neuron.inference_topk', type = int, help = 'At inference time, how many miners to we query and return the top rewarded.', default = 10 )
+        parser.add_argument( '--neuron.training_topk', type = int, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
         parser.add_argument( '--neuron.training_timeout', type = int, help = 'Query timeout during training', default = 4 )
         parser.add_argument( '--neuron.inference_timeout', type = int, help = 'Query timeout during inference', default = 10 )
         parser.add_argument( '--neuron.reward_path', type = str, help = 'Path to reward model.', default = '~/.bittensor/reward_models' )
@@ -387,59 +387,60 @@ class neuron:
         last_epoch_block = self.subtensor.block
         
         # Start an infinite loop for training.
-        while True:
-            
-            # Query the network for a random question.
-            question = self.forward( 
-                roles = ['system', 'user' ],
-                messages = [ self.config.neuron.base_prompt, self.config.neuron.question_prompt ],
-                topk = self.config.neuron.training_topk,
-                random_sample_uids = True,
-                train_gating_model = True,
-                timeout = self.config.neuron.training_timeout
-            )
-            if question == None: continue # no responses from network.
-            
-            # Ask the network to complete the random question, training the gating network.
-            self.forward( 
-                roles = ['system', 'user' ],
-                messages = [ self.config.neuron.base_prompt, question.completion ],
-                topk = self.config.neuron.training_topk,
-                random_sample_uids = True,
-                train_gating_model = True,
-                timeout = self.config.neuron.training_timeout
-            )
-
-            # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
-            if last_epoch_block % 10 == 0:
-                self.metagraph.sync()
-                self.my_nominators = { nomin[0]: nomin[1] for nomin in self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )[0][0].nominators }
-
-            # Check if enough epoch blocks have elapsed since the last epoch.
-            epoch_length = self.subtensor.validator_epoch_length(self.config.netuid) if self.config.neuron.epoch_length_override == -1 else self.config.neuron.epoch_length_override
-            blocks_until_epoch = epoch_length - ( self.subtensor.block - last_epoch_block )
-            bittensor.logging.debug( 'blocks_until_epoch', blocks_until_epoch )
-            if blocks_until_epoch <= 0: 
-                bittensor.logging.trace( 'epoch()' )
-                bittensor.logging.info( 'block', self.subtensor.block )
-
-                # Update the last epoch block to the current epoch block.
-                last_epoch_block = self.subtensor.block
+        try:
+            while True:
+                # Query the network for a random question.
+                question = self.forward( 
+                    roles = ['system', 'user' ],
+                    messages = [ self.config.neuron.base_prompt, self.config.neuron.question_prompt ],
+                    topk = self.config.neuron.training_topk,
+                    random_sample_uids = True,
+                    train_gating_model = True,
+                    timeout = self.config.neuron.training_timeout
+                )
+                if question == None: continue # no responses from network.
                 
-                # Computes the average reward for each uid across non-zero values 
-                # using the rewards history stored in the self.history list.
-                uids, weights = self.compute_weights()
-                bittensor.logging.info( 'weights', weights )
-
-                # Set the weights on chain via our subtensor connection.
-                self.subtensor.set_weights(
-                    wallet = self.wallet,
-                    netuid = self.config.netuid,
-                    uids = uids,
-                    weights = weights,
-                    wait_for_finalization = True,
+                # Ask the network to complete the random question, training the gating network.
+                self.forward( 
+                    roles = ['system', 'user' ],
+                    messages = [ self.config.neuron.base_prompt, question.completion ],
+                    topk = self.config.neuron.training_topk,
+                    random_sample_uids = True,
+                    train_gating_model = True,
+                    timeout = self.config.neuron.training_timeout
                 )
 
+                # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
+                if last_epoch_block % 10 == 0:
+                    self.metagraph.sync()
+                    self.my_nominators = { nomin[0]: nomin[1] for nomin in self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )[0][0].nominators }
+
+                # Check if enough epoch blocks have elapsed since the last epoch.
+                epoch_length = self.subtensor.validator_epoch_length(self.config.netuid) if self.config.neuron.epoch_length_override == -1 else self.config.neuron.epoch_length_override
+                blocks_until_epoch = epoch_length - ( self.subtensor.block - last_epoch_block )
+                bittensor.logging.debug( 'blocks_until_epoch', blocks_until_epoch )
+                if blocks_until_epoch <= 0: 
+                    bittensor.logging.trace( 'epoch()' )
+                    bittensor.logging.info( 'block', self.subtensor.block )
+
+                    # Update the last epoch block to the current epoch block.
+                    last_epoch_block = self.subtensor.block
+                    
+                    # Computes the average reward for each uid across non-zero values 
+                    # using the rewards history stored in the self.history list.
+                    uids, weights = self.compute_weights()
+                    bittensor.logging.info( 'weights', weights )
+
+                    # Set the weights on chain via our subtensor connection.
+                    self.subtensor.set_weights(
+                        wallet = self.wallet,
+                        netuid = self.config.netuid,
+                        uids = uids,
+                        weights = weights,
+                        wait_for_finalization = True,
+                    )
+        except Exception as e:
+            bittensor.logging.info( 'Error in training loop', str( e ) )
     
     def compute_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
         """
