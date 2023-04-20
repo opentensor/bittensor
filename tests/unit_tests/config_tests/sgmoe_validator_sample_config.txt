@@ -1,3 +1,0 @@
-dataset.batch_size: 10
-logging.logging_dir: ~/.bittensor/miners
-neuron.clip_gradients: 1.0

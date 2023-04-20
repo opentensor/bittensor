@@ -66,7 +66,6 @@ def serve_extrinsic (
     """
     # Decrypt hotkey
     wallet.hotkey
-
     params = {
         'version': bittensor.__version_as_int__,
         'ip': net.ip_to_int(ip),
@@ -78,7 +77,6 @@ def serve_extrinsic (
         'placeholder1': placeholder1,
         'placeholder2': placeholder2,
     }
-
     with bittensor.__console__.status(":satellite: Checking Axon..."):
         neuron = subtensor.get_neuron_for_pubkey_and_subnet( wallet.hotkey.ss58_address, netuid = netuid )
         neuron_up_to_date = not neuron.is_null and params == {
@@ -92,11 +90,9 @@ def serve_extrinsic (
             'placeholder1': neuron.axon_info.placeholder1,
             'placeholder2': neuron.axon_info.placeholder2,
         }
-
     output = params.copy()
     output['coldkey'] = wallet.coldkeypub.ss58_address
     output['hotkey'] = wallet.hotkey.ss58_address
-
     if neuron_up_to_date:
         bittensor.__console__.print(f":white_heavy_check_mark: [green]Axon already Served[/green]\n"
                                     f"[green not bold]- coldkey: [/green not bold][white not bold]{output['coldkey']}[/white not bold] \n"
@@ -146,6 +142,7 @@ def serve_extrinsic (
 
 def serve_axon_extrinsic (
     subtensor: 'bittensor.Subtensor',
+    netuid: int,
     axon: 'bittensor.Axon',
     use_upnpc: bool = False,
     wait_for_inclusion: bool = False,
@@ -154,6 +151,8 @@ def serve_axon_extrinsic (
 ) -> bool:
     r""" Serves the axon to the network.
     Args:
+        netuid ( int ):
+            The netuid being served on. 
         axon (bittensor.Axon):
             Axon to serve.
         use_upnpc (:type:bool, `optional`): 
@@ -205,8 +204,8 @@ def serve_axon_extrinsic (
             wallet = axon.wallet,
             ip = external_ip,
             port = external_port,
-            netuid = axon.netuid,
-            protocol = axon.protocol,
+            netuid = netuid,
+            protocol = 4,
             wait_for_inclusion = wait_for_inclusion,
             wait_for_finalization = wait_for_finalization,
             prompt = prompt
