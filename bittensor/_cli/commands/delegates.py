@@ -471,9 +471,9 @@ class MyDelegatesCommand:
                     bittensor.Balance.from_rao(0) # default to 0 if no owner stake.
                 )
                 if delegate[0].hotkey_ss58 in registered_delegate_info:
-                    delegate_name = registered_delegate_info[delegate[0].hotkey_ss58]['name']
-                    delegate_url = registered_delegate_info[delegate[0].hotkey_ss58]['url']
-                    delegate_description =  registered_delegate_info[delegate[0].hotkey_ss58]['description']
+                    delegate_name = registered_delegate_info[delegate[0].hotkey_ss58].name
+                    delegate_url = registered_delegate_info[delegate[0].hotkey_ss58].url
+                    delegate_description =  registered_delegate_info[delegate[0].hotkey_ss58].description
                 else:
                     delegate_name = ''
                     delegate_url = ''
