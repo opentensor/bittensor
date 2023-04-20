@@ -296,8 +296,8 @@ class NeuronInfo:
             return NeuronInfo._null_neuron()
         else:
             neuron = NeuronInfo( **neuron_dict )
-            neuron.stake = Balance.from_rao(neuron.total_stake)
             neuron.stake_dict = { hk: Balance.from_rao(stake) for hk, stake in neuron.stake.items() }
+            neuron.stake = Balance.from_rao(neuron.total_stake)
             neuron.total_stake = neuron.stake
             neuron.rank = neuron.rank / U16_MAX
             neuron.trust = neuron.trust / U16_MAX
