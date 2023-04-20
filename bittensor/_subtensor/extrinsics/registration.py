@@ -24,6 +24,7 @@ import time
 from rich.prompt import Confirm
 from typing import List, Dict, Union, Optional
 import bittensor.utils.networking as net
+from bittensor.utils.registration import POWSolution, create_pow
 from ..errors import *
 
 def register_extrinsic (
@@ -105,9 +106,9 @@ def register_extrinsic (
                 if prompt:
                     bittensor.__console__.error('CUDA is not available.')
                 return False
-            pow_result = bittensor.utils.create_pow( subtensor, wallet, netuid, output_in_place, cuda, dev_id, TPB, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
+            pow_result: Optional[POWSolution] = create_pow( subtensor, wallet, netuid, output_in_place, cuda, dev_id, TPB, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
         else:
-            pow_result = bittensor.utils.create_pow( subtensor, wallet, netuid, output_in_place, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
+            pow_result: Optional[POWSolution] = create_pow( subtensor, wallet, netuid, output_in_place, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
 
         # pow failed
         if not pow_result:
@@ -120,7 +121,7 @@ def register_extrinsic (
         else:
             with bittensor.__console__.status(":satellite: Submitting POW..."):
                 # check if pow result is still valid
-                while bittensor.utils.POWNotStale(subtensor, pow_result):
+                while not pow_result.is_stale(subtensor=subtensor):
                     with subtensor.substrate as substrate:
                         # create extrinsic call
                         call = substrate.compose_call( 
@@ -128,9 +129,9 @@ def register_extrinsic (
                             call_function='register', 
                             call_params={ 
                                 'netuid': netuid,
-                                'block_number': pow_result['block_number'], 
-                                'nonce': pow_result['nonce'], 
-                                'work': bittensor.utils.hex_bytes_to_u8_list( pow_result['work'] ), 
+                                'block_number': pow_result.block_number, 
+                                'nonce': pow_result.nonce, 
+                                'work': [int(byte_) for byte_ in pow_result.seal],
                                 'hotkey': wallet.hotkey.ss58_address, 
                                 'coldkey': wallet.coldkeypub.ss58_address,
                             } 
