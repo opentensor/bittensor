@@ -36,7 +36,7 @@ class BasePromptingMiner( ABC ):
 
     def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
         if self.metagraph is not None:
-            uid = self.metagraph.hotkeys.index(forward_call.hotkey)
+            uid = self.metagraph.hotkeys.index(forward_call.src_hotkey)
             return self.metagraph.S[uid].item()
         else:
             return self.config.neuron.default_priority
@@ -44,7 +44,7 @@ class BasePromptingMiner( ABC ):
     def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> Union[ Tuple[bool, str], bool ]:
         # Check for registration
         def registration_check():
-            is_registered = forward_call.hotkey in self.metagraph.hotkeys
+            is_registered = forward_call.src_hotkey in self.metagraph.hotkeys
             if not is_registered:
                 if self.config.neuron.blacklist.allow_non_registered: return False, 'passed blacklist'
                 else: return True, 'pubkey not registered'
@@ -54,7 +54,7 @@ class BasePromptingMiner( ABC ):
             default_stake = self.config.neuron.blacklist.default_stake
             if default_stake <= 0.0:
                 return False, 'passed blacklist'
-            uid = self.metagraph.hotkeys.index(forward_call.hotkey)
+            uid = self.metagraph.hotkeys.index(forward_call.src_hotkey)
             if self.metagraph.S[uid].item() < default_stake: 
                 bittensor.logging.debug( "Blacklisted. Stake too low.")
                 return True, 'Stake too low.'
