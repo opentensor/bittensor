@@ -17,81 +17,30 @@ from Crypto.Hash import keccak
 from rich import console as rich_console
 from rich import status as rich_status
 
-from .register_cuda import solve_cuda
+from .formatting import get_human_readable, millify
+from ._register_cuda import solve_cuda
 
 
 class CUDAException(Exception):
     """An exception raised when an error occurs in the CUDA environment."""
     pass
 
-
-def hex_bytes_to_u8_list( hex_bytes: bytes ):
+def _hex_bytes_to_u8_list( hex_bytes: bytes ):
     hex_chunks = [int(hex_bytes[i:i+2], 16) for i in range(0, len(hex_bytes), 2)]
     return hex_chunks
 
-
-def u8_list_to_hex( values: list ):
-    total = 0
-    for val in reversed(values):
-        total = (total << 8) + val
-    return total 
-
-
-def create_seal_hash( block_hash:bytes, nonce:int ) -> bytes:
-    block_bytes = block_hash.encode('utf-8')[2:]
+def _create_seal_hash( block_and_hotkey_hash_bytes: bytes, nonce:int ) -> bytes:
     nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
-    pre_seal = nonce_bytes + block_bytes
-    seal_sh256 = hashlib.sha256( bytearray(hex_bytes_to_u8_list(pre_seal)) ).digest()
+    pre_seal = nonce_bytes + binascii.hexlify(block_and_hotkey_hash_bytes)[:64]
+    seal_sh256 = hashlib.sha256( bytearray(_hex_bytes_to_u8_list(pre_seal)) ).digest()
     kec = keccak.new(digest_bits=256)
     seal = kec.update( seal_sh256 ).digest()
     return seal
 
-
-def seal_meets_difficulty( seal:bytes, difficulty:int ):
+def _seal_meets_difficulty( seal:bytes, difficulty:int, limit: int ):
     seal_number = int.from_bytes(seal, "big")
     product = seal_number * difficulty
-    limit = int(math.pow(2,256))- 1
-    if product > limit:
-        return False
-    else:
-        return True
-    
-
-def solve_for_difficulty( block_hash, difficulty ):
-    meets = False
-    nonce = -1
-    while not meets:
-        nonce += 1 
-        seal = create_seal_hash( block_hash, nonce )
-        meets = seal_meets_difficulty( seal, difficulty )
-        if nonce > 1:
-            break
-    return nonce, seal
-
-
-def get_human_readable(num, suffix="H"):
-    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
-        if abs(num) < 1000.0:
-            return f"{num:3.1f}{unit}{suffix}"
-        num /= 1000.0
-    return f"{num:.1f}Y{suffix}"
-
-
-def millify(n: int):
-    millnames = ['',' K',' M',' B',' T']
-    n = float(n)
-    millidx = max(0,min(len(millnames)-1,
-                        int(math.floor(0 if n == 0 else math.log10(abs(n))/3))))
-
-    return '{:.2f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
-
-
-def POWNotStale(subtensor: 'bittensor.Subtensor', pow_result: Dict) -> bool:
-    """Returns True if the POW is not stale.
-    This means the block the POW is solved for is within 3 blocks of the current block.
-    """
-    return pow_result['block_number'] >= subtensor.get_current_block() - 3
-
+    return product < limit
 
 @dataclass
 class POWSolution:
@@ -101,8 +50,14 @@ class POWSolution:
     difficulty: int
     seal: bytes
 
+    def is_stale(self, subtensor: 'bittensor.Subtensor') -> bool:
+        """Returns True if the POW is stale.
+        This means the block the POW is solved for is within 3 blocks of the current block.
+        """
+        return self.block_number < subtensor.get_current_block() - 3
 
-class SolverBase(multiprocessing.Process):
+
+class _SolverBase(multiprocessing.Process):
     """
     A process that solves the registration PoW problem.
 
@@ -151,6 +106,7 @@ class SolverBase(multiprocessing.Process):
     solution_queue: multiprocessing.Queue
     newBlockEvent: multiprocessing.Event
     stopEvent: multiprocessing.Event
+    hotkey_bytes: bytes
     curr_block: multiprocessing.Array
     curr_block_num: multiprocessing.Value
     curr_diff: multiprocessing.Array
@@ -174,13 +130,23 @@ class SolverBase(multiprocessing.Process):
         self.limit = limit
 
     def run(self):
-        raise NotImplementedError("SolverBase is an abstract class")
+        raise NotImplementedError("_SolverBase is an abstract class")
+    
+    @staticmethod
+    def create_shared_memory() -> Tuple[multiprocessing.Array, multiprocessing.Value, multiprocessing.Array]:
+        """Creates shared memory for the solver processes to use.
+        """
+        curr_block = multiprocessing.Array('h', 32, lock=True) # byte array
+        curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
+        curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+
+        return curr_block, curr_block_num, curr_diff
 
 
-class Solver(SolverBase):
+class _Solver(_SolverBase):
     def run(self):
         block_number: int
-        block_bytes: bytes
+        block_and_hotkey_hash_bytes: bytes
         block_difficulty: int
         nonce_limit = int(math.pow(2,64)) - 1
 
@@ -191,13 +157,13 @@ class Solver(SolverBase):
             if self.newBlockEvent.is_set():
                 with self.check_block:
                     block_number = self.curr_block_num.value
-                    block_bytes = bytes(self.curr_block)
-                    block_difficulty = registration_diff_unpack(self.curr_diff)
+                    block_and_hotkey_hash_bytes = bytes(self.curr_block)
+                    block_difficulty = _registration_diff_unpack(self.curr_diff)
 
                 self.newBlockEvent.clear()
                 
             # Do a block of nonces
-            solution = solve_for_nonce_block(self, nonce_start, nonce_end, block_bytes, block_difficulty, self.limit, block_number)
+            solution = _solve_for_nonce_block(nonce_start, nonce_end, block_and_hotkey_hash_bytes, block_difficulty, self.limit, block_number)
             if solution is not None:
                 self.solution_queue.put(solution)
 
@@ -212,7 +178,7 @@ class Solver(SolverBase):
             nonce_end = nonce_start + self.update_interval
 
 
-class CUDASolver(SolverBase):
+class _CUDASolver(_SolverBase):
     dev_id: int
     TPB: int
 
@@ -223,7 +189,7 @@ class CUDASolver(SolverBase):
 
     def run(self):
         block_number: int = 0 # dummy value
-        block_bytes: bytes = b'0' * 32 # dummy value
+        block_and_hotkey_hash_bytes: bytes = b'0' * 32 # dummy value
         block_difficulty: int = int(math.pow(2,64)) - 1 # dummy value
         nonce_limit = int(math.pow(2,64)) - 1 # U64MAX
 
@@ -233,13 +199,13 @@ class CUDASolver(SolverBase):
             if self.newBlockEvent.is_set():
                 with self.check_block:
                     block_number = self.curr_block_num.value
-                    block_bytes = bytes(self.curr_block)
-                    block_difficulty = registration_diff_unpack(self.curr_diff)
+                    block_and_hotkey_hash_bytes = bytes(self.curr_block)
+                    block_difficulty = _registration_diff_unpack(self.curr_diff)
 
                 self.newBlockEvent.clear()
                 
             # Do a block of nonces
-            solution = solve_for_nonce_block_cuda(self, nonce_start, self.update_interval, block_bytes, block_difficulty, self.limit, block_number, self.dev_id, self.TPB)
+            solution = _solve_for_nonce_block_cuda(nonce_start, self.update_interval, block_and_hotkey_hash_bytes, block_difficulty, self.limit, block_number, self.dev_id, self.TPB)
             if solution is not None:
                 self.solution_queue.put(solution)
 
@@ -255,16 +221,17 @@ class CUDASolver(SolverBase):
             nonce_start = nonce_start % nonce_limit
 
 
-def solve_for_nonce_block_cuda(solver: CUDASolver, nonce_start: int, update_interval: int, block_bytes: bytes, difficulty: int, limit: int, block_number: int, dev_id: int, TPB: int) -> Optional[POWSolution]:
+def _solve_for_nonce_block_cuda(nonce_start: int, update_interval: int, block_and_hotkey_hash_bytes: bytes, difficulty: int, limit: int, block_number: int, dev_id: int, TPB: int) -> Optional[POWSolution]:
     """Tries to solve the POW on a CUDA device for a block of nonces (nonce_start, nonce_start + update_interval * TPB"""
-    solution, seal = solve_cuda(nonce_start,
+    solution, seal = solve_cuda(
+                    nonce_start,
                     update_interval,
                     TPB,
-                    block_bytes, 
-                    block_number,
+                    block_and_hotkey_hash_bytes, 
                     difficulty, 
                     limit,
                     dev_id)
+    
 
     if (solution != -1):
         # Check if solution is valid (i.e. not -1)
@@ -273,46 +240,50 @@ def solve_for_nonce_block_cuda(solver: CUDASolver, nonce_start: int, update_inte
     return None
 
 
-def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, block_bytes: bytes, difficulty: int, limit: int, block_number: int) -> Optional[POWSolution]:
+def _solve_for_nonce_block(nonce_start: int, nonce_end: int, block_and_hotkey_hash_bytes: bytes, difficulty: int, limit: int, block_number: int) -> Optional[POWSolution]:
     """Tries to solve the POW for a block of nonces (nonce_start, nonce_end)""" 
     for nonce in range(nonce_start, nonce_end):
         # Create seal.
-        nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
-        pre_seal = nonce_bytes + block_bytes
-        seal_sh256 = hashlib.sha256( bytearray(hex_bytes_to_u8_list(pre_seal)) ).digest()
-        kec = keccak.new(digest_bits=256)
-        seal = kec.update( seal_sh256 ).digest()
-        seal_number = int.from_bytes(seal, "big")
+        seal = _create_seal_hash(block_and_hotkey_hash_bytes, nonce)
 
         # Check if seal meets difficulty
-        product = seal_number * difficulty
-        if product < limit:
+        if _seal_meets_difficulty(seal, difficulty, limit):
             # Found a solution, save it.
             return POWSolution(nonce, block_number, difficulty, seal)
 
     return None
 
 
-def registration_diff_unpack(packed_diff: multiprocessing.Array) -> int:
+def _registration_diff_unpack(packed_diff: multiprocessing.Array) -> int:
     """Unpacks the packed two 32-bit integers into one 64-bit integer. Little endian."""
     return int(packed_diff[0] << 32 | packed_diff[1])
 
 
-def registration_diff_pack(diff: int, packed_diff: multiprocessing.Array):
+def _registration_diff_pack(diff: int, packed_diff: multiprocessing.Array):
     """Packs the difficulty into two 32-bit integers. Little endian."""
     packed_diff[0] = diff >> 32
     packed_diff[1] = diff & 0xFFFFFFFF # low 32 bits
 
 
-def update_curr_block(curr_diff: multiprocessing.Array, curr_block: multiprocessing.Array, curr_block_num: multiprocessing.Value, block_number: int, block_bytes: bytes, diff: int, lock: multiprocessing.Lock):
+def _hash_block_with_hotkey(block_bytes: bytes, hotkey_bytes: bytes) -> bytes:
+    """Hashes the block with the hotkey using Keccak-256 to get 32 bytes"""
+    kec = keccak.new(digest_bits=256)
+    kec = kec.update(bytearray(block_bytes + hotkey_bytes))
+    block_and_hotkey_hash_bytes = kec.digest()
+    return block_and_hotkey_hash_bytes
+
+
+def _update_curr_block(curr_diff: multiprocessing.Array, curr_block: multiprocessing.Array, curr_block_num: multiprocessing.Value, block_number: int, block_bytes: bytes, diff: int, hotkey_bytes: bytes, lock: multiprocessing.Lock):
     with lock:
         curr_block_num.value = block_number
-        for i in range(64):
-            curr_block[i] = block_bytes[i]
-        registration_diff_pack(diff, curr_diff)
+        # Hash the block with the hotkey
+        block_and_hotkey_hash_bytes = _hash_block_with_hotkey(block_bytes, hotkey_bytes)
+        for i in range(32):
+            curr_block[i] = block_and_hotkey_hash_bytes[i]
+        _registration_diff_pack(diff, curr_diff)
 
 
-def get_cpu_count():
+def get_cpu_count() -> int:
     try:
         return len(os.sched_getaffinity(0))
     except AttributeError:
@@ -378,7 +349,7 @@ class RegistrationStatisticsLogger:
             self.console.log( self.get_status_message(stats, verbose=verbose), )
 
 
-def solve_for_difficulty_fast( subtensor, wallet, netuid: int, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None,  n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
+def _solve_for_difficulty_fast( subtensor, wallet: 'bittensor.Wallet', netuid: int, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None,  n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the POW for registration using multiprocessing.
     Args:
@@ -415,30 +386,30 @@ def solve_for_difficulty_fast( subtensor, wallet, netuid: int, output_in_place: 
         
     limit = int(math.pow(2,256)) - 1
 
-    curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
-    curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
-    curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+    curr_block, curr_block_num, curr_diff = _Solver.create_shared_memory()
 
     # Establish communication queues
-    ## See the Solver class for more information on the queues.
+    ## See the _Solver class for more information on the queues.
     stopEvent = multiprocessing.Event()
     stopEvent.clear()
 
     solution_queue = multiprocessing.Queue()
     finished_queues = [multiprocessing.Queue() for _ in range(num_processes)]
     check_block = multiprocessing.Lock()
+
+    hotkey_bytes = wallet.hotkey.public_key
     
     # Start consumers
-    solvers = [ Solver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit)
+    solvers = [ _Solver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit)
                 for i in range(num_processes) ]
 
     # Get first block
-    block_number, difficulty, block_hash = get_block_with_retry(subtensor = subtensor, netuid = netuid)
+    block_number, difficulty, block_hash = _get_block_with_retry(subtensor = subtensor, netuid = netuid)
 
-    block_bytes = block_hash.encode('utf-8')[2:]
+    block_bytes = bytes.fromhex(block_hash[2:])
     old_block_number = block_number
     # Set to current block
-    update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
+    _update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, hotkey_bytes, check_block)
 
     # Set new block events for each solver to start at the initial block
     for worker in solvers:
@@ -485,15 +456,16 @@ def solve_for_difficulty_fast( subtensor, wallet, netuid: int, output_in_place: 
             pass
 
         # check for new block
-        old_block_number = check_for_newest_block_and_update(
+        old_block_number = _check_for_newest_block_and_update(
             subtensor = subtensor,
             netuid = netuid,
+            hotkey_bytes = hotkey_bytes,
             old_block_number=old_block_number,
             curr_diff=curr_diff,
             curr_block=curr_block,
             curr_block_num=curr_block_num,
             curr_stats=curr_stats,
-            update_curr_block=update_curr_block,
+            update_curr_block=_update_curr_block,
             check_block=check_block,
             solvers=solvers
         )
@@ -537,7 +509,7 @@ def solve_for_difficulty_fast( subtensor, wallet, netuid: int, output_in_place: 
     logger.stop()
 
     # terminate and wait for all solvers to exit
-    terminate_workers_and_wait_for_exit(solvers)
+    _terminate_workers_and_wait_for_exit(solvers)
 
     return solution
 
@@ -546,7 +518,7 @@ def solve_for_difficulty_fast( subtensor, wallet, netuid: int, output_in_place: 
                             Exception,
                             interval=1,
                             max_tries=3)
-def get_block_with_retry(subtensor: 'bittensor.Subtensor', netuid: int) -> Tuple[int, int, bytes]:
+def _get_block_with_retry(subtensor: 'bittensor.Subtensor', netuid: int) -> Tuple[int, int, bytes]:
     """
     Gets the current block number, difficulty, and block hash from the substrate node.
 
@@ -581,7 +553,7 @@ def get_block_with_retry(subtensor: 'bittensor.Subtensor', netuid: int) -> Tuple
     return block_number, difficulty, block_hash
 
 
-class UsingSpawnStartMethod():
+class _UsingSpawnStartMethod():
     def __init__(self, force: bool = False):
         self._old_start_method = None
         self._force = force
@@ -598,17 +570,18 @@ class UsingSpawnStartMethod():
         multiprocessing.set_start_method(self._old_start_method, force=True)
 
 
-def check_for_newest_block_and_update(
-    subtensor: 'bittensor.Subtensor',
-    netuid: int,
-    old_block_number: int,
-    curr_diff: multiprocessing.Array,
-    curr_block: multiprocessing.Array,
-    curr_block_num: multiprocessing.Value,
-    update_curr_block: Callable,
-    check_block: 'multiprocessing.Lock',
-    solvers: List[Solver],
-    curr_stats: RegistrationStatistics
+def _check_for_newest_block_and_update(
+        subtensor: 'bittensor.Subtensor',
+        netuid: int,
+        old_block_number: int,
+        hotkey_bytes: bytes,
+        curr_diff: multiprocessing.Array,
+        curr_block: multiprocessing.Array,
+        curr_block_num: multiprocessing.Value,
+        update_curr_block: Callable,
+        check_block: 'multiprocessing.Lock',
+        solvers: List[_Solver],
+        curr_stats: RegistrationStatistics
     ) -> int:
     """
     Checks for a new block and updates the current block information if a new block is found.
@@ -620,6 +593,8 @@ def check_for_newest_block_and_update(
             The netuid to use for retrieving the difficulty.
         old_block_number (:obj:`int`, `required`):
             The old block number to check against.
+        hotkey_bytes (:obj:`bytes`, `required`):
+            The bytes of the hotkey's pubkey.
         curr_diff (:obj:`multiprocessing.Array`, `required`):
             The current difficulty as a multiprocessing array.
         curr_block (:obj:`multiprocessing.Array`, `required`):
@@ -630,7 +605,7 @@ def check_for_newest_block_and_update(
             A function that updates the current block.
         check_block (:obj:`multiprocessing.Lock`, `required`):
             A mp lock that is used to check for a new block.
-        solvers (:obj:`List[Solver]`, `required`):
+        solvers (:obj:`List[_Solver]`, `required`):
             A list of solvers to update the current block for.
         curr_stats (:obj:`RegistrationStatistics`, `required`):
             The current registration statistics to update.
@@ -642,10 +617,10 @@ def check_for_newest_block_and_update(
     if block_number != old_block_number:
         old_block_number = block_number
         # update block information
-        block_number, difficulty, block_hash = get_block_with_retry(subtensor = subtensor, netuid = netuid)
-        block_bytes = block_hash.encode('utf-8')[2:]
+        block_number, difficulty, block_hash = _get_block_with_retry(subtensor = subtensor, netuid = netuid)
+        block_bytes = bytes.fromhex(block_hash[2:])
 
-        update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
+        update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, hotkey_bytes, check_block)
         # Set new block events for each solver
 
         for worker in solvers:
@@ -659,7 +634,7 @@ def check_for_newest_block_and_update(
     return old_block_number
 
 
-def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', netuid: int, output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
+def _solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', netuid: int, output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the registration fast using CUDA
     Args:
@@ -699,10 +674,8 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
     limit = int(math.pow(2,256)) - 1
 
     # Set mp start to use spawn so CUDA doesn't complain
-    with UsingSpawnStartMethod(force=True):
-        curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
-        curr_block_num = multiprocessing.Value('i', 0, lock=True) # int
-        curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
+    with _UsingSpawnStartMethod(force=True):
+        curr_block, curr_block_num, curr_diff = _CUDASolver.create_shared_memory()
 
         ## Create a worker per CUDA device
         num_processes = len(dev_id)
@@ -713,20 +686,22 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         solution_queue = multiprocessing.Queue()
         finished_queues = [multiprocessing.Queue() for _ in range(num_processes)]
         check_block = multiprocessing.Lock()
+
+        hotkey_bytes = wallet.hotkey.public_key
         
         # Start workers
-        solvers = [ CUDASolver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit, dev_id[i], TPB)
+        solvers = [ _CUDASolver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit, dev_id[i], TPB)
                     for i in range(num_processes) ]
 
 
         # Get first block
-        block_number, difficulty, block_hash = get_block_with_retry(subtensor = subtensor, netuid = netuid)
+        block_number, difficulty, block_hash = _get_block_with_retry(subtensor = subtensor, netuid = netuid)
 
-        block_bytes = block_hash.encode('utf-8')[2:]
+        block_bytes = bytes.fromhex(block_hash[2:])
         old_block_number = block_number
         
         # Set to current block
-        update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
+        _update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, hotkey_bytes, check_block)
 
         # Set new block events for each solver to start at the initial block
         for worker in solvers:
@@ -771,15 +746,16 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
                 pass
             
             # check for new block
-            old_block_number = check_for_newest_block_and_update(
+            old_block_number = _check_for_newest_block_and_update(
                 subtensor = subtensor,
                 netuid = netuid,
+                hotkey_bytes = hotkey_bytes,
                 curr_diff=curr_diff,
                 curr_block=curr_block,
                 curr_block_num=curr_block_num,
                 old_block_number=old_block_number,
                 curr_stats=curr_stats,
-                update_curr_block=update_curr_block,
+                update_curr_block=_update_curr_block,
                 check_block=check_block,
                 solvers=solvers
             )
@@ -825,28 +801,28 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         logger.stop()
 
         # terminate and wait for all solvers to exit
-        terminate_workers_and_wait_for_exit(solvers)
+        _terminate_workers_and_wait_for_exit(solvers)
 
         return solution
 
 
-def terminate_workers_and_wait_for_exit(workers: List[multiprocessing.Process]) -> None:
+def _terminate_workers_and_wait_for_exit(workers: List[multiprocessing.Process]) -> None:
     for worker in workers:
         worker.terminate()
         worker.join()
 
 
 def create_pow(
-    subtensor,
-    wallet,
-    netuid: int,
-    output_in_place: bool = True,
-    cuda: bool = False,
-    dev_id: Union[List[int], int] = 0,
-    tpb: int = 256,
-    num_processes: int = None,
-    update_interval: int = None,
-    log_verbose: bool = False
+        subtensor,
+        wallet,
+        netuid: int,
+        output_in_place: bool = True,
+        cuda: bool = False,
+        dev_id: Union[List[int], int] = 0,
+        tpb: int = 256,
+        num_processes: int = None,
+        update_interval: int = None,
+        log_verbose: bool = False
     ) -> Optional[Dict[str, Any]]:
     """
     Creates a proof of work for the given subtensor and wallet.
@@ -887,17 +863,12 @@ def create_pow(
         raise ValueError(f'Subnet {netuid} does not exist')
 
     if cuda:
-        solution: POWSolution = solve_for_difficulty_fast_cuda( subtensor, wallet, netuid = netuid, output_in_place=output_in_place, \
+        solution: Optional[POWSolution] = _solve_for_difficulty_fast_cuda( subtensor, wallet, netuid = netuid, output_in_place=output_in_place, \
             dev_id=dev_id, TPB=tpb, update_interval=update_interval, log_verbose=log_verbose
         )
     else:
-        solution: POWSolution = solve_for_difficulty_fast( subtensor, wallet, netuid = netuid, output_in_place=output_in_place, \
+        solution: Optional[POWSolution] = _solve_for_difficulty_fast( subtensor, wallet, netuid = netuid, output_in_place=output_in_place, \
             num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose
         )
 
-    return None if solution is None else {
-        'nonce': solution.nonce, 
-        'difficulty': solution.difficulty,
-        'block_number': solution.block_number, 
-        'work': binascii.hexlify(solution.seal)
-    }
+    return solution

@@ -27,7 +27,6 @@ console = bittensor.__console__
 class HelpCommand:
     @staticmethod
     def run (cli):
-        cli.config.to_defaults()
         sys.argv = [sys.argv[0], '--help']
         # # Run miner.
         # if cli.config.model == 'core_server':
@@ -107,8 +106,8 @@ class ListSubnetsCommand:
             rows.append((
                 str(subnet.netuid),
                 str(subnet.subnetwork_n),
-                str(bittensor.utils.registration.millify(subnet.max_n)),
-                str(bittensor.utils.registration.millify(subnet.difficulty)),
+                str(bittensor.utils.formatting.millify(subnet.max_n)),
+                str(bittensor.utils.formatting.millify(subnet.difficulty)),
                 str(subnet.tempo),
                 str([ f'{cr[0]}: {cr[1] * 100:.1f}%' for cr in subnet.connection_requirements.items()] if len(subnet.connection_requirements) > 0 else None ),
                 f'{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%',
