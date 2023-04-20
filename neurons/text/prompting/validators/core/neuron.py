@@ -156,7 +156,8 @@ class neuron:
         # History of forward events.
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
         # Get a list of peers delegating to me
-        self.my_nominators = { nomin[0]: nomin[1] for nomin in self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )[0][0].nominators }
+        delegated = self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )
+        self.my_nominators = { nomin[0]: nomin[1] for nomin in delegated[0][0].nominators } if len(delegated) else {}
 
         # Build synapse entrypoint.
         class Synapse( bittensor.TextPromptingSynapse ):
