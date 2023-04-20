@@ -104,6 +104,7 @@ class neuron:
         parser.add_argument( '--neuron.epoch_length_override', type = int, help = 'Override the default timeout', default = -1 )
         parser.add_argument( '--neuron.dont_save_events', action = 'store_true', help = 'If set, we dont save events to a log file.', default = False )
         parser.add_argument( '--neuron.events_retention_size',  type = str,  help = 'Events retention size.', default = "500 MB" )
+        parser.add_argument( '--neuron.no_reward_model', action = 'store_true', help = 'If set, we dont load the reward model instead use just the scores.', default = False )
 
     @classmethod
     def config ( cls ):
@@ -132,19 +133,20 @@ class neuron:
         self.tokenizer = AutoTokenizer.from_pretrained( 'EleutherAI/gpt-j-6b' )
 
         # Reward model
-        bittensor.logging.info('Loading reward model')
-        self.reward_model = RewardModel( model_path = 'EleutherAI/gpt-j-6b', device = self.config.neuron.device )
-        for fpath in os.listdir( self.config.neuron.reward_path ):
-            if fpath.endswith(".pt") or fpath.endswith(".bin"):
-                checkpoint = os.path.join( self.config.neuron.reward_path, fpath )
-                break
-        ckpt_state = torch.load( checkpoint )
-        self.reward_model.load_state_dict( ckpt_state )
-        self.reward_model.eval()
-        self.reward_model.half()
-        self.reward_model.requires_grad_( False )
-        self.reward_model.to( self.device )
-        bittensor.logging.info('done loading reward model')
+        if not self.config.neuron.no_reward_model:
+            bittensor.logging.info('Loading reward model')
+            self.reward_model = RewardModel( model_path = 'EleutherAI/gpt-j-6b', device = self.config.neuron.device )
+            for fpath in os.listdir( self.config.neuron.reward_path ):
+                if fpath.endswith(".pt") or fpath.endswith(".bin"):
+                    checkpoint = os.path.join( self.config.neuron.reward_path, fpath )
+                    break
+            ckpt_state = torch.load( checkpoint )
+            self.reward_model.load_state_dict( ckpt_state )
+            self.reward_model.eval()
+            self.reward_model.half()
+            self.reward_model.requires_grad_( False )
+            self.reward_model.to( self.device )
+            bittensor.logging.info('done loading reward model')
 
         # Init the gating model which learns which miners to select for each query.
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to( self.device )
@@ -265,9 +267,15 @@ class neuron:
 
         # Calculate the rewards for the successful `completions` using the reward model.
         # Print the rewards for all `uids`.
-        #rewards = self.reward_model.reward( successful_completions ).to( self.device )
-        rewards = scores
-        bittensor.logging.trace( 'rewards', rewards )
+        if not self.config.neuron.no_reward_model:
+            flattened_message_for_reward = ''
+            for role_i, message_i in list(zip(roles, messages)):
+                if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n\n'
+            flattened_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in successful_completions ] 
+            rewards = self.reward_model.reward( flattened_completions_for_reward ).to( self.device )
+            bittensor.logging.trace( 'rewards', rewards )
+        else:
+            rewards = scores[ successful_uids ]
 
         # Train the gating model using the scores and rewards of the successful `completions`.
         if train_gating_model:
@@ -336,7 +344,12 @@ class neuron:
         reward_model_start = time.time()
         bittensor.logging.info('applying the reward model')
         completions = [ call.completion for call in forward_calls if len(call.completion) > 0 ] 
-        rewards = self.reward_model.reward( completions ).to( self.device )
+
+        flattened_message_for_reward = ''
+        for role_i, message_i in list(zip(roles, messages)):
+            if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n\n'
+        flattened_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in completions ] 
+        rewards = self.reward_model.reward( flattened_completions_for_reward ).to( self.device )
         best_completion = completions[ rewards.argmax( dim = 0 ) ]
         bittensor.logging.info('finished applying the reward model ', time.time() - reward_model_start )
         bittensor.logging.info( 'best completion', best_completion)
