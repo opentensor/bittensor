@@ -98,7 +98,7 @@ class neuron:
         parser.add_argument( '--neuron.inference_topk', type = str, help = 'At inference time, how many miners to we query and return the top rewarded.', default = 10 )
         parser.add_argument( '--neuron.training_topk', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
         parser.add_argument( '--neuron.training_timeout', type = int, help = 'Query timeout during training', default = 4 )
-        parser.add_argument( '--neuron.inference_timeout', type = int, help = 'Query timeout during inference', default = 4 )
+        parser.add_argument( '--neuron.inference_timeout', type = int, help = 'Query timeout during inference', default = 10 )
         parser.add_argument( '--neuron.reward_path', type = str, help = 'Path to reward model.', default = '~/.bittensor/reward_models' )
         parser.add_argument( '--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 1000 )
         parser.add_argument( '--neuron.device', type = str, help = 'Device to run the validator on.', default = "cuda" if torch.cuda.is_available() else "cpu" )
@@ -175,7 +175,7 @@ class neuron:
             def forward( _, messages: List[Dict[str, str]] ) -> str: 
                 return self.inference(
                     messages = messages,
-                    timeout = self.config.neuron.training_timeout
+                    timeout = self.config.neuron.inference_timeout
                 )
                 
         # Serve axon.
@@ -316,7 +316,8 @@ class neuron:
     def inference( 
             self, 
             messages: List[Dict[str, str]],
-            timeout: float
+            timeout: float,
+            dont_use_reward_model: bool = True
         ) -> str:
         bittensor.logging.info( 'inference()')
 
@@ -336,7 +337,7 @@ class neuron:
         bittensor.logging.info( 'inference scores', str(scores) )
 
         # Get uids for query.
-        uids = scores.sort()[ 1 ]
+        uids = scores.sort()[ 1 ][ -self.config.neuron.inference_topk: ]
         bittensor.logging.info( 'inference uids', str(uids) )
 
         # Query using dendrite pool
@@ -351,19 +352,30 @@ class neuron:
         bittensor.logging.trace( 'finished dendrite forward ', time.time() - forward_start )
 
         # Return longest completion.
-        reward_model_start = time.time()
-        bittensor.logging.info('applying the reward model')
-        completions = [ call.completion for call in forward_calls if len(call.completion) > 0 ] 
+        if dont_use_reward_model or self.config.neuron.no_reward_model:
+            bittensor.logging.info('not applying the reward model taking the best completed response')
+            # Return first best from scores.
+            forward_calls.reverse()
+            for call in forward_calls:
+                if len( call.completion ) > 0:
+                    bittensor.logging.info( 'best completion', call.completion )
+                    return call.completion
+            return 'no valid completions'
 
-        flattened_message_for_reward = ''
-        for role_i, message_i in list(zip(roles, messages)):
-            if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n\n'
-        flattened_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in completions ] 
-        rewards = self.reward_model.reward( flattened_completions_for_reward ).to( self.device )
-        best_completion = completions[ rewards.argmax( dim = 0 ) ]
-        bittensor.logging.info('finished applying the reward model ', time.time() - reward_model_start )
-        bittensor.logging.info( 'best completion', best_completion)
-        return best_completion
+        else:
+            # Format messages for reward model.
+            flattened_message_for_reward = ''
+            for role_i, message_i in list(zip(roles, messages)):
+                if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n\n'
+            completions = [ call.completion for call in forward_calls if len(call.completion) > 0 ] 
+            flattened_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in completions ] 
+
+            # Return best via reward model.
+            rewards = self.reward_model.reward( flattened_completions_for_reward ).to( self.device )
+            best_completion = completions[ rewards.argmax( dim = 0 ) ]
+            bittensor.logging.info('finished applying the reward model ', time.time() - reward_model_start )
+            bittensor.logging.info( 'best completion', best_completion)
+            return best_completion
 
     def train( self ):
         """ Training 

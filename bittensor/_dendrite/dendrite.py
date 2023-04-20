@@ -211,8 +211,7 @@ class Dendrite( ABC, torch.nn.Module ):
         try:
             result = self.channel._channel.check_connectivity_state(True)
             if self.state_dict[result] != self.state_dict[result].SHUTDOWN: 
-                loop = asyncio.get_event_loop()
-                loop.run_until_complete ( self.channel.close() )
+                self.loop.run_until_complete ( self.channel.close() )
         except:
             pass
 
