@@ -466,4 +466,4 @@ class neuron:
 
 if __name__ == '__main__':
     bittensor.logging.info( 'neuron().train()' )
-    neuron()
+    neuron().train()
