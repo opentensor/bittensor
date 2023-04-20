@@ -40,9 +40,7 @@ class CLI:
     def run ( self ):
         """ Execute the command from config 
         """
-        if self.config.command == "run":
-            RunCommand.run( self )
-        elif self.config.command == "transfer":
+        if self.config.command == "transfer":
             TransferCommand.run( self )
         elif self.config.command == "register":
             RegisterCommand.run( self )
@@ -70,8 +68,6 @@ class CLI:
             WeightsCommand.run( self )
         elif self.config.command == "inspect":
             InspectCommand.run( self )
-        elif self.config.command == "help":
-            HelpCommand.run( self )
         elif self.config.command == 'update':
             UpdateCommand.run( self )
         elif self.config.command == 'nominate':

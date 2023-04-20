@@ -146,7 +146,6 @@ class config:
         bittensor.wallet.add_args( parser )
         bittensor.subtensor.add_args( parser )
         bittensor.axon.add_args( parser )
-        bittensor.dendrite.add_args( parser )
         bittensor.metagraph.add_args( parser )
         bittensor.dataset.add_args( parser )
         bittensor.prometheus.add_args( parser )

@@ -19,12 +19,6 @@ import bittensor
 import unittest
 
 class TestWandb(unittest.TestCase):
-    def test_dendrite(self):
-        mock_wallet = bittensor.wallet( _mock = True )
-        dendrite = bittensor.dendrite( wallet = mock_wallet)
-        dendrite.to_wandb()
-        del dendrite
-
     def test_metagraph(self):
         metagraph = bittensor.metagraph( _mock= True )
         metagraph.to_wandb()

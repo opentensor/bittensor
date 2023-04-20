@@ -296,7 +296,6 @@ class TestBlacklist(unittest.TestCase):
     def construct_config():
         defaults = bittensor.neurons.core_server.neuron.config()
         bittensor.subtensor.add_defaults( defaults )
-        bittensor.dendrite.add_defaults( defaults )
         bittensor.axon.add_defaults( defaults )
         bittensor.wallet.add_defaults( defaults )
         bittensor.dataset.add_defaults( defaults )

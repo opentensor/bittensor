@@ -90,7 +90,6 @@ def setup_subtensor( port:int ):
 def construct_config():
     defaults = bittensor.Config()
     bittensor.subtensor.add_defaults( defaults )
-    bittensor.dendrite.add_defaults( defaults )
     bittensor.axon.add_defaults( defaults )
     bittensor.wallet.add_defaults( defaults )
     bittensor.dataset.add_defaults( defaults )

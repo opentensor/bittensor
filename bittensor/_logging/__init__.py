@@ -19,22 +19,24 @@
 
 import os
 import sys
-
-import argparse
 import copy
-
-from loguru import logger
-
+import torch
+import argparse
 import bittensor
 import bittensor.utils.codes as codes
 
+from loguru import logger
 logger = logger.opt(colors=True)
-
 # Remove default sink.
 try:
     logger.remove( 0 )
 except Exception:
     pass
+
+import re
+def _remove_loguru_ansi_directive( text:str ) -> str:
+    pattern = r'<.*?>'
+    return re.sub(pattern, '', text)
 
 class logging:
     """ Standardize logging for bittensor
@@ -250,7 +252,7 @@ class logging:
         """
 
         if axon:
-            prefix = "Axon"
+            prefix = "Synapse"
         else:
             prefix = "Dendrite"
         prefix = prefix.center(len('Dendrite'))
@@ -310,46 +312,63 @@ class logging:
         """
         logger.debug( 'endpoint', receptor=True, action = '<blue>' + 'Update'.center(16) + '</blue>', uid=str(endpoint.uid).center(4), hotkey=endpoint.hotkey,  coldkey=endpoint.coldkey, ip_str=endpoint.ip_str().center(27) )
 
+
     @classmethod
-    def success( cls, prefix:str, sufix:str ):
+    def _format( cls, prefix:object, sufix:object = None ):
+        """ Format logging message
+        """
+        if isinstance( prefix, torch.Tensor ):
+            prefix = prefix.detach()
+        if sufix != None:
+            if isinstance( sufix, torch.Tensor ):
+                sufix = 'shape: {}'.format( str(sufix.shape) ) + " data: {}".format( str( sufix.detach() ) )
+            else:
+                sufix = "{}".format( str( sufix ) )
+        else:
+            sufix = ""
+        prefix = prefix.ljust(20)
+        log_msg = str( prefix ) + str( sufix )
+        return _remove_loguru_ansi_directive( log_msg )
+
+    @classmethod
+    def success( cls, prefix:object, sufix:object = None ):
         """ Success logging 
         """
-        if not cls.__has_been_inited__:
-            cls()
-        prefix = prefix + ":"
-        prefix = prefix.ljust(20)
-        log_msg = prefix + sufix
-        logger.success( log_msg )
+        if not cls.__has_been_inited__: cls()
+        logger.success( cls._format( prefix, sufix ) )
 
     @classmethod
-    def warning( cls, prefix:str, sufix:str ):
+    def warning( cls, prefix:object, sufix:object = None ):
         """ Warning logging
         """
-        if not cls.__has_been_inited__:
-            cls()
-        prefix = prefix + ":"
-        prefix = prefix.ljust(20)
-        log_msg = prefix + sufix 
-        logger.warning( log_msg )
+        if not cls.__has_been_inited__: cls()
+        logger.warning( cls._format( prefix, sufix ) )
 
     @classmethod
-    def error( cls, prefix:str, sufix:str ):
+    def error( cls, prefix:object, sufix:object= None  ):
         """ Error logging
         """
-        if not cls.__has_been_inited__:
-            cls()
-        prefix = prefix + ":"
-        prefix = prefix.ljust(20)
-        log_msg = prefix + sufix 
-        logger.error( log_msg )
+        if not cls.__has_been_inited__: cls()
+        logger.error( cls._format( prefix, sufix ) )
 
     @classmethod
-    def info( cls, prefix:str, sufix:str ):
+    def info( cls, prefix:object, sufix:object = None ):
         """ Info logging
         """
-        if not cls.__has_been_inited__:
-            cls()
-        prefix = prefix + ":"
-        prefix = prefix.ljust(20)
-        log_msg = prefix + sufix
-        logger.info( log_msg )
+        if not cls.__has_been_inited__: cls()
+        logger.info( cls._format( prefix, sufix ) )
+
+
+    @classmethod
+    def debug( cls, prefix:object, sufix:object = None ):
+        """ Info logging
+        """
+        if not cls.__has_been_inited__: cls()
+        logger.debug( cls._format( prefix, sufix ) )
+
+    @classmethod
+    def trace( cls, prefix:object, sufix:object = None ):
+        """ Info logging
+        """
+        if not cls.__has_been_inited__: cls()
+        logger.trace( cls._format( prefix, sufix ) )

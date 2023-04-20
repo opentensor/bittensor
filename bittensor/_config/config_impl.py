@@ -52,6 +52,11 @@ class Config ( Munch ):
         for key,val in kwargs.items():
             self[key] = val
 
+    def merge(self, b):
+        """ Merge two configs
+        """
+        self = _merge(self, b)
+
     def to_prometheus(self):
         """
             Sends the config to the inprocess prometheus server if it exists.
@@ -88,11 +93,6 @@ class Config ( Munch ):
                 bittensor.defaults.dataset.data_dir = self.dataset.data_dir
                 bittensor.defaults.dataset.save_dataset = self.dataset.save_dataset
                 bittensor.defaults.dataset.max_datasets = self.dataset.max_datasets
-
-            if 'dendrite' in self.keys():
-                bittensor.defaults.dendrite.timeout = self.dendrite.timeout
-                bittensor.defaults.dendrite.max_active_receptors = self.dendrite.max_active_receptors
-                bittensor.defaults.dendrite.requires_grad = self.dendrite.requires_grad
 
             if  'logging' in self.keys():
                 bittensor.defaults.logging.debug = self.logging.debug
