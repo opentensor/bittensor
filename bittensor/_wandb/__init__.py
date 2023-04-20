@@ -133,10 +133,10 @@ class wandb:
     def check_config(cls, config: 'bittensor.Config' ):
         """ Checking config for types
         """
-        assert isinstance(config.wandb.api_key, str), 'wandb.api_key must be a string'
-        assert isinstance(config.wandb.project, str), 'wandb.project must be a string'
-        assert isinstance(config.wandb.name , str), 'wandb.name must be a string'
-        assert isinstance(config.wandb.tags , str), 'wandb.tags must be a str'
-        assert isinstance(config.wandb.run_group , str), 'wandb.run_group must be a string'
-        assert isinstance(config.wandb.directory , str), 'wandb.dir must be a string'
-        assert isinstance(config.wandb.offline , bool), 'wandb.offline must be a bool'
+        if not (isinstance(config.wandb.api_key, str)): raise(ValueError('wandb.api_key must be a string'))
+        if not (isinstance(config.wandb.project, str)): raise(ValueError('wandb.project must be a string'))
+        if not (isinstance(config.wandb.name , str)): raise(ValueError('wandb.name must be a string'))
+        if not (isinstance(config.wandb.tags , str)): raise(ValueError('wandb.tags must be a str'))
+        if not (isinstance(config.wandb.run_group , str)): raise(ValueError('wandb.run_group must be a string'))
+        if not (isinstance(config.wandb.directory , str)): raise(ValueError('wandb.dir must be a string'))
+        if not (isinstance(config.wandb.offline , bool)): raise(ValueError('wandb.offline must be a bool'))

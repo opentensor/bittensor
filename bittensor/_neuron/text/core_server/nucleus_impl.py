@@ -503,9 +503,9 @@ class server(torch.nn.Module):
     def check(self):
         r"""Checks the server settings
         """
-        assert self.tokenizer.name_or_path == self.pre_model.name_or_path, 'incorrect model ({}) and tokenizer ({})'.format(self.pre_model.name_or_path,self.tokenizer.name_or_path)
+        if self.tokenizer.name_or_path != self.pre_model.name_or_path: raise(ValueError('incorrect model ({}) and tokenizer ({})'.format(self.pre_model.name_or_path,self.tokenizer.name_or_path)))
         if self.interpolate == False:
-            assert self.mapping_function != None, 'Incorrect Settings; needs atleast one mapping function for sequence length changes'
+            if self.mapping_function == None: raise(ValueError('Incorrect Settings; needs atleast one mapping function for sequence length changes'))
 
     def save(self, path):
         try:

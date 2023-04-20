@@ -95,7 +95,7 @@ def get_external_ip() -> str:
     # --- Try AWS
     try:
         external_ip = requests.get('https://checkip.amazonaws.com').text.strip()
-        assert isinstance(ip_to_int(external_ip), int)
+        if not (isinstance(ip_to_int(external_ip), int)): raise(ValueError('Failed to get external IP from AWS.'))
         return str(external_ip)
     except Exception:
         pass
@@ -105,7 +105,7 @@ def get_external_ip() -> str:
         process =  os.popen('curl -s ifconfig.me')
         external_ip = process.readline()
         process.close()
-        assert isinstance(ip_to_int(external_ip), int)
+        if not (isinstance(ip_to_int(external_ip), int)): raise(ValueError('Failed to get external IP from ifconfig.'))
         return str(external_ip)
     except Exception:
         pass
@@ -115,7 +115,7 @@ def get_external_ip() -> str:
         process =  os.popen('curl -s https://ipinfo.io')
         external_ip = json.loads(process.read())['ip']
         process.close()
-        assert isinstance(ip_to_int(external_ip), int)
+        if not (isinstance(ip_to_int(external_ip), int)): raise(ValueError('Failed to get external IP from ip info.'))
         return str(external_ip)
     except Exception:
         pass
@@ -125,7 +125,7 @@ def get_external_ip() -> str:
         process = os.popen('curl -s myip.dnsomatic.com')
         external_ip  = process.readline()
         process.close()
-        assert isinstance(ip_to_int(external_ip), int)
+        if not (isinstance(ip_to_int(external_ip), int)): raise(ValueError('Failed to get external IP from myip.dnsomatic.'))
         return str(external_ip)
     except Exception:
         pass    
@@ -133,7 +133,7 @@ def get_external_ip() -> str:
     # --- Try urllib ipv6 
     try:
         external_ip = urllib.request.urlopen('https://ident.me').read().decode('utf8')
-        assert isinstance(ip_to_int(external_ip), int)
+        if not (isinstance(ip_to_int(external_ip), int)): raise(ValueError('Failed to get external IP from ident.me.'))
         return str(external_ip)
     except Exception:
         pass
@@ -141,7 +141,7 @@ def get_external_ip() -> str:
     # --- Try Wikipedia 
     try:
         external_ip = requests.get('https://www.wikipedia.org').headers['X-Client-IP']
-        assert isinstance(ip_to_int(external_ip), int)
+        if not (isinstance(ip_to_int(external_ip), int)): raise(ValueError('Failed to get external IP from wiki.'))
         return str(external_ip)
     except Exception:
         pass

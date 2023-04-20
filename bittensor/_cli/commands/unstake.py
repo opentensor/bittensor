@@ -173,7 +173,7 @@ class UnStakeCommand:
         else:
             # Only cli.config.wallet.hotkey is specified.
             #  so we stake to that single hotkey.
-            assert cli.config.wallet.hotkey is not None
+            if cli.config.wallet.hotkey is None: raise(ValueError('config.wallet.hotkey should not be None.'))
             hotkeys_to_unstake_from = [ (None, bittensor.wallet( config = cli.config ).hotkey.ss58_address) ]
         
         final_hotkeys: List[Tuple[str, str]] = [] 
