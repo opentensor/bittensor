@@ -466,7 +466,4 @@ class neuron:
 
 if __name__ == '__main__':
     bittensor.logging.info( 'neuron().train()' )
-    neuron()#.train()
-    import time
-    while True:
-        time.sleep(1)
+    neuron()
