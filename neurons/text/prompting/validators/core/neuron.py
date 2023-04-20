@@ -97,10 +97,11 @@ class neuron:
         parser.add_argument( '--neuron.length_timeout_multiplier', type = int, help = 'Base timeout for all requests.', default = 0.01 )
         parser.add_argument( '--neuron.inference_topk', type = str, help = 'At inference time, how many miners to we query and return the top rewarded.', default = 10 )
         parser.add_argument( '--neuron.training_topk', type = str, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
+        parser.add_argument( '--neuron.training_timeout', type = int, help = 'Query timeout during training', default = 4 )
+        parser.add_argument( '--neuron.inference_timeout', type = int, help = 'Query timeout during inference', default = 4 )
         parser.add_argument( '--neuron.reward_path', type = str, help = 'Path to reward model.', default = '~/.bittensor/reward_models' )
         parser.add_argument( '--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 1000 )
         parser.add_argument( '--neuron.device', type = str, help = 'Device to run the validator on.', default = "cuda" if torch.cuda.is_available() else "cpu" )
-        parser.add_argument( '--neuron.timeout', type = int, help = 'Query timeout.', default = 24 )
         parser.add_argument( '--neuron.epoch_length_override', type = int, help = 'Override the default timeout', default = -1 )
         parser.add_argument( '--neuron.dont_save_events', action = 'store_true', help = 'If set, we dont save events to a log file.', default = False )
         parser.add_argument( '--neuron.events_retention_size',  type = str,  help = 'Events retention size.', default = "500 MB" )
@@ -171,7 +172,11 @@ class neuron:
                 else: return False # Everyone else, dont blacklist.
 
             def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
-            def forward( _, messages: List[Dict[str, str]] ) -> str: return self.inference( messages )
+            def forward( _, messages: List[Dict[str, str]] ) -> str: 
+                return self.inference(
+                    messages = messages,
+                    timeout = self.config.neuron.training_timeout
+                )
                 
         # Serve axon.
         self.axon = bittensor.axon( 
@@ -254,7 +259,7 @@ class neuron:
             roles = roles, 
             messages = messages, 
             uids = topk_uids, 
-            timeout = self.config.neuron.timeout if timeout is None else timeout,
+            timeout = timeout,
         )
         bittensor.logging.trace( 'topk_uids', topk_uids )
 
@@ -287,6 +292,7 @@ class neuron:
             self.dendrite_pool.backward( 
                 forwar_calls = forward_calls,
                 rewards = rewards,
+                timeout = timeout
             )
             bittensor.logging.trace( 'Applied backward to network.' )
 
@@ -307,7 +313,11 @@ class neuron:
         self.record_event( event ) 
         return event
 
-    def inference( self, messages: List[Dict[str, str]] ) -> str:
+    def inference( 
+            self, 
+            messages: List[Dict[str, str]],
+            timeout: float
+        ) -> str:
         bittensor.logging.info( 'inference()')
 
         # pre-process messages
@@ -336,7 +346,7 @@ class neuron:
             roles = roles, 
             messages = contents, 
             uids = uids, 
-            timeout = 2,
+            timeout = timeout
         )
         bittensor.logging.trace( 'finished dendrite forward ', time.time() - forward_start )
 
@@ -374,6 +384,7 @@ class neuron:
                 topk = self.config.neuron.training_topk,
                 random_sample_uids = True,
                 train_gating_model = True,
+                timeout = self.config.neuron.training_timeout
             )
             if question == None: continue # no responses from network.
             
@@ -384,6 +395,7 @@ class neuron:
                 topk = self.config.neuron.training_topk,
                 random_sample_uids = True,
                 train_gating_model = True,
+                timeout = self.config.neuron.training_timeout
             )
 
             # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
