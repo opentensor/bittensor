@@ -285,8 +285,9 @@ class Subtensor:
         wait_for_finalization: bool = True,
         prompt: bool = False,
     ) -> bool:
-        if axon.info() != sub.neuron_for_wallet( wallet = bittensor.wallet(), netuid = 1).info():
-            return serve_axon_extrinsic( self, netuid, axon, use_upnpc, wait_for_inclusion, wait_for_finalization)
+        neuron_info = self.neuron_for_wallet( wallet = axon.wallet, netuid = netuid )
+        if axon.info() != neuron_info.axon_info:
+            return serve_axon_extrinsic( self, netuid, axon, use_upnpc, wait_for_inclusion, wait_for_finalization )
         else:
             bittensor.logging.success( 'Already registered', axon.info() )
 
