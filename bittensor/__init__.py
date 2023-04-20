@@ -23,9 +23,8 @@ from prometheus_client import Info
 from langchain.llms.base import LLM
 from typing import Optional, List, Mapping, Any
 
-# import nest_asyncio
-# nest_asyncio.apply()
-
+import nest_asyncio
+nest_asyncio.apply()
 
 # Bittensor code and protocol version.
 __version__ = '4.0.0'
@@ -136,7 +135,9 @@ except ValueError:
 from bittensor._config import config as config
 
 # ---- LOGGING ----
+# Duplicate import for ease of use.
 from bittensor._logging import logging as logging
+from bittensor._logging import logging as logger
 
 # ---- Protos ----
 import bittensor._proto.bittensor_pb2 as proto
