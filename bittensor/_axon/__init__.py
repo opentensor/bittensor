@@ -457,7 +457,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             previous_nonce = self.nonces[endpoint_key][1]
             # Nonces must be strictly monotonic over time.
             if nonce <= previous_nonce or nonce > first_nonce + self.upper_bound:
-                raise Exception(f"Nonce {nonce} is smaller or equal to previous nonce {previous_nonce} or larger then {first_nonce + 3.154e+17}.")
+                raise Exception(f"Nonce {nonce} is smaller or equal to previous nonce {previous_nonce} or larger than {first_nonce + 3.154e+17}.")
         else:
             # Initializing the (first_nonce, nonce) 
             self.nonces[endpoint_key] = (nonce, nonce)
