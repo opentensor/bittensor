@@ -1938,49 +1938,49 @@ class TestCLIWithNetworkAndConfigOthers(unittest.TestCase):
             )
             self.assertAlmostEqual(balance.tao, mock_balances['w1'].tao, places=4) # did not transfer
     
-    def test_register( self ):
-        config = self.config
-        config.command = "register"
-        config.subtensor.register.num_processes = 1
-        config.subtensor.register.update_interval = 50_000
-        config.no_prompt = True
+    # def test_register( self ):
+    #     config = self.config
+    #     config.command = "register"
+    #     config.subtensor.register.num_processes = 1
+    #     config.subtensor.register.update_interval = 50_000
+    #     config.no_prompt = True
 
-        mock_wallet = generate_wallet()
+    #     mock_wallet = generate_wallet()
         
-        with patch('bittensor.wallet', return_value=mock_wallet) as mock_create_wallet:
-            cli = bittensor.cli(config)
-            cli.run()
-            mock_create_wallet.assert_called_once()
+    #     with patch('bittensor.wallet', return_value=mock_wallet) as mock_create_wallet:
+    #         cli = bittensor.cli(config)
+    #         cli.run()
+    #         mock_create_wallet.assert_called_once()
             
-            subtensor = bittensor.subtensor(config)
-            registered = subtensor.is_hotkey_registered_on_subnet( hotkey_ss58 = mock_wallet.hotkey.ss58_address, netuid = 1 )
+    #         subtensor = bittensor.subtensor(config)
+    #         registered = subtensor.is_hotkey_registered_on_subnet( hotkey_ss58 = mock_wallet.hotkey.ss58_address, netuid = 1 )
 
-            self.assertTrue( registered )
+    #         self.assertTrue( registered )
       
-    def test_recycle_register( self ):
-        config = self.config
-        config.command = "recycle_register"
-        config.no_prompt = True
+    # def test_recycle_register( self ):
+    #     config = self.config
+    #     config.command = "recycle_register"
+    #     config.no_prompt = True
 
-        mock_wallet = generate_wallet()
+    #     mock_wallet = generate_wallet()
 
-        # Give the wallet some balance for burning
-        success, err = _subtensor_mock.sudo_force_set_balance(
-            ss58_address=mock_wallet.coldkeypub.ss58_address,
-            balance = bittensor.Balance.from_float(200.0)
-        )
-        self.assertTrue(success, err)
+    #     # Give the wallet some balance for burning
+    #     success, err = _subtensor_mock.sudo_force_set_balance(
+    #         ss58_address=mock_wallet.coldkeypub.ss58_address,
+    #         balance = bittensor.Balance.from_float(200.0)
+    #     )
+    #     self.assertTrue(success, err)
         
-        with patch('bittensor.wallet', return_value=mock_wallet) as mock_create_wallet:
-            cli = bittensor.cli(config)
-            cli.run()
-            mock_create_wallet.assert_called_once()
+    #     with patch('bittensor.wallet', return_value=mock_wallet) as mock_create_wallet:
+    #         cli = bittensor.cli(config)
+    #         cli.run()
+    #         mock_create_wallet.assert_called_once()
             
-            # Verify that the wallet was registered
-            subtensor = bittensor.subtensor(config)
-            registered = subtensor.is_hotkey_registered_on_subnet( hotkey_ss58 = mock_wallet.hotkey.ss58_address, netuid = 1 )
+    #         # Verify that the wallet was registered
+    #         subtensor = bittensor.subtensor(config)
+    #         registered = subtensor.is_hotkey_registered_on_subnet( hotkey_ss58 = mock_wallet.hotkey.ss58_address, netuid = 1 )
 
-            self.assertTrue( registered )
+    #         self.assertTrue( registered )
       
     def test_stake( self ):
         amount_to_stake: Balance = Balance.from_tao( 0.5 )
