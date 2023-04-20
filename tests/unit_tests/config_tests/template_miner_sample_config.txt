@@ -1,3 +1,0 @@
-axon.ip: '[::]'
-dataset.data_dir: ~/.bittensor/data/
-nucleus.punishment: 0.001

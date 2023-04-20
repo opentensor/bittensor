@@ -27,7 +27,7 @@ from bittensor.utils.balance import Balance
 from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
 
 # Local imports.
-from .chain_data import NeuronInfo, AxonInfo, DelegateInfo, PrometheusInfo, SubnetInfo, NeuronInfoLite
+from .chain_data import NeuronInfo, axon_info, DelegateInfo, PrometheusInfo, SubnetInfo, NeuronInfoLite
 from .errors import *
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
@@ -278,13 +278,14 @@ class Subtensor:
 
     def serve_axon (
         self,
+        netuid: int, 
         axon: 'bittensor.Axon',
         use_upnpc: bool = False,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False,
     ) -> bool:
-        return serve_axon_extrinsic( self, axon, use_upnpc, wait_for_inclusion, wait_for_finalization)
+        return serve_axon_extrinsic( self, netuid, axon, use_upnpc, wait_for_inclusion, wait_for_finalization)
 
     def serve_prometheus (
         self,
@@ -543,10 +544,10 @@ class Subtensor:
             return None
 
     """ Returns the axon information for this hotkey account """
-    def get_axon_info( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[AxonInfo]:
+    def get_axon_info( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[axon_info]:
         result = self.query_subtensor( 'Axons', block, [hotkey_ss58 ] )        
         if result != None:
-            return AxonInfo(
+            return axon_info(
                 ip = bittensor.utils.networking.ip_from_int( result.value.ip ),
                 ip_type = result.value.ip_type,
                 port = result.value.port,
@@ -559,7 +560,7 @@ class Subtensor:
             return None
 
     """ Returns the prometheus information for this hotkey account """
-    def get_prometheus_info( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[AxonInfo]:
+    def get_prometheus_info( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[axon_info]:
         result = self.query_subtensor( 'Prometheus', block, [hotkey_ss58 ] )        
         if result != None:
             return PrometheusInfo (
@@ -938,34 +939,18 @@ class Subtensor:
         
         return NeuronInfoLite.list_from_vec_u8( result )
 
-    def metagraph( self, netuid: int, block: Optional[int] = None, lite: bool = True ) -> 'bittensor.Metagraph':
+    def metagraph( self, netuid: int, lite: bool = True ) -> 'bittensor.Metagraph':
         r""" Returns the metagraph for the subnet.
         Args:
             netuid ( int ):
                 The network uid of the subnet to query.
-            block (Optional[int]):
-                The block to create the metagraph for.
-                Defaults to latest.
             lite (bool, default=True):
                 If true, returns a metagraph using the lite sync (no weights, no bonds)
         Returns:
             metagraph ( `bittensor.Metagraph` ):
                 The metagraph for the subnet at the block.
         """        
-        # Get neurons.
-        if lite:
-            neurons = self.neurons_lite( netuid = netuid, block = block )
-        else:
-            neurons = self.neurons( netuid = netuid, block = block )
-        # Get subnet info.
-        subnet_info: Optional[bittensor.SubnetInfo] = self.get_subnet_info( netuid = netuid, block = block )
-        if subnet_info == None:
-            # status.stop() if status else ...
-            raise ValueError('Could not find subnet info for netuid: {}'.format(netuid))
-        # Create metagraph.
-        block_number = self.block
-        metagraph = bittensor.metagraph.from_neurons( network = self.network, netuid = netuid, info = subnet_info, neurons = neurons, block = block_number )
-        return metagraph
+        return bittensor.metagraph( network = self.network, netuid = netuid, lite = lite )
 
     ################
     #### Transfer ##

@@ -1,5 +1,4 @@
-""" Create and init metagraph, 
-which maintains chain state as a torch.nn.Module.
+""" Maintains chain state as a torch.nn.Module.
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
@@ -18,225 +17,182 @@ which maintains chain state as a torch.nn.Module.
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import copy
+import os
+import json
 import torch
-import argparse
 import bittensor
-from . import metagraph_impl
-from . import metagraph_mock
-from typing import Optional, List, Union
-import bittensor.utils.weight_utils as weight_utils
-from .naka_metagraph_impl import Metagraph as naka_metagraph
 
-class metagraph:
-    """ Factory class for the bittensor.Metagraph class or the MockMetagraph
-    The Metagraph object serves as the main storage unit for the chain state. 
-    By default, it stores all chain information as a torch.nn.Module which can be
-    synced using a subtensor connection.
+import torch.nn.functional as f
+import bittensor.utils.networking as net
 
-    Examples:: 
-            >>> subtensor = bittensor.subtensor(network='nakamoto')
-            >>> metagraph = bittensor.metagraph()
-            >>> metagraph.sync(subtensor=subtensor, netuid=0)
-    """
-    def __new__(
-            cls, 
-            config: 'bittensor.config' = None,
-            network: str = None,
-            netuid: Optional[int] = None,
-            subtensor: 'bittensor.Subtensor' = None,
-            _mock:bool=None
-        ) -> 'bittensor.Metagraph':
-        r""" Creates a new bittensor.Metagraph object from passed arguments.
-            Args:
-                config (:obj:`bittensor.Config`, `optional`): 
-                    bittensor.metagraph.config()
-                network (default=None, type=str, optional)
-                    The subtensor network flag. The likely choices are:
-                            -- nobunaga (staging network)
-                            -- nakamoto (main network)
-                            -- local (local running network)
-                    This option allows you to load a metagraph from a local file.
-                    If set, overrides config.subtensor.network
-                netuid (default=None, type=int)
-                    The subnet netuid. If set, overrides config.netuid.
-                    This option allows you to load a metagraph from a local file.
-                _mock (:obj:`bool`, `optional`):
-                    For testing, if true the metagraph returns mocked outputs.
-        """      
-        if config == None: 
-            config = metagraph.config()
-        config = copy.deepcopy(config)
-        config.metagraph._mock = _mock if _mock != None else config.metagraph._mock
-        if config.metagraph._mock:
-            return metagraph_mock.MockMetagraph()
-        if subtensor != None:
-            network = subtensor.network
-        if netuid == None:
-            netuid = config.get('netuid', None)
-        if network == None:
-            network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
+from os import listdir
+from os.path import isfile, join
+from bittensor import Balance
+from typing import List, Optional, Dict, Union
 
-        if network =='nakamoto':
-            config.subtensor.network = 'nakamoto'
-            return naka_metagraph(config = config, subtensor = subtensor)
+
+# Return directory path from network and netuid
+def get_save_dir(  network: str, netuid: int ) -> str: 
+    return os.path.expanduser(f"~/.bittensor/metagraphs/network-{str(network)}/netuid-{str(netuid)}/")
+
+def latest_block_path( dir_path: str ) -> int:
+        latest_block = -1
+        latest_file_full_path = None
+        for filename in listdir(dir_path):
+            full_path_filename = os.path.expanduser(join(dir_path, filename))
+            try:
+                block_number = int(filename.split('-')[1].split('.')[0])
+                if block_number > latest_block:
+                    latest_block = block_number
+                    latest_file_full_path = full_path_filename
+            except Exception as e:
+                pass
+        if not latest_file_full_path: 
+            raise ValueError( f"Metagraph not found at: {dir_path}" )
         else:
-            return metagraph_impl.Metagraph( network = network, netuid = netuid )
-
-    @classmethod   
-    def config(cls) -> 'bittensor.Config':
-        """ Get config from teh argument parser
-        Return: bittensor.config object
-        """
-        parser = argparse.ArgumentParser()
-        metagraph.add_args( parser )
-        return bittensor.config( parser )
-
-    @classmethod   
-    def help(cls):
-        """ Print help to stdout
-        """
-        parser = argparse.ArgumentParser()
-        cls.add_args( parser )
-        print (cls.__new__.__doc__)
-        parser.print_help()
-
-    @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser, prefix: str = None ):
-        """ Add specific arguments from parser, 
-        which is the identical to subtensor  
-        """
-        prefix_str = '' if prefix == None else prefix + '.'
-        try:
-            parser.add_argument('--' + prefix_str + 'metagraph._mock', action='store_true', help='To turn on metagraph mocking for testing purposes.', default=False)
-            bittensor.subtensor.add_args( parser )
-        except argparse.ArgumentError:
-            # re-parsing arguments.
-            pass
-        bittensor.subtensor.add_args( parser, prefix = prefix )
-
-    @classmethod   
-    def check_config( cls, config: 'bittensor.Config' ):
-        """ Check config,
-        which is identical to subtensor
-        """
-        pass
-
-    @staticmethod
-    def from_neurons( network: str, netuid: int, info: 'bittensor.SubnetInfo', neurons: Union[List['bittensor.NeuronInfo'], List['bittensor.NeuronInfoLite']], block: int ) -> 'bittensor.Metagraph':
-        r""" Creates a metagraph from a list of neurons.
-            Args: 
-                network: (:obj:`str`, required):
-                    Name of the network for the metagraph.
-                netuid: (:obj:`int`, required):
-                    netuid of the subnet for the metagraph.
-                info: (:obj:`SubnetInfo`, required):
-                    SubnetInfo object for the metagraph, including the subnet's hyperparameters.
-                neurons: (:obj:`Union[List[NeuronInfo], List[NeuronInfoLite]]`, required):
-                    List of neurons to create metagraph from.
-                block: (:obj:`int`, required):
-                    Block number at time of the metagraph.
-        """
-        metagraph = metagraph_impl.Metagraph( network = network, netuid = netuid )
-        metagraph.info = info
-
-        n_total = len(neurons)
-
-        # Fill arrays.
-        uids = [ i for i in range(n_total) ]
-        active = [ 0 for _ in range(n_total) ]
-        stake = [ {} for _ in range(n_total) ]
-        total_stake = [ 0 for _ in range(n_total) ]
-        ranks = [ 0 for _ in range(n_total) ]
-        trust = [ 0 for _ in range(n_total) ]
-        consensus = [ 0 for _ in range(n_total) ]
-        validator_trust = [ 0 for _ in range(n_total) ]
-        incentive = [ 0 for _ in range(n_total) ]
-        emission = [ 0 for _ in range(n_total) ]
-        dividends = [ 0 for _ in range(n_total) ]
-        last_updates = [ -1 for _ in range(n_total) ]
-        validator_permit = [ False for _ in range(n_total) ]
-        endpoints = [ [-1 for _ in range(250) ]  for _ in range(n_total) ]
-        weights = [ [ 0 for _ in range(n_total) ] for _ in range(n_total) ]
-        bonds = [ [0 for _ in range(n_total) ] for _ in range(n_total) ]
-        metagraph._endpoint_objs = [ bittensor.endpoint.dummy() for _ in range(n_total) ]
-        metagraph.neurons = [None for _ in range(n_total)]
-        for n in neurons:
-            metagraph.neurons[n.uid] = n
-            uids[n.uid] = n.uid 
-            active[n.uid] = n.active
-            stake[n.uid] = n.stake # stake is a Dict[str, Balance]
-            total_stake[n.uid] = n.total_stake.tao 
-            ranks[n.uid] = n.rank
-            trust[n.uid] = n.trust
-            consensus[n.uid] = n.consensus
-            validator_trust[n.uid] = n.validator_trust
-            incentive[n.uid] = n.incentive
-            dividends[n.uid] = n.dividends
-            emission[n.uid] = n.emission
-            last_updates[n.uid] = n.last_update
-            validator_permit[n.uid] = n.validator_permit
-            endpoint =  bittensor.endpoint.from_neuron(n)
-            metagraph._endpoint_objs[n.uid] = endpoint 
-            endpoints[n.uid] = endpoint.to_tensor().tolist()
-            if isinstance(n, bittensor.NeuronInfoLite):
-                continue
-            # Weights and bonds only for full neurons.
-            if len(n.weights) > 0:
-                w_uids, w_weights = zip(*n.weights)
-                weights[n.uid] = weight_utils.convert_weight_uids_and_vals_to_tensor( n_total, w_uids, w_weights ).tolist()
-            else:
-                weights[n.uid] = [0] * n_total
-            if len(n.bonds) > 0:
-                b_uids, b_bonds = zip(*n.bonds)
-                bonds[n.uid] = weight_utils.convert_bond_uids_and_vals_to_tensor( n_total, b_uids, b_bonds ).tolist()
-            else:
-                bonds[n.uid] = [0] * n_total
-
-        # Set tensors.
-        tn = torch.tensor( n_total, dtype=torch.int64 )
-        tblock = torch.tensor( block, dtype=torch.int64 )
-        tuids = torch.tensor( uids, dtype=torch.int64 )
-        tactive = torch.tensor( active, dtype=torch.int64 )
-       
-        ttotal_stake = torch.tensor( total_stake, dtype=torch.float32 )
-
-        tranks = torch.tensor( ranks, dtype=torch.float32 )
-        ttrust = torch.tensor( trust, dtype=torch.float32 )
-        tconsensus = torch.tensor( consensus, dtype=torch.float32 )
-        tvalidator_trust = torch.tensor( validator_trust, dtype=torch.float32 )
-        tincentive = torch.tensor( incentive, dtype=torch.float32 )
-        temission = torch.tensor( emission, dtype=torch.float32 )
-        tdividends = torch.tensor( dividends, dtype=torch.float32 )
-        tlast_update = torch.tensor( last_updates, dtype=torch.int64 )
-        tvalidator_permit = torch.tensor( validator_permit, dtype=torch.bool )
-        tbonds = torch.tensor( bonds, dtype=torch.int64 )
-        tweights = torch.tensor( weights, dtype=torch.float32 )
-        tendpoints = torch.tensor( endpoints, dtype=torch.int64 )
-
-        # Normalize bond ownership.
-        tbonds = torch.nn.functional.normalize( tbonds.float(), p=1, dim=0, eps=1e-12 ) * 0.5 + torch.eye( tn ) * 0.5
-
-        # Set params.
-        metagraph.n = torch.nn.Parameter( tn, requires_grad=False )
-        metagraph.block = torch.nn.Parameter( tblock, requires_grad=False )
-        metagraph.uids = torch.nn.Parameter( tuids, requires_grad=False )
-
-        metagraph.stake = stake
-        metagraph.total_stake = torch.nn.Parameter( ttotal_stake, requires_grad=False )
+            return latest_file_full_path
         
-        metagraph.ranks = torch.nn.Parameter( tranks, requires_grad=False )
-        metagraph.trust = torch.nn.Parameter( ttrust, requires_grad=False )
-        metagraph.consensus = torch.nn.Parameter( tconsensus, requires_grad=False )
-        metagraph.validator_trust = torch.nn.Parameter( tvalidator_trust, requires_grad=False )
-        metagraph.incentive = torch.nn.Parameter( tincentive, requires_grad=False )
-        metagraph.emission = torch.nn.Parameter( temission, requires_grad=False )
-        metagraph.dividends = torch.nn.Parameter( tdividends, requires_grad=False )
-        metagraph.active = torch.nn.Parameter( tactive, requires_grad=False )
-        metagraph.last_update = torch.nn.Parameter( tlast_update, requires_grad=False )
-        metagraph.validator_permit = torch.nn.Parameter( tvalidator_permit, requires_grad=False )
-        metagraph.weights = torch.nn.Parameter( tweights, requires_grad=False )
-        metagraph.bonds = torch.nn.Parameter( tbonds, requires_grad=False )
-        metagraph.endpoints = torch.nn.Parameter( tendpoints, requires_grad=False )
+class metagraph( torch.nn.Module ):
 
-        return metagraph
+    @property
+    def S(self) -> torch.FloatTensor: return self.total_stake
+    @property
+    def R(self) -> torch.FloatTensor: return self.ranks
+    @property
+    def I(self) -> torch.FloatTensor: return self.incentive
+    @property
+    def E(self) -> torch.FloatTensor: return self.emission
+    @property
+    def C(self) -> torch.FloatTensor: return self.consensus
+    @property
+    def T(self) -> torch.FloatTensor: return self.trust
+    @property
+    def Tv(self) -> torch.FloatTensor: return self.validator_trust
+    @property
+    def D(self) -> torch.FloatTensor: return self.dividends
+    @property
+    def B(self) -> torch.FloatTensor: return self.bonds
+    @property
+    def W(self) -> torch.FloatTensor: return self.weights
+    @property
+    def hotkeys( self ) -> List[str]: return [ axon.hotkey for axon in self.axons ]
+    @property
+    def coldkeys( self ) -> List[str]: return [ axon.coldkey for axon in self.axons ]
+    @property
+    def addresses( self ) -> List[str]: return [ axon.ip_str() for axon in self.axons ]
+
+    def __str__(self): return "Metagraph(netuid:{}, n:{}, block:{}, network:{})".format(self.netuid, self.n.item(), self.block.item(), self.network)
+        
+    def __repr__(self): return self.__str__()
+
+    def metadata(self) -> dict: return {"netuid": self.netuid, "n": self.n.item(), "block": self.block.item(), "network": self.network, "version": bittensor.__version__ }
+
+    def __init__(self, netuid: int, network: str = 'finney', lite:bool = True, sync: bool = True ) -> 'metagraph':    
+        super(metagraph, self).__init__()
+        self.netuid = netuid
+        self.network = network
+        self.version = torch.nn.Parameter( torch.tensor( [ bittensor.__version_as_int__ ], dtype=torch.int64), requires_grad=False )
+        self.n = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad = False )
+        self.block = torch.nn.Parameter( torch.tensor( [0], dtype=torch.int64), requires_grad = False )
+        self.stake = torch.nn.Parameter( torch.tensor( [], dtype=torch.float32 ), requires_grad=False )
+        self.total_stake = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.ranks = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.trust = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.consensus = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.validator_trust = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.incentive = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.emission = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.dividends = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.active = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
+        self.last_update = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
+        self.validator_permit = torch.nn.Parameter(  torch.tensor( [], dtype=torch.bool), requires_grad=False )
+        self.weights = torch.nn.Parameter(  torch.tensor( [], dtype=torch.float32), requires_grad=False )
+        self.bonds = torch.nn.Parameter(  torch.tensor( [], dtype=torch.int64), requires_grad=False )
+        self.uids = torch.nn.Parameter( torch.tensor([], dtype = torch.int64),requires_grad=False )
+        self.axons = []
+        if sync:
+            self.sync( block = None, lite = lite )
+
+    def sync ( self, block: Optional[int] = None, lite: bool = True ) -> 'metagraph':
+        subtensor = bittensor.subtensor( network = self.network )
+        if lite:
+            self.neurons = subtensor.neurons_lite( netuid = self.netuid )
+        else:
+            self.neurons = subtensor.neurons( netuid = self.netuid )
+        self.lite = lite
+        self.n = torch.nn.Parameter( torch.tensor( len(self.neurons), dtype=torch.int64 ), requires_grad=False )
+        self.version = torch.nn.Parameter( torch.tensor( [bittensor.__version_as_int__], dtype=torch.int64 ), requires_grad=False )
+        self.block = torch.nn.Parameter( torch.tensor( subtensor.block, dtype=torch.int64 ), requires_grad=False )
+        self.uids = torch.nn.Parameter( torch.tensor( [ neuron.uid for neuron in self.neurons ], dtype=torch.int64 ), requires_grad=False )
+        self.emission = torch.nn.Parameter( torch.tensor( [ neuron.emission for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
+        self.trust = torch.nn.Parameter( torch.tensor( [ neuron.trust for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
+        self.consensus = torch.nn.Parameter( torch.tensor( [ neuron.consensus for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
+        self.incentive = torch.nn.Parameter( torch.tensor( [ neuron.incentive for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
+        self.dividends = torch.nn.Parameter( torch.tensor( [ neuron.dividends for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
+        self.ranks = torch.nn.Parameter( torch.tensor( [ neuron.rank for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
+        self.emission = torch.nn.Parameter( torch.tensor( [ neuron.emission for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
+        self.active = torch.nn.Parameter( torch.tensor( [ neuron.active for neuron in self.neurons ], dtype=torch.int64 ), requires_grad=False )
+        self.last_update = torch.nn.Parameter( torch.tensor( [ neuron.last_update for neuron in self.neurons ], dtype=torch.int64 ), requires_grad=False )
+        self.validator_permit = torch.nn.Parameter( torch.tensor( [ neuron.validator_permit for neuron in self.neurons ], dtype=torch.bool ), requires_grad=False )
+        self.validator_trust = torch.nn.Parameter( torch.tensor( [ neuron.validator_trust for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
+        self.total_stake = torch.nn.Parameter( torch.tensor( [ neuron.total_stake.tao for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
+        self.stake = torch.nn.Parameter( torch.tensor( [ neuron.stake for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
+        self.axons = [ n.axon_info for n in self.neurons ]
+        if not lite:
+            weights_array = []
+            for n in self.neurons:
+                w_uids, w_weights = zip(*n.weights)
+                weights_array.append( bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( len(self.neurons), w_uids, w_weights ).tolist() )
+            self.weights = torch.nn.Parameter( torch.stack( weights_array ), requires_grad=False )
+        if not lite:
+            bonds_array = []
+            for n in self.neurons:
+                b_uids, b_bonds = zip(*n.bonds)
+                bonds_array.append( bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor( len(self.neurons), b_uids, b_bonds ).tolist() )
+            self.bonds = torch.nn.Parameter( torch.stack( bonds_array ), requires_grad=False )
+
+    def save( self ) -> 'metagraph':
+        r""" Saves this metagraph object's state_dict under bittensor root dir."""
+        save_directory = get_save_dir( self.network, self.netuid  )
+        os.makedirs( save_directory, exist_ok=True )
+        graph_file = save_directory + f'/block-{self.block.item()}.pt'
+        state_dict = self.state_dict()
+        state_dict['axons'] = self.axons
+        torch.save(state_dict, graph_file) 
+        state_dict = torch.load( graph_file )
+        return self
+
+    def load( self ) -> 'metagraph':
+        r""" Loads this metagraph object's state_dict from bittensor root dir. """
+        self.load_from_path( get_save_dir( self.network, self.netuid ) )
+    
+    def load_from_path( self, dir_path:str ) -> 'metagraph':
+        r""" Loads this metagraph object with state_dict under the specified path."""
+        graph_file = latest_block_path( dir_path )
+        state_dict = torch.load( graph_file )
+        # self.info = bittensor.SubnetInfo.from_parameter_dict( state_dict['info'] ) if 'info' in state_dict else None
+        # self.version = torch.nn.Parameter( state_dict['version'], requires_grad=False )
+        self.n = torch.nn.Parameter( state_dict['n'], requires_grad=False )
+        self.block = torch.nn.Parameter( state_dict['block'], requires_grad=False )
+        self.uids = torch.nn.Parameter( state_dict['uids'], requires_grad=False )
+        self.stake = torch.nn.Parameter( state_dict['stake'], requires_grad=False )
+        self.total_stake = torch.nn.Parameter( state_dict['total_stake'], requires_grad=False )
+        self.ranks = torch.nn.Parameter( state_dict['ranks'], requires_grad=False )
+        self.trust = torch.nn.Parameter( state_dict['trust'], requires_grad=False )
+        self.consensus = torch.nn.Parameter( state_dict['consensus'], requires_grad=False )
+        self.validator_trust = torch.nn.Parameter( state_dict['validator_trust'], requires_grad=False )
+        self.incentive = torch.nn.Parameter( state_dict['incentive'], requires_grad=False )
+        self.emission = torch.nn.Parameter( state_dict['emission'], requires_grad=False )
+        self.dividends = torch.nn.Parameter( state_dict['dividends'], requires_grad=False )
+        self.active = torch.nn.Parameter( state_dict['active'], requires_grad=False )
+        self.last_update = torch.nn.Parameter( state_dict['last_update'], requires_grad=False )
+        self.validator_permit = torch.nn.Parameter( state_dict['validator_permit'], requires_grad=False )
+        self.uids = torch.nn.Parameter( state_dict['uids'], requires_grad=False )
+        self.axons = state_dict['axons']
+        if 'weights' in state_dict:
+            self.weights = torch.nn.Parameter( state_dict['weights'], requires_grad=False )
+        if 'bonds' in state_dict:
+            self.bonds = torch.nn.Parameter( state_dict['bonds'], requires_grad=False )
+        return self
+
+

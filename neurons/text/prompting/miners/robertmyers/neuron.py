@@ -54,6 +54,8 @@ class RobertMyersMiner( bittensor.BasePromptingMiner ):
                 processed_history += 'user: ' + message['content'] + '\n'
         return processed_history
 
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+
     def forward( self, messages: List[Dict[str, str]]  ) -> str:
         history = self._process_history(messages)
         resp = self.pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "") 

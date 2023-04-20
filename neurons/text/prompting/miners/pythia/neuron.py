@@ -49,7 +49,6 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
         if self.config.pythia.device != "cpu":
             self.model = self.model.to( self.config.pythia.device )
 
-
     def _process_history(self, history: List[str]) -> str:
         processed_history = ''
         

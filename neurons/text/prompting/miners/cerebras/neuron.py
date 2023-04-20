@@ -53,6 +53,8 @@ class CerebrasMiner( bittensor.BasePromptingMiner ):
             no_repeat_ngram_size = self.config.cerebras.no_repeat_ngram_size
         )
 
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+
     @staticmethod
     def _process_history( history: List[Dict[str, str]] ) -> str:
         processed_history = ''

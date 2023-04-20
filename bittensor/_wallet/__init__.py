@@ -1,5 +1,3 @@
-""" Create and init wallet that stores coldkey and hotkey
-"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -24,9 +22,7 @@ import os
 
 import bittensor
 from bittensor.utils import strtobool
-
 from . import wallet_impl, wallet_mock
-from .naka_wallet_impl import Wallet as naka_wallet
 
 class wallet:
     """ Create and init wallet that stores hot and coldkey

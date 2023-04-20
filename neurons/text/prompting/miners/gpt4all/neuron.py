@@ -72,6 +72,8 @@ class GPT4ALLMiner( bittensor.BasePromptingMiner ):
             n_batch=self.config.gpt4all.n_batch,
             streaming=self.config.gpt4all.streaming,
         )
+
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
     
     @staticmethod
     def _process_history(history: List[dict]) -> str:

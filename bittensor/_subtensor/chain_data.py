@@ -76,7 +76,7 @@ custom_rpc_type_registry = {
                 ["uid", "Compact<u16>"],
                 ["netuid", "Compact<u16>"],
                 ["active", "bool"],
-                ["axon_info", "AxonInfo"],
+                ["axon_info", "axon_info"],
                 ["prometheus_info", "PrometheusInfo"],
                 ["stake", "Vec<(AccountId, Compact<u64>)>"],
                 ["rank", "Compact<u16>"],
@@ -101,7 +101,7 @@ custom_rpc_type_registry = {
                 ["uid", "Compact<u16>"],
                 ["netuid", "Compact<u16>"],
                 ["active", "bool"],
-                ["axon_info", "AxonInfo"],
+                ["axon_info", "axon_info"],
                 ["prometheus_info", "PrometheusInfo"],
                 ["stake", "Vec<(AccountId, Compact<u64>)>"],
                 ["rank", "Compact<u16>"],
@@ -116,7 +116,7 @@ custom_rpc_type_registry = {
                 ["pruning_score", "Compact<u16>"]
             ],
         },
-        "AxonInfo": {
+        "axon_info": {
             "type": "struct",
             "type_mapping": [
                 ["block", "u64"],
@@ -204,7 +204,7 @@ class NeuronInfo:
     weights: List[List[int]]
     bonds: List[List[int]]
     prometheus_info: 'PrometheusInfo'
-    axon_info: 'AxonInfo'
+    axon_info: 'axon_info'
     pruning_score: int
     is_null: bool = False
 
@@ -228,7 +228,7 @@ class NeuronInfo:
         neuron_info_decoded['validator_trust'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['validator_trust'])
         neuron_info_decoded['dividends'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['dividends'])
         neuron_info_decoded['prometheus_info'] = PrometheusInfo.fix_decoded_values(neuron_info_decoded['prometheus_info'])
-        neuron_info_decoded['axon_info'] = AxonInfo.fix_decoded_values(neuron_info_decoded['axon_info'])
+        neuron_info_decoded['axon_info'] = bittensor.axon_info.from_neuron_info( neuron_info_decoded )
 
         return cls(**neuron_info_decoded)
     
@@ -335,7 +335,7 @@ class NeuronInfoLite:
     #weights: List[List[int]]
     #bonds: List[List[int]] No weights or bonds in lite version
     prometheus_info: 'PrometheusInfo'
-    axon_info: 'AxonInfo'
+    axon_info: 'axon_info'
     pruning_score: int
     is_null: bool = False
 
@@ -360,8 +360,7 @@ class NeuronInfoLite:
         neuron_info_decoded['validator_trust'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['validator_trust'])
         neuron_info_decoded['dividends'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['dividends'])
         neuron_info_decoded['prometheus_info'] = PrometheusInfo.fix_decoded_values(neuron_info_decoded['prometheus_info'])
-        neuron_info_decoded['axon_info'] = AxonInfo.fix_decoded_values(neuron_info_decoded['axon_info'])
-
+        neuron_info_decoded['axon_info'] = bittensor.axon_info.from_neuron_info(neuron_info_decoded)
         return cls(**neuron_info_decoded)
     
     @classmethod
@@ -442,7 +441,7 @@ class NeuronInfoLite:
             return neuron
 
 @dataclass
-class AxonInfo:
+class axon_info:
     r"""
     Dataclass for axon info.
     """
@@ -456,8 +455,8 @@ class AxonInfo:
     placeholder2: int
 
     @classmethod
-    def fix_decoded_values(cls, axon_info_decoded: Dict) -> 'AxonInfo':
-        r""" Returns an AxonInfo object from an axon_info_decoded dictionary.
+    def fix_decoded_values(cls, axon_info_decoded: Dict) -> 'axon_info':
+        r""" Returns an axon_info object from an axon_info_decoded dictionary.
         """
         axon_info_decoded['ip'] = bittensor.utils.networking.int_to_ip(int(axon_info_decoded['ip']))
                                                                        

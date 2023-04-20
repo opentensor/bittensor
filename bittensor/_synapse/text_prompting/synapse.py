@@ -15,105 +15,100 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import copy
-import json
+import grpc
 import torch
 import bittensor
-from typing import List, Dict
-from abc import abstractmethod
 
-class TextPromptingSynapse(bittensor.Synapse, bittensor.grpc.TextPromptingServicer):
-    """TextPromptingSynapse: A class for servicing text_prompting requests."""
+from typing import List, Dict, Union, Callable
+from abc import ABC, abstractmethod
 
-    synapse_name: str = "text_prompting"
-    default_blacklist_stake: float = 10
+class SynapseForward( bittensor.SynapseCall ):
+    name: str = "text_prompting_forward"
+    is_forward: bool = True
+    completion: str = ""
 
-    def __init__(
-            self,
-            config: "bittensor.Config" = None,
-    ):
-        if config is None:
-            config = self.config()
-        TextPromptingSynapse.check_config(config)
-        super().__init__(config)
-        self.config = copy.deepcopy(config)
+    def __init__( 
+            self, 
+            synapse: "TextPromptingSynapse", 
+            request_proto: bittensor.proto.BackwardTextPromptingRequest,
+            forward_callback: Callable,
+        ):
+        super().__init__( synapse = synapse, request_proto = request_proto )
+        self.messages = request_proto.messages
+        self.formatted_messages = [ message for message in self.messages ]
+        self.forward_callback = forward_callback
 
-    def _attach(self, axon: "bittensor.axon"):
-        """_attach: Attaches the synapse to the axon."""
-        bittensor.grpc.add_TextPromptingServicer_to_server(self, axon.server)
+    def apply( self ):
+        bittensor.logging.trace( "SynapseForward.apply()" )
+        self.completion = self.forward_callback( messages = self.formatted_messages )
+        bittensor.logging.trace( "SynapseForward.apply() = ", self.completion )
 
-
-    #################
-    #### Forward ####
-    #################
-    @abstractmethod
-    def forward( self, messages: List[Dict[str, str]] ) -> str:
-        ...
-
-    def apply_forward_call(
-        self, 
-        forward_call: 'bittensor.TextPromptingForwardCall' 
-    ) -> "bittensor.TextPromptingForwardCall":
-        formatted_messages = [ json.loads(message) for message in forward_call.messages ]
-        forward_call.response = self.forward( messages = formatted_messages )
-        return forward_call
-
-    def pre_process_request_proto_to_forward_call(
-        self, 
-        request_proto: 'bittensor.ForwardTextPromptingRequest'
-    ) -> "bittensor.TextPromptingForwardCall":
-        return bittensor.TextPromptingForwardCall(messages=request_proto.messages, timeout=request_proto.timeout)
-
-    def post_process_forward_call_to_response_proto(
-        self, 
-        forward_call: "bittensor.TextPromptingForwardCall"
-    ) -> 'bittensor.ForwardTextPromptingResponse':
-        return bittensor.ForwardTextPromptingResponse(
-            version=bittensor.__version_as_int__,
-            hotkey=self.axon.wallet.hotkey.ss58_address,
-            response=forward_call.response,
-            message=forward_call.request_message,
-            return_code=forward_call.request_code,
-        )
-
-
-    ##################
-    #### Backward ####
-    ##################
-    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
-        pass
-
-    def apply_backward_call( 
-        self, 
-        backward_call: 'bittensor.TextPromptingBackwardCall' 
-    ) -> "bittensor.TextPromptingBackwardCall":
-        formatted_messages = [ json.loads(message) for message in backward_call.messages ]
-        formatted_rewards = torch.tensor( [backward_call.rewards], dtype = torch.float32 )
-        self.backward(
-            messages = formatted_messages,
-            response = backward_call.response,
-            rewards = formatted_rewards
-        )
-        return backward_call
-
-    def pre_process_request_proto_to_backward_call(
-        self, 
-        request_proto: "bittensor.BackwardTextPromptingRequest"
-    ) -> "bittensor.TextPromptingBackwardCall":
-        retval = bittensor.TextPromptingBackwardCall(
-            messages = request_proto.messages, 
-            response = request_proto.response, 
-            rewards = request_proto.rewards,
-        )
-        return retval
+    def get_response_proto( self ) -> bittensor.proto.ForwardTextPromptingResponse: 
+        bittensor.logging.trace( "SynapseForward.get_response_proto()" )
+        return bittensor.ForwardTextPromptingResponse( response = self.completion )
     
-    def post_process_backward_call_to_response_proto(
-        self, 
-        backward_call: "bittensor.TextPromptingBackwardCall"
-    ) -> "bittensor.BackwardTextPromptingResponse":
-        return bittensor.ForwardTextPromptingResponse(
-            version = bittensor.__version_as_int__,
-            hotkey = self.axon.wallet.hotkey.ss58_address,
-            return_code = bittensor.proto.ReturnCode.Success
-        )
+    def get_inputs_shape(self) -> Union[torch.Size, None]: 
+        bittensor.logging.trace( "SynapseForward.get_inputs_shape()" )
+        return torch.Size( [ len(message) for message in self.messages ] )
+    
+    def get_outputs_shape(self) -> Union[torch.Size, None]: 
+        bittensor.logging.trace( "SynapseForward.get_outputs_shape()" )
+        return torch.Size( [ len(self.completion) ]  )
+    
+class SynapseBackward( bittensor.SynapseCall ):
+    name: str = "text_prompting_backward"
+    is_forward: bool = False
+
+    def __init__( 
+            self, 
+            synapse: "TextPromptingSynapse", 
+            request_proto: bittensor.proto.BackwardTextPromptingRequest,
+            backward_callback: Callable,
+        ):
+        super().__init__( synapse = synapse, request_proto = request_proto )
+        self.formatted_messages = [ message for message in request_proto.messages ]
+        self.formatted_rewards = torch.tensor( [ request_proto.rewards ], dtype = torch.float32 )
+        self.completion = request_proto.response
+        self.backward_callback = backward_callback
+
+    def apply( self ):
+        self.backward_callback(
+            rewards = self.formatted_rewards,
+            messages = self.formatted_messages,
+            response = self.completion,
+        )    
+    
+    def get_response_proto( self ) -> bittensor.proto.BackwardTextPromptingResponse: 
+        return bittensor.BackwardTextPromptingResponse( )
+
+    def get_inputs_shape(self) -> torch.Size: 
+        return torch.Size( [ len(message) for message in self.formatted_messages ] )
+    
+    def get_outputs_shape(self) -> torch.Size: 
+        return torch.Size( [ 0 ] )
+
+
+class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServicer ):
+    name: str = "text_prompting_synapse"
+
+    def __init__(self, axon: "bittensor.axon" ):
+        super().__init__( axon = axon )
+        self.axon = axon
+        bittensor.grpc.add_TextPromptingServicer_to_server( self, self.axon.server )
+
+    @abstractmethod
+    def forward( self, messages: List[Dict[str, str]] ) -> str: ...
+
+    @abstractmethod
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: ...
+
+    def Forward( self, request: bittensor.proto.ForwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.ForwardTextPromptingResponse:
+        call = SynapseForward( self, request, self.forward )
+        bittensor.logging.trace( 'Forward: {} '.format( call ) )
+        return self.apply( call = call ) 
+                         
+    def Backward( self, request: bittensor.proto.BackwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.BackwardTextPromptingResponse:
+        call = SynapseBackward( self, request, self.backward )
+        bittensor.logging.trace( 'Backward: {}'.format( call ) )
+        return self.apply( call = call ) 
 

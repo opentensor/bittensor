@@ -16,17 +16,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
-import copy
-import os
 
+import os
+import copy
+import argparse
 import bittensor
+
 from loguru import logger
 from substrateinterface import SubstrateInterface
 from torch.cuda import is_available as is_cuda_available
-
-from bittensor.utils import strtobool_with_default
-from .naka_subtensor_impl import Subtensor as Nakamoto_subtensor
 from . import subtensor_impl, subtensor_mock
 
 logger = logger.opt(colors=True)
