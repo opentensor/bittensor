@@ -73,9 +73,10 @@ class mock_subtensor():
 
         if not cls.global_mock_process_is_running():
             # Remove any old chain db
-            if os.path.exists(bittensor.__mock_chain_db__):
-                os.system(f'rm -rf {bittensor.__mock_chain_db__}')
-            _owned_mock_subtensor_process = cls.create_global_mock_process()
+            if os.path.exists(f'{bittensor.__mock_chain_db__}_{os.getpid()}'):
+                # Name mock chain db using pid to avoid conflicts while multiple processes are running.
+                os.system(f'rm -rf {bittensor.__mock_chain_db__}_{os.getpid()}')
+            _owned_mock_subtensor_process = cls.create_global_mock_process(os.getpid())
         else:
             _owned_mock_subtensor_process = None
             print ('Mock subtensor already running.')
@@ -101,13 +102,15 @@ class mock_subtensor():
         return subtensor
 
     @classmethod
-    def global_mock_process_is_running(cle) -> bool:
-        r""" If subtensor is running a mock process this kills the mock.
+    def global_mock_process_is_running(cls) -> bool:
+        r""" Check if the global mocked subtensor process is running under a process with the same name as this one.
         """
+        this_process = psutil.Process(os.getpid())
         for p in psutil.process_iter():
-            if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.parent().pid == os.getpid() and p.status() != psutil.STATUS_ZOMBIE and p.status() != psutil.STATUS_DEAD:
-                print(f"Found process with name {p.name()}, parent {p.parent().pid} status {p.status()} and pid {p.pid}")
-                return True
+            if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.status() != psutil.STATUS_ZOMBIE and p.status() != psutil.STATUS_DEAD:
+                if p.parent().name == this_process.name:
+                    print(f"Found process with name {p.name()}, parent {p.parent().pid} status {p.status()} and pid {p.pid}")
+                    return True
         return False
 
     @classmethod
@@ -121,7 +124,7 @@ class mock_subtensor():
         time.sleep(2) # Buffer to ensure the processes actually die
 
     @classmethod
-    def create_global_mock_process(self) -> 'subprocess.Popen[bytes]':
+    def create_global_mock_process(self, pid: int) -> 'subprocess.Popen[bytes]':
         r""" Creates a global mocked subtensor process running in the backgroun with name GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME.
         """
         try:
@@ -133,7 +136,7 @@ class mock_subtensor():
             ws_port = int(bittensor.__mock_entrypoint__.split(':')[1])
             print(f'MockSub ws_port: {ws_port}')
             
-            command_args = [ path ] + f'--chain {path_to_spec} --base-path {bittensor.__mock_chain_db__} --execution native --ws-max-connections 1000 --no-mdns --rpc-cors all'.split(' ') + \
+            command_args = [ path ] + f'--chain {path_to_spec} --base-path {bittensor.__mock_chain_db__}_{pid} --execution native --ws-max-connections 1000 --no-mdns --rpc-cors all'.split(' ') + \
                 f'--port {int(bittensor.get_random_unused_port())} --rpc-port {int(bittensor.get_random_unused_port())} --ws-port {ws_port}'.split(' ') + \
                 '--validator --alice'.split(' ')
             
@@ -146,7 +149,7 @@ class mock_subtensor():
             # Wait for the process to start. Check for errors.
             try:
                 # Timeout is okay.
-                error_code = _mock_subtensor_process.wait(timeout=3)
+                error_code = _mock_subtensor_process.wait(timeout=12)
             except subprocess.TimeoutExpired:
                 error_code = None
             
