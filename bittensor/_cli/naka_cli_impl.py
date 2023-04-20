@@ -617,7 +617,7 @@ class CLI:
         total_balance = bittensor.Balance(0)
         
         # We are printing for every coldkey.
-        if self.config.all:
+        if self.config.get('all', d=None):
             cold_wallets = CLI._get_coldkey_wallets_for_path(self.config.wallet.path)
             for cold_wallet in tqdm(cold_wallets, desc="Pulling balances"):
                 if cold_wallet.coldkeypub_file.exists_on_device() and not cold_wallet.coldkeypub_file.is_encrypted():
@@ -728,7 +728,7 @@ class CLI:
             
         total_neurons = len(neurons)                
         table = Table(show_footer=False, width=self.config.get('width', None), pad_edge=False, box=None)
-        if not self.config.all:
+        if not self.config.get('all', d=None):
             table.title = ( "[white]Wallet - {}:{}".format(self.config.wallet.name, wallet.coldkeypub.ss58_address) )
         else:
             table.title = ( "[white]All Wallets:" )

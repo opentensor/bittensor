@@ -63,7 +63,7 @@ class RunCommand:
             check_for_cuda_reg_config(wallet.config)
             print(wallet.config)
             
-        wallet.reregister( netuid = cli.config.netuid )
+        wallet.reregister( subtensor=subtensor, netuid = cli.config.netuid )
 
         # Run miner.
         if cli.config.model == 'core_server':

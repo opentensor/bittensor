@@ -273,7 +273,11 @@ class GenesisTextDataset( Dataset ):
         text = None
         response = self.get_ipfs_directory(self.text_dir, file_meta)
         if (response != None) and (response.status_code == 200):
-            text = response.text
+            try:
+                text = json.loads(response.text)['Data']
+            except json.decoder.JSONDecodeError:
+                text = response.text
+
             self.IPFS_fails = 0
             
             if self.save_dataset and self.dataset_hashes[file_meta['Folder']]['Size'] < self.backup_dataset_cap_size:
