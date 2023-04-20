@@ -46,4 +46,4 @@ jsonschema[format-nongpl]>=4.14.0,<=4.17.0
 markupsafe==2.0.1
 
 # msgpack-numpy that is mentained and secured by Opentensor.
-msgpack-numpy @ git+https://github.com/opentensor/msgpack-numpy.git
+msgpack-numpy @ git+https://github.com/opentensor/msgpack-numpy.git@v1.0.0
