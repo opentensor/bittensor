@@ -119,7 +119,7 @@ class Synapse( ABC ):
     @abstractmethod
     def blacklist( self, call: SynapseCall ) -> Union[ Tuple[bool, str], bool ]: ...
 
-    def _blacklist( self, call: SynapseCall ) -> [bool, str]: 
+    def _blacklist( self, call: SynapseCall ) -> Union[ bool, str ]: 
         blacklist = self.blacklist( call )
         if isinstance( blacklist, tuple ): return blacklist
         elif isinstance( blacklist, bool ): return blacklist, "no reason specified"
