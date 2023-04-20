@@ -1,5 +1,24 @@
 # Changelog
 
+## 4.0.0 / 2023-04-20
+
+## What's Changed
+* add mnrv-ai to delegates.json by @SFuller4 in https://github.com/opentensor/bittensor/pull/1226
+* Update delegates list by @adriansmares in https://github.com/opentensor/bittensor/pull/1225
+* Update delegates.json by @whiterhinoTAO in https://github.com/opentensor/bittensor/pull/1230
+* Hotfix - Cli unstake fix by @Eugene-hu in https://github.com/opentensor/bittensor/pull/1233
+* Fix permissions for release github script by @eduardogr in https://github.com/opentensor/bittensor/pull/1224
+* Staging into Release branch by @camfairchild in https://github.com/opentensor/bittensor/pull/1275
+* Remove codecov by @camfairchild in https://github.com/opentensor/bittensor/pull/1282
+* Use alt new preseal by @camfairchild in https://github.com/opentensor/bittensor/pull/1269
+
+## New Contributors
+* @SFuller4 made their first contribution in https://github.com/opentensor/bittensor/pull/1226
+* @whiterhinoTAO made their first contribution in https://github.com/opentensor/bittensor/pull/1230
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v3.7.0...v4.0.0
+
+
 ## 3.6.3 / 2023-01-21
 
 ## What's Changed

@@ -80,7 +80,10 @@ def convert_weight_uids_and_vals_to_tensor( n: int, uids: List[int], weights: Li
     """
     row_weights = torch.zeros( [ n ], dtype=torch.float32 )
     for uid_j, wij in list(zip( uids, weights )):
-        row_weights[ uid_j ] = float( wij ) / float(U16_MAX)
+        row_weights[ uid_j ] = float( wij )  # assumes max-upscaled values (w_max = U16_MAX).
+    row_sum = row_weights.sum()
+    if row_sum > 0:
+        row_weights /= row_sum  # normalize
     return row_weights
 
 def convert_bond_uids_and_vals_to_tensor( n: int, uids: List[int], bonds: List[int] ) -> 'torch.LongTensor':
@@ -126,12 +129,13 @@ def convert_weights_and_uids_for_emit( uids: torch.LongTensor, weights: torch.Fl
     if sum(weights) == 0:
         return [],[] # Nothing to set on chain.
     else:
-        weights = [ float(value) / sum(weights) for value in weights] # Initial normalization.
+        max_weight = float(max(weights))
+        weights = [float(value) / max_weight for value in weights]  # max-upscale values (max_weight = 1).
 
     weight_vals = []
     weight_uids = []
     for i, (weight_i, uid_i) in enumerate(list(zip(weights, uids))):
-        uint16_val = int(float(weight_i) * int(U16_MAX))  # convert to int representation.
+        uint16_val = round(float(weight_i) * int(U16_MAX))  # convert to int representation.
 
         # Filter zeros
         if uint16_val != 0: # Filter zeros

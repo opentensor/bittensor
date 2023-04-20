@@ -408,107 +408,107 @@ class Subtensor:
 
     """ Returns network Rho hyper parameter """
     def rho (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor( "Rho", block, [netuid] ).value
 
     """ Returns network Kappa hyper parameter """
     def kappa (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return U16_NORMALIZED_FLOAT( self.query_subtensor( "Kappa", block, [netuid] ).value )
 
     """ Returns network Difficulty hyper parameter """
     def difficulty (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor( "Difficulty", block, [netuid] ).value
     
     """ Returns network Burn hyper parameter """
     def burn (self, netuid: int, block: Optional[int] = None ) -> Optional[bittensor.Balance]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return bittensor.Balance.from_rao( self.query_subtensor( "Burn", block, [netuid] ).value )
 
     """ Returns network ImmunityPeriod hyper parameter """
     def immunity_period (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor("ImmunityPeriod", block, [netuid] ).value
 
     """ Returns network ValidatorBatchSize hyper parameter """
     def validator_batch_size (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor("ValidatorBatchSize", block, [netuid] ).value
 
     """ Returns network ValidatorPruneLen hyper parameter """
     def validator_prune_len (self, netuid: int, block: Optional[int] = None ) -> int:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor("ValidatorPruneLen", block, [netuid] ).value
 
     """ Returns network ValidatorLogitsDivergence hyper parameter """
     def validator_logits_divergence (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return U16_NORMALIZED_FLOAT(self.query_subtensor("ValidatorLogitsDivergence", block, [netuid]).value)
 
     """ Returns network ValidatorSequenceLength hyper parameter """
     def validator_sequence_length (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor("ValidatorSequenceLength", block, [netuid] ).value
 
     """ Returns network ValidatorEpochsPerReset hyper parameter """
     def validator_epochs_per_reset (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor("ValidatorEpochsPerReset", block, [netuid] ).value
 
     """ Returns network ValidatorEpochLen hyper parameter """
     def validator_epoch_length (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor("ValidatorEpochLen", block, [netuid] ).value
 
     """ Returns network ValidatorEpochLen hyper parameter """
     def validator_exclude_quantile (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return U16_NORMALIZED_FLOAT( self.query_subtensor("ValidatorExcludeQuantile", block, [netuid] ).value )
 
     """ Returns network MaxAllowedValidators hyper parameter """
     def max_allowed_validators(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor( 'MaxAllowedValidators', block, [netuid] ).value
         
     """ Returns network MinAllowedWeights hyper parameter """
     def min_allowed_weights (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor("MinAllowedWeights", block, [netuid] ).value
 
     """ Returns network MaxWeightsLimit hyper parameter """
     def max_weight_limit (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return U16_NORMALIZED_FLOAT( self.query_subtensor('MaxWeightsLimit', block, [netuid] ).value )
 
     """ Returns network ScalingLawPower hyper parameter """
     def scaling_law_power (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor('ScalingLawPower', block, [netuid] ).value / 100.
 
     """ Returns network SynergyScalingLawPower hyper parameter """
     def synergy_scaling_law_power (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor('SynergyScalingLawPower', block, [netuid] ).value / 100.
 
     """ Returns network SubnetworkN hyper parameter """
     def subnetwork_n (self, netuid: int, block: Optional[int] = None ) -> int:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor('SubnetworkN', block, [netuid] ).value
 
     """ Returns network MaxAllowedUids hyper parameter """
     def max_n (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor('MaxAllowedUids', block, [netuid] ).value
 
     """ Returns network BlocksSinceLastStep hyper parameter """
     def blocks_since_epoch (self, netuid: int, block: Optional[int] = None) -> int:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor('BlocksSinceLastStep', block, [netuid] ).value
 
     """ Returns network Tempo hyper parameter """
     def tempo (self, netuid: int, block: Optional[int] = None) -> int:
-        if not self.subnet_exists( netuid ): return None
+        if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor('Tempo', block, [netuid] ).value
 
     ##########################
@@ -593,6 +593,9 @@ class Subtensor:
 
     def serving_rate_limit (self, block: Optional[int] = None ) -> Optional[int]:
         return self.query_subtensor( "ServingRateLimit", block ).value
+    
+    def tx_rate_limit (self, block: Optional[int] = None ) -> Optional[int]:
+        return self.query_subtensor( "TxRateLimit", block ).value
 
     #####################################
     #### Network Parameters ####
