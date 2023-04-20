@@ -4,5 +4,4 @@ pytest-xdist==3.0.2
 pytest-rerunfailures==10.2
 coveralls==3.3.1
 pytest-cov==4.0.0
-codecov==2.1.12
 ddt==1.6.0

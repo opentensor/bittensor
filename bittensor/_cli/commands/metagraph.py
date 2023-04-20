@@ -30,7 +30,7 @@ class MetagraphCommand:
         console = bittensor.__console__
         subtensor = bittensor.subtensor( config = cli.config )
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
-        metagraph = subtensor.metagraph( netuid = cli.config.netuid )
+        metagraph: bittensor.metagraph = subtensor.metagraph( netuid = cli.config.netuid )
         metagraph.save()
         difficulty = subtensor.difficulty( cli.config.netuid )
         subnet_emission = bittensor.Balance.from_tao(subtensor.get_emission_value_by_subnet(cli.config.netuid))
@@ -46,9 +46,10 @@ class MetagraphCommand:
         total_dividends = 0.0
         total_emission = 0  
         for uid in metagraph.uids:
+            neuron = metagraph.neurons[uid]
             ep = metagraph.axons[uid]
             row = [
-                str(ep.uid), 
+                str(neuron.uid), 
                 '{:.5f}'.format( metagraph.total_stake[uid]),
                 '{:.5f}'.format( metagraph.ranks[uid]),
                 '{:.5f}'.format( metagraph.trust[uid]), 
@@ -76,7 +77,7 @@ class MetagraphCommand:
         total_neurons = len(metagraph.uids)                
         table = Table(show_footer=False)
         table.title = (
-            "[white]Metagraph: net: {}:{}, block: {}, N: {}/{}, tau: {}/block, stake: {}, issuance: {}, difficulty: {}".format(subtensor.network, metagraph.netuid, metagraph.block.item(), sum(metagraph.active.tolist()), metagraph.n.item(), bittensor.Balance.from_tao(metagraph.tau.item()), bittensor.Balance.from_tao(total_stake), total_issuance, difficulty )
+            "[white]Metagraph: net: {}:{}, block: {}, N: {}/{}, stake: {}, issuance: {}, difficulty: {}".format(subtensor.network, metagraph.netuid, metagraph.block.item(), sum(metagraph.active.tolist()), metagraph.n.item(), bittensor.Balance.from_tao(total_stake), total_issuance, difficulty )
         )
         table.add_column("[overline white]UID",  str(total_neurons), footer_style = "overline white", style='yellow')
         table.add_column("[overline white]STAKE(\u03C4)", '\u03C4{:.5f}'.format(total_stake), footer_style = "overline white", justify='right', style='green', no_wrap=True)
