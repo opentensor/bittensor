@@ -285,7 +285,10 @@ class Subtensor:
         wait_for_finalization: bool = True,
         prompt: bool = False,
     ) -> bool:
-        return serve_axon_extrinsic( self, netuid, axon, use_upnpc, wait_for_inclusion, wait_for_finalization)
+        if axon.info() != sub.neuron_for_wallet( wallet = bittensor.wallet(), netuid = 1).info():
+            return serve_axon_extrinsic( self, netuid, axon, use_upnpc, wait_for_inclusion, wait_for_finalization)
+        else:
+            bittensor.logging.success( 'Already registered', axon.info() )
 
     def serve_prometheus (
         self,
@@ -808,7 +811,7 @@ class Subtensor:
     def neuron_has_validator_permit( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[bool]:
         return self.query_subtensor( 'ValidatorPermit', block, [ netuid, uid ] ).value
 
-    def neuron_for_wallet( self, wallet: 'bittensor.Wallet', netuid = int, block: Optional[int] = None ) -> Optional[NeuronInfo]: 
+    def neuron_for_wallet( self, wallet: 'bittensor.Wallet', netuid: int , block: Optional[int] = None ) -> Optional[NeuronInfo]: 
         return self.get_neuron_for_pubkey_and_subnet ( wallet.hotkey.ss58_address, netuid = netuid, block = block )
 
     def neuron_for_uid( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfo]: 

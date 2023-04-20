@@ -208,8 +208,6 @@ class BasePromptingMiner( ABC ):
         # --- Start the miner.
         self.wallet.reregister( netuid = self.config.netuid, subtensor = self.subtensor )
         self.axon.start()
-        self.axon.netuid = self.config.netuid
-        self.axon.protocol = 4
         self.subtensor.serve_axon( netuid = self.config.netuid, axon = self.axon )
 
         # --- Run Forever.
