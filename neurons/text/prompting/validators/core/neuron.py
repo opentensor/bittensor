@@ -285,7 +285,7 @@ class neuron:
         # Pass rewards backward for potential PPO.
         if train_network:
             self.dendrite_pool.backward( 
-                forwar_calls = forward_calls,
+                forward_calls = forward_calls,
                 rewards = rewards,
             )
             bittensor.logging.trace( 'Applied backward to network.' )
