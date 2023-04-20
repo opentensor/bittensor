@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.0.1 / 2023-04-20
+
+* Fix my_delegates command in https://github.com/opentensor/bittensor/commit/cdd6895df864139a257d2cf3483b85a2f9cce086 
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v4.0.0...v4.0.1
+
+
 ## 4.0.0 / 2023-04-20
 
 ## What's Changed
