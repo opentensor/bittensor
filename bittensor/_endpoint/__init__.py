@@ -107,7 +107,7 @@ class endpoint:
     def from_dict(endpoint_dict: dict) -> 'bittensor.Endpoint':
         """ Return an endpoint with spec from dictionary
         """
-        endpoint.assert_format(
+        if not endpoint.assert_format(
             version = endpoint_dict['version'],
             uid = endpoint_dict['uid'], 
             hotkey = endpoint_dict['hotkey'], 
@@ -116,7 +116,8 @@ class endpoint:
             ip_type = endpoint_dict['ip_type'], 
             protocol = endpoint_dict['protocol'], 
             coldkey = endpoint_dict['coldkey']
-        )
+        ):
+            raise ValueError('Invalid endpoint dict')
         return endpoint_impl.Endpoint(
             version = endpoint_dict['version'],
             uid = endpoint_dict['uid'], 
@@ -152,7 +153,10 @@ class endpoint:
             endpoint_bytes = bytearray( endpoint_list )
             endpoint_string = endpoint_bytes.decode('utf-8')
             endpoint_dict = json.loads( endpoint_string )
-            return endpoint.from_dict(endpoint_dict)
+            try:
+                return endpoint.from_dict(endpoint_dict)
+            except ValueError:
+                return endpoint.dummy()
 
     @staticmethod
     def dummy():
