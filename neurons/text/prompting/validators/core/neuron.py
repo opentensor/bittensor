@@ -99,8 +99,10 @@ class neuron:
         parser.add_argument( '--neuron.training_topk', type = int, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
         parser.add_argument( '--neuron.training_timeout', type = int, help = 'Query timeout during training', default = 4 )
         parser.add_argument( '--neuron.inference_timeout', type = int, help = 'Query timeout during inference', default = 10 )
+        parser.add_argument( '--neuron.inference_only', action = 'store_true', help = 'If set, training off and only inference will be served via axon.', default = False )
+        parser.add_argument( '--neuron.axon_off', action = 'store_true', help = 'If set, the axon will be turned off.', default = False )
         parser.add_argument( '--neuron.reward_path', type = str, help = 'Path to reward model.', default = '~/.bittensor/reward_models' )
-        parser.add_argument( '--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 1000 )
+        parser.add_argument( '--neuron.max_history', type = int, help = 'Maximum number history values to store at any time.', default = 100000 )
         parser.add_argument( '--neuron.device', type = str, help = 'Device to run the validator on.', default = "cuda" if torch.cuda.is_available() else "cpu" )
         parser.add_argument( '--neuron.epoch_length_override', type = int, help = 'Override the default timeout', default = -1 )
         parser.add_argument( '--neuron.dont_save_events', action = 'store_true', help = 'If set, we dont save events to a log file.', default = False )
@@ -159,35 +161,37 @@ class neuron:
         delegated = self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )
         self.my_nominators = { nomin[0]: nomin[1] for nomin in delegated[0][0].nominators } if len(delegated) else {}
 
-        # Build synapse entrypoint.
-        class Synapse( bittensor.TextPromptingSynapse ):
-            def priority( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
-                if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: return math.inf # myself.
-                elif forward_call.src_hotkey in self.my_nominators: return self.my_nominators[ forward_call.src_hotkey ].tao # Delegates.
-                else: return 0.0 # Everyone else.
+        # Axon set and served for inference requests, unless --neuron.axon_off flag is set.
+        if not self.config.neuron.axon_off:
+            # Build synapse entrypoint.
+            class Synapse( bittensor.TextPromptingSynapse ):
+                def priority( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
+                    if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: return math.inf # myself.
+                    elif forward_call.src_hotkey in self.my_nominators: return self.my_nominators[ forward_call.src_hotkey ].tao # Delegates.
+                    else: return 0.0 # Everyone else.
 
-            def blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
-                # Give messages priority.
-                if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: return True
-                elif forward_call.src_hotkey in self.my_nominators: return False # Delegates, dont blacklist.
-                else: return False # Everyone else, dont blacklist.
+                def blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
+                    # Give messages priority.
+                    if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: return True
+                    elif forward_call.src_hotkey in self.my_nominators: return False # Delegates, dont blacklist.
+                    else: return False # Everyone else, dont blacklist.
 
-            def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
-            def forward( _, messages: List[Dict[str, str]] ) -> str: 
-                return self.inference(
-                    messages = messages,
-                    timeout = self.config.neuron.inference_timeout
-                )
-                
-        # Serve axon.
-        self.axon = bittensor.axon( 
-            wallet = self.wallet,
-            metagraph = self.metagraph,
-            config = self.config,
-        )
-        self.synapse = Synapse( axon = self.axon )
-        self.axon.start()
-        self.subtensor.serve_axon( self.config.netuid, self.axon )
+                def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+                def forward( _, messages: List[Dict[str, str]] ) -> str:
+                    return self.inference(
+                        messages = messages,
+                        timeout = self.config.neuron.inference_timeout
+                    )
+
+            # Serve axon.
+            self.axon = bittensor.axon(
+                wallet = self.wallet,
+                metagraph = self.metagraph,
+                config = self.config,
+            )
+            self.synapse = Synapse( axon = self.axon )
+            self.axon.start()
+            self.subtensor.serve_axon( self.config.netuid, self.axon )
 
     def forward(
             self, 
@@ -324,8 +328,7 @@ class neuron:
 
         # pre-process messages
         roles = []; contents = []; unravelled_message = ''
-        for message_i in messages:
-            message_dict = json.loads( message_i )
+        for message_dict in messages:
             roles.append( message_dict['role'] )
             contents.append( message_dict['content'] )
             if message_dict['role'] == 'system': unravelled_message += 'system: ' + message_dict['content'] + '\n'
@@ -504,6 +507,16 @@ class neuron:
         bittensor.logging.trace( 'processed_weight_uids', processed_weight_uids )
         return processed_weight_uids, processed_weights
 
+    def run(self):
+        if self.config.neuron.inference_only:
+            # Start an infinite loop, allows axon to service inference requests.
+            while True:
+                time.sleep(1)
+        else:
+            # Normal validator train operation for validation.
+            self.train()
+
+
 if __name__ == '__main__':
     bittensor.logging.info( 'neuron().train()' )
-    neuron().train()
+    neuron().run()
