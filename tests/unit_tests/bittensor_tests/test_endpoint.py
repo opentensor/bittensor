@@ -38,7 +38,7 @@ def test_create_endpoint():
         protocol = 0,
     )
     assert endpoint.check_format() == True
-    endpoint.assert_format()
+    assert endpoint.assert_format()
     assert endpoint.version == bittensor.__version_as_int__
     assert endpoint.uid == 0
     assert endpoint.ip == '0.0.0.0'
