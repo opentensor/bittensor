@@ -177,15 +177,20 @@ class endpoint:
             Raises:
                 Multiple assertion errors.
         """
-        assert version >= 0, 'endpoint version must be positive. - got {}'.format(version)
-        assert version <= MAX_VERSION, 'endpoint version must be less than 999. - got {}'.format(version)
-        assert uid >= 0 and uid <= MAXUID, 'endpoint uid must positive and be less than u32 max: 4294967295. - got {}'.format(uid)
-        assert len(ip) < MAX_IP_LENGTH, 'endpoint ip string must have length less than 8*4. - got {}'.format(ip) 
-        assert ip_type in ACCEPTABLE_IPTYPES, 'endpoint ip_type must be either 4 or 6.- got {}'.format(ip_type)
-        assert port >= 0 and port < MAXPORT , 'port must be positive and less than 65535 - got {}'.format(port)
-        assert len(coldkey) == SS58_LENGTH, 'coldkey string must be length 48 - got {}'.format(coldkey)
-        assert len(hotkey) == SS58_LENGTH, 'hotkey string must be length 48 - got {}'.format(hotkey)
-        # TODO
-        assert protocol in ACCEPTABLE_PROTOCOLS, 'protocol must be 0 (for now) - got {}'.format(protocol)
+        try:
+            assert version >= 0, 'endpoint version must be positive. - got {}'.format(version)
+            assert version <= MAX_VERSION, 'endpoint version must be less than 999. - got {}'.format(version)
+            assert uid >= 0 and uid <= MAXUID, 'endpoint uid must positive and be less than u32 max: 4294967295. - got {}'.format(uid)
+            assert len(ip) < MAX_IP_LENGTH, 'endpoint ip string must have length less than 8*4. - got {}'.format(ip) 
+            assert ip_type in ACCEPTABLE_IPTYPES, 'endpoint ip_type must be either 4 or 6.- got {}'.format(ip_type)
+            assert port >= 0 and port < MAXPORT , 'port must be positive and less than 65535 - got {}'.format(port)
+            assert len(coldkey) == SS58_LENGTH, 'coldkey string must be length 48 - got {}'.format(coldkey)
+            assert len(hotkey) == SS58_LENGTH, 'hotkey string must be length 48 - got {}'.format(hotkey)
+            # TODO
+            assert protocol in ACCEPTABLE_PROTOCOLS, 'protocol must be 0 (for now) - got {}'.format(protocol)
+
+            return True
+        except AssertionError:
+            return False
 
 
