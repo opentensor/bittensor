@@ -174,8 +174,6 @@ class endpoint:
             coldkey:str 
         ) -> bool:
         """ Asserts that the endpoint has a valid format
-            Raises:
-                Multiple assertion errors.
         """
         try:
             assert version >= 0, 'endpoint version must be positive. - got {}'.format(version)
