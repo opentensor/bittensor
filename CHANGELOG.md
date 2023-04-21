@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.0.1 / 2023-04-21
+
+* Fix btcli my_delegates bug by @camfairchild in ef32a4da0d0827ab5977af1454d66ffe97cbc572
+* Fix endpoint protocol check bug by @camfairchild and @Eugene-hu in https://github.com/opentensor/bittensor/pull/1296
+* Fix changelog script and perms by @camfairchild in f5e7f1e9e9717d229fdec6875fdb9a3051c4bd6b and 1aed09a162ef0fe4d9def2faf261b15dc4c1fa8d
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v4.0.0...v4.0.1
+
+
 ## 4.0.0 / 2023-04-20
 
 ## What's Changed
