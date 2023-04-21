@@ -21,6 +21,7 @@ import bittensor
 
 from typing import List, Dict, Union, Callable
 from abc import ABC, abstractmethod
+import json
 
 class SynapseForward( bittensor.SynapseCall ):
     name: str = "text_prompting_forward"
@@ -35,7 +36,7 @@ class SynapseForward( bittensor.SynapseCall ):
         ):
         super().__init__( synapse = synapse, request_proto = request_proto )
         self.messages = request_proto.messages
-        self.formatted_messages = [ message for message in self.messages ]
+        self.formatted_messages = [ json.loads(message) for message in self.messages ]
         self.forward_callback = forward_callback
 
     def apply( self ):
