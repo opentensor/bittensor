@@ -328,8 +328,7 @@ class neuron:
 
         # pre-process messages
         roles = []; contents = []; unravelled_message = ''
-        for message_i in messages:
-            message_dict = json.loads( message_i )
+        for message_dict in messages:
             roles.append( message_dict['role'] )
             contents.append( message_dict['content'] )
             if message_dict['role'] == 'system': unravelled_message += 'system: ' + message_dict['content'] + '\n'
