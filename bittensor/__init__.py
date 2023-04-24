@@ -250,16 +250,16 @@ class prompting ( torch.nn.Module ):
         self,
         wallet_name: str = "default",
         hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
-        subtensor: Optional['Subtensor'] = None,
-        axon: Optional['axon_info'] = None,
+        subtensor_: Optional['Subtensor'] = None,
+        axon_: Optional['axon_info'] = None,
     ):
         super(prompting, self).__init__()
         self._hotkey = hotkey
-        self._subtensor = subtensor() if subtensor is None else subtensor
+        self._subtensor = subtensor() if subtensor_ is None else subtensor_
         self._keypair = wallet( name = wallet_name ).create_if_non_existent().coldkey
         
         if axon_info is not None:
-            self._axon = axon
+            self._axon = axon_
         else:
             self._metagraph = metagraph( 1 )
             self._axon = self._metagraph.axons[ self._metagraph.hotkeys.index( self._hotkey ) ]
@@ -336,16 +336,16 @@ def prompt(
         content: Union[ str, List[str], List[Dict[ str ,str ]]],
         wallet_name: str = "default",
         hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
-        subtensor: Optional['Subtensor'] = None,
-        axon: Optional['axon_info'] = None,
+        subtensor_: Optional['Subtensor'] = None,
+        axon_: Optional['axon_info'] = None,
     ) -> str:
     global __context_llm
     if __context_llm == None:
         __context_llm = prompting( 
             wallet_name = wallet_name,
             hotkey = hotkey,
-            subtensor = subtensor,
-            axon = axon,
+            subtensor_ = subtensor_,
+            axon_ = axon_,
         )
     return __context_llm( content = content )
 
@@ -363,9 +363,9 @@ This Python file implements the BittensorLLM class, a wrapper around the Bittens
     wallet_name: str = 'default'
     hotkey: str = '5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3'
     llm: prompting = None
-    def __init__(self, subtensor: Optional['Subtensor'] = None, axon: Optional['axon_info'] = None, **data):
+    def __init__(self, subtensor_: Optional['Subtensor'] = None, axon_: Optional['axon_info'] = None, **data):
         super().__init__(**data)
-        self.llm = prompting(wallet_name=self.wallet_name, hotkey=self.hotkey, subtensor=subtensor, axon=axon )
+        self.llm = prompting(wallet_name=self.wallet_name, hotkey=self.hotkey, subtensor_=subtensor_, axon_=axon_ )
 
     @property
     def _identifying_params(self) -> Mapping[str, Any]:
