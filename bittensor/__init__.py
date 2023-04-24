@@ -245,11 +245,11 @@ class prompting ( torch.nn.Module ):
         self,
         wallet_name: str = "default",
         hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
-
+        subtensor: Optional['Subtensor'] = None,
     ):
         super(prompting, self).__init__()
         self._hotkey = hotkey
-        self._subtensor = subtensor()
+        self._subtensor = subtensor() if subtensor is None else subtensor
         self._keypair = wallet( name = wallet_name ).create_if_non_existent().coldkey
         self._metagraph = metagraph( 1 )
         self._axon = self._metagraph.axons[ self._metagraph.hotkeys.index( self._hotkey ) ]
@@ -325,12 +325,14 @@ def prompt(
         content: Union[ str, List[str], List[Dict[ str ,str ]]],
         wallet_name: str = "default",
         hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
+        subtensor: Optional['Subtensor'] = None,
     ) -> str:
     global __context_llm
     if __context_llm == None:
         __context_llm = prompting( 
             wallet_name = wallet_name,
-            hotkey = hotkey
+            hotkey = hotkey,
+            subtensor = subtensor,
         )
     return __context_llm( content = content )
 
@@ -348,9 +350,9 @@ This Python file implements the BittensorLLM class, a wrapper around the Bittens
     wallet_name: str = 'default'
     hotkey: str = '5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3'
     llm: prompting = None
-    def __init__(self, **data):
+    def __init__(self, subtensor=None, **data):
         super().__init__(**data)
-        self.llm = prompting(wallet_name=self.wallet_name, hotkey=self.hotkey)
+        self.llm = prompting(wallet_name=self.wallet_name, hotkey=self.hotkey, subtensor=subtensor)
 
     @property
     def _identifying_params(self) -> Mapping[str, Any]:
