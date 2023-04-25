@@ -98,7 +98,7 @@ class DendriteCall( ABC ):
             code = self.return_code, 
             call_time = 0, 
             pubkey = self.dest_hotkey, 
-            uid = None,
+            uid = self.dendrite.uid,
             inputs = self.get_inputs_shape(), 
             outputs = self.get_outputs_shape(),
             message = self.return_message,
@@ -113,7 +113,7 @@ class DendriteCall( ABC ):
             code = self.return_code, 
             call_time = self.elapsed,
             pubkey = self.dest_hotkey, 
-            uid = None, 
+            uid = self.dendrite.uid, 
             inputs = self.get_inputs_shape(),
             outputs = self.get_outputs_shape(),
             message = self.return_message,
@@ -125,6 +125,7 @@ class Dendrite( ABC, torch.nn.Module ):
             self,
             keypair: Union[ 'bittensor.Wallet', 'bittensor.Keypair'],
             axon: Union[ 'bittensor.axon_info', 'bittensor.axon' ], 
+            uid : int,
             grpc_options: List[Tuple[str,object]] = 
                     [('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1),
@@ -143,6 +144,7 @@ class Dendrite( ABC, torch.nn.Module ):
         """
         super(Dendrite, self).__init__()
         self.uuid = str(uuid.uuid1())
+        self.uid = uid
         self.keypair = keypair.hotkey if isinstance( keypair, bittensor.Wallet ) else keypair
         self.axon_info = axon.info() if isinstance( axon, bittensor.axon ) else axon
         if self.axon_info.ip == bittensor.utils.networking.get_external_ip(): 

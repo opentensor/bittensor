@@ -113,7 +113,8 @@ class GatingModel( torch.nn.Module ):
                     Scores for each uids as output by the gating model.
         """
         inputs = self.tokenizer( message, return_tensors="pt" ).to( self.device )
-        hidden_states = self.model( **inputs ).last_hidden_state[0, -1, :]
+        with torch.no_grad():
+            hidden_states = self.model( **inputs ).last_hidden_state[0, -1, :]
         return self.linear( hidden_states )
 
 
