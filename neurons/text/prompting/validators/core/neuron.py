@@ -515,7 +515,7 @@ class neuron:
             self.train()
 
     def save(self, path=None):
-        r""" Save validated hotkeys and neuron_stats to filesystem. """
+        r""" Save hotkeys and moving average scores to filesystem. """
         try:
             if path is None:
                 path = self.config.neuron.full_path
@@ -531,7 +531,7 @@ class neuron:
             logger.warning(f'Failed to save model with error: {e}')
 
     def load(self, path=None):
-        r""" Load validated hotkeys and neuron_stats from filesystem. """
+        r""" Load hotkeys and moving average scores from filesystem. """
         try:
             if path is None:
                 path = self.config.neuron.full_path
@@ -544,6 +544,7 @@ class neuron:
             logger.warning(f'Failed to load model with error: {e}')
 
     def check_weights(self):
+        """ Checks current hotkeys with the current version of the metagraph """
         for uid, hotkey in enumerate( self.hotkeys ):
             if hotkey != self.metagraph.hotkeys[ uid ]:
                 self.moving_averaged_scores[ uid ] = 0 #hotkey has been replaced
