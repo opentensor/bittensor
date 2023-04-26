@@ -384,14 +384,14 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self.upper_bound = int(3.154e+17) # 10 years in nano second
 
     def load(self):
-        if self.path != None and os.path.exists(self.path):
+        if self.path is not None and os.path.exists(self.path):
             with open(self.path) as nonces_file:
                 self.nonces = json.load(nonces_file)
         else:
             self.nonces = {}
 
     def save(self):
-        if self.path != None:
+        if self.path is not None:
             with open(self.path, "w") as nonces_file:
                 json.dump(self.nonces, nonces_file)
 
