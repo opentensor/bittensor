@@ -67,7 +67,7 @@ class neuron:
             logger.add( 
                 config.neuron.full_path + "/" + "completions.log", 
                 rotation=config.neuron.events_retention_size, serialize=True, enqueue=True, backtrace=False, diagnose=False, level="EVENTS", 
-                format = "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message} | {extra[prompt]} {extra[completion]} {extra[uids]} {extra[all_uids]} {extra[rewards]} {extra[scores]} {extra[all_completions]} {extra[block]}"
+                format = "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message} | {extra[prompt]} {extra[completion]} {extra[uids]} {extra[all_uids]} {extra[rewards]}{extra[all_completions]} {extra[block]}"
             )
 
     def record_event( self, event: SimpleNamespace ):
