@@ -25,6 +25,7 @@ import getpass
 from rich.prompt import Confirm
 import json
 from bittensor._keyfile.keyfile_impl import encrypt_keyfile_data, decrypt_keyfile_data, keyfile_data_is_encrypted, keyfile_data_is_encrypted_nacl, keyfile_data_is_encrypted_ansible
+
 class TestWalletUpdate(unittest.TestCase):
     def setUp(self):
         test_id = random.randint(0, 10000)

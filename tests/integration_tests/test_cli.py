@@ -1871,7 +1871,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             self.assertIsNotNone(mock_console.captured_print)
 
             output_no_syntax = mock_console.remove_rich_syntax(mock_console.captured_print)
-            
+
             self.assertIn('Not enough balance', output_no_syntax)
 
             # Check the balance of w0
