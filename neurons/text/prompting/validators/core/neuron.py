@@ -33,7 +33,6 @@ from typing import List, Optional, Tuple, Dict
 from reward import RewardModel
 from gating import GatingModel
 from transformers import AutoTokenizer
-from threading import Lock 
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific. Do not include the answer in the question.
@@ -262,7 +261,6 @@ class neuron:
             messages = messages, 
             uids = topk_uids, 
             timeout = timeout,
-            priority = 1
         )
         bittensor.logging.trace( 'topk_uids', topk_uids )
 
@@ -296,7 +294,6 @@ class neuron:
                 forward_calls = forward_calls,
                 rewards = rewards,
                 timeout = timeout,
-                priority = 1
             )
             bittensor.logging.trace( 'Applied backward to network.' )
 

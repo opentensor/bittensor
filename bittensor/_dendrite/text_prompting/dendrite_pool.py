@@ -37,10 +37,10 @@ class TextPromptingDendritePool( torch.nn.Module ):
         self.priority_threadpool = bittensor.prioritythreadpool(max_workers = 1)
 
     def backward( self,
-            priority: int,
             forward_calls: List[ 'DendriteForwardCall' ],
             rewards: Union[ List[ float ], torch.FloatTensor ],
-            timeout: float = 12.0
+            timeout: float = 12.0,
+            priority: int = 1,
         ):
         def _backward():
             self.loop.run_until_complete( 
@@ -70,12 +70,12 @@ class TextPromptingDendritePool( torch.nn.Module ):
 
     def forward( 
             self, 
-            priority:int, 
             roles: Union[ str, List[str] ], 
             messages: Union[ str, List[str] ],
             uids: Union[ torch.LongTensor, List[int] ] = None, 
             return_call:bool = True,
-            timeout: float = 12
+            timeout: float = 12,
+            priority: int = 1,
         ) -> List['DendriteForwardCall']:
         def _forward():
             bittensor.logging.trace( 'dendrite pool: forward: _forward: start')
