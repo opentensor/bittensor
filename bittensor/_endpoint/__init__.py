@@ -30,7 +30,7 @@ SS58_LENGTH = 48
 MAXPORT = 65535
 MAXUID = 4294967295
 ACCEPTABLE_IPTYPES = [4,6,0]
-ACCEPTABLE_PROTOCOLS = [0] # TODO
+ACCEPTABLE_PROTOCOLS = [0,4] # TODO
 ENDPOINT_BUFFER_SIZE = 250
 
 class endpoint:
@@ -107,7 +107,7 @@ class endpoint:
     def from_dict(endpoint_dict: dict) -> 'bittensor.Endpoint':
         """ Return an endpoint with spec from dictionary
         """
-        endpoint.assert_format(
+        if not endpoint.assert_format(
             version = endpoint_dict['version'],
             uid = endpoint_dict['uid'], 
             hotkey = endpoint_dict['hotkey'], 
@@ -116,7 +116,8 @@ class endpoint:
             ip_type = endpoint_dict['ip_type'], 
             protocol = endpoint_dict['protocol'], 
             coldkey = endpoint_dict['coldkey']
-        )
+        ):
+            raise ValueError('Invalid endpoint dict')
         return endpoint_impl.Endpoint(
             version = endpoint_dict['version'],
             uid = endpoint_dict['uid'], 
@@ -152,7 +153,10 @@ class endpoint:
             endpoint_bytes = bytearray( endpoint_list )
             endpoint_string = endpoint_bytes.decode('utf-8')
             endpoint_dict = json.loads( endpoint_string )
-            return endpoint.from_dict(endpoint_dict)
+            try:
+                return endpoint.from_dict(endpoint_dict)
+            except ValueError:
+                return endpoint.dummy()
 
     @staticmethod
     def dummy():
@@ -170,18 +174,21 @@ class endpoint:
             coldkey:str 
         ) -> bool:
         """ Asserts that the endpoint has a valid format
-            Raises:
-                Multiple assertion errors.
         """
-        assert version >= 0, 'endpoint version must be positive. - got {}'.format(version)
-        assert version <= MAX_VERSION, 'endpoint version must be less than 999. - got {}'.format(version)
-        assert uid >= 0 and uid <= MAXUID, 'endpoint uid must positive and be less than u32 max: 4294967295. - got {}'.format(uid)
-        assert len(ip) < MAX_IP_LENGTH, 'endpoint ip string must have length less than 8*4. - got {}'.format(ip) 
-        assert ip_type in ACCEPTABLE_IPTYPES, 'endpoint ip_type must be either 4 or 6.- got {}'.format(ip_type)
-        assert port >= 0 and port < MAXPORT , 'port must be positive and less than 65535 - got {}'.format(port)
-        assert len(coldkey) == SS58_LENGTH, 'coldkey string must be length 48 - got {}'.format(coldkey)
-        assert len(hotkey) == SS58_LENGTH, 'hotkey string must be length 48 - got {}'.format(hotkey)
-        # TODO
-        assert protocol in ACCEPTABLE_PROTOCOLS, 'protocol must be 0 (for now) - got {}'.format(protocol)
+        try:
+            assert version >= 0, 'endpoint version must be positive. - got {}'.format(version)
+            assert version <= MAX_VERSION, 'endpoint version must be less than 999. - got {}'.format(version)
+            assert uid >= 0 and uid <= MAXUID, 'endpoint uid must positive and be less than u32 max: 4294967295. - got {}'.format(uid)
+            assert len(ip) < MAX_IP_LENGTH, 'endpoint ip string must have length less than 8*4. - got {}'.format(ip) 
+            assert ip_type in ACCEPTABLE_IPTYPES, 'endpoint ip_type must be either 4 or 6.- got {}'.format(ip_type)
+            assert port >= 0 and port < MAXPORT , 'port must be positive and less than 65535 - got {}'.format(port)
+            assert len(coldkey) == SS58_LENGTH, 'coldkey string must be length 48 - got {}'.format(coldkey)
+            assert len(hotkey) == SS58_LENGTH, 'hotkey string must be length 48 - got {}'.format(hotkey)
+            # TODO
+            assert protocol in ACCEPTABLE_PROTOCOLS, 'protocol must be 0 (for now) - got {}'.format(protocol)
+
+            return True
+        except AssertionError:
+            return False
 
 

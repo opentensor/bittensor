@@ -62,6 +62,7 @@ fi
 DATE=$(date +"%Y-%m-%d")
 RELEASE_NAME="$VERSION / $DATE"
 TAG_NAME=v$VERSION
+PREV_TAG_NAME=v$PREV_TAG_VERSION
 
 # 2.2. Generate release notes
 if [[ $APPLY == "true" ]]; then
