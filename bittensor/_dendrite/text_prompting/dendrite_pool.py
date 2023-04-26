@@ -34,18 +34,27 @@ class TextPromptingDendritePool( torch.nn.Module ):
         self.keypair = keypair
         self.dendrites = [ bittensor.text_prompting( axon = axon, keypair = self.keypair ) for axon in self.metagraph.axons ]
         self.loop = asyncio.get_event_loop()
+        self.priority_threadpool = bittensor.prioritythreadpool(max_workers = 1)
 
     def backward( self,
+            priority: int,
             forward_calls: List[ 'DendriteForwardCall' ],
             rewards: Union[ List[ float ], torch.FloatTensor ],
             timeout: float = 12.0
         ):
-        return self.loop.run_until_complete( 
-            self.async_backward (
-                forward_calls = forward_calls,
-                timeout = timeout,
-            ) 
+        def _backward():
+            self.loop.run_until_complete( 
+                self.async_backward (
+                    forward_calls = forward_calls,
+                    timeout = timeout,
+                ) 
+            )
+        future = self.priority_threadpool.submit(
+            _backward,
+            priority = priority
         )
+        return future.result()
+        
 
     async def async_backward(self,
             forward_calls: List[ 'DendriteForwardCall' ],
@@ -61,21 +70,29 @@ class TextPromptingDendritePool( torch.nn.Module ):
 
     def forward( 
             self, 
+            priority:int, 
             roles: Union[ str, List[str] ], 
             messages: Union[ str, List[str] ],
             uids: Union[ torch.LongTensor, List[int] ] = None, 
             return_call:bool = True,
-            timeout: float = 12 
+            timeout: float = 12
         ) -> List['DendriteForwardCall']:
-        return self.loop.run_until_complete( 
-            self.async_forward (
-                messages = messages,
-                roles = roles,
-                uids = uids,
-                return_call = return_call,
-                timeout = timeout,
-            ) 
+        def _forward():
+            bittensor.logging.trace( 'dendrite pool: forward: _forward: start')
+            return self.loop.run_until_complete(
+                self.async_forward (
+                    messages = messages,
+                    roles = roles,
+                    uids = uids,
+                    return_call = return_call,
+                    timeout = timeout,
+                ) 
+            )
+        future = self.priority_threadpool.submit(
+            _forward,
+            priority = priority
         )
+        return future.result()
 
     async def async_forward( 
             self, 
