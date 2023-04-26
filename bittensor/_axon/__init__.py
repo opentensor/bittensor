@@ -312,9 +312,9 @@ class axon:
     def check_config(cls, config: 'bittensor.Config' ):
         """ Check config for axon port and wallet
         """
-        assert config.axon.port > 1024 and config.axon.port < 65535, 'port must be in range [1024, 65535]'
-        assert config.axon.external_port is None or (config.axon.external_port > 1024 and config.axon.external_port < 65535), 'external port must be in range [1024, 65535]'
-        assert config.axon.prometheus.level in [l.name for l in list(bittensor.prometheus.level)], "axon.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])
+        if not (config.axon.port > 1024 and config.axon.port < 65535): raise(ValueError('port must be in range [1024, 65535]'))
+        if not (config.axon.external_port is None or (config.axon.external_port > 1024 and config.axon.external_port < 65535)): raise(ValueError('external port must be in range [1024, 65535]'))
+        if not (config.axon.prometheus.level in [l.name for l in list(bittensor.prometheus.level)]): raise(ValueError("axon.prometheus.level must be in: {}".format([l.name for l in list(bittensor.prometheus.level)])))
         bittensor.wallet.check_config( config )
 
     @classmethod   
@@ -374,22 +374,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self.blacklist = blacklist
         self.receiver_hotkey = receiver_hotkey
 
-    def parse_legacy_signature(
-        self, signature: str
-    ) -> Union[Tuple[int, str, str, str, int], None]:
-        r"""Attempts to parse a signature using the legacy format, using `bitxx` as a separator"""
-        parts = signature.split("bitxx")
-        if len(parts) < 4:
-            return None
-        try:
-            nonce = int(parts[0])
-            parts = parts[1:]
-        except ValueError:
-            return None
-        receptor_uuid, parts = parts[-1], parts[:-1]
-        signature, parts = parts[-1], parts[:-1]
-        sender_hotkey = "".join(parts)
-        return (nonce, sender_hotkey, signature, receptor_uuid, 1)
 
     def parse_signature_v2(
         self, signature: str
@@ -405,7 +389,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         sender_hotkey = parts[1]
         signature = parts[2]
         receptor_uuid = parts[3]
-        return (nonce, sender_hotkey, signature, receptor_uuid, 2)
+        return (nonce, sender_hotkey, signature, receptor_uuid)
 
     def parse_signature(
         self, metadata: Dict[str, str]
@@ -418,10 +402,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
         if int(version) < 370:
             raise Exception("Incorrect Version")
         
-        for parser in [self.parse_signature_v2, self.parse_legacy_signature]:
-            parts = parser(signature)
-            if parts is not None:
-                return parts
+        parts = self.parse_signature_v2(signature)
+        if parts is not None:
+            return parts
         raise Exception("Unknown signature format")
 
     def check_signature(
@@ -430,17 +413,12 @@ class AuthInterceptor(grpc.ServerInterceptor):
         sender_hotkey: str,
         signature: str,
         receptor_uuid: str,
-        format: int,
     ):
         r"""verification of signature in metadata. Uses the pubkey and nonce"""
         keypair = Keypair(ss58_address=sender_hotkey)
         # Build the expected message which was used to build the signature.
-        if format == 2:
-            message = f"{nonce}.{sender_hotkey}.{self.receiver_hotkey}.{receptor_uuid}"
-        elif format == 1:
-            message = f"{nonce}{sender_hotkey}{receptor_uuid}"
-        else:
-            raise Exception("Invalid signature version")
+        message = f"{nonce}.{sender_hotkey}.{self.receiver_hotkey}.{receptor_uuid}"
+
         # Build the key which uniquely identifies the endpoint that has signed
         # the message.
         endpoint_key = f"{sender_hotkey}:{receptor_uuid}"
@@ -467,8 +445,10 @@ class AuthInterceptor(grpc.ServerInterceptor):
         if request_type is None:
             raise Exception("Unknown request type")
 
-        if self.blacklist(hotkey, request_type):
-            raise Exception("Request type is blacklisted")
+        failed, error_message =  self.blacklist(hotkey, request_type)
+        if failed:
+            raise Exception(str(error_message))
+
 
     def intercept_service(self, continuation, handler_call_details):
         r"""Authentication between bittensor nodes. Intercepts messages and checks them"""
@@ -481,12 +461,11 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 sender_hotkey,
                 signature,
                 receptor_uuid,
-                signature_format,
             ) = self.parse_signature(metadata)
 
             # signature checking
             self.check_signature(
-                nonce, sender_hotkey, signature, receptor_uuid, signature_format
+                nonce, sender_hotkey, signature, receptor_uuid
             )
 
             # blacklist checking

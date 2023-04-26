@@ -49,7 +49,7 @@ def test_create_endpoint():
     assert endpoint.modality == 0
 
 def test_endpoint_fails_checks():
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         test_endpoint = bittensor.endpoint(
             version = bittensor.__version_as_int__,
             uid = -1,

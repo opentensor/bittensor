@@ -214,10 +214,10 @@ class subtensor:
 
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
-        assert config.subtensor
+        if not config.subtensor: raise(ValueError('Config.subtensor is None.'))
         #assert config.subtensor.network != None
         if config.subtensor.get('register') and config.subtensor.register.get('cuda'):
-            assert all((isinstance(x, int) or isinstance(x, str) and x.isnumeric() ) for x in config.subtensor.register.cuda.get('dev_id', []))
+            if not all((isinstance(x, int) or isinstance(x, str) and x.isnumeric() ) for x in config.subtensor.register.cuda.get('dev_id', [])): raise(ValueError('All dev_id should be int or str.'))
 
             if config.subtensor.register.cuda.get('use_cuda', bittensor.defaults.subtensor.register.cuda.use_cuda):
                 try:

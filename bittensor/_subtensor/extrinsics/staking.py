@@ -250,7 +250,7 @@ def add_stake_multiple_extrinsic (
             staking_all = True
         else:
             # Amounts are cast to balance earlier in the function
-            assert isinstance(amount, bittensor.Balance)
+            if not isinstance(amount, bittensor.Balance): raise(ValueError(f'amount should be bittensor.Balance, got {type(amount)}'))
             staking_balance = amount
 
         # Check enough to stake

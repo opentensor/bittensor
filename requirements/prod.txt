@@ -13,7 +13,6 @@ grpcio-tools==1.42.0
 hypothesis==6.47.4
 loguru==0.6.0
 msgpack==1.0.4
-msgpack-numpy==0.4.7.1
 miniupnpc==2.0.2
 munch==2.5.0
 nest_asyncio==1.5.6
@@ -45,3 +44,6 @@ ansible_vault>=2.1
 substrate-interface==1.5.0
 jsonschema[format-nongpl]>=4.14.0,<=4.17.0
 markupsafe==2.0.1
+
+# msgpack-numpy that is mentained and secured by Opentensor.
+msgpack-numpy @ git+https://github.com/opentensor/msgpack-numpy.git@v1.0.0

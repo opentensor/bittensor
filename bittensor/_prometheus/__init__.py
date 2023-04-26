@@ -175,8 +175,8 @@ class prometheus:
     def check_config(cls, config: 'bittensor.Config' ):
         """ Check config for wallet name/hotkey/path/hotkeys/sort_by
         """
-        assert 'prometheus' in config
-        assert config.prometheus.level in [l.name for l in list(prometheus.level)], "config.prometheus.level must be in: {}".format([l.name for l in list(prometheus.level)])
-        assert config.prometheus.port > 1024 and config.prometheus.port < 65535, 'config.prometheus.port must be in range [1024, 65535]'
+        if not('prometheus' in config): raise(ValueError('Prometheus not in config.'))
+        if not(config.prometheus.level in [l.name for l in list(prometheus.level)]): raise(ValueError("config.prometheus.level must be in: {}".format([l.name for l in list(prometheus.level)])))
+        if not(config.prometheus.port > 1024 and config.prometheus.port < 65535): raise(ValueError('config.prometheus.port must be in range [1024, 65535]'))
         if "axon" in config and "port" in config.axon:
-            assert config.prometheus.port != config.axon.port, 'config.prometheus.port != config.axon.port'
+            if config.prometheus.port == config.axon.port: raise(ValueError('config.prometheus.port should not be equal to config.axon.port'))

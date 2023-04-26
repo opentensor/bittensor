@@ -871,12 +871,12 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
     prob_idx = torch.where((-atol < compact_topk) & (compact_topk < 1 + atol))[0]  # 0 <= prob <= 1 [batch_size * (topk + 1)], expect token_ids >= 2
 
     batch_size = len(prob_idx) // (topk + 1)  # (batch_size * (topk + floor)) / (topk + floor)
-    assert batch_size * (topk + 1) == len(prob_idx), f'unravel_topk_token_phrases() probability marker failure: ' \
-                                                     f'{batch_size} * ({topk} + 1) != {len(prob_idx)}'  # decoding irregularity otherwise
+    if not batch_size * (topk + 1) == len(prob_idx): raise(ValueError(f'unravel_topk_token_phrases() probability marker failure: ' \
+                                                     f'{batch_size} * ({topk} + 1) != {len(prob_idx)}'))  # decoding irregularity otherwise
 
     probs = torch.clamp(compact_topk[prob_idx], 0, 1)  # [batch_size * (topk + 1)] ensure probabilities within [0, 1]
     probs_sum = probs.reshape(batch_size, topk + 1).sum(dim=1)  # [batch_size]
-    assert torch.all((-atol < probs_sum) & (probs_sum < 1 + atol)), f'unravel_topk_token_phrases(): probs_sum not in [0, 1]'
+    if not torch.all((-atol < probs_sum) & (probs_sum < 1 + atol)): raise(ValueError(f'unravel_topk_token_phrases(): probs_sum not in [0, 1]'))
 
     # Obtain phrase lengths and maximum phrase length
     phrase_len = prob_idx[1:] - prob_idx[:-1]  # [batch_size * (topk + 1) - 1] length of each phrase
