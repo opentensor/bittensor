@@ -69,7 +69,6 @@ def setupMockSubtensor():
 #         # Make registration difficulty 0. Instant registration.
 #         set_diff, err = _subtensor_mock.sudo_set_difficulty( netuid = 1, difficulty = 0, wait_for_finalization=False )
 #         if err != None: raise Exception(err)
-
 #         # Make registration min difficulty 0.
 #         set_min_diff, err = _subtensor_mock.sudo_set_min_difficulty( netuid = 1, min_difficulty = 0, wait_for_finalization=False )
 #         if err != None: raise Exception(err)

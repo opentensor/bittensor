@@ -151,6 +151,7 @@ class TestRegistrationHelpers(unittest.TestCase):
         solution = bittensor.utils.registration._solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
         seal = solution.seal
         assert bittensor.utils.registration._seal_meets_difficulty(seal, 10, limit)
+
     def test_solve_for_difficulty_fast_registered_already(self):
         # tests if the registration stops after the first block of nonces
         for _ in range(10):
@@ -601,6 +602,7 @@ class TestCUDASolverRun(unittest.TestCase):
             # Should exit early
             with pytest.raises(MockException):
                 _CUDASolver.run(mock_solver_self)
+
             mock_solve_for_nonce_block_cuda.assert_called()
             calls = mock_solve_for_nonce_block_cuda.call_args_list
             self.assertEqual(len(calls), 2, f"solve_for_nonce_block_cuda was called {len(calls)}. Expected 2") # called only twice

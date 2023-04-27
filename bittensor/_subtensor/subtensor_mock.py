@@ -135,7 +135,6 @@ class mock_subtensor():
 
             ws_port = int(bittensor.__mock_entrypoint__.split(':')[1])
             print(f'MockSub ws_port: {ws_port}')
-
             command_args = [ path ] + f'--chain {path_to_spec} --base-path {bittensor.__mock_chain_db__}_{pid} --execution native --ws-max-connections 1000 --no-mdns --rpc-cors all'.split(' ') + \
                 f'--port {int(bittensor.get_random_unused_port())} --rpc-port {int(bittensor.get_random_unused_port())} --ws-port {ws_port}'.split(' ') + \
                 '--validator --alice'.split(' ')
@@ -375,6 +374,60 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
             if not wait_for_finalization:
                 return True, None
+
+            if not wait_for_finalization:
+                return True, None
+            
+            response.process_events()
+            if response.is_success:
+                return True, None
+            else:
+                return False, response.error_message
+            
+    def sudo_set_max_difficulty(self, netuid: int, max_difficulty: int, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
+        r""" Sets the max difficulty of the mock chain using the sudo key.
+        """
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                    call_module='SubtensorModule',
+                    call_function='sudo_set_max_difficulty',
+                    call_params = {
+                        'netuid': netuid,
+                        'max_difficulty': max_difficulty
+                    }
+                )
+
+            wrapped_call = self.wrap_sudo(call)
+
+            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
+            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+
+            if not wait_for_finalization:
+                return True, None
+            
+            response.process_events()
+            if response.is_success:
+                return True, None
+            else:
+                return False, response.error_message
+
+    def sudo_set_min_difficulty(self, netuid: int, min_difficulty: int, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
+        r""" Sets the min difficulty of the mock chain using the sudo key.
+        """
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                    call_module='SubtensorModule',
+                    call_function='sudo_set_min_difficulty',
+                    call_params = {
+                        'netuid': netuid,
+                        'min_difficulty': min_difficulty
+                    }
+                )
+
+            wrapped_call = self.wrap_sudo(call)
+
+            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
+            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
 
             if not wait_for_finalization:
                 return True, None
