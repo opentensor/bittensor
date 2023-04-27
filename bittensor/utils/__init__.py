@@ -1,5 +1,5 @@
 import numbers
-from typing import Callable, Union
+from typing import Callable, Union, List, Optional, Dict
 
 import bittensor
 import pandas
@@ -8,7 +8,7 @@ import torch
 import scalecodec
 from substrateinterface import Keypair
 from substrateinterface.utils import ss58
-from .registration import *
+from .registration import create_pow
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
