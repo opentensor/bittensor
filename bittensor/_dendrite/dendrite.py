@@ -125,7 +125,7 @@ class Dendrite( ABC, torch.nn.Module ):
             self,
             keypair: Union[ 'bittensor.Wallet', 'bittensor.Keypair'],
             axon: Union[ 'bittensor.axon_info', 'bittensor.axon' ], 
-            uid : int,
+            uid : int = 0,
             grpc_options: List[Tuple[str,object]] = 
                     [('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1),
