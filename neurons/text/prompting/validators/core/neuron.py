@@ -67,7 +67,7 @@ class neuron:
             logger.add( 
                 config.neuron.full_path + "/" + "completions.log", 
                 rotation=config.neuron.events_retention_size, serialize=True, enqueue=True, backtrace=False, diagnose=False, level="EVENTS", 
-                format = "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message} | {extra[prompt]} {extra[completion]} {extra[uids]} {extra[all_uids]} {extra[rewards]} {extra[scores]} {extra[all_completions]} {extra[block]}"
+                format = "{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message} | {extra[prompt]} {extra[completion]} {extra[uids]} {extra[all_uids]} {extra[rewards]}{extra[all_completions]} {extra[block]}"
             )
 
     def record_event( self, event: SimpleNamespace ):
@@ -81,7 +81,6 @@ class neuron:
                 uids = event.uids.tolist(),
                 all_uids = event.all_uids.tolist(),
                 rewards = event.rewards.tolist(),
-                scores = event.scores.tolist(),
                 all_completions = event.all_completions,
                 block = event.block.item(),
             )
@@ -135,6 +134,9 @@ class neuron:
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )
         self.tokenizer = AutoTokenizer.from_pretrained( 'EleutherAI/gpt-j-6b' )
 
+        self.moving_averaged_scores = torch.zeros((self.metagraph.n)).to( self.device )
+        self.alpha = 0.99
+        self.hotkeys = self.metagraph.hotkeys
         # Reward model
         if not self.config.neuron.no_reward_model:
             bittensor.logging.info('Loading reward model')
@@ -160,6 +162,9 @@ class neuron:
         # Get a list of peers delegating to me
         delegated = self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )
         self.my_nominators = { nomin[0]: nomin[1] for nomin in delegated[0][0].nominators } if len(delegated) else {}
+
+        self.load()
+        self.check_weights()
 
         # Axon set and served for inference requests, unless --neuron.axon_off flag is set.
         if not self.config.neuron.axon_off:
@@ -271,7 +276,8 @@ class neuron:
         # Filter out any `None` `completions`.
         successful_uids = torch.tensor([uid for uid, call in list(zip(topk_uids, forward_calls)) if call is not None and call.completion is not None and len(call.completion) > 10], dtype=torch.int64).to(self.device)
         successful_completions = [call.completion for call in forward_calls if call is not None and call.completion is not None and len(call.completion) > 10]
-        bittensor.logging.trace( 'successful_uids', successful_uids )
+        unsuccessful_uids = torch.tensor([uid for uid in topk_uids if uid not in successful_uids])
+        bittensor.logging.debug( 'successful_uids', successful_uids )
         bittensor.logging.trace( 'successful_completions', successful_completions )
         if len( successful_completions ) == 0: bittensor.logging.error('no successful completions'); return None
 
@@ -308,14 +314,26 @@ class neuron:
             message = message,  
             uids = successful_uids,
             rewards = rewards,
-            scores = scores,
             all_uids = topk_uids,
             all_completions = successful_completions,
-            hotkeys = copy.deepcopy( self.metagraph.hotkeys ),
             block = self.metagraph.block,
             is_question = message == self.config.neuron.question_prompt,
         )
         self.record_event( event ) 
+
+        # First we normalize the rewards with a softmax.
+        normalized_rewards = torch.nn.functional.softmax( event.rewards.to( self.device ), dim=0 )
+
+        # We scatter the normalized onto the moving scores (updating them but not changing the source)
+        scattered_rewards = self.moving_averaged_scores.scatter(0, event.uids.to( self.device ), normalized_rewards.to( self.device ) )
+        scattered_rewards = scattered_rewards.scatter(0, unsuccessful_uids.to( self.device ) , torch.zeros_like(unsuccessful_uids, dtype=torch.float).to( self.device ) )
+
+        # We now perform a moving average of the scattered rewards.
+        self.moving_averaged_scores = self.alpha * self.moving_averaged_scores + ( 1 - self.alpha ) * scattered_rewards
+        bittensor.logging.trace( 'normalized_rewards', normalized_rewards )
+        bittensor.logging.trace( 'scattered_rewards', scattered_rewards )
+        bittensor.logging.trace( 'moving_averaged_scores', self.moving_averaged_scores )    
+
         return event
 
     def inference( 
@@ -404,7 +422,7 @@ class neuron:
                     timeout = self.config.neuron.training_timeout
                 )
                 if question == None: continue # no responses from network.
-                
+
                 # Ask the network to complete the random question, training the gating network.
                 self.forward( 
                     roles = ['system', 'user' ],
@@ -416,9 +434,12 @@ class neuron:
                 )
 
                 # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
-                if last_epoch_block % 10 == 0:
+                if self.subtensor.block % 10 == 0:
                     self.metagraph.sync()
-                    self.my_nominators = { nomin[0]: nomin[1] for nomin in self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )[0][0].nominators }
+                    self.save()
+                    delegates = self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )
+                    self.my_nominators = { nomin[0]: nomin[1] for nomin in delegates[0][0].nominators } if len(delegates) else {}
+                    self.check_weights()
 
                 # Check if enough epoch blocks have elapsed since the last epoch.
                 epoch_length = self.subtensor.validator_epoch_length(self.config.netuid) if self.config.neuron.epoch_length_override == -1 else self.config.neuron.epoch_length_override
@@ -445,7 +466,7 @@ class neuron:
                         wait_for_finalization = True,
                     )
         except Exception as e:
-            bittensor.logging.info( 'Error in training loop', str( e ) )
+            bittensor.logging.info( 'Error in training loop', str( e    ) )
     
     def compute_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
         """
@@ -465,32 +486,9 @@ class neuron:
             bittensor.logging.warning( 'No history to compute weights returning all ones.' )
             return torch.ones((self.metagraph.n)) / self.metagraph.n
 
-        # Iterate over all events in the `history` and perform a moving average of the normalized rewards.
-        alpha = 0.01
-        last_hotkeys = None
-        moving_averaged_scores = torch.zeros((self.metagraph.n)).to( self.device )
-        for event in self.history.queue:    
-            # First we normalize the rewards with a softmax.
-            normalized_rewards = torch.nn.functional.softmax( event.rewards.to( self.device ), dim=0 )
-            # We scatter the normalized onto the moving averaged scores (updating them but not changing the source)
-            scattered_rewards = moving_averaged_scores.scatter(0, event.uids.to( self.device ), normalized_rewards.to( self.device ) )
-            # We now perform a moving average of the scattered rewards.
-            moving_averaged_scores = alpha * moving_averaged_scores + ( 1 - alpha ) * scattered_rewards
-            bittensor.logging.trace( 'normalized_rewards', normalized_rewards )
-            bittensor.logging.trace( 'scattered_rewards', scattered_rewards )
-            bittensor.logging.trace( 'moving_averaged_scores', moving_averaged_scores )
-
-            # If the hotkeys have changed, reset the moving averaged scores for the new hotkeys.
-            if last_hotkeys is not None:
-                for uid, hotkey in enumerate( last_hotkeys ):
-                    if hotkey != event.hotkeys[ uid ]:
-                        moving_averaged_scores[ uid ] = 0
-            # Update the last hotkeys.
-            last_hotkeys = event.hotkeys
-
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
-        raw_weights = torch.nn.functional.normalize( moving_averaged_scores, p=1, dim=0 )
+        raw_weights = torch.nn.functional.normalize( self.moving_averaged_scores, p=1, dim=0 )
         bittensor.logging.trace( 'raw_weights', raw_weights )
         bittensor.logging.trace( 'top10 values', raw_weights.sort()[0] )
         bittensor.logging.trace( 'top10 uids', raw_weights.sort()[1] )
@@ -515,6 +513,46 @@ class neuron:
         else:
             # Normal validator train operation for validation.
             self.train()
+
+    def save(self, path=None):
+        r""" Save hotkeys and moving average scores to filesystem. """
+        try:
+            if path is None:
+                path = self.config.neuron.full_path
+            state_dict = {
+                'neuron_weights': self.moving_averaged_scores,
+                'neuron_hotkeys': self.hotkeys
+            }
+
+            torch.save(state_dict, f'{path}/model.torch')
+            bittensor.logging.success(prefix='Saved model', sufix=f'<blue>{path}/model.torch</blue>')
+
+        except Exception as e:
+            logger.warning(f'Failed to save model with error: {e}')
+
+    def load(self, path=None):
+        r""" Load hotkeys and moving average scores from filesystem. """
+        try:
+            if path is None:
+                path = self.config.neuron.full_path
+            state_dict = torch.load(f'{path}/model.torch')
+            self.moving_averaged_scores = state_dict['neuron_weights'].clone().detach()
+            self.hotkeys = state_dict['neuron_hotkeys']
+            bittensor.logging.success(prefix='Reloaded model', sufix=f'<blue>{path}/model.torch</blue>')
+
+        except Exception as e:
+            logger.warning(f'Failed to load model with error: {e}')
+
+    def check_weights(self):
+        """ Checks current hotkeys with the current version of the metagraph """
+        for uid, hotkey in enumerate( self.hotkeys ):
+            if hotkey != self.metagraph.hotkeys[ uid ]:
+                self.moving_averaged_scores[ uid ] = 0 #hotkey has been replaced
+        if len(self.hotkeys) < len(self.metagraph.hotkeys):
+            new_moving_average  = torch.zeros((self.metagraph.n)).to( self.device )
+            new_moving_average[:len(self.hotkeys)] = self.moving_averaged_scores
+            self.moving_averaged_scores = new_moving_average
+        self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
 
 
 if __name__ == '__main__':
