@@ -349,7 +349,6 @@ class neuron:
             messages = contents, 
             uids = uids, 
             timeout = timeout,
-            priority = 2 # the priority of inference is always higher then training
         )
         bittensor.logging.trace( 'finished dendrite forward ', time.time() - forward_start )
 
