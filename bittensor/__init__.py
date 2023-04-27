@@ -258,7 +258,7 @@ class prompting ( torch.nn.Module ):
         self._subtensor = subtensor() if subtensor_ is None else subtensor_
         self._keypair = wallet( name = wallet_name ).create_if_non_existent().coldkey
         
-        if axon_info is not None:
+        if axon_ is not None:
             self._axon = axon_
         else:
             self._metagraph = metagraph( 1 )
