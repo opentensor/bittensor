@@ -23,8 +23,8 @@ import json
 import miniupnpc
 import netaddr
 import requests
-
 from loguru import logger
+from .. import __blocktime__
 
 def int_to_ip(int_val: int) -> str:
     r""" Maps an integer to a unique ip-string 
@@ -82,8 +82,8 @@ def ip__str__(ip_type:int, ip_str:str, port:int):
 class ExternalIPNotFound(Exception):
     """ Raised if we cannot attain your external ip from CURL/URLLIB/IPIFY/AWS """
 
-def get_external_ip() -> str:
-    r""" Checks CURL/URLLIB/IPIFY/AWS for your external ip.
+def get_external_ip(timeout:int = __blocktime__) -> str:
+    r""" Checks URLLIB/IPIFY/AWS/WIKI for your external ip.
         Returns:
             external_ip  (:obj:`str` `required`):
                 Your routers external facing ip as a string.
@@ -92,59 +92,36 @@ def get_external_ip() -> str:
             ExternalIPNotFound (Exception):
                 Raised if all external ip attempts fail.
     """
-    # --- Try AWS
-    try:
-        external_ip = requests.get('https://checkip.amazonaws.com').text.strip()
-        if not (isinstance(ip_to_int(external_ip), int)): raise(ValueError('Failed to get external IP from AWS.'))
-        return str(external_ip)
-    except Exception:
-        pass
+    def get_external_ip_from_aws():
+        return requests.get('https://checkip.amazonaws.com', timeout=timeout).text.strip()
 
-    # --- Try ipconfig.
-    try:
-        process =  os.popen('curl -s ifconfig.me')
-        external_ip = process.readline()
-        process.close()
-        if not (isinstance(ip_to_int(external_ip), int)): raise(ValueError('Failed to get external IP from ifconfig.'))
-        return str(external_ip)
-    except Exception:
-        pass
+    def get_external_ip_from_ipv6():
+        return urllib.request.urlopen('https://ident.me', timeout=timeout).read().decode('utf8')
 
-    # --- Try ipinfo.
-    try:
+    def get_external_ip_from_wiki():
+        return requests.get('https://www.wikipedia.org', timeout=timeout).headers['X-Client-IP']
+    
+    def get_external_ip_from_ipinfo():
         process =  os.popen('curl -s https://ipinfo.io')
         external_ip = json.loads(process.read())['ip']
         process.close()
-        if not (isinstance(ip_to_int(external_ip), int)): raise(ValueError('Failed to get external IP from ip info.'))
-        return str(external_ip)
-    except Exception:
-        pass
+        return external_ip
 
-    # --- Try myip.dnsomatic 
-    try:
-        process = os.popen('curl -s myip.dnsomatic.com')
-        external_ip  = process.readline()
-        process.close()
-        if not (isinstance(ip_to_int(external_ip), int)): raise(ValueError('Failed to get external IP from myip.dnsomatic.'))
-        return str(external_ip)
-    except Exception:
-        pass    
+    external_ip = None
 
-    # --- Try urllib ipv6 
-    try:
-        external_ip = urllib.request.urlopen('https://ident.me').read().decode('utf8')
-        if not (isinstance(ip_to_int(external_ip), int)): raise(ValueError('Failed to get external IP from ident.me.'))
-        return str(external_ip)
-    except Exception:
-        pass
-
-    # --- Try Wikipedia 
-    try:
-        external_ip = requests.get('https://www.wikipedia.org').headers['X-Client-IP']
-        if not (isinstance(ip_to_int(external_ip), int)): raise(ValueError('Failed to get external IP from wiki.'))
-        return str(external_ip)
-    except Exception:
-        pass
+    for get_ip in [
+        get_external_ip_from_aws, 
+        get_external_ip_from_ipinfo, 
+        get_external_ip_from_ipv6, 
+        get_external_ip_from_wiki
+    ]:
+        try:
+            external_ip = get_ip()
+            if external_ip != None: 
+                if not isinstance(ip_to_int(external_ip), int): raise(ValueError('IP could not be converted to int.'))
+                return str(external_ip)
+        except Exception:
+            pass
 
     raise ExternalIPNotFound
 

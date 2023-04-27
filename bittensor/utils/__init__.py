@@ -64,7 +64,7 @@ def unbiased_topk( values, k, dim=0, sorted = True, largest = True):
 
 
 def version_checking():
-    response = requests.get(bittensor.__pipaddress__)
+    response = requests.get(bittensor.__pipaddress__, timeout=bittensor.__blocktime__)
     latest_version = response.json()['info']['version']
     version_split = latest_version.split(".")
     latest_version_as_int = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))

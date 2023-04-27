@@ -6,6 +6,7 @@ import requests
 import urllib
 import pytest
 import miniupnpc
+from unittest.mock import patch
 
 from bittensor.utils.networking import UPNPCException, upnpc_create_port_map
 
@@ -57,7 +58,17 @@ def test_int_to_ip6_underflow():
         assert True
 
 def test_get_external_ip():
-    assert utils.networking.get_external_ip()
+    with patch('bittensor.utils.networking.ip_to_int', side_effect = [0, Exception, Exception, Exception]):
+        assert utils.networking.get_external_ip()
+
+    with patch('bittensor.utils.networking.ip_to_int', side_effect = [Exception, 0, Exception, Exception]):
+        assert utils.networking.get_external_ip()
+
+    with patch('bittensor.utils.networking.ip_to_int', side_effect = [Exception, Exception, 0, Exception]):
+        assert utils.networking.get_external_ip()
+
+    with patch('bittensor.utils.networking.ip_to_int', side_effect = [Exception, Exception, Exception, 0]):
+        assert utils.networking.get_external_ip()
 
 def test_get_external_ip_os_broken():
     class fake():

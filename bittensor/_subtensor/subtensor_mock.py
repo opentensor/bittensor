@@ -161,7 +161,7 @@ class mock_subtensor():
             while errored:
                 errored = False
                 try:
-                    _ = requests.get('http://localhost:{}'.format(ws_port))
+                    _ = requests.get('http://localhost:{}'.format(ws_port), timeout = bittensor.__blocktime__)
                 except requests.exceptions.ConnectionError as e:
                     errored = True
                     time.sleep(0.5) # Wait for the process to start.
