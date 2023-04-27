@@ -240,19 +240,30 @@ Chattensor is a research project by Opentensor Cortex.
 Chattensor is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Chattensor is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
 '''
 class prompting ( torch.nn.Module ):
+    _axon: 'axon_info'
+    _dendrite: 'Dendrite'
+    _subtensor: 'Subtensor'
+    _hotkey: str
+    _keypair: 'Keypair'
 
     def __init__(
         self,
         wallet_name: str = "default",
         hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
-
+        subtensor_: Optional['Subtensor'] = None,
+        axon_: Optional['axon_info'] = None,
     ):
         super(prompting, self).__init__()
         self._hotkey = hotkey
-        self._subtensor = subtensor()
+        self._subtensor = subtensor() if subtensor_ is None else subtensor_
         self._keypair = wallet( name = wallet_name ).create_if_non_existent().coldkey
-        self._metagraph = metagraph( 1 )
-        self._axon = self._metagraph.axons[ self._metagraph.hotkeys.index( self._hotkey ) ]
+        
+        if axon_info is not None:
+            self._axon = axon_
+        else:
+            self._metagraph = metagraph( 1 )
+            self._axon = self._metagraph.axons[ self._metagraph.hotkeys.index( self._hotkey ) ]
+        
         self._dendrite = text_prompting(
             keypair = self._keypair,
             axon = self._axon
@@ -325,12 +336,16 @@ def prompt(
         content: Union[ str, List[str], List[Dict[ str ,str ]]],
         wallet_name: str = "default",
         hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
+        subtensor_: Optional['Subtensor'] = None,
+        axon_: Optional['axon_info'] = None,
     ) -> str:
     global __context_llm
     if __context_llm == None:
         __context_llm = prompting( 
             wallet_name = wallet_name,
-            hotkey = hotkey
+            hotkey = hotkey,
+            subtensor_ = subtensor_,
+            axon_ = axon_,
         )
     return __context_llm( content = content )
 
@@ -348,9 +363,9 @@ This Python file implements the BittensorLLM class, a wrapper around the Bittens
     wallet_name: str = 'default'
     hotkey: str = '5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3'
     llm: prompting = None
-    def __init__(self, **data):
+    def __init__(self, subtensor_: Optional['Subtensor'] = None, axon_: Optional['axon_info'] = None, **data):
         super().__init__(**data)
-        self.llm = prompting(wallet_name=self.wallet_name, hotkey=self.hotkey)
+        self.llm = prompting(wallet_name=self.wallet_name, hotkey=self.hotkey, subtensor_=subtensor_, axon_=axon_ )
 
     @property
     def _identifying_params(self) -> Mapping[str, Any]:
