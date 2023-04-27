@@ -297,7 +297,7 @@ class neuron:
             self.dendrite_pool.backward( 
                 forward_calls = forward_calls,
                 rewards = rewards,
-                timeout = timeout
+                timeout = timeout,
             )
             bittensor.logging.trace( 'Applied backward to network.' )
 
@@ -351,7 +351,7 @@ class neuron:
             roles = roles, 
             messages = contents, 
             uids = uids, 
-            timeout = timeout
+            timeout = timeout,
         )
         bittensor.logging.trace( 'finished dendrite forward ', time.time() - forward_start )
 
