@@ -44,7 +44,7 @@ You are designed to assist with a wide range of tasks, from answering simple que
 '''
 
 __default_base_follow_up_prompt__ = '''
-Ask a question in a different topic.
+Ask a follow up question in a different topic.
 '''
 
 __default_follow_up_prompt__ = '''
@@ -101,6 +101,7 @@ class neuron:
         parser.add_argument( '--neuron.base_prompt', type=str, help = 'Prompt injected before a question is completed by miners on the network', default = __default_base_prompt__ )
         parser.add_argument( '--neuron.base_follow_up_prompt', type=str, help = 'Base follow up prompt that is completed by miners on the network that is supposed to bring more randomness in the question.', default = __default_base_follow_up_prompt__ )
         parser.add_argument( '--neuron.follow_up_prompt', type=str, help = 'Follow up prompt that is completed by miners on the network.', default = __default_follow_up_prompt__ )
+        parser.add_argument( '--neuron.base_follow_up_frequence', type=int, help = 'How frequent to use the base follow up question.', default = 3 )
         parser.add_argument( '--neuron.question_prompt', type=str, help = 'Prompt used to generate questions from the network whicha are used to evaluate other miners.', default = __default_question_prompt__ )
         parser.add_argument( '--neuron.reward_model_name', type = str, help = 'GPTRewardModel name', default = 'Dahoas/gpt2-rm-static')
         parser.add_argument( '--neuron.length_timeout_multiplier', type = int, help = 'Base timeout for all requests.', default = 0.01 )
@@ -420,7 +421,9 @@ class neuron:
         question_words = ['what', 'who', 'which', 'where', 'when', 'how']
         question_word_weights = [0.3, 0.1, 0.1, 0.1, 0.1, 0.4]
         
-        if i % 5 == 0:
+        best_completion.replace('As an AI language model, ', '') 
+
+        if i % self.config.neuron.base_follow_up_frequence == 0:
             return best_completion + '\n\n' + self.config.neuron.base_follow_up_prompt
         else:
             w_word = choices(
