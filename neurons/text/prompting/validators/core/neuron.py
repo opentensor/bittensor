@@ -498,7 +498,7 @@ class neuron:
 
                     bittensor.logging.trace('last 100 prompt history: ', prompt_history[-100:])
                     if len(prompt_history) > 100:
-                        prompt_history = [-100: prompt_history]                        
+                        prompt_history = prompt_history[-100:]                      
 
                 step += 1 
                 prompt_history.append(prompt)
