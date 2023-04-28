@@ -462,6 +462,8 @@ class neuron:
 
                 if get_question is not None and len(get_question) > 0 and get_question[0].completion is not None:
                     prompt = get_question[0].completion
+                else:
+                    prompt = self.config.neuron.base_prompt
 
                 # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
                 if self.subtensor.block % 10 == 0:
