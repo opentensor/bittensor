@@ -456,17 +456,18 @@ class neuron:
                     timeout = self.config.neuron.training_timeout
                 )
 
-                get_question = self.dendrite_pool(
-                    roles = ['user'], 
-                    messages = [ self.get_follow_up_prompt(step, forward_result.best_completion) ], 
-                    uids = torch.tensor([forward_result.best_uid]), 
-                    timeout = 12,
-                )
+                if forward_result is not None:
+                    get_question = self.dendrite_pool(
+                        roles = ['user'], 
+                        messages = [ self.get_follow_up_prompt(step, forward_result.best_completion) ], 
+                        uids = torch.tensor([forward_result.best_uid]), 
+                        timeout = 12,
+                    )
 
-                if get_question is not None and len(get_question) > 0 and get_question[0].completion is not None:
-                    prompt = get_question[0].completion
-                else:
-                    prompt = self.config.neuron.base_prompt
+                    if get_question is not None and len(get_question) > 0 and get_question[0].completion is not None:
+                        prompt = get_question[0].completion
+                    else:
+                        prompt = self.config.neuron.base_prompt
 
                 # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
                 if self.subtensor.block % 10 == 0:
