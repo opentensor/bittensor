@@ -33,6 +33,7 @@ from typing import List, Optional, Tuple, Dict
 from reward import RewardModel
 from gating import GatingModel
 from transformers import AutoTokenizer
+from random import choices
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific. Do not include the answer in the question.
@@ -42,6 +43,13 @@ __default_base_prompt__ = '''
 You are designed to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics.
 '''
 
+__default_base_follow_up_prompt__ = '''
+Ask a question in a different topic.
+'''
+
+__default_follow_up_prompt__ = '''
+Ask a difficult follow up question that will lead to a different topic
+'''
 class neuron:
     @classmethod
     def check_config( cls, config: 'bt.Config' ):
@@ -91,6 +99,8 @@ class neuron:
         parser.add_argument( '--netuid', type = int, help = 'Prompting network netuid', default = 1 )
         parser.add_argument( '--neuron.name', type = str, help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default = 'core_prompting_validator')
         parser.add_argument( '--neuron.base_prompt', type=str, help = 'Prompt injected before a question is completed by miners on the network', default = __default_base_prompt__ )
+        parser.add_argument( '--neuron.base_follow_up_prompt', type=str, help = 'Base follow up prompt that is completed by miners on the network that is supposed to bring more randomness in the question.', default = __default_base_follow_up_prompt__ )
+        parser.add_argument( '--neuron.follow_up_prompt', type=str, help = 'Follow up prompt that is completed by miners on the network.', default = __default_follow_up_prompt__ )
         parser.add_argument( '--neuron.question_prompt', type=str, help = 'Prompt used to generate questions from the network whicha are used to evaluate other miners.', default = __default_question_prompt__ )
         parser.add_argument( '--neuron.reward_model_name', type = str, help = 'GPTRewardModel name', default = 'Dahoas/gpt2-rm-static')
         parser.add_argument( '--neuron.length_timeout_multiplier', type = int, help = 'Base timeout for all requests.', default = 0.01 )
@@ -307,6 +317,10 @@ class neuron:
             )
             bittensor.logging.trace( 'Applied backward to network.' )
 
+        best_idx = rewards.sort(descending = True)[1][0].item()
+        best_uid = successful_uids[best_idx]
+        best_completion = successful_completions[best_idx]
+
         # Save the query history in a `result` object.
         # Return the `completion` with the highest reward.
         event = SimpleNamespace( 
@@ -318,6 +332,8 @@ class neuron:
             all_completions = successful_completions,
             block = self.metagraph.block,
             is_question = message == self.config.neuron.question_prompt,
+            best_uid = best_uid,
+            best_completion = best_completion
         )
         self.record_event( event ) 
 
@@ -400,6 +416,19 @@ class neuron:
             bittensor.logging.info( 'best completion', best_completion)
             return best_completion
 
+    def get_follow_up_prompt(self, i, best_completion):
+        question_words = ['what', 'who', 'which', 'where', 'when', 'how']
+        question_word_weights = [0.3, 0.1, 0.1, 0.1, 0.1, 0.4]
+        
+        if i % 5 == 0:
+            return best_completion + '\n\n' + self.config.neuron.base_follow_up_prompt
+        else:
+            w_word = choices(
+                population = question_words,
+                weights = question_word_weights,
+            )[0]
+            return f"{best_completion}\n\n{self.config.neuron.follow_up_prompt} that start with {w_word}." 
+
     def train( self ):
         """ Training 
             The function uses an infinite loop to repeatedly generate a random question, 
@@ -408,30 +437,31 @@ class neuron:
         """
         # Store the current epoch block number for comparison later.
         last_epoch_block = self.subtensor.block
-        
+        prompt = self.config.neuron.base_prompt
+        step = 0
+        prompt_history = []
         # Start an infinite loop for training.
         try:
             while True:
-                # Query the network for a random question.
-                question = self.forward( 
-                    roles = ['system', 'user' ],
-                    messages = [ self.config.neuron.base_prompt, self.config.neuron.question_prompt ],
-                    topk = self.config.neuron.training_topk,
-                    random_sample_uids = True,
-                    train_gating_model = True,
-                    timeout = self.config.neuron.training_timeout
-                )
-                if question == None: continue # no responses from network.
-
                 # Ask the network to complete the random question, training the gating network.
-                self.forward( 
+                forward_result = self.forward( 
                     roles = ['system', 'user' ],
-                    messages = [ self.config.neuron.base_prompt, question.completion ],
+                    messages = [ self.config.neuron.base_prompt, prompt ],
                     topk = self.config.neuron.training_topk,
                     random_sample_uids = True,
                     train_gating_model = True,
                     timeout = self.config.neuron.training_timeout
                 )
+
+                get_question = self.dendrite_pool(
+                    roles = ['user'], 
+                    messages = [ self.get_follow_up_prompt(step, forward_result.best_completion) ], 
+                    uids = torch.tensor([forward_result.best_uid]), 
+                    timeout = 12,
+                )
+
+                if get_question is not None and len(get_question) > 0 and get_question[0].completion is not None:
+                    prompt = get_question[0].completion
 
                 # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
                 if self.subtensor.block % 10 == 0:
@@ -465,6 +495,13 @@ class neuron:
                         weights = weights,
                         wait_for_finalization = True,
                     )
+
+                    bittensor.logging.trace('last 100 prompt history: ', prompt_history[-100:])
+                    if len(prompt_history) > 100:
+                        prompt_history = [-100: prompt_history]                        
+
+                step += 1 
+                prompt_history.append(prompt)
         except Exception as e:
             bittensor.logging.info( 'Error in training loop', str( e    ) )
     
