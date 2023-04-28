@@ -176,10 +176,19 @@ class neuron:
                     else: return 0.0 # Everyone else.
 
                 def blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
-                    # Give messages priority.
-                    if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: return True
-                    elif forward_call.src_hotkey in self.my_nominators: return False # Delegates, dont blacklist.
-                    else: return False # Everyone else, dont blacklist.
+                    if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: 
+                        return False
+
+                    elif forward_call.src_hotkey in self.metagraph.hotkeys:
+                        uid =  self.metagraph.hotkeys.index(forward_call.src_hotkey)
+                        if self.metagraph.validator_permit[uid]:
+                            return True         
+                        return False # Non Validator miners
+                    
+                    elif forward_call.src_hotkey in self.my_nominators:
+                        return False # Delegates, dont blacklist.
+                    else: 
+                        return False # Everyone else, dont blacklist.
 
                 def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
                 def forward( _, messages: List[Dict[str, str]] ) -> str:
@@ -196,7 +205,7 @@ class neuron:
             )
             self.synapse = Synapse( axon = self.axon )
             self.axon.start()
-            self.subtensor.serve_axon( self.config.netuid, self.axon )
+            #self.subtensor.serve_axon( self.config.netuid, self.axon )
 
     def forward(
             self, 
@@ -207,6 +216,7 @@ class neuron:
             train_gating_model: Optional[ bool ] = False,
             train_network: Optional[ bool ] = False,
             timeout: float = None,
+            question: bool =  False,
         ) -> SimpleNamespace:
         """
         Queries the network for a response to the passed message using a gating model to select the best uids.
@@ -246,7 +256,7 @@ class neuron:
         # Set `topk` to the number of items in `self.metagraph.n` if `topk` is not provided or is -1.
         # Find the available `uids` that are currently serving.
         # If `topk` is larger than the number of available `uids`, set `topk` to the number of available `uids`.
-        available_uids = torch.tensor( [ uid for uid, ax in enumerate( self.metagraph.axons ) if ax.is_serving ], dtype = torch.int64 ).to( self.device )
+        available_uids = torch.tensor( [ uid for uid, ax in enumerate( self.metagraph.axons ) if (ax.is_serving) and (not self.metagraph.validator_permit[uid]) ], dtype = torch.int64 ).to( self.device )
         if topk is None or topk == -1: topk = self.metagraph.n.item()
         if topk > len( available_uids ): topk = len( available_uids )
         if len( available_uids ) == 0: bittensor.logging.error('no available uids'); return None
@@ -419,7 +429,8 @@ class neuron:
                     topk = self.config.neuron.training_topk,
                     random_sample_uids = True,
                     train_gating_model = True,
-                    timeout = self.config.neuron.training_timeout
+                    timeout = self.config.neuron.training_timeout,
+                    question = True
                 )
                 if question == None: continue # no responses from network.
 
@@ -430,7 +441,8 @@ class neuron:
                     topk = self.config.neuron.training_topk,
                     random_sample_uids = True,
                     train_gating_model = True,
-                    timeout = self.config.neuron.training_timeout
+                    timeout = self.config.neuron.inference_timeout,
+                    question = False
                 )
 
                 # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
