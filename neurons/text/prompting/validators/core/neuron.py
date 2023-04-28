@@ -33,7 +33,7 @@ from typing import List, Optional, Tuple, Dict
 from reward import RewardModel
 from gating import GatingModel
 from transformers import AutoTokenizer
-from random import choices
+from random import choices, choice
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific. Do not include the answer in the question.
@@ -44,7 +44,7 @@ You are designed to assist with a wide range of tasks, from answering simple que
 '''
 
 __default_base_follow_up_prompt__ = '''
-Ask a follow up question in a different topic.
+Ask a follow up question in a different topic
 '''
 
 __default_follow_up_prompt__ = '''
@@ -424,7 +424,7 @@ class neuron:
         best_completion.replace('As an AI language model, ', '') 
 
         if i % self.config.neuron.base_follow_up_frequence == 0:
-            return best_completion + '\n\n' + self.config.neuron.base_follow_up_prompt
+            return f"{best_completion}\n\n{self.config.neuron.base_follow_up_prompt} like a {choice[3,5,10]} years old."
         else:
             w_word = choices(
                 population = question_words,
