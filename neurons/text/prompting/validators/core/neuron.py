@@ -424,7 +424,7 @@ class neuron:
         best_completion.replace('As an AI language model, ', '') 
 
         if i % self.config.neuron.base_follow_up_frequence == 0:
-            return f"{best_completion}\n\n{self.config.neuron.base_follow_up_prompt} like a {choice[3,5,10]} years old."
+            return f"{best_completion}\n\n{self.config.neuron.base_follow_up_prompt} like a {choice([3,5,10])} years old."
         else:
             w_word = choices(
                 population = question_words,
