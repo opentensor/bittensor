@@ -475,7 +475,7 @@ class neuron:
                         netuid = self.config.netuid,
                         uids = uids,
                         weights = weights,
-                        wait_for_finalization = True,
+                        wait_for_finalization = False,
                     )
         except Exception as e:
             bittensor.logging.info( 'Error in training loop', str( e    ) )
