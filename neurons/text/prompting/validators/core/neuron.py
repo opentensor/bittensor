@@ -424,7 +424,7 @@ class neuron:
         best_completion = best_completion.replace('As an AI language model, ', '') 
 
         if i % self.config.neuron.base_follow_up_frequence == 0:
-            return f"{best_completion}\n\n{self.config.neuron.base_follow_up_prompt} like a {choice([10])} years old."
+            return f"{best_completion}\n\n{self.config.neuron.base_follow_up_prompt}."
         else:
             w_word = choices(
                 population = question_words,
@@ -508,6 +508,11 @@ class neuron:
 
                 step += 1 
                 prompt_history.append(prompt)
+
+                with open('prompt_history.txt', 'w') as file:
+                    file.write(prompt + '\n')
+
+
         except Exception as e:
             bittensor.logging.info( 'Error in training loop', str( e    ) )
     
