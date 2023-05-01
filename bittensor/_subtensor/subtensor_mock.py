@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2022 Opentensor Foundation
+# Copyright © 2022-2023 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
@@ -61,7 +61,7 @@ __type_registery__ = {
     }
 }
 
-GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = "node-subtensor"
+GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = "mock-node-subtensor"
 
 class mock_subtensor():
     r""" Returns a subtensor connection interface to a mocked subtensor process running in the background.
@@ -70,7 +70,6 @@ class mock_subtensor():
 
     @classmethod
     def mock(cls):
-
         if not cls.global_mock_process_is_running():
             # Remove any old chain db
             if os.path.exists(f'{bittensor.__mock_chain_db__}_{os.getpid()}'):
