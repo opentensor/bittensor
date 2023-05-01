@@ -25,6 +25,8 @@ import time
 import os
 from typing import Optional, Tuple, Dict, Union
 import requests
+import numpy as np
+from filelock import Timeout, FileLock
 
 from . import subtensor_impl
 
@@ -70,29 +72,55 @@ class mock_subtensor():
 
     @classmethod
     def mock(cls):
+        _owned_mock_subtensor_process = None
         if not cls.global_mock_process_is_running():
             # Remove any old chain db
             if os.path.exists(f'{bittensor.__mock_chain_db__}_{os.getpid()}'):
                 # Name mock chain db using pid to avoid conflicts while multiple processes are running.
                 os.system(f'rm -rf {bittensor.__mock_chain_db__}_{os.getpid()}')
             _owned_mock_subtensor_process = cls.create_global_mock_process(os.getpid())
-        else:
-            _owned_mock_subtensor_process = None
+        
+        if _owned_mock_subtensor_process is None:
             print ('Mock subtensor already running.')
 
+        # Wait for other process to finish setting up the mock subtensor.
+        timeout = 35 # seconds
+        time_elapsed = 0
+        time_start = time.time()
+        # Try to get ws_port
+        ws_port = None
+        while time_elapsed < timeout:
+            try:
+                ws_port = cls.get_global_ws_port()
+
+                # Try to connect to the mock subtensor process.
+                errored = cls.try_connect_to_mock(ws_port, timeout=2)
+                connected = not errored
+
+                if connected:
+                    break
+            except FileNotFoundError:
+                time.sleep(0.1)
+                time_elapsed = time.time() - time_start
+        else:
+            raise TimeoutError(f"Could not get ws_port from file")
+        
+        
+
         endpoint = bittensor.__mock_entrypoint__
-        port = int(endpoint.split(':')[1])
+        url_root, _ = endpoint.split(':')
+
         substrate = SubstrateInterface(
             ss58_format = bittensor.__ss58_format__,
             type_registry_preset='substrate-node-template',
             type_registry = __type_registery__,
-            url = "ws://{}".format('localhost:{}'.format(port)),
+            url = f"ws://{url_root}:{ws_port}",
             use_remote_preset=True
         )
         subtensor = Mock_Subtensor( 
             substrate = substrate,
             network = 'mock',
-            chain_endpoint = 'localhost:{}'.format(port),
+            chain_endpoint = f"{url_root}:{ws_port}",
 
             # Is mocked, optionally has owned process for ref counting.
             _is_mocked = True,
@@ -100,33 +128,114 @@ class mock_subtensor():
         )
         return subtensor
 
-    @classmethod
-    def global_mock_process_is_running(cls) -> bool:
-        r""" Check if the global mocked subtensor process is running under a process with the same name as this one.
+    @staticmethod
+    def global_mock_process_is_running() -> bool:
+        r""" Check if the global mocked subtensor process is running on the machine.
+        This means only one mock subtensor will run for ALL processes.
         """
-        this_process = psutil.Process(os.getpid())
         for p in psutil.process_iter():
             if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.status() != psutil.STATUS_ZOMBIE and p.status() != psutil.STATUS_DEAD:
-                if p.parent().name == this_process.name:
-                    print(f"Found process with name {p.name()}, parent {p.parent().pid} status {p.status()} and pid {p.pid}")
-                    return True
+                print(f"Found process with name {p.name()}, parent {p.parent().pid} status {p.status()} and pid {p.pid}")
+                return True
         return False
 
     @classmethod
-    def kill_global_mock_process(self):
+    def kill_global_mock_process(cls):
         r""" Kills the global mocked subtensor process even if not owned.
         """
         for p in psutil.process_iter():
             if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.parent().pid == os.getpid() :
                 p.terminate()
                 p.kill()
+                cls.destroy_lock() # Remove lock file.
         time.sleep(2) # Buffer to ensure the processes actually die
 
+    @staticmethod
+    def try_connect_to_mock(ws_port: int, timeout: Optional[int] = None) -> bool:
+        r""" Tries to connect to the mock subtensor process.
+        Returns False if the connection fails.
+        """
+        time_elapsed = 0
+        time_start = time.time()
+        
+        errored: bool = True
+        while errored and (timeout is None or time_elapsed < timeout):
+            errored = False
+            try:
+                _ = requests.get('http://localhost:{}'.format(ws_port))
+            except requests.exceptions.ConnectionError as e:
+                errored = True
+                time.sleep(0.3) # Wait for the process to start.
+                time_elapsed = time.time() - time_start
+
+        return errored
+    
+    @staticmethod
+    def _get_ws_port_from_file(filename: str) -> int:
+        r""" Gets the ws port from `filename`.
+        """
+        with open(filename, 'r') as f:
+            ws_port = int(f.read())
+        return ws_port
+    
+    @staticmethod
+    def _write_ws_port_to_file(ws_port: int, filename: str) -> None:
+        r"""  Writes the global ws port to `filename`.
+        """
+        with open(filename, 'w') as f:
+            f.write(str(ws_port))
+    
     @classmethod
-    def create_global_mock_process(self, pid: int) -> 'subprocess.Popen[bytes]':
+    def get_global_ws_port(cls) -> Optional[int]:
+        r""" Gets the ws port from the global mock subtensor process.
+        """
+        filename = './tests/mock_subtensor/ws_port.txt'
+        if os.path.exists(filename):
+            return cls._get_ws_port_from_file(filename)
+        else:
+            return None
+        
+    @classmethod
+    def save_global_ws_port(cls, ws_port: int) -> None:
+        r""" 
+        """
+        root_path = './tests/mock_subtensor'
+        filename = f'{root_path}/ws_port.txt'
+        if not os.path.exists(root_path):
+            os.makedirs(root_path, exist_ok=True)
+        
+        cls._write_ws_port_to_file(ws_port, filename)
+
+    _lock_filename = './tests/mock_subtensor/lock.lock'
+
+    @classmethod
+    def make_lock(cls) -> FileLock:
+        r""" Creates a file lock.
+        """
+        lock_file = cls._lock_filename
+        lock = FileLock(lock_file, timeout=1)
+        return lock
+    
+    @classmethod
+    def destroy_lock(cls) -> None:
+        r""" Destroys the file lock.
+        """
+        lock_file = cls._lock_filename
+        if os.path.exists(lock_file):
+            os.remove(lock_file)
+
+    @classmethod
+    def create_global_mock_process(cls, pid: int) -> Optional['subprocess.Popen[bytes]']:
         r""" Creates a global mocked subtensor process running in the backgroun with name GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME.
+        Returns None if the process is already running.
+        Raises:
+            RuntimeError: If the process cannot be created.
         """
         try:
+            # acquire file lock
+            lock = cls.make_lock()
+            lock.acquire(timeout=1) # Wait for 1 seconds to acquire the lock.
+
             operating_system = "OSX" if platform == "darwin" else "Linux"
             path_root = "./tests/mock_subtensor"
             path = "{}/bin/{}/{}".format(path_root, operating_system, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME)
@@ -145,6 +254,9 @@ class mock_subtensor():
                 command_args,
                 close_fds=True, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
             
+            # Write the ws port to a file
+            cls.save_global_ws_port(ws_port)
+            
             # Wait for the process to start. Check for errors.
             try:
                 # Timeout is okay.
@@ -158,17 +270,13 @@ class mock_subtensor():
                 raise RuntimeError( 'Failed to start mocked subtensor process: {}'.format(error_code), error_message )
 
             print ('Starting subtensor process with pid {} and name {}'.format(_mock_subtensor_process.pid, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME))
-
-            errored: bool = True
-            while errored:
-                errored = False
-                try:
-                    _ = requests.get('http://localhost:{}'.format(ws_port))
-                except requests.exceptions.ConnectionError as e:
-                    errored = True
-                    time.sleep(0.5) # Wait for the process to start.
+            
+            # Wait for the process to start.
+            errored = cls.try_connect_to_mock(ws_port)
             
             return _mock_subtensor_process
+        except Timeout:
+            return None # Another process has the lock.
         except Exception as e:
             raise RuntimeError( 'Failed to start mocked subtensor process: {}'.format(e) )
 
@@ -178,7 +286,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
     Handles interactions with the subtensor chain.
     """
     sudo_keypair: Keypair = Keypair.create_from_uri('//Alice') # Alice is the sudo keypair for the mock chain.
-    
+
     def __init__( 
         self, 
         _is_mocked: bool,
@@ -326,11 +434,9 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
     def get_tx_rate_limit(self) -> int:
         r""" Gets the tx rate limit of the subnet in the mock chain.
         """
-        with self.substrate as substrate:
-            result = substrate.query(
-                module = 'SubtensorModule',
-                storage_function = 'tx_rate_limit'
-            )
+        result = self.query_subtensor(
+            'TxRateLimit'
+        )
 
         return result.value
         

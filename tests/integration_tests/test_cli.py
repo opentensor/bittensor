@@ -21,12 +21,14 @@ import unittest
 from copy import deepcopy
 from types import SimpleNamespace
 from typing import Dict
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest.mock import MagicMock, patch
+import time
+
+import os
 
 import random
 
 import pytest
-import substrateinterface
 from substrateinterface.base import Keypair
 
 import bittensor
@@ -44,55 +46,75 @@ def setupMockSubtensor():
 
 # Only run once per session. 
 # Runs before all tests and only once.
-# @pytest.fixture(scope="session", autouse=True)
-# def setupSubnets(request):
-#     # Setup first mock subtensor
-#     setupMockSubtensor()
+@pytest.fixture(scope="session", autouse=True)
+def setupSubnets(request):
+    # Setup first mock subtensor
+    setupMockSubtensor()
 
-#     def killMockSubtensorProcess():
-#         _subtensor_mock.optionally_kill_owned_mock_instance()
+    if _subtensor_mock._owned_mock_subtensor_process is None:
+        # Not owned, wait until mock chain setup done
+        tx_limit = float('inf')
+        while tx_limit != 0:
+            tx_limit = _subtensor_mock.get_tx_rate_limit()
+            time.sleep(1)
+        return
 
-#     # Setup mock subtensor networks.
-#     try:
-#         # create mock subnet 2
-#         created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 2, tempo = 90, modality = 0, wait_for_finalization=False  )
-#         if err != None: raise Exception(err)
+    def killMockSubtensorProcess():
+        # wait 30s to kill
+        time.sleep(10)
+        _subtensor_mock.optionally_kill_owned_mock_instance()
 
-#         # create mock subnet 3
-#         created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 3, tempo = 90, modality = 0, wait_for_finalization=False )
-#         if err != None: raise Exception(err)
+    # Setup mock subtensor networks.
+    try:
+        # create mock subnet 2
+        created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 2, tempo = 90, modality = 0, wait_for_finalization=False  )
+        if err != None: raise Exception(err)
 
-#         # create a mock subnet 1
-#         created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 1, tempo = 99, modality = 0, wait_for_finalization=False )
-#         if err != None: raise Exception(err)
+        # create mock subnet 3
+        created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 3, tempo = 90, modality = 0, wait_for_finalization=False )
+        if err != None: raise Exception(err)
 
-#         # Make registration difficulty 0. Instant registration.
-#         set_diff, err = _subtensor_mock.sudo_set_difficulty( netuid = 1, difficulty = 0, wait_for_finalization=False )
-#         if err != None: raise Exception(err)
+        # create a mock subnet 1
+        created_subnet, err = _subtensor_mock.sudo_add_network( netuid = 1, tempo = 99, modality = 0, wait_for_finalization=False )
+        if err != None: raise Exception(err)
+
+        # Make registration difficulty 0. Instant registration.
+        set_diff, err = _subtensor_mock.sudo_set_difficulty( netuid = 1, difficulty = 0, wait_for_finalization=False )
+        if err != None: raise Exception(err)
         
-#         # Make registration min difficulty 0.
-#         set_min_diff, err = _subtensor_mock.sudo_set_min_difficulty( netuid = 1, min_difficulty = 0, wait_for_finalization=False )
-#         if err != None: raise Exception(err)
+        # Make registration min difficulty 0.
+        set_min_diff, err = _subtensor_mock.sudo_set_min_difficulty( netuid = 1, min_difficulty = 0, wait_for_finalization=False )
+        if err != None: raise Exception(err)
 
-#         # Make registration max difficulty 1.
-#         set_max_diff, err = _subtensor_mock.sudo_set_max_difficulty( netuid = 1, max_difficulty = 1, wait_for_finalization=False )
-#         if err != None: raise Exception(err)
+        # Make registration max difficulty 1.
+        set_max_diff, err = _subtensor_mock.sudo_set_max_difficulty( netuid = 1, max_difficulty = 1, wait_for_finalization=False )
+        if err != None: raise Exception(err)
 
-#         set_tx_limit, err = _subtensor_mock.sudo_set_tx_rate_limit( netuid = 1, tx_rate_limit = 0, wait_for_finalization=False ) # No tx limit
-#         if err != None: raise Exception(err)
+        set_serving_rate_limit, err = _subtensor_mock.sudo_set_serving_rate_limit( netuid = 1, serving_rate_limit = 0, wait_for_finalization=False ) # No serving limit
+        if err != None: raise Exception(err)
+
+        set_tx_limit, err = _subtensor_mock.sudo_set_tx_rate_limit( tx_rate_limit = 0, wait_for_finalization=False ) # No tx limit
+        if err != None: raise Exception(err)
+
     
-#     except Exception as e:
-#         print("Error in setup: ", e)
+    except Exception as e:
+        print("Error in setup: ", e)
     
-#     else:
-#         # Seems to be the process owner of the mock instance.
-#         # Setup mock kill to run after all tests.
-#         request.addfinalizer(killMockSubtensorProcess)
+    else:
+        # Seems to be the process owner of the mock instance.
+        # Setup mock kill to run after all tests.
+        request.addfinalizer(killMockSubtensorProcess)
 
-#     yield
+    # Write ws_port to file.
+    ws_port_str: str = _subtensor_mock.chain_endpoint.split(':')[1]
+    if ws_port_str is not None:
+        # Should be the case
+        mock_subtensor.save_global_ws_port( int(ws_port_str) )
+    
+    yield
 
-# def setUpModule():
-#     setupMockSubtensor()
+def setUpModule():
+    setupMockSubtensor()
 
 def generate_wallet(coldkey : 'Keypair' = None, hotkey: 'Keypair' = None):
     wallet = bittensor.wallet(_mock=True).create()
@@ -108,7 +130,7 @@ def generate_wallet(coldkey : 'Keypair' = None, hotkey: 'Keypair' = None):
 
     return wallet
 
-@unittest.skip("")
+
 class TestCLIWithNetworkAndConfig(unittest.TestCase):
     def setUp(self):
         self._config = TestCLIWithNetworkAndConfig.construct_config()
@@ -2104,7 +2126,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.config = config
         cli.run()
 
-@unittest.skip("")
+
 class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     """
     Test the CLI by passing args directly to the bittensor.cli factory
