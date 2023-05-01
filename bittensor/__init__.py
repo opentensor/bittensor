@@ -290,8 +290,8 @@ class prompting ( torch.nn.Module ):
                 ).completion
             elif isinstance( content[0], dict ):
                 return self._dendrite.forward(
-                    roles = [ dictitem[ dictitem.keys()[0] ] for dictitem in content ],
-                    messages = [ dictitem[ dictitem.keys()[1] ] for dictitem in content ],
+                    roles = [ dictitem[ list(dictitem.keys())[0] ] for dictitem in content ],
+                    messages = [ dictitem[ list(dictitem.keys())[1] ] for dictitem in content ],
                     timeout = timeout
                 ).completion
             else:
