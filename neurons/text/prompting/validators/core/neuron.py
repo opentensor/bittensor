@@ -509,7 +509,7 @@ class neuron:
                 step += 1 
                 prompt_history.append(prompt)
 
-                with open('prompt_history.txt', 'w') as file:
+                with open('prompt_history.txt', 'a') as file:
                     file.write(prompt + '\n')
 
 
