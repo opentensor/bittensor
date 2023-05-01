@@ -499,7 +499,7 @@ class neuron:
                         netuid = self.config.netuid,
                         uids = uids,
                         weights = weights,
-                        wait_for_finalization = True,
+                        wait_for_finalization = False,
                     )
 
                     bittensor.logging.trace('last 100 prompt history: ', prompt_history[-100:])
