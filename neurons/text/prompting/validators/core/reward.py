@@ -43,7 +43,7 @@ class RewardModel(nn.Module):
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.PAD_ID = self.tokenizer(self.tokenizer.pad_token)["input_ids"][0]
 
-    def reward( self, completions: List[str] ) -> torch.FloatTensor:
+    def reward( self, full_completions: List[str],  comp: List[str] ) -> torch.FloatTensor:
         def reward_fn( samples ):
             if samples is None: return 0
             scores_list = []
@@ -71,11 +71,12 @@ class RewardModel(nn.Module):
             return scores
         
         with torch.no_grad():
-            rewards = [reward_fn([completion]) for completion in completions]
-            for completion, reward in zip(completions, rewards):
+            full_rewards = [reward_fn([completion]) for completion in full_completions]
+            comp_rewards = [reward_fn([completion]) for completion in comp]
+            for completion, f_reward, c_reward in zip(full_completions, full_rewards, comp_rewards):
                 print(completion)
-                print(reward)
-            return torch.tensor(rewards, dtype=torch.float32)
+                print(f_reward - c_reward)
+            return torch.tensor(full_rewards, dtype=torch.float32) - torch.tensor(comp_rewards, dtype=torch.float32)
         
     def forward(
         self,
