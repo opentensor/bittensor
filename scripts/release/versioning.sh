@@ -19,6 +19,9 @@ while [[ $# -gt 0 ]]; do
       ;;
     -U|--update)
       VERSION_TYPE="$2"
+      if [[ $VERSION_TYPE == "rc" ]]; then
+        SUFFIX=$3
+      fi
       shift # past argument
       shift # past value
       ;;
@@ -34,7 +37,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ $VERSION_TYPE != "major" && $VERSION_TYPE != "minor" && $VERSION_TYPE != "patch" && $VERSION_TYPE != "rc" ]]; then
-  echo_error "Incorrect version type (-V|--version). Version types accepted: {major, minor, patch}"
+  echo_error "Incorrect version type (-V|--version). Version types accepted: {major, minor, patch, rc}"
   exit 1
 fi
 
@@ -67,7 +70,6 @@ case $VERSION_TYPE in
         NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
         ;;
     "rc")
-        SUFFIX=$2
         if [ -z $SUFFIX ]; then
             echo_error "Suffix is needed when updating version to a RC"
             exit 1
