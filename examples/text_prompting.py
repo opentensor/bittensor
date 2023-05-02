@@ -49,5 +49,7 @@ forward_call = dendrite.forward(
     timeout = 1e6
 )
 print ( forward_call )
+print ( 'success', forward_call.is_success, 'failed', forward_call.did_fail, 'timedout', forward_call.did_timeout )
 backward_call = forward_call.backward( 1 )
 print ( backward_call )
+print ( 'success', backward_call.is_success, 'failed', backward_call.did_fail, 'timedout', backward_call.did_timeout )
