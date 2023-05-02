@@ -105,7 +105,7 @@ class neuron:
         parser.add_argument( '--neuron.base_prompt', type=str, help = 'Prompt injected before a question is completed by miners on the network', default = __default_base_prompt__ )
         # parser.add_argument( '--neuron.base_follow_up_prompt', type=str, help = 'Base follow up prompt that is completed by miners on the network that is supposed to bring more randomness in the question.', default = __default_base_follow_up_prompt__ )
         parser.add_argument( '--neuron.follow_up_prompt', type=str, help = 'Follow up prompt that is completed by miners on the network.', default = __default_follow_up_prompt__ )
-        parser.add_argument( '--neuron.base_follow_up_frequence', type=int, help = 'How frequent to use the base follow up question.', default = 3 )
+        parser.add_argument( '--neuron.reset_bootstrap_prompt_frequency', type=int, help = 'How frequent to use the base follow up question.', default = 10 )
         parser.add_argument( '--neuron.question_prompt', type=str, help = 'Prompt used to generate questions from the network whicha are used to evaluate other miners.', default = __default_question_prompt__ )
         parser.add_argument( '--neuron.reward_model_name', type = str, help = 'GPTRewardModel name', default = 'Dahoas/gpt2-rm-static')
         parser.add_argument( '--neuron.length_timeout_multiplier', type = int, help = 'Base timeout for all requests.', default = 0.01 )
@@ -122,6 +122,7 @@ class neuron:
         parser.add_argument( '--neuron.dont_save_events', action = 'store_true', help = 'If set, we dont save events to a log file.', default = False )
         parser.add_argument( '--neuron.events_retention_size',  type = str,  help = 'Events retention size.', default = "2 GB" )
         parser.add_argument( '--neuron.no_reward_model', action = 'store_true', help = 'If set, we dont load the reward model instead use just the scores.', default = False )
+        parser.add_argument( '--neuron.question_random_sample_uids', action = 'store_true', help = 'If set, random sample uids to get question.', default = False )
 
     @classmethod
     def config ( cls ):
@@ -431,6 +432,9 @@ class neuron:
 
             if reset_bootstrap_prompt:
                 bootstrap_prompt = google_ai_dataset_place_holder
+                with open('prompt_history.txt', 'a') as file:
+                    file.write("============== reset ==================" + '\n')
+                        
             else:
                 bootstrap_prompt = bootstrap_prompt.replace('As an AI language model, ', '') 
             
@@ -489,11 +493,11 @@ class neuron:
 
                 if forward_result is not None:
                     idx_reward_sorted = forward_result.rewards.sort(descending = True)[1]
-                    print(idx_reward_sorted, forward_result.uids)
                     prompt = self.get_question(
                         uids = forward_result.uids[idx_reward_sorted],
                         bootstrap_prompt = forward_result.best_completion, 
-                        reset_bootstrap_prompt = (steps % self.config.neuron.base_follow_up_frequence == 0)
+                        reset_bootstrap_prompt = (steps % self.config.neuron.reset_bootstrap_prompt_frequency == 0),
+                        random_sample_uids = self.config.neuron.get_question_random_sample_uids
                     )
 
                 # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
