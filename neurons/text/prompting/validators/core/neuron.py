@@ -336,7 +336,6 @@ class neuron:
             all_completions = successful_completions,
             block = self.metagraph.block,
             is_question = message == self.config.neuron.question_prompt,
-            best_uid = best_uid,
             best_completion = best_completion
         )
         self.record_event( event ) 
