@@ -33,21 +33,6 @@ class Synapse( bittensor.TextPromptingSynapse ):
         pass
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
-        unravelled_message = ''
-        roles = []; contents = []
-        for message_dict in messages:
-            message_dict = json.loads( message_dict )
-            item_role = message_dict['role']
-            item_content = message_dict['content']
-            bittensor.logging.success(str(message_dict))
-            roles.append( item_role )
-            contents.append( item_content )
-            if item_role == 'system': unravelled_message += 'system: ' + item_content + '\n'
-            if item_role == 'assistant': unravelled_message += 'assistant: ' + item_content + '\n'
-            if item_role == 'user': unravelled_message += 'user: ' + item_content + '\n'
-        print('unrav', unravelled_message)
-        print ('roles', roles)
-        print ('contents', contents)
         return "hello im a chat bot."
 
 # Create a mock wallet.
