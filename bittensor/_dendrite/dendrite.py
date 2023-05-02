@@ -90,6 +90,13 @@ class DendriteCall( ABC ):
         self.elapsed = self.end_time - self.start_time
         self.completed = True
 
+    @property
+    def did_timeout( self ) -> bool: return self.return_code == bittensor.proto.ReturnCode.Timeout
+    @property
+    def is_success( self ) -> bool: return self.return_code == bittensor.proto.ReturnCode.Success
+    @property 
+    def did_fail( self ) -> bool: return not self.is_success
+
     def log_outbound(self):
         bittensor.logging.rpc_log(
             axon = False, 
