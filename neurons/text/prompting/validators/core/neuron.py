@@ -478,7 +478,7 @@ It is also generally thought that the state of Qin that later formed the Qin dyn
                     idx_reward_sorted = forward_result.rewards.sort(descending = True)[1]
                     question = self.get_question(
                         uids = forward_result.uids[idx_reward_sorted], 
-                        completion = forward_result.best_completion, 
+                        bootstrap_prompt = forward_result.best_completion, 
                         reset_bootstrap_prompt = (steps % self.config.neuron.base_follow_up_frequence == 0)
                     )
                     
