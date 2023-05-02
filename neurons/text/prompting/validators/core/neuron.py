@@ -33,7 +33,7 @@ from typing import List, Optional, Tuple, Dict
 from reward import RewardModel
 from gating import GatingModel
 from transformers import AutoTokenizer
-from random import choices
+from random import choices, choice
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific. Do not include the answer in the question.
@@ -43,12 +43,16 @@ __default_base_prompt__ = '''
 You are designed to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics.
 '''
 
-__default_base_follow_up_prompt__ = '''
-Ask a question in a different topic.
-'''
+# __default_base_follow_up_prompt__ = '''
+# Ask a follow up question in a different topic
+# '''
+
+# __default_follow_up_prompt__ = '''
+# Ask a difficult follow up question that will lead to a different topic
+# '''
 
 __default_follow_up_prompt__ = '''
-Ask a difficult follow up question that will lead to a different topic
+Ask a follow up question.
 '''
 class neuron:
     @classmethod
@@ -99,8 +103,9 @@ class neuron:
         parser.add_argument( '--netuid', type = int, help = 'Prompting network netuid', default = 1 )
         parser.add_argument( '--neuron.name', type = str, help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default = 'core_prompting_validator')
         parser.add_argument( '--neuron.base_prompt', type=str, help = 'Prompt injected before a question is completed by miners on the network', default = __default_base_prompt__ )
-        parser.add_argument( '--neuron.base_follow_up_prompt', type=str, help = 'Base follow up prompt that is completed by miners on the network that is supposed to bring more randomness in the question.', default = __default_base_follow_up_prompt__ )
+        # parser.add_argument( '--neuron.base_follow_up_prompt', type=str, help = 'Base follow up prompt that is completed by miners on the network that is supposed to bring more randomness in the question.', default = __default_base_follow_up_prompt__ )
         parser.add_argument( '--neuron.follow_up_prompt', type=str, help = 'Follow up prompt that is completed by miners on the network.', default = __default_follow_up_prompt__ )
+        parser.add_argument( '--neuron.reset_bootstrap_prompt_frequency', type=int, help = 'How frequent to use the base follow up question.', default = 10 )
         parser.add_argument( '--neuron.question_prompt', type=str, help = 'Prompt used to generate questions from the network whicha are used to evaluate other miners.', default = __default_question_prompt__ )
         parser.add_argument( '--neuron.reward_model_name', type = str, help = 'GPTRewardModel name', default = 'Dahoas/gpt2-rm-static')
         parser.add_argument( '--neuron.length_timeout_multiplier', type = int, help = 'Base timeout for all requests.', default = 0.01 )
@@ -117,6 +122,7 @@ class neuron:
         parser.add_argument( '--neuron.dont_save_events', action = 'store_true', help = 'If set, we dont save events to a log file.', default = False )
         parser.add_argument( '--neuron.events_retention_size',  type = str,  help = 'Events retention size.', default = "2 GB" )
         parser.add_argument( '--neuron.no_reward_model', action = 'store_true', help = 'If set, we dont load the reward model instead use just the scores.', default = False )
+        parser.add_argument( '--neuron.question_random_sample_uids', action = 'store_true', help = 'If set, random sample uids to get question.', default = False )
 
     @classmethod
     def config ( cls ):
@@ -319,7 +325,6 @@ class neuron:
             bittensor.logging.trace( 'Applied backward to network.' )
 
         best_idx = rewards.sort(descending = True)[1][0].item()
-        best_uid = successful_uids[best_idx]
         best_completion = successful_completions[best_idx]
 
         # Save the query history in a `result` object.
@@ -333,7 +338,6 @@ class neuron:
             all_completions = successful_completions,
             block = self.metagraph.block,
             is_question = message == self.config.neuron.question_prompt,
-            best_uid = best_uid,
             best_completion = best_completion
         )
         self.record_event( event ) 
@@ -418,19 +422,53 @@ class neuron:
             bittensor.logging.info( 'best completion', best_completion)
             return best_completion
 
-    def get_follow_up_prompt(self, i, best_completion):
-        question_words = ['what', 'who', 'which', 'where', 'when', 'how']
-        question_word_weights = [0.3, 0.1, 0.1, 0.1, 0.1, 0.4]
+    def get_question(self, uids, bootstrap_prompt, reset_bootstrap_prompt = False):
         
-        if i % 5 == 0:
-            return best_completion + '\n\n' + self.config.neuron.base_follow_up_prompt
-        else:
-            w_word = choices(
-                population = question_words,
-                weights = question_word_weights,
-            )[0]
-            return f"{best_completion}\n\n{self.config.neuron.follow_up_prompt} that start with {w_word}." 
+        def _get_question(uids, bootstrap_prompt, reset_bootstrap_prompt = False):
+            google_ai_dataset_place_holder = """
+    The names of China include the many contemporary and historical appellations given in various languages for the East Asian country known
+    as Zhongguo ( 中國 / 中国 ) in its official language . China , the name in English for the country , was derived from Portuguese in the 16th century , 
+    and became popular in the mid 19th century . It is believed to be a borrowing from Middle Persian , and some have traced it further back to Sanskrit . 
+    It is also generally thought that the state of Qin that later formed the Qin dynasty is the ultimate source of the name , although there are other suggestions.
+            """
 
+            if reset_bootstrap_prompt:
+                bootstrap_prompt = google_ai_dataset_place_holder
+                with open('prompt_history.txt', 'a') as file:
+                    file.write("============== reset ==================" + '\n')
+                        
+            else:
+                bootstrap_prompt = bootstrap_prompt.replace('As an AI language model, ', '') 
+            
+            question_prompt = f"{bootstrap_prompt}\n\n{self.config.neuron.follow_up_prompt}"
+            
+            questions = self.dendrite_pool(
+                roles = ['user'], 
+                messages = [ question_prompt ], 
+                uids = uids, 
+                timeout = 12,
+            )
+            
+            if questions is not None and len(questions) > 0:
+                for question in questions:
+                    if question.completion is not None:# and self.reward_model.reward(question, flag) > 0 :
+                        return question.completion
+
+            return None
+        def _get_random_uids():
+            available_uids = torch.tensor( [ uid for uid, ax in enumerate( self.metagraph.axons ) if ax.is_serving ], dtype = torch.int64 )
+            uids = torch.tensor( random.sample( available_uids.tolist(), self.config.neuron.training_topk ), dtype = torch.int64 )
+            return uids 
+        
+        question = None
+
+        while question is None:
+            question = _get_question(uids, bootstrap_prompt, reset_bootstrap_prompt)
+            reset_bootstrap_prompt = True
+            uids = _get_random_uids()
+
+        return question
+    
     def train( self ):
         """ Training 
             The function uses an infinite loop to repeatedly generate a random question, 
@@ -440,7 +478,7 @@ class neuron:
         # Store the current epoch block number for comparison later.
         last_epoch_block = self.subtensor.block
         prompt = self.config.neuron.base_prompt
-        step = 0
+        steps = 0
         prompt_history = []
         # Start an infinite loop for training.
         try:
@@ -455,15 +493,14 @@ class neuron:
                     timeout = self.config.neuron.training_timeout
                 )
 
-                get_question = self.dendrite_pool(
-                    roles = ['user'], 
-                    messages = [ self.get_follow_up_prompt(step, forward_result.best_completion) ], 
-                    uids = torch.tensor([forward_result.best_uid]), 
-                    timeout = 12,
-                )
-
-                if get_question is not None and len(get_question) > 0 and get_question[0].completion is not None:
-                    prompt = get_question[0].completion
+                if forward_result is not None:
+                    idx_reward_sorted = forward_result.rewards.sort(descending = True)[1]
+                    prompt = self.get_question(
+                        uids = forward_result.uids[idx_reward_sorted],
+                        bootstrap_prompt = forward_result.best_completion, 
+                        reset_bootstrap_prompt = (steps % self.config.neuron.reset_bootstrap_prompt_frequency == 0),
+                        random_sample_uids = self.config.neuron.get_question_random_sample_uids
+                    )
 
                 # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
                 if self.subtensor.block % 10 == 0:
@@ -495,15 +532,20 @@ class neuron:
                         netuid = self.config.netuid,
                         uids = uids,
                         weights = weights,
-                        wait_for_finalization = True,
+                        wait_for_finalization = False,
                     )
 
                     bittensor.logging.trace('last 100 prompt history: ', prompt_history[-100:])
                     if len(prompt_history) > 100:
                         prompt_history = prompt_history[-100:]                      
 
-                step += 1 
+                steps += 1 
                 prompt_history.append(prompt)
+
+                with open('prompt_history.txt', 'a') as file:
+                    file.write(prompt + '\n')
+
+
         except Exception as e:
             bittensor.logging.info( 'Error in training loop', str( e    ) )
     
