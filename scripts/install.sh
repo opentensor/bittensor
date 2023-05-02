@@ -100,9 +100,9 @@ linux_update_pip() {
 }
 
 linux_install_bittensor() {
-    ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
+    ohai "Cloning bittensor@text_prompting into ~/.bittensor/bittensor"
     mkdir -p ~/.bittensor/bittensor
-    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only ; git reset --hard ; git clean -xdf)
+    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git fetch origin text_prompting ; git checkout text_prompting ; git pull --ff-only ; git reset --hard ; git clean -xdf)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
     exit_on_error $? 
@@ -163,8 +163,8 @@ mac_update_pip() {
 }
 
 mac_install_bittensor() {
-    ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
-    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only ; git reset --hard; git clean -xdf)
+    ohai "Cloning bittensor@text_prompting into ~/.bittensor/bittensor"
+    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git fetch origin text_prompting ; git checkout text_prompting ; git pull --ff-only ; git reset --hard; git clean -xdf)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
     exit_on_error $? 
@@ -263,13 +263,14 @@ fi
 
 echo ""
 echo ""
-ohai "Installation successful"
+ohai "Welcome. Installation successful"
 echo ""
-echo "- To run one of the base miners: "
-echo "    $ btcli run"
+echo "- 1. Create a wallet "
+echo "    $ btcli new_coldkey (for holding funds)"
+echo "    $ btcli new_hotkey (for running miners)"
 echo ""
-echo "- Or from source: "
-echo "    $ python3 ~/.bittensor/bittensor/bittensor/_neuron/text/core_server/main.py"
+echo "- 2. Run a miner on the prompting network. "
+echo "    $ python3 ~/.bittensor/bittensor/neurons/text/prompting/miners/gpt4all/neuron.py"
 echo ""
 ohai "Extras:"
 echo ""
@@ -284,19 +285,11 @@ echo "- Create/list/register wallets"
 echo "    $ btcli new_coldkey"
 echo "    $ btcli new_hotkey"
 echo "    $ btcli list"
-echo "    $ btcli register"
+echo "    $ btcli register --netuid 1"
 echo ""
 echo "- Use the Python API"
 echo "    $ python3"
 echo "    >> import bittensor"
-echo ""
-ohai "Resources:"
-echo ""
-echo "- Read the docs: "
-echo "    ${tty_underline}https://docs.bittensor.com/${tty_reset}"
-echo ""
-echo "- Visit our website: "
-echo "    ${tty_underline}https://www.bittensor.com${tty_reset}"
 echo ""
 echo "- Join the discussion: "
 echo "    ${tty_underline}https://discord.gg/3rUr6EcvbB${tty_reset}"
