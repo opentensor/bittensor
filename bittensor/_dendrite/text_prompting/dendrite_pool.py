@@ -54,7 +54,6 @@ class TextPromptingDendritePool( torch.nn.Module ):
             priority = priority
         )
         return future.result()
-        
 
     async def async_backward(self,
             forward_calls: List[ 'DendriteForwardCall' ],

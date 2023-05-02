@@ -172,8 +172,6 @@ class Dendrite( ABC, torch.nn.Module ):
         """
         bittensor.logging.trace('Dendrite.apply()')
         try:
-            bittensor.logging.trace('1')
-
             dendrite_call.log_outbound()
             asyncio_future = dendrite_call.get_callable()(
                 request = dendrite_call._get_request_proto(),
@@ -184,44 +182,32 @@ class Dendrite( ABC, torch.nn.Module ):
                     ('bittensor-version',str(bittensor.__version_as_int__)),
                 )
             )
-            bittensor.logging.trace('2')
-
             bittensor.logging.trace( 'Dendrite.apply() awaiting response from: {}'.format( self.axon_info.hotkey ) )
             response_proto = await asyncio.wait_for( asyncio_future, timeout = dendrite_call.timeout )
             dendrite_call._apply_response_proto( response_proto )
             bittensor.logging.trace( 'Dendrite.apply() received response from: {}'.format( self.axon_info.hotkey ) )
-            bittensor.logging.trace('3')
 
         # Request failed with GRPC code.
         except grpc.RpcError as rpc_error_call:
             dendrite_call.return_code = rpc_error_call.code()
             dendrite_call.return_message = 'GRPC error code: {}, details: {}'.format( rpc_error_call.code(), str(rpc_error_call.details()) )
             bittensor.logging.trace( 'Dendrite.apply() rpc error: {}'.format( dendrite_call.return_message ) )
-            bittensor.logging.trace('rpc_error_call')
     
         # Catch timeout errors.
         except asyncio.TimeoutError:
             dendrite_call.return_code = bittensor.proto.ReturnCode.Timeout
             dendrite_call.return_message = 'GRPC request timeout after: {}s'.format( dendrite_call.timeout)
             bittensor.logging.trace( 'Denrite.apply() timeout error: {}'.format( dendrite_call.return_message ) )
-            bittensor.logging.trace('timeout')
 
         except Exception as e:
             # Catch unknown errors.
             dendrite_call.return_code = bittensor.proto.ReturnCode.UnknownException
             dendrite_call.return_message = str(e)   
             bittensor.logging.trace( 'Dendrite.apply() unknown error: {}'.format( dendrite_call.return_message ) )
-            bittensor.logging.trace('unkown')
 
         finally:
-            bittensor.logging.trace('4')
-
-            dendrite_call.end()        
-            bittensor.logging.trace('5')
- 
+            dendrite_call.end()         
             dendrite_call.log_inbound()  
-            bittensor.logging.trace('6')
-
             return dendrite_call
 
     def __exit__ ( self ): 
