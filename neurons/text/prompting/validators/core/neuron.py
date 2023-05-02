@@ -299,7 +299,7 @@ class neuron:
                 if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n\n'
             full_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in successful_completions ]
             completions_for_reward = [comp.strip() for comp in successful_completions] 
-            rewards = self.reward_model.reward( full_completions_for_reward, completions_for_reward).to( self.device )
+            rewards = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True).to( self.device )
             bittensor.logging.trace( 'rewards', rewards )
         else:
             rewards = scores[ successful_uids ]
@@ -411,7 +411,8 @@ class neuron:
 
             # Return best via reward model.
             reward_model_start = time.time()
-            rewards = self.reward_model.reward( flattened_completions_for_reward ).to( self.device )
+            completions_for_reward = [comp.strip() for comp in completions] 
+            rewards = self.reward_model.reward( flattened_completions_for_reward, completions_for_reward, difference =False ).to( self.device )
             best_completion = completions[ rewards.argmax( dim = 0 ) ]
             bittensor.logging.info('finished applying the reward model ', time.time() - reward_model_start )
             bittensor.logging.info( 'best completion', best_completion)
