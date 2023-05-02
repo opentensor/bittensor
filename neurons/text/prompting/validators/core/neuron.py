@@ -439,7 +439,7 @@ class neuron:
             questions = self.dendrite_pool(
                 roles = ['user'], 
                 messages = [ question_prompt ], 
-                uids = torch.tensor([uids]), 
+                uids = uids, 
                 timeout = 12,
             )
             
