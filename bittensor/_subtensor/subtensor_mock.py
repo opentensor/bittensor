@@ -25,6 +25,7 @@ import time
 import os
 from typing import Optional, Tuple, Dict, Union
 import requests
+from urllib3.exceptions import LocationValueError
 import numpy as np
 from filelock import Timeout, FileLock
 
@@ -97,6 +98,9 @@ class mock_subtensor():
             while time_elapsed < timeout:
                 try:
                     ws_port = cls.get_global_ws_port()
+                    if ws_port is None:
+                        continue
+
 
                     # Try to connect to the mock subtensor process.
                     errored = cls.try_connect_to_mock(ws_port, timeout=2)
@@ -163,7 +167,7 @@ class mock_subtensor():
             errored = False
             try:
                 _ = requests.get('http://localhost:{}'.format(ws_port))
-            except requests.exceptions.ConnectionError as e:
+            except (requests.exceptions.ConnectionError, LocationValueError) as e:
                 errored = True
                 time.sleep(0.3) # Wait for the process to start.
                 time_elapsed = time.time() - time_start
