@@ -420,35 +420,48 @@ class neuron:
             return best_completion
 
     def get_question(self, uids, bootstrap_prompt, reset_bootstrap_prompt = False):
-
-
-        google_ai_dataset_place_holder = """
-The names of China include the many contemporary and historical appellations given in various languages for the East Asian country known
-as Zhongguo ( 中國 / 中国 ) in its official language . China , the name in English for the country , was derived from Portuguese in the 16th century , 
-and became popular in the mid 19th century . It is believed to be a borrowing from Middle Persian , and some have traced it further back to Sanskrit . 
-It is also generally thought that the state of Qin that later formed the Qin dynasty is the ultimate source of the name , although there are other suggestions.
-        """
-
-        if reset_bootstrap_prompt:
-            bootstrap_prompt = google_ai_dataset_place_holder
-        else:
-            bootstrap_prompt = bootstrap_prompt.replace('As an AI language model, ', '') 
         
-        question_prompt = f"{bootstrap_prompt}\n\n{self.config.neuron.follow_up_prompt}"
-        
-        questions = self.dendrite_pool(
-            roles = ['user'], 
-            messages = [ question_prompt ], 
-            uids = torch.tensor([uids]), 
-            timeout = 12,
-        )
-        
-        if questions is not None and len(questions) > 0:
-            for question in questions:
-                if question.completion is not None:# and self.reward_model.reward(question) > 0 :
-                    return question.completion
+        def _get_question(uids, bootstrap_prompt, reset_bootstrap_prompt = False):
+            google_ai_dataset_place_holder = """
+    The names of China include the many contemporary and historical appellations given in various languages for the East Asian country known
+    as Zhongguo ( 中國 / 中国 ) in its official language . China , the name in English for the country , was derived from Portuguese in the 16th century , 
+    and became popular in the mid 19th century . It is believed to be a borrowing from Middle Persian , and some have traced it further back to Sanskrit . 
+    It is also generally thought that the state of Qin that later formed the Qin dynasty is the ultimate source of the name , although there are other suggestions.
+            """
 
-        return None
+            if reset_bootstrap_prompt:
+                bootstrap_prompt = google_ai_dataset_place_holder
+            else:
+                bootstrap_prompt = bootstrap_prompt.replace('As an AI language model, ', '') 
+            
+            question_prompt = f"{bootstrap_prompt}\n\n{self.config.neuron.follow_up_prompt}"
+            
+            questions = self.dendrite_pool(
+                roles = ['user'], 
+                messages = [ question_prompt ], 
+                uids = torch.tensor([uids]), 
+                timeout = 12,
+            )
+            
+            if questions is not None and len(questions) > 0:
+                for question in questions:
+                    if question.completion is not None:# and self.reward_model.reward(question, flag) > 0 :
+                        return question.completion
+
+            return None
+        def _get_random_uids():
+            available_uids = torch.tensor( [ uid for uid, ax in enumerate( self.metagraph.axons ) if ax.is_serving ], dtype = torch.int64 )
+            uids = torch.tensor( random.sample( available_uids.tolist(), self.config.neuron.training_topk ), dtype = torch.int64 )
+            return uids 
+        
+        question = None
+
+        while question is None:
+            question = _get_question(uids, bootstrap_prompt, reset_bootstrap_prompt)
+            reset_bootstrap_prompt = True
+            uids = _get_random_uids()
+
+        return question
     
     def train( self ):
         """ Training 
@@ -476,14 +489,12 @@ It is also generally thought that the state of Qin that later formed the Qin dyn
 
                 if forward_result is not None:
                     idx_reward_sorted = forward_result.rewards.sort(descending = True)[1]
-                    question = self.get_question(
-                        uids = forward_result.uids[idx_reward_sorted], 
+                    print(idx_reward_sorted, forward_result.uids)
+                    prompt = self.get_question(
+                        uids = forward_result.uids[idx_reward_sorted],
                         bootstrap_prompt = forward_result.best_completion, 
                         reset_bootstrap_prompt = (steps % self.config.neuron.base_follow_up_frequence == 0)
                     )
-                    
-                    if question is not None:
-                        prompt = question
 
                 # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
                 if self.subtensor.block % 10 == 0:
