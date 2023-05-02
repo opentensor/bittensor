@@ -73,42 +73,42 @@ class mock_subtensor():
     @classmethod
     def mock(cls):
         _owned_mock_subtensor_process = None
+
         if not cls.global_mock_process_is_running():
             # Remove any old chain db
             if os.path.exists(f'{bittensor.__mock_chain_db__}_{os.getpid()}'):
                 # Name mock chain db using pid to avoid conflicts while multiple processes are running.
                 os.system(f'rm -rf {bittensor.__mock_chain_db__}_{os.getpid()}')
             _owned_mock_subtensor_process = cls.create_global_mock_process(os.getpid())
-        
+
+        endpoint: str = bittensor.__mock_entrypoint__
+        url_root, ws_port = endpoint.split(':')
+
         if _owned_mock_subtensor_process is None:
             print ('Mock subtensor already running.')
+            # THen ws_port is set by the global process.
+            ws_port = None
+            
+            # Wait for other process to finish setting up the mock subtensor.
+            timeout = 35 # seconds
+            time_elapsed = 0
+            time_start = time.time()
+            # Try to get ws_port
+            while time_elapsed < timeout:
+                try:
+                    ws_port = cls.get_global_ws_port()
 
-        # Wait for other process to finish setting up the mock subtensor.
-        timeout = 35 # seconds
-        time_elapsed = 0
-        time_start = time.time()
-        # Try to get ws_port
-        ws_port = None
-        while time_elapsed < timeout:
-            try:
-                ws_port = cls.get_global_ws_port()
+                    # Try to connect to the mock subtensor process.
+                    errored = cls.try_connect_to_mock(ws_port, timeout=2)
+                    connected = not errored
 
-                # Try to connect to the mock subtensor process.
-                errored = cls.try_connect_to_mock(ws_port, timeout=2)
-                connected = not errored
-
-                if connected:
-                    break
-            except FileNotFoundError:
-                time.sleep(0.1)
-                time_elapsed = time.time() - time_start
-        else:
-            raise TimeoutError(f"Could not get ws_port from file")
-        
-        
-
-        endpoint = bittensor.__mock_entrypoint__
-        url_root, _ = endpoint.split(':')
+                    if connected:
+                        break
+                except FileNotFoundError:
+                    time.sleep(0.1)
+                    time_elapsed = time.time() - time_start
+            else:
+                raise TimeoutError(f"Could not get ws_port from file")
 
         substrate = SubstrateInterface(
             ss58_format = bittensor.__ss58_format__,
@@ -255,8 +255,8 @@ class mock_subtensor():
                 command_args,
                 close_fds=True, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
             
-            # Write the ws port to a file
-            cls.save_global_ws_port(ws_port)
+            # # Write the ws port to a file
+            # cls.save_global_ws_port(ws_port)
             
             # Wait for the process to start. Check for errors.
             try:
@@ -313,9 +313,6 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         else:
             # Mocked but does not own process.
             return "MockSubtensor({})".format( self.chain_endpoint)
-
-    def __del__(self):
-        self.optionally_kill_owned_mock_instance()
     
     def __exit__(self):
         pass
@@ -328,6 +325,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                 self._owned_mock_subtensor_process.terminate()
                 self._owned_mock_subtensor_process.kill()
                 os.system("kill %i" % self._owned_mock_subtensor_process.pid)
+                mock_subtensor.destroy_lock() # Remove lock file.
                 time.sleep(2) # Buffer to ensure the processes actually die
             except Exception as e:
                 print(f"failed to kill owned mock instance: {e}")
