@@ -21,7 +21,7 @@ from rich.console import Console
 from rich.traceback import install
 from prometheus_client import Info
 from langchain.llms.base import LLM
-from typing import Optional, List, Mapping, Any
+from typing import Optional, List, Mapping, Any, Tuple
 
 import nest_asyncio
 nest_asyncio.apply()
@@ -233,12 +233,32 @@ def trace():
 def debug():
     logging.set_debug(True)
 
-
 default_prompt = '''
 You are Chattensor.
 Chattensor is a research project by Opentensor Cortex.
 Chattensor is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Chattensor is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
 '''
+
+default_prompting_validator_key = '5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3'
+
+__context_prompting_llm = None
+def prompt( 
+        content: Union[ str, List[str], List[Dict[ str ,str ]]],
+        wallet_name: str = "default",
+        hotkey: str = default_prompting_validator_key,
+        subtensor_: Optional['Subtensor'] = None,
+        axon_: Optional['axon_info'] = None,
+    ) -> str:
+    global __context_prompting_llm
+    if __context_prompting_llm == None:
+        __context_prompting_llm = prompting( 
+            wallet_name = wallet_name,
+            hotkey = hotkey,
+            subtensor_ = subtensor_,
+            axon_ = axon_,
+        )
+    return __context_prompting_llm( content = content )
+
 class prompting ( torch.nn.Module ):
     _axon: 'axon_info'
     _dendrite: 'Dendrite'
@@ -249,7 +269,7 @@ class prompting ( torch.nn.Module ):
     def __init__(
         self,
         wallet_name: str = "default",
-        hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
+        hotkey: str = default_prompting_validator_key,
         subtensor_: Optional['Subtensor'] = None,
         axon_: Optional['axon_info'] = None,
     ):
@@ -263,91 +283,49 @@ class prompting ( torch.nn.Module ):
         else:
             self._metagraph = metagraph( 1 )
             self._axon = self._metagraph.axons[ self._metagraph.hotkeys.index( self._hotkey ) ]
-        
         self._dendrite = text_prompting(
             keypair = self._keypair,
             axon = self._axon
         )
 
+    @staticmethod
+    def format_content( content: Union[ str, List[str], List[Dict[ str ,str ]]] ) -> Tuple[ List[str], List[str ]]:
+        if isinstance( content, str ):
+            return ['system', 'user'], [ default_prompt, content ]
+        elif isinstance( content, list ):
+            if isinstance( content[0], str ):
+                return ['user' for _ in content ], content 
+            elif isinstance( content[0], dict ):
+                return [ dictitem[ list(dictitem.keys())[0] ] for dictitem in content ], [ dictitem[ list(dictitem.keys())[1] ] for dictitem in content ]
+            else:
+                raise ValueError('content has invalid type {}'.format( type( content )))
+        else:
+            raise ValueError('content has invalid type {}'.format( type( content )))
+        
     def forward( 
             self,
             content: Union[ str, List[str], List[Dict[ str ,str ]]],
             timeout: float = 1000,
             return_call: bool = False
         ) -> str:
-        if isinstance( content, str ):
-            return self._dendrite.forward(
-                roles = ['system', 'user'],
-                messages = [ default_prompt, content ],
-                timeout = timeout
-            ).completion
-        elif isinstance( content, list ):
-            if isinstance( content[0], str ):
-                return self._dendrite.forward(
-                    roles = ['user' for _ in content ],
-                    messages = content,
-                    timeout = timeout
-                ).completion
-            elif isinstance( content[0], dict ):
-                return self._dendrite.forward(
-                    roles = [ dictitem[ list(dictitem.keys())[0] ] for dictitem in content ],
-                    messages = [ dictitem[ list(dictitem.keys())[1] ] for dictitem in content ],
-                    timeout = timeout
-                ).completion
-            else:
-                raise ValueError('content has invalid type {}'.format( type( content )))
-        else:
-            raise ValueError('content has invalid type {}'.format( type( content )))
-        
+        roles, messages = self.format_content( content )
+        return self._dendrite.forward(
+            roles = roles,
+            messages = messages,
+            timeout = timeout
+        ).completion
+       
     async def async_forward( 
             self,
             content: Union[ str, List[str], List[Dict[ str ,str ]]],
             timeout: float = 1000
         ):
-        if isinstance( content, str ):
-            resp = await self._dendrite.async_forward(
-                roles = ['system', 'user'],
-                messages = [ default_prompt, content ],
-                timeout = timeout
-            )
-            return resp.completion
-        elif isinstance( content, list ):
-            if isinstance( content[0], str ):
-                resp = await self._dendrite.async_forward(
-                    roles = ['user' for _ in content ],
-                    messages = content,
-                    timeout = timeout
-                )
-                return resp.completion
-            elif isinstance( content[0], dict ):
-                resp = await self._dendrite.async_forward(
-                    roles = [ dictitem[ dictitem.keys()[0] ] for dictitem in content ],
-                    messages = [ dictitem[ dictitem.keys()[1] ] for dictitem in content ],
-                    timeout = timeout
-                )
-                return resp.completion
-            else:
-                raise ValueError('content has invalid type {}'.format( type( content )))
-        else:
-            raise ValueError('content has invalid type {}'.format( type( content )))
-
-__context_llm = None
-def prompt( 
-        content: Union[ str, List[str], List[Dict[ str ,str ]]],
-        wallet_name: str = "default",
-        hotkey: str = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
-        subtensor_: Optional['Subtensor'] = None,
-        axon_: Optional['axon_info'] = None,
-    ) -> str:
-    global __context_llm
-    if __context_llm == None:
-        __context_llm = prompting( 
-            wallet_name = wallet_name,
-            hotkey = hotkey,
-            subtensor_ = subtensor_,
-            axon_ = axon_,
-        )
-    return __context_llm( content = content )
+        roles, messages = self.format_content( content )
+        return await self._dendrite.async_forward(
+            roles = roles,
+            messages = messages,
+            timeout = timeout
+        ).completion
 
 class BittensorLLM(LLM):
     """Wrapper around Bittensor Prompting Subnetwork. 
@@ -361,7 +339,7 @@ This Python file implements the BittensorLLM class, a wrapper around the Bittens
     """
 
     wallet_name: str = 'default'
-    hotkey: str = '5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3'
+    hotkey: str = default_prompting_validator_key
     llm: prompting = None
     def __init__(self, subtensor_: Optional['Subtensor'] = None, axon_: Optional['axon_info'] = None, **data):
         super().__init__(**data)
@@ -375,7 +353,6 @@ This Python file implements the BittensorLLM class, a wrapper around the Bittens
     @property
     def _llm_type(self) -> str:
         return "BittensorLLM"
-
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
         """Call the LLM with the given prompt and stop tokens."""
