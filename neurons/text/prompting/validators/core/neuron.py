@@ -35,6 +35,8 @@ from gating import GatingModel
 from transformers import AutoTokenizer
 from random import choices, choice
 
+from datasets import load_dataset
+
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific. Do not include the answer in the question.
 '''
@@ -134,7 +136,9 @@ class neuron:
         cls.add_args( parser )
         return bt.config( parser )
     
-    def __init__( self ):
+    def __init__( self ):      
+        
+        
         self.config = neuron.config()
         self.check_config( self.config )
         bt.logging( config = self.config, logging_dir = self.config.neuron.full_path )
@@ -148,6 +152,9 @@ class neuron:
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )
         self.tokenizer = AutoTokenizer.from_pretrained( 'EleutherAI/gpt-j-6b' )
+
+        # check if invoking iter() is indeed necessary
+        self.dataset = iter(load_dataset('squad_v2', split='train', streaming=True))
 
         self.moving_averaged_scores = torch.zeros((self.metagraph.n)).to( self.device )
         self.alpha = 0.99
@@ -422,7 +429,11 @@ class neuron:
     def get_question(self, uids, bootstrap_prompt, reset_bootstrap_prompt = False):
         
         def _get_question(uids, bootstrap_prompt, reset_bootstrap_prompt = False):
-            google_ai_dataset_place_holder = """
+            # retrieve the answer
+            sample = next(self.dataset)
+            google_ai_dataset_place_holder = sample['answers']['text'][0]
+            
+            """
     The names of China include the many contemporary and historical appellations given in various languages for the East Asian country known
     as Zhongguo ( 中國 / 中国 ) in its official language . China , the name in English for the country , was derived from Portuguese in the 16th century , 
     and became popular in the mid 19th century . It is believed to be a borrowing from Middle Persian , and some have traced it further back to Sanskrit . 
@@ -474,13 +485,18 @@ class neuron:
         prompt = self.config.neuron.base_prompt
         steps = 0
         prompt_history = []
+        
+        sample = next(self.dataset)
+        # grab the question from the current sample
+        base_prompt = sample['context']
+        
         # Start an infinite loop for training.
         try:
             while True:
                 # Ask the network to complete the random question, training the gating network.
                 forward_result = self.forward( 
                     roles = ['system', 'user' ],
-                    messages = [ self.config.neuron.base_prompt, prompt ],
+                    messages = [ base_prompt, prompt ],
                     topk = self.config.neuron.training_topk,
                     random_sample_uids = True,
                     train_gating_model = True,
