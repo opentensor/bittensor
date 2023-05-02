@@ -110,8 +110,6 @@ def setupSubnets(request):
     if ws_port_str is not None:
         # Should be the case
         mock_subtensor.save_global_ws_port( int(ws_port_str) )
-    
-    yield
 
 def setUpModule():
     setupMockSubtensor()
