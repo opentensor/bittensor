@@ -372,6 +372,11 @@ class neuron:
         bittensor.logging.trace( 'scattered_rewards', scattered_rewards )
         bittensor.logging.trace( 'moving_averaged_scores', self.moving_averaged_scores )    
 
+        for uid, reward, complete in zip(successful_uids, rewards.tolist(), successful_completions):
+            print(f"\n===== {uid, reward} =====\n")
+
+            print('~~~ flattened_message_for_reward ~~~\n', flattened_message_for_reward) 
+            print('~~~ completion ~~~\n', complete.strip())
         return event
 
     def inference( 
@@ -438,22 +443,15 @@ class neuron:
             bittensor.logging.info( 'best completion', best_completion)
             return best_completion
 
-    def get_question(self, uids, bootstrap_prompt, reset_bootstrap_prompt = False):
+    def get_question(self, uids, bootstrap_prompt, reset_bootstrap_prompt = False, random_sample_uids = False):
         
         def _get_question(uids, bootstrap_prompt, reset_bootstrap_prompt = False):
             # retrieve the answer
-            sample = next(self.dataset)
-            google_ai_dataset_place_holder = sample['answers']['text'][0]
-            
-            """
-    The names of China include the many contemporary and historical appellations given in various languages for the East Asian country known
-    as Zhongguo ( 中國 / 中国 ) in its official language . China , the name in English for the country , was derived from Portuguese in the 16th century , 
-    and became popular in the mid 19th century . It is believed to be a borrowing from Middle Persian , and some have traced it further back to Sanskrit . 
-    It is also generally thought that the state of Qin that later formed the Qin dynasty is the ultimate source of the name , although there are other suggestions.
-            """
+            # sample = next(self.dataset)
+            # google_ai_dataset_place_holder = sample['answers']['text'][0]
 
             if reset_bootstrap_prompt:
-                bootstrap_prompt = google_ai_dataset_place_holder
+                bootstrap_prompt = next(self.dataset)['answers']['text'][0] # google_ai_dataset_place_holder
                 with open('prompt_history.txt', 'a') as file:
                     file.write("============== reset ==================" + '\n')
                         
@@ -475,12 +473,16 @@ class neuron:
                         return question.completion
 
             return None
+        
         def _get_random_uids():
             available_uids = torch.tensor( [ uid for uid, ax in enumerate( self.metagraph.axons ) if ax.is_serving ], dtype = torch.int64 )
             uids = torch.tensor( random.sample( available_uids.tolist(), self.config.neuron.training_topk ), dtype = torch.int64 )
             return uids 
         
         question = None
+
+        if random_sample_uids:
+            uids = _get_random_uids()
 
         while question is None:
             question = _get_question(uids, bootstrap_prompt, reset_bootstrap_prompt)
@@ -508,18 +510,6 @@ class neuron:
         # Start an infinite loop for training.
         try:
             while True:
-                # Query the network for a random question.
-                question = self.forward( 
-                    roles = ['system', 'user' ],
-                    messages = [ self.config.neuron.base_prompt, self.config.neuron.question_prompt ],
-                    topk = self.config.neuron.training_topk,
-                    random_sample_uids = True,
-                    train_gating_model = True,
-                    timeout = self.config.neuron.training_timeout,
-                    question = True
-                )
-                if question == None: continue # no responses from network.
-
                 # Ask the network to complete the random question, training the gating network.
                 forward_result = self.forward( 
                     roles = ['system', 'user' ],
