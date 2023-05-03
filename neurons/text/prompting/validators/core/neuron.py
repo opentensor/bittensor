@@ -345,8 +345,10 @@ class neuron:
             bittensor.logging.trace( 'Applied backward to network.' )
 
         best_idx = rewards.sort(descending = True)[1][0].item()
-        best_completion = successful_completions[best_idx]
         bittensor.logging.trace('successful_completions', len(successful_completions))
+        bittensor.logging.trace('best_idx', best_idx)
+        best_completion = successful_completions[best_idx]
+        
 
         # Save the query history in a `result` object.
         # Return the `completion` with the highest reward.
