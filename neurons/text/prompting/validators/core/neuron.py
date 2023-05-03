@@ -514,7 +514,7 @@ class neuron:
         
         sample = next(self.dataset)
         # grab the question from the current sample
-        base_prompt = sample['context']
+        base_prompt = sample['support']
         reward_diff = 0
         
         # Start an infinite loop for training.
