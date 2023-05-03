@@ -305,7 +305,7 @@ class neuron:
                 if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n\n'
             full_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in successful_completions ]
             completions_for_reward = [comp.strip() for comp in successful_completions] 
-            rewards = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True).to( self.device )
+            rewards = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = False).to( self.device )
             bittensor.logging.trace( 'rewards', rewards )
         else:
             rewards = scores[ successful_uids ]
@@ -449,12 +449,17 @@ class neuron:
                 timeout = 12,
             )
             
-            if questions is not None and len(questions) > 0:
-                for question in questions:
-                    if question.completion is not None:# and self.reward_model.reward(question, flag) > 0 :
-                        return question.completion
+            successful_questions = [question.completion for question in questions if question is not None and question.completion is not None and len(question.completion) > 10]
+            full_completions_for_reward = [ bootstrap_prompt + comp.strip() for comp in successful_questions ]
+            completions_for_reward = [comp.strip() for comp in successful_questions] 
+            reward_diffs = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True).to( self.device )
+            
+            for question, reward_diff in zip(successful_questions, reward_diffs.tolist()):
+                if reward_diff > 0 :
+                    return question.completion
 
             return None
+        
         def _get_random_uids():
             available_uids = torch.tensor( [ uid for uid, ax in enumerate( self.metagraph.axons ) if ax.is_serving ], dtype = torch.int64 )
             uids = torch.tensor( random.sample( available_uids.tolist(), self.config.neuron.training_topk ), dtype = torch.int64 )
