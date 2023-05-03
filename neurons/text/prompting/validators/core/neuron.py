@@ -321,8 +321,9 @@ class neuron:
             flattened_message_for_reward = ''
             for role_i, message_i in list(zip(roles, messages)):
                 if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n\n'
-            flattened_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in successful_completions ] 
-            rewards = self.reward_model.reward( flattened_completions_for_reward ).to( self.device )
+            full_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in successful_completions ]
+            completions_for_reward = [comp.strip() for comp in successful_completions] 
+            rewards = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = False).to( self.device )
             bittensor.logging.trace( 'rewards', rewards )
         else:
             rewards = scores[ successful_uids ]
@@ -437,7 +438,8 @@ class neuron:
 
             # Return best via reward model.
             reward_model_start = time.time()
-            rewards = self.reward_model.reward( flattened_completions_for_reward ).to( self.device )
+            completions_for_reward = [comp.strip() for comp in completions] 
+            rewards = self.reward_model.reward( flattened_completions_for_reward, completions_for_reward, difference =False ).to( self.device )
             best_completion = completions[ rewards.argmax( dim = 0 ) ]
             bittensor.logging.info('finished applying the reward model ', time.time() - reward_model_start )
             bittensor.logging.info( 'best completion', best_completion)
@@ -467,10 +469,14 @@ class neuron:
                 timeout = 12,
             )
             
-            if questions is not None and len(questions) > 0:
-                for question in questions:
-                    if question.completion is not None:# and self.reward_model.reward(question, flag) > 0 :
-                        return question.completion
+            successful_questions = [question.completion for question in questions if question is not None and question.completion is not None and len(question.completion) > 10]
+            full_completions_for_reward = [ bootstrap_prompt + comp.strip() for comp in successful_questions ]
+            completions_for_reward = [comp.strip() for comp in successful_questions] 
+            reward_diffs = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True).to( self.device )
+            
+            for question, reward_diff in zip(successful_questions, reward_diffs.tolist()):
+                if reward_diff > 0 :
+                    return question.completion
 
             return None
         
