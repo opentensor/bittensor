@@ -180,6 +180,7 @@ class neuron:
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to( self.device )
         # Denddrite pool for querying the network.
         self.dendrite_pool = bt.text_prompting_pool( keypair = self.wallet.hotkey, metagraph = self.metagraph )
+        self.inference_pool = bt.text_prompting_pool( keypair = self.wallet.hotkey, metagraph = self.metagraph )
         # History of forward events.
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
         # Get a list of peers delegating to me
@@ -199,10 +200,19 @@ class neuron:
                     else: return 0.0 # Everyone else.
 
                 def blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
-                    # Give messages priority.
-                    if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: return True
-                    elif forward_call.src_hotkey in self.my_nominators: return False # Delegates, dont blacklist.
-                    else: return False # Everyone else, dont blacklist.
+                    if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: 
+                        return True
+
+                    elif forward_call.src_hotkey in self.metagraph.hotkeys:
+                        uid =  self.metagraph.hotkeys.index(forward_call.src_hotkey)
+                        if self.metagraph.validator_permit[uid]:
+                            return True         
+                        return False # Non Validator miners
+                    
+                    elif forward_call.src_hotkey in self.my_nominators:
+                        return False # Delegates, dont blacklist.
+                    else: 
+                        return False # Everyone else, dont blacklist.
 
                 def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
                 def forward( _, messages: List[Dict[str, str]] ) -> str:
@@ -219,7 +229,7 @@ class neuron:
             )
             self.synapse = Synapse( axon = self.axon )
             self.axon.start()
-            self.subtensor.serve_axon( self.config.netuid, self.axon )
+            #self.subtensor.serve_axon( self.config.netuid, self.axon )
 
     def forward(
             self, 
@@ -230,6 +240,7 @@ class neuron:
             train_gating_model: Optional[ bool ] = False,
             train_network: Optional[ bool ] = False,
             timeout: float = None,
+            question: bool =  False,
         ) -> SimpleNamespace:
         """
         Queries the network for a response to the passed message using a gating model to select the best uids.
@@ -269,7 +280,7 @@ class neuron:
         # Set `topk` to the number of items in `self.metagraph.n` if `topk` is not provided or is -1.
         # Find the available `uids` that are currently serving.
         # If `topk` is larger than the number of available `uids`, set `topk` to the number of available `uids`.
-        available_uids = torch.tensor( [ uid for uid, ax in enumerate( self.metagraph.axons ) if ax.is_serving ], dtype = torch.int64 ).to( self.device )
+        available_uids = torch.tensor( [ uid for uid, ax in enumerate( self.metagraph.axons ) if (ax.is_serving) and (not self.metagraph.validator_permit[uid]) ], dtype = torch.int64 ).to( self.device )
         if topk is None or topk == -1: topk = self.metagraph.n.item()
         if topk > len( available_uids ): topk = len( available_uids )
         if len( available_uids ) == 0: bittensor.logging.error('no available uids'); return None
@@ -392,7 +403,7 @@ class neuron:
         # Query using dendrite pool
         forward_start = time.time()
         bittensor.logging.trace( 'applying dendrite forward' )
-        forward_calls = self.dendrite_pool( 
+        forward_calls = self.inference_pool( 
             roles = roles, 
             messages = contents, 
             uids = uids, 
@@ -497,6 +508,18 @@ class neuron:
         # Start an infinite loop for training.
         try:
             while True:
+                # Query the network for a random question.
+                question = self.forward( 
+                    roles = ['system', 'user' ],
+                    messages = [ self.config.neuron.base_prompt, self.config.neuron.question_prompt ],
+                    topk = self.config.neuron.training_topk,
+                    random_sample_uids = True,
+                    train_gating_model = True,
+                    timeout = self.config.neuron.training_timeout,
+                    question = True
+                )
+                if question == None: continue # no responses from network.
+
                 # Ask the network to complete the random question, training the gating network.
                 forward_result = self.forward( 
                     roles = ['system', 'user' ],
@@ -504,7 +527,8 @@ class neuron:
                     topk = self.config.neuron.training_topk,
                     random_sample_uids = True,
                     train_gating_model = True,
-                    timeout = self.config.neuron.training_timeout
+                    timeout = self.config.neuron.inference_timeout,
+                    question = False
                 )
 
                 if forward_result is not None:
@@ -521,6 +545,13 @@ class neuron:
                     self.metagraph.sync()
                     self.save()
                     delegates = self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )
+
+                    # Recreate pools here to ensure sizing is correct.
+                    del self.dendrite_pool
+                    del self.inference_pool
+                    self.dendrite_pool = bt.text_prompting_pool( keypair = self.wallet.hotkey, metagraph = self.metagraph )
+                    self.inference_pool = bt.text_prompting_pool( keypair = self.wallet.hotkey, metagraph = self.metagraph )
+
                     self.my_nominators = { nomin[0]: nomin[1] for nomin in delegates[0][0].nominators } if len(delegates) else {}
                     self.check_weights()
 
