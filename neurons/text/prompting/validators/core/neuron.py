@@ -429,7 +429,7 @@ class neuron:
                     messages = [ self.config.neuron.base_prompt, self.config.neuron.question_prompt ],
                     topk = self.config.neuron.training_topk,
                     random_sample_uids = True,
-                    train_gating_model = True,
+                    train_gating_model = False,
                     timeout = self.config.neuron.training_timeout,
                     question = True
                 )
