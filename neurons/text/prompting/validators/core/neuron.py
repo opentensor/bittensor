@@ -366,7 +366,7 @@ class neuron:
         # Query using dendrite pool
         forward_start = time.time()
         bittensor.logging.trace( 'applying dendrite forward' )
-        forward_calls = self.dendrite_pool( 
+        forward_calls = self.inference_pool( 
             roles = roles, 
             messages = contents, 
             uids = uids, 
