@@ -20,7 +20,7 @@
 import unittest
 from copy import deepcopy
 from types import SimpleNamespace
-from typing import Dict
+from typing import Dict, Optional, Tuple
 from unittest.mock import MagicMock, patch
 import time
 
@@ -2165,7 +2165,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Add some neurons to the metagraph
         mock_nn = []
-        for i in range(5):
+        
+        def register_mock_neuron(i: int, wait_for_finalization: bool = False, wait_for_inclusion: bool = True ) -> Tuple[bool, Optional[str]]:
             mock_nn.append(
                 SimpleNamespace(
                     hotkey=get_mock_keypair(i + 100, self.id()).ss58_address,
@@ -2180,8 +2181,18 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_nn[i].coldkey,
                 balance=mock_nn[i].balance,
                 stake=mock_nn[i].stake,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_inclusion=wait_for_inclusion
             )
+            return success, err
+
+        for i in range(4):
+            success, err = register_mock_neuron(i)
             self.assertTrue(success, err)
+
+        # Only wait for finalization on the last neuron
+        success, err = register_mock_neuron(4, wait_for_finalization=True)
+        self.assertTrue(success, err)
 
         cli = bittensor.cli(config)
 
@@ -2195,7 +2206,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         output_no_syntax = mock_console.remove_rich_syntax(mock_console.captured_print)
 
         self.assertIn("Metagraph", output_no_syntax)
-        nn = _subtensor_mock.neurons(netuid=config.netuid)
+        nn = _subtensor_mock.neurons_lite(netuid=config.netuid)
         self.assertIn(
             str(len(nn) - 1), output_no_syntax
         )  # Check that the number of neurons is output
