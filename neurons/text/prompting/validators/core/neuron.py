@@ -178,7 +178,7 @@ class neuron:
 
                 def blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
                     if forward_call.src_hotkey == self.wallet.hotkey.ss58_address: 
-                        return False
+                        return True
 
                     elif forward_call.src_hotkey in self.metagraph.hotkeys:
                         uid =  self.metagraph.hotkeys.index(forward_call.src_hotkey)
