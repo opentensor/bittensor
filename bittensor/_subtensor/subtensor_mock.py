@@ -373,6 +373,8 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         self,
         ss58_address: str,
         balance: Union["bittensor.Balance", int, float],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
         r"""Sets the balance of an account using the sudo key."""
         if isinstance(balance, bittensor.Balance):
@@ -403,7 +405,9 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                     call=wrapped_call, keypair=self.sudo_keypair
                 )
                 response = substrate.submit_extrinsic(
-                    extrinsic, wait_for_inclusion=True, wait_for_finalization=True
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
                 )
 
                 response.process_events()

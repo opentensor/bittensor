@@ -229,6 +229,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 netuid=netuid,
                 coldkey=wallet.coldkey.ss58_address,
                 hotkey=wallet.hotkey.ss58_address,
+                wait_for_finalization=False,
+                wait_for_inclusion=True,
             )
             self.assertTrue(result, err)
 
@@ -330,6 +332,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 netuid=netuid,
                 coldkey=wallet.coldkey.ss58_address,
                 hotkey=wallet.hotkey.ss58_address,
+                wait_for_finalization=False,
+                wait_for_inclusion=True,
             )
 
         def mock_get_wallet(*args, **kwargs):
@@ -559,6 +563,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkey.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,
+                wait_for_finalization=False,
+                wait_for_inclusion=True,
             )
             self.assertTrue(success, err)
 
@@ -634,6 +640,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkey.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,
+                wait_for_finalization=False,
+                wait_for_inclusion=True,
             )
             self.assertTrue(success, err)
 
@@ -712,6 +720,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkey.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,
+                wait_for_finalization=False,
+                wait_for_inclusion=True,
             )
             self.assertTrue(success, err)
 
@@ -799,6 +809,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkey.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,
+                wait_for_finalization=False,
+                wait_for_inclusion=True,
             )
             self.assertTrue(success, err)
 
@@ -879,6 +891,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkey.ss58_address,
+                wait_for_finalization=False,
+                wait_for_inclusion=True,
             )
             self.assertTrue(success, err)
 
@@ -953,6 +967,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
+                wait_for_finalization=False,
+                wait_for_inclusion=True,
             )
             self.assertTrue(success, err)
 
@@ -1051,12 +1067,17 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
+                wait_for_finalization=False,
+                wait_for_inclusion=True,
             )
             self.assertTrue(success, err)
 
         # Set the coldkey balance
         success, err = _subtensor_mock.sudo_force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
+            ss58_address=mock_coldkey_kp.ss58_address,
+            balance=mock_balance.rao,
+            wait_for_inclusion=True,
+            wait_for_finalization=False,
         )
         self.assertTrue(success, err)
 
@@ -1160,6 +1181,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     hotkey=wallet.hotkey.ss58_address,
                     coldkey=wallet.coldkeypub.ss58_address,
                     stake=mock_stakes[wallet.hotkey_str].rao,
+                    wait_for_finalization=False,
+                    wait_for_inclusion=True,
                 )
                 self.assertTrue(success, err)
             else:
@@ -1167,11 +1190,16 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     netuid=1,
                     hotkey=wallet.hotkey.ss58_address,
                     coldkey=wallet.coldkeypub.ss58_address,
+                    wait_for_finalization=False,
+                    wait_for_inclusion=True,
                 )
                 self.assertTrue(success, err)
 
         success, err = _subtensor_mock.sudo_force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
+            ss58_address=mock_coldkey_kp.ss58_address,
+            balance=mock_balance.rao,
+            wait_for_finalization=False,
+            wait_for_inclusion=True,
         )
         self.assertTrue(success, err)
 
@@ -1267,11 +1295,16 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
+                wait_for_finalization=False,
+                wait_for_inclusion=True,
             )
             self.assertTrue(success, err)
 
         success, err = _subtensor_mock.sudo_force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
+            ss58_address=mock_coldkey_kp.ss58_address,
+            balance=mock_balance.rao,
+            wait_for_finalization=False,
+            wait_for_inclusion=True,
         )
         self.assertTrue(success, err)
 
@@ -1360,6 +1393,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
+                wait_for_finalization=False,
+                wait_for_inclusion=True,
             )
             self.assertTrue(success, err)
 
@@ -1446,11 +1481,16 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
+                wait_for_finalization=False,
+                wait_for_inclusion=True,
             )
             self.assertTrue(success, err)
 
         success, err = _subtensor_mock.sudo_force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
+            ss58_address=mock_coldkey_kp.ss58_address,
+            balance=mock_balance.rao,
+            wait_for_inclusion=True,
+            wait_for_finalization=True,
         )
         self.assertTrue(success, err)
 
@@ -1541,11 +1581,16 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,  # More than max_stake
+                wait_for_finalization=False,
+                wait_for_inclusion=True,
             )
             self.assertTrue(success, err)
 
         success, err = _subtensor_mock.sudo_force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
+            ss58_address=mock_coldkey_kp.ss58_address,
+            balance=mock_balance.rao,
+            wait_for_finalization=True,
+            wait_for_inclusion=True,
         )
         self.assertTrue(success, err)
 
@@ -1627,6 +1672,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             hotkey=mock_wallet.hotkey.ss58_address,
             coldkey=mock_wallet.coldkey.ss58_address,
             balance=mock_balance.rao,
+            wait_for_inclusion=True,
+            wait_for_finalization=False,
         )
         self.assertTrue(success, err)
 
@@ -1696,6 +1743,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             coldkey=mock_wallets[0].coldkey.ss58_address,
             balance=mock_balances["w0"]["hk0"].rao,
             stake=mock_stake.rao,  # Needs set stake to be a validator
+            wait_for_finalization=False,
+            wait_for_inclusion=True,
         )
         self.assertTrue(success, err)
 
@@ -1703,11 +1752,17 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         success, err = _subtensor_mock.sudo_force_set_balance(
             ss58_address=mock_wallets[1].coldkey.ss58_address,
             balance=mock_balances["w1"]["hk1"].rao,
+            wait_for_finalization=False,
+            wait_for_inclusion=True,
         )
         self.assertTrue(success, err)
 
         # Make the first wallet a delegate
-        success = _subtensor_mock.nominate(wallet=mock_wallets[0])
+        success = _subtensor_mock.nominate(
+            wallet=mock_wallets[0],
+            wait_for_finalization=True,
+            wait_for_inclusion=True,
+        )
         self.assertTrue(success)
 
         cli = bittensor.cli(config)
@@ -1783,6 +1838,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             coldkey=mock_wallets[0].coldkey.ss58_address,
             balance=mock_balances["w0"]["hk0"].rao,
             stake=mock_stake.rao,  # Needs set stake to be a validator
+            wait_for_finalization=False,
+            wait_for_inclusion=True,
         )
         self.assertTrue(success, err)
 
@@ -1790,11 +1847,17 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         success, err = _subtensor_mock.sudo_force_set_balance(
             ss58_address=mock_wallets[1].coldkey.ss58_address,
             balance=mock_balances["w1"]["hk1"].rao,
+            wait_for_finalization=False,
+            wait_for_inclusion=False,
         )
         self.assertTrue(success, err)
 
         # Make the first wallet a delegate
-        success = _subtensor_mock.nominate(wallet=mock_wallets[0])
+        success = _subtensor_mock.nominate(
+            wallet=mock_wallets[0],
+            wait_for_finalization=False,
+            wait_for_inclusion=True,
+        )
         self.assertTrue(success)
 
         # Stake to the delegate
@@ -1803,6 +1866,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             delegate_ss58=mock_wallets[0].hotkey.ss58_address,
             amount=mock_delegated,
             wait_for_finalization=True,
+            wait_for_inclusion=True,
             prompt=False,
         )
         self.assertTrue(success)
