@@ -43,7 +43,7 @@ class RewardModel(nn.Module):
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.PAD_ID = self.tokenizer(self.tokenizer.pad_token)["input_ids"][0]
 
-    def reward( self, full_completions: List[str],  comp: List[str], difference=False ) -> torch.FloatTensor:
+    def reward( self, full_completions: List[str],  comp: List[str], difference=False, shift =3) -> torch.FloatTensor:
         def reward_fn( samples ):
             if samples is None: return 0
             scores_list = []
@@ -65,7 +65,7 @@ class RewardModel(nn.Module):
                 input_ids = input_ids.repeat(2, 1)
                 attn_masks = attn_masks.repeat(2, 1)
                 with torch.no_grad():
-                    sub_scores = self.forward(input_ids=input_ids, attention_mask=attn_masks)
+                    sub_scores = self.forward(input_ids=input_ids.to( self.device ), attention_mask=attn_masks.to( self.device ))
                 scores_list.append(sub_scores["chosen_end_scores"])
             scores = torch.cat(scores_list, dim=0).mean().item()
             return scores
@@ -74,10 +74,12 @@ class RewardModel(nn.Module):
             full_rewards = [reward_fn([completion]) for completion in full_completions]
             if difference:
                 comp_rewards = [reward_fn([completion]) for completion in comp]
+                """
                 for completion, f_reward, c_reward in zip(full_completions, full_rewards, comp_rewards):
                     print(completion)
                     print(f_reward - c_reward)
-                return torch.tensor(full_rewards, dtype=torch.float32) - torch.tensor(comp_rewards, dtype=torch.float32)
+                """
+                return torch.nn.functional.relu(torch.tensor(full_rewards, dtype=torch.float32)+shift) - torch.nn.functional.relu(torch.tensor(comp_rewards, dtype=torch.float32)+shift)
             else:
                 for completion, f_reward in zip(full_completions, full_rewards):
                     print(completion)
@@ -101,12 +103,7 @@ class RewardModel(nn.Module):
         loss = None
         transformer_outputs = self.transformer(
             input_ids,
-            past_key_values=past_key_values,
             attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
         )
 
         hidden_states = transformer_outputs[0]

@@ -26,6 +26,7 @@ import random
 import bittensor
 import argparse
 import bittensor as bt
+import traceback
 
 from loguru import logger
 from types import SimpleNamespace
@@ -125,6 +126,7 @@ class neuron:
         parser.add_argument( '--neuron.events_retention_size',  type = str,  help = 'Events retention size.', default = "2 GB" )
         parser.add_argument( '--neuron.no_reward_model', action = 'store_true', help = 'If set, we dont load the reward model instead use just the scores.', default = False )
         parser.add_argument( '--neuron.question_random_sample_uids', action = 'store_true', help = 'If set, random sample uids to get question.', default = False )
+        parser.add_argument( '--neuron.reward_shift', type = int, help = 'The value to shift rewards for calculation.', default = 3 )
 
     @classmethod
     def config ( cls ):
@@ -155,7 +157,7 @@ class neuron:
         self.tokenizer = AutoTokenizer.from_pretrained( 'EleutherAI/gpt-j-6b' )
 
         # check if invoking iter() is indeed necessary
-        self.dataset = iter(load_dataset('sciq', split='train', streaming=True))
+        self.dataset = iter(load_dataset('squad_v2', split='train', streaming=True).shuffle(buffer_size=10000))
 
         self.moving_averaged_scores = torch.zeros((self.metagraph.n)).to( self.device )
         self.alpha = 0.99
@@ -312,7 +314,7 @@ class neuron:
         successful_completions = [call.completion for call in forward_calls if call is not None and call.completion is not None and len(call.completion) > 10]
         unsuccessful_uids = torch.tensor([uid for uid in topk_uids if uid not in successful_uids])
         bittensor.logging.debug( 'successful_uids', successful_uids )
-        bittensor.logging.trace( 'successful_completions', successful_completions )
+        #bittensor.logging.trace( 'successful_completions', successful_completions )
         if len( successful_completions ) == 0: bittensor.logging.error('no successful completions'); return None
 
         # Calculate the rewards for the successful `completions` using the reward model.
@@ -323,7 +325,7 @@ class neuron:
                 if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n\n'
             full_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in successful_completions ]
             completions_for_reward = [comp.strip() for comp in successful_completions] 
-            rewards = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True).to( self.device )
+            rewards = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True, shift = self.config.neuron.reward_shift).to( self.device )
             bittensor.logging.trace( 'rewards', rewards )
         else:
             rewards = scores[ successful_uids ]
@@ -372,12 +374,19 @@ class neuron:
         bittensor.logging.trace( 'normalized_rewards', normalized_rewards )
         bittensor.logging.trace( 'scattered_rewards', scattered_rewards )
         bittensor.logging.trace( 'moving_averaged_scores', self.moving_averaged_scores )    
-
+        """
         for uid, reward, complete in zip(successful_uids, rewards.tolist(), successful_completions):
             print(f"\n===== {uid, reward} =====\n")
 
             print('~~~ flattened_message_for_reward ~~~\n', flattened_message_for_reward) 
             print('~~~ completion ~~~\n', complete.strip())
+        """
+        print("===== Best Completion =====")
+        print(f"\n===== {successful_uids[best_idx], rewards[best_idx]} =====\n")
+
+        print('~~~ flattened_message_for_reward ~~~\n', flattened_message_for_reward) 
+        print('~~~ completion ~~~\n', best_completion.strip())
+
         return event
 
     def inference( 
@@ -453,7 +462,8 @@ class neuron:
             # google_ai_dataset_place_holder = sample['answers']['text'][0]
 
             if reset_bootstrap_prompt:
-                bootstrap_prompt = next(self.dataset)['support']
+                bootstrap_prompt = next(self.dataset)['context'] # google_ai_dataset_place_holder
+                self.base_prompt = bootstrap_prompt
                 with open('prompt_history.txt', 'a') as file:
                     file.write("============== reset ==================" + '\n')
                     file.write(f"bootstrap prompt: {bootstrap_prompt}" + '\n')
@@ -473,7 +483,7 @@ class neuron:
             successful_questions = [question.completion for question in questions if question is not None and question.completion is not None and len(question.completion) > 10]
             full_completions_for_reward = [ bootstrap_prompt + comp.strip() for comp in successful_questions ]
             completions_for_reward = [comp.strip() for comp in successful_questions] 
-            reward_diffs = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True).to( self.device )
+            reward_diffs = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True, shift = self.config.neuron.reward_shift).to( self.device )
             
             for question, reward_diff in zip(successful_questions, reward_diffs.tolist()):
                 print(f"\n=== Question score: {reward_diff}===\n")
@@ -514,7 +524,7 @@ class neuron:
         
         sample = next(self.dataset)
         # grab the question from the current sample
-        base_prompt = sample['support']
+        self.base_prompt = sample['context']
         reward_diff = 0
         
         # Start an infinite loop for training.
@@ -526,7 +536,7 @@ class neuron:
                 
                 forward_result = self.forward( 
                     roles = ['system', 'user' ],
-                    messages = [ base_prompt, prompt ],
+                    messages = [ self.base_prompt, prompt ],
                     topk = self.config.neuron.training_topk,
                     random_sample_uids = True,
                     train_gating_model = True,
@@ -593,6 +603,7 @@ class neuron:
 
         except Exception as e:
             bittensor.logging.info( 'Error in training loop', str( e    ) )
+            print(traceback.format_exc())
     
     def compute_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
         """
