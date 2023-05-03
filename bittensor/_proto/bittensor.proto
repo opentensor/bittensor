@@ -6,30 +6,69 @@ service TextPrompting  {
     rpc Backward (BackwardTextPromptingRequest) returns (BackwardTextPromptingResponse) {}
 }
 
-service SubnetServer {
-	// Forward tensor request. 
-	rpc Forward (DataBlockRequest) returns (DataBlockResponse) {}
-	
+service QA {
+	rpc Forward (ForwardQARequest) returns (ForwardQAResponse) {}
+	rpc Backward (BackwardQARequest) returns (BackwardQAResponse) {}
 }
 
-message DataBlock {
-	bytes data = 1;
+service SentenceSimilarity {
+	rpc Forward (ForwardSentenceSimilarityRequest) returns (ForwardSentenceSimilarityResponse) {}
+	rpc Backward (BackwardSentenceSimilarityRequest) returns (BackwardSentenceSimilarityResponse) {}
 }
 
-message DataBlockRequest {
-	int32 version = 1;
-    string hotkey = 2;
-	repeated DataBlock blocks = 3;
-	float timeout = 4;
+service Text {
+	rpc Forward (ForwardTextRequest) returns (ForwardTextResponse) {}
+	rpc Backward (BackwardTextRequest) returns (BackwardTextResponse) {}
 }
 
-message DataBlockResponse {
-	int32 version = 1;
-	string hotkey = 2;
-	repeated DataBlock blocks = 3;
-	string return_message = 4;
-	ReturnCode return_code = 5;
+service VisualQA {
+	rpc Forward (ForwardVisualQARequest) returns (ForwardVisualQAResponse) {}
+	rpc Backward (BackwardVisualQARequest) returns (BackwardVisualQAResponse) {}
 }
+
+service TextToImage {
+	rpc Forward (ForwardTextToImageRequest) returns (ForwardTextToImageResponse) {}
+	rpc Backward (BackwardTextToImageRequest) returns (BackwardTextToImageResponse) {}
+}
+
+service ImageToText {
+	rpc Forward (ForwardImageToTextRequest) returns (ForwardImageToTextResponse) {}
+	rpc Backward (BackwardImageToTextRequest) returns (BackwardImageToTextResponse) {}
+}
+
+
+service ObjectDetection {
+	rpc Forward (ForwardObjectDetectionRequest) returns (ForwardObjectDetectionResponse) {}
+	rpc Backward (BackwardObjectDetectionRequest) returns (BackwardObjectDetectionResponse) {}
+}
+
+service ImageClassification {
+	rpc Forward (ForwardImageClassificationRequest) returns (ForwardImageClassificationResponse) {}
+	rpc Backward (BackwardImageClassificationRequest) returns (BackwardImageClassificationResponse) {}
+}
+
+service ImageSegmentation {
+	rpc Forward (ForwardImageSegmentationRequest) returns (ForwardImageSegmentationResponse) {}
+	rpc Backward (BackwardImageSegmentationRequest) returns (BackwardImageSegmentationResponse) {}
+}
+
+service DepthEstimation {
+	rpc Forward (ForwardDepthEstimationRequest) returns (ForwardDepthEstimationResponse) {}
+	rpc Backward (BackwardDepthEstimationRequest) returns (BackwardDepthEstimationResponse) {}
+}
+
+service SpeechToText {
+	rpc Forward (ForwardSpeechToTextRequest) returns (ForwardSpeechToTextResponse) {}
+	rpc Backward (BackwardSpeechToTextRequest) returns (BackwardSpeechToTextResponse) {}
+}
+
+service TextToSpeech {
+	rpc Forward (ForwardTextToSpeechRequest) returns (ForwardTextToSpeechResponse) {}
+	rpc Backward (BackwardTextToSpeechRequest) returns (BackwardTextToSpeechResponse) {}
+}
+
+
+
 
 /////////////////////////
 // TextPrompting //
@@ -61,6 +100,437 @@ message BackwardTextPromptingResponse {
 	string return_message = 4;
 	ReturnCode return_code = 5;
 }
+
+/////////////////////////
+// Q&A //
+/////////////////////////
+message ForwardQARequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string question = 3;
+	string context = 4;
+	float timeout = 5;
+}
+
+message ForwardQAResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string answer = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+message BackwardQARequest {
+	int32 version = 1;
+	string hotkey = 2;
+	float reward = 3;
+	string question = 4;
+	string answer = 5;
+	float timeout = 6;
+}
+
+message BackwardQAResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+/////////////////////////
+// Sentence Similarity //
+/////////////////////////
+
+message ForwardSentenceSimilarityRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string source_sentence = 3;
+	string target_sentence = 4;
+	float timeout = 5;
+}
+
+message ForwardSentenceSimilarityResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	float similarity = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+message BackwardSentenceSimilarityRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	float reward = 3;
+	string source_sentence = 4;
+	string target_sentence = 5;
+	float timeout = 6;
+}
+
+message BackwardSentenceSimilarityResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+/////////////////////////
+// Text (text classification, token classification, text2text-generation, summarization, translation) //
+/////////////////////////
+
+message ForwardTextRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string text = 3;
+	float timeout = 4;
+}
+
+message ForwardTextResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string response = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+message BackwardTextRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	float reward = 3;
+	string text = 4;
+	string response = 5;
+	float timeout = 6;
+}
+
+message BackwardTextResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+///////////////////////////////
+// Visual Q&A + Document Q&A //
+///////////////////////////////
+
+// TODO: rename to a generic name
+
+message ForwardVisualQARequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string question = 3;
+	bytes image = 4;
+	float timeout = 5;
+}
+
+message ForwardVisualQAResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string answer = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+message BackwardVisualQARequest {
+	int32 version = 1;
+	string hotkey = 2;
+	float reward = 3;
+	string question = 4;
+	bytes image = 5;
+	string answer = 6;
+	float timeout = 7;
+}
+
+message BackwardVisualQAResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+/////////////////////////
+// Text-to-Image //
+/////////////////////////
+
+message ForwardTextToImageRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string prompt = 3;
+	float timeout = 4;
+}
+
+message ForwardTextToImageResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes image = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+message BackwardTextToImageRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	float reward = 3;
+	string prompt = 4;
+	bytes image = 5;
+	float timeout = 6;
+}
+
+message BackwardTextToImageResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+/////////////////////////
+// Image Segmentation //
+/////////////////////////
+
+message ForwardImageSegmentationRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes image = 3;
+	float timeout = 4;
+}
+
+message ForwardImageSegmentationResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes response = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+message BackwardImageSegmentationRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	float reward = 3;
+	bytes image = 4;
+	bytes response = 5;
+	float timeout = 6;
+}
+
+message BackwardImageSegmentationResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+/////////////////////////
+// Depth Estimation //
+/////////////////////////
+
+message ForwardDepthEstimationRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes image = 3;
+	float timeout = 4;
+}
+
+message ForwardDepthEstimationResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes response = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+message BackwardDepthEstimationRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	float reward = 3;
+	bytes image = 4;
+	bytes response = 5;
+	float timeout = 6;
+}
+
+message BackwardDepthEstimationResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+
+/////////////////////////
+// Object Detection //
+/////////////////////////
+
+message ForwardObjectDetectionRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes image = 3;
+	float timeout = 4;
+}
+
+message ForwardObjectDetectionResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes response = 3;
+	string predicted = 4;
+	string return_message = 5;
+	ReturnCode return_code = 6;
+}
+
+message BackwardObjectDetectionRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	float reward = 3;
+	bytes image = 4;
+	bytes response = 5;
+	float timeout = 6;
+}
+
+message BackwardObjectDetectionResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+/////////////////////////
+// Image Classification //
+/////////////////////////
+
+message ForwardImageClassificationRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes image = 3;
+	float timeout = 4;
+}
+
+message ForwardImageClassificationResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes response = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+message BackwardImageClassificationRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	float reward = 3;
+	bytes image = 4;
+	bytes response = 5;
+	float timeout = 6;
+}
+
+message BackwardImageClassificationResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+/////////////////////////
+// Image to Text //
+/////////////////////////
+
+message ForwardImageToTextRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes image = 3;
+	float timeout = 4;
+}
+
+message ForwardImageToTextResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string response = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+message BackwardImageToTextRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	float reward = 3;
+	bytes image = 4;
+	string response = 5;
+	float timeout = 6;
+}
+
+message BackwardImageToTextResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+/////////////////////////
+// Text to Speech //
+/////////////////////////
+
+message ForwardTextToSpeechRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string text = 3;
+	float timeout = 4;
+}
+
+message ForwardTextToSpeechResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes audio = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+message BackwardTextToSpeechRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	float reward = 3;
+	string text = 4;
+	bytes audio = 5;
+	float timeout = 6;
+}
+
+message BackwardTextToSpeechResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+/////////////////////////
+// Speech to Text //
+/////////////////////////
+
+message ForwardSpeechToTextRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes audio = 3;
+	float timeout = 4;
+}
+
+message ForwardSpeechToTextResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string response = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+message BackwardSpeechToTextRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	float reward = 3;
+	bytes audio = 4;
+	string response = 5;
+	float timeout = 6;
+}
+
+message BackwardSpeechToTextResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+
+
+
 
 
 // Return codes from Backward and Forward call.

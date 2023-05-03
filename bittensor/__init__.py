@@ -188,8 +188,6 @@ from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingResponse
-from bittensor._proto.bittensor_pb2 import DataBlockRequest
-from bittensor._proto.bittensor_pb2 import DataBlockResponse
 
 # ---- Synapses -----
 from bittensor._synapse.synapse import Synapse
@@ -201,7 +199,6 @@ from bittensor._dendrite.dendrite import Dendrite
 from bittensor._dendrite.dendrite import DendriteCall
 from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as text_prompting
 from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
-from bittensor._dendrite.subnet_server.dendrite import SubnetServerDendrite as subtensor_dendrite
 
 # ---- Base Miners -----
 from bittensor._synapse.text_prompting.miner import BasePromptingMiner

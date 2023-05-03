@@ -99,7 +99,7 @@ class TextPrompting(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
 
-class SubnetServerStub(object):
+class QAStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -109,38 +109,53 @@ class SubnetServerStub(object):
             channel: A grpc.Channel.
         """
         self.Forward = channel.unary_unary(
-                '/SubnetServer/Forward',
-                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.DataBlockRequest.SerializeToString,
-                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.DataBlockResponse.FromString,
+                '/QA/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardQARequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardQAResponse.FromString,
+                )
+        self.Backward = channel.unary_unary(
+                '/QA/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardQARequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardQAResponse.FromString,
                 )
 
 
-class SubnetServerServicer(object):
+class QAServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Forward(self, request, context):
-        """Forward tensor request. 
-        """
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Backward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_SubnetServerServicer_to_server(servicer, server):
+def add_QAServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Forward': grpc.unary_unary_rpc_method_handler(
                     servicer.Forward,
-                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.DataBlockRequest.FromString,
-                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.DataBlockResponse.SerializeToString,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardQARequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardQAResponse.SerializeToString,
+            ),
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardQARequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardQAResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'SubnetServer', rpc_method_handlers)
+            'QA', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
  # This class is part of an EXPERIMENTAL API.
-class SubnetServer(object):
+class QA(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -154,8 +169,1059 @@ class SubnetServer(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/SubnetServer/Forward',
-            bittensor_dot___proto_dot_bittensor__pb2.DataBlockRequest.SerializeToString,
-            bittensor_dot___proto_dot_bittensor__pb2.DataBlockResponse.FromString,
+        return grpc.experimental.unary_unary(request, target, '/QA/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardQARequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardQAResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Backward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/QA/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardQARequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardQAResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
+class SentenceSimilarityStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/SentenceSimilarity/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardSentenceSimilarityRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardSentenceSimilarityResponse.FromString,
+                )
+        self.Backward = channel.unary_unary(
+                '/SentenceSimilarity/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardSentenceSimilarityRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardSentenceSimilarityResponse.FromString,
+                )
+
+
+class SentenceSimilarityServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Backward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_SentenceSimilarityServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardSentenceSimilarityRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardSentenceSimilarityResponse.SerializeToString,
+            ),
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardSentenceSimilarityRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardSentenceSimilarityResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'SentenceSimilarity', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class SentenceSimilarity(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Forward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/SentenceSimilarity/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardSentenceSimilarityRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardSentenceSimilarityResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Backward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/SentenceSimilarity/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardSentenceSimilarityRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardSentenceSimilarityResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
+class TextStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/Text/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextResponse.FromString,
+                )
+        self.Backward = channel.unary_unary(
+                '/Text/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextResponse.FromString,
+                )
+
+
+class TextServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Backward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_TextServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextResponse.SerializeToString,
+            ),
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'Text', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class Text(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Forward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/Text/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardTextRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardTextResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Backward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/Text/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardTextRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardTextResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
+class VisualQAStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/VisualQA/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardVisualQARequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardVisualQAResponse.FromString,
+                )
+        self.Backward = channel.unary_unary(
+                '/VisualQA/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardVisualQARequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardVisualQAResponse.FromString,
+                )
+
+
+class VisualQAServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Backward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_VisualQAServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardVisualQARequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardVisualQAResponse.SerializeToString,
+            ),
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardVisualQARequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardVisualQAResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'VisualQA', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class VisualQA(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Forward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/VisualQA/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardVisualQARequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardVisualQAResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Backward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/VisualQA/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardVisualQARequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardVisualQAResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
+class TextToImageStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/TextToImage/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToImageRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToImageResponse.FromString,
+                )
+        self.Backward = channel.unary_unary(
+                '/TextToImage/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextToImageRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextToImageResponse.FromString,
+                )
+
+
+class TextToImageServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Backward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_TextToImageServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToImageRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToImageResponse.SerializeToString,
+            ),
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextToImageRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextToImageResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'TextToImage', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class TextToImage(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Forward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/TextToImage/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToImageRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToImageResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Backward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/TextToImage/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardTextToImageRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardTextToImageResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
+class ImageToTextStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/ImageToText/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardImageToTextRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardImageToTextResponse.FromString,
+                )
+        self.Backward = channel.unary_unary(
+                '/ImageToText/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardImageToTextRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardImageToTextResponse.FromString,
+                )
+
+
+class ImageToTextServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Backward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_ImageToTextServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardImageToTextRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardImageToTextResponse.SerializeToString,
+            ),
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardImageToTextRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardImageToTextResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'ImageToText', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class ImageToText(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Forward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/ImageToText/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardImageToTextRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardImageToTextResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Backward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/ImageToText/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardImageToTextRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardImageToTextResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
+class ObjectDetectionStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/ObjectDetection/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardObjectDetectionRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardObjectDetectionResponse.FromString,
+                )
+        self.Backward = channel.unary_unary(
+                '/ObjectDetection/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardObjectDetectionRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardObjectDetectionResponse.FromString,
+                )
+
+
+class ObjectDetectionServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Backward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_ObjectDetectionServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardObjectDetectionRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardObjectDetectionResponse.SerializeToString,
+            ),
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardObjectDetectionRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardObjectDetectionResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'ObjectDetection', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class ObjectDetection(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Forward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/ObjectDetection/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardObjectDetectionRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardObjectDetectionResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Backward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/ObjectDetection/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardObjectDetectionRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardObjectDetectionResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
+class ImageClassificationStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/ImageClassification/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardImageClassificationRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardImageClassificationResponse.FromString,
+                )
+        self.Backward = channel.unary_unary(
+                '/ImageClassification/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardImageClassificationRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardImageClassificationResponse.FromString,
+                )
+
+
+class ImageClassificationServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Backward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_ImageClassificationServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardImageClassificationRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardImageClassificationResponse.SerializeToString,
+            ),
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardImageClassificationRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardImageClassificationResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'ImageClassification', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class ImageClassification(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Forward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/ImageClassification/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardImageClassificationRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardImageClassificationResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Backward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/ImageClassification/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardImageClassificationRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardImageClassificationResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
+class ImageSegmentationStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/ImageSegmentation/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardImageSegmentationRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardImageSegmentationResponse.FromString,
+                )
+        self.Backward = channel.unary_unary(
+                '/ImageSegmentation/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardImageSegmentationRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardImageSegmentationResponse.FromString,
+                )
+
+
+class ImageSegmentationServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Backward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_ImageSegmentationServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardImageSegmentationRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardImageSegmentationResponse.SerializeToString,
+            ),
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardImageSegmentationRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardImageSegmentationResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'ImageSegmentation', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class ImageSegmentation(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Forward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/ImageSegmentation/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardImageSegmentationRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardImageSegmentationResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Backward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/ImageSegmentation/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardImageSegmentationRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardImageSegmentationResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
+class DepthEstimationStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/DepthEstimation/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardDepthEstimationRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardDepthEstimationResponse.FromString,
+                )
+        self.Backward = channel.unary_unary(
+                '/DepthEstimation/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardDepthEstimationRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardDepthEstimationResponse.FromString,
+                )
+
+
+class DepthEstimationServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Backward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_DepthEstimationServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardDepthEstimationRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardDepthEstimationResponse.SerializeToString,
+            ),
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardDepthEstimationRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardDepthEstimationResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'DepthEstimation', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class DepthEstimation(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Forward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/DepthEstimation/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardDepthEstimationRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardDepthEstimationResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Backward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/DepthEstimation/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardDepthEstimationRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardDepthEstimationResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
+class SpeechToTextStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/SpeechToText/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardSpeechToTextRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardSpeechToTextResponse.FromString,
+                )
+        self.Backward = channel.unary_unary(
+                '/SpeechToText/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardSpeechToTextRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardSpeechToTextResponse.FromString,
+                )
+
+
+class SpeechToTextServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Backward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_SpeechToTextServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardSpeechToTextRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardSpeechToTextResponse.SerializeToString,
+            ),
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardSpeechToTextRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardSpeechToTextResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'SpeechToText', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class SpeechToText(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Forward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/SpeechToText/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardSpeechToTextRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardSpeechToTextResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Backward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/SpeechToText/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardSpeechToTextRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardSpeechToTextResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
+class TextToSpeechStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/TextToSpeech/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToSpeechRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToSpeechResponse.FromString,
+                )
+        self.Backward = channel.unary_unary(
+                '/TextToSpeech/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextToSpeechRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextToSpeechResponse.FromString,
+                )
+
+
+class TextToSpeechServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Backward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_TextToSpeechServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToSpeechRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToSpeechResponse.SerializeToString,
+            ),
+            'Backward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Backward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextToSpeechRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextToSpeechResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'TextToSpeech', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class TextToSpeech(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Forward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/TextToSpeech/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToSpeechRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToSpeechResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Backward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/TextToSpeech/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardTextToSpeechRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardTextToSpeechResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

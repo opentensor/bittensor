@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"\x19\n\tDataBlock\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"`\n\x10\x44\x61taBlockRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x1a\n\x06\x62locks\x18\x03 \x03(\x0b\x32\n.DataBlock\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x8a\x01\n\x11\x44\x61taBlockResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x1a\n\x06\x62locks\x18\x03 \x03(\x0b\x32\n.DataBlock\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"a\n\x1b\x46orwardTextPromptingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08messages\x18\x03 \x03(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x8b\x01\n\x1c\x46orwardTextPromptingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\x85\x01\n\x1c\x42\x61\x63kwardTextPromptingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0f\n\x07rewards\x18\x03 \x03(\x02\x12\x10\n\x08messages\x18\x04 \x03(\t\x12\x10\n\x08response\x18\x05 \x01(\t\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"z\n\x1d\x42\x61\x63kwardTextPromptingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\xac\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08*\xda\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17\x12\x0f\n\x0b\x42\x61\x64\x45ndpoint\x10\x18\x12\x0f\n\x0b\x42lacklisted\x10\x19*&\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00\x12\x0b\n\x07\x43MPPACK\x10\x01*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*h\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05\x12\x0b\n\x07\x46LOAT16\x10\x06\x12\x08\n\x04\x42OOL\x10\x07\x32\xa6\x01\n\rTextPrompting\x12H\n\x07\x46orward\x12\x1c.ForwardTextPromptingRequest\x1a\x1d.ForwardTextPromptingResponse\"\x00\x12K\n\x08\x42\x61\x63kward\x12\x1d.BackwardTextPromptingRequest\x1a\x1e.BackwardTextPromptingResponse\"\x00\x32\x42\n\x0cSubnetServer\x12\x32\n\x07\x46orward\x12\x11.DataBlockRequest\x1a\x12.DataBlockResponse\"\x00\x62\x06proto3'
+  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"a\n\x1b\x46orwardTextPromptingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08messages\x18\x03 \x03(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x8b\x01\n\x1c\x46orwardTextPromptingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\x85\x01\n\x1c\x42\x61\x63kwardTextPromptingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0f\n\x07rewards\x18\x03 \x03(\x02\x12\x10\n\x08messages\x18\x04 \x03(\t\x12\x10\n\x08response\x18\x05 \x01(\t\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"z\n\x1d\x42\x61\x63kwardTextPromptingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"g\n\x10\x46orwardQARequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08question\x18\x03 \x01(\t\x12\x0f\n\x07\x63ontext\x18\x04 \x01(\t\x12\x0f\n\x07timeout\x18\x05 \x01(\x02\"~\n\x11\x46orwardQAResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06\x61nswer\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"w\n\x11\x42\x61\x63kwardQARequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06reward\x18\x03 \x01(\x02\x12\x10\n\x08question\x18\x04 \x01(\t\x12\x0e\n\x06\x61nswer\x18\x05 \x01(\t\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"o\n\x12\x42\x61\x63kwardQAResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\x86\x01\n ForwardSentenceSimilarityRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x17\n\x0fsource_sentence\x18\x03 \x01(\t\x12\x17\n\x0ftarget_sentence\x18\x04 \x01(\t\x12\x0f\n\x07timeout\x18\x05 \x01(\x02\"\x92\x01\n!ForwardSentenceSimilarityResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x12\n\nsimilarity\x18\x03 \x01(\x02\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\x97\x01\n!BackwardSentenceSimilarityRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06reward\x18\x03 \x01(\x02\x12\x17\n\x0fsource_sentence\x18\x04 \x01(\t\x12\x17\n\x0ftarget_sentence\x18\x05 \x01(\t\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"\x7f\n\"BackwardSentenceSimilarityResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"T\n\x12\x46orwardTextRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0c\n\x04text\x18\x03 \x01(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x82\x01\n\x13\x46orwardTextResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"w\n\x13\x42\x61\x63kwardTextRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06reward\x18\x03 \x01(\x02\x12\x0c\n\x04text\x18\x04 \x01(\t\x12\x10\n\x08response\x18\x05 \x01(\t\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"q\n\x14\x42\x61\x63kwardTextResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"k\n\x16\x46orwardVisualQARequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08question\x18\x03 \x01(\t\x12\r\n\x05image\x18\x04 \x01(\x0c\x12\x0f\n\x07timeout\x18\x05 \x01(\x02\"\x84\x01\n\x17\x46orwardVisualQAResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06\x61nswer\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\x8c\x01\n\x17\x42\x61\x63kwardVisualQARequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06reward\x18\x03 \x01(\x02\x12\x10\n\x08question\x18\x04 \x01(\t\x12\r\n\x05image\x18\x05 \x01(\x0c\x12\x0e\n\x06\x61nswer\x18\x06 \x01(\t\x12\x0f\n\x07timeout\x18\x07 \x01(\x02\"u\n\x18\x42\x61\x63kwardVisualQAResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"]\n\x19\x46orwardTextToImageRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06prompt\x18\x03 \x01(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x86\x01\n\x1a\x46orwardTextToImageResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\r\n\x05image\x18\x03 \x01(\x0c\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"}\n\x1a\x42\x61\x63kwardTextToImageRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06reward\x18\x03 \x01(\x02\x12\x0e\n\x06prompt\x18\x04 \x01(\t\x12\r\n\x05image\x18\x05 \x01(\x0c\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"x\n\x1b\x42\x61\x63kwardTextToImageResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"b\n\x1f\x46orwardImageSegmentationRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\r\n\x05image\x18\x03 \x01(\x0c\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x8f\x01\n ForwardImageSegmentationResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\x0c\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\x85\x01\n BackwardImageSegmentationRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06reward\x18\x03 \x01(\x02\x12\r\n\x05image\x18\x04 \x01(\x0c\x12\x10\n\x08response\x18\x05 \x01(\x0c\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"~\n!BackwardImageSegmentationResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"`\n\x1d\x46orwardDepthEstimationRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\r\n\x05image\x18\x03 \x01(\x0c\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x8d\x01\n\x1e\x46orwardDepthEstimationResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\x0c\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\x83\x01\n\x1e\x42\x61\x63kwardDepthEstimationRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06reward\x18\x03 \x01(\x02\x12\r\n\x05image\x18\x04 \x01(\x0c\x12\x10\n\x08response\x18\x05 \x01(\x0c\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"|\n\x1f\x42\x61\x63kwardDepthEstimationResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"`\n\x1d\x46orwardObjectDetectionRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\r\n\x05image\x18\x03 \x01(\x0c\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\xa0\x01\n\x1e\x46orwardObjectDetectionResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\x0c\x12\x11\n\tpredicted\x18\x04 \x01(\t\x12\x16\n\x0ereturn_message\x18\x05 \x01(\t\x12 \n\x0breturn_code\x18\x06 \x01(\x0e\x32\x0b.ReturnCode\"\x83\x01\n\x1e\x42\x61\x63kwardObjectDetectionRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06reward\x18\x03 \x01(\x02\x12\r\n\x05image\x18\x04 \x01(\x0c\x12\x10\n\x08response\x18\x05 \x01(\x0c\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"|\n\x1f\x42\x61\x63kwardObjectDetectionResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"d\n!ForwardImageClassificationRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\r\n\x05image\x18\x03 \x01(\x0c\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x91\x01\n\"ForwardImageClassificationResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\x0c\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\x87\x01\n\"BackwardImageClassificationRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06reward\x18\x03 \x01(\x02\x12\r\n\x05image\x18\x04 \x01(\x0c\x12\x10\n\x08response\x18\x05 \x01(\x0c\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"\x80\x01\n#BackwardImageClassificationResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\\\n\x19\x46orwardImageToTextRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\r\n\x05image\x18\x03 \x01(\x0c\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x89\x01\n\x1a\x46orwardImageToTextResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\x7f\n\x1a\x42\x61\x63kwardImageToTextRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06reward\x18\x03 \x01(\x02\x12\r\n\x05image\x18\x04 \x01(\x0c\x12\x10\n\x08response\x18\x05 \x01(\t\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"x\n\x1b\x42\x61\x63kwardImageToTextResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\\\n\x1a\x46orwardTextToSpeechRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0c\n\x04text\x18\x03 \x01(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x87\x01\n\x1b\x46orwardTextToSpeechResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\r\n\x05\x61udio\x18\x03 \x01(\x0c\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"|\n\x1b\x42\x61\x63kwardTextToSpeechRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06reward\x18\x03 \x01(\x02\x12\x0c\n\x04text\x18\x04 \x01(\t\x12\r\n\x05\x61udio\x18\x05 \x01(\x0c\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"y\n\x1c\x42\x61\x63kwardTextToSpeechResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"]\n\x1a\x46orwardSpeechToTextRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\r\n\x05\x61udio\x18\x03 \x01(\x0c\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x8a\x01\n\x1b\x46orwardSpeechToTextResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\x80\x01\n\x1b\x42\x61\x63kwardSpeechToTextRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06reward\x18\x03 \x01(\x02\x12\r\n\x05\x61udio\x18\x04 \x01(\x0c\x12\x10\n\x08response\x18\x05 \x01(\t\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"y\n\x1c\x42\x61\x63kwardSpeechToTextResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\xac\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08*\xda\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17\x12\x0f\n\x0b\x42\x61\x64\x45ndpoint\x10\x18\x12\x0f\n\x0b\x42lacklisted\x10\x19*&\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00\x12\x0b\n\x07\x43MPPACK\x10\x01*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*h\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05\x12\x0b\n\x07\x46LOAT16\x10\x06\x12\x08\n\x04\x42OOL\x10\x07\x32\xa6\x01\n\rTextPrompting\x12H\n\x07\x46orward\x12\x1c.ForwardTextPromptingRequest\x1a\x1d.ForwardTextPromptingResponse\"\x00\x12K\n\x08\x42\x61\x63kward\x12\x1d.BackwardTextPromptingRequest\x1a\x1e.BackwardTextPromptingResponse\"\x00\x32o\n\x02QA\x12\x32\n\x07\x46orward\x12\x11.ForwardQARequest\x1a\x12.ForwardQAResponse\"\x00\x12\x35\n\x08\x42\x61\x63kward\x12\x12.BackwardQARequest\x1a\x13.BackwardQAResponse\"\x00\x32\xbf\x01\n\x12SentenceSimilarity\x12R\n\x07\x46orward\x12!.ForwardSentenceSimilarityRequest\x1a\".ForwardSentenceSimilarityResponse\"\x00\x12U\n\x08\x42\x61\x63kward\x12\".BackwardSentenceSimilarityRequest\x1a#.BackwardSentenceSimilarityResponse\"\x00\x32y\n\x04Text\x12\x36\n\x07\x46orward\x12\x13.ForwardTextRequest\x1a\x14.ForwardTextResponse\"\x00\x12\x39\n\x08\x42\x61\x63kward\x12\x14.BackwardTextRequest\x1a\x15.BackwardTextResponse\"\x00\x32\x8d\x01\n\x08VisualQA\x12>\n\x07\x46orward\x12\x17.ForwardVisualQARequest\x1a\x18.ForwardVisualQAResponse\"\x00\x12\x41\n\x08\x42\x61\x63kward\x12\x18.BackwardVisualQARequest\x1a\x19.BackwardVisualQAResponse\"\x00\x32\x9c\x01\n\x0bTextToImage\x12\x44\n\x07\x46orward\x12\x1a.ForwardTextToImageRequest\x1a\x1b.ForwardTextToImageResponse\"\x00\x12G\n\x08\x42\x61\x63kward\x12\x1b.BackwardTextToImageRequest\x1a\x1c.BackwardTextToImageResponse\"\x00\x32\x9c\x01\n\x0bImageToText\x12\x44\n\x07\x46orward\x12\x1a.ForwardImageToTextRequest\x1a\x1b.ForwardImageToTextResponse\"\x00\x12G\n\x08\x42\x61\x63kward\x12\x1b.BackwardImageToTextRequest\x1a\x1c.BackwardImageToTextResponse\"\x00\x32\xb0\x01\n\x0fObjectDetection\x12L\n\x07\x46orward\x12\x1e.ForwardObjectDetectionRequest\x1a\x1f.ForwardObjectDetectionResponse\"\x00\x12O\n\x08\x42\x61\x63kward\x12\x1f.BackwardObjectDetectionRequest\x1a .BackwardObjectDetectionResponse\"\x00\x32\xc4\x01\n\x13ImageClassification\x12T\n\x07\x46orward\x12\".ForwardImageClassificationRequest\x1a#.ForwardImageClassificationResponse\"\x00\x12W\n\x08\x42\x61\x63kward\x12#.BackwardImageClassificationRequest\x1a$.BackwardImageClassificationResponse\"\x00\x32\xba\x01\n\x11ImageSegmentation\x12P\n\x07\x46orward\x12 .ForwardImageSegmentationRequest\x1a!.ForwardImageSegmentationResponse\"\x00\x12S\n\x08\x42\x61\x63kward\x12!.BackwardImageSegmentationRequest\x1a\".BackwardImageSegmentationResponse\"\x00\x32\xb0\x01\n\x0f\x44\x65pthEstimation\x12L\n\x07\x46orward\x12\x1e.ForwardDepthEstimationRequest\x1a\x1f.ForwardDepthEstimationResponse\"\x00\x12O\n\x08\x42\x61\x63kward\x12\x1f.BackwardDepthEstimationRequest\x1a .BackwardDepthEstimationResponse\"\x00\x32\xa1\x01\n\x0cSpeechToText\x12\x46\n\x07\x46orward\x12\x1b.ForwardSpeechToTextRequest\x1a\x1c.ForwardSpeechToTextResponse\"\x00\x12I\n\x08\x42\x61\x63kward\x12\x1c.BackwardSpeechToTextRequest\x1a\x1d.BackwardSpeechToTextResponse\"\x00\x32\xa1\x01\n\x0cTextToSpeech\x12\x46\n\x07\x46orward\x12\x1b.ForwardTextToSpeechRequest\x1a\x1c.ForwardTextToSpeechResponse\"\x00\x12I\n\x08\x42\x61\x63kward\x12\x1c.BackwardTextToSpeechRequest\x1a\x1d.BackwardTextToSpeechResponse\"\x00\x62\x06proto3'
 )
 
 _RETURNCODE = _descriptor.EnumDescriptor(
@@ -163,8 +163,8 @@ _RETURNCODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=979,
-  serialized_end=1581,
+  serialized_start=6699,
+  serialized_end=7301,
 )
 _sym_db.RegisterEnumDescriptor(_RETURNCODE)
 
@@ -189,8 +189,8 @@ _SERIALIZER = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1583,
-  serialized_end=1621,
+  serialized_start=7303,
+  serialized_end=7341,
 )
 _sym_db.RegisterEnumDescriptor(_SERIALIZER)
 
@@ -220,8 +220,8 @@ _TENSORTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1623,
-  serialized_end=1673,
+  serialized_start=7343,
+  serialized_end=7393,
 )
 _sym_db.RegisterEnumDescriptor(_TENSORTYPE)
 
@@ -276,8 +276,8 @@ _DATATYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1675,
-  serialized_end=1779,
+  serialized_start=7395,
+  serialized_end=7499,
 )
 _sym_db.RegisterEnumDescriptor(_DATATYPE)
 
@@ -322,151 +322,6 @@ UTF8 = 5
 FLOAT16 = 6
 BOOL = 7
 
-
-
-_DATABLOCK = _descriptor.Descriptor(
-  name='DataBlock',
-  full_name='DataBlock',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='data', full_name='DataBlock.data', index=0,
-      number=1, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=36,
-  serialized_end=61,
-)
-
-
-_DATABLOCKREQUEST = _descriptor.Descriptor(
-  name='DataBlockRequest',
-  full_name='DataBlockRequest',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='version', full_name='DataBlockRequest.version', index=0,
-      number=1, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='hotkey', full_name='DataBlockRequest.hotkey', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='blocks', full_name='DataBlockRequest.blocks', index=2,
-      number=3, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='timeout', full_name='DataBlockRequest.timeout', index=3,
-      number=4, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=63,
-  serialized_end=159,
-)
-
-
-_DATABLOCKRESPONSE = _descriptor.Descriptor(
-  name='DataBlockResponse',
-  full_name='DataBlockResponse',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='version', full_name='DataBlockResponse.version', index=0,
-      number=1, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='hotkey', full_name='DataBlockResponse.hotkey', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='blocks', full_name='DataBlockResponse.blocks', index=2,
-      number=3, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='return_message', full_name='DataBlockResponse.return_message', index=3,
-      number=4, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='return_code', full_name='DataBlockResponse.return_code', index=4,
-      number=5, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=162,
-  serialized_end=300,
-)
 
 
 _FORWARDTEXTPROMPTINGREQUEST = _descriptor.Descriptor(
@@ -517,8 +372,8 @@ _FORWARDTEXTPROMPTINGREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=302,
-  serialized_end=399,
+  serialized_start=36,
+  serialized_end=133,
 )
 
 
@@ -577,8 +432,8 @@ _FORWARDTEXTPROMPTINGRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=402,
-  serialized_end=541,
+  serialized_start=136,
+  serialized_end=275,
 )
 
 
@@ -644,8 +499,8 @@ _BACKWARDTEXTPROMPTINGREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=544,
-  serialized_end=677,
+  serialized_start=278,
+  serialized_end=411,
 )
 
 
@@ -697,8 +552,2839 @@ _BACKWARDTEXTPROMPTINGRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=679,
-  serialized_end=801,
+  serialized_start=413,
+  serialized_end=535,
+)
+
+
+_FORWARDQAREQUEST = _descriptor.Descriptor(
+  name='ForwardQARequest',
+  full_name='ForwardQARequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardQARequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardQARequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='question', full_name='ForwardQARequest.question', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='context', full_name='ForwardQARequest.context', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='ForwardQARequest.timeout', index=4,
+      number=5, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=537,
+  serialized_end=640,
+)
+
+
+_FORWARDQARESPONSE = _descriptor.Descriptor(
+  name='ForwardQAResponse',
+  full_name='ForwardQAResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardQAResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardQAResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='answer', full_name='ForwardQAResponse.answer', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='ForwardQAResponse.return_message', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='ForwardQAResponse.return_code', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=642,
+  serialized_end=768,
+)
+
+
+_BACKWARDQAREQUEST = _descriptor.Descriptor(
+  name='BackwardQARequest',
+  full_name='BackwardQARequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardQARequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardQARequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='reward', full_name='BackwardQARequest.reward', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='question', full_name='BackwardQARequest.question', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='answer', full_name='BackwardQARequest.answer', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='BackwardQARequest.timeout', index=5,
+      number=6, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=770,
+  serialized_end=889,
+)
+
+
+_BACKWARDQARESPONSE = _descriptor.Descriptor(
+  name='BackwardQAResponse',
+  full_name='BackwardQAResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardQAResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardQAResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='BackwardQAResponse.return_message', index=2,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='BackwardQAResponse.return_code', index=3,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=891,
+  serialized_end=1002,
+)
+
+
+_FORWARDSENTENCESIMILARITYREQUEST = _descriptor.Descriptor(
+  name='ForwardSentenceSimilarityRequest',
+  full_name='ForwardSentenceSimilarityRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardSentenceSimilarityRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardSentenceSimilarityRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='source_sentence', full_name='ForwardSentenceSimilarityRequest.source_sentence', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='target_sentence', full_name='ForwardSentenceSimilarityRequest.target_sentence', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='ForwardSentenceSimilarityRequest.timeout', index=4,
+      number=5, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1005,
+  serialized_end=1139,
+)
+
+
+_FORWARDSENTENCESIMILARITYRESPONSE = _descriptor.Descriptor(
+  name='ForwardSentenceSimilarityResponse',
+  full_name='ForwardSentenceSimilarityResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardSentenceSimilarityResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardSentenceSimilarityResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='similarity', full_name='ForwardSentenceSimilarityResponse.similarity', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='ForwardSentenceSimilarityResponse.return_message', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='ForwardSentenceSimilarityResponse.return_code', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1142,
+  serialized_end=1288,
+)
+
+
+_BACKWARDSENTENCESIMILARITYREQUEST = _descriptor.Descriptor(
+  name='BackwardSentenceSimilarityRequest',
+  full_name='BackwardSentenceSimilarityRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardSentenceSimilarityRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardSentenceSimilarityRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='reward', full_name='BackwardSentenceSimilarityRequest.reward', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='source_sentence', full_name='BackwardSentenceSimilarityRequest.source_sentence', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='target_sentence', full_name='BackwardSentenceSimilarityRequest.target_sentence', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='BackwardSentenceSimilarityRequest.timeout', index=5,
+      number=6, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1291,
+  serialized_end=1442,
+)
+
+
+_BACKWARDSENTENCESIMILARITYRESPONSE = _descriptor.Descriptor(
+  name='BackwardSentenceSimilarityResponse',
+  full_name='BackwardSentenceSimilarityResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardSentenceSimilarityResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardSentenceSimilarityResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='BackwardSentenceSimilarityResponse.return_message', index=2,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='BackwardSentenceSimilarityResponse.return_code', index=3,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1444,
+  serialized_end=1571,
+)
+
+
+_FORWARDTEXTREQUEST = _descriptor.Descriptor(
+  name='ForwardTextRequest',
+  full_name='ForwardTextRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardTextRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='text', full_name='ForwardTextRequest.text', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='ForwardTextRequest.timeout', index=3,
+      number=4, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1573,
+  serialized_end=1657,
+)
+
+
+_FORWARDTEXTRESPONSE = _descriptor.Descriptor(
+  name='ForwardTextResponse',
+  full_name='ForwardTextResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardTextResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='ForwardTextResponse.response', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='ForwardTextResponse.return_message', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='ForwardTextResponse.return_code', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1660,
+  serialized_end=1790,
+)
+
+
+_BACKWARDTEXTREQUEST = _descriptor.Descriptor(
+  name='BackwardTextRequest',
+  full_name='BackwardTextRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardTextRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardTextRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='reward', full_name='BackwardTextRequest.reward', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='text', full_name='BackwardTextRequest.text', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='BackwardTextRequest.response', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='BackwardTextRequest.timeout', index=5,
+      number=6, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1792,
+  serialized_end=1911,
+)
+
+
+_BACKWARDTEXTRESPONSE = _descriptor.Descriptor(
+  name='BackwardTextResponse',
+  full_name='BackwardTextResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardTextResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardTextResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='BackwardTextResponse.return_message', index=2,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='BackwardTextResponse.return_code', index=3,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1913,
+  serialized_end=2026,
+)
+
+
+_FORWARDVISUALQAREQUEST = _descriptor.Descriptor(
+  name='ForwardVisualQARequest',
+  full_name='ForwardVisualQARequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardVisualQARequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardVisualQARequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='question', full_name='ForwardVisualQARequest.question', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='ForwardVisualQARequest.image', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='ForwardVisualQARequest.timeout', index=4,
+      number=5, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2028,
+  serialized_end=2135,
+)
+
+
+_FORWARDVISUALQARESPONSE = _descriptor.Descriptor(
+  name='ForwardVisualQAResponse',
+  full_name='ForwardVisualQAResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardVisualQAResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardVisualQAResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='answer', full_name='ForwardVisualQAResponse.answer', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='ForwardVisualQAResponse.return_message', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='ForwardVisualQAResponse.return_code', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2138,
+  serialized_end=2270,
+)
+
+
+_BACKWARDVISUALQAREQUEST = _descriptor.Descriptor(
+  name='BackwardVisualQARequest',
+  full_name='BackwardVisualQARequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardVisualQARequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardVisualQARequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='reward', full_name='BackwardVisualQARequest.reward', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='question', full_name='BackwardVisualQARequest.question', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='BackwardVisualQARequest.image', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='answer', full_name='BackwardVisualQARequest.answer', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='BackwardVisualQARequest.timeout', index=6,
+      number=7, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2273,
+  serialized_end=2413,
+)
+
+
+_BACKWARDVISUALQARESPONSE = _descriptor.Descriptor(
+  name='BackwardVisualQAResponse',
+  full_name='BackwardVisualQAResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardVisualQAResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardVisualQAResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='BackwardVisualQAResponse.return_message', index=2,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='BackwardVisualQAResponse.return_code', index=3,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2415,
+  serialized_end=2532,
+)
+
+
+_FORWARDTEXTTOIMAGEREQUEST = _descriptor.Descriptor(
+  name='ForwardTextToImageRequest',
+  full_name='ForwardTextToImageRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextToImageRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardTextToImageRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='prompt', full_name='ForwardTextToImageRequest.prompt', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='ForwardTextToImageRequest.timeout', index=3,
+      number=4, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2534,
+  serialized_end=2627,
+)
+
+
+_FORWARDTEXTTOIMAGERESPONSE = _descriptor.Descriptor(
+  name='ForwardTextToImageResponse',
+  full_name='ForwardTextToImageResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextToImageResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardTextToImageResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='ForwardTextToImageResponse.image', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='ForwardTextToImageResponse.return_message', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='ForwardTextToImageResponse.return_code', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2630,
+  serialized_end=2764,
+)
+
+
+_BACKWARDTEXTTOIMAGEREQUEST = _descriptor.Descriptor(
+  name='BackwardTextToImageRequest',
+  full_name='BackwardTextToImageRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardTextToImageRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardTextToImageRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='reward', full_name='BackwardTextToImageRequest.reward', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='prompt', full_name='BackwardTextToImageRequest.prompt', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='BackwardTextToImageRequest.image', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='BackwardTextToImageRequest.timeout', index=5,
+      number=6, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2766,
+  serialized_end=2891,
+)
+
+
+_BACKWARDTEXTTOIMAGERESPONSE = _descriptor.Descriptor(
+  name='BackwardTextToImageResponse',
+  full_name='BackwardTextToImageResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardTextToImageResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardTextToImageResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='BackwardTextToImageResponse.return_message', index=2,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='BackwardTextToImageResponse.return_code', index=3,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2893,
+  serialized_end=3013,
+)
+
+
+_FORWARDIMAGESEGMENTATIONREQUEST = _descriptor.Descriptor(
+  name='ForwardImageSegmentationRequest',
+  full_name='ForwardImageSegmentationRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardImageSegmentationRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardImageSegmentationRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='ForwardImageSegmentationRequest.image', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='ForwardImageSegmentationRequest.timeout', index=3,
+      number=4, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=3015,
+  serialized_end=3113,
+)
+
+
+_FORWARDIMAGESEGMENTATIONRESPONSE = _descriptor.Descriptor(
+  name='ForwardImageSegmentationResponse',
+  full_name='ForwardImageSegmentationResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardImageSegmentationResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardImageSegmentationResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='ForwardImageSegmentationResponse.response', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='ForwardImageSegmentationResponse.return_message', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='ForwardImageSegmentationResponse.return_code', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=3116,
+  serialized_end=3259,
+)
+
+
+_BACKWARDIMAGESEGMENTATIONREQUEST = _descriptor.Descriptor(
+  name='BackwardImageSegmentationRequest',
+  full_name='BackwardImageSegmentationRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardImageSegmentationRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardImageSegmentationRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='reward', full_name='BackwardImageSegmentationRequest.reward', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='BackwardImageSegmentationRequest.image', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='BackwardImageSegmentationRequest.response', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='BackwardImageSegmentationRequest.timeout', index=5,
+      number=6, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=3262,
+  serialized_end=3395,
+)
+
+
+_BACKWARDIMAGESEGMENTATIONRESPONSE = _descriptor.Descriptor(
+  name='BackwardImageSegmentationResponse',
+  full_name='BackwardImageSegmentationResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardImageSegmentationResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardImageSegmentationResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='BackwardImageSegmentationResponse.return_message', index=2,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='BackwardImageSegmentationResponse.return_code', index=3,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=3397,
+  serialized_end=3523,
+)
+
+
+_FORWARDDEPTHESTIMATIONREQUEST = _descriptor.Descriptor(
+  name='ForwardDepthEstimationRequest',
+  full_name='ForwardDepthEstimationRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardDepthEstimationRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardDepthEstimationRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='ForwardDepthEstimationRequest.image', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='ForwardDepthEstimationRequest.timeout', index=3,
+      number=4, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=3525,
+  serialized_end=3621,
+)
+
+
+_FORWARDDEPTHESTIMATIONRESPONSE = _descriptor.Descriptor(
+  name='ForwardDepthEstimationResponse',
+  full_name='ForwardDepthEstimationResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardDepthEstimationResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardDepthEstimationResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='ForwardDepthEstimationResponse.response', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='ForwardDepthEstimationResponse.return_message', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='ForwardDepthEstimationResponse.return_code', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=3624,
+  serialized_end=3765,
+)
+
+
+_BACKWARDDEPTHESTIMATIONREQUEST = _descriptor.Descriptor(
+  name='BackwardDepthEstimationRequest',
+  full_name='BackwardDepthEstimationRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardDepthEstimationRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardDepthEstimationRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='reward', full_name='BackwardDepthEstimationRequest.reward', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='BackwardDepthEstimationRequest.image', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='BackwardDepthEstimationRequest.response', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='BackwardDepthEstimationRequest.timeout', index=5,
+      number=6, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=3768,
+  serialized_end=3899,
+)
+
+
+_BACKWARDDEPTHESTIMATIONRESPONSE = _descriptor.Descriptor(
+  name='BackwardDepthEstimationResponse',
+  full_name='BackwardDepthEstimationResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardDepthEstimationResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardDepthEstimationResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='BackwardDepthEstimationResponse.return_message', index=2,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='BackwardDepthEstimationResponse.return_code', index=3,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=3901,
+  serialized_end=4025,
+)
+
+
+_FORWARDOBJECTDETECTIONREQUEST = _descriptor.Descriptor(
+  name='ForwardObjectDetectionRequest',
+  full_name='ForwardObjectDetectionRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardObjectDetectionRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardObjectDetectionRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='ForwardObjectDetectionRequest.image', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='ForwardObjectDetectionRequest.timeout', index=3,
+      number=4, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4027,
+  serialized_end=4123,
+)
+
+
+_FORWARDOBJECTDETECTIONRESPONSE = _descriptor.Descriptor(
+  name='ForwardObjectDetectionResponse',
+  full_name='ForwardObjectDetectionResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardObjectDetectionResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardObjectDetectionResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='ForwardObjectDetectionResponse.response', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='predicted', full_name='ForwardObjectDetectionResponse.predicted', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='ForwardObjectDetectionResponse.return_message', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='ForwardObjectDetectionResponse.return_code', index=5,
+      number=6, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4126,
+  serialized_end=4286,
+)
+
+
+_BACKWARDOBJECTDETECTIONREQUEST = _descriptor.Descriptor(
+  name='BackwardObjectDetectionRequest',
+  full_name='BackwardObjectDetectionRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardObjectDetectionRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardObjectDetectionRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='reward', full_name='BackwardObjectDetectionRequest.reward', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='BackwardObjectDetectionRequest.image', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='BackwardObjectDetectionRequest.response', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='BackwardObjectDetectionRequest.timeout', index=5,
+      number=6, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4289,
+  serialized_end=4420,
+)
+
+
+_BACKWARDOBJECTDETECTIONRESPONSE = _descriptor.Descriptor(
+  name='BackwardObjectDetectionResponse',
+  full_name='BackwardObjectDetectionResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardObjectDetectionResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardObjectDetectionResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='BackwardObjectDetectionResponse.return_message', index=2,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='BackwardObjectDetectionResponse.return_code', index=3,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4422,
+  serialized_end=4546,
+)
+
+
+_FORWARDIMAGECLASSIFICATIONREQUEST = _descriptor.Descriptor(
+  name='ForwardImageClassificationRequest',
+  full_name='ForwardImageClassificationRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardImageClassificationRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardImageClassificationRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='ForwardImageClassificationRequest.image', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='ForwardImageClassificationRequest.timeout', index=3,
+      number=4, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4548,
+  serialized_end=4648,
+)
+
+
+_FORWARDIMAGECLASSIFICATIONRESPONSE = _descriptor.Descriptor(
+  name='ForwardImageClassificationResponse',
+  full_name='ForwardImageClassificationResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardImageClassificationResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardImageClassificationResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='ForwardImageClassificationResponse.response', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='ForwardImageClassificationResponse.return_message', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='ForwardImageClassificationResponse.return_code', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4651,
+  serialized_end=4796,
+)
+
+
+_BACKWARDIMAGECLASSIFICATIONREQUEST = _descriptor.Descriptor(
+  name='BackwardImageClassificationRequest',
+  full_name='BackwardImageClassificationRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardImageClassificationRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardImageClassificationRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='reward', full_name='BackwardImageClassificationRequest.reward', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='BackwardImageClassificationRequest.image', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='BackwardImageClassificationRequest.response', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='BackwardImageClassificationRequest.timeout', index=5,
+      number=6, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4799,
+  serialized_end=4934,
+)
+
+
+_BACKWARDIMAGECLASSIFICATIONRESPONSE = _descriptor.Descriptor(
+  name='BackwardImageClassificationResponse',
+  full_name='BackwardImageClassificationResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardImageClassificationResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardImageClassificationResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='BackwardImageClassificationResponse.return_message', index=2,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='BackwardImageClassificationResponse.return_code', index=3,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4937,
+  serialized_end=5065,
+)
+
+
+_FORWARDIMAGETOTEXTREQUEST = _descriptor.Descriptor(
+  name='ForwardImageToTextRequest',
+  full_name='ForwardImageToTextRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardImageToTextRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardImageToTextRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='ForwardImageToTextRequest.image', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='ForwardImageToTextRequest.timeout', index=3,
+      number=4, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5067,
+  serialized_end=5159,
+)
+
+
+_FORWARDIMAGETOTEXTRESPONSE = _descriptor.Descriptor(
+  name='ForwardImageToTextResponse',
+  full_name='ForwardImageToTextResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardImageToTextResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardImageToTextResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='ForwardImageToTextResponse.response', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='ForwardImageToTextResponse.return_message', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='ForwardImageToTextResponse.return_code', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5162,
+  serialized_end=5299,
+)
+
+
+_BACKWARDIMAGETOTEXTREQUEST = _descriptor.Descriptor(
+  name='BackwardImageToTextRequest',
+  full_name='BackwardImageToTextRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardImageToTextRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardImageToTextRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='reward', full_name='BackwardImageToTextRequest.reward', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='BackwardImageToTextRequest.image', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='BackwardImageToTextRequest.response', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='BackwardImageToTextRequest.timeout', index=5,
+      number=6, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5301,
+  serialized_end=5428,
+)
+
+
+_BACKWARDIMAGETOTEXTRESPONSE = _descriptor.Descriptor(
+  name='BackwardImageToTextResponse',
+  full_name='BackwardImageToTextResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardImageToTextResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardImageToTextResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='BackwardImageToTextResponse.return_message', index=2,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='BackwardImageToTextResponse.return_code', index=3,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5430,
+  serialized_end=5550,
+)
+
+
+_FORWARDTEXTTOSPEECHREQUEST = _descriptor.Descriptor(
+  name='ForwardTextToSpeechRequest',
+  full_name='ForwardTextToSpeechRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextToSpeechRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardTextToSpeechRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='text', full_name='ForwardTextToSpeechRequest.text', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='ForwardTextToSpeechRequest.timeout', index=3,
+      number=4, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5552,
+  serialized_end=5644,
+)
+
+
+_FORWARDTEXTTOSPEECHRESPONSE = _descriptor.Descriptor(
+  name='ForwardTextToSpeechResponse',
+  full_name='ForwardTextToSpeechResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextToSpeechResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardTextToSpeechResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='audio', full_name='ForwardTextToSpeechResponse.audio', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='ForwardTextToSpeechResponse.return_message', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='ForwardTextToSpeechResponse.return_code', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5647,
+  serialized_end=5782,
+)
+
+
+_BACKWARDTEXTTOSPEECHREQUEST = _descriptor.Descriptor(
+  name='BackwardTextToSpeechRequest',
+  full_name='BackwardTextToSpeechRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardTextToSpeechRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardTextToSpeechRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='reward', full_name='BackwardTextToSpeechRequest.reward', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='text', full_name='BackwardTextToSpeechRequest.text', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='audio', full_name='BackwardTextToSpeechRequest.audio', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='BackwardTextToSpeechRequest.timeout', index=5,
+      number=6, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5784,
+  serialized_end=5908,
+)
+
+
+_BACKWARDTEXTTOSPEECHRESPONSE = _descriptor.Descriptor(
+  name='BackwardTextToSpeechResponse',
+  full_name='BackwardTextToSpeechResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardTextToSpeechResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardTextToSpeechResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='BackwardTextToSpeechResponse.return_message', index=2,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='BackwardTextToSpeechResponse.return_code', index=3,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5910,
+  serialized_end=6031,
+)
+
+
+_FORWARDSPEECHTOTEXTREQUEST = _descriptor.Descriptor(
+  name='ForwardSpeechToTextRequest',
+  full_name='ForwardSpeechToTextRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardSpeechToTextRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardSpeechToTextRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='audio', full_name='ForwardSpeechToTextRequest.audio', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='ForwardSpeechToTextRequest.timeout', index=3,
+      number=4, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=6033,
+  serialized_end=6126,
+)
+
+
+_FORWARDSPEECHTOTEXTRESPONSE = _descriptor.Descriptor(
+  name='ForwardSpeechToTextResponse',
+  full_name='ForwardSpeechToTextResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardSpeechToTextResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardSpeechToTextResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='ForwardSpeechToTextResponse.response', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='ForwardSpeechToTextResponse.return_message', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='ForwardSpeechToTextResponse.return_code', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=6129,
+  serialized_end=6267,
+)
+
+
+_BACKWARDSPEECHTOTEXTREQUEST = _descriptor.Descriptor(
+  name='BackwardSpeechToTextRequest',
+  full_name='BackwardSpeechToTextRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardSpeechToTextRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardSpeechToTextRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='reward', full_name='BackwardSpeechToTextRequest.reward', index=2,
+      number=3, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='audio', full_name='BackwardSpeechToTextRequest.audio', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='BackwardSpeechToTextRequest.response', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='BackwardSpeechToTextRequest.timeout', index=5,
+      number=6, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=6270,
+  serialized_end=6398,
+)
+
+
+_BACKWARDSPEECHTOTEXTRESPONSE = _descriptor.Descriptor(
+  name='BackwardSpeechToTextResponse',
+  full_name='BackwardSpeechToTextResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardSpeechToTextResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardSpeechToTextResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='BackwardSpeechToTextResponse.return_message', index=2,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='BackwardSpeechToTextResponse.return_code', index=3,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=6400,
+  serialized_end=6521,
 )
 
 
@@ -771,52 +3457,97 @@ _TENSOR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=804,
-  serialized_end=976,
+  serialized_start=6524,
+  serialized_end=6696,
 )
 
-_DATABLOCKREQUEST.fields_by_name['blocks'].message_type = _DATABLOCK
-_DATABLOCKRESPONSE.fields_by_name['blocks'].message_type = _DATABLOCK
-_DATABLOCKRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
 _FORWARDTEXTPROMPTINGRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
 _BACKWARDTEXTPROMPTINGRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_FORWARDQARESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_BACKWARDQARESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_FORWARDSENTENCESIMILARITYRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_BACKWARDSENTENCESIMILARITYRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_FORWARDTEXTRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_BACKWARDTEXTRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_FORWARDVISUALQARESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_BACKWARDVISUALQARESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_FORWARDTEXTTOIMAGERESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_BACKWARDTEXTTOIMAGERESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_FORWARDIMAGESEGMENTATIONRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_BACKWARDIMAGESEGMENTATIONRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_FORWARDDEPTHESTIMATIONRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_BACKWARDDEPTHESTIMATIONRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_FORWARDOBJECTDETECTIONRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_BACKWARDOBJECTDETECTIONRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_FORWARDIMAGECLASSIFICATIONRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_BACKWARDIMAGECLASSIFICATIONRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_FORWARDIMAGETOTEXTRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_BACKWARDIMAGETOTEXTRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_FORWARDTEXTTOSPEECHRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_BACKWARDTEXTTOSPEECHRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_FORWARDSPEECHTOTEXTRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_BACKWARDSPEECHTOTEXTRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
 _TENSOR.fields_by_name['serializer'].enum_type = _SERIALIZER
 _TENSOR.fields_by_name['tensor_type'].enum_type = _TENSORTYPE
 _TENSOR.fields_by_name['dtype'].enum_type = _DATATYPE
-DESCRIPTOR.message_types_by_name['DataBlock'] = _DATABLOCK
-DESCRIPTOR.message_types_by_name['DataBlockRequest'] = _DATABLOCKREQUEST
-DESCRIPTOR.message_types_by_name['DataBlockResponse'] = _DATABLOCKRESPONSE
 DESCRIPTOR.message_types_by_name['ForwardTextPromptingRequest'] = _FORWARDTEXTPROMPTINGREQUEST
 DESCRIPTOR.message_types_by_name['ForwardTextPromptingResponse'] = _FORWARDTEXTPROMPTINGRESPONSE
 DESCRIPTOR.message_types_by_name['BackwardTextPromptingRequest'] = _BACKWARDTEXTPROMPTINGREQUEST
 DESCRIPTOR.message_types_by_name['BackwardTextPromptingResponse'] = _BACKWARDTEXTPROMPTINGRESPONSE
+DESCRIPTOR.message_types_by_name['ForwardQARequest'] = _FORWARDQAREQUEST
+DESCRIPTOR.message_types_by_name['ForwardQAResponse'] = _FORWARDQARESPONSE
+DESCRIPTOR.message_types_by_name['BackwardQARequest'] = _BACKWARDQAREQUEST
+DESCRIPTOR.message_types_by_name['BackwardQAResponse'] = _BACKWARDQARESPONSE
+DESCRIPTOR.message_types_by_name['ForwardSentenceSimilarityRequest'] = _FORWARDSENTENCESIMILARITYREQUEST
+DESCRIPTOR.message_types_by_name['ForwardSentenceSimilarityResponse'] = _FORWARDSENTENCESIMILARITYRESPONSE
+DESCRIPTOR.message_types_by_name['BackwardSentenceSimilarityRequest'] = _BACKWARDSENTENCESIMILARITYREQUEST
+DESCRIPTOR.message_types_by_name['BackwardSentenceSimilarityResponse'] = _BACKWARDSENTENCESIMILARITYRESPONSE
+DESCRIPTOR.message_types_by_name['ForwardTextRequest'] = _FORWARDTEXTREQUEST
+DESCRIPTOR.message_types_by_name['ForwardTextResponse'] = _FORWARDTEXTRESPONSE
+DESCRIPTOR.message_types_by_name['BackwardTextRequest'] = _BACKWARDTEXTREQUEST
+DESCRIPTOR.message_types_by_name['BackwardTextResponse'] = _BACKWARDTEXTRESPONSE
+DESCRIPTOR.message_types_by_name['ForwardVisualQARequest'] = _FORWARDVISUALQAREQUEST
+DESCRIPTOR.message_types_by_name['ForwardVisualQAResponse'] = _FORWARDVISUALQARESPONSE
+DESCRIPTOR.message_types_by_name['BackwardVisualQARequest'] = _BACKWARDVISUALQAREQUEST
+DESCRIPTOR.message_types_by_name['BackwardVisualQAResponse'] = _BACKWARDVISUALQARESPONSE
+DESCRIPTOR.message_types_by_name['ForwardTextToImageRequest'] = _FORWARDTEXTTOIMAGEREQUEST
+DESCRIPTOR.message_types_by_name['ForwardTextToImageResponse'] = _FORWARDTEXTTOIMAGERESPONSE
+DESCRIPTOR.message_types_by_name['BackwardTextToImageRequest'] = _BACKWARDTEXTTOIMAGEREQUEST
+DESCRIPTOR.message_types_by_name['BackwardTextToImageResponse'] = _BACKWARDTEXTTOIMAGERESPONSE
+DESCRIPTOR.message_types_by_name['ForwardImageSegmentationRequest'] = _FORWARDIMAGESEGMENTATIONREQUEST
+DESCRIPTOR.message_types_by_name['ForwardImageSegmentationResponse'] = _FORWARDIMAGESEGMENTATIONRESPONSE
+DESCRIPTOR.message_types_by_name['BackwardImageSegmentationRequest'] = _BACKWARDIMAGESEGMENTATIONREQUEST
+DESCRIPTOR.message_types_by_name['BackwardImageSegmentationResponse'] = _BACKWARDIMAGESEGMENTATIONRESPONSE
+DESCRIPTOR.message_types_by_name['ForwardDepthEstimationRequest'] = _FORWARDDEPTHESTIMATIONREQUEST
+DESCRIPTOR.message_types_by_name['ForwardDepthEstimationResponse'] = _FORWARDDEPTHESTIMATIONRESPONSE
+DESCRIPTOR.message_types_by_name['BackwardDepthEstimationRequest'] = _BACKWARDDEPTHESTIMATIONREQUEST
+DESCRIPTOR.message_types_by_name['BackwardDepthEstimationResponse'] = _BACKWARDDEPTHESTIMATIONRESPONSE
+DESCRIPTOR.message_types_by_name['ForwardObjectDetectionRequest'] = _FORWARDOBJECTDETECTIONREQUEST
+DESCRIPTOR.message_types_by_name['ForwardObjectDetectionResponse'] = _FORWARDOBJECTDETECTIONRESPONSE
+DESCRIPTOR.message_types_by_name['BackwardObjectDetectionRequest'] = _BACKWARDOBJECTDETECTIONREQUEST
+DESCRIPTOR.message_types_by_name['BackwardObjectDetectionResponse'] = _BACKWARDOBJECTDETECTIONRESPONSE
+DESCRIPTOR.message_types_by_name['ForwardImageClassificationRequest'] = _FORWARDIMAGECLASSIFICATIONREQUEST
+DESCRIPTOR.message_types_by_name['ForwardImageClassificationResponse'] = _FORWARDIMAGECLASSIFICATIONRESPONSE
+DESCRIPTOR.message_types_by_name['BackwardImageClassificationRequest'] = _BACKWARDIMAGECLASSIFICATIONREQUEST
+DESCRIPTOR.message_types_by_name['BackwardImageClassificationResponse'] = _BACKWARDIMAGECLASSIFICATIONRESPONSE
+DESCRIPTOR.message_types_by_name['ForwardImageToTextRequest'] = _FORWARDIMAGETOTEXTREQUEST
+DESCRIPTOR.message_types_by_name['ForwardImageToTextResponse'] = _FORWARDIMAGETOTEXTRESPONSE
+DESCRIPTOR.message_types_by_name['BackwardImageToTextRequest'] = _BACKWARDIMAGETOTEXTREQUEST
+DESCRIPTOR.message_types_by_name['BackwardImageToTextResponse'] = _BACKWARDIMAGETOTEXTRESPONSE
+DESCRIPTOR.message_types_by_name['ForwardTextToSpeechRequest'] = _FORWARDTEXTTOSPEECHREQUEST
+DESCRIPTOR.message_types_by_name['ForwardTextToSpeechResponse'] = _FORWARDTEXTTOSPEECHRESPONSE
+DESCRIPTOR.message_types_by_name['BackwardTextToSpeechRequest'] = _BACKWARDTEXTTOSPEECHREQUEST
+DESCRIPTOR.message_types_by_name['BackwardTextToSpeechResponse'] = _BACKWARDTEXTTOSPEECHRESPONSE
+DESCRIPTOR.message_types_by_name['ForwardSpeechToTextRequest'] = _FORWARDSPEECHTOTEXTREQUEST
+DESCRIPTOR.message_types_by_name['ForwardSpeechToTextResponse'] = _FORWARDSPEECHTOTEXTRESPONSE
+DESCRIPTOR.message_types_by_name['BackwardSpeechToTextRequest'] = _BACKWARDSPEECHTOTEXTREQUEST
+DESCRIPTOR.message_types_by_name['BackwardSpeechToTextResponse'] = _BACKWARDSPEECHTOTEXTRESPONSE
 DESCRIPTOR.message_types_by_name['Tensor'] = _TENSOR
 DESCRIPTOR.enum_types_by_name['ReturnCode'] = _RETURNCODE
 DESCRIPTOR.enum_types_by_name['Serializer'] = _SERIALIZER
 DESCRIPTOR.enum_types_by_name['TensorType'] = _TENSORTYPE
 DESCRIPTOR.enum_types_by_name['DataType'] = _DATATYPE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
-
-DataBlock = _reflection.GeneratedProtocolMessageType('DataBlock', (_message.Message,), {
-  'DESCRIPTOR' : _DATABLOCK,
-  '__module__' : 'bittensor._proto.bittensor_pb2'
-  # @@protoc_insertion_point(class_scope:DataBlock)
-  })
-_sym_db.RegisterMessage(DataBlock)
-
-DataBlockRequest = _reflection.GeneratedProtocolMessageType('DataBlockRequest', (_message.Message,), {
-  'DESCRIPTOR' : _DATABLOCKREQUEST,
-  '__module__' : 'bittensor._proto.bittensor_pb2'
-  # @@protoc_insertion_point(class_scope:DataBlockRequest)
-  })
-_sym_db.RegisterMessage(DataBlockRequest)
-
-DataBlockResponse = _reflection.GeneratedProtocolMessageType('DataBlockResponse', (_message.Message,), {
-  'DESCRIPTOR' : _DATABLOCKRESPONSE,
-  '__module__' : 'bittensor._proto.bittensor_pb2'
-  # @@protoc_insertion_point(class_scope:DataBlockResponse)
-  })
-_sym_db.RegisterMessage(DataBlockResponse)
 
 ForwardTextPromptingRequest = _reflection.GeneratedProtocolMessageType('ForwardTextPromptingRequest', (_message.Message,), {
   'DESCRIPTOR' : _FORWARDTEXTPROMPTINGREQUEST,
@@ -846,6 +3577,342 @@ BackwardTextPromptingResponse = _reflection.GeneratedProtocolMessageType('Backwa
   })
 _sym_db.RegisterMessage(BackwardTextPromptingResponse)
 
+ForwardQARequest = _reflection.GeneratedProtocolMessageType('ForwardQARequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDQAREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardQARequest)
+  })
+_sym_db.RegisterMessage(ForwardQARequest)
+
+ForwardQAResponse = _reflection.GeneratedProtocolMessageType('ForwardQAResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDQARESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardQAResponse)
+  })
+_sym_db.RegisterMessage(ForwardQAResponse)
+
+BackwardQARequest = _reflection.GeneratedProtocolMessageType('BackwardQARequest', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDQAREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardQARequest)
+  })
+_sym_db.RegisterMessage(BackwardQARequest)
+
+BackwardQAResponse = _reflection.GeneratedProtocolMessageType('BackwardQAResponse', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDQARESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardQAResponse)
+  })
+_sym_db.RegisterMessage(BackwardQAResponse)
+
+ForwardSentenceSimilarityRequest = _reflection.GeneratedProtocolMessageType('ForwardSentenceSimilarityRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDSENTENCESIMILARITYREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardSentenceSimilarityRequest)
+  })
+_sym_db.RegisterMessage(ForwardSentenceSimilarityRequest)
+
+ForwardSentenceSimilarityResponse = _reflection.GeneratedProtocolMessageType('ForwardSentenceSimilarityResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDSENTENCESIMILARITYRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardSentenceSimilarityResponse)
+  })
+_sym_db.RegisterMessage(ForwardSentenceSimilarityResponse)
+
+BackwardSentenceSimilarityRequest = _reflection.GeneratedProtocolMessageType('BackwardSentenceSimilarityRequest', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDSENTENCESIMILARITYREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardSentenceSimilarityRequest)
+  })
+_sym_db.RegisterMessage(BackwardSentenceSimilarityRequest)
+
+BackwardSentenceSimilarityResponse = _reflection.GeneratedProtocolMessageType('BackwardSentenceSimilarityResponse', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDSENTENCESIMILARITYRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardSentenceSimilarityResponse)
+  })
+_sym_db.RegisterMessage(BackwardSentenceSimilarityResponse)
+
+ForwardTextRequest = _reflection.GeneratedProtocolMessageType('ForwardTextRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardTextRequest)
+  })
+_sym_db.RegisterMessage(ForwardTextRequest)
+
+ForwardTextResponse = _reflection.GeneratedProtocolMessageType('ForwardTextResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardTextResponse)
+  })
+_sym_db.RegisterMessage(ForwardTextResponse)
+
+BackwardTextRequest = _reflection.GeneratedProtocolMessageType('BackwardTextRequest', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDTEXTREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardTextRequest)
+  })
+_sym_db.RegisterMessage(BackwardTextRequest)
+
+BackwardTextResponse = _reflection.GeneratedProtocolMessageType('BackwardTextResponse', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDTEXTRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardTextResponse)
+  })
+_sym_db.RegisterMessage(BackwardTextResponse)
+
+ForwardVisualQARequest = _reflection.GeneratedProtocolMessageType('ForwardVisualQARequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDVISUALQAREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardVisualQARequest)
+  })
+_sym_db.RegisterMessage(ForwardVisualQARequest)
+
+ForwardVisualQAResponse = _reflection.GeneratedProtocolMessageType('ForwardVisualQAResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDVISUALQARESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardVisualQAResponse)
+  })
+_sym_db.RegisterMessage(ForwardVisualQAResponse)
+
+BackwardVisualQARequest = _reflection.GeneratedProtocolMessageType('BackwardVisualQARequest', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDVISUALQAREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardVisualQARequest)
+  })
+_sym_db.RegisterMessage(BackwardVisualQARequest)
+
+BackwardVisualQAResponse = _reflection.GeneratedProtocolMessageType('BackwardVisualQAResponse', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDVISUALQARESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardVisualQAResponse)
+  })
+_sym_db.RegisterMessage(BackwardVisualQAResponse)
+
+ForwardTextToImageRequest = _reflection.GeneratedProtocolMessageType('ForwardTextToImageRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTTOIMAGEREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardTextToImageRequest)
+  })
+_sym_db.RegisterMessage(ForwardTextToImageRequest)
+
+ForwardTextToImageResponse = _reflection.GeneratedProtocolMessageType('ForwardTextToImageResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTTOIMAGERESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardTextToImageResponse)
+  })
+_sym_db.RegisterMessage(ForwardTextToImageResponse)
+
+BackwardTextToImageRequest = _reflection.GeneratedProtocolMessageType('BackwardTextToImageRequest', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDTEXTTOIMAGEREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardTextToImageRequest)
+  })
+_sym_db.RegisterMessage(BackwardTextToImageRequest)
+
+BackwardTextToImageResponse = _reflection.GeneratedProtocolMessageType('BackwardTextToImageResponse', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDTEXTTOIMAGERESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardTextToImageResponse)
+  })
+_sym_db.RegisterMessage(BackwardTextToImageResponse)
+
+ForwardImageSegmentationRequest = _reflection.GeneratedProtocolMessageType('ForwardImageSegmentationRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDIMAGESEGMENTATIONREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardImageSegmentationRequest)
+  })
+_sym_db.RegisterMessage(ForwardImageSegmentationRequest)
+
+ForwardImageSegmentationResponse = _reflection.GeneratedProtocolMessageType('ForwardImageSegmentationResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDIMAGESEGMENTATIONRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardImageSegmentationResponse)
+  })
+_sym_db.RegisterMessage(ForwardImageSegmentationResponse)
+
+BackwardImageSegmentationRequest = _reflection.GeneratedProtocolMessageType('BackwardImageSegmentationRequest', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDIMAGESEGMENTATIONREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardImageSegmentationRequest)
+  })
+_sym_db.RegisterMessage(BackwardImageSegmentationRequest)
+
+BackwardImageSegmentationResponse = _reflection.GeneratedProtocolMessageType('BackwardImageSegmentationResponse', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDIMAGESEGMENTATIONRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardImageSegmentationResponse)
+  })
+_sym_db.RegisterMessage(BackwardImageSegmentationResponse)
+
+ForwardDepthEstimationRequest = _reflection.GeneratedProtocolMessageType('ForwardDepthEstimationRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDDEPTHESTIMATIONREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardDepthEstimationRequest)
+  })
+_sym_db.RegisterMessage(ForwardDepthEstimationRequest)
+
+ForwardDepthEstimationResponse = _reflection.GeneratedProtocolMessageType('ForwardDepthEstimationResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDDEPTHESTIMATIONRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardDepthEstimationResponse)
+  })
+_sym_db.RegisterMessage(ForwardDepthEstimationResponse)
+
+BackwardDepthEstimationRequest = _reflection.GeneratedProtocolMessageType('BackwardDepthEstimationRequest', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDDEPTHESTIMATIONREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardDepthEstimationRequest)
+  })
+_sym_db.RegisterMessage(BackwardDepthEstimationRequest)
+
+BackwardDepthEstimationResponse = _reflection.GeneratedProtocolMessageType('BackwardDepthEstimationResponse', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDDEPTHESTIMATIONRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardDepthEstimationResponse)
+  })
+_sym_db.RegisterMessage(BackwardDepthEstimationResponse)
+
+ForwardObjectDetectionRequest = _reflection.GeneratedProtocolMessageType('ForwardObjectDetectionRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDOBJECTDETECTIONREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardObjectDetectionRequest)
+  })
+_sym_db.RegisterMessage(ForwardObjectDetectionRequest)
+
+ForwardObjectDetectionResponse = _reflection.GeneratedProtocolMessageType('ForwardObjectDetectionResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDOBJECTDETECTIONRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardObjectDetectionResponse)
+  })
+_sym_db.RegisterMessage(ForwardObjectDetectionResponse)
+
+BackwardObjectDetectionRequest = _reflection.GeneratedProtocolMessageType('BackwardObjectDetectionRequest', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDOBJECTDETECTIONREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardObjectDetectionRequest)
+  })
+_sym_db.RegisterMessage(BackwardObjectDetectionRequest)
+
+BackwardObjectDetectionResponse = _reflection.GeneratedProtocolMessageType('BackwardObjectDetectionResponse', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDOBJECTDETECTIONRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardObjectDetectionResponse)
+  })
+_sym_db.RegisterMessage(BackwardObjectDetectionResponse)
+
+ForwardImageClassificationRequest = _reflection.GeneratedProtocolMessageType('ForwardImageClassificationRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDIMAGECLASSIFICATIONREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardImageClassificationRequest)
+  })
+_sym_db.RegisterMessage(ForwardImageClassificationRequest)
+
+ForwardImageClassificationResponse = _reflection.GeneratedProtocolMessageType('ForwardImageClassificationResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDIMAGECLASSIFICATIONRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardImageClassificationResponse)
+  })
+_sym_db.RegisterMessage(ForwardImageClassificationResponse)
+
+BackwardImageClassificationRequest = _reflection.GeneratedProtocolMessageType('BackwardImageClassificationRequest', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDIMAGECLASSIFICATIONREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardImageClassificationRequest)
+  })
+_sym_db.RegisterMessage(BackwardImageClassificationRequest)
+
+BackwardImageClassificationResponse = _reflection.GeneratedProtocolMessageType('BackwardImageClassificationResponse', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDIMAGECLASSIFICATIONRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardImageClassificationResponse)
+  })
+_sym_db.RegisterMessage(BackwardImageClassificationResponse)
+
+ForwardImageToTextRequest = _reflection.GeneratedProtocolMessageType('ForwardImageToTextRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDIMAGETOTEXTREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardImageToTextRequest)
+  })
+_sym_db.RegisterMessage(ForwardImageToTextRequest)
+
+ForwardImageToTextResponse = _reflection.GeneratedProtocolMessageType('ForwardImageToTextResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDIMAGETOTEXTRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardImageToTextResponse)
+  })
+_sym_db.RegisterMessage(ForwardImageToTextResponse)
+
+BackwardImageToTextRequest = _reflection.GeneratedProtocolMessageType('BackwardImageToTextRequest', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDIMAGETOTEXTREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardImageToTextRequest)
+  })
+_sym_db.RegisterMessage(BackwardImageToTextRequest)
+
+BackwardImageToTextResponse = _reflection.GeneratedProtocolMessageType('BackwardImageToTextResponse', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDIMAGETOTEXTRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardImageToTextResponse)
+  })
+_sym_db.RegisterMessage(BackwardImageToTextResponse)
+
+ForwardTextToSpeechRequest = _reflection.GeneratedProtocolMessageType('ForwardTextToSpeechRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTTOSPEECHREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardTextToSpeechRequest)
+  })
+_sym_db.RegisterMessage(ForwardTextToSpeechRequest)
+
+ForwardTextToSpeechResponse = _reflection.GeneratedProtocolMessageType('ForwardTextToSpeechResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTTOSPEECHRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardTextToSpeechResponse)
+  })
+_sym_db.RegisterMessage(ForwardTextToSpeechResponse)
+
+BackwardTextToSpeechRequest = _reflection.GeneratedProtocolMessageType('BackwardTextToSpeechRequest', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDTEXTTOSPEECHREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardTextToSpeechRequest)
+  })
+_sym_db.RegisterMessage(BackwardTextToSpeechRequest)
+
+BackwardTextToSpeechResponse = _reflection.GeneratedProtocolMessageType('BackwardTextToSpeechResponse', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDTEXTTOSPEECHRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardTextToSpeechResponse)
+  })
+_sym_db.RegisterMessage(BackwardTextToSpeechResponse)
+
+ForwardSpeechToTextRequest = _reflection.GeneratedProtocolMessageType('ForwardSpeechToTextRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDSPEECHTOTEXTREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardSpeechToTextRequest)
+  })
+_sym_db.RegisterMessage(ForwardSpeechToTextRequest)
+
+ForwardSpeechToTextResponse = _reflection.GeneratedProtocolMessageType('ForwardSpeechToTextResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDSPEECHTOTEXTRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardSpeechToTextResponse)
+  })
+_sym_db.RegisterMessage(ForwardSpeechToTextResponse)
+
+BackwardSpeechToTextRequest = _reflection.GeneratedProtocolMessageType('BackwardSpeechToTextRequest', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDSPEECHTOTEXTREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardSpeechToTextRequest)
+  })
+_sym_db.RegisterMessage(BackwardSpeechToTextRequest)
+
+BackwardSpeechToTextResponse = _reflection.GeneratedProtocolMessageType('BackwardSpeechToTextResponse', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDSPEECHTOTEXTRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardSpeechToTextResponse)
+  })
+_sym_db.RegisterMessage(BackwardSpeechToTextResponse)
+
 Tensor = _reflection.GeneratedProtocolMessageType('Tensor', (_message.Message,), {
   'DESCRIPTOR' : _TENSOR,
   '__module__' : 'bittensor._proto.bittensor_pb2'
@@ -862,8 +3929,8 @@ _TEXTPROMPTING = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=1782,
-  serialized_end=1948,
+  serialized_start=7502,
+  serialized_end=7668,
   methods=[
   _descriptor.MethodDescriptor(
     name='Forward',
@@ -891,29 +3958,435 @@ _sym_db.RegisterServiceDescriptor(_TEXTPROMPTING)
 DESCRIPTOR.services_by_name['TextPrompting'] = _TEXTPROMPTING
 
 
-_SUBNETSERVER = _descriptor.ServiceDescriptor(
-  name='SubnetServer',
-  full_name='SubnetServer',
+_QA = _descriptor.ServiceDescriptor(
+  name='QA',
+  full_name='QA',
   file=DESCRIPTOR,
   index=1,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=1950,
-  serialized_end=2016,
+  serialized_start=7670,
+  serialized_end=7781,
   methods=[
   _descriptor.MethodDescriptor(
     name='Forward',
-    full_name='SubnetServer.Forward',
+    full_name='QA.Forward',
     index=0,
     containing_service=None,
-    input_type=_DATABLOCKREQUEST,
-    output_type=_DATABLOCKRESPONSE,
+    input_type=_FORWARDQAREQUEST,
+    output_type=_FORWARDQARESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Backward',
+    full_name='QA.Backward',
+    index=1,
+    containing_service=None,
+    input_type=_BACKWARDQAREQUEST,
+    output_type=_BACKWARDQARESPONSE,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),
 ])
-_sym_db.RegisterServiceDescriptor(_SUBNETSERVER)
+_sym_db.RegisterServiceDescriptor(_QA)
 
-DESCRIPTOR.services_by_name['SubnetServer'] = _SUBNETSERVER
+DESCRIPTOR.services_by_name['QA'] = _QA
+
+
+_SENTENCESIMILARITY = _descriptor.ServiceDescriptor(
+  name='SentenceSimilarity',
+  full_name='SentenceSimilarity',
+  file=DESCRIPTOR,
+  index=2,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=7784,
+  serialized_end=7975,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='Forward',
+    full_name='SentenceSimilarity.Forward',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDSENTENCESIMILARITYREQUEST,
+    output_type=_FORWARDSENTENCESIMILARITYRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Backward',
+    full_name='SentenceSimilarity.Backward',
+    index=1,
+    containing_service=None,
+    input_type=_BACKWARDSENTENCESIMILARITYREQUEST,
+    output_type=_BACKWARDSENTENCESIMILARITYRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_SENTENCESIMILARITY)
+
+DESCRIPTOR.services_by_name['SentenceSimilarity'] = _SENTENCESIMILARITY
+
+
+_TEXT = _descriptor.ServiceDescriptor(
+  name='Text',
+  full_name='Text',
+  file=DESCRIPTOR,
+  index=3,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=7977,
+  serialized_end=8098,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='Forward',
+    full_name='Text.Forward',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDTEXTREQUEST,
+    output_type=_FORWARDTEXTRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Backward',
+    full_name='Text.Backward',
+    index=1,
+    containing_service=None,
+    input_type=_BACKWARDTEXTREQUEST,
+    output_type=_BACKWARDTEXTRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_TEXT)
+
+DESCRIPTOR.services_by_name['Text'] = _TEXT
+
+
+_VISUALQA = _descriptor.ServiceDescriptor(
+  name='VisualQA',
+  full_name='VisualQA',
+  file=DESCRIPTOR,
+  index=4,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=8101,
+  serialized_end=8242,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='Forward',
+    full_name='VisualQA.Forward',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDVISUALQAREQUEST,
+    output_type=_FORWARDVISUALQARESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Backward',
+    full_name='VisualQA.Backward',
+    index=1,
+    containing_service=None,
+    input_type=_BACKWARDVISUALQAREQUEST,
+    output_type=_BACKWARDVISUALQARESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_VISUALQA)
+
+DESCRIPTOR.services_by_name['VisualQA'] = _VISUALQA
+
+
+_TEXTTOIMAGE = _descriptor.ServiceDescriptor(
+  name='TextToImage',
+  full_name='TextToImage',
+  file=DESCRIPTOR,
+  index=5,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=8245,
+  serialized_end=8401,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='Forward',
+    full_name='TextToImage.Forward',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDTEXTTOIMAGEREQUEST,
+    output_type=_FORWARDTEXTTOIMAGERESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Backward',
+    full_name='TextToImage.Backward',
+    index=1,
+    containing_service=None,
+    input_type=_BACKWARDTEXTTOIMAGEREQUEST,
+    output_type=_BACKWARDTEXTTOIMAGERESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_TEXTTOIMAGE)
+
+DESCRIPTOR.services_by_name['TextToImage'] = _TEXTTOIMAGE
+
+
+_IMAGETOTEXT = _descriptor.ServiceDescriptor(
+  name='ImageToText',
+  full_name='ImageToText',
+  file=DESCRIPTOR,
+  index=6,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=8404,
+  serialized_end=8560,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='Forward',
+    full_name='ImageToText.Forward',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDIMAGETOTEXTREQUEST,
+    output_type=_FORWARDIMAGETOTEXTRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Backward',
+    full_name='ImageToText.Backward',
+    index=1,
+    containing_service=None,
+    input_type=_BACKWARDIMAGETOTEXTREQUEST,
+    output_type=_BACKWARDIMAGETOTEXTRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_IMAGETOTEXT)
+
+DESCRIPTOR.services_by_name['ImageToText'] = _IMAGETOTEXT
+
+
+_OBJECTDETECTION = _descriptor.ServiceDescriptor(
+  name='ObjectDetection',
+  full_name='ObjectDetection',
+  file=DESCRIPTOR,
+  index=7,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=8563,
+  serialized_end=8739,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='Forward',
+    full_name='ObjectDetection.Forward',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDOBJECTDETECTIONREQUEST,
+    output_type=_FORWARDOBJECTDETECTIONRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Backward',
+    full_name='ObjectDetection.Backward',
+    index=1,
+    containing_service=None,
+    input_type=_BACKWARDOBJECTDETECTIONREQUEST,
+    output_type=_BACKWARDOBJECTDETECTIONRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_OBJECTDETECTION)
+
+DESCRIPTOR.services_by_name['ObjectDetection'] = _OBJECTDETECTION
+
+
+_IMAGECLASSIFICATION = _descriptor.ServiceDescriptor(
+  name='ImageClassification',
+  full_name='ImageClassification',
+  file=DESCRIPTOR,
+  index=8,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=8742,
+  serialized_end=8938,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='Forward',
+    full_name='ImageClassification.Forward',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDIMAGECLASSIFICATIONREQUEST,
+    output_type=_FORWARDIMAGECLASSIFICATIONRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Backward',
+    full_name='ImageClassification.Backward',
+    index=1,
+    containing_service=None,
+    input_type=_BACKWARDIMAGECLASSIFICATIONREQUEST,
+    output_type=_BACKWARDIMAGECLASSIFICATIONRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_IMAGECLASSIFICATION)
+
+DESCRIPTOR.services_by_name['ImageClassification'] = _IMAGECLASSIFICATION
+
+
+_IMAGESEGMENTATION = _descriptor.ServiceDescriptor(
+  name='ImageSegmentation',
+  full_name='ImageSegmentation',
+  file=DESCRIPTOR,
+  index=9,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=8941,
+  serialized_end=9127,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='Forward',
+    full_name='ImageSegmentation.Forward',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDIMAGESEGMENTATIONREQUEST,
+    output_type=_FORWARDIMAGESEGMENTATIONRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Backward',
+    full_name='ImageSegmentation.Backward',
+    index=1,
+    containing_service=None,
+    input_type=_BACKWARDIMAGESEGMENTATIONREQUEST,
+    output_type=_BACKWARDIMAGESEGMENTATIONRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_IMAGESEGMENTATION)
+
+DESCRIPTOR.services_by_name['ImageSegmentation'] = _IMAGESEGMENTATION
+
+
+_DEPTHESTIMATION = _descriptor.ServiceDescriptor(
+  name='DepthEstimation',
+  full_name='DepthEstimation',
+  file=DESCRIPTOR,
+  index=10,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=9130,
+  serialized_end=9306,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='Forward',
+    full_name='DepthEstimation.Forward',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDDEPTHESTIMATIONREQUEST,
+    output_type=_FORWARDDEPTHESTIMATIONRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Backward',
+    full_name='DepthEstimation.Backward',
+    index=1,
+    containing_service=None,
+    input_type=_BACKWARDDEPTHESTIMATIONREQUEST,
+    output_type=_BACKWARDDEPTHESTIMATIONRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_DEPTHESTIMATION)
+
+DESCRIPTOR.services_by_name['DepthEstimation'] = _DEPTHESTIMATION
+
+
+_SPEECHTOTEXT = _descriptor.ServiceDescriptor(
+  name='SpeechToText',
+  full_name='SpeechToText',
+  file=DESCRIPTOR,
+  index=11,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=9309,
+  serialized_end=9470,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='Forward',
+    full_name='SpeechToText.Forward',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDSPEECHTOTEXTREQUEST,
+    output_type=_FORWARDSPEECHTOTEXTRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Backward',
+    full_name='SpeechToText.Backward',
+    index=1,
+    containing_service=None,
+    input_type=_BACKWARDSPEECHTOTEXTREQUEST,
+    output_type=_BACKWARDSPEECHTOTEXTRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_SPEECHTOTEXT)
+
+DESCRIPTOR.services_by_name['SpeechToText'] = _SPEECHTOTEXT
+
+
+_TEXTTOSPEECH = _descriptor.ServiceDescriptor(
+  name='TextToSpeech',
+  full_name='TextToSpeech',
+  file=DESCRIPTOR,
+  index=12,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=9473,
+  serialized_end=9634,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='Forward',
+    full_name='TextToSpeech.Forward',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDTEXTTOSPEECHREQUEST,
+    output_type=_FORWARDTEXTTOSPEECHRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Backward',
+    full_name='TextToSpeech.Backward',
+    index=1,
+    containing_service=None,
+    input_type=_BACKWARDTEXTTOSPEECHREQUEST,
+    output_type=_BACKWARDTEXTTOSPEECHRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_TEXTTOSPEECH)
+
+DESCRIPTOR.services_by_name['TextToSpeech'] = _TEXTTOSPEECH
 
 # @@protoc_insertion_point(module_scope)
