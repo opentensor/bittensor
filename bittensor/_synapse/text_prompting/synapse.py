@@ -15,13 +15,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import json
 import grpc
 import torch
 import bittensor
 
+from fastapi import FastAPI, APIRouter
 from typing import List, Dict, Union, Callable
 from abc import ABC, abstractmethod
-import json
 
 
 class SynapseForwardMulti( bittensor.SynapseCall ):
@@ -122,7 +123,6 @@ class SynapseBackward( bittensor.SynapseCall ):
     def get_outputs_shape(self) -> torch.Size: 
         return torch.Size( [ 0 ] )
 
-
 class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServicer ):
     name: str = "text_prompting_synapse"
 
@@ -131,6 +131,12 @@ class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServi
         self.axon = axon
         bittensor.grpc.add_TextPromptingServicer_to_server( self, self.axon.server )
 
+        self.router = APIRouter()
+        self.router.add_api_route("/Forward/{prompt}", self.fast_api_forward, methods=["GET"])
+        self.router.add_api_route("/Backward", self.fast_api_backward, methods=["GET"])
+        self.router.add_api_route("/MultiForward", self.fast_api_multi_forward, methods=["GET"])
+        self.axon.fastapi_app.include_router( self.router )
+        
     @abstractmethod
     def forward( self, messages: List[Dict[str, str]] ) -> str: ...
 
@@ -139,6 +145,15 @@ class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServi
 
     @abstractmethod
     def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: ...
+
+    def fast_api_forward( self, prompt: str ):
+        return self.forward( messages=[ {"role":'user', 'content': prompt} ])
+
+    def fast_api_multi_forward(self, prompt: str ):
+        return self.multi_forward( messages=[ {"role":'user', 'content': prompt} ])
+
+    def fast_api_backward( self ):
+        return "Backward"
 
     def Forward( self, request: bittensor.proto.ForwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.ForwardTextPromptingResponse:
         call = SynapseForward( self, request, self.forward )

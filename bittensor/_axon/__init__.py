@@ -22,14 +22,59 @@ import json
 import grpc
 import copy
 import torch
+import uvicorn
 import argparse
 import bittensor
 
 from concurrent import futures
 from dataclasses import dataclass
+from fastapi import FastAPI, APIRouter
 from substrateinterface import Keypair
 import bittensor.utils.networking as net
+
 from typing import Callable, Dict, Optional, Tuple, Union
+
+
+import contextlib
+import time
+import threading
+import uvicorn
+from fastapi import FastAPI, APIRouter
+
+class FastAPIThreadedServer(uvicorn.Server):
+    should_exit: bool = False
+    is_running: bool = False
+
+    def install_signal_handlers(self):
+        pass
+
+    @contextlib.contextmanager
+    def run_in_thread(self):
+        thread = threading.Thread(target=self.run, daemon=True)
+        thread.start()
+        try:
+            while not self.started:
+                time.sleep(1e-3)
+            yield
+        finally:
+            self.should_exit = True
+            thread.join()
+
+    def _wrapper_run(self):
+        with self.run_in_thread():
+            while not self.should_exit:
+                time.sleep(1e-3)
+
+    def start(self):
+        if not self.is_running:
+            self.should_exit = False
+            thread = threading.Thread(target=self._wrapper_run, daemon=True)
+            thread.start()
+            self.is_running = True
+
+    def stop(self):
+        if self.is_running:
+            self.should_exit = True
 
 class axon:
     """ Axon object for serving synapse receptors. """
@@ -112,6 +157,11 @@ class axon:
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
         self.blacklist = blacklist
         self.started = False
+
+        # Instantiate FastAPI
+        self.fastapi_app = FastAPI()
+        self.fast_config = uvicorn.Config( self.fastapi_app, host="0.0.0.0", port=8001, log_level="info")
+        self.fast_server = FastAPIThreadedServer( config = self.fast_config )
 
         # Build priority thread pool
         self.priority_threadpool = bittensor.prioritythreadpool(config=self.config.axon)
@@ -250,6 +300,7 @@ class axon:
 
     def start(self) -> "bittensor.axon":
         r"""Starts the standalone axon GRPC server thread."""
+        self.fast_server.start()
         if self.server is not None:
             self.server.stop(grace=1)
         self.server.start()
@@ -258,6 +309,7 @@ class axon:
 
     def stop(self) -> "bittensor.axon":
         r"""Stop the axon grpc server."""
+        self.fast_server.stop()
         if self.server is not None:
             self.server.stop(grace=1)
         self.started = False

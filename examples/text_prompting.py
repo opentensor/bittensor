@@ -58,11 +58,15 @@ axon.start()
 # print ( 'success', backward_call.is_success, 'failed', backward_call.did_fail, 'timedout', backward_call.did_timeout )
 
 
-multi_forward_call = dendrite.multi_forward(
-    roles = ['system', 'assistant'],
-    messages = ['you are chat bot', 'what is the whether'],
-    timeout = 1e6
-)
-print ( multi_forward_call )
-print ( 'success', multi_forward_call.is_success, 'failed', multi_forward_call.did_fail, 'timedout', multi_forward_call.did_timeout )
-print ( 'completions', multi_forward_call.multi_completions )
+# multi_forward_call = dendrite.multi_forward(
+#     roles = ['system', 'assistant'],
+#     messages = ['you are chat bot', 'what is the whether'],
+#     timeout = 1e6
+# )
+# print ( multi_forward_call )
+# print ( 'success', multi_forward_call.is_success, 'failed', multi_forward_call.did_fail, 'timedout', multi_forward_call.did_timeout )
+# print ( 'completions', multi_forward_call.multi_completions )
+
+import time
+time.sleep(50)
+axon.stop()
