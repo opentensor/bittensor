@@ -310,8 +310,8 @@ class neuron:
         bittensor.logging.trace( 'topk_uids', topk_uids )
 
         # Filter out any `None` `completions`.
-        successful_uids = torch.tensor([uid for uid, call in list(zip(topk_uids, forward_calls)) if call is not None and call.completion is not None and len(call.completion) > 10], dtype=torch.int64).to(self.device)
-        successful_completions = [call.completion for call in forward_calls if call is not None and call.completion is not None and len(call.completion) > 10]
+        successful_uids = torch.tensor([uid for uid, call in list(zip(topk_uids, forward_calls)) if call is not None and call.completion is not None], dtype=torch.int64).to(self.device)
+        successful_completions = [call.completion for call in forward_calls if call is not None and call.completion is not None]
         unsuccessful_uids = torch.tensor([uid for uid in topk_uids if uid not in successful_uids])
         bittensor.logging.debug( 'successful_uids', successful_uids )
         #bittensor.logging.trace( 'successful_completions', successful_completions )
@@ -346,6 +346,7 @@ class neuron:
 
         best_idx = rewards.sort(descending = True)[1][0].item()
         best_completion = successful_completions[best_idx]
+        bittensor.logging.trace('successful_completions', len(successful_completions))
 
         # Save the query history in a `result` object.
         # Return the `completion` with the highest reward.
