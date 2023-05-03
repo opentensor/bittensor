@@ -190,6 +190,8 @@ from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse
+from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingRequest
+from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingResponse
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingResponse
 
@@ -248,6 +250,7 @@ def prompt(
         hotkey: str = default_prompting_validator_key,
         subtensor_: Optional['Subtensor'] = None,
         axon_: Optional['axon_info'] = None,
+        return_all: bool = False,
     ) -> str:
     global __context_prompting_llm
     if __context_prompting_llm == None:
@@ -257,7 +260,7 @@ def prompt(
             subtensor_ = subtensor_,
             axon_ = axon_,
         )
-    return __context_prompting_llm( content = content )
+    return __context_prompting_llm( content = content, return_all = return_all )
 
 class prompting ( torch.nn.Module ):
     _axon: 'axon_info'
@@ -272,11 +275,15 @@ class prompting ( torch.nn.Module ):
         hotkey: str = default_prompting_validator_key,
         subtensor_: Optional['Subtensor'] = None,
         axon_: Optional['axon_info'] = None,
+        use_coldkey: bool = False
     ):
         super(prompting, self).__init__()
         self._hotkey = hotkey
         self._subtensor = subtensor() if subtensor_ is None else subtensor_
-        self._keypair = wallet( name = wallet_name ).create_if_non_existent().coldkey
+        if use_coldkey:
+            self._keypair = wallet( name = wallet_name ).create_if_non_existent().coldkey
+        else:
+            self._keypair = wallet( name = wallet_name ).create_if_non_existent().hotkey
         
         if axon_ is not None:
             self._axon = axon_
@@ -305,27 +312,44 @@ class prompting ( torch.nn.Module ):
     def forward( 
             self,
             content: Union[ str, List[str], List[Dict[ str ,str ]]],
-            timeout: float = 1000,
-            return_call: bool = False
-        ) -> str:
+            timeout: float = 24,
+            return_call: bool = False,
+            return_all: bool = False,
+        ) -> Union[str, List[str]]:
         roles, messages = self.format_content( content )
-        return self._dendrite.forward(
-            roles = roles,
-            messages = messages,
-            timeout = timeout
-        ).completion
+        if not return_all:
+            return self._dendrite.forward(
+                roles = roles,
+                messages = messages,
+                timeout = timeout
+            ).completion
+        else:
+            return self._dendrite.multi_forward(
+                roles = roles,
+                messages = messages,
+                timeout = timeout
+            ).multi_completions
+
        
     async def async_forward( 
             self,
             content: Union[ str, List[str], List[Dict[ str ,str ]]],
-            timeout: float = 1000
-        ):
+            timeout: float = 24,
+            return_all: bool = False,
+        ) -> Union[str, List[str]]:
         roles, messages = self.format_content( content )
-        return await self._dendrite.async_forward(
-            roles = roles,
-            messages = messages,
-            timeout = timeout
-        ).completion
+        if not return_all:
+            return await self._dendrite.async_forward(
+                    roles = roles,
+                    messages = messages,
+                    timeout = timeout
+                ).completion
+        else:
+            return self._dendrite.async_multi_forward(
+                roles = roles,
+                messages = messages,
+                timeout = timeout
+            ).multi_completions
 
 class BittensorLLM(LLM):
     """Wrapper around Bittensor Prompting Subnetwork. 
