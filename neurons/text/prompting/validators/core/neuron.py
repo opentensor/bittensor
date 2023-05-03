@@ -497,7 +497,7 @@ class neuron:
                         uids = forward_result.uids[idx_reward_sorted],
                         bootstrap_prompt = forward_result.best_completion, 
                         reset_bootstrap_prompt = (steps % self.config.neuron.reset_bootstrap_prompt_frequency == 0),
-                        random_sample_uids = self.config.neuron.get_question_random_sample_uids
+                        random_sample_uids = self.config.neuron.question_random_sample_uids
                     )
 
                 # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
