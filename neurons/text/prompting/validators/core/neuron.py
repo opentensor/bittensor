@@ -157,6 +157,7 @@ class neuron:
         self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to( self.device )
         # Denddrite pool for querying the network.
         self.dendrite_pool = bt.text_prompting_pool( keypair = self.wallet.hotkey, metagraph = self.metagraph )
+        self.inference_pool = bt.text_prompting_pool( keypair = self.wallet.hotkey, metagraph = self.metagraph )
         # History of forward events.
         self.history = queue.Queue( maxsize = self.config.neuron.max_history )
         # Get a list of peers delegating to me
@@ -438,6 +439,13 @@ class neuron:
                     self.metagraph.sync()
                     self.save()
                     delegates = self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )
+
+                    # Recreate pools here to ensure sizing is correct.
+                    del self.dendrite_pool
+                    del self.inference_pool
+                    self.dendrite_pool = bt.text_prompting_pool( keypair = self.wallet.hotkey, metagraph = self.metagraph )
+                    self.inference_pool = bt.text_prompting_pool( keypair = self.wallet.hotkey, metagraph = self.metagraph )
+
                     self.my_nominators = { nomin[0]: nomin[1] for nomin in delegates[0][0].nominators } if len(delegates) else {}
                     self.check_weights()
 
