@@ -206,7 +206,7 @@ class neuron:
             )
             self.synapse = Synapse( axon = self.axon )
             self.axon.start()
-            #self.subtensor.serve_axon( self.config.netuid, self.axon )
+            self.subtensor.serve_axon( self.config.netuid, self.axon )
 
     def forward(
             self, 
