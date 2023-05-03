@@ -453,8 +453,6 @@ class neuron:
                     delegates = self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )
 
                     # Recreate pools here to ensure sizing is correct.
-                    del self.dendrite_pool
-                    del self.inference_pool
                     self.dendrite_pool = bt.text_prompting_pool( keypair = self.wallet.hotkey, metagraph = self.metagraph )
                     self.inference_pool = bt.text_prompting_pool( keypair = self.wallet.hotkey, metagraph = self.metagraph )
 
