@@ -134,7 +134,6 @@ class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServi
     @abstractmethod
     def forward( self, messages: List[Dict[str, str]] ) -> str: ...
 
-    @abstractmethod
     def multi_forward( self, messages: List[Dict[str, str]] ) -> List[ str ]: ...
 
     @abstractmethod
