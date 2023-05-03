@@ -155,7 +155,7 @@ class neuron:
         self.tokenizer = AutoTokenizer.from_pretrained( 'EleutherAI/gpt-j-6b' )
 
         # check if invoking iter() is indeed necessary
-        self.dataset = iter(load_dataset('squad_v2', split='train', streaming=True))
+        self.dataset = iter(load_dataset('sciq', split='train', streaming=True))
 
         self.moving_averaged_scores = torch.zeros((self.metagraph.n)).to( self.device )
         self.alpha = 0.99
@@ -453,7 +453,7 @@ class neuron:
             # google_ai_dataset_place_holder = sample['answers']['text'][0]
 
             if reset_bootstrap_prompt:
-                bootstrap_prompt = next(self.dataset)['answers']['text'][0] # google_ai_dataset_place_holder
+                bootstrap_prompt = next(self.dataset)['support']
                 with open('prompt_history.txt', 'a') as file:
                     file.write("============== reset ==================" + '\n')
                     file.write(f"bootstrap prompt: {bootstrap_prompt}" + '\n')
