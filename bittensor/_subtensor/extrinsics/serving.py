@@ -181,12 +181,14 @@ def serve_axon_extrinsic (
                 return False
         try:
             external_port = net.upnpc_create_port_map( port = axon.port )
+            external_fast_api_port = net.upnpc_create_port_map( port = axon.external_fast_api_port )
             bittensor.__console__.print(":white_heavy_check_mark: [green]Forwarded port: {}[/green]".format( axon.port ))
             bittensor.logging.success(prefix = 'Forwarded port', sufix = '<blue>{}</blue>'.format( axon.port ))
         except net.UPNPCException as upnpc_exception:
             raise RuntimeError('Failed to hole-punch with upnpc with exception {}'.format( upnpc_exception )) from upnpc_exception
     else:
         external_port = axon.external_port
+        external_fast_api_port = axon.external_fast_api_port
 
     # ---- Get external ip ----
     if axon.external_ip == None:
@@ -205,6 +207,7 @@ def serve_axon_extrinsic (
             ip = external_ip,
             port = external_port,
             netuid = netuid,
+            placeholder1 = external_fast_api_port,
             protocol = 4,
             wait_for_inclusion = wait_for_inclusion,
             wait_for_finalization = wait_for_finalization,
