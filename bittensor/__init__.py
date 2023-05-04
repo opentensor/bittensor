@@ -198,12 +198,20 @@ from bittensor._proto.bittensor_pb2 import BackwardTextPromptingResponse
 # ---- Synapses -----
 from bittensor._synapse.synapse import Synapse
 from bittensor._synapse.synapse import SynapseCall
+from bittensor._synapse.text_to_image.synapse import TextToImageSynapse
+from bittensor._synapse.text_to_speech.synapse import TextToSpeechSynapse
+from bittensor._synapse.image_to_text.synapse import ImageToTextSynapse
+from bittensor._synapse.speech_to_text.synapse import SpeechToTextSynapse
 from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
 
 # ---- Dendrites -----
 from bittensor._dendrite.dendrite import Dendrite
 from bittensor._dendrite.dendrite import DendriteCall
 from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as text_prompting
+from bittensor._dendrite.text_to_image.dendrite import TextToImageDendrite as text_to_image
+from bittensor._dendrite.image_to_text.dendrite import ImageToTextDendrite as image_to_text
+from bittensor._dendrite.text_to_speech.dendrite import TextToSpeechDendrite as text_to_speech
+from bittensor._dendrite.speech_to_text.dendrite import SpeechToTextDendrite as speech_to_text
 from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
 
 # ---- Base Miners -----

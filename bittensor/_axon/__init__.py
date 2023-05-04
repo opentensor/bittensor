@@ -92,11 +92,13 @@ class axon:
             placeholder1 = 0,
             placeholder2 = 0,
         )
+    
+    def fast_api_info( self ) -> dict:
+        return self.info().__dict__
 
     def __init__(
         self,
         wallet: "bittensor.Wallet",
-        metagraph: "bittensor.Metagraph",
         config: Optional["bittensor.config"] = None,
         port: Optional[int] = None,
         ip: Optional[str] = None,
@@ -127,7 +129,6 @@ class axon:
             blacklist (:obj:`Optional[callable]`, `optional`):
                 function to blacklist requests.
         """
-        self.metagraph = metagraph
         self.wallet = wallet
 
         # Build and check config.
@@ -158,10 +159,16 @@ class axon:
         self.blacklist = blacklist
         self.started = False
 
+        # Synapse memory.
+        self.synapses = {}
+
         # Instantiate FastAPI
         self.fastapi_app = FastAPI()
         self.fast_config = uvicorn.Config( self.fastapi_app, host="0.0.0.0", port=8001, log_level="info")
         self.fast_server = FastAPIThreadedServer( config = self.fast_config )
+        self.router = APIRouter()
+        self.router.add_api_route("/", self.fast_api_info, methods=["GET"])
+        self.fastapi_app.include_router( self.router )
 
         # Build priority thread pool
         self.priority_threadpool = bittensor.prioritythreadpool(config=self.config.axon)
@@ -181,6 +188,10 @@ class axon:
             options=[("grpc.keepalive_time_ms", 100000), ("grpc.keepalive_timeout_ms", 500000)],
         )
         self.server.add_insecure_port(self.full_address)
+
+    def attach( self, synapse: 'bittensor.Synapse' ):
+        synapse._attach( self )
+        self.synapses[synapse.name] = synapse
 
     @classmethod
     def config(cls) -> "bittensor.Config":

@@ -201,7 +201,8 @@ class BasePromptingMiner( ABC ):
             def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
             def forward( _, messages: List[Dict[str, str]] ) -> str:
                 return self.forward( messages )
-        self.synapse = Synapse( axon = self.axon )
+        self.synapse = Synapse()
+        self.axon.attach( self.synapse )
 
     def run( self ):
 

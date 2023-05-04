@@ -16,37 +16,31 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-import torch
 import bittensor
 from typing import List, Dict, Union, Tuple
 
-class TextPromptingSynapse( bittensor.TextPromptingSynapse ):
-    def priority(self, forward_call: "bittensor.SynapseCall") -> float:
+bittensor.logging( bittensor.logging.config() )
+
+class SpeechToTextSynapse( bittensor.SpeechToTextSynapse ):
+    def priority( self, forward_call: "bittensor.SynapseCall" ) -> float:
         return 0.0
 
-    def blacklist(self, forward_call: "bittensor.SynapseCall") -> Union[ Tuple[bool, str], bool ]:
+    def blacklist( self, forward_call: "bittensor.SynapseCall" ) -> Union[ Tuple[bool, str], bool ]:
         return False
-
-    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
-        pass
-
-    def forward(self, messages: List[Dict[str, str]]) -> str:
-        return "The capital of Texas is Austin"
-
-    def multi_forward(self, messages: List[Dict[str, str]]) -> List[ str ]:
-        return [ "The capital of Texas is Dallas", "The capital of Texas is Austin" ]
+    
+    def forward( self, speech: bytes ) -> str:
+        return "this is what was said by these speech bytes = " + str(speech)
 
 # Create a mock wallet.
-bittensor.logging( bittensor.logging.config() )
-wallet = bittensor.wallet( bittensor.wallet.config() ).create_if_non_existent()
+wallet = bittensor.wallet().create_if_non_existent()
 axon = bittensor.axon( wallet = wallet, port = 9090, ip = "127.0.0.1" )
-text_prompting = bittensor.text_prompting( axon = axon.info(), keypair = wallet.hotkey )
-axon.attach( TextPromptingSynapse() )
+speech_to_text = bittensor.speech_to_text( axon = axon.info(), keypair = wallet.hotkey )
+axon.attach( SpeechToTextSynapse() )
 
 # Start the server and then exit after 50 seconds.
 axon.start()
-prompt = "what is the capital of Texas?"
-print( 'prompt =', prompt )
-print( 'completion =', text_prompting( prompt ).completion )
+speech = b"lala I am singing a song (this does not actually represent speech.)"
+print( 'speech =', speech )
+print( 'text =', speech_to_text( speech ).text )
 time.sleep(50)
 axon.stop()

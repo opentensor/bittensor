@@ -32,7 +32,7 @@ class SynapseForwardMulti( bittensor.SynapseCall ):
 
     def __init__( 
             self, 
-            synapse: "TextPromptingSynapseMulti", 
+            synapse: "TextPromptingSynapse", 
             request_proto: bittensor.proto.MultiForwardTextPromptingRequest,
             multi_forward_callback: Callable,
         ):
@@ -126,15 +126,12 @@ class SynapseBackward( bittensor.SynapseCall ):
 class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServicer ):
     name: str = "text_prompting_synapse"
 
-    def __init__(self, axon: "bittensor.axon" ):
-        super().__init__( axon = axon )
-        self.axon = axon
+    def attach( self, axon: 'bittensor.axon.Axon' ):
         bittensor.grpc.add_TextPromptingServicer_to_server( self, self.axon.server )
-
         self.router = APIRouter()
-        self.router.add_api_route("/Forward/{prompt}", self.fast_api_forward, methods=["GET"])
-        self.router.add_api_route("/Backward", self.fast_api_backward, methods=["GET"])
-        self.router.add_api_route("/MultiForward", self.fast_api_multi_forward, methods=["GET"])
+        self.router.add_api_route( "/TextToCompletion/Forward/", self.fast_api_forward_text_to_completion, methods = ["GET"])
+        self.router.add_api_route( "/TextToCompletion/Backward", self.fast_api_backward_text_to_completion, methods = ["GET"])
+        self.router.add_api_route( "/TextToCompletion/MultiForward", self.fast_api_multi_forward_text_to_completion, methods = ["GET"])
         self.axon.fastapi_app.include_router( self.router )
         
     @abstractmethod
@@ -146,13 +143,16 @@ class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServi
     @abstractmethod
     def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: ...
 
-    def fast_api_forward( self, prompt: str ):
-        return self.forward( messages=[ {"role":'user', 'content': prompt} ])
+    def fast_api_forward_text_to_completion( self, hotkey: str, roles: List[str], messages: List[str], timeout: int = 12 ):
+        packed_messages = [ json.dumps({"role": role, "content": message}) for role, message in zip( roles,  messages )]
+        request = bittensor.ForwardTextPromptingRequest( hotkey = hotkey, timeout = timeout, messages = packed_messages, version = 0)
+        call = SynapseForward( self, request, self.forward )
+        return self.apply( call = call ).response
 
-    def fast_api_multi_forward(self, prompt: str ):
+    def fast_api_multi_forward_text_to_completion( self, prompt: str ):
         return self.multi_forward( messages=[ {"role":'user', 'content': prompt} ])
 
-    def fast_api_backward( self ):
+    def fast_api_backward_text_to_completion( self ):
         return "Backward"
 
     def Forward( self, request: bittensor.proto.ForwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.ForwardTextPromptingResponse:

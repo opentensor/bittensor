@@ -16,37 +16,31 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-import torch
 import bittensor
 from typing import List, Dict, Union, Tuple
 
-class TextPromptingSynapse( bittensor.TextPromptingSynapse ):
-    def priority(self, forward_call: "bittensor.SynapseCall") -> float:
+bittensor.logging( bittensor.logging.config() )
+
+class TextToSpeechSynapse( bittensor.TextToSpeechSynapse ):
+    def priority( self, forward_call: "bittensor.SynapseCall" ) -> float:
         return 0.0
 
-    def blacklist(self, forward_call: "bittensor.SynapseCall") -> Union[ Tuple[bool, str], bool ]:
+    def blacklist( self, forward_call: "bittensor.SynapseCall" ) -> Union[ Tuple[bool, str], bool ]:
         return False
-
-    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
-        pass
-
-    def forward(self, messages: List[Dict[str, str]]) -> str:
-        return "The capital of Texas is Austin"
-
-    def multi_forward(self, messages: List[Dict[str, str]]) -> List[ str ]:
-        return [ "The capital of Texas is Dallas", "The capital of Texas is Austin" ]
+    
+    def forward( self, text: str ) -> bytes:
+        return bytes( "these bytes represent the speech of text = {}".format( text ), 'utf-8')
 
 # Create a mock wallet.
-bittensor.logging( bittensor.logging.config() )
-wallet = bittensor.wallet( bittensor.wallet.config() ).create_if_non_existent()
+wallet = bittensor.wallet().create_if_non_existent()
 axon = bittensor.axon( wallet = wallet, port = 9090, ip = "127.0.0.1" )
-text_prompting = bittensor.text_prompting( axon = axon.info(), keypair = wallet.hotkey )
-axon.attach( TextPromptingSynapse() )
+text_to_speech = bittensor.text_to_speech( axon = axon.info(), keypair = wallet.hotkey )
+axon.attach( TextToSpeechSynapse( ) )
 
 # Start the server and then exit after 50 seconds.
 axon.start()
-prompt = "what is the capital of Texas?"
-print( 'prompt =', prompt )
-print( 'completion =', text_prompting( prompt ).completion )
+text = "lalala I am singing a song."
+print( 'text =', text )
+print( 'speech =', text_to_speech( text ).speech )
 time.sleep(50)
 axon.stop()

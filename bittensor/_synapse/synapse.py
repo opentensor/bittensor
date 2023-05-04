@@ -112,9 +112,21 @@ class SynapseCall( ABC ):
 
 class Synapse( ABC ):
     name: str
+    _axon: 'bittensor.axon.Axon' = None
 
-    def __init__( self, axon: bittensor.axon ):
-        self.axon = axon
+    @abstractmethod
+    def attach( self, axon: 'bittensor.axon.Axon' ):
+        ...
+
+    def _attach( self, axon: 'bittensor.axon.Axon' ):
+        self._axon = axon
+        self.attach( axon )
+
+    @property
+    def axon( self ) -> 'bittensor.axon.Axon':
+        if self._axon is None:
+            raise RuntimeError( 'Synapse not attached to axon. Call axon.attach( synapse )' )
+        return self._axon
 
     @abstractmethod
     def blacklist( self, call: SynapseCall ) -> Union[ Tuple[bool, str], bool ]: ...

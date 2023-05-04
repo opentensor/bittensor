@@ -1,15 +1,100 @@
 // python3 -m grpc.tools.protoc bittensor/_proto/bittensor.proto  -I. --python_out=. --grpc_python_out=. --proto_path bittensor/_proto/
 syntax = "proto3";
 
+/////////////////////////
+// Text-to-Image //
+/////////////////////////
+
+service TextToImage { rpc Forward (ForwardTextToImageRequest) returns (ForwardTextToImageResponse) {} }
+
+message ForwardTextToImageRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string text = 3;
+	float timeout = 4;
+}
+
+message ForwardTextToImageResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes image = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+/////////////////////////
+// Image to Text //
+/////////////////////////
+
+service ImageToText { rpc Forward (ForwardImageToTextRequest) returns (ForwardImageToTextResponse) {} }
+
+message ForwardImageToTextRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes image = 3;
+	float timeout = 4;
+}
+
+message ForwardImageToTextResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string text = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+/////////////////////////
+// Text to Speech //
+/////////////////////////
+
+service TextToSpeech { rpc Forward (ForwardTextToSpeechRequest) returns (ForwardTextToSpeechResponse) {} }
+
+message ForwardTextToSpeechRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string text = 3;
+	float timeout = 4;
+}
+
+message ForwardTextToSpeechResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes speech = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+/////////////////////////
+// Speech to Text //
+/////////////////////////
+
+service SpeechToText { rpc Forward (ForwardSpeechToTextRequest) returns (ForwardSpeechToTextResponse) {} }
+
+message ForwardSpeechToTextRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes speech = 3;
+	float timeout = 4;
+}
+
+message ForwardSpeechToTextResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string text = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+
+
+/////////////////////////
+// TextPrompting //
+/////////////////////////
 service TextPrompting  {
     rpc Forward (ForwardTextPromptingRequest) returns (ForwardTextPromptingResponse) {}
     rpc MultiForward (MultiForwardTextPromptingRequest) returns (MultiForwardTextPromptingResponse) {}
     rpc Backward (BackwardTextPromptingRequest) returns (BackwardTextPromptingResponse) {}
 }
-
-/////////////////////////
-// TextPrompting //
-/////////////////////////
 message ForwardTextPromptingRequest {
     int32 version = 1;
     string hotkey = 2;
@@ -50,6 +135,7 @@ message BackwardTextPromptingResponse {
 	string return_message = 4;
 	ReturnCode return_code = 5;
 }
+
 
 
 // Return codes from Backward and Forward call.
