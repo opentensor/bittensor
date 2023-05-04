@@ -207,12 +207,17 @@ from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
 # ---- Dendrites -----
 from bittensor._dendrite.dendrite import Dendrite
 from bittensor._dendrite.dendrite import DendriteCall
-from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as text_prompting
 from bittensor._dendrite.text_to_image.dendrite import TextToImageDendrite as text_to_image
 from bittensor._dendrite.image_to_text.dendrite import ImageToTextDendrite as image_to_text
 from bittensor._dendrite.text_to_speech.dendrite import TextToSpeechDendrite as text_to_speech
 from bittensor._dendrite.speech_to_text.dendrite import SpeechToTextDendrite as speech_to_text
 from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
+
+# ---- Text Prompting -----
+from bittensor._dendrite.text_prompting import prompt as prompt
+from bittensor._dendrite.text_prompting import prompting as prompting
+from bittensor._dendrite.text_prompting import BittensorLLM as BittensorLLM
+from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as text_prompting
 
 # ---- Base Miners -----
 from bittensor._neuron.base_miner_neuron import BaseMinerNeuron as base_miner_neuron
@@ -243,126 +248,5 @@ def trace():
 
 def debug():
     logging.set_debug(True)
-
-default_prompting_validator_key = '5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3'
-
-__context_prompting_llm = None
-def prompt( 
-        prompt: Union[ str, Tuple[ str, str], Tuple[List[str], List[str] ], List[ str ], Dict[ str, str ], List[ Dict[ str ,str ] ] ],
-        wallet_name: str = "default",
-        hotkey: str = default_prompting_validator_key,
-        subtensor_: Optional['Subtensor'] = None,
-        axon_: Optional['axon_info'] = None,
-        return_all: bool = False,
-    ) -> str:
-    global __context_prompting_llm
-    if __context_prompting_llm == None:
-        __context_prompting_llm = prompting( 
-            wallet_name = wallet_name,
-            hotkey = hotkey,
-            subtensor_ = subtensor_,
-            axon_ = axon_,
-        )
-    return __context_prompting_llm( prompt = prompt, return_all = return_all )
-
-class prompting ( torch.nn.Module ):
-    _axon: 'axon_info'
-    _dendrite: 'Dendrite'
-    _subtensor: 'Subtensor'
-    _hotkey: str
-    _keypair: 'Keypair'
-
-    def __init__(
-        self,
-        wallet_name: str = "default",
-        hotkey: str = default_prompting_validator_key,
-        subtensor_: Optional['Subtensor'] = None,
-        axon_: Optional['axon_info'] = None,
-        use_coldkey: bool = False
-    ):
-        super(prompting, self).__init__()
-        self._hotkey = hotkey
-        self._subtensor = subtensor() if subtensor_ is None else subtensor_
-        if use_coldkey:
-            self._keypair = wallet( name = wallet_name ).create_if_non_existent().coldkey
-        else:
-            self._keypair = wallet( name = wallet_name ).create_if_non_existent().hotkey
-        
-        if axon_ is not None:
-            self._axon = axon_
-        else:
-            self._metagraph = metagraph( 1 )
-            self._axon = self._metagraph.axons[ self._metagraph.hotkeys.index( self._hotkey ) ]
-        self._dendrite = text_prompting(
-            keypair = self._keypair,
-            axon = self._axon
-        )
-    def forward( 
-            self,
-            prompt: Union[ str, Tuple[ str, str], Tuple[List[str], List[str] ], List[ str ], Dict[ str, str ], List[ Dict[ str ,str ] ] ],
-            timeout: float = 24,
-            return_all: bool = False,
-        ) -> Union[str, List[str]]:
-        if not return_all:
-            return self._dendrite.forward(
-                prompt = prompt,
-                timeout = timeout,
-                return_call = True
-            ).completion
-        else:
-            return self._dendrite.multi_forward(
-                prompt = prompt,
-                timeout = timeout,
-                return_call = True
-            ).multi_completions
-
-       
-    async def async_forward( 
-            self,
-            prompt: Union[ str, Tuple[ str, str], Tuple[List[str], List[str] ], List[ str ], Dict[ str, str ], List[ Dict[ str ,str ] ] ],
-            timeout: float = 24,
-            return_all: bool = False,
-        ) -> Union[str, List[str]]:
-        if not return_all:
-            return await self._dendrite.async_forward(
-                    prompt = prompt,
-                    timeout = timeout,
-                ).completion
-        else:
-            return self._dendrite.async_multi_forward(
-                prompt = prompt,
-                timeout = timeout,
-            ).multi_completions
-
-class BittensorLLM(LLM):
-    """Wrapper around Bittensor Prompting Subnetwork. 
-This Python file implements the BittensorLLM class, a wrapper around the Bittensor Prompting Subnetwork for easy integration into language models. The class provides a query method to receive responses from the subnetwork for a given user message and an implementation of the _call method to return the best response. The class can be initialized with various parameters such as the wallet name and chain endpoint.
-    
-    Example:
-        .. code-block:: python
-
-            from bittensor import BittensorLLM
-            btllm = BittensorLLM(wallet_name="default")
-    """
-
-    wallet_name: str = 'default'
-    hotkey: str = default_prompting_validator_key
-    llm: prompting = None
-    def __init__(self, subtensor_: Optional['Subtensor'] = None, axon_: Optional['axon_info'] = None, **data):
-        super().__init__(**data)
-        self.llm = prompting(wallet_name=self.wallet_name, hotkey=self.hotkey, subtensor_=subtensor_, axon_=axon_ )
-
-    @property
-    def _identifying_params(self) -> Mapping[str, Any]:
-        """Get the identifying parameters."""
-        return {"wallet_name": self.wallet_name, "hotkey_name": self.hotkey}
-
-    @property
-    def _llm_type(self) -> str:
-        return "BittensorLLM"
-
-    def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
-        """Call the LLM with the given prompt and stop tokens."""
-        return self.llm(prompt)
 
 
