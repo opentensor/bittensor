@@ -231,19 +231,28 @@ class subtensor:
         if network == "nakamoto":
             # Main network.
             return bittensor.__nakamoto_entrypoint__
+        
         elif network == "finney": 
             # Kiru Finney stagin network.
             return bittensor.__finney_entrypoint__
+        
         elif network == "nobunaga": 
             # Staging network.
             return bittensor.__nobunaga_entrypoint__
+        
+        elif network == "test":
+            return bittensor.__text_finney_entrypoint__
+        
         elif network == "bellagene":
             # Parachain test net
             return bittensor.__bellagene_entrypoint__
+        
         elif network == "local":
             # Local chain.
             return bittensor.__local_entrypoint__
+        
         elif network == 'mock':
             return bittensor.__mock_entrypoint__
+        
         else:
             return bittensor.__local_entrypoint__
