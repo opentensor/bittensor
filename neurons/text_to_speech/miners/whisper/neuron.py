@@ -32,12 +32,12 @@ def main( config ):
     base_miner = bittensor.base_miner_neuron( config = config )
 
     # --- Build speech recognition pipeline ---
-    # pipe = pipeline(
-    #     "automatic-speech-recognition",
-    #     model = config.model_name,
-    #     chunk_length_s = config.chunk_length_s,
-    #     device = config.device,
-    # )
+    pipe = pipeline(
+        "automatic-speech-recognition",
+        model = config.model_name,
+        chunk_length_s = config.chunk_length_s,
+        device = config.device,
+    )
 
     # --- Build the synapse ---
     class SpeechToTextSynapse( bittensor.SpeechToTextSynapse ):
@@ -49,19 +49,18 @@ def main( config ):
             return base_miner.blacklist( forward_call )
         
         def forward( self, speech: bytes ) -> str:
-            return ""
-            # prediction = pipe( speech, return_timestamps = True )
-            # if isinstance(prediction, dict):
-            #     if 'text' in prediction.keys():
-            #         return prediction['text']
-            # elif isinstance( prediction, list ):
-            #     processor = pipe.tokenizer
-            #     transcriptions = []
-            #     for chunk in prediction:
-            #         predicted_ids = torch.tensor(chunk["token_ids"]).unsqueeze(0).to( config.stt.device )
-            #         transcription = processor.batch_decode( predicted_ids, skip_special_tokens=True )
-            #         transcriptions.append( transcription[0] )
-            #     return transcriptions
+            prediction = pipe( speech, return_timestamps = True )
+            if isinstance(prediction, dict):
+                if 'text' in prediction.keys():
+                    return prediction['text']
+            elif isinstance( prediction, list ):
+                processor = pipe.tokenizer
+                transcriptions = []
+                for chunk in prediction:
+                    predicted_ids = torch.tensor(chunk["token_ids"]).unsqueeze(0).to( config.stt.device )
+                    transcription = processor.batch_decode( predicted_ids, skip_special_tokens=True )
+                    transcriptions.append( transcription[0] )
+                return transcriptions
 
     text_to_speech_synapse = SpeechToTextSynapse()
     base_miner.axon.attach( text_to_speech_synapse )
