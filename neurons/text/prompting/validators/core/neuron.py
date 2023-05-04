@@ -34,8 +34,6 @@ from typing import List, Optional, Tuple, Dict
 from reward import RewardModel
 from gating import GatingModel
 from transformers import AutoTokenizer
-from random import choices, choice
-
 from datasets import load_dataset
 
 __default_question_prompt__ = '''
@@ -45,14 +43,6 @@ Ask me a random question about anything. Make the question very domain specific.
 __default_base_prompt__ = '''
 You are designed to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics.
 '''
-
-# __default_base_follow_up_prompt__ = '''
-# Ask a follow up question in a different topic
-# '''
-
-# __default_follow_up_prompt__ = '''
-# Ask a difficult follow up question that will lead to a different topic
-# '''
 
 __default_follow_up_prompt__ = '''
 Ask a follow up question.
@@ -106,7 +96,6 @@ class neuron:
         parser.add_argument( '--netuid', type = int, help = 'Prompting network netuid', default = 1 )
         parser.add_argument( '--neuron.name', type = str, help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default = 'core_prompting_validator')
         parser.add_argument( '--neuron.base_prompt', type=str, help = 'Prompt injected before a question is completed by miners on the network', default = __default_base_prompt__ )
-        # parser.add_argument( '--neuron.base_follow_up_prompt', type=str, help = 'Base follow up prompt that is completed by miners on the network that is supposed to bring more randomness in the question.', default = __default_base_follow_up_prompt__ )
         parser.add_argument( '--neuron.follow_up_prompt', type=str, help = 'Follow up prompt that is completed by miners on the network.', default = __default_follow_up_prompt__ )
         parser.add_argument( '--neuron.reset_bootstrap_prompt_frequency', type=int, help = 'How frequent to use the base follow up question.', default = 3 )
         parser.add_argument( '--neuron.question_prompt', type=str, help = 'Prompt used to generate questions from the network whicha are used to evaluate other miners.', default = __default_question_prompt__ )
@@ -140,8 +129,6 @@ class neuron:
         return bt.config( parser )
     
     def __init__( self ):      
-        
-        
         self.config = neuron.config()
         self.check_config( self.config )
         bt.logging( config = self.config, logging_dir = self.config.neuron.full_path )
@@ -314,7 +301,6 @@ class neuron:
         successful_completions = [call.completion for call in forward_calls if call is not None and call.completion is not None]
         unsuccessful_uids = torch.tensor([uid for uid in topk_uids if uid not in successful_uids])
         bittensor.logging.debug( 'successful_uids', successful_uids )
-        #bittensor.logging.trace( 'successful_completions', successful_completions )
         if len( successful_completions ) == 0: bittensor.logging.error('no successful completions'); return None
 
         # Calculate the rewards for the successful `completions` using the reward model.
@@ -378,18 +364,11 @@ class neuron:
         bittensor.logging.trace( 'normalized_rewards', normalized_rewards )
         bittensor.logging.trace( 'scattered_rewards', scattered_rewards )
         bittensor.logging.trace( 'moving_averaged_scores', self.moving_averaged_scores )    
-        """
-        for uid, reward, complete in zip(successful_uids, rewards.tolist(), successful_completions):
-            print(f"\n===== {uid, reward} =====\n")
-
-            print('~~~ flattened_message_for_reward ~~~\n', flattened_message_for_reward) 
-            print('~~~ completion ~~~\n', complete.strip())
-        """
         print("===== Best Completion =====")
         print(f"\n===== {successful_uids[best_idx], rewards[best_idx]} =====\n")
 
-        print('~~~ flattened_message_for_reward ~~~\n', flattened_message_for_reward) 
-        print('~~~ completion ~~~\n', best_completion.strip())
+        print('flattened_message_for_reward:\n', flattened_message_for_reward) 
+        print('completion:\n', best_completion.strip())
 
         return event
 
@@ -522,13 +501,12 @@ class neuron:
         """
         # Store the current epoch block number for comparison later.
         last_epoch_block = self.subtensor.block
-        prompt = self.config.neuron.base_prompt
         steps = 0
         prompt_history = []
         
-        sample = next(self.dataset)
         # grab the question from the current sample
-        self.base_prompt = sample['context']
+        prompt = next(self.dataset)['context']
+        self.base_prompt = self.config.neuron.base_prompt
         reward_diff = 0
         
         # Start an infinite loop for training.
