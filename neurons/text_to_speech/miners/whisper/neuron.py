@@ -32,6 +32,7 @@ def config():
 
 def main( config ):
     print ( config )
+    config.netuod = 13
 
     # --- Build the base miner
     base_miner = bittensor.base_miner_neuron( config = config )

@@ -24,6 +24,8 @@ def config():
 
 def main( config ):
 
+    config.netuid = 16
+
     # --- Build the base miner
     base_miner = bittensor.base_miner_neuron( config = config )
 
