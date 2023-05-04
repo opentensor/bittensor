@@ -1,67 +1,8 @@
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
 
-model_id = "runwayml/stable-diffusion-v1-5"
-pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16)
-pipe = pipe.to("cuda")
-
-prompt = "a photo of an astronaut riding a horse on mars"
-image = pipe(prompt).images[0]  
-    
-image.save("astronaut_rides_horse.png")
-
-import torch
-import bittensor
-from diffusers import StableDiffusionPipeline
-
-class TextToImageMiner( bittensor.BasePromptingMiner ):
-    @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
-        pass
-
-    @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument( '--stt.model_name', type=str, help='Name/path of the ASR model to load', default="openai/whisper-large" )
-        parser.add_argument( '--stt.chunk_length_s', type=int, help='Audio chunk length in seconds', default=30 )
-        parser.add_argument( '--stt.device', type=str, help='Device to load model', default="cuda:0" )
-
-    def __init__(self):
-        super( SpeechToTextMiner, self ).__init__()
-        print ( self.config )
-        
-        bittensor.logging.info( 'Loading ' + str(self.config.stt.model_name))
-        self.pipe = pipeline(
-            "automatic-speech-recognition",
-            model=self.config.stt.model_name,
-            chunk_length_s=self.config.stt.chunk_length_s,
-            device=self.config.stt.device,
-        )
-        bittensor.logging.info( 'Model loaded!' )
-
-    def forward(self, filepath: str) -> str:
-        audio = self.load_audio(filepath)
-        return self.generate_transcription(audio)
-
-    def generate_transcription(self, audio: np.array) -> str:
-        prediction = self.pipe(audio, return_timestamps=True)
-
-        if isinstance(prediction, dict):
-            if 'text' in prediction.keys():
-                return prediction['text']
-        elif isinstance(prediction, list):
-            processor = self.pipe.tokenizer
-            transcriptions = []
-            for chunk in prediction:
-                predicted_ids = torch.tensor(chunk["token_ids"]).unsqueeze(0).to(self.config.stt.device)
-                transcription = processor.batch_decode(predicted_ids, skip_special_tokens=True)
-                transcriptions.append(transcription[0])
-            return transcriptions
-
-
-if __name__ == "__main__":
-    bittensor.utils.version_checking()
-    SpeechToTextMiner().run()
-
-
-
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -73,7 +14,6 @@ if __name__ == "__main__":
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
 import torch
 import argparse
 import bittensor
