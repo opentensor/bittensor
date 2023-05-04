@@ -15,55 +15,77 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import torch
 import argparse
 import bittensor
 
-from typing import List, Dict
+from typing import List, Dict, Union, Tuple
 from langchain.llms import AI21
 
-class AI21Miner( bittensor.BasePromptingMiner ):
+def config():       
+    parser = argparse.ArgumentParser( description = 'Text to Speech Miner' )
+    parser.add_argument('--ai21.api_key', type=str, help='AI21 API key.', required=True)
+    parser.add_argument('--ai21.model_name', type=str, help='Name of the model.', default='j2-jumbo-instruct')
+    parser.add_argument('--ai21.stop', help='Stop tokens.', default=['user: ', 'bot: ', 'system: '])
+    bittensor.base_miner_neuron.add_args( parser )
+    return bittensor.config( parser )
 
-    @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
-        assert config.ai21.api_key != None, 'the miner requires passing --ai21.api_key as an argument of the config.'
+def main( config ):
 
-    @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument('--ai21.api_key', type=str, help='AI21 API key.', required=True)
-        parser.add_argument('--ai21.model_name', type=str, help='Name of the model.', default='j2-jumbo-instruct')
-        parser.add_argument('--ai21.stop', help='Stop tokens.', default=['user: ', 'bot: ', 'system: '])
+    assert config.ai21.api_key != None, 'the miner requires passing --ai21.api_key as an argument of the config.'
+
+    # --- Build the base miner
+    base_miner = bittensor.base_miner_neuron( config = config )
+
+    # --- Build A121 ---
+    bittensor.logging.info( 'Loading AI21 Model...' )
+    model = AI21( 
+        model = config.ai21.model_name, 
+        ai21_api_key = config.ai21.api_key, 
+        stop = config.ai21.stop
+    )
+    bittensor.logging.info( 'Model loaded!' )
+
+    # --- Build Synapse ---
+    class AI21Synapse( bittensor.TextPromptingSynapse ):
+
+        def priority( self, forward_call: "bittensor.SynapseCall" ) -> float: 
+            return base_miner.priority( forward_call )
+
+        def blacklist( self, forward_call: "bittensor.SynapseCall" ) -> Union[ Tuple[bool, str], bool ]:
+            return base_miner.blacklist( forward_call )
         
-    def __init__( self ):
-        super( AI21Miner, self ).__init__()
-        print ( self.config )
+        def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+        
+        @staticmethod
+        def _process_history( history:  List[Dict[str, str]] ) -> str:
+            processed_history = ''
+            for message in history:
+                if message['role'] == 'system':
+                    processed_history += 'system: ' + message['content'] + '\n'
+                if message['role'] == 'assistant':
+                    processed_history += 'assistant: ' + message['content'] + '\n'
+                if message['role'] == 'user':
+                    processed_history += 'user: ' + message['content'] + '\n'
+            return processed_history
 
-        bittensor.logging.info( 'Loading AI21 Model...' )
-        self.model = AI21( 
-            model = self.config.ai21.model_name, 
-            ai21_api_key = self.config.ai21.api_key, 
-            stop = self.config.ai21.stop
-        )
-        bittensor.logging.info( 'Model loaded!' )
+        def forward( self, messages: List[Dict[str, str]]  ) -> str:
+            history = self._process_history(messages)
+            resp = model( history )
+            return resp
+        
+    # --- Attach the synapse to the miner ----
+    base_miner.axon.attach( AI21Synapse() )
 
-    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
-
-    @staticmethod
-    def _process_history( history:  List[Dict[str, str]] ) -> str:
-        processed_history = ''
-        for message in history:
-            if message['role'] == 'system':
-                processed_history += 'system: ' + message['content'] + '\n'
-            if message['role'] == 'assistant':
-                processed_history += 'assistant: ' + message['content'] + '\n'
-            if message['role'] == 'user':
-                processed_history += 'user: ' + message['content'] + '\n'
-        return processed_history
-
-    def forward( self, messages: List[Dict[str, str]]  ) -> str:
-        history = self._process_history(messages)
-        resp = self.model(history)
-        return resp
+    # --- Run Miner ----
+    base_miner.run()
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
-    AI21Miner().run()
+    main( config() )
+
+
+
+
+
+
