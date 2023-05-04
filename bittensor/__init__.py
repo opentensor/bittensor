@@ -216,6 +216,7 @@ from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendri
 
 # ---- Base Miners -----
 from bittensor._neuron.base_miner_neuron import BaseMinerNeuron as base_miner_neuron
+from bittensor._neuron.base_prompting_miner import BasePromptingMiner
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
