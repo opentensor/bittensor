@@ -21,7 +21,7 @@ usage: neuron.py [-h] [--model_name MODEL_NAME] [--chunk_length_s CHUNK_LENGTH_S
                  [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]] [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug]
                  [--logging.trace] [--logging.record_log] [--logging.logging_dir LOGGING.LOGGING_DIR] [--config CONFIG] [--strict]
 
-Text to Speech Miner
+Stable Diffusion Text to Image Miner
 
 options:
   -h, --help            show this help message and exit

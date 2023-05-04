@@ -16,7 +16,7 @@ from typing import List, Dict, Union, Tuple, Optional
 from transformers import pipeline
 
 def config():       
-    parser = argparse.ArgumentParser( description = 'Image to text miner.' )
+    parser = argparse.ArgumentParser( description = 'Captioning Image to Text miner.' )
     parser.add_argument( '--model_name', type=str, help = 'model name to pull from hugging face.', default = "nlpconnect/vit-gpt2-image-captioning" )
     parser.add_argument( '--device', type=str, help='Device to load model', default="cuda:0" )
     bittensor.base_miner_neuron.add_args( parser )

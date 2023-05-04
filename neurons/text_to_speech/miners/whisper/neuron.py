@@ -18,7 +18,7 @@ from typing import List, Dict, Union, Tuple, Optional
 from transformers import pipeline
 
 def config():       
-    parser = argparse.ArgumentParser( description = 'Text to Speech Miner' )
+    parser = argparse.ArgumentParser( description = 'Whisper Text to Speech Miner' )
     parser.add_argument( '--model_name', type=str, help='Name of the speech to text model to use.', default="openai/whisper-large" )
     parser.add_argument( '--chunk_length_s', type=int, help='Audio chunk length in seconds', default=30 )
     parser.add_argument( '--device', type=str, help='Device to load model', default="cuda:0" )
