@@ -344,7 +344,7 @@ class neuron:
             )
             bittensor.logging.trace( 'Applied backward to network.' )
 
-        best_idx = rewards.sort(descending = True)[1][0].item()
+        best_idx = rewards.argmax()
         bittensor.logging.trace('successful_completions', len(successful_completions))
         bittensor.logging.trace('best_idx', best_idx)
         best_completion = successful_completions[best_idx]
