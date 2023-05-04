@@ -4,8 +4,8 @@ Robert myers completion miner for bittensor's prompting network.
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/robertmyers/requirements.txt
-python3 neurons/text/prompting/miners/robertmyers/neuron.py
+python3 -m pip install -r neurons/text_to_completion/miners/robertmyers/requirements.txt
+python3 neurons/text_to_completion/miners/robertmyers/neuron.py
 ```
 
 # Full Usage

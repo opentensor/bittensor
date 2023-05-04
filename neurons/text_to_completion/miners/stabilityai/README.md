@@ -3,8 +3,8 @@ StabilityAI 7B completion miner for bittensor's prompting network.
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/stabilityai/requirements.txt
-python3 neurons/text/prompting/miners/stabilityai/neuron.py --stabilityai.api_key <Your HuggingFace API Key>
+python3 -m pip install -r neurons/text_to_completion/miners/stabilityai/requirements.txt
+python3 neurons/text_to_completion/miners/stabilityai/neuron.py --stabilityai.api_key <Your HuggingFace API Key>
 ```
 
 # Full Usage

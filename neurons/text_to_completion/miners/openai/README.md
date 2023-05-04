@@ -19,8 +19,8 @@ For more configuration options related to the wallet, axon, subtensor, logging, 
 To run the OpenAI Bittensor Miner with default settings, use the following command:
 
 ```
-python3 -m pip install -r neurons/text/prompting/miners/openai/requirements.txt 
-python3 neurons/text/prompting/miners/openai/neuron.py --openai.api_key <your OpenAI api_key>
+python3 -m pip install -r neurons/text_to_completion/miners/openai/requirements.txt 
+python3 neurons/text_to_completion/miners/openai/neuron.py --openai.api_key <your OpenAI api_key>
 ```
 
 # Full Usage

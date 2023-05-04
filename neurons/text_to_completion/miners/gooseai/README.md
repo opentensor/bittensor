@@ -19,8 +19,8 @@ For more configuration options related to the wallet, axon, subtensor, logging, 
 To run the GooseAI Bittensor Miner with default settings, use the following command:
 
 ```
-python3 -m pip install -r neurons/text/prompting/miners/gooseai/requirements.txt 
-python3 neurons/text/prompting/miners/gooseai/neuron.py --gooseai.api_key <your GooseAI api_key>
+python3 -m pip install -r neurons/text_to_completion/miners/gooseai/requirements.txt 
+python3 neurons/text_to_completion/miners/gooseai/neuron.py --gooseai.api_key <your GooseAI api_key>
 ```
 
 # Full Usage

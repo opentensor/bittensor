@@ -4,8 +4,8 @@ This code is for running a language model powered by AlephAlpha through the BitT
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/AlephAlpha/requirements.txt
-python3 neurons/text/prompting/miners/AlephAlpha/miner.py --aleph.api_key <your AlephAlpha api_key>
+python3 -m pip install -r neurons/text_to_completion/miners/AlephAlpha/requirements.txt
+python3 neurons/text_to_completion/miners/AlephAlpha/neuron.py --aleph.api_key <your AlephAlpha api_key>
 ```
 
 # Full Usage

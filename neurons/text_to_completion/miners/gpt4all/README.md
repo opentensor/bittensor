@@ -3,8 +3,8 @@ GPT4ALL prompting miner for bittensor
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/gpt4all/requirements.txt
-python3 neurons/text/prompting/miners/gpt4all/neuron.py
+python3 -m pip install -r neurons/text_to_completion/miners/gpt4all/requirements.txt
+python3 neurons/text_to_completion/miners/gpt4all/neuron.py
 ```
 
 # Obtaining (converted) [GPT4All](https://github.com/nomic-ai/gpt4all) weights

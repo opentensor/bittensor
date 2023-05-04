@@ -14,7 +14,7 @@ This code is for running the Vicuna model through the BitTensor framework.
 # Installing Dependencies
 
 ```
-python3 -m pip install -r neurons/text/prompting/miners/vicuna/requirements.txt
+python3 -m pip install -r neurons/text_to_completion/miners/vicuna/requirements.txt
 ```
 
 # Converting Weights Into Model
@@ -59,7 +59,7 @@ python3 -m fastchat.model.apply_delta \
 
 # Starting Miner
 ```
-python3 neurons/text/prompting/miners/vicuna/neuron.py
+python3 neurons/text_to_completion/miners/vicuna/neuron.py
 ```
 
 # Full Usage

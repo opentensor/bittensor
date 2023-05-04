@@ -4,8 +4,8 @@ This code is for running a language model powered by togethercomputer through th
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/pythia/requirements.txt
-python3 neurons/text/prompting/miners/pythia/neuron.py
+python3 -m pip install -r neurons/text_to_completion/miners/pythia/requirements.txt
+python3 neurons/text_to_completion/miners/pythia/neuron.py
 ```
 
 # Full Usage
