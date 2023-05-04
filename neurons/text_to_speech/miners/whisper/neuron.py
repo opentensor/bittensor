@@ -18,7 +18,7 @@ from transformers import pipeline
 
 def config():       
     parser = argparse.ArgumentParser( description = 'Text to Speech Miner' )
-    parser.add_argument( '--model_name', type=str, help='Name/path of the ASR model to load', default="openai/whisper-large" )
+    parser.add_argument( '--model_name', type=str, help='Name of the speech to text model to use.', default="openai/whisper-large" )
     parser.add_argument( '--chunk_length_s', type=int, help='Audio chunk length in seconds', default=30 )
     parser.add_argument( '--device', type=str, help='Device to load model', default="cuda:0" )
     bittensor.base_miner_neuron.add_args( parser )

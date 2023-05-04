@@ -83,7 +83,7 @@ from typing import List, Dict, Union, Tuple, Optional
 
 def config():       
     parser = argparse.ArgumentParser( description = 'Text to Speech Miner' )
-    parser.add_argument( '--model_name', type=str, help='Name/path of the ASR model to load', default = "runwayml/stable-diffusion-v1-5" )
+    parser.add_argument( '--model_name', type=str, help='Name of the diffusion model to use.', default = "runwayml/stable-diffusion-v1-5" )
     parser.add_argument( '--device', type=str, help='Device to load model', default="cuda:0" )
     bittensor.base_miner_neuron.add_args( parser )
     return bittensor.config( parser )
