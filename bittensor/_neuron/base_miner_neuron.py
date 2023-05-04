@@ -19,6 +19,7 @@ import os
 import time
 import copy
 import torch
+import threading
 import argparse
 import bittensor
 
@@ -148,30 +149,64 @@ class BaseMinerNeuron( ABC ):
         bittensor.logging.add_args( parser )
 
     def __init__(self, config: "bittensor.Config" = None ):
+        # Build config.
         self.config = config if config != None else BaseMinerNeuron.config()
         BaseMinerNeuron.check_config( self.config )
+
+        # Build objects.
         bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
         self.subtensor = bittensor.subtensor( self.config )
         self.wallet = bittensor.wallet( self.config )
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
         self.axon = bittensor.axon( wallet = self.wallet, config = self.config )
 
+        # Used for backgounr process.
+        self.is_running = False
+        self.should_exit = False 
+        self.background_thread = None
+
+    def __enter__(self):
+        bittensor.logging.trace( 'BaseMinerNeuron.__enter__()' )
+        self.start_in_background()
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        bittensor.logging.trace( 'BaseMinerNeuron.__exit__()' )
+        self.stop()
+
+    def start_in_background(self):
+        if self.is_running:
+            bittensor.logging.warning( 'The base miner neuron is already running.')
+        else:
+            self.should_exit = False
+            self.background_thread = threading.Thread( target = self.run, daemon = True )
+            self.background_thread.start()
+            self.is_running = True
+            bittensor.logging.trace( 'Starting the base miner neuron in the background.')
+
+    def stop(self):
+        if self.is_running:
+            self.should_exit = True
+        else:
+            bittensor.logging.warning( 'The base miner neuron is not running.')
+
     def run( self ):
+        bittensor.logging.debug( 'BaseMinerNeuron.run()' )
 
         # --- Start the miner.
-        self.wallet.reregister( netuid = self.config.netuid, subtensor = self.subtensor )
+        self.is_running = True
+        #self.wallet.reregister( netuid = self.config.netuid, subtensor = self.subtensor )
         self.axon.start()
-        self.axon.netuid = self.config.netuid
-        self.axon.protocol = 4
-        self.subtensor.serve_axon( netuid = self.config.netuid, axon = self.axon )
+        #self.subtensor.serve_axon( netuid = self.config.netuid, axon = self.axon )
 
         # --- Run Forever.
         last_update = self.subtensor.get_current_block()
-        while True:
+        while not self.should_exit:
 
             # --- Wait until next epoch.
             current_block = self.subtensor.get_current_block()
             while (current_block - last_update) < self.config.neuron.blocks_per_epoch:
+                if self.should_exit: continue
                 time.sleep( 0.1 ) #bittensor.__blocktime__
                 current_block = self.subtensor.get_current_block()
             last_update = self.subtensor.get_current_block()
@@ -204,3 +239,5 @@ class BaseMinerNeuron( ABC ):
                     )
                 except:
                     pass
+
+        self.axon.stop()

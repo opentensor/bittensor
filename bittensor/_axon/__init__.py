@@ -89,7 +89,7 @@ class axon:
             hotkey = self.wallet.hotkey.ss58_address,
             coldkey = self.wallet.coldkeypub.ss58_address,
             protocol = 4,
-            placeholder1 = 0,
+            placeholder1 = self.external_fast_api_port, # placeholder1 = fast_api_port
             placeholder2 = 0,
         )
     
@@ -107,6 +107,7 @@ class axon:
         max_workers: Optional[int] = None,
         maximum_concurrent_rpcs: Optional[int] = None,
         blacklist: Optional[Callable] = None,
+        fast_api_port: Optional[int] = None,
     ) -> "bittensor.Axon":
         r"""Creates a new bittensor.Axon object from passed arguments.
         Args:
@@ -128,6 +129,10 @@ class axon:
                 Maximum allowed concurrently processed RPCs.
             blacklist (:obj:`Optional[callable]`, `optional`):
                 function to blacklist requests.
+            fast_api_port (:type:`Optional[int]`, `optional`):
+                The port to run the fastapi server on.
+            external_fast_api_port (:type:`Optional[int]`, `optional`):
+                The port to broadcast the fastapi server on.
         """
         self.wallet = wallet
 
@@ -136,6 +141,7 @@ class axon:
             config = axon.config()
         config = copy.deepcopy(config)
         config.axon.port = port if port is not None else config.axon.port
+        config.axon.fast_api_port = fast_api_port if fast_api_port is not None else config.axon.fast_api_port
         config.axon.ip = ip if ip is not None else config.axon.ip
         config.axon.external_ip = external_ip if external_ip is not None else config.axon.external_ip
         config.axon.external_port = (
@@ -155,6 +161,7 @@ class axon:
         self.port = self.config.axon.port
         self.external_ip = self.config.axon.external_ip if self.config.axon.external_ip != None else bittensor.utils.networking.get_external_ip()
         self.external_port = self.config.axon.external_port if self.config.axon.external_port != None else self.config.axon.port
+        self.external_fast_api_port = self.config.axon.external_fast_api_port if self.config.axon.external_fast_api_port != None else self.config.axon.fast_api_port
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
         self.blacklist = blacklist
         self.started = False
@@ -164,7 +171,7 @@ class axon:
 
         # Instantiate FastAPI
         self.fastapi_app = FastAPI()
-        self.fast_config = uvicorn.Config( self.fastapi_app, host="0.0.0.0", port=8001, log_level="info")
+        self.fast_config = uvicorn.Config( self.fastapi_app, host = '0.0.0.0', port = self.config.axon.fast_api_port, log_level="info")
         self.fast_server = FastAPIThreadedServer( config = self.fast_config )
         self.router = APIRouter()
         self.router.add_api_route("/", self.fast_api_info, methods=["GET"])
@@ -236,6 +243,19 @@ class axon:
                 default=bittensor.defaults.axon.external_port,
             )
             parser.add_argument(
+                "--" + prefix_str + "axon.fast_api_port",
+                type = int,
+                help = """The local port this axon fast api endpoint is bound to. i.e. 8092""",
+                default = bittensor.defaults.axon.fast_api_port,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "axon.external_fast_api_port",
+                type=int,
+                required=False,
+                help="""The public fast api port this axon broadcasts to the network. i.e. 8092""",
+                default=bittensor.defaults.axon.external_fast_api_port,
+            )
+            parser.add_argument(
                 "--" + prefix_str + "axon.external_ip",
                 type=str,
                 required=False,
@@ -266,10 +286,18 @@ class axon:
         defaults.axon.port = (
             os.getenv("BT_AXON_PORT") if os.getenv("BT_AXON_PORT") is not None else 8091
         )
+        defaults.axon.fast_api_port = (
+            os.getenv("BT_AXON_FAST_API_PORT") if os.getenv("BT_AXON_FAST_API_PORT") is not None else 8092
+        )
         defaults.axon.ip = os.getenv("BT_AXON_IP") if os.getenv("BT_AXON_IP") is not None else "[::]"
         defaults.axon.external_port = (
             os.getenv("BT_AXON_EXTERNAL_PORT")
             if os.getenv("BT_AXON_EXTERNAL_PORT") is not None
+            else None
+        )
+        defaults.axon.external_fast_api_port = (
+            os.getenv("BT_AXON_EXTERNAL_FAST_API_PORT")
+            if os.getenv("BT_AXON_EXTERNAL_FAST_API_PORT") is not None
             else None
         )
         defaults.axon.external_ip = (
@@ -293,6 +321,12 @@ class axon:
         assert config.axon.external_port is None or (
             config.axon.external_port > 1024 and config.axon.external_port < 65535
         ), "external port must be in range [1024, 65535]"
+        assert (
+            config.axon.fast_api_port > 1024 and config.axon.fast_api_port < 65535
+        ), "fast api port must be in range [1024, 65535]"
+        assert config.axon.external_fast_api_port is None or (
+            config.axon.external_fast_api_port > 1024 and config.axon.external_fast_api_port < 65535
+        ), "external fast api port must be in range [1024, 65535]"
 
     def __str__(self) -> str:
         return "Axon({}, {}, {}, {})".format(
@@ -459,7 +493,7 @@ class axon_info:
     hotkey: str 
     coldkey: str
     protocol:int = 4,
-    placeholder1:int = 0,
+    placeholder1:int = 0, # placeholder1 = fast_api_port
     placeholder2:int = 0,
 
     @property
