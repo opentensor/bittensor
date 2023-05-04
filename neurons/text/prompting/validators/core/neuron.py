@@ -39,11 +39,11 @@ from random import choices, choice
 from datasets import load_dataset
 
 __default_question_prompt__ = '''
-Ask me a random question about anything. Make the question very domain specific. Do not include the answer in the question.
+Reply to my statement with a single question. The question should give information about a domain specific topic. The question should be about a fact or statement. Do not include the answer in the question.
 '''
 
 __default_base_prompt__ = '''
-You are designed to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics.
+You are an assistant designed to give answers to a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. You are tasked to help a human understand these topics. You are considered an expert on the subject. The user will ask you questions, and you are tasked to respond to them in a timely and professional matter.
 '''
 
 # __default_base_follow_up_prompt__ = '''
@@ -54,9 +54,19 @@ You are designed to assist with a wide range of tasks, from answering simple que
 # Ask a difficult follow up question that will lead to a different topic
 # '''
 
-__default_follow_up_prompt__ = '''
-Ask a follow up question.
+__default_follow_up_prompt__ = ['''
+Could you give me more information on this topic?
+''',
 '''
+Can you explain your answer a bit more?
+''',
+'''
+I don't understand what you were trying to say. Could you explain it like I am five?
+''',
+'''
+What if the answer is not correct? Could you cite some sources?
+''']
+
 class neuron:
     @classmethod
     def check_config( cls, config: 'bt.Config' ):
