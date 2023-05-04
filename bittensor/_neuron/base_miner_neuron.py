@@ -27,21 +27,16 @@ from typing import List, Dict, Union, Tuple, Optional
 from datetime import datetime
 from abc import ABC, abstractmethod
 
-class BasePromptingMiner( ABC ):
+class BaseMinerNeuron( ABC ):
 
-    @classmethod
-    @abstractmethod
-    def add_args( cls, parser: argparse.ArgumentParser ):
-        ...
-
-    def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
+    def priority( self, forward_call: "bittensor.SynapseCall" ) -> float:
         if self.metagraph is not None:
             uid = self.metagraph.hotkeys.index(forward_call.src_hotkey)
             return self.metagraph.S[uid].item()
         else:
             return self.config.neuron.default_priority
 
-    def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> Union[ Tuple[bool, str], bool ]:
+    def blacklist( self, forward_call: "bittensor.SynapseCall" ) -> Union[ Tuple[bool, str], bool ]:
         # Check for registration
         def registration_check():
             is_registered = forward_call.src_hotkey in self.metagraph.hotkeys
@@ -68,33 +63,22 @@ class BasePromptingMiner( ABC ):
         except Exception as e:
             bittensor.logging.warning( "Blacklisted. Error in `registration_check` or `stake_check()" )
             return True, 'Error in `registration_check` or `stake_check()'
-        
-    @abstractmethod
-    def forward( self, messages: List[Dict[str, str]] ) -> str:
-        ...
-
-    @classmethod
-    @abstractmethod
-    def check_config( cls, config: 'bittensor.Config' ):
-        ...
 
     @classmethod
     def config( cls ) -> "bittensor.Config":
         parser = argparse.ArgumentParser()
-        cls.add_super_args( parser )
+        cls.add_args( parser )
         return bittensor.config( parser )
 
     @classmethod
     def help( cls ):
         parser = argparse.ArgumentParser()
-        cls.add_super_args( parser )
         cls.add_args(parser)
         print( cls.__new__.__doc__ )
         parser.print_help()
 
     @classmethod
-    def super_check_config( cls, config: "bittensor.Config" ):
-        cls.check_config( config )
+    def check_config( cls, config: "bittensor.Config" ):
         bittensor.axon.check_config( config )
         bittensor.wallet.check_config( config )
         bittensor.logging.check_config( config )
@@ -107,8 +91,7 @@ class BasePromptingMiner( ABC ):
             os.makedirs( config.neuron.full_path )
 
     @classmethod
-    def add_super_args( cls, parser: argparse.ArgumentParser ):
-        cls.add_args(parser)
+    def add_args( cls, parser: argparse.ArgumentParser ):
         parser.add_argument(
             '--netuid', 
             type = int, 
@@ -132,18 +115,6 @@ class BasePromptingMiner( ABC ):
             action = 'store_true', 
             help = 'If True, the model does not set weights.',
             default = False
-        )
-        parser.add_argument(
-            '--neuron.max_batch_size', 
-            type = int, 
-            help = 'The maximum batch size for forward requests.',
-            default = -1
-        )
-        parser.add_argument(
-            '--neuron.max_sequence_len', 
-            type = int, 
-            help = 'The maximum sequence length for forward requests.',
-            default = -1
         )
         parser.add_argument(
             '--neuron.blacklist.hotkeys', 
@@ -176,33 +147,14 @@ class BasePromptingMiner( ABC ):
         bittensor.subtensor.add_args( parser )
         bittensor.logging.add_args( parser )
 
-    def __init__(
-        self,
-        config: "bittensor.Config" = None
-    ):
-        config = config if config != None else self.config()
-        self.config = copy.deepcopy( config )
-        self.super_check_config( self.config )
-        self.config.to_defaults()
+    def __init__(self, config: "bittensor.Config" = None ):
+        self.config = config if config != None else BaseMinerNeuron.config()
+        BaseMinerNeuron.check_config( self.config )
         bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
         self.subtensor = bittensor.subtensor( self.config )
         self.wallet = bittensor.wallet( self.config )
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
-        self.axon = bittensor.axon( 
-            wallet = self.wallet,
-            metagraph = self.metagraph,
-            config = self.config,
-        )
-        class Synapse( bittensor.TextPromptingSynapse ):
-            def priority( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
-                return self.priority( forward_call )
-            def blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> Union[ Tuple[bool, str], bool ]:
-                return self.blacklist( forward_call )
-            def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
-            def forward( _, messages: List[Dict[str, str]] ) -> str:
-                return self.forward( messages )
-        self.synapse = Synapse()
-        self.axon.attach( self.synapse )
+        self.axon = bittensor.axon( wallet = self.wallet, config = self.config )
 
     def run( self ):
 
@@ -243,12 +195,12 @@ class BasePromptingMiner( ABC ):
                     chain_weights = torch.zeros( self.subtensor.subnetwork_n( netuid = self.config.netuid ))
                     chain_weights[uid] = 1
                     did_set = self.subtensor.set_weights(
-                        uids=torch.arange(0, len(chain_weights)),
-                        netuid=self.config.netuid,
-                        weights=chain_weights,
-                        wait_for_inclusion=False,
-                        wallet=self.wallet,
-                        version_key=1
+                        uids = torch.arange(0, len(chain_weights)),
+                        netuid = self.config.netuid,
+                        weights = chain_weights,
+                        wait_for_inclusion = False,
+                        walle = self.wallet,
+                        version_key = 1
                     )
                 except:
                     pass
