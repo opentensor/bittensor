@@ -502,7 +502,6 @@ class neuron:
         # Store the current epoch block number for comparison later.
         last_epoch_block = self.subtensor.block
         steps = 0
-        prompt_history = []
         
         # grab the question from the current sample
         prompt = next(self.dataset)['context']
@@ -575,13 +574,7 @@ class neuron:
                         weights = weights,
                         wait_for_finalization = False,
                     )
-
-                    bittensor.logging.trace('last 100 prompt history: ', prompt_history[-100:])
-                    if len(prompt_history) > 100:
-                        prompt_history = prompt_history[-100:]                      
-
                 steps += 1 
-                prompt_history.append(prompt)
 
         except Exception as e:
             bittensor.logging.info( 'Error in training loop', str( e    ) )
