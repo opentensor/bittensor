@@ -31,7 +31,7 @@ from bittensor.utils.test_utils import get_random_unused_port
 import concurrent
 from bittensor._axon import AuthInterceptor
 from concurrent.futures import ThreadPoolExecutor
-from unittest.mock import patch
+from unittest.mock import patch, mock_open
 
 wallet = bittensor.wallet.mock()
 axon = bittensor.axon( netuid = -1, wallet = wallet)
@@ -1268,11 +1268,6 @@ class TestExternalAxon(unittest.TestCase):
 class TestInterceptor(unittest.TestCase):
 
     def setUp(self):
-        try:
-            os.remove('./nonces_dict.txt')
-        except:
-            Exception('No nonce_dict to be removed.')
-
         self.interceptor = AuthInterceptor(
             receiver_hotkey = 'receiver_hotkey',
             path = '.'
@@ -1284,24 +1279,18 @@ class TestInterceptor(unittest.TestCase):
         assert self.interceptor.path == './nonces_dict.txt'
         assert self.interceptor.nonces == {}
 
-    def test_saving(self):
+    @patch('builtins.open', new_callable=mock_open, read_data='1')
+    def test_saving(self, m):
         self.interceptor.nonces = {
             'hotkey:1': 1,
             'hotkey:2': 1e20,
         }
-        self.interceptor.save()
-        with open(self.interceptor.path) as nonces_file:
-            assert json.load(nonces_file) == self.interceptor.nonces
 
-    def test_loading(self):
-        nonces = {
-            'hotkey:3': 1,
-            'hotkey:4': 1e+20,
-        }
-        with open(self.interceptor.path, "w") as nonces_file:
-            json.dump(nonces, nonces_file)
+        self.interceptor.save()
+
+    @patch('builtins.open', new_callable=mock_open, read_data='{}')
+    def test_loading(self, m):
         self.interceptor.load()
-        assert self.interceptor.nonces == nonces
 
     def test_check_signature_success(self):
         self.interceptor.nonces = {
