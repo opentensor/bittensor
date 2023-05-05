@@ -21,7 +21,7 @@ netaddr==0.8.0
 pandas==1.5.2
 psutil==5.9.4
 password_strength==0.0.3.post2
-protobuf==3.19.5
+protobuf==3.20.3
 prometheus_client==0.14.1
 pycryptodome==3.11.0
 py-sr25519-bindings>=0.1.4,<1
@@ -46,3 +46,4 @@ jsonschema[format-nongpl]>=4.14.0,<=4.17.0
 markupsafe==2.0.1
 langchain>=0.0.132
 fastapi
+uvicorn
