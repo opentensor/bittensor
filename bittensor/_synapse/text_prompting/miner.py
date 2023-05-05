@@ -224,7 +224,7 @@ class BasePromptingMiner( ABC ):
             last_update = self.subtensor.get_current_block()
 
             # --- Update the metagraph with the latest network state.
-            self.metagraph.sync( lite = True )
+            self.metagraph.sync( netuid = 1, subtensor = self.subtensor )
             uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
 
             # --- Log performance.
