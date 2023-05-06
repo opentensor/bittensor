@@ -33,7 +33,7 @@ class ImageToTextSynapse( bittensor.ImageToTextSynapse ):
 
 # Create a mock wallet.
 wallet = bittensor.wallet( config = bittensor.wallet.config() ).create_if_non_existent()
-axon = bittensor.axon( wallet = wallet, port = 9090, ip = "127.0.0.1" )
+axon = bittensor.axon( wallet = wallet, port = 9090, ip = "127.0.0.1", config = bittensor.axon.config() )
 image_to_text = bittensor.image_to_text( axon = axon.info(), keypair = wallet.hotkey )
 axon.attach( ImageToTextSynapse() )
 

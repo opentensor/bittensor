@@ -110,7 +110,7 @@ class axon:
         max_workers: Optional[int] = None,
         maximum_concurrent_rpcs: Optional[int] = None,
         blacklist: Optional[Callable] = None,
-        enable_fast_api: Optional[bool] = None,
+        disable_fast_api: Optional[bool] = None,
         fast_api_port: Optional[int] = None,
         external_fast_api_port: Optional[int] = None,
     ) -> "bittensor.Axon":
@@ -174,7 +174,7 @@ class axon:
         self.synapses = {}
 
         # Instantiate FastAPI
-        if not self.config.disable_fast_api:
+        if not self.config.axon.disable_fast_api:
             self.fastapi_app = FastAPI()
             self.fast_config = uvicorn.Config( self.fastapi_app, host = '0.0.0.0', port = self.config.axon.fast_api_port, log_level="info")
             self.fast_server = FastAPIThreadedServer( config = self.fast_config )
@@ -183,7 +183,7 @@ class axon:
             self.fastapi_app.include_router( self.router )
 
         # Build priority thread pool
-        self.priority_threadpool = bittensor.prioritythreadpool( config = self.max_workers )
+        self.priority_threadpool = bittensor.prioritythreadpool( config = self.config.axon.max_workers )
 
         # Build interceptor.
         self.receiver_hotkey = self.wallet.hotkey.ss58_address
@@ -192,7 +192,7 @@ class axon:
         )
 
         # Build grpc server
-        self.thread_pool = futures.ThreadPoolExecutor(max_workers=self.axon.max_workers)
+        self.thread_pool = futures.ThreadPoolExecutor(max_workers=self.config.axon.max_workers)
         self.server = grpc.server(
             self.thread_pool,
             interceptors = (self.auth_interceptor,),
@@ -282,7 +282,7 @@ class axon:
             )
             parser.add_argument(
                 "--" + prefix_str + "axon.disable_fast_api",
-                dest = "disable_fast_api", 
+                dest = "axon.disable_fast_api", 
                 action = 'store_true',
                 default = bittensor.defaults.axon.disable_fast_api
             )
@@ -338,7 +338,8 @@ class axon:
 
     def start(self) -> "bittensor.axon":
         r"""Starts the standalone axon GRPC server thread."""
-        self.fast_server.start()
+        if not self.config.axon.disable_fast_api and self.fast_server:
+            self.fast_server.start()
         if self.server is not None:
             self.server.stop(grace=1)
         self.server.start()
@@ -347,7 +348,8 @@ class axon:
 
     def stop(self) -> "bittensor.axon":
         r"""Stop the axon grpc server."""
-        self.fast_server.stop()
+        if not self.config.axon.disable_fast_api and self.fast_server:
+            self.fast_server.stop()
         if self.server is not None:
             self.server.stop(grace=1)
         self.started = False
