@@ -32,7 +32,7 @@ class ImageToTextSynapse( bittensor.ImageToTextSynapse ):
         return "this is what was in the image represented by bytes =" + str(image)
 
 # Create a mock wallet.
-wallet = bittensor.wallet().create_if_non_existent()
+wallet = bittensor.wallet( config = bittensor.wallet.config() ).create_if_non_existent()
 axon = bittensor.axon( wallet = wallet, port = 9090, ip = "127.0.0.1" )
 image_to_text = bittensor.image_to_text( axon = axon.info(), keypair = wallet.hotkey )
 axon.attach( ImageToTextSynapse() )

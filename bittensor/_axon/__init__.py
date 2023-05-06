@@ -41,6 +41,9 @@ import threading
 import uvicorn
 from fastapi import FastAPI, APIRouter
 
+
+""" FastAPI server that runs in a thread. 
+"""
 class FastAPIThreadedServer(uvicorn.Server):
     should_exit: bool = False
     is_running: bool = False
@@ -107,7 +110,9 @@ class axon:
         max_workers: Optional[int] = None,
         maximum_concurrent_rpcs: Optional[int] = None,
         blacklist: Optional[Callable] = None,
+        enable_fast_api: Optional[bool] = None,
         fast_api_port: Optional[int] = None,
+        external_fast_api_port: Optional[int] = None,
     ) -> "bittensor.Axon":
         r"""Creates a new bittensor.Axon object from passed arguments.
         Args:
@@ -129,6 +134,8 @@ class axon:
                 Maximum allowed concurrently processed RPCs.
             blacklist (:obj:`Optional[callable]`, `optional`):
                 function to blacklist requests.
+            disable_fast_api (:obj:`Optional[bool]`, `optional`):
+                turn off http fast api entrypoint server.
             fast_api_port (:type:`Optional[int]`, `optional`):
                 The port to run the fastapi server on.
             external_fast_api_port (:type:`Optional[int]`, `optional`):
@@ -140,19 +147,16 @@ class axon:
         if config is None:
             config = axon.config()
         config = copy.deepcopy(config)
-        config.axon.port = port if port is not None else config.axon.port
-        config.axon.fast_api_port = fast_api_port if fast_api_port is not None else config.axon.fast_api_port
-        config.axon.ip = ip if ip is not None else config.axon.ip
-        config.axon.external_ip = external_ip if external_ip is not None else config.axon.external_ip
-        config.axon.external_port = (
-            external_port if external_port is not None else config.axon.external_port
-        )
-        config.axon.max_workers = max_workers if max_workers is not None else config.axon.max_workers
-        config.axon.maximum_concurrent_rpcs = (
-            maximum_concurrent_rpcs
-            if maximum_concurrent_rpcs is not None
-            else config.axon.maximum_concurrent_rpcs
-        )
+
+        config.axon.ip = ip or config.axon.ip
+        config.axon.port = port or config.axon.port
+        config.axon.fast_api_port = fast_api_port or config.axon.fast_api_port
+        config.axon.external_fast_api_port = external_fast_api_port or config.axon.external_fast_api_port
+        config.axon.external_ip = external_ip or config.axon.external_ip
+        config.axon.external_port = external_port or config.axon.external_port
+        config.axon.max_workers = max_workers or config.axon.max_workers
+        config.axon.maximum_concurrent_rpcs = maximum_concurrent_rpcs or config.axon.maximum_concurrent_rpcs
+        config.axon.disable_fast_api = disable_fast_api or config.axon.disable_fast_api
         axon.check_config(config)
         self.config = config
 
@@ -170,15 +174,16 @@ class axon:
         self.synapses = {}
 
         # Instantiate FastAPI
-        self.fastapi_app = FastAPI()
-        self.fast_config = uvicorn.Config( self.fastapi_app, host = '0.0.0.0', port = self.config.axon.fast_api_port, log_level="info")
-        self.fast_server = FastAPIThreadedServer( config = self.fast_config )
-        self.router = APIRouter()
-        self.router.add_api_route("/", self.fast_api_info, methods=["GET"])
-        self.fastapi_app.include_router( self.router )
+        if not self.config.disable_fast_api:
+            self.fastapi_app = FastAPI()
+            self.fast_config = uvicorn.Config( self.fastapi_app, host = '0.0.0.0', port = self.config.axon.fast_api_port, log_level="info")
+            self.fast_server = FastAPIThreadedServer( config = self.fast_config )
+            self.router = APIRouter()
+            self.router.add_api_route("/", self.fast_api_info, methods=["GET"])
+            self.fastapi_app.include_router( self.router )
 
         # Build priority thread pool
-        self.priority_threadpool = bittensor.prioritythreadpool(config=self.config.axon)
+        self.priority_threadpool = bittensor.prioritythreadpool( config = self.max_workers )
 
         # Build interceptor.
         self.receiver_hotkey = self.wallet.hotkey.ss58_address
@@ -187,11 +192,11 @@ class axon:
         )
 
         # Build grpc server
-        self.thread_pool = futures.ThreadPoolExecutor(max_workers=self.config.axon.max_workers)
+        self.thread_pool = futures.ThreadPoolExecutor(max_workers=self.axon.max_workers)
         self.server = grpc.server(
             self.thread_pool,
-            interceptors=(self.auth_interceptor,),
-            maximum_concurrent_rpcs=self.config.axon.maximum_concurrent_rpcs,
+            interceptors = (self.auth_interceptor,),
+            maximum_concurrent_rpcs = self.config.axon.maximum_concurrent_rpcs,
             options=[("grpc.keepalive_time_ms", 100000), ("grpc.keepalive_timeout_ms", 500000)],
         )
         self.server.add_insecure_port(self.full_address)
@@ -225,22 +230,22 @@ class axon:
         try:
             parser.add_argument(
                 "--" + prefix_str + "axon.port",
-                type=int,
-                help="""The local port this axon endpoint is bound to. i.e. 8091""",
-                default=bittensor.defaults.axon.port,
+                type =int,
+                help = """The local port this axon endpoint is bound to. i.e. 8091""",
+                default = bittensor.defaults.axon.port,
             )
             parser.add_argument(
                 "--" + prefix_str + "axon.ip",
-                type=str,
-                help="""The local ip this axon binds to. ie. [::]""",
-                default=bittensor.defaults.axon.ip,
+                type = str,
+                help = """The local ip this axon binds to. ie. [::]""",
+                default = bittensor.defaults.axon.ip,
             )
             parser.add_argument(
                 "--" + prefix_str + "axon.external_port",
-                type=int,
-                required=False,
-                help="""The public port this axon broadcasts to the network. i.e. 8091""",
-                default=bittensor.defaults.axon.external_port,
+                type = int,
+                required = False,
+                help = """The public port this axon broadcasts to the network. i.e. 8091""",
+                default = bittensor.defaults.axon.external_port,
             )
             parser.add_argument(
                 "--" + prefix_str + "axon.fast_api_port",
@@ -250,31 +255,38 @@ class axon:
             )
             parser.add_argument(
                 "--" + prefix_str + "axon.external_fast_api_port",
-                type=int,
-                required=False,
-                help="""The public fast api port this axon broadcasts to the network. i.e. 8092""",
-                default=bittensor.defaults.axon.external_fast_api_port,
+                type = int,
+                required = False,
+                help = """The public fast api port this axon broadcasts to the network. i.e. 8092""",
+                default = bittensor.defaults.axon.external_fast_api_port,
             )
             parser.add_argument(
                 "--" + prefix_str + "axon.external_ip",
-                type=str,
-                required=False,
-                help="""The external ip this axon broadcasts to the network to. ie. [::]""",
-                default=bittensor.defaults.axon.external_ip,
+                type = str,
+                required = False,
+                help = """The external ip this axon broadcasts to the network to. ie. [::]""",
+                default = bittensor.defaults.axon.external_ip,
             )
             parser.add_argument(
                 "--" + prefix_str + "axon.max_workers",
-                type=int,
-                help="""The maximum number connection handler threads working simultaneously on this endpoint. 
+                type = int,
+                help = """The maximum number connection handler threads working simultaneously on this endpoint. 
                         The grpc server distributes new worker threads to service requests up to this number.""",
-                default=bittensor.defaults.axon.max_workers,
+                default = bittensor.defaults.axon.max_workers,
             )
             parser.add_argument(
                 "--" + prefix_str + "axon.maximum_concurrent_rpcs",
-                type=int,
-                help="""Maximum number of allowed active connections""",
-                default=bittensor.defaults.axon.maximum_concurrent_rpcs,
+                type = int,
+                help = """Maximum number of allowed active connections""",
+                default = bittensor.defaults.axon.maximum_concurrent_rpcs,
             )
+            parser.add_argument(
+                "--" + prefix_str + "axon.disable_fast_api",
+                dest = "disable_fast_api", 
+                action = 'store_true',
+                default = bittensor.defaults.axon.disable_fast_api
+            )
+        
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -283,34 +295,15 @@ class axon:
     def add_defaults(cls, defaults):
         """Adds parser defaults to object from enviroment variables."""
         defaults.axon = bittensor.Config()
-        defaults.axon.port = (
-            os.getenv("BT_AXON_PORT") if os.getenv("BT_AXON_PORT") is not None else 8091
-        )
-        defaults.axon.fast_api_port = (
-            os.getenv("BT_AXON_FAST_API_PORT") if os.getenv("BT_AXON_FAST_API_PORT") is not None else 8092
-        )
-        defaults.axon.ip = os.getenv("BT_AXON_IP") if os.getenv("BT_AXON_IP") is not None else "[::]"
-        defaults.axon.external_port = (
-            os.getenv("BT_AXON_EXTERNAL_PORT")
-            if os.getenv("BT_AXON_EXTERNAL_PORT") is not None
-            else None
-        )
-        defaults.axon.external_fast_api_port = (
-            os.getenv("BT_AXON_EXTERNAL_FAST_API_PORT")
-            if os.getenv("BT_AXON_EXTERNAL_FAST_API_PORT") is not None
-            else None
-        )
-        defaults.axon.external_ip = (
-            os.getenv("BT_AXON_EXTERNAL_IP") if os.getenv("BT_AXON_EXTERNAL_IP") is not None else None
-        )
-        defaults.axon.max_workers = (
-            os.getenv("BT_AXON_MAX_WORERS") if os.getenv("BT_AXON_MAX_WORERS") is not None else 10
-        )
-        defaults.axon.maximum_concurrent_rpcs = (
-            os.getenv("BT_AXON_MAXIMUM_CONCURRENT_RPCS")
-            if os.getenv("BT_AXON_MAXIMUM_CONCURRENT_RPCS") is not None
-            else 400
-        )
+        defaults.axon.port = os.getenv("BT_AXON_PORT") or 8091
+        defaults.axon.fast_api_port = os.getenv("BT_AXON_FAST_API_PORT") or 8092
+        defaults.axon.ip = os.getenv("BT_AXON_IP") or "[::]"
+        defaults.axon.external_port = os.getenv("BT_AXON_EXTERNAL_PORT") or None
+        defaults.axon.external_fast_api_port = os.getenv("BT_AXON_EXTERNAL_FAST_API_PORT") or None
+        defaults.axon.external_ip = os.getenv("BT_AXON_EXTERNAL_IP") or None
+        defaults.axon.max_workers = os.getenv("BT_AXON_MAX_WORERS") or 10
+        defaults.axon.maximum_concurrent_rpcs = os.getenv("BT_AXON_MAXIMUM_CONCURRENT_RPCS") or 400
+        defaults.axon.disable_fast_api = os.getenv("BT_AXON_DISABLE_FAST_API") or False
 
     @classmethod
     def check_config(cls, config: "bittensor.Config"):
