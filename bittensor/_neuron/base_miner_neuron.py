@@ -97,7 +97,7 @@ class BaseMinerNeuron( ABC ):
             '--netuid', 
             type = int, 
             help = 'Subnet netuid', 
-            default = 41
+            default = 1
         )
         parser.add_argument(
             '--neuron.name', 
@@ -148,9 +148,10 @@ class BaseMinerNeuron( ABC ):
         bittensor.subtensor.add_args( parser )
         bittensor.logging.add_args( parser )
 
-    def __init__(self, config: "bittensor.Config" = None ):
+    def __init__(self, netuid: int = None, config: "bittensor.Config" = None ):
         # Build config.
         self.config = config if config != None else BaseMinerNeuron.config()
+        self.config.netuid = netuid or self.config.netuid
         BaseMinerNeuron.check_config( self.config )
 
         # Build objects.

@@ -35,7 +35,7 @@ def main( config ):
     config.netuod = 13
 
     # --- Build the base miner
-    base_miner = bittensor.base_miner_neuron( config = config )
+    base_miner = bittensor.base_miner_neuron( netuid = 13, config = config )
 
     # --- Build speech recognition pipeline ---
     pipe = pipeline(

@@ -27,7 +27,7 @@ def main( config ):
     config.netuid = 16
 
     # --- Build the base miner
-    base_miner = bittensor.base_miner_neuron( config = config )
+    base_miner = bittensor.base_miner_neuron( netuid = 16, config = config )
 
     # --- Build image to text pipeline ---
     image_to_text = pipeline( "image-to-text", model = config.model_name ).to( config.device )
