@@ -6,7 +6,8 @@ This code is for running the Open_llama model by OpenLM-Research through the Bit
 
 ## Contents
 
-- [Licence](#Licence)
+- [Licence](#licence)
+- [Model Download](#model-download)
 - [Installing Dependencies](#installing-dependencies)
 - [Starting Miner](#starting-miner)
 
@@ -19,13 +20,27 @@ Apache 2.0 (Open source and commercial purposes allowed)
 python3 -m pip install -r neurons/text/prompting/miners/open_llama/requirements.txt
 ```
 
+# Model Download
+
+The checkpoints of the different versions of the model are available on Huggingface at https://huggingface.co/openlm-research 
+
+You can either convert the model from easylm format to huggingface using the easylm(#https://github.com/young-geng/EasyLM/) function EasyLM.models.llama.convert_easylm_to_hf 
+
+Or you can download the model from Huggingface using 
+
+```
+python3 neurons/text/prompting/miners/open_llama/download_model_from_hf.py --model_name MODEL_NAME_ON_HF --local_folder LOCAL_FOLDER
+```
+
+Then set --open_llama.model_name to the folder path to run the miner
+
 # Starting Miner
 To start the miner, all you need to do is to specify the path to the model, or the name on Huggingface hub, and it will be downloaded.
 
 You can find different model checkpoints by searching Huggingface, or by looking at OpenLM-Research's Huggingface page https://huggingface.co/openlm-research
 
 ```
-python3 neurons/text/prompting/miners/open_llama/neuron.py
+python3 neurons/text/prompting/miners/open_llama/neuron.py --open_llama.model_name OPEN_LLAMA.MODEL_NAME_OR_PATH
 ```
 
 # Full Usage
