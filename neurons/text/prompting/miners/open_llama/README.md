@@ -1,5 +1,5 @@
-## Open_llama Miner
-Open_llama Language Model Serving with BitTensor
+## OpenLLaMA Miner
+OpenLLaMA Language Model Serving with BitTensor
 This code is for running the Open_llama model by OpenLM-Research through the BitTensor framework.
 
 # Overview
