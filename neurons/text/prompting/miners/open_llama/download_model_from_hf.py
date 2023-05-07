@@ -19,7 +19,7 @@ def main(model_name, local_folder):
 
     model_info = api.model_info(model_name)
 
-    for file in model_info.files:
+    for file in model_info.siblings:
         file_url = file.url
         file_name = file.filename
         local_path = os.path.join(local_folder, file_name)
