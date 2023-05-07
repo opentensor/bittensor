@@ -73,7 +73,7 @@ class VicunaMiner( bittensor.BasePromptingMiner ):
 
         input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.config.vicuna.device)
 
-            output = self.model.generate(
+        output = self.model.generate(
             input_ids,
             max_length=input_ids.shape[1] + self.config.vicuna.max_new_tokens,
             temperature=self.config.vicuna.temperature,
