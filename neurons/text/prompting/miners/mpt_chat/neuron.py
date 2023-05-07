@@ -97,9 +97,7 @@ class Mpt_chatMiner( bittensor.BasePromptingMiner ):
         )
 
         generation = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=False).strip()
-        generation = generation.split("###")[0]
-        if generation[-1] == "#":
-            generation = generation[:-1]
+        generation = generation.split("<|endoftext|>")[0]
         # Logging input and generation if debugging is active
         bittensor.logging.debug("Message: " + str(messages))
         bittensor.logging.debug("Prompt: " + str(prompt))
