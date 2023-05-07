@@ -82,7 +82,7 @@ class Open_llama_miner( bittensor.BasePromptingMiner ):
         )
 
         generation = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
-        generation = generation.split("User:").strip()
+        generation = generation.split("User:")[0].strip()
         
         # Logging input and generation if debugging is active
         bittensor.logging.debug("Prompt: " + str(prompt))
