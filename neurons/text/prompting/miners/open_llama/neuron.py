@@ -50,7 +50,7 @@ class Open_llama_miner( bittensor.BasePromptingMiner ):
             self.model = self.model.to( self.config.open_llama.device )
 
     def _process_history(self, history: List[str]) -> str:
-        processed_history = """Below is a conversation between a user and a friendly and intelligent futuristic AI. The system prompt provides instructions that the AI needs to follow when assisting the human. The user writes messages and the AI assistant assists the user."""
+        processed_history = """Below is a conversation between a user and a friendly and intelligent futuristic AI. The system prompt provides instructions that the AI needs to follow when assisting the human. The user writes messages and the AI assistant assists the user with fairly short answers."""
 
         if self.config.open_llama.do_prompt_injection:
             processed_history += self.config.open_llama.system_prompt
