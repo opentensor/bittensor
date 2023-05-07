@@ -43,7 +43,7 @@ class Mpt_chatMiner( bittensor.BasePromptingMiner ):
         print ( self.config )
         
         bittensor.logging.info( 'Loading ' + str(self.config.mpt_chat.model_name))
-        self.tokenizer = AutoTokenizer.from_pretrained( self.config.mpt_chat.tokenizer_name, use_fast=False )
+        self.tokenizer = AutoTokenizer.from_pretrained( self.config.mpt_chat.tokenizer_name )
         self.model = AutoModelForCausalLM.from_pretrained( self.config.mpt_chat.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
         bittensor.logging.info( 'Model loaded!' )
 
