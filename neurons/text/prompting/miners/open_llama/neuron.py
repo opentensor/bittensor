@@ -50,7 +50,7 @@ class Open_llama_miner( bittensor.BasePromptingMiner ):
             self.model = self.model.to( self.config.open_llama.device )
 
     def _process_history(self, history: List[str]) -> str:
-        processed_history = """Below is a convesration between a user and a friendly and intelligent futuristic AI. The system prompt provides instructions that the AI needs to follow when assisting the human. The user writes messages and the AI assistant assists the user."""
+        processed_history = """Below is a conversation between a user and a friendly and intelligent futuristic AI. The system prompt provides instructions that the AI needs to follow when assisting the human. The user writes messages and the AI assistant assists the user."""
 
         if self.config.open_llama.do_prompt_injection:
             processed_history += self.config.open_llama.system_prompt
@@ -81,7 +81,7 @@ class Open_llama_miner( bittensor.BasePromptingMiner ):
             pad_token_id=self.tokenizer.eos_token_id,
         )
 
-        generation = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
+        generation = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=False)
         
         # Logging input and generation if debugging is active
         bittensor.logging.debug("Prompt: " + str(prompt))
