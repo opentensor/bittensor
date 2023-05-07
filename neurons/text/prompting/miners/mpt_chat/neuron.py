@@ -19,7 +19,7 @@ import torch
 import argparse
 import bittensor
 from typing import List, Dict
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig
 
 class Mpt_chatMiner( bittensor.BasePromptingMiner ):
 
@@ -37,6 +37,7 @@ class Mpt_chatMiner( bittensor.BasePromptingMiner ):
         parser.add_argument( '--mpt_chat.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
         parser.add_argument( '--mpt_chat.do_prompt_injection', action='store_true', default=False, help='Whether to use a custom "system" prompt instead of the one sent by bittensor.' )
         parser.add_argument( '--mpt_chat.system_prompt', type=str, help='What prompt to replace the system prompt with', default= "A chat between a curious user and an artificial intelligence assistant.\nThe assistant gives helpful, detailed, and polite answers to the user's questions. " )
+        parser.add_argument( '--mpt_chat.use_triton', action='store_true', default=False, help='Whether to use a triton to speed up inference' )
 
     def __init__( self ):
         super( Mpt_chatMiner, self ).__init__()
@@ -44,7 +45,20 @@ class Mpt_chatMiner( bittensor.BasePromptingMiner ):
         
         bittensor.logging.info( 'Loading ' + str(self.config.mpt_chat.model_name))
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.mpt_chat.tokenizer_name )
-        self.model = AutoModelForCausalLM.from_pretrained( self.config.mpt_chat.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
+        if self.config.mpt_chat.user_triton:
+            config = AutoConfig.from_pretrained(
+            'mosaicml/mpt-7b-chat',
+            trust_remote_code=True
+            )
+            config.attn_config['attn_impl'] = 'triton'
+            model = AutoModelForCausalLM.from_pretrained(
+                self.config.mpt_chat.model_name,
+                config=config,
+                torch_dtype=torch.bfloat16,
+                trust_remote_code=True
+                )
+        else:
+            self.model = AutoModelForCausalLM.from_pretrained( self.config.mpt_chat.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True , trust_remote_code=True )
         bittensor.logging.info( 'Model loaded!' )
 
         if self.config.mpt_chat.device != "cpu":
