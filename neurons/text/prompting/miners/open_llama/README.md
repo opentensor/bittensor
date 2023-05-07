@@ -25,7 +25,7 @@ To start the miner, all you need to do is to specify the path to the model, or t
 You can find different model checkpoints by searching Huggingface, or by looking at OpenLM-Research's Huggingface page https://huggingface.co/openlm-research
 
 ```
-python3 neurons/text/prompting/miners/open_llama/neuron.py --open_llama.model_name OPEN_LLAMA.MODEL_NAME_OR_PATH
+python3 neurons/text/prompting/miners/open_llama/neuron.py
 ```
 
 # Full Usage
