@@ -85,6 +85,7 @@ class Mpt_chatMiner( bittensor.BasePromptingMiner ):
         
         # Logging input and generation if debugging is active
         bittensor.logging.debug("Message: " + str(messages))
+        bittensor.logging.debug("Prompt: " + str(prompt))
         bittensor.logging.debug("Generation: " + str(generation))
         return generation
 
