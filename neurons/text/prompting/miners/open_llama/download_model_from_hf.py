@@ -20,8 +20,8 @@ def main(model_name, local_folder):
     model_info = api.model_info(model_name)
 
     for file in model_info.siblings:
-        file_url = file.url
-        file_name = file.filename
+        file_url = f"https://huggingface.co/{model_name}/resolve/main/{file.rfilename}"
+        file_name = file.rfilename
         local_path = os.path.join(local_folder, file_name)
 
         print(f"Downloading {file_name}...")
