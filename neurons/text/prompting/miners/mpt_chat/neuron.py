@@ -45,7 +45,7 @@ class Mpt_chatMiner( bittensor.BasePromptingMiner ):
         
         bittensor.logging.info( 'Loading ' + str(self.config.mpt_chat.model_name))
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.mpt_chat.tokenizer_name )
-        if self.config.mpt_chat.user_triton:
+        if self.config.mpt_chat.use_triton:
             config = AutoConfig.from_pretrained(
             'mosaicml/mpt-7b-chat',
             trust_remote_code=True
