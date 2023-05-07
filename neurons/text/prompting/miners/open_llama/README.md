@@ -26,7 +26,7 @@ The checkpoints of the different versions of the model are available on Huggingf
 
 At the time of writing, there is no Huggingface repo from which you can directly load the model, but if it is added you can skip this step.
 
-At the time of writing, you can either convert the model from easylm format to huggingface using the easylm(#https://github.com/young-geng/EasyLM/) function EasyLM.models.llama.convert_easylm_to_hf 
+At the time of writing, you can either convert the model from easylm format to huggingface using the [easylm](https://github.com/young-geng/EasyLM/) function EasyLM.models.llama.convert_easylm_to_hf 
 
 Or you can download the model from Huggingface using:
 
