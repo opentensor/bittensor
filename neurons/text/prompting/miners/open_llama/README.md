@@ -29,6 +29,10 @@ You can either convert the model from easylm format to huggingface using the eas
 Or you can download the model from Huggingface using 
 
 ```
+#Install dependencies
+pip install huggingface_hub
+
+#Download model to local folder
 python3 neurons/text/prompting/miners/open_llama/download_model_from_hf.py --model_name MODEL_NAME_ON_HF --local_folder LOCAL_FOLDER
 ```
 

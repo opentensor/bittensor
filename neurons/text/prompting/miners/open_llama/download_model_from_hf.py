@@ -2,7 +2,7 @@ import os
 import requests
 import argparse
 
-from transformers import HfApi
+from huggingface_hub import HfApi
 
 def download_file(url, local_path):
     with requests.get(url, stream=True) as r:
