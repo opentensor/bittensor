@@ -58,12 +58,12 @@ class Open_llama_miner( bittensor.BasePromptingMiner ):
         for message in history:
             if message['role'] == 'system':
                 if not self.config.open_llama.do_prompt_injection or message != history[0]:
-                    processed_history += '\nSystem: ' + message['content'].strip() + ''
+                    processed_history += '\nSystem: ' + message['content'].strip() + self.tokenizer.eos_token_id
 
             if message['role'] == 'Assistant':
-                processed_history += '\nAssistant: ' + message['content'].strip() + ''
+                processed_history += '\nAssistant: ' + message['content'].strip() + self.tokenizer.eos_token_id
             if message['role'] == 'user':
-                processed_history += '\nUser: ' + message['content'].strip() + ''
+                processed_history += '\nUser: ' + message['content'].strip() + self.tokenizer.eos_token_id
         return processed_history
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
@@ -86,7 +86,7 @@ class Open_llama_miner( bittensor.BasePromptingMiner ):
         # Logging input and generation if debugging is active
         bittensor.logging.debug("Prompt: " + str(prompt))
         bittensor.logging.debug("Message: " + str(messages))
-        bittensor.logging.debug("Generation: " + str(generation))
+        bittensor.logging.debug("Generation: " + str(generation).replace("<","-"))
         return generation
 
 if __name__ == "__main__":
