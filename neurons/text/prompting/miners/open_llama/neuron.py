@@ -29,7 +29,7 @@ class Open_llama_miner( bittensor.BasePromptingMiner ):
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument( '--open_llama.model_name', type=str, required=False, help='Name/path of model to load' , default="openlm-research/open_llama_7b_preview_200bt/open_llama_7b_preview_200bt_transformers_weights")
+        parser.add_argument( '--open_llama.model_name', type=str, required=False, help='Name/path of model to load' , default="openlm-research/open_llama_7b_preview_300bt/open_llama_7b_preview_300bt_transformers_weights")
         parser.add_argument( '--open_llama.device', type=str, help='Device to load model', default="cuda" )
         parser.add_argument( '--open_llama.max_new_tokens', type=int, help='Max tokens for model output.', default=256 ) 
         parser.add_argument( '--open_llama.temperature', type=float, help='Sampling temperature of model', default=0.5 )
