@@ -58,18 +58,18 @@ class Open_llama_miner( bittensor.BasePromptingMiner ):
         for message in history:
             if message['role'] == 'system':
                 if not self.config.open_llama.do_prompt_injection or message != history[0]:
-                    processed_history += '\nSystem: ' + message['content'].strip() + self.tokenizer.eos_token_id
+                    processed_history += '\nSystem: ' + message['content'].strip() + ""
 
             if message['role'] == 'Assistant':
-                processed_history += '\nAssistant: ' + message['content'].strip() + self.tokenizer.eos_token_id
+                processed_history += '\nAssistant: ' + message['content'].strip() + ""
             if message['role'] == 'user':
-                processed_history += '\nUser: ' + message['content'].strip() + self.tokenizer.eos_token_id
+                processed_history += '\nUser: ' + message['content'].strip() + ""
         return processed_history
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
 
         history = self._process_history(messages)
-        prompt = history + "Assistant:"
+        prompt = history + "\nAssistant:"
 
         input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.config.open_llama.device)
 
@@ -81,7 +81,8 @@ class Open_llama_miner( bittensor.BasePromptingMiner ):
             pad_token_id=self.tokenizer.eos_token_id,
         )
 
-        generation = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=False)
+        generation = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
+        generation = generation.split("User:").strip()
         
         # Logging input and generation if debugging is active
         bittensor.logging.debug("Prompt: " + str(prompt))
