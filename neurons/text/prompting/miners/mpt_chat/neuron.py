@@ -30,6 +30,7 @@ class Mpt_chatMiner( bittensor.BasePromptingMiner ):
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
         parser.add_argument( '--mpt_chat.model_name', type=str, required=False, help='Name/path of model to load' , default="mosaicml/mpt-7b-chat")
+        parser.add_argument( '--mpt_chat.tokenizer_name', type=str, required=False, help='Name/path of model to load' , default="EleutherAI/gpt-neox-20b")
         parser.add_argument( '--mpt_chat.device', type=str, help='Device to load model', default="cuda" )
         parser.add_argument( '--mpt_chat.max_new_tokens', type=int, help='Max tokens for model output.', default=256 ) 
         parser.add_argument( '--mpt_chat.temperature', type=float, help='Sampling temperature of model', default=0.5 )
@@ -42,7 +43,7 @@ class Mpt_chatMiner( bittensor.BasePromptingMiner ):
         print ( self.config )
         
         bittensor.logging.info( 'Loading ' + str(self.config.mpt_chat.model_name))
-        self.tokenizer = AutoTokenizer.from_pretrained( self.config.mpt_chat.model_name, use_fast=False )
+        self.tokenizer = AutoTokenizer.from_pretrained( self.config.mpt_chat.tokenizer_name, use_fast=False )
         self.model = AutoModelForCausalLM.from_pretrained( self.config.mpt_chat.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
         bittensor.logging.info( 'Model loaded!' )
 
