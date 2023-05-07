@@ -1,5 +1,5 @@
-## Mpt_chat Miner
-Mpt_chat Language Model Serving with BitTensor
+## MPT_Chat Miner
+MPT_Chat Language Model Serving with BitTensor
 This code is for running the Mpt_chat by MosaicML model through the BitTensor framework.
 
 # Overview
