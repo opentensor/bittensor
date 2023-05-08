@@ -38,7 +38,7 @@ def main( config ):
     pipe = StableDiffusionPipeline.from_pretrained( config.model_name, torch_dtype=torch.float16).to( config.device )
 
     # --- Build Synapse ---
-    class SDTextToImageSynapse( bittensor.TextToImageSynapse ):
+    class StableDiffusion( bittensor.TextToImageSynapse ):
 
         def priority( self, forward_call: "bittensor.SynapseCall" ) -> float: 
             return base_miner.priority( forward_call )
@@ -51,7 +51,7 @@ def main( config ):
             return image
         
     # --- Attach the synapse to the miner ----
-    base_miner.axon.attach( SDTextToImageSynapse() )
+    base_miner.axon.attach( StableDiffusion() )
 
     # --- Run Miner ----
     base_miner.run()
