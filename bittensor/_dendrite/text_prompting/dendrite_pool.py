@@ -34,7 +34,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
         self.keypair = keypair
         self.dendrites = [ bittensor.text_prompting( axon = axon, keypair = self.keypair, uid = uid ) for uid, axon in enumerate(self.metagraph.axons) ]
         self.loop = asyncio.get_event_loop()
-        self.priority_threadpool = bittensor.prioritythreadpool(max_workers = 1)
+        self.priority_threadpool = bittensor.prioritythreadpool( max_workers = 1 )
 
     def backward( self,
             forward_calls: List[ 'bittensor.DendriteForwardCall' ],

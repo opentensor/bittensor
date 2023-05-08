@@ -48,5 +48,5 @@ axon.start()
 prompt = "what is the capital of Texas?"
 print( 'prompt =', prompt )
 print( 'completion =', text_prompting( prompt ).completion )
-time.sleep(50)
+time.sleep(1000)
 axon.stop()

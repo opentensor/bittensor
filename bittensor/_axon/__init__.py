@@ -183,7 +183,7 @@ class axon:
             self.fastapi_app.include_router( self.router )
 
         # Build priority thread pool
-        self.priority_threadpool = bittensor.prioritythreadpool( config = self.config.axon.max_workers )
+        self.priority_threadpool = bittensor.prioritythreadpool( max_workers = self.config.axon.max_workers )
 
         # Build interceptor.
         self.receiver_hotkey = self.wallet.hotkey.ss58_address
@@ -226,7 +226,6 @@ class axon:
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         """Accept specific arguments from parser"""
         prefix_str = "" if prefix is None else prefix + "."
-        bittensor.prioritythreadpool.add_args(parser, prefix=prefix_str + "axon")
         try:
             parser.add_argument(
                 "--" + prefix_str + "axon.port",

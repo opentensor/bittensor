@@ -62,7 +62,7 @@ class SpeechToTextSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer
     def attach( self, axon: 'bittensor.axon.Axon' ):
         bittensor.grpc.add_SpeechToTextServicer_to_server( self, self.axon.server )
         self.router = APIRouter()
-        self.router.add_api_route("/SpeechToText/Forward/{hotkey}{timeout}{speech}", self.fast_api_forward_speech_to_text, methods=["GET"])
+        self.router.add_api_route("/SpeechToText/Forward/", self.fast_api_forward_speech_to_text, methods=["GET"])
         self.axon.fastapi_app.include_router( self.router )
         
     @abstractmethod
@@ -77,11 +77,11 @@ class SpeechToTextSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer
             speech = speech
         )
         call = SpeechToTextForward( self, request_proto, self.forward )
-        bittensor.logging.trace( 'SpeechToText: {} '.format( call ) )
+        bittensor.logging.trace( 'FastSpeechToText: {} '.format( call ) )
         response_proto = self.apply( call = call )
         return response_proto.text
 
     def Forward( self, request: bittensor.proto.ForwardSpeechToTextRequest, context: grpc.ServicerContext ) -> bittensor.proto.ForwardSpeechToTextResponse:
         call = SpeechToTextForward( self, request, self.forward )
-        bittensor.logging.trace( 'SpeechToText: {} '.format( call ) )
+        bittensor.logging.trace( 'GRPCSpeechToText: {} '.format( call ) )
         return self.apply( call = call ) 

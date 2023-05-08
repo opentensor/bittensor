@@ -184,7 +184,6 @@ from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._subtensor.chain_data import SubnetInfo as SubnetInfo
 from bittensor._dataset.dataset_impl import Dataset as Dataset
-from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 from bittensor._ipfs.ipfs_impl import Ipfs as Ipfs
 
 # ---- Errors and Exceptions -----
@@ -236,7 +235,6 @@ defaults = Config()
 defaults.netuid = 1
 subtensor.add_defaults( defaults )
 axon.add_defaults( defaults )
-prioritythreadpool.add_defaults( defaults )
 prometheus.add_defaults( defaults )
 wallet.add_defaults( defaults )
 dataset.add_defaults( defaults )

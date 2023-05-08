@@ -144,29 +144,31 @@ class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServi
     def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: ...
 
     def fast_api_forward_text_to_completion( self, hotkey: str, roles: List[str], messages: List[str], timeout: int = 12 ):
+        bittensor.logging.trace( 'fast_api_forward_text_to_completion')
         packed_messages = [ json.dumps({"role": role, "content": message}) for role, message in zip( roles,  messages )]
-        request = bittensor.ForwardTextPromptingRequest( hotkey = hotkey, timeout = timeout, messages = packed_messages, version = 0)
+        request = bittensor.ForwardTextPromptingRequest( hotkey = hotkey, timeout = timeout, messages = packed_messages, version = bittensor.__version_as_int__ )
         call = SynapseForward( self, request, self.forward )
+        bittensor.logging.trace( 'FastTextToCompletionForward: {} '.format( call ) )
         return self.apply( call = call ).response
 
-    def fast_api_multi_forward_text_to_completion( self, prompt: str ):
-        return self.multi_forward( messages=[ {"role":'user', 'content': prompt} ])
+    def fast_api_multi_forward_text_to_completion( self, _: str ):
+        raise NotImplementedError('Not Implemented')
 
     def fast_api_backward_text_to_completion( self ):
-        return "Backward"
+        raise NotImplementedError('Not Implemented')
 
     def Forward( self, request: bittensor.proto.ForwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.ForwardTextPromptingResponse:
         call = SynapseForward( self, request, self.forward )
-        bittensor.logging.trace( 'Forward: {} '.format( call ) )
+        bittensor.logging.trace( 'GRPCTextToCompletionForward: {} '.format( call ) )
         return self.apply( call = call ) 
 
     def MultiForward( self, request: bittensor.proto.MultiForwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.MultiForwardTextPromptingResponse:
         call = SynapseForwardMulti( self, request, self.multi_forward )
-        bittensor.logging.trace( 'MultiForward: {} '.format( call ) )
+        bittensor.logging.trace( 'GRPCTextToCompletionMultiForward: {} '.format( call ) )
         return self.apply( call = call ) 
                          
     def Backward( self, request: bittensor.proto.BackwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.BackwardTextPromptingResponse:
         call = SynapseBackward( self, request, self.backward )
-        bittensor.logging.trace( 'Backward: {}'.format( call ) )
+        bittensor.logging.trace( 'GRPCTextToCompletionBackward: {}'.format( call ) )
         return self.apply( call = call ) 
 

@@ -62,7 +62,7 @@ class TextToImageSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer 
     def attach( self, axon: 'bittensor.axon.Axon' ):
         bittensor.grpc.add_TextToImageServicer_to_server( self, self.axon.server )
         self.router = APIRouter()
-        self.router.add_api_route("/TextToImage/Forward/{hotkey}{timeout}{text}", self.fast_api_forward_text_to_image, methods=["GET"])
+        self.router.add_api_route("/TextToImage/Forward/", self.fast_api_forward_text_to_image, methods=["GET"])
         self.axon.fastapi_app.include_router( self.router )
         
     @abstractmethod
@@ -77,11 +77,11 @@ class TextToImageSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer 
             text = text
         )
         call = TextToImageForward( self, request_proto, self.forward )
-        bittensor.logging.trace( 'TextToImage: {} '.format( call ) )
+        bittensor.logging.trace( 'FastAPITextToImageForward: {} '.format( call ) )
         response_proto = self.apply( call = call )
         return response_proto.image
 
     def Forward( self, request: bittensor.proto.ForwardTextToImageRequest, context: grpc.ServicerContext ) -> bittensor.proto.ForwardTextToImageResponse:
         call = TextToImageForward( self, request, self.forward )
-        bittensor.logging.trace( 'TextToImage: {} '.format( call ) )
+        bittensor.logging.trace( 'GRPCAPITextToImageForward: {} '.format( call ) )
         return self.apply( call = call ) 
