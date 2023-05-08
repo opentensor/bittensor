@@ -76,7 +76,7 @@ class GatingModel( torch.nn.Module ):
         super(GatingModel, self).__init__()
         if config is None: config = GatingModel.config()
         if model_name is not None: config.gating.model_name = model_name
-        if num_uids is not None: config.gating.num_uids = num_uids
+        if num_uids is not None: config.gating.num_uids = self.metagraph.n
         self.config = config
         self.metagraph = metagraph
         self.device = torch.device( self.config.neuron.device )
