@@ -15,19 +15,20 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import math
 import argparse
 import bittensor
 from typing import List, Dict, Union, Tuple, Optional
 
-class blacklist:
+class priority:
 
     def __init__( self, config: "bittensor.Config" = None ):
-        self.config = config or blacklist.config()
+        self.config = config or priority.config()
 
     @classmethod
     def config( cls ) -> "bittensor.Config":
         parser = argparse.ArgumentParser()
-        blacklist.add_args(parser)
+        priority.add_args(parser)
         return bittensor.config( parser )
 
     @classmethod
@@ -41,65 +42,48 @@ class blacklist:
     def add_args( cls, parser: argparse.ArgumentParser, prefix: str = None ):
         prefix_str = "" if prefix is None else prefix + "."
         parser.add_argument(
-            '--' + prefix_str + 'blacklist.blacklisted_keys', 
-            type = str, 
-            required = False, 
-            nargs = '*', 
-            action = 'store',
-            help = 'List of ss58 addresses which are always disallowed pass through.', default=[]
-        )
-        parser.add_argument(
-            '--' + prefix_str + 'blacklist.whitelisted_keys', 
-            type = str, 
-            required = False, 
-            nargs = '*', 
-            action = 'store',
-            help = 'List of ss58 addresses which are always allowed pass through.', default=[]
-        )
-        parser.add_argument(
-            '--' + prefix_str + 'blacklist.allow_non_registered',
-            action = 'store_true',
-            help = 'If True, the miner will allow non-registered hotkeys to mine.',
-            default = True
-        )
-        parser.add_argument(
-            '--' + prefix_str + 'blacklist.min_allowed_stake',
+            '--' + prefix_str + 'priority.default_priority',
             type = float,
-            help = 'Minimum stake required to pass blacklist.',
+            help = 'Default call priority in queue.',
             default = 0.0
         )
+        parser.add_argument(
+            '--' + prefix_str + 'priority.blacklisted_keys', 
+            type = str, 
+            required = False, 
+            nargs = '*', 
+            action = 'store',
+            help = 'List of ss58 addresses which are always given -math.inf priority', default=[]
+        )
+        parser.add_argument(
+            '--' + prefix_str + 'priority.whitelisted_keys', 
+            type = str, 
+            required = False, 
+            nargs = '*', 
+            action = 'store',
+            help = 'List of ss58 addresses which are always given math.inf priority', default=[]
+        )
 
-    def blacklist( 
+    def priority( 
             self, 
             forward_call: "bittensor.SynapseCall",
             metagraph: "bittensor.Metagraph" = None,
-        ) -> Union[ Tuple[bool, str], bool ]:
+        ) -> float:
 
         # Check for blacklisted keys which take priority over all other checks.
         src_hotkey = forward_call.src_hotkey
-        if src_hotkey in self.config.blacklist.blacklisted_keys:
-            return True, 'blacklisted key'
+        if src_hotkey in self.config.priority.blacklisted_keys:
+            return -math.inf
         
         # Check for whitelisted keys which take priority over all remaining checks.
-        if src_hotkey in self.config.blacklist.whitelisted_keys:
-            return False, 'whitelisted key'
+        if src_hotkey in self.config.priority.whitelisted_keys:
+            return math.inf 
 
-        # Check for registration.
+        # Otherwise priority of requests is based on stake.
         if metagraph is not None:
-            is_registered = src_hotkey in self.metagraph.hotkeys
-            if not is_registered and not self.config.blacklist.allow_non_registered:
-                return True, 'pubkey not registered'
+            uid = metagraph.hotkeys.index( forward_call.src_hotkey )
+            return metagraph.S[ uid ].item()
         
-        # Check for stake amount.
-        if metagraph is not None:
-            is_registered = src_hotkey in self.metagraph.hotkeys
-            if not is_registered and self.config.blacklist.min_allowed_stake > 0.0:
-                return True, 'pubkey not registered and min_allowed_stake > 0.0'
-            else:
-                uid = self.metagraph.hotkeys.index( src_hotkey )
-                stake = self.metagraph.S[ uid ].item()
-                if stake < self.config.blacklist.min_allowed_stake:
-                    return True, 'pubkey stake below min_allowed_stake'
-                
-        # All checks passed.
-        return False, 'passed blacklist'
+        # Default priority.
+        return self.config.priority.default_priority
+

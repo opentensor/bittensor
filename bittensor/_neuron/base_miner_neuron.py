@@ -31,14 +31,10 @@ from abc import ABC, abstractmethod
 class BaseMinerNeuron( ABC ):
 
     def priority( self, forward_call: "bittensor.SynapseCall" ) -> float:
-        if self.metagraph is not None:
-            uid = self.metagraph.hotkeys.index(forward_call.src_hotkey)
-            return self.metagraph.S[uid].item()
-        else:
-            return self.config.neuron.default_priority
+        return self.prioritizer.priority( forward_call, metagraph = self.metagraph )
 
     def blacklist( self, forward_call: "bittensor.SynapseCall" ) -> Union[ Tuple[bool, str], bool ]:
-        return self.blacklister.check( forward_call, metagraph = self.metagraph )
+        return self.blacklister.blacklist( forward_call, metagraph = self.metagraph )
     
     @classmethod
     def config( cls ) -> "bittensor.Config":
@@ -93,17 +89,12 @@ class BaseMinerNeuron( ABC ):
             help = 'If True, the model does not set weights.',
             default = False
         )
-        parser.add_argument(
-            '--' + prefix_str + 'neuron.default_priority',
-            type = float,
-            help = 'Set default priority for miners.',
-            default = 0.0
-        )
         bittensor.wallet.add_args( parser, prefix = prefix )
         bittensor.axon.add_args( parser, prefix = prefix )
         bittensor.subtensor.add_args( parser, prefix = prefix )
         bittensor.logging.add_args( parser, prefix = prefix )
         bittensor.blacklist.add_args( parser, prefix = prefix_str + 'neuron' )
+        bittensor.priority.add_args( parser, prefix = prefix_str + 'neuron' )
 
     def __init__(self, netuid: int = None, config: "bittensor.Config" = None ):
         # Build config.
@@ -118,6 +109,7 @@ class BaseMinerNeuron( ABC ):
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
         self.axon = bittensor.axon( wallet = self.wallet, config = self.config )
         self.blacklister = bittensor.blacklist( config = self.config.blacklist )
+        self.prioritizer = bittensor.priority( config = self.config.priority )
 
         # Used for backgounr process.
         self.is_running = False
