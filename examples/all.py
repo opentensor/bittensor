@@ -104,5 +104,5 @@ print( 'text = ', speech_to_text( b"lala I am singing a song (this does not actu
 print( 'image = ', text_to_image( "a dog with blue eyes" ).image )
 print( 'speech = ', text_to_speech( "lalala I am singing a song." ).speech )
 print( 'completion = ', text_prompting( "what is the capital of Texas?" ).completion )
-time.sleep(50)
+time.sleep(100)
 axon.stop()
