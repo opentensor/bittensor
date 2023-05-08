@@ -32,8 +32,6 @@ def config():
 
 def main( config ):
     print ( config )
-    config.netuod = 13
-
     # --- Build the base miner
     base_miner = bittensor.base_miner_neuron( netuid = 13, config = config )
 
@@ -68,9 +66,14 @@ def main( config ):
                     transcriptions.append( transcription[0] )
                 return transcriptions
 
+    # --- Attach the synapse to the base miner ---
     text_to_speech_synapse = SpeechToTextSynapse()
     base_miner.axon.attach( text_to_speech_synapse )
-    base_miner.run()
+
+    # --- Run miner continually until Keyboard break ---
+    with base_miner: 
+        while True: 
+            time.sleep( 1 )
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()

@@ -78,7 +78,7 @@ __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails'
 
 __nobunaga_entrypoint__ = "wss://stagingnode.opentensor.ai:443"
 
-__finney_entrypoint__ = "wss://test.finney.opentensor.ai" # TODO(const) change this back. "wss://entrypoint-finney.opentensor.ai:443"
+__finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 
 __text_finney_entrypoint__ = "wss://test.finney.opentensor.ai"
 
