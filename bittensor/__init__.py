@@ -169,6 +169,7 @@ from bittensor._subtensor import subtensor as subtensor
 from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
 from bittensor._dataset import dataset as dataset
+from bittensor._blacklist import blacklist  as blacklist 
 from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----

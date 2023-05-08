@@ -38,33 +38,8 @@ class BaseMinerNeuron( ABC ):
             return self.config.neuron.default_priority
 
     def blacklist( self, forward_call: "bittensor.SynapseCall" ) -> Union[ Tuple[bool, str], bool ]:
-        # Check for registration
-        def registration_check():
-            is_registered = forward_call.src_hotkey in self.metagraph.hotkeys
-            if not is_registered:
-                if self.config.neuron.blacklist.allow_non_registered: return False, 'passed blacklist'
-                else: return True, 'pubkey not registered'
-        
-        # Blacklist based on stake.
-        def stake_check() -> bool:
-            default_stake = self.config.neuron.blacklist.default_stake
-            if default_stake <= 0.0:
-                return False, 'passed blacklist'
-            uid = self.metagraph.hotkeys.index(forward_call.src_hotkey)
-            if self.metagraph.S[uid].item() < default_stake: 
-                bittensor.logging.debug( "Blacklisted. Stake too low.")
-                return True, 'Stake too low.'
-            else: return False, 'passed blacklist'
-
-        # Optionally blacklist based on checks.
-        try:
-            registration_check()
-            stake_check()
-            return False, 'passed blacklist'
-        except Exception as e:
-            bittensor.logging.warning( "Blacklisted. Error in `registration_check` or `stake_check()" )
-            return True, 'Error in `registration_check` or `stake_check()'
-
+        return self.blacklister.check( forward_call, metagraph = self.metagraph )
+    
     @classmethod
     def config( cls ) -> "bittensor.Config":
         parser = argparse.ArgumentParser()
@@ -92,61 +67,43 @@ class BaseMinerNeuron( ABC ):
             os.makedirs( config.neuron.full_path )
 
     @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser ):
+    def add_args( cls, parser: argparse.ArgumentParser, prefix: str = None ):
+        prefix_str = "" if prefix is None else prefix + "."
         parser.add_argument(
-            '--netuid', 
+            '--' + prefix_str + 'netuid', 
             type = int, 
             help = 'Subnet netuid', 
             default = 1
         )
         parser.add_argument(
-            '--neuron.name', 
+            '--' + prefix_str + 'neuron.name', 
             type = str,
             help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
             default = 'openai_prompting_miner'
         )
         parser.add_argument(
-            '--neuron.blocks_per_epoch', 
+            '--' + prefix_str + 'neuron.blocks_per_epoch', 
             type = str, 
             help = 'Blocks until the miner sets weights on chain',
             default = 100
         )
         parser.add_argument(
-            '--neuron.no_set_weights', 
+            '--' + prefix_str + 'neuron.no_set_weights', 
             action = 'store_true', 
             help = 'If True, the model does not set weights.',
             default = False
         )
         parser.add_argument(
-            '--neuron.blacklist.hotkeys', 
-            type = str, 
-            required = False, 
-            nargs = '*', 
-            action = 'store',
-            help = 'To blacklist certain hotkeys', default=[]
-        )
-        parser.add_argument(
-            '--neuron.blacklist.allow_non_registered',
-            action = 'store_true',
-            help = 'If True, the miner will allow non-registered hotkeys to mine.',
-            default = True
-        )
-        parser.add_argument(
-            '--neuron.blacklist.default_stake',
-            type = float,
-            help = 'Set default stake for miners.',
-            default = 0.0
-        )
-        parser.add_argument(
-            '--neuron.default_priority',
+            '--' + prefix_str + 'neuron.default_priority',
             type = float,
             help = 'Set default priority for miners.',
             default = 0.0
         )
-        bittensor.wallet.add_args( parser )
-        bittensor.axon.add_args( parser )
-        bittensor.subtensor.add_args( parser )
-        bittensor.logging.add_args( parser )
+        bittensor.wallet.add_args( parser, prefix = prefix )
+        bittensor.axon.add_args( parser, prefix = prefix )
+        bittensor.subtensor.add_args( parser, prefix = prefix )
+        bittensor.logging.add_args( parser, prefix = prefix )
+        bittensor.blacklist.add_args( parser, prefix = prefix_str + 'neuron' )
 
     def __init__(self, netuid: int = None, config: "bittensor.Config" = None ):
         # Build config.
@@ -160,6 +117,7 @@ class BaseMinerNeuron( ABC ):
         self.wallet = bittensor.wallet( self.config )
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
         self.axon = bittensor.axon( wallet = self.wallet, config = self.config )
+        self.blacklister = bittensor.blacklist( config = self.config.blacklist )
 
         # Used for backgounr process.
         self.is_running = False
