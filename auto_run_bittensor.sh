@@ -2,7 +2,7 @@
 
 # Initialize variables
 script=""
-proc_name="auto_run" 
+proc_name="auto_run_bittensor" 
 args=()
 
 # Check if pm2 is installed
