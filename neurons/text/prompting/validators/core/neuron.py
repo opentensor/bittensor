@@ -379,7 +379,7 @@ class neuron:
         ) -> str:
         bittensor.logging.info( 'inference()')
 
-        # pre-process messages
+        # pre-process messages.
         roles = []; contents = []; unravelled_message = ''
         for message_dict in messages:
             roles.append( message_dict['role'] )
