@@ -50,11 +50,12 @@ pm2 start "$script" --name $proc_name --interpreter python3 -- "${args[@]}"
 
 while true; do
     # Fetch the latest changes from the repository
-    git fetch origin/$branch
+    git fetch origin $branch
 
     # Get the latest file hash
-    latest_hash=$(git log -n 1 --pretty=format:%H -- origin/$branch -- $script)
-    echo git log -n 1 --pretty=format:%H -- origin/$branch -- $script
+    latest_hash=$(git log -n 1 --pretty=format:%H -- origin $branch -- $script)
+    echo "current script hash:" "$current_hash" 
+    echo "latest script hash:" "$latest_hash" 
 
     # If the file has been updated
     if [ "$current_hash" != "$latest_hash" ]; then
@@ -76,14 +77,14 @@ while true; do
         echo "Running $script with the following arguments with pm2:"
         echo "${args[@]}"
         pm2 start "$script" --name $proc_name --interpreter python3 -- "${args[@]}"
-        
+
+        echo ""
     else
-        echo "The file has not been updated."
-        echo "current_hash" "$current_hash" "==" "$latest_hash" 
+        echo ""
     fi
 
     # Wait for a while before the next check
-    sleep 1
+    sleep 5
 done
 
 

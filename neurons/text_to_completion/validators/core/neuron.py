@@ -434,7 +434,7 @@ class neuron:
 
         # Return longest completion.
         reward_model_start = time.time()
-        bittensor.logging.info('applying the reward model')
+        bittensor.logging.info('applying the reward model.')
         completions = [call.completion for call in forward_calls if len(call.completion) > 0]
 
         flattened_message_for_reward = ''
