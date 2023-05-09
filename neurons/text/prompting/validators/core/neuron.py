@@ -26,6 +26,7 @@ import random
 import bittensor
 import argparse
 import bittensor as bt
+import traceback
 
 from loguru import logger
 from types import SimpleNamespace
@@ -33,6 +34,7 @@ from typing import List, Optional, Tuple, Dict
 from reward import RewardModel
 from gating import GatingModel
 from transformers import AutoTokenizer
+from datasets import load_dataset
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific. Do not include the answer in the question.
@@ -42,6 +44,9 @@ __default_base_prompt__ = '''
 You are designed to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics.
 '''
 
+__default_follow_up_prompt__ = '''
+Ask a follow up question.
+'''
 class neuron:
     @classmethod
     def check_config( cls, config: 'bt.Config' ):
@@ -91,11 +96,13 @@ class neuron:
         parser.add_argument( '--netuid', type = int, help = 'Prompting network netuid', default = 1 )
         parser.add_argument( '--neuron.name', type = str, help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default = 'core_prompting_validator')
         parser.add_argument( '--neuron.base_prompt', type=str, help = 'Prompt injected before a question is completed by miners on the network', default = __default_base_prompt__ )
+        parser.add_argument( '--neuron.follow_up_prompt', type=str, help = 'Follow up prompt that is completed by miners on the network.', default = __default_follow_up_prompt__ )
+        parser.add_argument( '--neuron.reset_bootstrap_prompt_frequency', type=int, help = 'How frequent to use the base follow up question.', default = 3 )
         parser.add_argument( '--neuron.question_prompt', type=str, help = 'Prompt used to generate questions from the network whicha are used to evaluate other miners.', default = __default_question_prompt__ )
         parser.add_argument( '--neuron.reward_model_name', type = str, help = 'GPTRewardModel name', default = 'Dahoas/gpt2-rm-static')
         parser.add_argument( '--neuron.length_timeout_multiplier', type = int, help = 'Base timeout for all requests.', default = 0.01 )
         parser.add_argument( '--neuron.inference_topk', type = int, help = 'At inference time, how many miners to we query and return the top rewarded.', default = 10 )
-        parser.add_argument( '--neuron.training_topk', type = int, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 10 )
+        parser.add_argument( '--neuron.training_topk', type = int, help = 'During training time, how many miners to we query for each batch based on scores from gating network.', default = 50 )
         parser.add_argument( '--neuron.training_timeout', type = int, help = 'Query timeout during training', default = 4 )
         parser.add_argument( '--neuron.inference_timeout', type = int, help = 'Query timeout during inference', default = 10 )
         parser.add_argument( '--neuron.inference_only', action = 'store_true', help = 'If set, training off and only inference will be served via axon.', default = False )
@@ -107,6 +114,8 @@ class neuron:
         parser.add_argument( '--neuron.dont_save_events', action = 'store_true', help = 'If set, we dont save events to a log file.', default = False )
         parser.add_argument( '--neuron.events_retention_size',  type = str,  help = 'Events retention size.', default = "2 GB" )
         parser.add_argument( '--neuron.no_reward_model', action = 'store_true', help = 'If set, we dont load the reward model instead use just the scores.', default = False )
+        parser.add_argument( '--neuron.question_random_sample_uids', action = 'store_true', help = 'If set, random sample uids to get question.', default = False )
+        parser.add_argument( '--neuron.reward_shift', type = int, help = 'The value to shift rewards for calculation.', default = 3 )
 
     @classmethod
     def config ( cls ):
@@ -119,7 +128,7 @@ class neuron:
         cls.add_args( parser )
         return bt.config( parser )
     
-    def __init__( self ):
+    def __init__( self ):      
         self.config = neuron.config()
         self.check_config( self.config )
         bt.logging( config = self.config, logging_dir = self.config.neuron.full_path )
@@ -133,6 +142,9 @@ class neuron:
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )
         self.tokenizer = AutoTokenizer.from_pretrained( 'EleutherAI/gpt-j-6b' )
+
+        # check if invoking iter() is indeed necessary
+        self.dataset = iter(load_dataset('squad_v2', split='train', streaming=True).shuffle(buffer_size=10000))
 
         self.moving_averaged_scores = torch.zeros((self.metagraph.n)).to( self.device )
         self.alpha = 0.99
@@ -285,11 +297,10 @@ class neuron:
         bittensor.logging.trace( 'topk_uids', topk_uids )
 
         # Filter out any `None` `completions`.
-        successful_uids = torch.tensor([uid for uid, call in list(zip(topk_uids, forward_calls)) if call is not None and call.completion is not None and len(call.completion) > 10], dtype=torch.int64).to(self.device)
-        successful_completions = [call.completion for call in forward_calls if call is not None and call.completion is not None and len(call.completion) > 10]
+        successful_uids = torch.tensor([uid for uid, call in list(zip(topk_uids, forward_calls)) if call is not None and call.completion is not None], dtype=torch.int64).to(self.device)
+        successful_completions = [call.completion for call in forward_calls if call is not None and call.completion is not None]
         unsuccessful_uids = torch.tensor([uid for uid in topk_uids if uid not in successful_uids])
         bittensor.logging.debug( 'successful_uids', successful_uids )
-        bittensor.logging.trace( 'successful_completions', successful_completions )
         if len( successful_completions ) == 0: bittensor.logging.error('no successful completions'); return None
 
         # Calculate the rewards for the successful `completions` using the reward model.
@@ -298,8 +309,9 @@ class neuron:
             flattened_message_for_reward = ''
             for role_i, message_i in list(zip(roles, messages)):
                 if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n\n'
-            flattened_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in successful_completions ] 
-            rewards = self.reward_model.reward( flattened_completions_for_reward ).to( self.device )
+            full_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in successful_completions ]
+            completions_for_reward = [comp.strip() for comp in successful_completions] 
+            rewards = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True, shift = self.config.neuron.reward_shift).detach().to( self.device )
             bittensor.logging.trace( 'rewards', rewards )
         else:
             rewards = scores[ successful_uids ]
@@ -318,6 +330,13 @@ class neuron:
             )
             bittensor.logging.trace( 'Applied backward to network.' )
 
+        best_idx = rewards.detach().argmax()
+        bittensor.logging.trace( 'rewards', rewards )
+        bittensor.logging.trace('successful_completions', len(successful_completions))
+        bittensor.logging.trace('best_idx', best_idx)
+        best_completion = successful_completions[best_idx]
+        
+
         # Save the query history in a `result` object.
         # Return the `completion` with the highest reward.
         event = SimpleNamespace( 
@@ -329,6 +348,7 @@ class neuron:
             all_completions = successful_completions,
             block = self.metagraph.block,
             is_question = message == self.config.neuron.question_prompt,
+            best_completion = best_completion
         )
         self.record_event( event ) 
 
@@ -344,6 +364,11 @@ class neuron:
         bittensor.logging.trace( 'normalized_rewards', normalized_rewards )
         bittensor.logging.trace( 'scattered_rewards', scattered_rewards )
         bittensor.logging.trace( 'moving_averaged_scores', self.moving_averaged_scores )    
+        print("===== Best Completion =====")
+        print(f"\n===== {successful_uids[best_idx], rewards[best_idx]} =====\n")
+
+        print('flattened_message_for_reward:\n', flattened_message_for_reward) 
+        print('completion:\n', best_completion.strip())
 
         return event
 
@@ -405,12 +430,69 @@ class neuron:
 
             # Return best via reward model.
             reward_model_start = time.time()
-            rewards = self.reward_model.reward( flattened_completions_for_reward ).to( self.device )
+            completions_for_reward = [comp.strip() for comp in completions] 
+            rewards = self.reward_model.reward( flattened_completions_for_reward, completions_for_reward, difference =False ).to( self.device )
             best_completion = completions[ rewards.argmax( dim = 0 ) ]
             bittensor.logging.info('finished applying the reward model ', time.time() - reward_model_start )
             bittensor.logging.info( 'best completion', best_completion)
             return best_completion
 
+    def get_question(self, uids, bootstrap_prompt, reset_bootstrap_prompt = False, random_sample_uids = False):
+        
+        def _get_question(uids, bootstrap_prompt, reset_bootstrap_prompt = False):
+            # retrieve the answer
+            # sample = next(self.dataset)
+            # google_ai_dataset_place_holder = sample['answers']['text'][0]
+
+            if reset_bootstrap_prompt:
+                bootstrap_prompt = next(self.dataset)['context'] # google_ai_dataset_place_holder
+                self.base_prompt = bootstrap_prompt
+                with open('prompt_history.txt', 'a') as file:
+                    file.write("============== reset ==================" + '\n')
+                    file.write(f"bootstrap prompt: {bootstrap_prompt}" + '\n')
+                        
+            else:
+                bootstrap_prompt = bootstrap_prompt.replace('As an AI language model, ', '') 
+            
+            question_prompt = f"{bootstrap_prompt}\n\n{self.config.neuron.follow_up_prompt}"
+            
+            questions = self.dendrite_pool(
+                roles = ['user'], 
+                messages = [ question_prompt ], 
+                uids = uids, 
+                timeout = 12,
+            )
+            
+            successful_questions = [question.completion for question in questions if question is not None and question.completion is not None and len(question.completion) > 10]
+            full_completions_for_reward = [ bootstrap_prompt + comp.strip() for comp in successful_questions ]
+            completions_for_reward = [comp.strip() for comp in successful_questions] 
+            reward_diffs = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True, shift = self.config.neuron.reward_shift).to( self.device )
+            
+            for question, reward_diff in zip(successful_questions, reward_diffs.tolist()):
+                print(f"\n=== Question score: {reward_diff}===\n")
+                print(question)
+                if reward_diff > 0 :
+                    return question, reward_diff
+
+            return None, None
+        
+        def _get_random_uids():
+            available_uids = torch.tensor( [ uid for uid, ax in enumerate( self.metagraph.axons ) if ax.is_serving ], dtype = torch.int64 )
+            uids = torch.tensor( random.sample( available_uids.tolist(), self.config.neuron.training_topk ), dtype = torch.int64 )
+            return uids 
+        
+        question = None
+
+        if random_sample_uids:
+            uids = _get_random_uids()
+
+        while question is None:
+            question, reward_diff = _get_question(uids, bootstrap_prompt, reset_bootstrap_prompt)
+            reset_bootstrap_prompt = True
+            uids = _get_random_uids()
+
+        return question, reward_diff
+    
     def train( self ):
         """ Training 
             The function uses an infinite loop to repeatedly generate a random question, 
@@ -419,32 +501,41 @@ class neuron:
         """
         # Store the current epoch block number for comparison later.
         last_epoch_block = self.subtensor.block
+        steps = 0
+        
+        # grab the question from the current sample
+        prompt = next(self.dataset)['context']
+        self.base_prompt = self.config.neuron.base_prompt
+        reward_diff = 0
         
         # Start an infinite loop for training.
         try:
             while True:
-                # Query the network for a random question.
-                question = self.forward( 
-                    roles = ['system', 'user' ],
-                    messages = [ self.config.neuron.base_prompt, self.config.neuron.question_prompt ],
-                    topk = self.config.neuron.training_topk,
-                    random_sample_uids = True,
-                    train_gating_model = False,
-                    timeout = self.config.neuron.training_timeout,
-                    question = True
-                )
-                if question == None: continue # no responses from network.
-
                 # Ask the network to complete the random question, training the gating network.
-                self.forward( 
+                with open('prompt_history.txt', 'a') as file:
+                    file.write(f"{steps} | Q score({round(reward_diff , 4)}): {prompt}" + '\n')
+                
+                forward_result = self.forward( 
                     roles = ['system', 'user' ],
-                    messages = [ self.config.neuron.base_prompt, question.completion ],
+                    messages = [ self.base_prompt, prompt ],
                     topk = self.config.neuron.training_topk,
                     random_sample_uids = True,
                     train_gating_model = True,
                     timeout = self.config.neuron.inference_timeout,
                     question = False
                 )
+                
+                with open('prompt_history.txt', 'a') as file:
+                    file.write(f"{steps} | A score({round(forward_result.rewards.sort(descending = True)[0][0].item(), 4)}): {forward_result.best_completion}" + '\n')
+
+                if forward_result is not None:
+                    idx_reward_sorted = forward_result.rewards.sort(descending = True)[1]
+                    prompt, reward_diff = self.get_question(
+                        uids = forward_result.uids[idx_reward_sorted],
+                        bootstrap_prompt = forward_result.best_completion, 
+                        reset_bootstrap_prompt = (steps % self.config.neuron.reset_bootstrap_prompt_frequency == 0),
+                        random_sample_uids = self.config.neuron.question_random_sample_uids
+                    )
 
                 # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
                 if self.subtensor.block % 10 == 0:
@@ -483,8 +574,11 @@ class neuron:
                         weights = weights,
                         wait_for_finalization = False,
                     )
+                steps += 1 
+
         except Exception as e:
             bittensor.logging.info( 'Error in training loop', str( e    ) )
+            print(traceback.format_exc())
     
     def compute_weights( self ) -> Tuple[ torch.LongTensor, torch.FloatTensor ]:
         """
