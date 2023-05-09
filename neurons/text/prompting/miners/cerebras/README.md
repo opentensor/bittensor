@@ -4,7 +4,7 @@ This code is for running a language model powered by Cerebrus through the BitTen
 
 # Example Usage
 ```
-python3 neurons/text/prompting/miners/cerebras/neuron.py
+python3 neurons/text_to_completion/miners/cerebras/neuron.py
 ```
 
 # Full Usage

@@ -80,6 +80,8 @@ __nobunaga_entrypoint__ = "wss://stagingnode.opentensor.ai:443"
 
 __finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 
+__text_finney_entrypoint__ = "wss://test.finney.opentensor.ai"
+
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
@@ -167,6 +169,8 @@ from bittensor._subtensor import subtensor as subtensor
 from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
 from bittensor._dataset import dataset as dataset
+from bittensor._blacklist import blacklist  as blacklist 
+from bittensor._priority import priority as priority 
 from bittensor._threadpool import prioritythreadpool as prioritythreadpool
 
 # ---- Classes -----
@@ -182,7 +186,6 @@ from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._subtensor.chain_data import SubnetInfo as SubnetInfo
 from bittensor._dataset.dataset_impl import Dataset as Dataset
-from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 from bittensor._ipfs.ipfs_impl import Ipfs as Ipfs
 
 # ---- Errors and Exceptions -----
@@ -198,16 +201,30 @@ from bittensor._proto.bittensor_pb2 import BackwardTextPromptingResponse
 # ---- Synapses -----
 from bittensor._synapse.synapse import Synapse
 from bittensor._synapse.synapse import SynapseCall
+from bittensor._synapse.text_to_image.synapse import TextToImageSynapse
+from bittensor._synapse.text_to_speech.synapse import TextToSpeechSynapse
+from bittensor._synapse.image_to_text.synapse import ImageToTextSynapse
+from bittensor._synapse.speech_to_text.synapse import SpeechToTextSynapse
 from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
 
 # ---- Dendrites -----
 from bittensor._dendrite.dendrite import Dendrite
 from bittensor._dendrite.dendrite import DendriteCall
-from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as text_prompting
+from bittensor._dendrite.text_to_image.dendrite import TextToImageDendrite as text_to_image
+from bittensor._dendrite.image_to_text.dendrite import ImageToTextDendrite as image_to_text
+from bittensor._dendrite.text_to_speech.dendrite import TextToSpeechDendrite as text_to_speech
+from bittensor._dendrite.speech_to_text.dendrite import SpeechToTextDendrite as speech_to_text
 from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
 
+# ---- Text Prompting -----
+from bittensor._dendrite.text_prompting import prompt as prompt
+from bittensor._dendrite.text_prompting import prompting as prompting
+from bittensor._dendrite.text_prompting import BittensorLLM as BittensorLLM
+from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as text_prompting
+
 # ---- Base Miners -----
-from bittensor._synapse.text_prompting.miner import BasePromptingMiner
+from bittensor._neuron.base_miner_neuron import BaseMinerNeuron as base_miner_neuron
+from bittensor._neuron.base_prompting_miner import BasePromptingMiner
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
@@ -215,12 +232,13 @@ from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 
+# ---- Blacklist -----
+from bittensor._blacklist import blacklist as blacklist
 # DEFAULTS
 defaults = Config()
 defaults.netuid = 1
 subtensor.add_defaults( defaults )
 axon.add_defaults( defaults )
-prioritythreadpool.add_defaults( defaults )
 prometheus.add_defaults( defaults )
 wallet.add_defaults( defaults )
 dataset.add_defaults( defaults )
@@ -234,152 +252,5 @@ def trace():
 
 def debug():
     logging.set_debug(True)
-
-default_prompt = '''
-You are Chattensor.
-Chattensor is a research project by Opentensor Cortex.
-Chattensor is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Chattensor is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
-'''
-
-default_prompting_validator_key = '5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3'
-
-__context_prompting_llm = None
-def prompt( 
-        content: Union[ str, List[str], List[Dict[ str ,str ]]],
-        wallet_name: str = "default",
-        hotkey: str = default_prompting_validator_key,
-        subtensor_: Optional['Subtensor'] = None,
-        axon_: Optional['axon_info'] = None,
-        return_all: bool = False,
-    ) -> str:
-    global __context_prompting_llm
-    if __context_prompting_llm == None:
-        __context_prompting_llm = prompting( 
-            wallet_name = wallet_name,
-            hotkey = hotkey,
-            subtensor_ = subtensor_,
-            axon_ = axon_,
-        )
-    return __context_prompting_llm( content = content, return_all = return_all )
-
-class prompting ( torch.nn.Module ):
-    _axon: 'axon_info'
-    _dendrite: 'Dendrite'
-    _subtensor: 'Subtensor'
-    _hotkey: str
-    _keypair: 'Keypair'
-
-    def __init__(
-        self,
-        wallet_name: str = "default",
-        hotkey: str = default_prompting_validator_key,
-        subtensor_: Optional['Subtensor'] = None,
-        axon_: Optional['axon_info'] = None,
-        use_coldkey: bool = False
-    ):
-        super(prompting, self).__init__()
-        self._hotkey = hotkey
-        self._subtensor = subtensor() if subtensor_ is None else subtensor_
-        if use_coldkey:
-            self._keypair = wallet( name = wallet_name ).create_if_non_existent().coldkey
-        else:
-            self._keypair = wallet( name = wallet_name ).create_if_non_existent().hotkey
-        
-        if axon_ is not None:
-            self._axon = axon_
-        else:
-            self._metagraph = metagraph( 1 )
-            self._axon = self._metagraph.axons[ self._metagraph.hotkeys.index( self._hotkey ) ]
-        self._dendrite = text_prompting(
-            keypair = self._keypair,
-            axon = self._axon
-        )
-
-    @staticmethod
-    def format_content( content: Union[ str, List[str], List[Dict[ str ,str ]]] ) -> Tuple[ List[str], List[str ]]:
-        if isinstance( content, str ):
-            return ['system', 'user'], [ default_prompt, content ]
-        elif isinstance( content, list ):
-            if isinstance( content[0], str ):
-                return ['user' for _ in content ], content 
-            elif isinstance( content[0], dict ):
-                return [ dictitem[ list(dictitem.keys())[0] ] for dictitem in content ], [ dictitem[ list(dictitem.keys())[1] ] for dictitem in content ]
-            else:
-                raise ValueError('content has invalid type {}'.format( type( content )))
-        else:
-            raise ValueError('content has invalid type {}'.format( type( content )))
-        
-    def forward( 
-            self,
-            content: Union[ str, List[str], List[Dict[ str ,str ]]],
-            timeout: float = 24,
-            return_call: bool = False,
-            return_all: bool = False,
-        ) -> Union[str, List[str]]:
-        roles, messages = self.format_content( content )
-        if not return_all:
-            return self._dendrite.forward(
-                roles = roles,
-                messages = messages,
-                timeout = timeout
-            ).completion
-        else:
-            return self._dendrite.multi_forward(
-                roles = roles,
-                messages = messages,
-                timeout = timeout
-            ).multi_completions
-
-       
-    async def async_forward( 
-            self,
-            content: Union[ str, List[str], List[Dict[ str ,str ]]],
-            timeout: float = 24,
-            return_all: bool = False,
-        ) -> Union[str, List[str]]:
-        roles, messages = self.format_content( content )
-        if not return_all:
-            return await self._dendrite.async_forward(
-                    roles = roles,
-                    messages = messages,
-                    timeout = timeout
-                ).completion
-        else:
-            return self._dendrite.async_multi_forward(
-                roles = roles,
-                messages = messages,
-                timeout = timeout
-            ).multi_completions
-
-class BittensorLLM(LLM):
-    """Wrapper around Bittensor Prompting Subnetwork. 
-This Python file implements the BittensorLLM class, a wrapper around the Bittensor Prompting Subnetwork for easy integration into language models. The class provides a query method to receive responses from the subnetwork for a given user message and an implementation of the _call method to return the best response. The class can be initialized with various parameters such as the wallet name and chain endpoint.
-    
-    Example:
-        .. code-block:: python
-
-            from bittensor import BittensorLLM
-            btllm = BittensorLLM(wallet_name="default")
-    """
-
-    wallet_name: str = 'default'
-    hotkey: str = default_prompting_validator_key
-    llm: prompting = None
-    def __init__(self, subtensor_: Optional['Subtensor'] = None, axon_: Optional['axon_info'] = None, **data):
-        super().__init__(**data)
-        self.llm = prompting(wallet_name=self.wallet_name, hotkey=self.hotkey, subtensor_=subtensor_, axon_=axon_ )
-
-    @property
-    def _identifying_params(self) -> Mapping[str, Any]:
-        """Get the identifying parameters."""
-        return {"wallet_name": self.wallet_name, "hotkey_name": self.hotkey}
-
-    @property
-    def _llm_type(self) -> str:
-        return "BittensorLLM"
-
-    def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
-        """Call the LLM with the given prompt and stop tokens."""
-        return self.llm(prompt)
 
 

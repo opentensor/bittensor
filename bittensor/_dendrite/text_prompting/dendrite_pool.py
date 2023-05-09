@@ -20,7 +20,7 @@ import json
 import torch
 import asyncio
 import bittensor
-from typing import Callable, List, Dict, Union
+from typing import Callable, List, Dict, Union, Tuple
 
 class TextPromptingDendritePool( torch.nn.Module ):
 
@@ -34,10 +34,10 @@ class TextPromptingDendritePool( torch.nn.Module ):
         self.keypair = keypair
         self.dendrites = [ bittensor.text_prompting( axon = axon, keypair = self.keypair, uid = uid ) for uid, axon in enumerate(self.metagraph.axons) ]
         self.loop = asyncio.get_event_loop()
-        self.priority_threadpool = bittensor.prioritythreadpool(max_workers = 1)
+        self.priority_threadpool = bittensor.prioritythreadpool( max_workers = 1 )
 
     def backward( self,
-            forward_calls: List[ 'DendriteForwardCall' ],
+            forward_calls: List[ 'bittensor.DendriteForwardCall' ],
             rewards: Union[ List[ float ], torch.FloatTensor ],
             timeout: float = 12.0,
             priority: int = 1,
@@ -56,7 +56,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
         return future.result()
 
     async def async_backward(self,
-            forward_calls: List[ 'DendriteForwardCall' ],
+            forward_calls: List[ 'bittensor.DendriteForwardCall' ],
             rewards: Union[ List[ float ], torch.FloatTensor ] ,
             timeout: float = 12.0
         ):
@@ -69,19 +69,17 @@ class TextPromptingDendritePool( torch.nn.Module ):
 
     def forward( 
             self, 
-            roles: Union[ str, List[str] ], 
-            messages: Union[ str, List[str] ],
+            prompt: Union[ str, Tuple[ str, str ], Tuple[ List[ str ], List[ str ] ], List[ str ], Dict[ str, str ], List[ Dict[ str , str ] ] ],
             uids: Union[ torch.LongTensor, List[int] ] = None, 
             return_call:bool = True,
             timeout: float = 12,
             priority: int = 1,
-        ) -> List['DendriteForwardCall']:
+        ) -> List['bittensor.DendriteForwardCall']:
         def _forward():
             bittensor.logging.trace( 'dendrite pool: forward: _forward: start')
             return self.loop.run_until_complete(
                 self.async_forward (
-                    messages = messages,
-                    roles = roles,
+                    prompt = prompt,
                     uids = uids,
                     return_call = return_call,
                     timeout = timeout,
@@ -95,12 +93,11 @@ class TextPromptingDendritePool( torch.nn.Module ):
 
     async def async_forward( 
             self, 
-            roles: Union[ str, List[str] ],
-            messages: Union[ str, List[str] ],
+            prompt: Union[ str, Tuple[ str, str ], Tuple[ List[ str ], List[ str ] ], List[ str ], Dict[ str, str ], List[ Dict[ str , str ] ] ],
             uids: Union[ torch.LongTensor, List[int] ] = None, 
-            return_call:bool = True,
+            return_call: bool = True,
             timeout: float = 12 
-        ) -> List['DendriteForwardCall']:      
+        ) -> List['bittensor.DendriteForwardCall']:      
         # We optionally set the uids to all if uids is None.
         if uids is None: uids = range( self.metagraph.n.item() )
         if isinstance( uids, torch.Tensor ): uids = uids.tolist()
@@ -108,8 +105,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
         # prompt and returns the response.
         async def call_single_uid( uid: int ) -> str:
             return await self.dendrites[uid].async_forward( 
-                roles = roles, 
-                messages = messages,
+                prompt = prompt, 
                 return_call = return_call, 
                 timeout = timeout 
             )
@@ -117,6 +113,6 @@ class TextPromptingDendritePool( torch.nn.Module ):
         # from multiple coroutines for each uid.
         async def query():
             coroutines = [ call_single_uid( uid ) for uid in uids ]                
-            all_responses = await asyncio.gather(*coroutines)
+            all_responses = await asyncio.gather( *coroutines )
             return all_responses
         return await query() 

@@ -4,8 +4,8 @@ This code is for running a language model powered by AI21 through the BitTensor 
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/AI21/requirements.txt 
-python3 neurons/text/prompting/miners/AI21/miner.py --ai21.api_key <your AI21 api_key>
+python3 -m pip install -r neurons/text_to_completion/miners/AI21/requirements.txt 
+python3 neurons/text_to_completion/miners/AI21/neuron.py --ai21.api_key <your AI21 api_key>
 ```
 
 # Full Usage

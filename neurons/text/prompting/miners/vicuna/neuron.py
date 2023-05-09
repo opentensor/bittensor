@@ -14,80 +14,101 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
+import time
 import torch
 import argparse
 import bittensor
-from typing import List, Dict
+from typing import List, Dict, Union, Tuple, Optional
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-class VicunaMiner( bittensor.BasePromptingMiner ):
+def config():       
+    parser = argparse.ArgumentParser( description = 'Whisper Text to Speech Miner' )
+    parser.add_argument( '--vicuna.model_name', type=str, required=True, help='Name/path of model to load' )
+    parser.add_argument( '--vicuna.device', type=str, help='Device to load model', default="cuda" )
+    parser.add_argument( '--vicuna.max_new_tokens', type=int, help='Max tokens for model output.', default=256 ) 
+    parser.add_argument( '--vicuna.temperature', type=float, help='Sampling temperature of model', default=0.5 )
+    parser.add_argument( '--vicuna.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
+    parser.add_argument( '--vicuna.do_prompt_injection', action='store_true', default=False, help='Whether to use a custom "system" prompt instead of the one sent by bittensor.' )
+    parser.add_argument( '--vicuna.system_prompt', type=str, help='What prompt to replace the system prompt with', default= "A chat between a curious user and an artificial intelligence assistant.\nThe assistant gives helpful, detailed, and polite answers to the user's questions. " )
+    bittensor.base_miner_neuron.add_args( parser )
+    return bittensor.config( parser )
 
-    @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
-        pass
+def main( config ):
+    print ( config )
+    # --- Build the base miner
+    base_miner = bittensor.base_miner_neuron( netuid = config.netuid, config = config )
 
-    @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument( '--vicuna.model_name', type=str, required=True, help='Name/path of model to load' )
-        parser.add_argument( '--vicuna.device', type=str, help='Device to load model', default="cuda" )
-        parser.add_argument( '--vicuna.max_new_tokens', type=int, help='Max tokens for model output.', default=256 ) 
-        parser.add_argument( '--vicuna.temperature', type=float, help='Sampling temperature of model', default=0.5 )
-        parser.add_argument( '--vicuna.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
-        parser.add_argument( '--vicuna.do_prompt_injection', action='store_true', default=False, help='Whether to use a custom "system" prompt instead of the one sent by bittensor.' )
-        parser.add_argument( '--vicuna.system_prompt', type=str, help='What prompt to replace the system prompt with', default= "A chat between a curious user and an artificial intelligence assistant.\nThe assistant gives helpful, detailed, and polite answers to the user's questions. " )
+    # --- Build vicuna model. ---
+    bittensor.logging.info( 'Loading ' + str( config.vicuna.model_name))
+    tokenizer = AutoTokenizer.from_pretrained( config.vicuna.model_name, use_fast=False )
+    model = AutoModelForCausalLM.from_pretrained( config.vicuna.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
+    if config.vicuna.device != "cpu":
+        model = model.to( config.vicuna.device )
+    bittensor.logging.info( 'Model loaded!' )
 
-    def __init__( self ):
-        super( VicunaMiner, self ).__init__()
-        print ( self.config )
-        
-        bittensor.logging.info( 'Loading ' + str(self.config.vicuna.model_name))
-        self.tokenizer = AutoTokenizer.from_pretrained( self.config.vicuna.model_name, use_fast=False )
-        self.model = AutoModelForCausalLM.from_pretrained( self.config.vicuna.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
-        bittensor.logging.info( 'Model loaded!' )
-
-        if self.config.vicuna.device != "cpu":
-            self.model = self.model.to( self.config.vicuna.device )
-
-    def _process_history(self, history: List[str]) -> str:
+    # --- Process history helper ---
+    def process_history( history: List[str] ) -> str:
         processed_history = ''
-
-        if self.config.vicuna.do_prompt_injection:
-            processed_history += self.config.vicuna.system_prompt
-
+        if config.vicuna.do_prompt_injection:
+            processed_history += config.vicuna.system_prompt
         for message in history:
             if message['role'] == 'system':
-                if not self.config.vicuna.do_prompt_injection or message != history[0]:
+                if not config.vicuna.do_prompt_injection or message != history[0]:
                     processed_history += '' + message['content'].strip() + ' '
-
             if message['role'] == 'Assistant':
                 processed_history += 'ASSISTANT:' + message['content'].strip() + '</s>'
             if message['role'] == 'user':
                 processed_history += 'USER: ' + message['content'].strip() + ' '
         return processed_history
 
-    def forward(self, messages: List[Dict[str, str]]) -> str:
+    # --- Build the synapse ---
+    class Vicuna( bittensor.TextPromptingSynapse ):
 
-        history = self._process_history(messages)
-        prompt = history + "ASSISTANT:"
+        def priority( self, forward_call: "bittensor.SynapseCall" ) -> float: 
+            return base_miner.priority( forward_call )
 
-        input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.config.vicuna.device)
-
-            output = self.model.generate(
-            input_ids,
-            max_length=input_ids.shape[1] + self.config.vicuna.max_new_tokens,
-            temperature=self.config.vicuna.temperature,
-            do_sample=self.config.vicuna.do_sample,
-            pad_token_id=self.tokenizer.eos_token_id,
-        )
-
-        generation = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
+        def blacklist( self, forward_call: "bittensor.SynapseCall" ) -> Union[ Tuple[bool, str], bool ]:
+            return base_miner.blacklist( forward_call )
         
-        # Logging input and generation if debugging is active
-        bittensor.logging.debug("Message: " + str(messages))
-        bittensor.logging.debug("Generation: " + str(generation))
-        return generation
+        def forward( self, messages: List[Dict[str, str]] ) -> str:
+
+            # Process inputs.
+            history = process_history(messages)
+            prompt = history + "ASSISTANT:"
+            input_ids = tokenizer.encode( prompt, return_tensors = "pt" ).to( config.vicuna.device )
+
+            # Run model
+            output = model.generate(
+                input_ids,
+                max_length = input_ids.shape[1] + config.vicuna.max_new_tokens,
+                temperature = config.vicuna.temperature,
+                do_sample = config.vicuna.do_sample,
+                pad_token_id = tokenizer.eos_token_id,
+            )
+
+            # Return detokenized outputs.
+            generation = tokenizer.decode( output[0][input_ids.shape[1]:], skip_special_tokens = True )
+            bittensor.logging.debug("Message: " + str(messages))
+            bittensor.logging.debug("Generation: " + str(generation))
+            return generation
+        
+        def multi_forward(self, messages: List[Dict[str, str]]) -> List[ str ]:
+            pass
+        
+        def backward( self, inputs: List[ torch.Tensor ], grads: List[ torch.Tensor ] ) -> torch.Tensor:
+            pass
+    # --- Attach the synapse to the base miner ---
+    base_miner.attach( Vicuna() )
+
+    # --- Run the miner continually until a Keyboard break ---
+    with base_miner: 
+        while True: 
+            time.sleep( 1 )
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
-    VicunaMiner().run()
+    main( config() )
+
+
+
+

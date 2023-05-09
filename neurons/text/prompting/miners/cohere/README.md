@@ -3,8 +3,8 @@ This repository contains the implementation of a language model server using the
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/cohere/requirements.txt
-python3 neurons/text/prompting/miners/cohere/neuron.py --cohere.api_key <your cohere API key>
+python3 -m pip install -r neurons/text_to_completion/miners/cohere/requirements.txt
+python3 neurons/text_to_completion/miners/cohere/neuron.py --cohere.api_key <your cohere API key>
 ```
 
 # Full Usage

@@ -15,54 +15,38 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import json
+import time
 import torch
 import bittensor
 from typing import List, Dict, Union, Tuple
 
-bittensor.logging( bittensor.logging.config() )
-
-class Synapse( bittensor.TextPromptingSynapse ):
-    def priority(self, forward_call: "bittensor.TextPromptingForwardCall") -> float:
+class TextPromptingSynapse( bittensor.TextPromptingSynapse ):
+    def priority(self, forward_call: "bittensor.SynapseCall") -> float:
         return 0.0
 
-    def blacklist(self, forward_call: "bittensor.TextPromptingForwardCall") -> Union[ Tuple[bool, str], bool ]:
+    def blacklist(self, forward_call: "bittensor.SynapseCall") -> Union[ Tuple[bool, str], bool ]:
         return False
 
     def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
         pass
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
-        return "hello im a chat bot."
+        return "The capital of Texas is Austin"
 
     def multi_forward(self, messages: List[Dict[str, str]]) -> List[ str ]:
-        return ["hello im a chat bot.", "my name is bob" ]
+        return [ "The capital of Texas is Dallas", "The capital of Texas is Austin" ]
 
 # Create a mock wallet.
-wallet = bittensor.wallet().create_if_non_existent()
-axon = bittensor.axon( wallet = wallet, port = 9090, ip = "127.0.0.1", metagraph = None )
-dendrite = bittensor.text_prompting( axon = axon.info(), keypair = wallet.hotkey )
-synapse = Synapse( axon = axon )
+bittensor.logging( bittensor.logging.config() )
+wallet = bittensor.wallet( bittensor.wallet.config() ).create_if_non_existent()
+axon = bittensor.axon( wallet = wallet, port = 9090, ip = "127.0.0.1" )
+text_prompting = bittensor.text_prompting( axon = axon.info(), keypair = wallet.hotkey )
+axon.attach( TextPromptingSynapse() )
+
+# Start the server and then exit after 50 seconds.
 axon.start()
-
-# bittensor.logging.debug( "Start example")
-# forward_call = dendrite.forward(
-#     roles = ['system', 'assistant'],
-#     messages = ['you are chat bot', 'what is the whether'],
-#     timeout = 1e6
-# )
-# print ( forward_call )
-# print ( 'success', forward_call.is_success, 'failed', forward_call.did_fail, 'timedout', forward_call.did_timeout )
-# backward_call = forward_call.backward( 1 )
-# print ( backward_call )
-# print ( 'success', backward_call.is_success, 'failed', backward_call.did_fail, 'timedout', backward_call.did_timeout )
-
-
-multi_forward_call = dendrite.multi_forward(
-    roles = ['system', 'assistant'],
-    messages = ['you are chat bot', 'what is the whether'],
-    timeout = 1e6
-)
-print ( multi_forward_call )
-print ( 'success', multi_forward_call.is_success, 'failed', multi_forward_call.did_fail, 'timedout', multi_forward_call.did_timeout )
-print ( 'completions', multi_forward_call.multi_completions )
+prompt = "what is the capital of Texas?"
+print( 'prompt =', prompt )
+print( 'completion =', text_prompting( prompt ).completion )
+time.sleep(1000)
+axon.stop()

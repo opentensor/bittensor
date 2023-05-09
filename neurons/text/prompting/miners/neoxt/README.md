@@ -4,8 +4,8 @@ This code is for running a language model powered by togethercomputer through th
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/neoxt/requirements.txt
-python3 neurons/text/prompting/miners/neoxt/neuron.py
+python3 -m pip install -r neurons/text_to_completion/miners/neoxt/requirements.txt
+python3 neurons/text_to_completion/miners/neoxt/neuron.py
 ```
 
 # Full Usage

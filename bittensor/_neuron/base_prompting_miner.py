@@ -175,7 +175,7 @@ class BasePromptingMiner( ABC ):
         bittensor.axon.add_args( parser )
         bittensor.subtensor.add_args( parser )
         bittensor.logging.add_args( parser )
-
+        
     def __init__(
         self,
         config: "bittensor.Config" = None

@@ -19,7 +19,7 @@ import json
 import torch
 import asyncio
 import bittensor
-from typing import Callable, List, Dict, Union
+from typing import Callable, List, Dict, Union, Tuple
 
 class DendriteForwardCall( bittensor.DendriteCall ):
 
@@ -161,20 +161,82 @@ class DendriteBackwardCall( bittensor.DendriteCall ):
 
 class TextPromptingDendrite( bittensor.Dendrite ):
 
-    def get_stub(self, channel) -> Callable:
-        return bittensor.grpc.TextPromptingStub(channel)
+    default_prompt = '''
+You are a completion agent, you are designed to assist with a wide range of tasks, 
+from answering simple questions to providing in-depth explanations and discussions on a wide range of topics.
+As a language model, you are able to generate human-like text based on the input it receives, 
+allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
+'''
+    @staticmethod
+    def format_prompt( 
+        prompt: 
+            Union[ 
+                str, # "str content"
+                Tuple[ str, str ], # Tuple( "str role", "str content" )
+                Tuple[ List[ str ], List[ str ] ], # Tuple( "List[ str role ]", "List[ str content ]" )
+                List[ str ], # List[ "str content" ]
+                Dict[ str, str ], # Dict{ "role": str, "content": str }
+                List[ Dict[ str , str ] ] # List[ Dict{ "role": str,  "content":str } ]
+            ] 
+    ) -> Tuple[ List[ str ], List[ str ]]:
+        """ Formats the prompt into a list of roles and a list of messages."""
+        
+        # Prompt is of form 'str'
+        if isinstance( prompt, str ):
+            return ['system', 'user'], [ TextPromptingDendrite.default_prompt, prompt ]
+        
+        if isinstance( prompt, tuple ):
+
+            # Check if the tuple is of form ( 'str role', 'str content' )
+            if isinstance( prompt[0], str ):
+                return [ prompt[0] ], [ prompt[1] ]
+            
+            # Check if the tuple is of form ( 'list[ str role ]', 'list[ str content ]' )
+            if isinstance( prompt[0], list ):
+                assert len( prompt[0] ) == len( prompt[1] ), "Prompts of form Tuple( 'list[ str role ]', 'list[ str content ]' ) must have equal length"
+                return prompt[0], prompt[1]
+            
+        # Prompt is of form list, either ['str', 'str'] or [ { 'role': 'str', 'content': 'str' } ] 
+        elif isinstance( prompt, list ):
+            
+            # The Prompt is of form ['str', 'str', ... ] 
+            if isinstance( prompt[0], str ):
+                return [ 'user' for _ in prompt ], prompt 
+            
+            # The Prompt is of form List[ 'List[ str role ]', 'List[ str content ]' ]
+            if isinstance( prompt[0], list ):
+                assert len( prompt[0] ) == len( prompt[1] ), "Prompts of form List( 'List[ str role ]', 'List[ str content ]' ) must have equal length"
+                return prompt[0], prompt[1]
+            
+            # The Prompt is of form List[ { 'role': 'str', 'content': 'str' }, ... ]
+            elif isinstance( prompt[0], dict ):
+                roles = [ dictitem[ 'role' ] for dictitem in prompt ]
+                messages = [ dictitem[ 'content' ] for dictitem in prompt ]
+                return roles, messages
+            
+            else:
+                raise ValueError('content has invalid type {}'.format( type( prompt )))
+            
+        # Format dictionary of type Dict{ 'role': str, 'content': str }
+        elif isinstance( prompt, dict ):
+            roles = [ prompt['role'] ]
+            messages = [ prompt['content'] ]
+            return roles, messages
+        
+        else:
+            raise ValueError('content has invalid type {}'.format( type( prompt )))
 
     def forward(
             self,
-            roles: List[ str ] ,
-            messages: List[ str ],
+            prompt: Union[ str, Tuple[ str, str ], Tuple[ List[ str ], List[ str ] ], List[ str ], Dict[ str, str ], List[ Dict[ str ,str ] ]],
             timeout: float = bittensor.__blocktime__,
             return_call:bool = True,
         ) -> Union[ str, DendriteForwardCall ]:
+        roles, messages = self.format_prompt( prompt )
         forward_call = DendriteForwardCall(
             dendrite = self, 
-            messages = messages,
             roles = roles,
+            messages = messages,
             timeout = timeout,
         )
         response_call = self.loop.run_until_complete( self.apply( dendrite_call = forward_call ) )
@@ -183,11 +245,11 @@ class TextPromptingDendrite( bittensor.Dendrite ):
     
     async def async_forward(
         self,
-        roles: List[ str ],
-        messages: List[ str ],
+        prompt: Union[ str, Tuple[ str, str ], Tuple[ List[ str ], List[ str ] ], List[ str ], Dict[ str, str ], List[ Dict[ str ,str ] ]],
         timeout: float = bittensor.__blocktime__,
         return_call: bool = True,
     ) -> Union[ str, DendriteForwardCall ]:
+        roles, messages = self.format_prompt( prompt )
         forward_call = DendriteForwardCall(
             dendrite = self, 
             messages = messages,
@@ -200,15 +262,15 @@ class TextPromptingDendrite( bittensor.Dendrite ):
 
     def multi_forward(
             self,
-            roles: List[ str ] ,
-            messages: List[ str ],
+            prompt: Union[ str, Tuple[ str, str], Tuple[List[str], List[str] ], List[ str ], Dict[ str, str ], List[ Dict[ str ,str ] ] ],
             timeout: float = bittensor.__blocktime__,
             return_call:bool = True,
         ) -> Union[ str, DendriteForwardCall ]:
+        roles, messages = self.format_prompt( prompt )
         forward_call = MultiDendriteForwardCall(
             dendrite = self, 
-            messages = messages,
             roles = roles,
+            messages = messages,
             timeout = timeout,
         )
         response_call = self.loop.run_until_complete( self.apply( dendrite_call = forward_call ) )
@@ -217,15 +279,15 @@ class TextPromptingDendrite( bittensor.Dendrite ):
     
     async def async_multi_forward(
         self,
-        roles: List[ str ],
-        messages: List[ str ],
+        prompt: Union[ str, Tuple[ str, str], Tuple[List[str], List[str] ], List[ str ], Dict[ str, str ], List[ Dict[ str ,str ] ] ],
         timeout: float = bittensor.__blocktime__,
         return_call: bool = True,
     ) -> Union[ str, DendriteForwardCall ]:
+        roles, messages = self.format_prompt( prompt )
         forward_call = MultiDendriteForwardCall(
             dendrite = self, 
-            messages = messages,
             roles = roles,
+            messages = messages,
             timeout = timeout,
         )
         forward_call = await self.apply( dendrite_call = forward_call )
@@ -234,17 +296,17 @@ class TextPromptingDendrite( bittensor.Dendrite ):
 
     def backward(
             self,
-            roles: List[ str ],
-            messages: List[ str ],
+            prompt: Union[ str, Tuple[ str, str], Tuple[List[str], List[str] ], List[ str ], Dict[ str, str ], List[ Dict[ str ,str ] ] ],
             completion: str,
-            rewards: Union[ List[ float], torch.FloatTensor ],
+            rewards: Union[ List[ float ], torch.FloatTensor ],
             timeout: float = bittensor.__blocktime__,
         ) -> DendriteBackwardCall:
+        roles, messages = self.format_prompt( prompt )
         backward_call = DendriteBackwardCall(
             dendrite = self,
             completion = completion,
-            messages = messages,
             roles = roles,
+            messages = messages,
             rewards = rewards,
             timeout = timeout,
         )
@@ -252,17 +314,17 @@ class TextPromptingDendrite( bittensor.Dendrite ):
 
     async def async_backward(
         self,
-        roles: List[ str ],
-        messages: List[ str ],
+        prompt: Union[ str, Tuple[ str, str], Tuple[List[str], List[str] ], List[ str ], Dict[ str, str ], List[ Dict[ str ,str ] ] ],
         completion: str,        
-        rewards: Union[ List[ float], torch.FloatTensor ],
+        rewards: Union[ List[ float ], torch.FloatTensor ],
         timeout: float = bittensor.__blocktime__,
     ) -> DendriteBackwardCall:
+        roles, messages = self.format_prompt( prompt )
         backward_call = DendriteBackwardCall(
             dendrite = self,
-            completion = completion,
-            messages = messages,
             roles = roles,
+            messages = messages,
+            completion = completion,
             rewards = rewards,
             timeout = timeout,
         )
