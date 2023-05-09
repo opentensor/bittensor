@@ -428,7 +428,7 @@ class neuron:
 
         # Query using dendrite pool.
         forward_start = time.time()
-        bittensor.logging.trace('applying dendrite forward')
+        bittensor.logging.trace('applying the dendrite forward.')
         forward_calls = collect_responses(self.config.neuron.inference_topk, roles, contents, uids)
         bittensor.logging.trace('finished dendrite forward ', time.time() - forward_start)
 
