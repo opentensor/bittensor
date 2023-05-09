@@ -296,19 +296,19 @@ class neuron:
         bittensor.logging.trace( 'topk_uids', topk_uids )
 
         # Filter out any `None` `completions`.
-        successful_uids = torch.tensor([uid for uid, call in list(zip(topk_uids, forward_calls)) if call is not None and call.completion is not None], dtype=torch.int64).to(self.device)
-        successful_completions = [call.completion for call in forward_calls if call is not None and call.completion is not None]
+        successful_uids = torch.tensor([uid for uid, call in list(zip(topk_uids, forward_calls)) if call is not None and call.completion is not None and len(call.completion)>10], dtype=torch.int64).to(self.device)
+        successful_completions = [call.completion for call in forward_calls if call is not None and call.completion is not None and len(call.completion)>10]
         unsuccessful_uids = torch.tensor([uid for uid in topk_uids if uid not in successful_uids])
         bittensor.logging.debug( 'successful_uids', successful_uids )
         if len( successful_completions ) == 0: bittensor.logging.error('no successful completions'); return None
 
         # Calculate the rewards for the successful `completions` using the reward model.
-        # Print the rewards for all `uids`.
+        # Print the rewards for all `uids`.`
         if not self.config.neuron.no_reward_model:
             flattened_message_for_reward = ''
             for role_i, message_i in list(zip(roles, messages)):
-                if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n\n'
-            full_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in successful_completions ]
+                if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n'
+            full_completions_for_reward = [ 'Question: ' + flattened_message_for_reward + 'Answer: ' + comp.strip() for comp in successful_completions ]
             completions_for_reward = [comp.strip() for comp in successful_completions] 
             rewards = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True, shift = self.config.neuron.reward_shift).detach().to( self.device )
             bittensor.logging.trace( 'rewards', rewards )
@@ -506,6 +506,7 @@ class neuron:
         prompt = next(self.dataset)['context']
         self.base_prompt = self.config.neuron.base_prompt
         reward_diff = 0
+        self.last_sync = self.subtensor.block
         
         # Start an infinite loop for training.
         try:
@@ -537,8 +538,9 @@ class neuron:
                     )
 
                 # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
-                if self.subtensor.block % 10 == 0:
+                if self.subtensor.block - self.last_sync > 100:
                     self.metagraph.sync()
+                    self.last_sync = self.subtensor.block
                     self.save()
                     delegates = self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )
 
@@ -548,6 +550,9 @@ class neuron:
 
                     self.my_nominators = { nomin[0]: nomin[1] for nomin in delegates[0][0].nominators } if len(delegates) else {}
                     self.check_weights()
+
+                    if self.metagraph.n > self.gating_model.num_uids:
+                        self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config ).to( self.device )
 
                 # Check if enough epoch blocks have elapsed since the last epoch.
                 epoch_length = self.subtensor.validator_epoch_length(self.config.netuid) if self.config.neuron.epoch_length_override == -1 else self.config.neuron.epoch_length_override
