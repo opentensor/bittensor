@@ -113,8 +113,9 @@ class metagraph( torch.nn.Module ):
         if sync:
             self.sync( block = None, lite = lite )
 
-    def sync ( self, block: Optional[int] = None, lite: bool = True ) -> 'metagraph':
-        subtensor = bittensor.subtensor( network = self.network )
+    def sync ( self, block: Optional[int] = None, lite: bool = True, subtensor: Optional['bittensor.Subtensor'] = None ) -> 'metagraph':
+        if not subtensor:
+            subtensor = bittensor.subtensor( config = self.config, network = self.network )
         if lite:
             self.neurons = subtensor.neurons_lite( block = block, netuid = self.netuid )
         else:
