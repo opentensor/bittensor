@@ -114,6 +114,13 @@ class MetagraphCommand:
             help='''Metagraph commands'''
         )
         metagraph_parser.add_argument(
+            '--netuid', 
+            dest='netuid', 
+            type=int,
+            help='''Set the netuid to get the metagraph of''',
+            default=False,
+        )
+        metagraph_parser.add_argument(
             '--no_prompt', 
             dest='no_prompt', 
             action='store_true', 

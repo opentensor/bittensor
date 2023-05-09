@@ -144,8 +144,6 @@ class Dendrite( ABC, torch.nn.Module ):
                     bittensor keypair used for signing messages.
                 axon (:obj:Union[`bittensor.axon_info`, 'bittensor.axon'], `required`):   
                     bittensor axon object or its info used to create the connection.
-                external_ip (:obj:`str`, `optional`, defaults to None):
-                    external ip of the machine, if None, will use the ip from the endpoint.
                 grpc_options (:obj:`List[Tuple[str,object]]`, `optional`):
                     grpc options to pass through to channel.
         """
