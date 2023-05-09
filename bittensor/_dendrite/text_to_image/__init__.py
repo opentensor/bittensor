@@ -24,7 +24,8 @@ from typing import Optional, List, Mapping, Any, Tuple
 
 default_prompting_validator_key = '5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3'
 
-
+# TODO: change this imagining to dream e.g. bt.dream( text = "hello world" )
+# ASSUMING UID 13
 class imagining ( torch.nn.Module ):
     _axon: 'bittensor.axon_info'
     _dendrite: 'bittensor.Dendrite'
@@ -51,7 +52,7 @@ class imagining ( torch.nn.Module ):
         if axon_ is not None:
             self._axon = axon_
         else:
-            self._metagraph = bittensor.metagraph( 1 )
+            self._metagraph = bittensor.metagraph( 13 )
             self._axon = self._metagraph.axons[ self._metagraph.hotkeys.index( self._hotkey ) ]
         self._text_to_image_dendrite = bittensor.text_to_image(
             keypair = self._keypair,

@@ -36,7 +36,7 @@ def config():
 def main( config ):
     print ( config )
     # --- Build the base miner
-    base_miner = bittensor.base_miner_neuron( netuid = 1, config = config )
+    base_miner = bittensor.base_miner_neuron( netuid = config.netuid, config = config )
 
     # --- Build vicuna model. ---
     bittensor.logging.info( 'Loading ' + str( config.vicuna.model_name))
@@ -91,10 +91,14 @@ def main( config ):
             bittensor.logging.debug("Message: " + str(messages))
             bittensor.logging.debug("Generation: " + str(generation))
             return generation
-
+        
+        def multi_forward(self, messages: List[Dict[str, str]]) -> List[ str ]:
+            pass
+        
+        def backward( self, inputs: List[ torch.Tensor ], grads: List[ torch.Tensor ] ) -> torch.Tensor:
+            pass
     # --- Attach the synapse to the base miner ---
-    vicuna = Vicuna()
-    base_miner.axon.attach( vicuna )
+    base_miner.attach( Vicuna() )
 
     # --- Run the miner continually until a Keyboard break ---
     with base_miner: 

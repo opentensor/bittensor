@@ -38,9 +38,15 @@ image_to_text = bittensor.image_to_text( axon = axon.info(), keypair = wallet.ho
 axon.attach( ImageToTextSynapse() )
 
 # Start the server and then exit after 50 seconds.
-axon.start()
-image = b"the bytes of an image of a dog with blue eyes."
-print ( 'image =', image )
-print( 'text =', image_to_text( image ).text )
-time.sleep(50)
-axon.stop()
+while True:
+    try:
+        axon.start()
+        image = b"the bytes of an image of a dog with blue eyes."
+        print ( 'image =', image )
+        print( 'text =', image_to_text( image ).text )
+        time.sleep(50)
+        axon.stop()
+    except KeyboardInterrupt:
+        print('Keyboard interrupt received. Exiting.')
+        axon.stop()
+        break

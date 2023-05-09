@@ -108,8 +108,8 @@ class BaseMinerNeuron( ABC ):
         self.wallet = bittensor.wallet( self.config )
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
         self.axon = bittensor.axon( wallet = self.wallet, config = self.config )
-        self.blacklister = bittensor.blacklist( config = self.config.blacklist )
-        self.prioritizer = bittensor.priority( config = self.config.priority )
+        self.blacklister = bittensor.blacklist( config = self.config.neuron.blacklist )
+        self.prioritizer = bittensor.priority( config = self.config.neuron.priority )
 
         # Used for backgounr process.
         self.is_running = False

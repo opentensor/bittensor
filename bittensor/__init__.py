@@ -232,6 +232,8 @@ from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 
+# ---- Blacklist -----
+from bittensor._blacklist import blacklist as blacklist
 # DEFAULTS
 defaults = Config()
 defaults.netuid = 1
