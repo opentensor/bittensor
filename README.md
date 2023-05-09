@@ -27,7 +27,7 @@ Token-based incentives are designed to drive the network's growth and distribute
 To learn more about Bittensor, please read our [paper](https://drive.google.com/file/d/1VnsobL6lIAAqcA1_Tbm8AYIQscfJV4KU/view).
 
 # Install
-Three ways to install Bittensor
+There are three ways to install Bittensor
 
 1. Through the installer:
 ```
