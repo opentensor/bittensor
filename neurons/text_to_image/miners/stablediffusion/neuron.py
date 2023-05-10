@@ -18,13 +18,15 @@
 import torch
 import argparse
 import bittensor
+import base64
+from io import BytesIO
 
 from diffusers import StableDiffusionPipeline
 from typing import List, Dict, Union, Tuple, Optional
 
 def config():       
     parser = argparse.ArgumentParser( description = 'Stable Diffusion Text to Image Miner' )
-    parser.add_argument( '--model_name', type=str, help='Name of the diffusion model to use.', default = "runwayml/stable-diffusion-v1-5" )
+    parser.add_argument( '--model_name', type=str, help='Name of the diffusion model to use.', default = "compvis/stable-diffusion-v1-4" )
     parser.add_argument( '--device', type=str, help='Device to load model', default="cuda:0" )
     bittensor.base_miner_neuron.add_args( parser )
     return bittensor.config( parser )
@@ -42,15 +44,33 @@ def main( config ):
     class StableDiffusion( bittensor.TextToImageSynapse ):
 
         def priority( self, forward_call: "bittensor.SynapseCall" ) -> float: 
-            return base_miner.priority( forward_call )
+            # return base_miner.priority( forward_call )
+            return 0.0
 
         def blacklist( self, forward_call: "bittensor.SynapseCall" ) -> Union[ Tuple[bool, str], bool ]:
-            return base_miner.blacklist( forward_call )
+            # return base_miner.blacklist( forward_call )
+            return False
         
-        def forward( self, text: str ) -> bytes:
-            image = pipe( text ).images[0] 
-            print(image.shape)
-            return image
+        def forward( self, text: str, height: int, width: int, num_images_per_prompt: int, num_inference_steps: int, guidance_scale: float, negative_prompt: str, ) -> List[str]:
+            if num_images_per_prompt > 4:
+                return "Stable Diffusion only supports num_images_per_prompt < 4"
+            
+            images = pipe( 
+                text,
+                height = height,
+                width = width,
+                num_images_per_prompt = num_images_per_prompt,
+                num_inference_steps = num_inference_steps,
+                guidance_scale = guidance_scale,
+                negative_prompt = negative_prompt,
+                # safety_checker = None,
+             )
+
+            buffered = BytesIO()
+            images.images[0].save(buffered, format="PNG")
+            image_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+            return image_base64
         
     # --- Attach the synapse to the miner ----
     base_miner.axon.attach( StableDiffusion() )

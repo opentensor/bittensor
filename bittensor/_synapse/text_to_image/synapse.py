@@ -23,6 +23,8 @@ import bittensor
 from fastapi import FastAPI, APIRouter
 from typing import List, Dict, Union, Callable
 from abc import ABC, abstractmethod
+from pydantic import BaseModel
+
 
 class TextToImageForward( bittensor.SynapseCall ):
     name: str = "text_to_image_forward"
@@ -36,12 +38,28 @@ class TextToImageForward( bittensor.SynapseCall ):
             forward_callback: Callable,
         ):
         super().__init__( synapse = synapse, request_proto = request_proto )
+
+        #TODO: make these optional
         self.text = request_proto.text
+        self.height = request_proto.height
+        self.width = request_proto.width
+        self.num_images_per_prompt = request_proto.num_images_per_prompt
+        self.num_inference_steps = request_proto.num_inference_steps
+        self.guidance_scale = request_proto.guidance_scale
+        self.negative_prompt = request_proto.negative_prompt
         self.forward_callback = forward_callback
 
     def apply( self ):
         bittensor.logging.trace( "TextToImageForward.apply()" )
-        self.image = self.forward_callback( text = self.text )
+        self.image = self.forward_callback( 
+            text = self.text, 
+            height = self.height,
+            width = self.width,
+            num_images_per_prompt = self.num_images_per_prompt,
+            num_inference_steps = self.num_inference_steps,
+            guidance_scale = self.guidance_scale,
+            negative_prompt = self.negative_prompt,
+              )
         bittensor.logging.trace( "TextToImageForward.apply() = len(result)", len(self.image) )
 
     def get_response_proto( self ) -> bittensor.proto.ForwardTextToImageResponse: 
@@ -56,25 +74,43 @@ class TextToImageForward( bittensor.SynapseCall ):
         bittensor.logging.trace( "TextToImageForward.get_outputs_shape()" )
         return torch.Size( [ len(self.image) ]  )
 
+
+class TextToImage(BaseModel):
+    text: str
+    height: int = 256
+    width: int = 256
+    timeout: int = 12
+    num_images_per_prompt: int = 1
+    num_inference_steps: int = 30
+    guidance_scale: float = 7.5
+    negative_prompt: str = ""
+    
+
 class TextToImageSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer ):
     name: str = "text_to_image"
 
     def attach( self, axon: 'bittensor.axon.Axon' ):
         bittensor.grpc.add_TextToImageServicer_to_server( self, self.axon.server )
         self.router = APIRouter()
-        self.router.add_api_route("/TextToImage/Forward/", self.fast_api_forward_text_to_image, methods=["GET"])
+        self.router.add_api_route("/TextToImage/Forward/", self.fast_api_forward_text_to_image, methods=["POST"])
         self.axon.fastapi_app.include_router( self.router )
         
     @abstractmethod
     def forward( self, text: str ) -> bytes: 
         ...
 
-    def fast_api_forward_text_to_image( self, hotkey: str, timeout: int, text: str ) -> bytes:
+    def fast_api_forward_text_to_image( self, hotkey: str, item: TextToImage ) -> bytes:
         request_proto = bittensor.proto.ForwardTextToImageRequest( 
             hotkey = hotkey, 
             version = bittensor.__version_as_int__,
-            timeout = timeout, 
-            text = text
+            timeout = item.timeout, 
+            text = item.text,
+            height = item.height,
+            width = item.width,
+            num_images_per_prompt = item.num_images_per_prompt,
+            num_inference_steps = item.num_inference_steps,
+            guidance_scale = item.guidance_scale,
+            negative_prompt = item.negative_prompt,
         )
         call = TextToImageForward( self, request_proto, self.forward )
         bittensor.logging.trace( 'FastAPITextToImageForward: {} '.format( call ) )

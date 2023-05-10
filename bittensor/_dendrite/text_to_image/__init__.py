@@ -25,8 +25,8 @@ from typing import Optional, List, Mapping, Any, Tuple
 default_prompting_validator_key = '5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3'
 
 # TODO: change this imagining to dream e.g. bt.dream( text = "hello world" )
-# ASSUMING UID 14
-class dream ( torch.nn.Module ):
+# ASSUMING UID 13
+class imagining ( torch.nn.Module ):
     _axon: 'bittensor.axon_info'
     _dendrite: 'bittensor.Dendrite'
     _subtensor: 'bittensor.Subtensor'
@@ -41,7 +41,7 @@ class dream ( torch.nn.Module ):
         axon_: Optional['bittensor.axon_info'] = None,
         use_coldkey: bool = False
     ):
-        super(dream, self).__init__()
+        super(imagining, self).__init__()
         self._hotkey = hotkey
         self._subtensor = bittensor.subtensor() if subtensor_ is None else subtensor_
         if use_coldkey:
@@ -79,7 +79,7 @@ def imagine(
     ) -> str:
     global __global_imagining
     if __global_imagining == None:
-        __global_imagining = dream( 
+        __global_imagining = imagining( 
             wallet_name = wallet_name,
             hotkey = hotkey,
             subtensor_ = subtensor_,
