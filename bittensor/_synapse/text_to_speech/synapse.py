@@ -23,6 +23,7 @@ import bittensor
 from fastapi import FastAPI, APIRouter
 from typing import List, Dict, Union, Callable
 from abc import ABC, abstractmethod
+from pydantic import BaseModel
 
 class TextToSpeechForward( bittensor.SynapseCall ):
     name: str = "text_to_speech_forward"
@@ -56,12 +57,18 @@ class TextToSpeechForward( bittensor.SynapseCall ):
         bittensor.logging.trace( "TextToSpeechForward.get_outputs_shape()" )
         return torch.Size( [ len(self.speech) ]  ) if self.speech is not None else None
 
+
+class TextToSpeech(BaseModel):
+    text: str
+    timeout: int = 60
+
+
 class TextToSpeechSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer ):
     name: str = "text_to_speech"
 
     def attach( self, axon: 'bittensor.axon.Axon' ):
         self.router = APIRouter()
-        self.router.add_api_route("/TextToSpeech/Forward/", self.fast_api_forward_text_to_speech, methods=["GET"])
+        self.router.add_api_route("/TextToSpeech/Forward/", self.fast_api_forward_text_to_speech, methods=["POST"])
         self.axon.fastapi_app.include_router( self.router )
         bittensor.grpc.add_TextToSpeechServicer_to_server( self, self.axon.server )
 
@@ -69,12 +76,12 @@ class TextToSpeechSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer
     def forward( self, text: str ) -> bytes: 
         ...
 
-    def fast_api_forward_text_to_speech( self, hotkey: str, timeout: int, text: str ) -> bytes:
+    def fast_api_forward_text_to_speech( self, hotkey: str, item: TextToSpeech ) -> bytes:
         request_proto = bittensor.proto.ForwardTextToSpeechRequest( 
             hotkey = hotkey, 
             version = bittensor.__version_as_int__,
-            timeout = timeout, 
-            text = text
+            timeout = item.timeout, 
+            text = item.text
         )
         call = TextToSpeechForward( self, request_proto, self.forward )
         bittensor.logging.trace( 'FastTextToSpeechForward: {} '.format( call ) )

@@ -86,7 +86,7 @@ message ForwardTextToSpeechRequest {
 message ForwardTextToSpeechResponse {
 	int32 version = 1;
 	string hotkey = 2;
-	bytes speech = 3;
+	string speech = 3;
 	string return_message = 4;
 	ReturnCode return_code = 5;
 }
