@@ -155,6 +155,7 @@ class Synapse( ABC ):
             
             # Make call.
             else:
+                print("hi. in synapse apply()")
                 # Queue the forward call with priority.
                 call.priority = self.priority( call )
                 future = self.axon.priority_threadpool.submit(
