@@ -214,6 +214,7 @@ from bittensor._dendrite.text_to_image.dendrite import TextToImageDendrite as te
 from bittensor._dendrite.image_to_text.dendrite import ImageToTextDendrite as image_to_text
 from bittensor._dendrite.text_to_speech.dendrite import TextToSpeechDendrite as text_to_speech
 from bittensor._dendrite.speech_to_text.dendrite import SpeechToTextDendrite as speech_to_text
+from bittensor._dendrite.text_to_embedding.dendrite import TextToEmbeddingDendrite as text_to_embedding
 from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
 
 # ---- Text Prompting -----
@@ -224,6 +225,7 @@ from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as
 
 # ---- Base Miners -----
 from bittensor._neuron.base_miner_neuron import BaseMinerNeuron as base_miner_neuron
+from bittensor._neuron.base_validator import BaseValidator as base_validator
 from bittensor._neuron.base_prompting_miner import BasePromptingMiner
 
 # ---- Errors and Exceptions -----
