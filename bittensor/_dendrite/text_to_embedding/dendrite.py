@@ -40,13 +40,13 @@ class TextToEmbeddingForwardCall( bittensor.DendriteCall ):
         return bittensor.proto.ForwardTextToEmbeddingRequest( text = self.text )
     
     def apply_response_proto( self, response_proto: bittensor.proto.ForwardTextToEmbeddingResponse ):
-        self.embedding = response_proto.embedding
+        self.embedding = bittensor.serializer().deserialize( response_proto.embedding )
         
     def get_inputs_shape(self) -> torch.Size: 
         return torch.Size( [len(self.text)] )
 
     def get_outputs_shape(self) -> torch.Size:
-        return torch.Size([ len(self.embedding) ] )
+        return torch.Size( [ len(self.embedding) ] ) if self.embedding is not None else None
 
 class TextToEmbeddingDendrite( bittensor.Dendrite ):
 

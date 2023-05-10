@@ -46,7 +46,8 @@ class TextToEmbeddingForward( bittensor.SynapseCall ):
 
     def get_response_proto( self ) -> bittensor.proto.ForwardTextToEmbeddingResponse: 
         bittensor.logging.trace( "TextToEmbeddingForward.get_response_proto()" )
-        return bittensor.proto.ForwardTextToEmbeddingResponse( embedding = self.embedding )
+        embedding_tensor = bittensor.serializer().serialize( self.embedding )
+        return bittensor.proto.ForwardTextToEmbeddingResponse( embedding = embedding_tensor )
     
     def get_inputs_shape(self) -> Union[torch.Size, None]: 
         bittensor.logging.trace( "TextToEmbeddingForward.get_inputs_shape()" )
@@ -54,7 +55,7 @@ class TextToEmbeddingForward( bittensor.SynapseCall ):
     
     def get_outputs_shape(self) -> Union[torch.Size, None]: 
         bittensor.logging.trace( "TextToEmbeddingForward.get_outputs_shape()" )
-        return torch.Size( [ len(self.embedding) ]  ) if self.embedding is not None else None
+        return self.embedding.shape if self.embedding is not None else None
 
 class TextToEmbeddingSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer ):
     name: str = "text_to_embedding"
@@ -69,7 +70,7 @@ class TextToEmbeddingSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServi
     def forward( self, text: str ) -> torch.FloatTensor: 
         ...
 
-    def fast_api_forward_text_to_embedding( self, hotkey: str, timeout: int, text: List[str] ) -> List[float]:
+    def fast_api_forward_text_to_embedding( self, hotkey: str, timeout: int, text: List[str] ) -> List[List[float]]:
         request_proto = bittensor.proto.ForwardTextToEmbeddingRequest( 
             hotkey = hotkey, 
             version = bittensor.__version_as_int__,
@@ -78,8 +79,9 @@ class TextToEmbeddingSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServi
         )
         call = TextToEmbeddingForward( self, request_proto, self.forward )
         bittensor.logging.trace( 'FastTextToEmbeddingForward: {} '.format( call ) )
-        response_proto = self.apply( call = call )
-        return response_proto.embedding
+        self.apply( call = call )
+        response = call.embedding.tolist() if isinstance( call.embedding, torch.Tensor) else call.embedding 
+        return response
 
     def Forward( self, request: bittensor.proto.ForwardTextToEmbeddingRequest, context: grpc.ServicerContext ) -> bittensor.proto.ForwardTextToEmbeddingResponse:
         call = TextToEmbeddingForward( self, request, self.forward )
