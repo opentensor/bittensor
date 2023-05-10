@@ -86,6 +86,28 @@ message ForwardSpeechToTextResponse {
 }
 
 
+/////////////////////////
+//   TextToEmbedding   //
+/////////////////////////
+
+service TextToEmbedding { rpc Forward (ForwardTextToEmbeddingRequest) returns (ForwardTextToEmbeddingResponse) {} }
+
+message ForwardTextToEmbeddingRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string text = 3;
+	float timeout = 4;
+}
+
+message ForwardTextToEmbeddingResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	bytes embedding = 3; // What is the best representation here?
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+
 
 /////////////////////////
 // TextPrompting //

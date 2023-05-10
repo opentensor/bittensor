@@ -206,6 +206,7 @@ from bittensor._synapse.text_to_speech.synapse import TextToSpeechSynapse
 from bittensor._synapse.image_to_text.synapse import ImageToTextSynapse
 from bittensor._synapse.speech_to_text.synapse import SpeechToTextSynapse
 from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
+from bittensor._synapse.text_to_embedding.synapse import TextToEmbeddingSynapse
 
 # ---- Dendrites -----
 from bittensor._dendrite.dendrite import Dendrite
