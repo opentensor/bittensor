@@ -190,7 +190,7 @@ def serve_axon_extrinsic (
             ip = external_ip,
             port = external_port,
             netuid = netuid,
-            placeholder1 = external_fast_api_port,
+            # placeholder1 = external_fast_api_port, # TODO: fix this so that is not u8!
             protocol = 4,
             wait_for_inclusion = wait_for_inclusion,
             wait_for_finalization = wait_for_finalization,

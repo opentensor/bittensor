@@ -30,6 +30,7 @@ def config():
     return bittensor.config( parser )
 
 def main( config ):
+    bittensor.trace()
 
     # --- Build the base miner
     base_miner = bittensor.base_miner_neuron( netuid = 14, config = config )
@@ -48,6 +49,7 @@ def main( config ):
         
         def forward( self, text: str ) -> bytes:
             image = pipe( text ).images[0] 
+            print(image.shape)
             return image
         
     # --- Attach the synapse to the miner ----

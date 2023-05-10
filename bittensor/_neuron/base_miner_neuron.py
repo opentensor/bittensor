@@ -151,7 +151,7 @@ class BaseMinerNeuron:
         self.is_running = True
         self.wallet.reregister( netuid = self.config.netuid, subtensor = self.subtensor )
         self.axon.start()
-        self.subtensor.serve_axon( netuid = self.config.netuid, axon = self.axon )
+        self.subtensor.serve_axon( netuid = self.config.netuid, axon = self.axon, wait_for_finalization = False, wait_for_inclusion = False )
 
         # --- Run Forever.
         last_update = self.subtensor.get_current_block()

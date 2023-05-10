@@ -16,8 +16,10 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+import torch
 import bittensor
 from typing import List, Dict, Union, Tuple
+from diffusers import StableDiffusionPipeline
 
 bittensor.logging( bittensor.logging.config() )
 
@@ -29,18 +31,22 @@ class TextToImageSynapse( bittensor.TextToImageSynapse ):
         return False
     
     def forward( self, text: str ) -> bytes:
-        return bytes( "these bytes represent the image of text = {}".format( text ), 'utf-8' )
-
+        image = pipe( text ).images[0] 
+        # import pdb; pdb.set_trace()
+        return str(image.tobytes())
+    
 # Create a mock wallet.
 wallet = bittensor.wallet().create_if_non_existent()
 axon = bittensor.axon( wallet = wallet, port = 9090, ip = "127.0.0.1" )
 text_to_image = bittensor.text_to_image( axon = axon.info(), keypair = wallet.hotkey )
 axon.attach( TextToImageSynapse( ) )
 
+pipe = StableDiffusionPipeline.from_pretrained("runwayml/stable-diffusion-v1-5", torch_dtype = torch.float16).to("cuda:0")
+
 # Start the server and then exit after 50 seconds.
 axon.start()
-text = "a dog with blue eyes"
-print ( 'text =', text )
-print( 'image =', text_to_image( text ).image )
-time.sleep(50)
+# text = "a dog with blue eyes"
+# print ( 'text =', text )
+# print( 'image =', text_to_image( text ).image )
+time.sleep(500)
 axon.stop()
