@@ -133,6 +133,7 @@ class Dendrite( ABC, torch.nn.Module ):
             keypair: Union[ 'bittensor.Wallet', 'bittensor.Keypair'],
             axon: Union[ 'bittensor.axon_info', 'bittensor.axon' ], 
             uid : int = 0,
+            ip: str = None,
             grpc_options: List[Tuple[str,object]] = 
                     [('grpc.max_send_message_length', -1),
                      ('grpc.max_receive_message_length', -1),
@@ -150,9 +151,10 @@ class Dendrite( ABC, torch.nn.Module ):
         super(Dendrite, self).__init__()
         self.uuid = str(uuid.uuid1())
         self.uid = uid
+        self.ip = ip
         self.keypair = keypair.hotkey if isinstance( keypair, bittensor.Wallet ) else keypair
         self.axon_info = axon.info() if isinstance( axon, bittensor.axon ) else axon
-        if self.axon_info.ip == bittensor.utils.networking.get_external_ip(): 
+        if self.axon_info.ip == self.ip: 
             self.endpoint_str = "localhost:" + str(self.axon_info.port)
         else: 
             self.endpoint_str = self.axon_info.ip + ':' + str(self.axon_info.port)
