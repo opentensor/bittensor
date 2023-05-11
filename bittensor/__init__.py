@@ -207,6 +207,7 @@ from bittensor._synapse.image_to_text.synapse import ImageToTextSynapse
 from bittensor._synapse.speech_to_text.synapse import SpeechToTextSynapse
 from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
 from bittensor._synapse.text_to_embedding.synapse import TextToEmbeddingSynapse
+from bittensor._synapse.text_to_video.synapse import TextToVideoSynapse
 
 # ---- Dendrites -----
 from bittensor._dendrite.dendrite import Dendrite
@@ -216,6 +217,7 @@ from bittensor._dendrite.image_to_text.dendrite import ImageToTextDendrite as im
 from bittensor._dendrite.text_to_speech.dendrite import TextToSpeechDendrite as text_to_speech
 from bittensor._dendrite.speech_to_text.dendrite import SpeechToTextDendrite as speech_to_text
 from bittensor._dendrite.text_to_embedding.dendrite import TextToEmbeddingDendrite as text_to_embedding
+from bittensor._dendrite.text_to_video.dendrite import TextToVideoDendrite as text_to_video
 from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
 
 # ---- Text Prompting -----
