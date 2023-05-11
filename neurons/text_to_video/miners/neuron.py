@@ -92,8 +92,6 @@ def main( config ):
             
             return video
 
-
-
     # --- Attach the synapse to the base miner ---
     base_miner.attach( ModelscopeTextToVideo() )
 
