@@ -653,7 +653,7 @@ class neuron:
                 'model_state_dict':self.gating_model.state_dict(),
                 'num_hotkeys': self.gating_model.num_uids
             }
-            torch.save(state_dict, f'{path}/gating.torch')
+            torch.save(gating_state_dict, f'{path}/gating.torch')
             bittensor.logging.success(prefix='Saved gating model', sufix=f'<blue>{path}/gating.torch</blue>')
         except Exception as e:
             logger.warning(f'Failed to save model with error: {e}')
