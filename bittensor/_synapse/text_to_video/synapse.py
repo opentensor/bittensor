@@ -23,6 +23,7 @@ import bittensor
 from fastapi import FastAPI, APIRouter
 from typing import List, Dict, Union, Callable
 from abc import ABC, abstractmethod
+from pydantic import BaseModel
 
 class TextToVideoForward( bittensor.SynapseCall ):
     name: str = "text_to_video_forward"
@@ -57,31 +58,39 @@ class TextToVideoForward( bittensor.SynapseCall ):
         bittensor.logging.trace( "TextToVideoForward.get_outputs_shape()" )
         return self.video.shape if self.video is not None else None
 
+class TextToVideo(BaseModel):
+    text: str
+    num_inference_steps: int = 30
+    frames: int = 30
+    fps: int = 8
+
 class TextToVideoSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer ):
     name: str = "text_to_video"
 
     def attach( self, axon: 'bittensor.axon.Axon' ):
         self.router = APIRouter()
-        self.router.add_api_route("/TextToVideo/Forward/", self.fast_api_forward_text_to_video, methods=["GET"])
+        self.router.add_api_route("/TextToVideo/Forward/", self.fast_api_forward_text_to_video, methods=["POST"])
         self.axon.fastapi_app.include_router( self.router )
         bittensor.grpc.add_TextToVideoServicer_to_server( self, self.axon.server )
 
     @abstractmethod
-    def forward( self, text: str ) -> torch.FloatTensor: 
+    def forward( self, text: str,  ) -> torch.FloatTensor: 
         ...
 
-    def fast_api_forward_text_to_video( self, hotkey: str, timeout: int, text: List[str] ) -> List[List[float]]:
+    def fast_api_forward_text_to_video( self, hotkey: str, timeout: int, item: TextToVideo) -> str:
         request_proto = bittensor.proto.ForwardTextToVideoRequest( 
             hotkey = hotkey, 
             version = bittensor.__version_as_int__,
             timeout = timeout, 
-            text = text
+            text = item.text,
+            num_inference_steps = item.num_inference_steps,
+            frames = item.frames,
+            fps = item.fps,
         )
         call = TextToVideoForward( self, request_proto, self.forward )
         bittensor.logging.trace( 'FastTextToVideoForward: {} '.format( call ) )
         self.apply( call = call )
-        response = call.video.tolist() if isinstance( call.video, torch.Tensor) else call.video 
-        return response
+        return call.video
 
     def Forward( self, request: bittensor.proto.ForwardTextToVideoRequest, context: grpc.ServicerContext ) -> bittensor.proto.ForwardTextToVideoResponse:
         call = TextToVideoForward( self, request, self.forward )

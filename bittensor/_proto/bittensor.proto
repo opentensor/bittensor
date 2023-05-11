@@ -58,8 +58,11 @@ service TextToVideo { rpc Forward (ForwardTextToEmbeddingRequest) returns (Forwa
 message ForwardTextToVideoRequest {
 	int32 version = 1;
 	string hotkey = 2;
-	repeated string text = 3;
-	float timeout = 4;
+	string text = 3;
+	int32 num_inference_steps = 4;
+	int32 frames = 5;
+	int32 fps = 6;
+	float timeout = 7;
 }
 
 message ForwardTextToVideoResponse {
