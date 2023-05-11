@@ -32,7 +32,8 @@ class TextPromptingDendritePool( torch.nn.Module ):
         super(TextPromptingDendritePool, self).__init__()
         self.metagraph = metagraph
         self.keypair = keypair
-        self.dendrites = [ bittensor.text_prompting( axon = axon, keypair = self.keypair, uid = uid ) for uid, axon in enumerate(self.metagraph.axons) ]
+        self.ip = bittensor.utils.networking.get_external_ip()
+        self.dendrites = [ bittensor.text_prompting( axon = axon, keypair = self.keypair, uid = uid, ip = self.ip) for uid, axon in enumerate(self.metagraph.axons) ]
         self.loop = asyncio.get_event_loop()
         self.priority_threadpool = bittensor.prioritythreadpool(max_workers = 1)
 
