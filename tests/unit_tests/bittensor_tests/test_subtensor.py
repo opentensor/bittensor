@@ -31,14 +31,15 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
     def test_serve_axon_with_external_ip_set(self):
         internal_ip: str = 'this is an internal ip'
         external_ip: str = 'this is an external ip'
-
-        mock_serve = MagicMock(
+        
+        mock_serve_axon = MagicMock(
             return_value=True
         )
 
         mock_subtensor = MagicMock(
             spec=bittensor.Subtensor,
-            serve=mock_serve
+            # serve=mock_serve,
+            serve_axon=mock_serve_axon
         )
 
         mock_add_insecure_port = mock.MagicMock(return_value=None)
@@ -46,27 +47,40 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
             add_insecure_port=mock_add_insecure_port
         )
 
-        mock_config = bittensor.axon.config()
-        mock_config.wallet.name = "mock" # use a mock wallet
+        mock_wallet = MagicMock(
+            spec=bittensor.Wallet,
+            coldkey=MagicMock(),
+            coldkeypub=MagicMock(
+                # mock ss58 address
+                ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+            ),
+            hotkey=MagicMock(
+                ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
+            ),
+        )
 
+        mock_config = bittensor.axon.config()
         mock_axon_with_external_ip_set = bittensor.axon(
-            netuid = -1,
+            wallet=mock_wallet,
+            metagraph=None,
             ip=internal_ip,
             external_ip=external_ip,
             server=mock_grpc_server,
             config=mock_config
         )
 
-        bittensor.Subtensor.serve_axon(
-            mock_subtensor,
+        mock_subtensor.serve_axon(
+            netuid=-1,
             axon=mock_axon_with_external_ip_set,
             use_upnpc=False,
         )
 
-        mock_serve.assert_called_once()
+        mock_serve_axon.assert_called_once()
+
         # verify that the axon is served to the network with the external ip
-        _, kwargs = mock_serve.call_args
-        self.assertEqual(kwargs['ip'], external_ip)
+        _, kwargs = mock_serve_axon.call_args
+        axon_info = kwargs['axon'].info()
+        self.assertEqual(axon_info.ip, external_ip)
 
     def test_serve_axon_with_external_port_set(self):
         external_ip: str = 'this is an external ip'
@@ -78,9 +92,26 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
             return_value=True
         )
 
+        mock_serve_axon = MagicMock(
+            return_value=True
+        )
+
         mock_subtensor = MagicMock(
             spec=bittensor.Subtensor,
-            serve=mock_serve
+            serve=mock_serve,
+            serve_axon=mock_serve_axon,
+        )
+
+        mock_wallet = MagicMock(
+            spec=bittensor.Wallet,
+            coldkey=MagicMock(),
+            coldkeypub=MagicMock(
+                # mock ss58 address
+                ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+            ),
+            hotkey=MagicMock(
+                ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
+            ),
         )
 
         mock_add_insecure_port = mock.MagicMock(return_value=None)
@@ -89,10 +120,10 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
         )
 
         mock_config = bittensor.axon.config()
-        mock_config.wallet.name = "mock" # use a mock wallet 
 
         mock_axon_with_external_port_set = bittensor.axon(
-            netuid = -1,
+            wallet=mock_wallet,
+            metagraph=None,
             port=internal_port,
             external_port=external_port,
             server=mock_grpc_server,
@@ -101,16 +132,17 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
 
         with mock.patch('bittensor.utils.networking.get_external_ip', return_value=external_ip):
             # mock the get_external_ip function to return the external ip
-            bittensor.Subtensor.serve_axon(
-                mock_subtensor,
+            mock_subtensor.serve_axon(
+                netuid=-1,
                 axon=mock_axon_with_external_port_set,
                 use_upnpc=False,
             )
 
-        mock_serve.assert_called_once()
+        mock_serve_axon.assert_called_once()
         # verify that the axon is served to the network with the external port
-        _, kwargs = mock_serve.call_args
-        self.assertEqual(kwargs['port'], external_port)
+        _, kwargs = mock_serve_axon.call_args
+        axon_info = kwargs['axon'].info()
+        self.assertEqual(axon_info.port, external_port)
 
 class ExitEarly(Exception):
     """Mock exception to exit early from the called code"""
