@@ -78,7 +78,7 @@ def main( config ):
             # return base_miner.blacklist( forward_call )
             return False
         
-        def forward( self, text: List[str], num_inference_steps: int, num_frames: int, fps: int ) -> Union[ torch.FloatTensor, List[float] ]:
+        def forward( self, text: str, num_inference_steps: int, num_frames: int, fps: int ) -> Union[ torch.FloatTensor, List[float] ]:
             test_text = {
                 'text': text,
             }
@@ -88,7 +88,8 @@ def main( config ):
 
             with open(output_file, 'rb') as f:
                 content = f.read()
-                video = base64.b64encode(content).decode('utf-8')
+                buffered.write(content)
+                video = base64.b64encode(buffered.getvalue()).decode('utf-8')
             
             return video
 

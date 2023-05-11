@@ -9,17 +9,16 @@ import base64
 
 hotkey = 'asdasd'
 
-text = 'hello world'
+text = 'a dog running on a beach, where he encounters a crab. the dog is scared of the crab and runs away.'
+seconds = 10
+fps = 8
 
 data = { 
-  "text": "a dog running in the redwood forest",
-  "height": 512, # anything less than 512x512 causes image degradation
-  "width": 512,
-  "timeout": 12,
-  "num_images_per_prompt": 1,
+  "text": text,
+  "timeout": 120,
   "num_inference_steps": 30,
-  "guidance_scale": 7.5,
-  "negative_prompt": ""
+  "frames": (seconds*fps),
+  "fps": fps,
 }
 
 # from bytes to PIL image

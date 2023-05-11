@@ -18,6 +18,13 @@ import torch
 import bittensor
 from typing import Callable, List, Dict, Union
 
+
+# class TextToVideo(BaseModel):
+#     text: str
+#     num_inference_steps: int = 30
+#     num_frames: int = 30
+#     fps: int = 8
+
 class TextToVideoForwardCall( bittensor.DendriteCall ):
 
     name: str = "text_to_video_forward"
@@ -28,16 +35,27 @@ class TextToVideoForwardCall( bittensor.DendriteCall ):
         self,
         dendrite: 'bittensor.TextToVideoDendrite',
         text: str,
+        num_inference_steps: int = 30,
+        num_frames: int = 30,
+        fps: int = 8,
         timeout: float = bittensor.__blocktime__,
     ):
         super().__init__( dendrite = dendrite, timeout = timeout )
         self.text = text
+        self.num_inference_steps = num_inference_steps
+        self.num_frames = num_frames
+        self.fps = fps
         
     def get_callable( self ) -> Callable:
         return bittensor.grpc.TextToVideoStub( self.dendrite.channel ).Forward
 
     def get_request_proto( self ) -> bittensor.proto.ForwardTextToVideoRequest:
-        return bittensor.proto.ForwardTextToVideoRequest( text = self.text )
+        return bittensor.proto.ForwardTextToVideoRequest( 
+            text = self.text,
+            num_inference_steps = self.num_inference_steps,
+            num_frames = self.num_frames,
+            fps = self.fps
+        )
     
     def apply_response_proto( self, response_proto: bittensor.proto.ForwardTextToVideoResponse ):
         self.video = bittensor.serializer().deserialize( response_proto.video )
@@ -53,13 +71,19 @@ class TextToVideoDendrite( bittensor.Dendrite ):
     def forward(
             self,
             text: str,
+            num_inference_steps: int = 30,
+            num_frames: int = 30,
+            fps: int = 8,
             timeout: float = bittensor.__blocktime__,
             return_call:bool = True,
         ) -> Union[ torch.FloatTensor, TextToVideoForwardCall ]:
         forward_call = TextToVideoForwardCall(
             dendrite = self, 
             timeout = timeout,
-            text=text
+            text=text,
+            num_inference_steps=num_inference_steps,
+            num_frames=num_frames,
+            fps=fps,
         )
         response_call = self.loop.run_until_complete( self.apply( dendrite_call = forward_call ) )
         if return_call: return response_call
@@ -68,6 +92,9 @@ class TextToVideoDendrite( bittensor.Dendrite ):
     async def async_forward(
         self,
         text: str,
+        num_inference_steps: int = 30,
+        num_frames: int = 30,
+        fps: int = 8,
         timeout: float = bittensor.__blocktime__,
         return_call: bool = True,
     ) -> Union[  torch.FloatTensor, TextToVideoForwardCall ]:
@@ -75,6 +102,9 @@ class TextToVideoDendrite( bittensor.Dendrite ):
             dendrite = self, 
             timeout = timeout,
             text = text,
+            num_inference_steps = num_inference_steps,
+            num_frames = num_frames,
+            fps = fps,
         )
         forward_call = await self.apply( dendrite_call = forward_call )
         if return_call: return forward_call

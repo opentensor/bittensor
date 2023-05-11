@@ -60,7 +60,7 @@ message ForwardTextToVideoRequest {
 	string hotkey = 2;
 	string text = 3;
 	int32 num_inference_steps = 4;
-	int32 frames = 5;
+	int32 num_frames = 5;
 	int32 fps = 6;
 	float timeout = 7;
 }

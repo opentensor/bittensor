@@ -9,13 +9,13 @@ import base64
 
 hotkey = 'asdasd'
 
-text = 'hello world'
+text = "Painting in the style of Josh Reames using French words. artstation. 4k. highly detailed, sharp focus."
 
 data = { 
-  "text": "a dog in the forest",
-  "height": 512, # anything less than 512x512 causes image degradation
-  "width": 512,
-  "timeout": 12,
+  "text": text,
+  "height": 768, # anything less than 512x512 causes image degradation
+  "width": 1024,
+  "timeout": 120,
   "num_images_per_prompt": 1,
   "num_inference_steps": 30,
   "guidance_scale": 7.5,
