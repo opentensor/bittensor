@@ -203,10 +203,18 @@ class neuron:
                         return False # Everyone else, dont blacklist.
 
                 def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+                
                 def forward( _, messages: List[Dict[str, str]] ) -> str:
                     return self.inference(
                         messages = messages,
                         timeout = self.config.neuron.inference_timeout
+                    )
+                
+                def multi_forward( _, messages: List[Dict[str, str]] ) -> str:
+                    return self.inference(
+                        messages = messages,
+                        timeout = self.config.neuron.inference_timeout,
+                        return_all = True
                     )
 
             # Serve axon.
@@ -375,7 +383,8 @@ class neuron:
             self, 
             messages: List[Dict[str, str]],
             timeout: float,
-            dont_use_reward_model: bool = True
+            dont_use_reward_model: bool = True,
+            return_all = False
         ) -> str:
         bittensor.logging.info( 'inference()')
 
@@ -417,7 +426,12 @@ class neuron:
                 if len( call.completion ) > 0:
                     bittensor.logging.info( 'best completion', call.completion )
                     return call.completion
-            return 'no valid completions'
+
+            if return_all:
+                return ['no valid completions']
+            else:
+                return 'no valid completions'
+            
 
         else:
             # Format messages for reward model.
@@ -434,7 +448,11 @@ class neuron:
             best_completion = completions[ rewards.argmax( dim = 0 ) ]
             bittensor.logging.info('finished applying the reward model ', time.time() - reward_model_start )
             bittensor.logging.info( 'best completion', best_completion)
-            return best_completion
+            
+            if return_all: 
+                return completions
+            else:
+                return best_completion
 
     def get_question(self, uids, bootstrap_prompt, reset_bootstrap_prompt = False, random_sample_uids = False):
         
