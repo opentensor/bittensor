@@ -26,7 +26,7 @@ from typing import List, Dict, Union, Tuple, Optional
 
 def config():       
     parser = argparse.ArgumentParser( description = 'Stable Diffusion Text to Image Miner' )
-    parser.add_argument( '--model_name', type=str, help='Name of the diffusion model to use.', default = "compvis/stable-diffusion-v1-4" )
+    parser.add_argument( '--model_name', type=str, help='Name of the diffusion model to use.', default = "stabilityai/stable-diffusion-2-1" )
     parser.add_argument( '--device', type=str, help='Device to load model', default="cuda:0" )
     bittensor.base_miner_neuron.add_args( parser )
     return bittensor.config( parser )

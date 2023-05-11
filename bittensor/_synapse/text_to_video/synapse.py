@@ -23,6 +23,7 @@ import bittensor
 from fastapi import FastAPI, APIRouter
 from typing import List, Dict, Union, Callable
 from abc import ABC, abstractmethod
+from pydantic import BaseModel
 
 class TextToVideoForward( bittensor.SynapseCall ):
     name: str = "text_to_video_forward"
@@ -37,17 +38,24 @@ class TextToVideoForward( bittensor.SynapseCall ):
         ):
         super().__init__( synapse = synapse, request_proto = request_proto )
         self.text = request_proto.text
+        self.num_inference_steps = request_proto.num_inference_steps
+        self.num_frames = request_proto.num_frames
+        self.fps = request_proto.fps
         self.forward_callback = forward_callback
 
     def apply( self ):
         bittensor.logging.trace( "TextToVideoForward.apply()" )
-        self.video = self.forward_callback( text = self.text )
+        self.video = self.forward_callback( 
+            text = self.text,
+            num_inference_steps = self.num_inference_steps,
+            num_frames = self.num_frames,
+            fps = self.fps
+        )
         bittensor.logging.trace( "TextToVideoForward.apply() = len(result)", len(self.video) )
 
     def get_response_proto( self ) -> bittensor.proto.ForwardTextToVideoResponse: 
         bittensor.logging.trace( "TextToVideoForward.get_response_proto()" )
-        video_tensor = bittensor.serializer().serialize( self.video )
-        return bittensor.proto.ForwardTextToVideoResponse( video = video_tensor )
+        return bittensor.proto.ForwardTextToVideoResponse( video = self.video )
     
     def get_inputs_shape(self) -> Union[torch.Size, None]: 
         bittensor.logging.trace( "TextToVideoForward.get_inputs_shape()" )
@@ -55,33 +63,42 @@ class TextToVideoForward( bittensor.SynapseCall ):
     
     def get_outputs_shape(self) -> Union[torch.Size, None]: 
         bittensor.logging.trace( "TextToVideoForward.get_outputs_shape()" )
-        return self.video.shape if self.video is not None else None
+        return torch.Size( [ len(self.video) ]  )
+
+class TextToVideo(BaseModel):
+    text: str
+    num_inference_steps: int = 30
+    num_frames: int = 30
+    fps: int = 8
+    timeout: int = 30
 
 class TextToVideoSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer ):
     name: str = "text_to_video"
 
     def attach( self, axon: 'bittensor.axon.Axon' ):
         self.router = APIRouter()
-        self.router.add_api_route("/TextToVideo/Forward/", self.fast_api_forward_text_to_video, methods=["GET"])
+        self.router.add_api_route("/TextToVideo/Forward/", self.fast_api_forward_text_to_video, methods=["POST"])
         self.axon.fastapi_app.include_router( self.router )
         bittensor.grpc.add_TextToVideoServicer_to_server( self, self.axon.server )
 
     @abstractmethod
-    def forward( self, text: str ) -> torch.FloatTensor: 
+    def forward( self, text: str,  ) -> torch.FloatTensor: 
         ...
 
-    def fast_api_forward_text_to_video( self, hotkey: str, timeout: int, text: List[str] ) -> List[List[float]]:
+    def fast_api_forward_text_to_video( self, hotkey: str, item: TextToVideo) -> str:
         request_proto = bittensor.proto.ForwardTextToVideoRequest( 
             hotkey = hotkey, 
             version = bittensor.__version_as_int__,
-            timeout = timeout, 
-            text = text
+            timeout = item.timeout, 
+            text = item.text,
+            num_inference_steps = item.num_inference_steps,
+            num_frames = item.num_frames,
+            fps = item.fps,
         )
         call = TextToVideoForward( self, request_proto, self.forward )
         bittensor.logging.trace( 'FastTextToVideoForward: {} '.format( call ) )
         self.apply( call = call )
-        response = call.video.tolist() if isinstance( call.video, torch.Tensor) else call.video 
-        return response
+        return call.video
 
     def Forward( self, request: bittensor.proto.ForwardTextToVideoRequest, context: grpc.ServicerContext ) -> bittensor.proto.ForwardTextToVideoResponse:
         call = TextToVideoForward( self, request, self.forward )

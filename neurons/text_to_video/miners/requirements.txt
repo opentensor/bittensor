@@ -1,3 +1,2 @@
-modelscope==1.4.2
-open_clip_torch
-pytorch-lightning
+git+https://github.com/huggingface/diffusers
+opencv-python
