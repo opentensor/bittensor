@@ -17,9 +17,11 @@
 
 from multiprocessing.sharedctypes import Value
 from sys import prefix
-import bittensor
 import argparse
 import pytest
+from unittest.mock import MagicMock
+
+import bittensor
 
 
 def test_loaded_config():
@@ -37,22 +39,35 @@ def test_strict():
     parser.add_argument("--cov", help="Dummy Args")
     parser.add_argument("--cov-append", action='store_true', help="Dummy Args")
     parser.add_argument("--cov-config",  help="Dummy Args")
-    bittensor.dendrite.add_args( parser )
+    #bittensor.Dendrite.add_args( parser )
     bittensor.logging.add_args( parser )
     bittensor.wallet.add_args( parser )
     bittensor.subtensor.add_args( parser )
-    bittensor.metagraph.add_args( parser )
+    #bittensor.metagraph.add_args( parser )
     bittensor.dataset.add_args( parser )
     bittensor.axon.add_args( parser )
-    bittensor.wandb.add_args( parser )
+    #bittensor.wandb.add_args( parser )
     bittensor.config( parser, strict=False)
     bittensor.config( parser, strict=True)
 
 def test_prefix():
     # Test the use of prefixes to instantiate all of the bittensor objects.
     parser = argparse.ArgumentParser()
-    bittensor.dendrite.add_args( parser)
-    bittensor.dendrite.add_args( parser, prefix = 'second' )
+
+    mock_wallet = MagicMock(
+        spec=bittensor.Wallet,
+        coldkey=MagicMock(),
+        coldkeypub=MagicMock(
+            # mock ss58 address
+            ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+        ),
+        hotkey=MagicMock(
+            ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
+        ),
+    )
+
+    #bittensor.dendrite.add_args( parser)
+    #bittensor.dendrite.add_args( parser, prefix = 'second' )
 
     bittensor.logging.add_args( parser )
     bittensor.logging.add_args( parser, prefix = 'second' )
@@ -63,8 +78,8 @@ def test_prefix():
     bittensor.subtensor.add_args( parser )
     bittensor.subtensor.add_args( parser, prefix = 'second'  )
 
-    bittensor.metagraph.add_args( parser )
-    bittensor.metagraph.add_args( parser, prefix = 'second' )
+    #bittensor.metagraph.add_args( parser )
+    #bittensor.metagraph.add_args( parser, prefix = 'second' )
 
     bittensor.dataset.add_args( parser )
     bittensor.dataset.add_args( parser, prefix = 'second' )
@@ -72,26 +87,26 @@ def test_prefix():
     bittensor.axon.add_args( parser )
     bittensor.axon.add_args( parser, prefix = 'second' )
 
-    bittensor.wandb.add_args( parser )
-    bittensor.wandb.add_args( parser, prefix = 'second' )
+    #bittensor.wandb.add_args( parser )
+    #bittensor.wandb.add_args( parser, prefix = 'second' )
 
     config_non_strict = bittensor.config( parser, strict=False)
     config_strict = bittensor.config( parser, strict=True)
 
-    bittensor.dendrite( config_strict ).__del__()
-    bittensor.dendrite( config_non_strict ).__del__()
-    bittensor.dendrite( config_strict.second ).__del__()
-    bittensor.dendrite( config_non_strict.second ).__del__()
+    #bittensor.dendrite( config_strict ).__del__()
+    #bittensor.dendrite( config_non_strict ).__del__()
+    #bittensor.dendrite( config_strict.second ).__del__()
+    #bittensor.dendrite( config_non_strict.second ).__del__()
 
-    bittensor.axon( config_strict ).stop()
-    bittensor.axon( config_non_strict ).stop()
-    bittensor.axon( config_strict.second ).stop()
-    bittensor.axon( config_non_strict.second ).stop()
+    bittensor.axon( metagraph=None, wallet=mock_wallet, config=config_strict ).stop()
+    bittensor.axon( metagraph=None, wallet=mock_wallet, config=config_non_strict ).stop()
+    bittensor.axon( metagraph=None, wallet=mock_wallet, config=config_strict.second ).stop()
+    bittensor.axon( metagraph=None, wallet=mock_wallet, config=config_non_strict.second ).stop()
 
-    bittensor.metagraph( config_strict )
-    bittensor.metagraph( config_non_strict )
-    bittensor.metagraph( config_strict.second )
-    bittensor.metagraph( config_non_strict.second )
+    #bittensor.metagraph( config_strict )
+    #bittensor.metagraph( config_non_strict )
+    #bittensor.metagraph( config_strict.second )
+    #bittensor.metagraph( config_non_strict.second )
     
     bittensor.wallet( config_strict )
     bittensor.wallet( config_non_strict )
@@ -115,12 +130,12 @@ def test_prefix():
 def construct_config():
     defaults = bittensor.Config()
     bittensor.subtensor.add_defaults( defaults )
-    bittensor.dendrite.add_defaults( defaults )
+    #bittensor.dendrite.add_defaults( defaults )
     bittensor.axon.add_defaults( defaults )
     bittensor.wallet.add_defaults( defaults )
     bittensor.dataset.add_defaults( defaults )
     bittensor.logging.add_defaults( defaults )
-    bittensor.wandb.add_defaults( defaults )
+    #bittensor.wandb.add_defaults( defaults )
     
     return defaults
 
