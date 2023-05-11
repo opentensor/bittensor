@@ -50,6 +50,27 @@ message ForwardTextToEmbeddingResponse {
 }
 
 /////////////////////////
+// Text to Video //
+/////////////////////////
+
+service TextToVideo { rpc Forward (ForwardTextToEmbeddingRequest) returns (ForwardTextToEmbeddingResponse) {} }
+
+message ForwardTextToVideoRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	repeated string text = 3;
+	float timeout = 4;
+}
+
+message ForwardTextToVideoResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string video = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+/////////////////////////
 // Image to Text //
 /////////////////////////
 
