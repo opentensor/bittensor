@@ -9,7 +9,7 @@ import base64
 
 hotkey = 'asdasd'
 
-text = "Painting in the style of Josh Reames using French words. artstation. 4k. highly detailed, sharp focus."
+text = "Pepe The Frog in the style of Lamborgini Salvador Dali. artstation."
 
 data = { 
   "text": text,

@@ -41,6 +41,7 @@ class TextToImageForward( bittensor.SynapseCall ):
 
         #TODO: make these optional
         self.text = request_proto.text
+        self.image = request_proto.image
         self.height = request_proto.height
         self.width = request_proto.width
         self.num_images_per_prompt = request_proto.num_images_per_prompt
@@ -53,13 +54,14 @@ class TextToImageForward( bittensor.SynapseCall ):
         bittensor.logging.trace( "TextToImageForward.apply()" )
         self.image = self.forward_callback( 
             text = self.text, 
+            image = self.image,
             height = self.height,
             width = self.width,
             num_images_per_prompt = self.num_images_per_prompt,
             num_inference_steps = self.num_inference_steps,
             guidance_scale = self.guidance_scale,
             negative_prompt = self.negative_prompt,
-              )
+            )
         bittensor.logging.trace( "TextToImageForward.apply() = len(result)", len(self.image) )
 
     def get_response_proto( self ) -> bittensor.proto.ForwardTextToImageResponse: 
@@ -77,6 +79,7 @@ class TextToImageForward( bittensor.SynapseCall ):
 
 class TextToImage(BaseModel):
     text: str
+    image: bytes = ''
     height: int = 256
     width: int = 256
     timeout: int = 12
@@ -105,6 +108,7 @@ class TextToImageSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer 
             version = bittensor.__version_as_int__,
             timeout = item.timeout, 
             text = item.text,
+            image = item.image,
             height = item.height,
             width = item.width,
             num_images_per_prompt = item.num_images_per_prompt,

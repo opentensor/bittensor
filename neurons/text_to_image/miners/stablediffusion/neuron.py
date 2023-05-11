@@ -21,12 +21,13 @@ import bittensor
 import base64
 from io import BytesIO
 
-from diffusers import StableDiffusionPipeline
+from PIL import Image
+from diffusers import StableDiffusionPipeline, StableDiffusionImg2ImgPipeline, StableDiffusionInpaintPipeline
 from typing import List, Dict, Union, Tuple, Optional
 
 def config():       
     parser = argparse.ArgumentParser( description = 'Stable Diffusion Text to Image Miner' )
-    parser.add_argument( '--model_name', type=str, help='Name of the diffusion model to use.', default = "stabilityai/stable-diffusion-2-1" )
+    parser.add_argument( '--neuron.model_name', type=str, help='Name of the diffusion model to use.', default = "stabilityai/stable-diffusion-2-1" )
     parser.add_argument( '--device', type=str, help='Device to load model', default="cuda:0" )
     bittensor.base_miner_neuron.add_args( parser )
     return bittensor.config( parser )
@@ -38,7 +39,9 @@ def main( config ):
     base_miner = bittensor.base_miner_neuron( netuid = 14, config = config )
 
     # --- Build diffusion pipeline ---
-    pipe = StableDiffusionPipeline.from_pretrained( config.model_name, torch_dtype=torch.float16).to( config.device )
+    text2img = StableDiffusionPipeline.from_pretrained( config.model_name, torch_dtype=torch.float16).to( config.device )
+    img2img = StableDiffusionImg2ImgPipeline(**text2img.components)
+    inpaint = StableDiffusionInpaintPipeline(**text2img.components)
 
     # --- Build Synapse ---
     class StableDiffusion( bittensor.TextToImageSynapse ):
@@ -51,20 +54,47 @@ def main( config ):
             # return base_miner.blacklist( forward_call )
             return False
         
-        def forward( self, text: str, height: int, width: int, num_images_per_prompt: int, num_inference_steps: int, guidance_scale: float, negative_prompt: str, ) -> List[str]:
+        def forward( self, text: str, image: str, height: int, width: int, num_images_per_prompt: int, num_inference_steps: int, guidance_scale: float, negative_prompt: str, ) -> List[str]:
+            
+            use_image = False
+            
             if num_images_per_prompt > 4:
                 return "Stable Diffusion only supports num_images_per_prompt <= 4"
             
-            images = pipe( 
-                text,
-                height = height,
-                width = width,
-                num_images_per_prompt = num_images_per_prompt,
-                num_inference_steps = num_inference_steps,
-                guidance_scale = guidance_scale,
-                negative_prompt = negative_prompt,
-                # safety_checker = None,
-             )
+            if image != "":
+                # check if image is valid base64
+                try:
+                    base64.b64decode(image)
+                    use_image = True
+                except Exception as e:
+                    pass
+
+            if use_image:
+                # turn image from base64 to PIL image
+                processed_image = Image.open(BytesIO(base64.b64decode(image)))
+
+                images = img2img( 
+                    text,
+                    processed_image,
+                    height = height,
+                    width = width,
+                    num_images_per_prompt = num_images_per_prompt,
+                    num_inference_steps = num_inference_steps,
+                    guidance_scale = guidance_scale,
+                    negative_prompt = negative_prompt,
+                    # safety_checker = None,
+                )
+            else:
+                images = text2img( 
+                    text,
+                    height = height,
+                    width = width,
+                    num_images_per_prompt = num_images_per_prompt,
+                    num_inference_steps = num_inference_steps,
+                    guidance_scale = guidance_scale,
+                    negative_prompt = negative_prompt,
+                    # safety_checker = None,
+                )
 
             buffered = BytesIO()
             images.images[0].save(buffered, format="PNG")

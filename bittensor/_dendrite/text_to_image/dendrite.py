@@ -28,16 +28,40 @@ class TextToImageForwardCall( bittensor.DendriteCall ):
         self,
         dendrite: 'bittensor.TextToImageDendrite',
         text: str,
+        image: str = '',
+        height: int = 512,
+        width: int = 512,
+        num_images_per_prompt: int = 1,
+        num_inference_steps: int = 30,
+        guidance_scale: float = 7.5,
+        negative_prompt: str = '',
         timeout: float = bittensor.__blocktime__,
     ):
         super().__init__( dendrite = dendrite, timeout = timeout )
         self.text = text
+        self.image = image
+        self.height = height
+        self.width = width
+        self.num_images_per_prompt = num_images_per_prompt
+        self.num_inference_steps = num_inference_steps
+        self.guidance_scale = guidance_scale
+        self.negative_prompt = negative_prompt
+
         
     def get_callable( self ) -> Callable:
         return bittensor.grpc.TextToImageStub( self.dendrite.channel ).Forward
 
     def get_request_proto( self ) -> bittensor.proto.ForwardTextToImageRequest:
-        return bittensor.proto.ForwardTextToImageRequest( text = self.text )
+        return bittensor.proto.ForwardTextToImageRequest( 
+            text = self.text,
+            image = self.image,
+            height = self.height,
+            width = self.width,
+            num_images_per_prompt = self.num_images_per_prompt,
+            num_inference_steps = self.num_inference_steps,
+            guidance_scale = self.guidance_scale,
+            negative_prompt = self.negative_prompt
+        )
     
     def apply_response_proto( self, response_proto: bittensor.proto.ForwardTextToImageResponse ):
         self.image = response_proto.image
@@ -53,13 +77,27 @@ class TextToImageDendrite( bittensor.Dendrite ):
     def forward(
             self,
             text: str,
+            image: str = '',
+            height: int = 512,
+            width: int = 512,
+            num_images_per_prompt: int = 1,
+            num_inference_steps: int = 30,
+            guidance_scale: float = 7.5,
+            negative_prompt: str = '',
             timeout: float = bittensor.__blocktime__,
             return_call:bool = True,
         ) -> Union[ str, TextToImageForwardCall ]:
         forward_call = TextToImageForwardCall(
             dendrite = self, 
             timeout = timeout,
-            text = text
+            text = text,
+            image=image,
+            height=height,
+            width=width,
+            num_images_per_prompt=num_images_per_prompt,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            negative_prompt=negative_prompt,
         )
         response_call = self.loop.run_until_complete( self.apply( dendrite_call = forward_call ) )
         if return_call: return response_call
@@ -68,6 +106,13 @@ class TextToImageDendrite( bittensor.Dendrite ):
     async def async_forward(
         self,
         text: str,
+        image: str = '',
+        height: int = 512,
+        width: int = 512,
+        num_images_per_prompt: int = 1,
+        num_inference_steps: int = 30,
+        guidance_scale: float = 7.5,
+        negative_prompt: str = '',
         timeout: float = bittensor.__blocktime__,
         return_call: bool = True,
     ) -> Union[ str, TextToImageForwardCall ]:
@@ -75,6 +120,13 @@ class TextToImageDendrite( bittensor.Dendrite ):
             dendrite = self, 
             timeout = timeout,
             text = text,
+            image=image,
+            height=height,
+            width=width,
+            num_images_per_prompt=num_images_per_prompt,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            negative_prompt=negative_prompt,
         )
         forward_call = await self.apply( dendrite_call = forward_call )
         if return_call: return forward_call

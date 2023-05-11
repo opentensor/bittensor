@@ -11,13 +11,14 @@ message ForwardTextToImageRequest {
 	int32 version = 1;
 	string hotkey = 2;
 	string text = 3;
-	int32 height = 4;
-	int32 width = 5;
-	int32 num_images_per_prompt = 6;
-	int32 num_inference_steps = 7;
-	float guidance_scale = 8;
-	string negative_prompt = 9; //TODO: investigate if this is the right type see: https://github.com/huggingface/diffusers/blob/82e6fa56f0bfc219c26168a27a8ddb3a5488535e/src/diffusers/pipelines/stable_diffusion/pipeline_stable_diffusion.py#LL546C9-L546C46
-	float timeout = 10;
+	string image = 4;
+	int32 height = 5;
+	int32 width = 6;
+	int32 num_images_per_prompt = 7;
+	int32 num_inference_steps = 8;
+	float guidance_scale = 9;
+	string negative_prompt = 10; //TODO: investigate if this is the right type see: https://github.com/huggingface/diffusers/blob/82e6fa56f0bfc219c26168a27a8ddb3a5488535e/src/diffusers/pipelines/stable_diffusion/pipeline_stable_diffusion.py#LL546C9-L546C46
+	float timeout = 11;
 }
 
 message ForwardTextToImageResponse {
