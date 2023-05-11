@@ -422,10 +422,19 @@ class neuron:
             bittensor.logging.info('not applying the reward model taking the best completed response')
             # Return first best from scores.
             forward_calls.reverse()
-            for call in forward_calls:
-                if len( call.completion ) > 0:
-                    bittensor.logging.info( 'best completion', call.completion )
-                    return call.completion
+            
+            if return_all:
+                completions = []
+                for call in forward_calls:
+                    if len( call.completion ) > 0:
+                        completions.append(call.completion)
+                if len(completions) > 0:
+                    return completions
+            else:
+                for call in forward_calls:
+                    if len( call.completion ) > 0:
+                        bittensor.logging.info( 'best completion', call.completion )
+                        return call.completion
 
             if return_all:
                 return ['no valid completions']
@@ -447,7 +456,6 @@ class neuron:
             rewards = self.reward_model.reward( flattened_completions_for_reward, completions_for_reward, difference =False ).to( self.device )
             best_completion = completions[ rewards.argmax( dim = 0 ) ]
             bittensor.logging.info('finished applying the reward model ', time.time() - reward_model_start )
-            bittensor.logging.info( 'best completion', best_completion)
             
             if return_all: 
                 return completions
