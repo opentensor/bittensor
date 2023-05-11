@@ -13,8 +13,8 @@ text = 'hello world'
 
 data = { 
   "text": "a dog in the forest",
-  "height": 256,
-  "width": 256,
+  "height": 512, # anything less than 512x512 causes image degradation
+  "width": 512,
   "timeout": 12,
   "num_images_per_prompt": 1,
   "num_inference_steps": 30,
