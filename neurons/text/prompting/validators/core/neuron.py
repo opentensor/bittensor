@@ -564,7 +564,7 @@ class neuron:
                     )
 
                 # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
-                if self.subtensor.block - self.last_sync > 10:
+                if self.subtensor.block - self.last_sync > 100:
                     self.metagraph.sync()
                     self.last_sync = self.subtensor.block
                     self.save()
