@@ -58,6 +58,7 @@ class axon:
         external_ip: Optional[str] = None,
         external_port: Optional[int] = None,
         max_workers: Optional[int] = None,
+        server: "grpc._server._Server" = None,        
         maximum_concurrent_rpcs: Optional[int] = None,
         blacklist: Optional[Callable] = None,
     ) -> "bittensor.Axon":
@@ -123,14 +124,17 @@ class axon:
         )
 
         # Build grpc server
-        self.thread_pool = futures.ThreadPoolExecutor(max_workers=self.config.axon.max_workers)
-        self.server = grpc.server(
-            self.thread_pool,
-            interceptors=(self.auth_interceptor,),
-            maximum_concurrent_rpcs=self.config.axon.maximum_concurrent_rpcs,
-            options=[("grpc.keepalive_time_ms", 100000), ("grpc.keepalive_timeout_ms", 500000)],
-        )
-        self.server.add_insecure_port(self.full_address)
+        if server is None:
+            self.thread_pool = futures.ThreadPoolExecutor(max_workers=self.config.axon.max_workers)
+            self.server = grpc.server(
+                self.thread_pool,
+                interceptors=(self.auth_interceptor,),
+                maximum_concurrent_rpcs=self.config.axon.maximum_concurrent_rpcs,
+                options=[("grpc.keepalive_time_ms", 100000), ("grpc.keepalive_timeout_ms", 500000)],
+            )
+            self.server.add_insecure_port(self.full_address)
+        else:
+            self.server = server
 
     @classmethod
     def config(cls) -> "bittensor.Config":
