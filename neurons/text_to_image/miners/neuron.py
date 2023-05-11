@@ -39,7 +39,7 @@ def main( config ):
     base_miner = bittensor.base_miner_neuron( netuid = 14, config = config )
 
     # --- Build diffusion pipeline ---
-    text2img = StableDiffusionPipeline.from_pretrained( config.model_name, torch_dtype=torch.float16).to( config.device )
+    text2img = StableDiffusionPipeline.from_pretrained( config.neuron.model_name, safety_checker=None, torch_dtype=torch.float16).to( config.device )
     img2img = StableDiffusionImg2ImgPipeline(**text2img.components)
     inpaint = StableDiffusionInpaintPipeline(**text2img.components)
 
@@ -58,7 +58,7 @@ def main( config ):
             
             use_image = False
             
-            if num_images_per_prompt > 4:
+            if num_images_per_prompt >= 4: # TODO: specify in config 
                 return "Stable Diffusion only supports num_images_per_prompt <= 4"
             
             if image != "":
@@ -71,13 +71,13 @@ def main( config ):
 
             if use_image:
                 # turn image from base64 to PIL image
-                processed_image = Image.open(BytesIO(base64.b64decode(image)))
+                # Load bytes into a PIL image
+                image_bytes = base64.b64decode(image)
+                processed_image = Image.open(BytesIO(image_bytes))
 
                 images = img2img( 
                     text,
                     processed_image,
-                    height = height,
-                    width = width,
                     num_images_per_prompt = num_images_per_prompt,
                     num_inference_steps = num_inference_steps,
                     guidance_scale = guidance_scale,

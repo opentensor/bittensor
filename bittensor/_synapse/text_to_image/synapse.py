@@ -80,8 +80,8 @@ class TextToImageForward( bittensor.SynapseCall ):
 class TextToImage(BaseModel):
     text: str
     image: bytes = ''
-    height: int = 256
-    width: int = 256
+    height: int = 512 # performance degrades with smaller image sizes than 512
+    width: int = 512
     timeout: int = 12
     num_images_per_prompt: int = 1
     num_inference_steps: int = 30
