@@ -53,7 +53,7 @@ def main( config ):
         
         def forward( self, text: str, height: int, width: int, num_images_per_prompt: int, num_inference_steps: int, guidance_scale: float, negative_prompt: str, ) -> List[str]:
             if num_images_per_prompt > 4:
-                return "Stable Diffusion only supports num_images_per_prompt < 4"
+                return "Stable Diffusion only supports num_images_per_prompt <= 4"
             
             images = pipe( 
                 text,
@@ -68,6 +68,7 @@ def main( config ):
 
             buffered = BytesIO()
             images.images[0].save(buffered, format="PNG")
+            # images.images[0].show()
             image_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
 
             return image_base64
