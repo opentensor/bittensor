@@ -33,6 +33,7 @@ from typing import Callable, Dict, Optional, Tuple, Union
 
 class axon:
     """ Axon object for serving synapse receptors. """
+    server: "grpc._server._Server" = None
 
     def info(self) -> 'axon_info':
         """Returns the axon info object associate with this axon.""" 
@@ -135,6 +136,8 @@ class axon:
             self.server.add_insecure_port(self.full_address)
         else:
             self.server = server
+            self.thread_pool = server._state.thread_pool
+            self.server.add_insecure_port(self.full_address)
 
     @classmethod
     def config(cls) -> "bittensor.Config":
