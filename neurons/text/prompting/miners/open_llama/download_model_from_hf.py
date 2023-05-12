@@ -22,8 +22,8 @@ def main(model_name, target_folder, local_folder):
     for file in model_info.siblings:
         file_path = file.rfilename
         if target_folder in file_path:
-            file_url = f"https://huggingface.co/{model_name}/resolve/main/{file.rfilename}"
-            file_name = file.rfilename
+            file_url = f"https://huggingface.co/{model_name}/resolve/main/{file_path}"
+            file_name = os.path.basename(file_path)
             local_path = os.path.join(local_folder, file_name)
 
             print(f"Downloading {file_name}...")
