@@ -701,7 +701,7 @@ class neuron:
 
             elif inference_only:
                 self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config, num_uids=gating_state_dict['num_hotkeys']).to( self.device )
-                self.gating_model.load_state_dict(gating_state_dict['model_state_dict'])
+                self.gating_model.load_state_dict(gating_state_dict['model_state_dict'], strict=False)
                 bittensor.logging.success(prefix='Reloaded Gating model', sufix=f'<blue>{path}/gating.torch</blue>')
 
         except Exception as e:
