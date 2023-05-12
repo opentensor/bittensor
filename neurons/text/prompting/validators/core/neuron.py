@@ -696,7 +696,7 @@ class neuron:
 
             gating_state_dict = torch.load(f'{path}/gating.torch')
             if self.gating_model.num_uids == gating_state_dict['num_hotkeys']:
-                self.gating_model.load_state_dict(gating_state_dict['model_state_dict'])
+                self.gating_model.load_state_dict(gating_state_dict['model_state_dict'], strict=False)
                 bittensor.logging.success(prefix='Reloaded Gating model', sufix=f'<blue>{path}/gating.torch</blue>')
 
             elif inference_only:
