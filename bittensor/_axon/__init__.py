@@ -345,7 +345,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             raise Exception("Signature mismatch")
         self.nonces[endpoint_key] = nonce
 
-    def black_list_checking(self, hotkey: str):
+    def black_list_checking(self, hotkey: str, method: str):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
         if self.blacklist is None:
             return
@@ -360,7 +360,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
         failed, error_message =  self.blacklist(hotkey, request_type)
         if failed:
             raise Exception(str(error_message))
-
 
     def intercept_service(self, continuation, handler_call_details):
         r"""Authentication between bittensor nodes. Intercepts messages and checks them"""
