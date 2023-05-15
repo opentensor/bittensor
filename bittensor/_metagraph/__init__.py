@@ -142,13 +142,17 @@ class metagraph( torch.nn.Module ):
             for n in self.neurons:
                 w_uids, w_weights = zip(*n.weights)
                 weights_array.append( bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( len(self.neurons), w_uids, w_weights ).tolist() )
-            self.weights = torch.nn.Parameter( torch.stack( weights_array ), requires_grad=False )
+            self.weights = torch.nn.Parameter( torch.stack( weights_array ), requires_grad=False ) if len( weights_array ) else torch.Tensor()
+            if len(weights_array) == 0:
+                bittensor.logging.warning("Empty weights_array on metagraph.sync(). The 'weights' tensor is empty.")      
         if not lite:
             bonds_array = []
             for n in self.neurons:
                 b_uids, b_bonds = zip(*n.bonds)
                 bonds_array.append( bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor( len(self.neurons), b_uids, b_bonds ).tolist() )
-            self.bonds = torch.nn.Parameter( torch.stack( bonds_array ), requires_grad=False )
+            self.bonds = torch.nn.Parameter( torch.stack( bonds_array ), requires_grad=False ) if len( bonds_array ) else torch.Tensor()
+            if len(bonds_array) == 0:
+                bittensor.logging.warning("Empty bonds_array on metagraph.sync(). The 'bonds' tensor is empty.")    
 
     def save( self ) -> 'metagraph':
         r""" Saves this metagraph object's state_dict under bittensor root dir."""
