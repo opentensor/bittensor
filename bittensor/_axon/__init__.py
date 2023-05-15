@@ -33,7 +33,6 @@ from typing import Callable, Dict, Optional, Tuple, Union
 
 class axon:
     """ Axon object for serving synapse receptors. """
-    server: "grpc._server._Server" = None
 
     def info(self) -> 'axon_info':
         """Returns the axon info object associate with this axon.""" 
@@ -265,7 +264,7 @@ class axon:
 
     def stop(self) -> "bittensor.axon":
         r"""Stop the axon grpc server."""
-        if self.server is not None:
+        if hasattr(self, "server") and self.server is not None:
             self.server.stop(grace=1)
         self.started = False
 
@@ -380,7 +379,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             )
 
             # blacklist checking
-            self.black_list_checking(sender_hotkey)
+            self.black_list_checking(sender_hotkey, method)
 
             return continuation(handler_call_details)
 
