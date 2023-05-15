@@ -650,8 +650,14 @@ class neuron:
     def run(self):
         if self.config.neuron.inference_only:
             # Start an infinite loop, allows axon to service inference requests.
+            last_sync = self.subtensor.block
             while True:
-                time.sleep(1)
+                time.sleep(12)
+                if self.subtensor.block -last_sync > 100:
+                    self.metagraph.sync()
+                    self.last_sync = self.subtensor.block
+                    self.load(inference_only = True)
+
         else:
             # Normal validator train operation for validation.
             self.train()
@@ -669,10 +675,16 @@ class neuron:
             torch.save(state_dict, f'{path}/model.torch')
             bittensor.logging.success(prefix='Saved model', sufix=f'<blue>{path}/model.torch</blue>')
 
+            gating_state_dict = {
+                'model_state_dict':self.gating_model.state_dict(),
+                'num_hotkeys': self.gating_model.num_uids
+            }
+            torch.save(gating_state_dict, f'{path}/gating.torch')
+            bittensor.logging.success(prefix='Saved gating model', sufix=f'<blue>{path}/gating.torch</blue>')
         except Exception as e:
             logger.warning(f'Failed to save model with error: {e}')
 
-    def load(self, path=None):
+    def load(self, path=None, inference_only=False):
         r""" Load hotkeys and moving average scores from filesystem. """
         try:
             if path is None:
@@ -681,6 +693,16 @@ class neuron:
             self.moving_averaged_scores = state_dict['neuron_weights'].clone().detach()
             self.hotkeys = state_dict['neuron_hotkeys']
             bittensor.logging.success(prefix='Reloaded model', sufix=f'<blue>{path}/model.torch</blue>')
+
+            gating_state_dict = torch.load(f'{path}/gating.torch')
+            if self.gating_model.num_uids == gating_state_dict['num_hotkeys']:
+                self.gating_model.load_state_dict(gating_state_dict['model_state_dict'], strict=False)
+                bittensor.logging.success(prefix='Reloaded Gating model', sufix=f'<blue>{path}/gating.torch</blue>')
+
+            elif inference_only:
+                self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config, num_uids=gating_state_dict['num_hotkeys']).to( self.device )
+                self.gating_model.load_state_dict(gating_state_dict['model_state_dict'], strict=False)
+                bittensor.logging.success(prefix='Reloaded Gating model', sufix=f'<blue>{path}/gating.torch</blue>')
 
         except Exception as e:
             logger.warning(f'Failed to load model with error: {e}')

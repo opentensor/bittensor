@@ -76,14 +76,13 @@ class GatingModel( torch.nn.Module ):
         super(GatingModel, self).__init__()
         if config is None: config = GatingModel.config()
         if model_name is not None: config.gating.model_name = model_name
-        if num_uids is not None: config.gating.num_uids = self.metagraph.n
+        config.gating.num_uids = num_uids if num_uids is not None else metagraph.n
         self.config = config
-        self.metagraph = metagraph
-        self.num_uids = self.metagraph.n
+        self.num_uids = config.gating.num_uids
         self.device = torch.device( self.config.neuron.device )
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.gating.model_name )
         self.model = AutoModel.from_config( AutoConfig.from_pretrained(self.config.gating.model_name) ) #TODO: add pretrained flag
-        self.linear = torch.nn.Linear( self.model.config.hidden_size, self.metagraph.n )
+        self.linear = torch.nn.Linear( self.model.config.hidden_size, config.gating.num_uids  )
         self.optimizer = torch.optim.SGD(
             [ {"params": self.parameters()} ],
             lr = self.config.gating.learning_rate,
