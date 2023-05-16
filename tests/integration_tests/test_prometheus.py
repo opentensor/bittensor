@@ -1,20 +1,10 @@
 import bittensor
-import torch
-import unittest
+
 import pytest 
-from bittensor._subtensor.subtensor_mock import mock_subtensor
-
-import random
-import time
 import unittest
-from queue import Empty as QueueEmpty
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import bittensor
-import pytest
-from bittensor._subtensor.subtensor_mock import mock_subtensor
-from bittensor.utils.balance import Balance
-from substrateinterface import Keypair
+
 
 class TestPrometheus(unittest.TestCase):
 
