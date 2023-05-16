@@ -23,7 +23,7 @@ from sys import platform
 import bittensor
 import time
 import os
-from typing import Optional, Tuple, Dict, Union
+from typing import Optional, Tuple, Dict, Union, TypedDict
 import requests
 from urllib3.exceptions import LocationValueError
 import numpy as np
@@ -308,6 +308,8 @@ class mock_subtensor:
         except Exception as e:
             raise RuntimeError("Failed to start mocked subtensor process: {}".format(e))
 
+class DecodedGenericExtrinsic(TypedDict):
+    nonce: int
 
 class Mock_Subtensor(subtensor_impl.Subtensor):
     """
@@ -375,7 +377,8 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         balance: Union["bittensor.Balance", int, float],
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+        nonce: Optional[int] = None,
+    ) -> Tuple[bool, Optional[str], int]:
         r"""Sets the balance of an account using the sudo key."""
         if isinstance(balance, bittensor.Balance):
             balance = balance.rao
@@ -387,7 +390,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
             raise ValueError("Invalid type for balance: {}".format(type(balance)))
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_call():
+        def make_call() -> Tuple[bool, Optional[str], int]:
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module="Balances",
@@ -402,19 +405,26 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                 wrapped_call = self.wrap_sudo(call)
 
                 extrinsic = substrate.create_signed_extrinsic(
-                    call=wrapped_call, keypair=self.sudo_keypair
+                    call=wrapped_call, keypair=self.sudo_keypair, nonce=nonce
                 )
+
+                decoded_extrinsic: DecodedGenericExtrinsic = extrinsic.decode()
+                used_nonce = decoded_extrinsic["nonce"]
+
                 response = substrate.submit_extrinsic(
                     extrinsic,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                 )
 
+                if not wait_for_finalization:
+                    return True, None, used_nonce
+
                 response.process_events()
                 if response.is_success:
-                    return True, None
+                    return True, None, used_nonce
                 else:
-                    return False, response.error_message
+                    return False, response.error_message, used_nonce
 
         return make_call()
 
@@ -644,13 +654,19 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         coldkey: str,
         stake: int = 0,
         balance: int = 0,
+        nonce: Optional[int] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        r"""Registers a neuron to the subnet using sudo."""
+    ) -> Tuple[bool, Optional[str], int]:
+        r"""Registers a neuron to the subnet using sudo.
+        Returns:
+            bool: True if the extrinsic was successful, False otherwise.
+            Optional[str]: The error message if the extrinsic failed, None otherwise.
+            int: The nonce used for the extrinsic.
+        """
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_call():
+        def make_call() -> Tuple[bool, Optional[str], int]:
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
@@ -667,8 +683,12 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                 wrapped_call = self.wrap_sudo(call)
 
                 extrinsic = substrate.create_signed_extrinsic(
-                    call=wrapped_call, keypair=self.sudo_keypair
+                    call=wrapped_call, keypair=self.sudo_keypair, nonce=nonce
                 )
+
+                decoded_extrinsic: DecodedGenericExtrinsic = extrinsic.decode()
+                used_nonce = decoded_extrinsic["nonce"]
+                
                 response = substrate.submit_extrinsic(
                     extrinsic,
                     wait_for_inclusion=wait_for_inclusion,
@@ -676,12 +696,12 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                 )
 
                 if not wait_for_finalization:
-                    return True, None
+                    return True, None, used_nonce
 
                 response.process_events()
                 if response.is_success:
-                    return True, None
+                    return True, None, used_nonce
                 else:
-                    return False, response.error_message
+                    return False, response.error_message, used_nonce
 
         return make_call()

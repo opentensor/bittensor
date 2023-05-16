@@ -47,24 +47,7 @@ def setupMockSubtensor():
 
 # Only run once per session.
 # Runs before all tests and only once.
-@pytest.fixture(scope="session", autouse=True)
-def setupSubnets(request):
-    # Setup first mock subtensor
-    setupMockSubtensor()
-
-    if _subtensor_mock._owned_mock_subtensor_process is None:
-        # Not owned, wait until mock chain setup done
-        tx_limit = float("inf")
-        while tx_limit != 0:
-            tx_limit = _subtensor_mock.get_tx_rate_limit()
-            time.sleep(1)
-        return
-
-    def killMockSubtensorProcess():
-        # wait 30s to kill
-        time.sleep(10)
-        _subtensor_mock.optionally_kill_owned_mock_instance()
-
+def setupSubnets():
     # Setup mock subtensor networks.
     try:
         # create mock subnet 2
@@ -124,11 +107,6 @@ def setupSubnets(request):
     except Exception as e:
         print("Error in setup: ", e)
 
-    else:
-        # Seems to be the process owner of the mock instance.
-        # Setup mock kill to run after all tests.
-        request.addfinalizer(killMockSubtensorProcess)
-
     # Write ws_port to file.
     ws_port_str: str = _subtensor_mock.chain_endpoint.split(":")[1]
     if ws_port_str is not None:
@@ -136,8 +114,32 @@ def setupSubnets(request):
         mock_subtensor.save_global_ws_port(int(ws_port_str))
 
 
+def killMockSubtensorProcess():
+    # wait 30s to kill
+    time.sleep(10)
+    _subtensor_mock.optionally_kill_owned_mock_instance()
+
+
 def setUpModule():
     setupMockSubtensor()
+
+    if _subtensor_mock._owned_mock_subtensor_process is not None:
+        # Owns the mock instance. Setup mock subnets.
+        setupSubnets()
+
+    else:
+        # Not owned, wait until mock chain setup done
+        tx_limit = float("inf")
+        while tx_limit != 0:
+            tx_limit = _subtensor_mock.get_tx_rate_limit()
+            time.sleep(1)
+        return
+
+
+def tearDownModule():
+    if _subtensor_mock._owned_mock_subtensor_process is not None:
+        # Owns the mock instance. Kill it.
+        killMockSubtensorProcess()
 
 
 def generate_wallet(coldkey: "Keypair" = None, hotkey: "Keypair" = None):
@@ -224,13 +226,19 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]  # hk3 is not registered on any network
 
         # Register each wallet to it's subnet.
+        print("Registering wallets to mock subtensor...")
+
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for netuid, wallet in mock_registrations:
-            result, err = _subtensor_mock.sudo_register(
+            result, err, used_nonce = _subtensor_mock.sudo_register(
                 netuid=netuid,
                 coldkey=wallet.coldkey.ss58_address,
                 hotkey=wallet.hotkey.ss58_address,
-                wait_for_finalization=False,
+                wait_for_finalization=True,
                 wait_for_inclusion=True,
+                nonce=used_nonce + 1 if used_nonce else None
             )
             self.assertTrue(result, err)
 
@@ -324,16 +332,21 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register each wallet to it's subnet
         print("Registering mock wallets to subnets...")
+
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for netuid, wallet in mock_registrations:
             print(
                 "Registering wallet {} to subnet {}".format(wallet.hotkey_str, netuid)
             )
-            _subtensor_mock.sudo_register(
+            _, _, used_nonce = _subtensor_mock.sudo_register(
                 netuid=netuid,
                 coldkey=wallet.coldkey.ss58_address,
                 hotkey=wallet.hotkey.ss58_address,
-                wait_for_finalization=False,
+                wait_for_finalization=True,
                 wait_for_inclusion=True,
+                nonce=used_nonce + 1 if used_nonce else None,
             )
 
         def mock_get_wallet(*args, **kwargs):
@@ -557,14 +570,19 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register mock wallets and give them stakes
+
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for wallet in mock_wallets:
-            success, err = _subtensor_mock.sudo_register(
+            success, err, used_nonce = _subtensor_mock.sudo_register(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkey.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,
-                wait_for_finalization=False,
+                wait_for_finalization=True,
                 wait_for_inclusion=True,
+                nonce=used_nonce + 1 if used_nonce else None,
             )
             self.assertTrue(success, err)
 
@@ -634,14 +652,18 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register mock wallets and give them stakes
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for wallet in mock_wallets:
-            success, err = _subtensor_mock.sudo_register(
+            success, err, used_nonce = _subtensor_mock.sudo_register(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkey.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,
-                wait_for_finalization=False,
+                wait_for_finalization=True,
                 wait_for_inclusion=True,
+                nonce=used_nonce + 1 if used_nonce else None,
             )
             self.assertTrue(success, err)
 
@@ -714,14 +736,18 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register mock wallets and give them stakes
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for wallet in mock_wallets:
-            success, err = _subtensor_mock.sudo_register(
+            success, err, used_nonce = _subtensor_mock.sudo_register(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkey.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,
-                wait_for_finalization=False,
+                wait_for_finalization=True,
                 wait_for_inclusion=True,
+                nonce=used_nonce + 1 if used_nonce else None,
             )
             self.assertTrue(success, err)
 
@@ -802,15 +828,19 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them stakes
         print("Registering mock wallets...")
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for wallet in mock_wallets:
             print("Registering mock wallet {}".format(wallet.hotkey_str))
-            success, err = _subtensor_mock.sudo_register(
+            success, err, used_nonce = _subtensor_mock.sudo_register(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkey.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,
-                wait_for_finalization=False,
+                wait_for_finalization=True,
                 wait_for_inclusion=True,
+                nonce=used_nonce + 1 if used_nonce else None,
             )
             self.assertTrue(success, err)
 
@@ -885,19 +915,25 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them balances
         print("Registering mock wallets...")
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for wallet in mock_wallets:
             print("Registering mock wallet {}".format(wallet.hotkey_str))
-            success, err = _subtensor_mock.sudo_register(
+            success, err, used_nonce = _subtensor_mock.sudo_register(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkey.ss58_address,
-                wait_for_finalization=False,
+                wait_for_finalization=True,
                 wait_for_inclusion=True,
+                nonce=used_nonce + 1 if used_nonce else None,
             )
             self.assertTrue(success, err)
 
         success, err = _subtensor_mock.sudo_force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
+            ss58_address=mock_coldkey_kp.ss58_address,
+            balance=mock_balance.rao,
+            nonce=used_nonce + 1 if used_nonce else None,
         )
         self.assertTrue(success, err)
 
@@ -961,20 +997,26 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them no stake
         print("Registering mock wallets...")
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for wallet in mock_wallets:
             print("Registering mock wallet {}".format(wallet.hotkey_str))
-            success, err = _subtensor_mock.sudo_register(
+            success, err, used_nonce = _subtensor_mock.sudo_register(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
-                wait_for_finalization=False,
+                wait_for_finalization=True,
                 wait_for_inclusion=True,
+                nonce=used_nonce + 1 if used_nonce else None,
             )
             self.assertTrue(success, err)
 
         # Set the coldkey balance
         success, err = _subtensor_mock.sudo_force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
+            ss58_address=mock_coldkey_kp.ss58_address,
+            balance=mock_balance.rao,
+            nonce=used_nonce + 1 if used_nonce else None,
         )
         self.assertTrue(success, err)
 
@@ -1061,14 +1103,18 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them balances
         print("Registering mock wallets...")
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for wallet in mock_wallets:
             print("Registering mock wallet {}".format(wallet.hotkey_str))
-            success, err = _subtensor_mock.sudo_register(
+            success, err, used_nonce = _subtensor_mock.sudo_register(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
-                wait_for_finalization=False,
+                wait_for_finalization=True,
                 wait_for_inclusion=True,
+                nonce=used_nonce + 1 if used_nonce else None,
             )
             self.assertTrue(success, err)
 
@@ -1077,7 +1123,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             ss58_address=mock_coldkey_kp.ss58_address,
             balance=mock_balance.rao,
             wait_for_inclusion=True,
-            wait_for_finalization=False,
+            wait_for_finalization=True,
+            nonce=used_nonce + 1 if used_nonce else None,
         )
         self.assertTrue(success, err)
 
@@ -1172,34 +1219,40 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them balances
         print("Registering mock wallets...")
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for wallet in mock_wallets:
             print("Registering mock wallet {}".format(wallet.hotkey_str))
             if wallet.hotkey_str == "hk1":
                 # Set the stake for hk1
-                success, err = _subtensor_mock.sudo_register(
+                success, err, used_nonce = _subtensor_mock.sudo_register(
                     netuid=1,
                     hotkey=wallet.hotkey.ss58_address,
                     coldkey=wallet.coldkeypub.ss58_address,
                     stake=mock_stakes[wallet.hotkey_str].rao,
-                    wait_for_finalization=False,
+                    wait_for_finalization=True,
                     wait_for_inclusion=True,
+                    nonce=used_nonce + 1 if used_nonce else None,
                 )
                 self.assertTrue(success, err)
             else:
-                success, err = _subtensor_mock.sudo_register(
+                success, err, used_nonce = _subtensor_mock.sudo_register(
                     netuid=1,
                     hotkey=wallet.hotkey.ss58_address,
                     coldkey=wallet.coldkeypub.ss58_address,
-                    wait_for_finalization=False,
+                    wait_for_finalization=True,
                     wait_for_inclusion=True,
+                    nonce=used_nonce + 1 if used_nonce else None,
                 )
                 self.assertTrue(success, err)
 
-        success, err = _subtensor_mock.sudo_force_set_balance(
+        success, err, used_nonce = _subtensor_mock.sudo_force_set_balance(
             ss58_address=mock_coldkey_kp.ss58_address,
             balance=mock_balance.rao,
-            wait_for_finalization=False,
+            wait_for_finalization=True,
             wait_for_inclusion=True,
+            nonce=used_nonce + 1 if used_nonce else None,
         )
         self.assertTrue(success, err)
 
@@ -1289,22 +1342,27 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them balances
         print("Registering mock wallets...")
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for wallet in mock_wallets:
             print("Registering mock wallet {}".format(wallet.hotkey_str))
-            success, err = _subtensor_mock.sudo_register(
+            success, err, used_nonce = _subtensor_mock.sudo_register(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
-                wait_for_finalization=False,
+                wait_for_finalization=True,
                 wait_for_inclusion=True,
+                nonce=used_nonce + 1 if used_nonce else None,
             )
             self.assertTrue(success, err)
 
-        success, err = _subtensor_mock.sudo_force_set_balance(
+        success, err, used_nonce = _subtensor_mock.sudo_force_set_balance(
             ss58_address=mock_coldkey_kp.ss58_address,
             balance=mock_balance.rao,
-            wait_for_finalization=False,
+            wait_for_finalization=True,
             wait_for_inclusion=True,
+            nonce=used_nonce + 1 if used_nonce else None,
         )
         self.assertTrue(success, err)
 
@@ -1387,19 +1445,25 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them balances
         print("Registering mock wallets...")
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for wallet in mock_wallets:
             print("Registering mock wallet {}".format(wallet.hotkey_str))
-            success, err = _subtensor_mock.sudo_register(
+            success, err, used_nonce = _subtensor_mock.sudo_register(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
-                wait_for_finalization=False,
+                wait_for_finalization=True,
                 wait_for_inclusion=True,
+                nonce=used_nonce + 1 if used_nonce else None,
             )
             self.assertTrue(success, err)
 
-        success, err = _subtensor_mock.sudo_force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
+        success, err, used_nonce = _subtensor_mock.sudo_force_set_balance(
+            ss58_address=mock_coldkey_kp.ss58_address,
+            balance=mock_balance.rao,
+            nonce=used_nonce + 1 if used_nonce else None,
         )
         self.assertTrue(success, err)
 
@@ -1476,21 +1540,27 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register mock wallets and give them balances
+        print("Registering mock wallets...")
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for wallet in mock_wallets:
-            success, err = _subtensor_mock.sudo_register(
+            success, err, used_nonce = _subtensor_mock.sudo_register(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
-                wait_for_finalization=False,
+                wait_for_finalization=True,
                 wait_for_inclusion=True,
+                nonce=used_nonce + 1 if used_nonce else None,
             )
             self.assertTrue(success, err)
 
-        success, err = _subtensor_mock.sudo_force_set_balance(
+        success, err, used_nonce = _subtensor_mock.sudo_force_set_balance(
             ss58_address=mock_coldkey_kp.ss58_address,
             balance=mock_balance.rao,
             wait_for_inclusion=True,
             wait_for_finalization=True,
+            nonce=used_nonce + 1 if used_nonce else None,
         )
         self.assertTrue(success, err)
 
@@ -1575,22 +1645,28 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register mock wallets and give them balances
+        print("Registering mock wallets...")
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+        
         for wallet in mock_wallets:
-            success, err = _subtensor_mock.sudo_register(
+            success, err, used_nonce = _subtensor_mock.sudo_register(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,  # More than max_stake
-                wait_for_finalization=False,
+                wait_for_finalization=True,
                 wait_for_inclusion=True,
+                nonce=used_nonce + 1 if used_nonce else None,
             )
             self.assertTrue(success, err)
 
-        success, err = _subtensor_mock.sudo_force_set_balance(
+        success, err, used_nonce = _subtensor_mock.sudo_force_set_balance(
             ss58_address=mock_coldkey_kp.ss58_address,
             balance=mock_balance.rao,
             wait_for_finalization=True,
             wait_for_inclusion=True,
+            nonce=used_nonce + 1 if used_nonce else None,
         )
         self.assertTrue(success, err)
 
@@ -1667,13 +1743,13 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         )
 
         # Register mock wallet and give it a balance
-        success, err = _subtensor_mock.sudo_register(
+        success, err, _ = _subtensor_mock.sudo_register(
             netuid=1,
             hotkey=mock_wallet.hotkey.ss58_address,
             coldkey=mock_wallet.coldkey.ss58_address,
             balance=mock_balance.rao,
             wait_for_inclusion=True,
-            wait_for_finalization=False,
+            wait_for_finalization=True,
         )
         self.assertTrue(success, err)
 
@@ -1736,24 +1812,29 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Set hotkey to be the hotkey from the other wallet
         config.delegate_ss58key: str = mock_wallets[0].hotkey.ss58_address
 
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         # Register mock wallets and give them balance
-        success, err = _subtensor_mock.sudo_register(
+        success, err, used_nonce = _subtensor_mock.sudo_register(
             netuid=1,
             hotkey=mock_wallets[0].hotkey.ss58_address,
             coldkey=mock_wallets[0].coldkey.ss58_address,
             balance=mock_balances["w0"]["hk0"].rao,
             stake=mock_stake.rao,  # Needs set stake to be a validator
-            wait_for_finalization=False,
+            wait_for_finalization=True,
             wait_for_inclusion=True,
+            nonce = used_nonce + 100 # Force nonce to be high
         )
         self.assertTrue(success, err)
 
         # Give w1 some balance
-        success, err = _subtensor_mock.sudo_force_set_balance(
+        success, err, used_nonce = _subtensor_mock.sudo_force_set_balance(
             ss58_address=mock_wallets[1].coldkey.ss58_address,
             balance=mock_balances["w1"]["hk1"].rao,
-            wait_for_finalization=False,
+            wait_for_finalization=True,
             wait_for_inclusion=True,
+            nonce=used_nonce + 1 if used_nonce else None,
         )
         self.assertTrue(success, err)
 
@@ -1832,30 +1913,31 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.delegate_ss58key: str = mock_wallets[0].hotkey.ss58_address
 
         # Register mock wallets and give them balance
-        success, err = _subtensor_mock.sudo_register(
+        success, err, used_nonce = _subtensor_mock.sudo_register(
             netuid=1,
             hotkey=mock_wallets[0].hotkey.ss58_address,
             coldkey=mock_wallets[0].coldkey.ss58_address,
             balance=mock_balances["w0"]["hk0"].rao,
             stake=mock_stake.rao,  # Needs set stake to be a validator
-            wait_for_finalization=False,
+            wait_for_finalization=True,
             wait_for_inclusion=True,
         )
         self.assertTrue(success, err)
 
         # Give w1 some balance
-        success, err = _subtensor_mock.sudo_force_set_balance(
+        success, err, used_nonce = _subtensor_mock.sudo_force_set_balance(
             ss58_address=mock_wallets[1].coldkey.ss58_address,
             balance=mock_balances["w1"]["hk1"].rao,
-            wait_for_finalization=False,
+            wait_for_finalization=True,
             wait_for_inclusion=False,
+            nonce=used_nonce + 1 if used_nonce else None,
         )
         self.assertTrue(success, err)
 
         # Make the first wallet a delegate
         success = _subtensor_mock.nominate(
             wallet=mock_wallets[0],
-            wait_for_finalization=False,
+            wait_for_finalization=True,
             wait_for_inclusion=True,
         )
         self.assertTrue(success)
@@ -1938,10 +2020,14 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.dest = mock_wallets[0].coldkey.ss58_address
 
         # Give w0 and w1 balance
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for wallet in mock_wallets:
-            success, err = _subtensor_mock.sudo_force_set_balance(
+            success, err, used_nonce = _subtensor_mock.sudo_force_set_balance(
                 ss58_address=wallet.coldkey.ss58_address,
                 balance=mock_balances[wallet.name].rao,
+                nonce=used_nonce + 1 if used_nonce else None,
             )
             self.assertTrue(success, err)
 
@@ -2007,10 +2093,14 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.dest = mock_wallets[0].coldkey.ss58_address
 
         # Give w0 and w1 balance
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         for wallet in mock_wallets:
-            success, err = _subtensor_mock.sudo_force_set_balance(
+            success, err, used_nonce = _subtensor_mock.sudo_force_set_balance(
                 ss58_address=wallet.coldkey.ss58_address,
                 balance=mock_balances[wallet.name].rao,
+                nonce=used_nonce + 1 if used_nonce else None,
             )
             self.assertTrue(success, err)
 
@@ -2165,8 +2255,13 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Add some neurons to the metagraph
         mock_nn = []
-        
-        def register_mock_neuron(i: int, wait_for_finalization: bool = False, wait_for_inclusion: bool = True ) -> Tuple[bool, Optional[str]]:
+
+        def register_mock_neuron(
+            i: int,
+            nonce: Optional[int],
+            wait_for_finalization: bool = False,
+            wait_for_inclusion: bool = True,
+        ) -> Tuple[bool, Optional[str], int]:
             mock_nn.append(
                 SimpleNamespace(
                     hotkey=get_mock_keypair(i + 100, self.id()).ss58_address,
@@ -2175,23 +2270,31 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     stake=Balance.from_rao(random.randint(0, 2**45)).rao,
                 )
             )
-            success, err = _subtensor_mock.sudo_register(
+            success, err, used_nonce = _subtensor_mock.sudo_register(
                 netuid=config.netuid,
                 hotkey=mock_nn[i].hotkey,
                 coldkey=mock_nn[i].coldkey,
                 balance=mock_nn[i].balance,
                 stake=mock_nn[i].stake,
                 wait_for_finalization=wait_for_finalization,
-                wait_for_inclusion=wait_for_inclusion
+                wait_for_inclusion=wait_for_inclusion,
+                nonce=nonce,
             )
-            return success, err
+            return success, err, used_nonce
+
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
 
         for i in range(4):
-            success, err = register_mock_neuron(i)
+            success, err, used_nonce = register_mock_neuron(
+                i, nonce=used_nonce + 1 if used_nonce else None
+            )
             self.assertTrue(success, err)
 
         # Only wait for finalization on the last neuron
-        success, err = register_mock_neuron(4, wait_for_finalization=True)
+        success, err, used_nonce = register_mock_neuron(
+            4, nonce=used_nonce + 1 if used_nonce else None, wait_for_finalization=True
+        )
         self.assertTrue(success, err)
 
         cli = bittensor.cli(config)
@@ -2395,19 +2498,24 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         mock_wallet = generate_wallet()
         delegate_wallet = generate_wallet()
 
+        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
+        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
+
         # register the wallet
-        _, err = _subtensor_mock.sudo_register(
+        _, err, used_nonce = _subtensor_mock.sudo_register(
             netuid=1,
             hotkey=mock_wallet.hotkey.ss58_address,
             coldkey=mock_wallet.coldkey.ss58_address,
+            nonce=used_nonce + 1 if used_nonce else None,
         )
         self.assertEqual(err, None)
 
         # register the delegate
-        _, err = _subtensor_mock.sudo_register(
+        _, err, used_nonce = _subtensor_mock.sudo_register(
             netuid=1,
             hotkey=delegate_wallet.hotkey.ss58_address,
             coldkey=delegate_wallet.coldkey.ss58_address,
+            nonce=used_nonce + 1 if used_nonce else None,
         )
         self.assertEqual(err, None)
 
@@ -2418,7 +2526,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         )
 
         # Give the wallet some TAO
-        _, err = _subtensor_mock.sudo_force_set_balance(
+        _, err, _ = _subtensor_mock.sudo_force_set_balance(
             ss58_address=mock_wallet.coldkey.ss58_address,
             balance=bittensor.Balance.from_tao(20.0),
         )
