@@ -139,9 +139,9 @@ class mock_subtensor:
         """
         for p in psutil.process_iter():
             if (
-                p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME
-                and p.status() != psutil.STATUS_ZOMBIE
+                p.status() != psutil.STATUS_ZOMBIE
                 and p.status() != psutil.STATUS_DEAD
+                and p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME
             ):
                 print(
                     f"Found process with name {p.name()}, parent {p.parent().pid} status {p.status()} and pid {p.pid}"
@@ -404,27 +404,13 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
                 wrapped_call = self.wrap_sudo(call)
 
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=wrapped_call, keypair=self.sudo_keypair, nonce=nonce
-                )
-
-                decoded_extrinsic: DecodedGenericExtrinsic = extrinsic.decode()
-                used_nonce = decoded_extrinsic["nonce"]
-
-                response = substrate.submit_extrinsic(
-                    extrinsic,
+                return self._submit_call(
+                    substrate,
+                    wrapped_call,
+                    nonce,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                 )
-
-                if not wait_for_finalization:
-                    return True, None, used_nonce
-
-                response.process_events()
-                if response.is_success:
-                    return True, None, used_nonce
-                else:
-                    return False, response.error_message, used_nonce
 
         return make_call()
 
@@ -434,7 +420,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         serving_rate_limit: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> Tuple[bool, Optional[str], int]:
         r"""Sets the serving rate limit of the subnet in the mock chain using the sudo key."""
         with self.substrate as substrate:
             call = substrate.compose_call(
@@ -448,30 +434,19 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
             wrapped_call = self.wrap_sudo(call)
 
-            extrinsic = substrate.create_signed_extrinsic(
-                call=wrapped_call, keypair=self.sudo_keypair
-            )
-            response = substrate.submit_extrinsic(
-                extrinsic,
+            return self._submit_call(
+                substrate,
+                wrapped_call,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
-
-            if not wait_for_finalization:
-                return True, None
-
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
 
     def sudo_set_tx_rate_limit(
         self,
         tx_rate_limit: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> Tuple[bool, Optional[str], int]:
         r"""Sets the tx rate limit of the subnet in the mock chain using the sudo key."""
         with self.substrate as substrate:
             call = substrate.compose_call(
@@ -482,23 +457,12 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
             wrapped_call = self.wrap_sudo(call)
 
-            extrinsic = substrate.create_signed_extrinsic(
-                call=wrapped_call, keypair=self.sudo_keypair
-            )
-            response = substrate.submit_extrinsic(
-                extrinsic,
+            return self._submit_call(
+                substrate,
+                wrapped_call,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
-
-            if not wait_for_finalization:
-                return True, None
-
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
 
     def get_tx_rate_limit(self) -> int:
         r"""Gets the tx rate limit of the subnet in the mock chain."""
@@ -512,7 +476,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         difficulty: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> Tuple[bool, Optional[str], int]:
         r"""Sets the difficulty of the mock chain using the sudo key."""
         with self.substrate as substrate:
             call = substrate.compose_call(
@@ -523,23 +487,12 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
             wrapped_call = self.wrap_sudo(call)
 
-            extrinsic = substrate.create_signed_extrinsic(
-                call=wrapped_call, keypair=self.sudo_keypair
-            )
-            response = substrate.submit_extrinsic(
-                extrinsic,
+            return self._submit_call(
+                substrate,
+                wrapped_call,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
-
-            if not wait_for_finalization:
-                return True, None
-
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
 
     def sudo_set_max_difficulty(
         self,
@@ -547,7 +500,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         max_difficulty: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> Tuple[bool, Optional[str], int]:
         r"""Sets the max difficulty of the mock chain using the sudo key."""
         with self.substrate as substrate:
             call = substrate.compose_call(
@@ -558,23 +511,12 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
             wrapped_call = self.wrap_sudo(call)
 
-            extrinsic = substrate.create_signed_extrinsic(
-                call=wrapped_call, keypair=self.sudo_keypair
-            )
-            response = substrate.submit_extrinsic(
-                extrinsic,
+            return self._submit_call(
+                substrate,
+                wrapped_call,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
-
-            if not wait_for_finalization:
-                return True, None
-
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
 
     def sudo_set_min_difficulty(
         self,
@@ -582,7 +524,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         min_difficulty: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> Tuple[bool, Optional[str], int]:
         r"""Sets the min difficulty of the mock chain using the sudo key."""
         with self.substrate as substrate:
             call = substrate.compose_call(
@@ -593,23 +535,12 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
             wrapped_call = self.wrap_sudo(call)
 
-            extrinsic = substrate.create_signed_extrinsic(
-                call=wrapped_call, keypair=self.sudo_keypair
-            )
-            response = substrate.submit_extrinsic(
-                extrinsic,
+            return self._submit_call(
+                substrate,
+                wrapped_call,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
-
-            if not wait_for_finalization:
-                return True, None
-
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
 
     def sudo_add_network(
         self,
@@ -618,7 +549,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         modality: int = 0,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> Tuple[bool, Optional[str], int]:
         r"""Adds a network to the mock chain using the sudo key."""
         with self.substrate as substrate:
             call = substrate.compose_call(
@@ -629,23 +560,47 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
             wrapped_call = self.wrap_sudo(call)
 
-            extrinsic = substrate.create_signed_extrinsic(
-                call=wrapped_call, keypair=self.sudo_keypair
-            )
-            response = substrate.submit_extrinsic(
-                extrinsic,
+            return self._submit_call(
+                substrate,
+                wrapped_call,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
+    
+    def _submit_call(
+        self,
+        substrate: SubstrateInterface,
+        wrapped_call: GenericCall,
+        nonce: Optional[int] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str], int]:
+        
+        extrinsic = substrate.create_signed_extrinsic(
+            call=wrapped_call, keypair=self.sudo_keypair, nonce=nonce
+        )
 
-            if not wait_for_finalization:
-                return True, None
+        decoded_extrinsic: DecodedGenericExtrinsic = extrinsic.decode()
+        used_nonce = decoded_extrinsic["nonce"]
+        
+        response = substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
+        if not wait_for_finalization:
+            return True, None, used_nonce
+
+        try:
             response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
+        except Exception as e:
+            print(f"Failed to process events: {e}")
+
+        if response.is_success:
+            return True, None, used_nonce
+        else:
+            return False, response.error_message, used_nonce
 
     def sudo_register(
         self,
@@ -682,26 +637,12 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
                 wrapped_call = self.wrap_sudo(call)
 
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=wrapped_call, keypair=self.sudo_keypair, nonce=nonce
-                )
-
-                decoded_extrinsic: DecodedGenericExtrinsic = extrinsic.decode()
-                used_nonce = decoded_extrinsic["nonce"]
-                
-                response = substrate.submit_extrinsic(
-                    extrinsic,
+                return self._submit_call(
+                    substrate,
+                    wrapped_call,
+                    nonce,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                 )
-
-                if not wait_for_finalization:
-                    return True, None, used_nonce
-
-                response.process_events()
-                if response.is_success:
-                    return True, None, used_nonce
-                else:
-                    return False, response.error_message, used_nonce
 
         return make_call()
