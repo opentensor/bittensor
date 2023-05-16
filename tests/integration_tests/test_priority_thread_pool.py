@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
-from unittest.mock import MagicMock
 
 priority_pool = bittensor.prioritythreadpool(max_workers=1)
 
@@ -31,6 +30,3 @@ def test_priority_thread_pool():
     assert save[0] == 0
     assert save[1] == 9
 
-
-if __name__ == "__main__":
-    test_priority_thread_pool()

@@ -17,7 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import unittest.mock as mock
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 import pytest
 
 import bittensor
