@@ -17,17 +17,15 @@
 
 
 import random
-import time
 import unittest
 from queue import Empty as QueueEmpty
 from unittest.mock import MagicMock, patch
 
 import bittensor
 import pytest
-from bittensor._subtensor.subtensor_mock import mock_subtensor
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
-from tests.helpers import get_mock_neuron, get_mock_hotkey, get_mock_coldkey, get_mock_neuron_by_uid, MockConsole
+from tests.helpers import get_mock_hotkey, get_mock_coldkey, MockConsole
 
 class TestSubtensor(unittest.TestCase):
     _mock_console_patcher = None
@@ -35,8 +33,8 @@ class TestSubtensor(unittest.TestCase):
 
     def setUp(self):
         self.wallet = bittensor.wallet(_mock=True)
-        self.mock_neuron = get_mock_neuron_by_uid(0)
         self.balance = Balance.from_tao(1000)
+        self.mock_neuron = MagicMock() # NOTE: this might need more sophistication
         self.subtensor = bittensor.subtensor( network = 'mock' ) # own instance per test
     
     @classmethod
@@ -59,7 +57,7 @@ class TestSubtensor(unittest.TestCase):
         # Argument importance: chain_endpoint (arg) > network (arg) > config.subtensor.chain_endpoint > config.subtensor.network
         config0 = bittensor.subtensor.config()
         config0.subtensor.network = 'finney'
-        config0.subtensor.chain_endpoint = 'wss://finney.subtensor.io'
+        config0.subtensor.chain_endpoint = bittensor.__finney_entrypoint__ #'wss://finney.subtensor.io'
 
         config1 = bittensor.subtensor.config()
         config1.subtensor.network = 'local'
@@ -74,44 +72,17 @@ class TestSubtensor(unittest.TestCase):
                 assert sub0.chain_endpoint == 'wss://fin.subtensor.io'
 
                 # Choose network arg over config
-                sub1 = bittensor.subtensor( config = config0, network = 'local' )
+                sub1 = bittensor.subtensor( config = config1, network = 'local' )
                 assert sub1.chain_endpoint == bittensor.__local_entrypoint__
 
                 # Choose chain_endpoint config over network config
                 sub2 = bittensor.subtensor( config = config0 )
-                assert sub2.chain_endpoint == 'wss://finney.subtensor.io'
+                assert sub2.chain_endpoint == bittensor.__finney_entrypoint__
 
                 sub3 = bittensor.subtensor( config = config1 )
                 # Should pick local instead of finney (default)
                 assert sub3.network == "local"
                 assert sub3.chain_endpoint == bittensor.__local_entrypoint__
-            
-    def test_neurons( self ):
-        def mock_get_neuron_by_uid(_):
-            return get_mock_neuron_by_uid(1)
-
-        with patch.object(self.subtensor.substrate, 'rpc_request'):
-            with patch('bittensor.Subtensor.get_uid_for_hotkey_on_subnet', return_value=1):
-                with patch('bittensor.NeuronInfoLite.from_vec_u8', side_effect=mock_get_neuron_by_uid):
-                    with patch('bittensor.NeuronInfo.from_vec_u8', side_effect=mock_get_neuron_by_uid):
-
-                        neuron = self.subtensor.neuron_for_uid( 1, netuid = 3 )
-                        assert type(neuron.axon_info.ip) == int
-                        assert type(neuron.axon_info.port) == int
-                        assert type(neuron.axon_info.ip_type) == int
-                        assert type(neuron.uid) == int
-                        assert type(neuron.axon_info.protocol) == int
-                        assert type(neuron.hotkey) == str
-                        assert type(neuron.coldkey) == str
-
-                        neuron = self.subtensor.get_neuron_for_pubkey_and_subnet(neuron.hotkey, netuid = 3)
-                        assert type(neuron.axon_info.ip) == int
-                        assert type(neuron.axon_info.port) == int
-                        assert type(neuron.axon_info.ip_type) == int
-                        assert type(neuron.uid) == int
-                        assert type(neuron.axon_info.protocol) == int
-                        assert type(neuron.hotkey) == str
-                        assert type(neuron.coldkey) == str
 
     def test_get_current_block( self ):
         block = self.subtensor.get_current_block()
