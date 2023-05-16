@@ -32,9 +32,8 @@ class WeightsCommand:
         console = bittensor.__console__
         subtensor = bittensor.subtensor( config = cli.config )
         wallet = bittensor.wallet( config = cli.config )
-        metagraph = subtensor.metagraph( netuid = cli.config.get('netuid') )
+        metagraph = subtensor.metagraph( netuid = cli.config.get('netuid'), lite = False )
         metagraph.save()
-
         table = Table()
         rows = []
         table.add_column("[bold white]uid", style='white', no_wrap=False)
