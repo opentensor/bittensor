@@ -58,6 +58,7 @@ class axon:
         external_ip: Optional[str] = None,
         external_port: Optional[int] = None,
         max_workers: Optional[int] = None,
+        server: "grpc._server._Server" = None,        
         maximum_concurrent_rpcs: Optional[int] = None,
         blacklist: Optional[Callable] = None,
     ) -> "bittensor.Axon":
@@ -123,14 +124,19 @@ class axon:
         )
 
         # Build grpc server
-        self.thread_pool = futures.ThreadPoolExecutor(max_workers=self.config.axon.max_workers)
-        self.server = grpc.server(
-            self.thread_pool,
-            interceptors=(self.auth_interceptor,),
-            maximum_concurrent_rpcs=self.config.axon.maximum_concurrent_rpcs,
-            options=[("grpc.keepalive_time_ms", 100000), ("grpc.keepalive_timeout_ms", 500000)],
-        )
-        self.server.add_insecure_port(self.full_address)
+        if server is None:
+            self.thread_pool = futures.ThreadPoolExecutor(max_workers=self.config.axon.max_workers)
+            self.server = grpc.server(
+                self.thread_pool,
+                interceptors=(self.auth_interceptor,),
+                maximum_concurrent_rpcs=self.config.axon.maximum_concurrent_rpcs,
+                options=[("grpc.keepalive_time_ms", 100000), ("grpc.keepalive_timeout_ms", 500000)],
+            )
+            self.server.add_insecure_port(self.full_address)
+        else:
+            self.server = server
+            self.thread_pool = server._state.thread_pool
+            self.server.add_insecure_port(self.full_address)
 
     @classmethod
     def config(cls) -> "bittensor.Config":
@@ -258,7 +264,7 @@ class axon:
 
     def stop(self) -> "bittensor.axon":
         r"""Stop the axon grpc server."""
-        if self.server is not None:
+        if hasattr(self, "server") and self.server is not None:
             self.server.stop(grace=1)
         self.started = False
 
@@ -338,7 +344,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             raise Exception("Signature mismatch")
         self.nonces[endpoint_key] = nonce
 
-    def black_list_checking(self, hotkey: str):
+    def black_list_checking(self, hotkey: str, method: str):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
         if self.blacklist is None:
             return
@@ -353,7 +359,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
         failed, error_message =  self.blacklist(hotkey, request_type)
         if failed:
             raise Exception(str(error_message))
-
 
     def intercept_service(self, continuation, handler_call_details):
         r"""Authentication between bittensor nodes. Intercepts messages and checks them"""
@@ -374,7 +379,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             )
 
             # blacklist checking
-            self.black_list_checking(sender_hotkey)
+            self.black_list_checking(sender_hotkey, method)
 
             return continuation(handler_call_details)
 

@@ -116,9 +116,9 @@ class metagraph( torch.nn.Module ):
     def sync ( self, block: Optional[int] = None, lite: bool = True ) -> 'metagraph':
         subtensor = bittensor.subtensor( network = self.network )
         if lite:
-            self.neurons = subtensor.neurons_lite( netuid = self.netuid )
+            self.neurons = subtensor.neurons_lite( block = block, netuid = self.netuid )
         else:
-            self.neurons = subtensor.neurons( netuid = self.netuid )
+            self.neurons = subtensor.neurons(block = block, netuid = self.netuid )
         self.lite = lite
         self.n = torch.nn.Parameter( torch.tensor( len(self.neurons), dtype=torch.int64 ), requires_grad=False )
         self.version = torch.nn.Parameter( torch.tensor( [bittensor.__version_as_int__], dtype=torch.int64 ), requires_grad=False )
@@ -142,13 +142,17 @@ class metagraph( torch.nn.Module ):
             for n in self.neurons:
                 w_uids, w_weights = zip(*n.weights)
                 weights_array.append( bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( len(self.neurons), w_uids, w_weights ).tolist() )
-            self.weights = torch.nn.Parameter( torch.stack( weights_array ), requires_grad=False )
+            self.weights = torch.nn.Parameter( torch.stack( weights_array ), requires_grad=False ) if len( weights_array ) else torch.Tensor()
+            if len(weights_array) == 0:
+                bittensor.logging.warning("Empty weights_array on metagraph.sync(). The 'weights' tensor is empty.")      
         if not lite:
             bonds_array = []
             for n in self.neurons:
                 b_uids, b_bonds = zip(*n.bonds)
                 bonds_array.append( bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor( len(self.neurons), b_uids, b_bonds ).tolist() )
-            self.bonds = torch.nn.Parameter( torch.stack( bonds_array ), requires_grad=False )
+            self.bonds = torch.nn.Parameter( torch.stack( bonds_array ), requires_grad=False ) if len( bonds_array ) else torch.Tensor()
+            if len(bonds_array) == 0:
+                bittensor.logging.warning("Empty bonds_array on metagraph.sync(). The 'bonds' tensor is empty.")    
 
     def save( self ) -> 'metagraph':
         r""" Saves this metagraph object's state_dict under bittensor root dir."""

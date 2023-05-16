@@ -27,11 +27,12 @@ tqdm==4.64.1
 ansible_vault>=2.1
 substrate-interface==1.5.0
 langchain>=0.0.132
-wheel==0.37.1
+datasets==2.12.0
 
 #
 # Packages candidates to remove from requirements
 #
+wheel==0.37.1
 certifi==2020.11.8
 idna==2.10
 jinja2==3.0
