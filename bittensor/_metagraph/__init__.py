@@ -18,17 +18,12 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import json
 import torch
 import bittensor
 
-import torch.nn.functional as f
-import bittensor.utils.networking as net
-
 from os import listdir
-from os.path import isfile, join
-from bittensor import Balance
-from typing import List, Optional, Dict, Union
+from os.path import join
+from typing import List, Optional
 
 
 # Return directory path from network and netuid
@@ -87,7 +82,7 @@ class metagraph( torch.nn.Module ):
 
     def metadata(self) -> dict: return {"netuid": self.netuid, "n": self.n.item(), "block": self.block.item(), "network": self.network, "version": bittensor.__version__ }
 
-    def __init__(self, netuid: int, network: str = 'finney', lite:bool = True, sync: bool = True ) -> 'metagraph':    
+    def __init__(self, netuid: int, network: str = 'finney', lite: bool = True, sync: bool = True ) -> 'metagraph':    
         super(metagraph, self).__init__()
         self.netuid = netuid
         self.network = network
@@ -142,7 +137,7 @@ class metagraph( torch.nn.Module ):
             for n in self.neurons:
                 w_uids, w_weights = zip(*n.weights)
                 weights_array.append( bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( len(self.neurons), w_uids, w_weights ).tolist() )
-            self.weights = torch.nn.Parameter( torch.stack( weights_array ), requires_grad=False ) if len( weights_array ) else torch.Tensor()
+            self.weights = torch.nn.Parameter( torch.stack( weights_array ), requires_grad=False ) if len( weights_array ) else torch.nn.Parameter()
             if len(weights_array) == 0:
                 bittensor.logging.warning("Empty weights_array on metagraph.sync(). The 'weights' tensor is empty.")      
         if not lite:
@@ -150,7 +145,7 @@ class metagraph( torch.nn.Module ):
             for n in self.neurons:
                 b_uids, b_bonds = zip(*n.bonds)
                 bonds_array.append( bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor( len(self.neurons), b_uids, b_bonds ).tolist() )
-            self.bonds = torch.nn.Parameter( torch.stack( bonds_array ), requires_grad=False ) if len( bonds_array ) else torch.Tensor()
+            self.bonds = torch.nn.Parameter( torch.stack( bonds_array ), requires_grad=False ) if len( bonds_array ) else torch.nn.Parameter()
             if len(bonds_array) == 0:
                 bittensor.logging.warning("Empty bonds_array on metagraph.sync(). The 'bonds' tensor is empty.")    
 
@@ -173,8 +168,6 @@ class metagraph( torch.nn.Module ):
         r""" Loads this metagraph object with state_dict under the specified path."""
         graph_file = latest_block_path( dir_path )
         state_dict = torch.load( graph_file )
-        # self.info = bittensor.SubnetInfo.from_parameter_dict( state_dict['info'] ) if 'info' in state_dict else None
-        # self.version = torch.nn.Parameter( state_dict['version'], requires_grad=False )
         self.n = torch.nn.Parameter( state_dict['n'], requires_grad=False )
         self.block = torch.nn.Parameter( state_dict['block'], requires_grad=False )
         self.uids = torch.nn.Parameter( state_dict['uids'], requires_grad=False )
