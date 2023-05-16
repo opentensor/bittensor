@@ -135,16 +135,22 @@ class metagraph( torch.nn.Module ):
         if not lite:
             weights_array = []
             for n in self.neurons:
-                w_uids, w_weights = zip(*n.weights)
-                weights_array.append( bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( len(self.neurons), w_uids, w_weights ).tolist() )
+                if len(n.weights) == 0:
+                    weights_array.append( torch.zeros( len( self.neurons ) ) )
+                else:
+                    w_uids, w_weights = zip(*n.weights)
+                    weights_array.append( bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( len(self.neurons), w_uids, w_weights ) )
             self.weights = torch.nn.Parameter( torch.stack( weights_array ), requires_grad=False ) if len( weights_array ) else torch.nn.Parameter()
             if len(weights_array) == 0:
-                bittensor.logging.warning("Empty weights_array on metagraph.sync(). The 'weights' tensor is empty.")      
+                bittensor.logging.warning("Empty weights_array on metagraph.sync(). The 'weights' tensor is empty.")
         if not lite:
             bonds_array = []
             for n in self.neurons:
-                b_uids, b_bonds = zip(*n.bonds)
-                bonds_array.append( bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor( len(self.neurons), b_uids, b_bonds ).tolist() )
+                if len(n.bonds) == 0:
+                    bonds_array.append( torch.zeros( len( self.neurons ) ) )
+                else:
+                    b_uids, b_bonds = zip(*n.bonds)
+                    bonds_array.append( bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor( len(self.neurons), b_uids, b_bonds ) )
             self.bonds = torch.nn.Parameter( torch.stack( bonds_array ), requires_grad=False ) if len( bonds_array ) else torch.nn.Parameter()
             if len(bonds_array) == 0:
                 bittensor.logging.warning("Empty bonds_array on metagraph.sync(). The 'bonds' tensor is empty.")    
