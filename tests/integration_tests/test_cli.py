@@ -181,6 +181,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         bittensor.axon.add_defaults(defaults)
         bittensor.wallet.add_defaults(defaults)
         bittensor.dataset.add_defaults(defaults)
+        bittensor.logging.add_defaults(defaults)
 
         return defaults
 
