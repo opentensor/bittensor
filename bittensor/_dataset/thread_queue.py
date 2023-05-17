@@ -28,7 +28,7 @@ class ProducerThread(threading.Thread):
         Args:
             queue (:obj:`queue.Queue`, `required`)
                 The queue to be filled.
-                
+
             target (:obj:`function`, `required`)
                 The target function to run when the queue is not full.
 
@@ -36,13 +36,13 @@ class ProducerThread(threading.Thread):
                 The arguments to be passed to the target function.
 
             name (:type:`str`, `optional`)
-                The name of this threading object. 
+                The name of this threading object.
         """
         super(ProducerThread,self).__init__()
         self.name = name
         self.target = target
         self.arg = arg
-        self.queue = queue 
+        self.queue = queue
         self._stop_event = threading.Event()
 
     def run(self):
@@ -66,9 +66,9 @@ class ThreadQueue():
     """
     def __init__(self, producer_target, producer_arg, buffer_size = 2):
         """ Setup the queue and start the producer thread.
-        
+
         Args:
-                
+
             producer_target (:obj:`function`, `required`)
                 The target function to run when the queue is not full.
 

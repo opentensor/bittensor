@@ -1,18 +1,18 @@
 # The MIT License (MIT)
 # Copyright © 2022 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import unittest
@@ -170,7 +170,7 @@ class TestBalance(unittest.TestCase):
             rao2_ = balance2
         elif isinstance(balance2, float):
             rao2_ = int(balance2 * pow(10, 9))
-        
+
         prod_ = balance_ * balance2_
         assert isinstance(prod_, Balance)
         self.assertAlmostEqual(prod_.rao, rao_ * rao2_, 9, msg="{} * {} == {} != {} * {} == {}".format(balance_, balance2_, prod_.rao, rao_, balance2, rao_ * balance2))
@@ -198,11 +198,11 @@ class TestBalance(unittest.TestCase):
             rao_ = balance
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
-        
+
         prod_ =  balance2_ * balance_ # This is an rmul
         assert isinstance(prod_, Balance)
         self.assertAlmostEqual(prod_.rao, int(balance2 * rao_), delta=20, msg=f"{balance2_} * {balance_} = {prod_} != {balance2} * {rao_} == {balance2 * rao_}")
-    
+
     @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy.filter(remove_zero_filter)) # Avoid zero division
     def test_balance_truediv(self, balance: Union[int, float], balance2: Union[int, float]):
         balance_ = Balance(balance)

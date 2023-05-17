@@ -2,18 +2,18 @@
 # Copyright © 2022 Yuma Rao
 # Copyright © 2022-2023 Opentensor Foundation
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 
@@ -37,10 +37,10 @@ class TestCLINoNetwork(unittest.TestCase):
             "total_stake": bittensor.Balance.from_rao(0),
             "nominators": [],
             "owner_ss58": "",
-            "take": 0.18, 
+            "take": 0.18,
             "validator_permits": [],
-            "registrations": [], 
-            "return_per_1000": bittensor.Balance.from_rao(0), 
+            "registrations": [],
+            "return_per_1000": bittensor.Balance.from_rao(0),
             "total_daily_return": bittensor.Balance.from_rao(0)
         }
         cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.mock_subtensor.mock', new=MagicMock(
@@ -60,7 +60,7 @@ class TestCLINoNetwork(unittest.TestCase):
 
     def setUp(self):
         self._config = TestCLINoNetwork.construct_config()
-    
+
     @property
     def config(self):
         copy_ = deepcopy(self._config)
@@ -76,7 +76,7 @@ class TestCLINoNetwork(unittest.TestCase):
         bittensor.axon.add_defaults( defaults )
         bittensor.wallet.add_defaults( defaults )
         bittensor.dataset.add_defaults( defaults )
-        
+
         return defaults
 
     def test_check_configs(self):
@@ -96,10 +96,10 @@ class TestCLINoNetwork(unittest.TestCase):
         cli = bittensor.cli
 
         # Get argparser
-        parser = cli.__create_parser__() 
+        parser = cli.__create_parser__()
         # Get all commands from argparser
-        commands = [ 
-            command for command in parser._actions[1].choices 
+        commands = [
+            command for command in parser._actions[1].choices
         ]
 
         def ask_response(prompt: str) -> Any:
@@ -109,7 +109,7 @@ class TestCLINoNetwork(unittest.TestCase):
                 return "mock"
             elif "hotkey" in prompt:
                 return "mock"
-        
+
         with patch('rich.prompt.Prompt.ask', ask_response):
             for cmd in commands:
                 config.command = cmd
@@ -127,7 +127,7 @@ class TestCLINoNetwork(unittest.TestCase):
         config.use_password = False
         config.no_prompt = True
         config.overwrite_coldkey = True
-        
+
 
         cli = bittensor.cli(config)
         cli.run()
@@ -143,7 +143,7 @@ class TestCLINoNetwork(unittest.TestCase):
         config.use_password = False
         config.no_prompt = True
         config.overwrite_hotkey = True
-        
+
 
         cli = bittensor.cli(config)
         cli.run()
@@ -161,7 +161,7 @@ class TestCLINoNetwork(unittest.TestCase):
         config.use_password = False
         config.no_prompt = True
         config.overwrite_coldkey = True
-        
+
 
         cli = bittensor.cli(config)
         cli.run()
@@ -175,7 +175,7 @@ class TestCLINoNetwork(unittest.TestCase):
         config.use_password = False
         config.no_prompt = True
         config.overwrite_coldkeypub = True
-        
+
 
         cli = bittensor.cli(config)
         cli.run()
@@ -192,7 +192,7 @@ class TestCLINoNetwork(unittest.TestCase):
         config.use_password = False
         config.no_prompt = True
         config.overwrite_hotkey = True
-        
+
 
         cli = bittensor.cli(config)
         cli.run()
@@ -234,7 +234,7 @@ class TestCLINoNetwork(unittest.TestCase):
             config.wallet.name = 'mock_wallet'
             config.no_prompt = True
             config.command = "list"
-            
+
 
             cli = bittensor.cli(config)
             with patch('os.walk', side_effect=[iter(
@@ -256,7 +256,7 @@ class TestCLINoNetwork(unittest.TestCase):
             config.wallet.path = '/tmp/test_cli_test_list_no_wallet'
             config.no_prompt = True
             config.command = "list"
-            
+
 
             cli = bittensor.cli(config)
             # This shouldn't raise an error anymore
@@ -285,23 +285,23 @@ class TestCLINoNetwork(unittest.TestCase):
         assert 'optional arguments' in help_out or 'options' in help_out
         # Expected help output if all commands are listed
         assert 'positional arguments' in help_out
-        # Verify that cli is printing the help message for 
+        # Verify that cli is printing the help message for
         # Get argparser
-        parser = bittensor.cli.__create_parser__() 
+        parser = bittensor.cli.__create_parser__()
         # Get all commands from argparser
-        commands = [ 
-            command for command in parser._actions[1].choices 
+        commands = [
+            command for command in parser._actions[1].choices
         ]
         # Verify that all commands are listed in the help message
         for command in commands:
             assert command in help_out
-        
+
         # Verify there are no duplicate commands
         # Listed twice. Once in the positional arguments and once in the optional arguments
         for command in commands:
             pat = re.compile(rf'\n\s+({command})\s+\w')
             matches = pat.findall(help_out)
-        
+
             self.assertEqual( len(matches), 1, f"Duplicate command {command} in help output")
 
     def test_register_cuda_use_cuda_flag(self):
@@ -318,7 +318,7 @@ class TestCLINoNetwork(unittest.TestCase):
                 "--cuda.dev_id", "0",
                 "--network", "mock"
             ]
-            bittensor.subtensor.check_config = MagicMock(return_value = True)  
+            bittensor.subtensor.check_config = MagicMock(return_value = True)
             with patch('torch.cuda.is_available', return_value=True):
                 with patch('bittensor.Subtensor.get_subnets', return_value = [1]):
                     with patch('bittensor.Subtensor.subnet_exists', side_effect=lambda netuid: netuid == 1):

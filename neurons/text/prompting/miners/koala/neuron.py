@@ -31,7 +31,7 @@ class KoalaMiner( bittensor.BasePromptingMiner ):
     def add_args( cls, parser: argparse.ArgumentParser ):
         parser.add_argument( '--koala.model_name', type=str, required=True, help='Name/path of model to load' )
         parser.add_argument( '--koala.device', type=str, help='Device to load model', default="cuda" )
-        parser.add_argument( '--koala.max_new_tokens', type=int, help='Max tokens for model output.', default=256 ) 
+        parser.add_argument( '--koala.max_new_tokens', type=int, help='Max tokens for model output.', default=256 )
         parser.add_argument( '--koala.temperature', type=float, help='Sampling temperature of model', default=0.5 )
         parser.add_argument( '--koala.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
         parser.add_argument( '--koala.do_prompt_injection', action='store_true', default=False, help='Whether to use a custom "system" prompt instead of the one sent by bittensor.' )
@@ -40,7 +40,7 @@ class KoalaMiner( bittensor.BasePromptingMiner ):
     def __init__( self ):
         super( KoalaMiner, self ).__init__()
         print ( self.config )
-        
+
         bittensor.logging.info( 'Loading ' + str(self.config.koala.model_name))
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.koala.model_name, use_fast=False )
         self.model = AutoModelForCausalLM.from_pretrained( self.config.koala.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
@@ -79,7 +79,7 @@ class KoalaMiner( bittensor.BasePromptingMiner ):
             pad_token_id=self.tokenizer.eos_token_id,
         )
         generation = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
-        
+
         # Logging input and generation if debugging is active
         bittensor.logging.debug("Message: " + str(messages))
         bittensor.logging.debug("Generation: " + str(generation))

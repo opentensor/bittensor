@@ -8,9 +8,9 @@ class Ipfs():
     """ Implementation for the dataset class, which handles dataloading from ipfs
     """
     def __init__(self):
-        
+
         # Used to retrieve directory contentx
-        self.cat = 'http://global.ipfs.opentensor.ai/api/v0/cat' 
+        self.cat = 'http://global.ipfs.opentensor.ai/api/v0/cat'
         self.node_get = 'http://global.ipfs.opentensor.ai/api/v0/object/get'
         self.ipns_resolve = 'http://global.ipfs.opentensor.ai/api/v0/name/resolve'
 
@@ -19,7 +19,7 @@ class Ipfs():
         self.historical_neurons_ipns = "k51qzi5uqu5dhf5yxm3kqw9hyrv28q492p3t32s23059z911a23l30ai6ziceh"
         # Used when current corpus has been exhausted
         self.refresh_corpus = False
-        
+
 
     @staticmethod
     def requests_retry_session(

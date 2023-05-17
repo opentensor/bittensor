@@ -34,7 +34,7 @@ def u8_list_to_hex( values: list ):
     total = 0
     for val in reversed(values):
         total = (total << 8) + val
-    return total 
+    return total
 
 
 def create_seal_hash( block_hash:bytes, nonce:int ) -> bytes:
@@ -55,13 +55,13 @@ def seal_meets_difficulty( seal:bytes, difficulty:int ):
         return False
     else:
         return True
-    
+
 
 def solve_for_difficulty( block_hash, difficulty ):
     meets = False
     nonce = -1
     while not meets:
-        nonce += 1 
+        nonce += 1
         seal = create_seal_hash( block_hash, nonce )
         meets = seal_meets_difficulty( seal, difficulty )
         if nonce > 1:
@@ -194,7 +194,7 @@ class Solver(SolverBase):
                     block_difficulty = registration_diff_unpack(self.curr_diff)
 
                 self.newBlockEvent.clear()
-                
+
             # Do a block of nonces
             solution = solve_for_nonce_block(self, nonce_start, nonce_end, block_bytes, block_difficulty, self.limit, block_number)
             if solution is not None:
@@ -205,7 +205,7 @@ class Solver(SolverBase):
                 self.finished_queue.put_nowait(self.proc_num)
             except Full:
                 pass
-                
+
             nonce_start = random.randint( 0, nonce_limit )
             nonce_start = nonce_start % nonce_limit
             nonce_end = nonce_start + self.update_interval
@@ -236,7 +236,7 @@ class CUDASolver(SolverBase):
                     block_difficulty = registration_diff_unpack(self.curr_diff)
 
                 self.newBlockEvent.clear()
-                
+
             # Do a block of nonces
             solution = solve_for_nonce_block_cuda(self, nonce_start, self.update_interval, block_bytes, block_difficulty, self.limit, block_number, self.dev_id, self.TPB)
             if solution is not None:
@@ -248,9 +248,9 @@ class CUDASolver(SolverBase):
                 self.finished_queue.put(self.proc_num)
             except Full:
                 pass
-            
+
             # increase nonce by number of nonces processed
-            nonce_start += self.update_interval * self.TPB 
+            nonce_start += self.update_interval * self.TPB
             nonce_start = nonce_start % nonce_limit
 
 
@@ -260,8 +260,8 @@ def solve_for_nonce_block_cuda(solver: CUDASolver, nonce_start: int, update_inte
                     nonce_start,
                     update_interval,
                     TPB,
-                    block_bytes, 
-                    difficulty, 
+                    block_bytes,
+                    difficulty,
                     limit,
                     dev_id)
 
@@ -273,7 +273,7 @@ def solve_for_nonce_block_cuda(solver: CUDASolver, nonce_start: int, update_inte
 
 
 def solve_for_nonce_block(solver: Solver, nonce_start: int, nonce_end: int, block_bytes: bytes, difficulty: int, limit: int, block_number: int) -> Optional[POWSolution]:
-    """Tries to solve the POW for a block of nonces (nonce_start, nonce_end)""" 
+    """Tries to solve the POW for a block of nonces (nonce_start, nonce_end)"""
     for nonce in range(nonce_start, nonce_end):
         # Create seal.
         nonce_bytes = binascii.hexlify(nonce.to_bytes(8, 'little'))
@@ -330,21 +330,21 @@ class RegistrationStatistics:
     difficulty: int
     block_number: int
     block_hash: bytes
-    
+
 
 class RegistrationStatisticsLogger:
     """Logs statistics for a registration."""
     console: rich_console.Console
-    status: Optional[rich_status.Status] 
+    status: Optional[rich_status.Status]
 
     def __init__( self, console: rich_console.Console, output_in_place: bool = True) -> None:
         self.console = console
-        
+
         if output_in_place:
             self.status = self.console.status("Solving")
         else:
             self.status = None
-        
+
     def start( self ) -> None:
         if self.status is not None:
             self.status.start()
@@ -398,7 +398,7 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
         log_verbose: bool
             If true, prints more verbose logging of the registration metrics.
     Note: The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
-    Note: 
+    Note:
     - We can also modify the update interval to do smaller blocks of work,
         while still updating the block information after a different number of nonces,
         to increase the transparency of the process while still keeping the speed.
@@ -409,7 +409,7 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
 
     if update_interval is None:
         update_interval = 50_000
-        
+
     limit = int(math.pow(2,256)) - 1
 
     curr_block = multiprocessing.Array('h', 64, lock=True) # byte array
@@ -424,7 +424,7 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
     solution_queue = multiprocessing.Queue()
     finished_queues = [multiprocessing.Queue() for _ in range(num_processes)]
     check_block = multiprocessing.Lock()
-    
+
     # Start consumers
     solvers = [ Solver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit)
                 for i in range(num_processes) ]
@@ -443,13 +443,13 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
     # Set new block events for each solver to start at the initial block
     for worker in solvers:
         worker.newBlockEvent.set()
-    
+
     for worker in solvers:
         worker.start() # start the solver processes
 
     start_time = time.time() # time that the registration started
     time_last = start_time # time that the last work blocks completed
-    
+
     curr_stats = RegistrationStatistics(
         time_spent_total = 0.0,
         time_average = 0.0,
@@ -463,7 +463,7 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
     )
 
     start_time_perpetual = time.time()
-    
+
 
     console = bittensor.__console__
     logger = RegistrationStatisticsLogger(console, output_in_place)
@@ -473,7 +473,7 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
 
     hash_rates = [0] * n_samples # The last n true hash_rates
     weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
-    
+
     while not wallet.is_registered(subtensor):
         # Wait until a solver finds a solution
         try:
@@ -496,7 +496,7 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
             check_block=check_block,
             solvers=solvers
         )
-                
+
         num_time = 0
         for finished_queue in finished_queues:
             try:
@@ -505,12 +505,12 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
 
             except Empty:
                 continue
-        
+
         time_now = time.time() # get current time
         time_since_last = time_now - time_last # get time since last work block(s)
         if num_time > 0 and time_since_last > 0.0:
             # create EWMA of the hash_rate to make measure more robust
-        
+
             hash_rate_ = (num_time * update_interval) / time_since_last
             hash_rates.append(hash_rate_)
             hash_rates.pop(0) # remove the 0th data point
@@ -664,7 +664,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
 
     if not torch.cuda.is_available():
         raise Exception("CUDA not available")
-        
+
     limit = int(math.pow(2,256)) - 1
 
     # Set mp start to use spawn so CUDA doesn't complain
@@ -682,7 +682,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         solution_queue = multiprocessing.Queue()
         finished_queues = [multiprocessing.Queue() for _ in range(num_processes)]
         check_block = multiprocessing.Lock()
-        
+
         # Start workers
         solvers = [ CUDASolver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit, dev_id[i], TPB)
                     for i in range(num_processes) ]
@@ -696,20 +696,20 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             block_hash = subtensor.substrate.get_block_hash( block_number )
         block_bytes = block_hash.encode('utf-8')[2:]
         old_block_number = block_number
-        
+
         # Set to current block
         update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, difficulty, check_block)
 
         # Set new block events for each solver to start at the initial block
         for worker in solvers:
             worker.newBlockEvent.set()
-        
+
         for worker in solvers:
             worker.start() # start the solver processes
-        
+
         start_time = time.time() # time that the registration started
         time_last = start_time # time that the last work blocks completed
-        
+
         curr_stats = RegistrationStatistics(
             time_spent_total = 0.0,
             time_average = 0.0,
@@ -741,7 +741,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
             except Empty:
                 # No solution found, try again
                 pass
-            
+
             # check for new block
             old_block_number = check_for_newest_block_and_update(
                 subtensor = subtensor,
@@ -754,22 +754,22 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
                 check_block=check_block,
                 solvers=solvers
             )
-                    
+
             num_time = 0
             # Get times for each solver
             for finished_queue in finished_queues:
                 try:
                     proc_num = finished_queue.get(timeout=0.1)
                     num_time += 1
-            
+
                 except Empty:
                     continue
-            
+
             time_now = time.time() # get current time
             time_since_last = time_now - time_last # get time since last work block(s)
             if num_time > 0 and time_since_last > 0.0:
                 # create EWMA of the hash_rate to make measure more robust
-            
+
                 hash_rate_ = (num_time * TPB * update_interval) / time_since_last
                 hash_rates.append(hash_rate_)
                 hash_rates.pop(0) # remove the 0th data point
@@ -780,7 +780,7 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
 
                 curr_stats.time_average = (curr_stats.time_average*curr_stats.rounds_total + curr_stats.time_spent)/(curr_stats.rounds_total+num_time)
                 curr_stats.rounds_total += num_time
-            
+
             # Update stats
             curr_stats.time_spent = time_since_last
             new_time_spent_total = time_now - start_time_perpetual
@@ -789,9 +789,9 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
 
             # Update the logger
             logger.update(curr_stats, verbose=log_verbose)
-        
+
         # exited while, found_solution contains the nonce or wallet is registered
-        
+
         stopEvent.set() # stop all other processes
         logger.stop()
 
@@ -828,8 +828,8 @@ def create_pow(
         )
 
     return None if solution is None else {
-        'nonce': solution.nonce, 
+        'nonce': solution.nonce,
         'difficulty': solution.difficulty,
-        'block_number': solution.block_number, 
+        'block_number': solution.block_number,
         'work': binascii.hexlify(solution.seal)
     }

@@ -30,11 +30,11 @@ from . import dataset_mock
 
 class dataset:
     """ Factory class for the GenesisTextDataset class or the mocked GenesisTextDataset
-    The GenesisTextDataset downloads text data from the bittensor mountain dataset. 
+    The GenesisTextDataset downloads text data from the bittensor mountain dataset.
     The class makes http requests to bittensor's IPFS backend server which contains the full dataset.
     By default, the GenesisTextDataset class will return a fully functioning pytorch dataloader.
 
-    Examples:: 
+    Examples::
             >>> dataset = bittensor.dataset(batch_size = 10, block_size=20)
             >>> # data.shape[batch_size, block_size]
             >>> data = next(dataset)
@@ -54,7 +54,7 @@ class dataset:
         ):
         r""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs.
             Args:
-                config (:obj:`bittensor.Config`, `optional`): 
+                config (:obj:`bittensor.Config`, `optional`):
                     bittensor.dataset.config()
                 block_size (:obj:`int`, `optional`):
                     Number of text items to pull for each example.
@@ -63,7 +63,7 @@ class dataset:
                 num_workers (:obj:`int`, `optional`):
                     Number of workers for data loader.
                 dataset_names (:obj:`list`,`str`, `optional`):
-                    Which datasets to use (ArXiv, BookCorpus2, Books3, DMMathematics, EnronEmails, EuroParl, 
+                    Which datasets to use (ArXiv, BookCorpus2, Books3, DMMathematics, EnronEmails, EuroParl,
                     Gutenberg_PG, HackerNews, NIHExPorter, OpenSubtitles, PhilPapers, UbuntuIRC, YoutubeSubtitles)).
                 save_dataset (:obj:`bool`, `optional`):
                     Save the downloaded dataset or not.
@@ -72,9 +72,9 @@ class dataset:
                 num_batches (:obj:`int`, `optional`):
                     The number of batches of data to prepare for the dataloader.
                 _mock (:obj:`bool`, `optional`):
-                    For testing, if true the dataset if filled with fake text data.  
-        """   
-        if config == None: 
+                    For testing, if true the dataset if filled with fake text data.
+        """
+        if config == None:
             config = dataset.config()
         config = copy.deepcopy( config )
         config.dataset.block_size = block_size if block_size != None else config.dataset.block_size
@@ -122,7 +122,7 @@ class dataset:
 
     @classmethod
     def config(cls) -> 'bittensor.Config':
-        """ Get config from the argument parser 
+        """ Get config from the argument parser
             Return: bittensor.config object
         """
         parser = argparse.ArgumentParser()
@@ -151,7 +151,7 @@ class dataset:
             # re-parsing arguments.
             pass
 
-    @classmethod   
+    @classmethod
     def help(cls):
         """ Print help to stdout
         """
@@ -160,7 +160,7 @@ class dataset:
         print (cls.__new__.__doc__)
         parser.print_help()
 
-    @classmethod   
+    @classmethod
     def add_defaults(cls, defaults):
         """ Adds parser defaults to object from enviroment variables.
         """
