@@ -218,6 +218,22 @@ class Subtensor:
             wait_for_finalization = wait_for_finalization, 
             prompt = prompt
         )
+    
+    def get_block_at_registration(
+            self,
+            uid: int,
+            netuid: int,
+            block: Optional[int] = None,
+    ) -> Optional[int]:
+        result = self.query_subtensor(
+            name = 'BlockAtRegistration',
+            params = [netuid, uid],
+            block = block,
+        )
+        if result is None:
+            return None
+        return result.value
+
 
     ##################
     #### Transfer ####
