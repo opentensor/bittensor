@@ -131,7 +131,6 @@ class _SolverBase(multiprocessing.Process):
 
     def run(self):
         raise NotImplementedError("_SolverBase is an abstract class")
-
     @staticmethod
     def create_shared_memory() -> Tuple[multiprocessing.Array, multiprocessing.Value, multiprocessing.Array]:
         """Creates shared memory for the solver processes to use.
@@ -141,7 +140,6 @@ class _SolverBase(multiprocessing.Process):
         curr_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
 
         return curr_block, curr_block_num, curr_diff
-
 
 class _Solver(_SolverBase):
     def run(self):
@@ -231,6 +229,7 @@ def _solve_for_nonce_block_cuda(nonce_start: int, update_interval: int, block_an
                     difficulty,
                     limit,
                     dev_id)
+    
 
 
     if (solution != -1):
@@ -398,7 +397,6 @@ def _solve_for_difficulty_fast( subtensor, wallet: 'bittensor.Wallet', netuid: i
     check_block = multiprocessing.Lock()
 
     hotkey_bytes = wallet.hotkey.public_key
-
     # Start consumers
     solvers = [ _Solver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit)
                 for i in range(num_processes) ]
@@ -688,7 +686,6 @@ def _solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: '
         check_block = multiprocessing.Lock()
 
         hotkey_bytes = wallet.hotkey.public_key
-
         # Start workers
         solvers = [ _CUDASolver(i, num_processes, update_interval, finished_queues[i], solution_queue, stopEvent, curr_block, curr_block_num, curr_diff, check_block, limit, dev_id[i], TPB)
                     for i in range(num_processes) ]

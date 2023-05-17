@@ -20,7 +20,6 @@ class TestPrometheus(unittest.TestCase):
                 self.error_message = 'Mock failure'
             def process_events(self):
                 return True
-
         self.subtensor = bittensor.subtensor(network = 'mock')
         self.wallet = bittensor.wallet.mock()
         self.success = success()

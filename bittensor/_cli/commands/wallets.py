@@ -47,7 +47,6 @@ class RegenColdkeyCommand:
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
-
         if config.mnemonic == None and config.get( 'seed', d=None ) == None and config.get( 'json', d=None ) == None:
             prompt_answer = Prompt.ask("Enter mnemonic, seed, or json file location")
             if prompt_answer.startswith("0x"):
@@ -212,7 +211,6 @@ class RegenHotkeyCommand:
         if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
-
         if config.mnemonic == None and config.get( 'seed', d=None ) == None and config.get( 'json', d=None ) == None:
             prompt_answer = Prompt.ask("Enter mnemonic, seed, or json file location")
             if prompt_answer.startswith("0x"):

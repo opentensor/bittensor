@@ -272,7 +272,7 @@ def add_stake_multiple_extrinsic (
                 wait_for_inclusion = wait_for_inclusion,
                 wait_for_finalization = wait_for_finalization,
             )
-
+        
             if staking_response: # If we successfully staked.
                 # We only wait here if we expect finalization.
 
@@ -365,7 +365,6 @@ def __do_add_stake_single(
     """
     # Decrypt keys,
     wallet.coldkey
-
     hotkey_owner = subtensor.get_hotkey_owner( hotkey_ss58 )
     own_hotkey = (wallet.coldkeypub.ss58_address == hotkey_owner)
     if not own_hotkey:
