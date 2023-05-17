@@ -312,8 +312,15 @@ class mock_subtensor:
 class DecodedGenericExtrinsic(TypedDict):
     nonce: int
 
-class InvalidNonceError(Exception):
+class TxError(Exception):
     pass
+
+class PriorityTooLowError(TxError):
+    pass
+
+class InvalidNonceError(TxError):
+    pass
+
 
 class Mock_Subtensor(subtensor_impl.Subtensor):
     """
@@ -607,8 +614,15 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
             else:
                 return False, response.error_message, used_nonce
         except SubstrateRequestException as e:
-            if e['code'] == 1010:
+            code = None
+            if hasattr(e, 'args') and len(e.args) > 0:
+                args = e.args[0]
+                code = args['code']
+            
+            if code == 1010:
                 raise InvalidNonceError()
+            elif code == 1014:
+                raise PriorityTooLowError()
             else:
                 raise e
                 
@@ -631,6 +645,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
             Optional[str]: The error message if the extrinsic failed, None otherwise.
             int: The nonce used for the extrinsic.
         """
+        @retry(exceptions=(PriorityTooLowError, InvalidNonceError), delay=2, tries=3, backoff=2, max_delay=4)
         def make_call(nonce: Optional[int]) -> Tuple[bool, Optional[str], int]:
             with self.substrate as substrate:
                 call = substrate.compose_call(
@@ -647,15 +662,21 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
                 wrapped_call = self.wrap_sudo(call)
 
-                return self._submit_call(
-                    substrate,
-                    wrapped_call,
-                    nonce,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-
-        try:
-            return make_call(nonce)
-        except InvalidNonceError:
-            return make_call(None)
+                try:
+                    return self._submit_call(
+                        substrate,
+                        wrapped_call,
+                        nonce,
+                        wait_for_inclusion=wait_for_inclusion,
+                        wait_for_finalization=wait_for_finalization,
+                    )
+                except InvalidNonceError:
+                    return self._submit_call(
+                        substrate,
+                        wrapped_call,
+                        nonce = None,
+                        wait_for_inclusion=wait_for_inclusion,
+                        wait_for_finalization=wait_for_finalization,
+                    )
+        
+        return make_call(nonce)
