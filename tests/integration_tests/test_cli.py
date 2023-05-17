@@ -345,7 +345,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             config.all = False
             config.netuid = [] # Don't set, so it tries all networks.
 
-
             cli = bittensor.cli(config)
             cli.run()
 
@@ -357,7 +356,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = [] # Don't set, so it tries all networks.
 
-
         cli = bittensor.cli(config)
         cli.run()
 
@@ -367,7 +365,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.no_prompt = True
         config.all = False
         config.netuid = [] # Don't set, so it tries all networks.
-
 
         cli = bittensor.cli(config)
         cli.run()
@@ -380,7 +377,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = [] # Don't set, so it tries all networks.
 
-
         cli = bittensor.cli(config)
         cli.run()
 
@@ -392,7 +388,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = [] # Don't set, so it tries all networks.
 
-
         cli = bittensor.cli(config)
         cli.run()
 
@@ -402,7 +397,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.no_prompt = True
         config.all = False
         config.netuid = [] # Don't set, so it tries all networks.
-
 
         cli = bittensor.cli(config)
         cli.run()
@@ -415,7 +409,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = [] # Don't set, so it tries all networks.
 
-
         cli = bittensor.cli(config)
         cli.run()
 
@@ -426,7 +419,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.no_prompt = True
         config.all = False
         config.netuid = [] # Don't set, so it tries all networks.
-
 
         cli = bittensor.cli(config)
         cli.run()
@@ -439,7 +431,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = [] # Don't set, so it tries all networks.
 
-
         cli = bittensor.cli(config)
         cli.run()
 
@@ -450,7 +441,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.no_prompt = True
         config.all = False
         config.netuid = [] # Don't set, so it tries all networks.
-
 
         cli = bittensor.cli(config)
         cli.run()
@@ -463,7 +453,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = [] # Don't set, so it tries all networks.
 
-
         cli = bittensor.cli(config)
         cli.run()
 
@@ -472,7 +461,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "overview"
         config.no_prompt = True
         config.netuid = [] # Don't set, so it tries all networks.
-
 
         config.all = True
         cli = bittensor.cli(config)

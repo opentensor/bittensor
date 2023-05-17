@@ -149,7 +149,6 @@ class DelegatesDetails:
 def _get_delegates_details_from_github(requests_get, url: str) -> Dict[str, DelegatesDetails]:
     response = requests_get(url)
 
-
     if response.status_code == 200:
         all_delegates: Dict[str, Any] = response.json()
         all_delegates_details = {}

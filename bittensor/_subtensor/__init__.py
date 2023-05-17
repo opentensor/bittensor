@@ -36,7 +36,6 @@ class subtensor:
 
     The Subtensor class handles interactions with the substrate subtensor chain.
     By default, the Subtensor class connects to the Finney which serves as the main bittensor network.
-
     """
 
     def __new__(

@@ -151,7 +151,6 @@ class TestRegistrationHelpers(unittest.TestCase):
         solution = bittensor.utils.registration._solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
         seal = solution.seal
         assert bittensor.utils.registration._seal_meets_difficulty(seal, 10, limit)
-
     def test_solve_for_difficulty_fast_registered_already(self):
         # tests if the registration stops after the first block of nonces
         for _ in range(10):
@@ -194,7 +193,6 @@ class TestRegistrationHelpers(unittest.TestCase):
         solution = bittensor.utils.registration._solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
         seal = solution.seal
         assert bittensor.utils.registration._seal_meets_difficulty(seal, 1, limit)
-
         subtensor.difficulty = MagicMock( return_value=10 )
         solution = bittensor.utils.registration._solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
         seal = solution.seal
@@ -204,14 +202,12 @@ class TestRegistrationHelpers(unittest.TestCase):
         fake_diff = pow(2, 31)# this is under 32 bits
 
         mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
-
         bittensor.utils.registration._registration_diff_pack(fake_diff, mock_diff)
         assert bittensor.utils.registration._registration_diff_unpack(mock_diff) == fake_diff
 
     def test_registration_diff_pack_unpack_over_32_bits(self):
         mock_diff = multiprocessing.Array('Q', [0, 0], lock=True) # [high, low]
         fake_diff = pow(2, 32) * pow(2, 4) # this should be too large if the bit shift is wrong (32 + 4 bits)
-
         bittensor.utils.registration._registration_diff_pack(fake_diff, mock_diff)
         assert bittensor.utils.registration._registration_diff_unpack(mock_diff) == fake_diff
 
@@ -240,7 +236,6 @@ class TestRegistrationHelpers(unittest.TestCase):
         bittensor.utils.registration._update_curr_block(curr_diff, curr_block, curr_block_num, block_number, block_bytes, diff, hotkey_bytes, lock)
 
         self.assertEqual(curr_block_num.value, block_number)
-
         self.assertEqual(curr_diff[0], diff >> 32)
         self.assertEqual(curr_diff[1], diff & 0xFFFFFFFF)
 
@@ -554,7 +549,6 @@ class TestPOWCalled(unittest.TestCase):
             is_stale=mock_pow_is_stale,
         )
 
-
         with patch('torch.cuda.is_available', return_value=True) as mock_cuda_available:
             with patch(
                 'bittensor._subtensor.extrinsics.registration.create_pow',
@@ -607,7 +601,6 @@ class TestCUDASolverRun(unittest.TestCase):
             # Should exit early
             with pytest.raises(MockException):
                 _CUDASolver.run(mock_solver_self)
-
             mock_solve_for_nonce_block_cuda.assert_called()
             calls = mock_solve_for_nonce_block_cuda.call_args_list
             self.assertEqual(len(calls), 2, f"solve_for_nonce_block_cuda was called {len(calls)}. Expected 2") # called only twice

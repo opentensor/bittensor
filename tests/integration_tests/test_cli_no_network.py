@@ -109,7 +109,6 @@ class TestCLINoNetwork(unittest.TestCase):
                 return "mock"
             elif "hotkey" in prompt:
                 return "mock"
-
         with patch('rich.prompt.Prompt.ask', ask_response):
             for cmd in commands:
                 config.command = cmd
@@ -295,13 +294,11 @@ class TestCLINoNetwork(unittest.TestCase):
         # Verify that all commands are listed in the help message
         for command in commands:
             assert command in help_out
-
         # Verify there are no duplicate commands
         # Listed twice. Once in the positional arguments and once in the optional arguments
         for command in commands:
             pat = re.compile(rf'\n\s+({command})\s+\w')
             matches = pat.findall(help_out)
-
             self.assertEqual( len(matches), 1, f"Duplicate command {command} in help output")
 
     def test_register_cuda_use_cuda_flag(self):

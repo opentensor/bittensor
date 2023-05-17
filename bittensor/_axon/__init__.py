@@ -312,7 +312,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
             raise Exception("Request signature missing")
         if int(version) < 370:
             raise Exception("Incorrect Version")
-
         parts = self.parse_signature_v2(signature)
         if parts is not None:
             return parts
