@@ -110,34 +110,19 @@ class subtensor:
         # make sure formatting is good
         endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
         
-        
-
         subtensor.check_config( config )
         network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
-        if network == 'nakamoto':
-            substrate = SubstrateInterface(
-                ss58_format = bittensor.__ss58_format__,
-                use_remote_preset=True,
-                url = endpoint_url,
-            )
-            # Use nakamoto-specific subtensor.
-            return Nakamoto_subtensor( 
-                substrate = substrate,
-                network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
-                chain_endpoint = config.subtensor.chain_endpoint,
-            )
-        else:
-            substrate = SubstrateInterface(
-                ss58_format = bittensor.__ss58_format__,
-                use_remote_preset=True,
-                url = endpoint_url,
-                type_registry=bittensor.__type_registry__
-            )
-            return subtensor_impl.Subtensor( 
-                substrate = substrate,
-                network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
-                chain_endpoint = config.subtensor.chain_endpoint,
-            )
+        substrate = SubstrateInterface(
+            ss58_format = bittensor.__ss58_format__,
+            use_remote_preset=True,
+            url = endpoint_url,
+            type_registry=bittensor.__type_registry__
+        )
+        return subtensor_impl.Subtensor( 
+            substrate = substrate,
+            network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
+            chain_endpoint = config.subtensor.chain_endpoint,
+        )
 
     @staticmethod   
     def config() -> 'bittensor.Config':
@@ -228,10 +213,7 @@ class subtensor:
 
     @staticmethod
     def determine_chain_endpoint(network: str):
-        if network == "nakamoto":
-            # Main network.
-            return bittensor.__nakamoto_entrypoint__
-        elif network == "finney": 
+        if network == "finney": 
             # Kiru Finney stagin network.
             return bittensor.__finney_entrypoint__
         elif network == "nobunaga": 
