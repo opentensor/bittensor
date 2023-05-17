@@ -60,7 +60,7 @@ class Subtensor:
                     The subtensor network flag. The likely choices are:
                             -- local (local running network)
                             -- nobunaga (staging network)
-                            -- nakamoto (main network)
+                            -- finney (main network)
                     If this option is set it overloads subtensor.chain_endpoint with 
                     an entry point node from that network.
                 chain_endpoint (default=None, type=str)
