@@ -182,6 +182,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         bittensor.wallet.add_defaults(defaults)
         bittensor.dataset.add_defaults(defaults)
         bittensor.logging.add_defaults(defaults)
+        bittensor.prometheus.add_defaults(defaults)
+        bittensor.wandb.add_defaults(defaults)
+        defaults.wandb.api_key = ""
 
         return defaults
 
@@ -2373,111 +2376,76 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.config = config
         cli.run()
 
+    def test_neuron_run_reregister_false(self):
+        """
+        Verify that the run method does not reregister a not registered wallet
+            if `config.wallet.reregister == False`
+        """
+        mock_config = bittensor.neurons.core_validator.neuron.config()
+        mock_config.neuron._mock = True
+
+        mock_config.subtensor.network = "mock"
+        mock_config.netuid = 1
+        mock_config.wallet.name = "mock_wallet"
+        mock_config.wallet.hotkey = "mock_hotkey"
+        mock_config.wallet._mock = True
+        mock_config.no_prompt = True
+        mock_config.using_wandb = False
+        bittensor.prometheus.add_defaults(mock_config)
+        mock_config.prometheus.level = bittensor.prometheus.level.OFF.name
+
+
+        mock_config.wallet.reregister = False
+
+
+        mock_wallet = MagicMock(
+            config = mock_config,
+            name="mock_wallet",
+            coldkey=get_mock_keypair(0, self.id()),
+            coldkeypub=get_mock_keypair(0, self.id()),
+            hotkey_str="mock_hotkey",
+            hotkey=get_mock_keypair(100, self.id())
+        )
+
+        mock_wallet.is_registered = lambda subtensor, netuid: bittensor.Wallet.is_registered(mock_wallet, subtensor=subtensor, netuid=netuid)
+        mock_wallet.reregister = lambda subtensor, netuid: bittensor.Wallet.reregister(mock_wallet, subtensor=subtensor, netuid=netuid)
+        mock_wallet.create = MagicMock(return_value=mock_wallet)
+        
+
+        # SHOULD NOT BE REGISTERED
+        self.assertFalse(
+            _subtensor_mock.is_hotkey_registered(
+                hotkey_ss58=mock_wallet.hotkey.ss58_address, netuid=1
+            ),
+            "Wallet should not be registered before test",
+        )
+
+
+        neuron = MagicMock(
+                config = mock_config,
+                metagraph_sync = MagicMock(
+                    side_effect=Exception("should have exited before metagraph sync")
+                ),
+                subtensor = _subtensor_mock,
+        )
+
+        neuron.__enter__ = lambda _: bittensor.neurons.core_validator.neuron.__enter__(neuron)
+        neuron.__exit__ = MagicMock()
+        neuron.wallet = mock_wallet
+
+        with patch(
+            "bittensor.Subtensor.register",
+            MagicMock(side_effect=Exception("shouldn't register during test")),
+        ):
+            with pytest.raises(SystemExit):
+                bittensor.neurons.core_validator.neuron.run(
+                    self = neuron,
+                )
 
 class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     """
     Test the CLI by passing args directly to the bittensor.cli factory
     """
-
-    def test_run_reregister_false(self):
-        """
-        Verify that the btcli run command does not reregister a not registered wallet
-            if --wallet.reregister is False
-        """
-        mock_wallet = SimpleNamespace(
-            name="mock_wallet",
-            coldkey=get_mock_keypair(0, self.id()),
-            coldkeypub=get_mock_keypair(0, self.id()),
-            hotkey_str="mock_hotkey",
-            hotkey=get_mock_keypair(100, self.id()),
-        )
-
-        # SHOULD NOT BE REGISTERED
-        self.assertFalse(
-            _subtensor_mock.is_hotkey_registered(
-                hotkey_ss58=get_mock_keypair(0, self.id()).ss58_address, netuid=1
-            ),
-            "Wallet should not be registered before test",
-        )
-
-        with patch("bittensor.wallet", return_value=mock_wallet) as mock_create_wallet:
-            with patch(
-                "bittensor.Subtensor.register",
-                MagicMock(side_effect=Exception("shouldn't register during test")),
-            ):
-                with pytest.raises(SystemExit):
-                    cli = bittensor.cli(
-                        args=[
-                            "run",
-                            "--netuid",
-                            "1",
-                            "--wallet.name",
-                            "mock",
-                            "--wallet.hotkey",
-                            "mock_hotkey",
-                            "--wallet._mock",
-                            "True",
-                            "--subtensor.network",
-                            "mock",  # Mock network
-                            "--no_prompt",
-                            "--wallet.reregister",
-                            "False",  # Don't reregister
-                        ]
-                    )
-                    cli.run()
-
-    def test_run_synapse_all(self):
-        """
-        Verify that setting --synapse All works
-        """
-
-        class MockException(Exception):
-            """Raised by mocked function to exit early"""
-
-            pass
-
-        with patch(
-            "bittensor.neurons.core_server.neuron",
-            MagicMock(side_effect=MockException("should exit early")),
-        ) as mock_neuron:
-            with patch(
-                "bittensor.Wallet.is_registered", MagicMock(return_value=True)
-            ):  # mock registered
-                with patch(
-                    "bittensor.Config.to_defaults", MagicMock(return_value=True)
-                ):
-                    with pytest.raises(MockException):
-                        cli = bittensor.cli(
-                            args=[
-                                "run",
-                                "--subtensor.network",
-                                "mock",  # Mock network
-                                "--netuid",
-                                "1",
-                                "--wallet.name",
-                                "mock",
-                                "--wallet.hotkey",
-                                "mock_hotkey",
-                                "--wallet._mock",
-                                "True",
-                                "--cuda.no_cuda",
-                                "--no_prompt",
-                                "--model",
-                                "core_server",
-                                "--synapse",
-                                "All",
-                            ]
-                        )
-                        cli.run()
-
-                    assert mock_neuron.call_count == 1
-                    args, kwargs = mock_neuron.call_args
-
-                    self.assertEqual(
-                        len(args), 0
-                    )  # Should not have any args; indicates that "All" synapses are being used
-                    self.assertEqual(len(kwargs), 1)  # should have one kwarg; netuid
-
     def test_list_delegates(self):
         cli = bittensor.cli(
             args=[
