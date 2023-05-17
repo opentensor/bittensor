@@ -20,26 +20,6 @@ Apache 2.0 (Open source and commercial purposes allowed)
 python3 -m pip install -r neurons/text/prompting/miners/open_llama/requirements.txt
 ```
 
-# Model Download
-
-The checkpoints of the different versions of the model are available on Huggingface at https://huggingface.co/openlm-research
-
-At the time of writing, there is no Huggingface repo from which you can directly load the model, but if it is added you can skip this step.
-
-At the time of writing, you can either convert the model from easylm format to huggingface using the [easylm](https://github.com/young-geng/EasyLM/) function EasyLM.models.llama.convert_easylm_to_hf 
-
-Or you can download the model from Huggingface using:
-
-```
-#Install dependencies
-pip install huggingface_hub
-
-#Download model to local folder
-python3 neurons/text/prompting/miners/open_llama/download_model_from_hf.py --model_name MODEL_NAME_ON_HF --target_folder TARGET_FOLDER_TO_DOWNLOAD_FROM  --local_folder LOCAL_FOLDER
-```
-
-Then set --open_llama.model_name to the folder path to run the miner
-
 # Starting Miner
 To start the miner, all you need to do is to specify the path to the model, or the name on Huggingface hub, and it will be downloaded.
 
