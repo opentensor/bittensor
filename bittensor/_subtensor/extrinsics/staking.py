@@ -374,23 +374,13 @@ def __do_add_stake_single(
         if not subtensor.is_hotkey_delegate( hotkey_ss58 = hotkey_ss58 ):
             raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
 
-    with subtensor.substrate as substrate:
-        call = substrate.compose_call(
-        call_module='SubtensorModule',
-        call_function='add_stake',
-        call_params={
-            'hotkey': hotkey_ss58,
-            'amount_staked': amount.rao
-            }
-        )
-        extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
-        response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-        # We only wait here if we expect finalization.
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True
+    success = subtensor.do_stake(
+        wallet = wallet,
+        hotkey_ss58 = hotkey_ss58,
+        amount = amount,
+        wait_for_inclusion = wait_for_inclusion,
+        wait_for_finalization = wait_for_finalization,
+    )
 
-        response.process_events()
-        if response.is_success:
-            return True
-        else:
-            raise StakeError(response.error_message)
+    return success
+    

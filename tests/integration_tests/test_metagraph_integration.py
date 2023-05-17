@@ -19,12 +19,12 @@
 import bittensor
 import torch
 import pytest
-from bittensor._subtensor.subtensor_mock import mock_subtensor
+from bittensor._subtensor.subtensor_mock import MockSubtensor
 
 
 @pytest.fixture(autouse=True)
 def setup():
-    mock_subtensor.kill_global_mock_process()
+    MockSubtensor.reset()
 
 
 class TestMetagraph:

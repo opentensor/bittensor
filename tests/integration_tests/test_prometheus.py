@@ -2,8 +2,7 @@ import bittensor
 
 import pytest
 import unittest
-from unittest.mock import MagicMock
-
+from unittest.mock import MagicMock, patch
 
 
 class TestPrometheus(unittest.TestCase):
@@ -26,10 +25,12 @@ class TestPrometheus(unittest.TestCase):
         self.fail = fail()
 
     def test_init_prometheus_success(self):
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = self.success)
-        assert bittensor.prometheus(wallet = self.wallet, subtensor = self.subtensor, netuid=3)
+        with patch.object(self.subtensor.substrate, 'submit_extrinsic', return_value = self.success):
+            with patch("prometheus_client.start_http_server"): 
+                self.assertTrue( bittensor.prometheus(wallet = self.wallet, subtensor = self.subtensor, netuid=3) )
 
     def test_init_prometheus_failed(self):
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = self.fail)
-        with pytest.raises(Exception):
-            bittensor.prometheus(wallet = self.wallet, subtensor = self.subtensor, netuid=3)
+        with patch.object(self.subtensor.substrate, 'submit_extrinsic', return_value = self.fail):
+            with patch("prometheus_client.start_http_server"): 
+                with pytest.raises(Exception):
+                    bittensor.prometheus(wallet = self.wallet, subtensor = self.subtensor, netuid=3)
