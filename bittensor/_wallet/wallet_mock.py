@@ -7,7 +7,7 @@ class Wallet_mock(wallet_impl.Wallet):
     """
     Mocked Version of the bittensor wallet class, meant to be used for testing
     """
-    def __init__( 
+    def __init__(
         self,
         _mock:bool,
         **kwargs,

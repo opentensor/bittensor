@@ -1,18 +1,18 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import os
@@ -54,7 +54,7 @@ def serialized_keypair_to_keyfile_data( keypair: 'bittensor.Keypair' ):
         'secretPhrase': keypair.mnemonic if keypair.mnemonic != None else None,
         'secretSeed': "0x" + \
             # If bytes -> str
-            ( keypair.seed_hex if isinstance(keypair.seed_hex, str) else keypair.seed_hex.hex() ) 
+            ( keypair.seed_hex if isinstance(keypair.seed_hex, str) else keypair.seed_hex.hex() )
                 # If None -> None
                 if keypair.seed_hex != None else None,
         'ss58Address': keypair.ss58_address if keypair.ss58_address != None else None
@@ -188,7 +188,7 @@ def encrypt_keyfile_data ( keyfile_data:bytes, password: str = None ) -> bytes:
                 Ansible encrypted data.
     """
     password = ask_password_to_encrypt() if password == None else password
-    console = bittensor.__console__;             
+    console = bittensor.__console__;
     with console.status(":locked_with_key: Encrypting key..."):
         vault = Vault( password )
     return vault.vault.encrypt ( keyfile_data )
@@ -225,7 +225,7 @@ def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name
 
     try:
         password = getpass.getpass("Enter password to unlock key: ") if password is None else password
-        console = bittensor.__console__;             
+        console = bittensor.__console__;
         with console.status(":key: Decrypting key..."):
             # Ansible decrypt.
             if keyfile_data_is_encrypted_ansible( keyfile_data ):
@@ -240,9 +240,9 @@ def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name
                 kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), salt=__SALT, length=32, iterations=10000000, backend=default_backend())
                 key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
                 cipher_suite = Fernet(key)
-                decrypted_keyfile_data = cipher_suite.decrypt( keyfile_data )   
+                decrypted_keyfile_data = cipher_suite.decrypt( keyfile_data )
             # Unknown.
-            else: 
+            else:
                 raise KeyFileError( "Keyfile data: {} is corrupt".format( keyfile_data ))
 
     except (InvalidSignature, InvalidKey, InvalidToken):
@@ -281,7 +281,7 @@ class Keyfile( object ):
                     Keypair stored under path.
             Raises:
                 KeyFileError:
-                    Raised if the file does not exists, is not readable, writable 
+                    Raised if the file does not exists, is not readable, writable
                     corrupted, or if the password is incorrect.
         """
         return self.get_keypair()
@@ -290,7 +290,7 @@ class Keyfile( object ):
     def data( self ) -> bytes:
         """ Returns keyfile data under path.
             Returns:
-                keyfile_data (bytes):   
+                keyfile_data (bytes):
                     Keyfile data stored under path.
             Raises:
                 KeyFileError:
@@ -302,7 +302,7 @@ class Keyfile( object ):
     def keyfile_data( self ) -> bytes:
         """ Returns keyfile data under path.
             Returns:
-                keyfile_data (bytes):   
+                keyfile_data (bytes):
                     Keyfile data stored under path.
             Raises:
                 KeyFileError:
@@ -341,7 +341,7 @@ class Keyfile( object ):
                     Keypair stored under path.
             Raises:
                 KeyFileError:
-                    Raised if the file does not exists, is not readable, writable 
+                    Raised if the file does not exists, is not readable, writable
                     corrupted, or if the password is incorrect.
         """
         keyfile_data = self._read_keyfile_data_from_file()
@@ -354,7 +354,7 @@ class Keyfile( object ):
         """
         directory = os.path.dirname( self.path )
         if not os.path.exists( directory ):
-            os.makedirs( directory ) 
+            os.makedirs( directory )
 
     def exists_on_device( self ) -> bool:
         """ Returns true if the file exists on the device.
@@ -418,7 +418,7 @@ class Keyfile( object ):
         if not self.is_readable():
             raise KeyFileError( "Keyfile at: {} is not readable".format( self.path ))
         if not self.is_writable():
-            raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) ) 
+            raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) )
         keyfile_data = self._read_keyfile_data_from_file()
         if not keyfile_data_is_encrypted( keyfile_data ):
             as_keypair = deserialize_keypair_from_keyfile_data( keyfile_data )
@@ -433,7 +433,7 @@ class Keyfile( object ):
                     Optional password for decryption. Otherwise asks for user input.
             Raises:
                 KeyFileError:
-                    Raised if the file does not exists, is not readable, writable 
+                    Raised if the file does not exists, is not readable, writable
                     corrupted, or if the password is incorrect.
         """
         if not self.exists_on_device():
@@ -441,7 +441,7 @@ class Keyfile( object ):
         if not self.is_readable():
             raise KeyFileError( "Keyfile at: {} is not readable".format( self.path ))
         if not self.is_writable():
-            raise KeyFileError( "No write access for {}".format( self.path ) ) 
+            raise KeyFileError( "No write access for {}".format( self.path ) )
         keyfile_data = self._read_keyfile_data_from_file()
         if keyfile_data_is_encrypted( keyfile_data ):
             keyfile_data = decrypt_keyfile_data(keyfile_data, password, coldkey_name=self.name)
@@ -480,7 +480,7 @@ class Keyfile( object ):
         # Check overwrite.
         if self.exists_on_device() and not overwrite:
             if not self._may_overwrite():
-                raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) ) 
+                raise KeyFileError( "Keyfile at: {} is not writeable".format( self.path ) )
         with open(self.path, "wb") as keyfile:
             keyfile.write( keyfile_data )
         # Set file permissions.
@@ -516,7 +516,7 @@ class MockKeyfile( object ):
 
     @property
     def keyfile_data( self ) -> bytes:
-        return bytes( self._mock_data) 
+        return bytes( self._mock_data)
 
     def set_keypair ( self, keypair: 'bittensor.Keypair', encrypt: bool = True, overwrite: bool = False, password:str = None):
         self._mock_keypair = keypair
@@ -555,4 +555,3 @@ class MockKeyfile( object ):
 
 
 
-        

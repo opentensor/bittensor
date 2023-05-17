@@ -28,7 +28,7 @@ from dataclasses import dataclass
 @dataclass
 class SynapseCall( ABC ):
     """ Base class for all synapse calls."""
-    
+
     is_forward: bool # If it is an forward of backward
     name: str # The name of the call.
 
@@ -43,21 +43,21 @@ class SynapseCall( ABC ):
         self.src_version = request_proto.version
         self.src_hotkey = request_proto.hotkey
         self.dest_hotkey = synapse.axon.wallet.hotkey.ss58_address
-        self.dest_version = bittensor.__version_as_int__ 
+        self.dest_version = bittensor.__version_as_int__
         self.return_code: bittensor.proto.ReturnCode = bittensor.proto.ReturnCode.Success
         self.return_message: str = 'Success'
         self.priority: float = 0
 
     def __repr__(self) -> str:
         return f"SynapseCall( from: {self.src_hotkey}, forward: {self.is_forward}, start: {self.start_time}, timeout: {self.timeout}, priority: {self.priority}, completed: {self.completed})"
-    
+
     def __str__(self) -> str: return self.__repr__()
 
     @abstractmethod
-    def get_inputs_shape( self ) -> torch.Size: ...    
+    def get_inputs_shape( self ) -> torch.Size: ...
 
     @abstractmethod
-    def get_outputs_shape( self ) -> torch.Size: ...     
+    def get_outputs_shape( self ) -> torch.Size: ...
 
     @abstractmethod
     def get_response_proto( self ) -> object: ...
@@ -71,7 +71,7 @@ class SynapseCall( ABC ):
     @abstractmethod
     def apply( self ): ...
 
-    def _apply( self ): 
+    def _apply( self ):
         # TODO(const): measure apply time.
         self.apply()
 
@@ -82,33 +82,33 @@ class SynapseCall( ABC ):
 
     def log_outbound( self ):
         bittensor.logging.rpc_log(
-            axon = True, 
-            forward = self.is_forward, 
-            is_response = False, 
-            code = self.return_code, 
-            call_time = 0, 
-            pubkey = self.src_hotkey, 
+            axon = True,
+            forward = self.is_forward,
+            is_response = False,
+            code = self.return_code,
+            call_time = 0,
+            pubkey = self.src_hotkey,
             uid = None,
-            inputs = self.get_outputs_shape(), 
+            inputs = self.get_outputs_shape(),
             outputs = self.get_outputs_shape(),
             message = self.return_message,
             synapse = self.name,
         )
 
     def log_inbound( self ):
-        bittensor.logging.rpc_log( 
-            axon = True, 
-            forward = self.is_forward, 
-            is_response = True, 
-            code = self.return_code, 
-            call_time = self.elapsed if self.completed else 0, 
-            pubkey = self.src_hotkey, 
-            uid = None, 
+        bittensor.logging.rpc_log(
+            axon = True,
+            forward = self.is_forward,
+            is_response = True,
+            code = self.return_code,
+            call_time = self.elapsed if self.completed else 0,
+            pubkey = self.src_hotkey,
+            uid = None,
             inputs = self.get_inputs_shape(),
             outputs = self.get_inputs_shape(),
             message = self.return_message,
             synapse = self.name
-        )      
+        )
 
 class Synapse( ABC ):
     name: str
@@ -119,7 +119,7 @@ class Synapse( ABC ):
     @abstractmethod
     def blacklist( self, call: SynapseCall ) -> Union[ Tuple[bool, str], bool ]: ...
 
-    def _blacklist( self, call: SynapseCall ) -> Union[ bool, str ]: 
+    def _blacklist( self, call: SynapseCall ) -> Union[ bool, str ]:
         blacklist = self.blacklist( call )
         if isinstance( blacklist, tuple ): return blacklist
         elif isinstance( blacklist, bool ): return blacklist, "no reason specified"
@@ -140,7 +140,7 @@ class Synapse( ABC ):
                 call.return_code = bittensor.proto.ReturnCode.Blacklisted
                 call.return_message = reason
                 bittensor.logging.info( 'Synapse: {} blacklisted call: {} reason: {}'.format( self.name, call, reason) )
-            
+
             # Make call.
             else:
                 # Queue the forward call with priority.
@@ -171,5 +171,4 @@ class Synapse( ABC ):
             call.end()
             call.log_outbound()
             return call._get_response_proto()
-        
-   
+

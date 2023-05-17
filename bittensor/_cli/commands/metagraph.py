@@ -2,18 +2,18 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
@@ -36,7 +36,7 @@ class MetagraphCommand:
         subnet_emission = bittensor.Balance.from_tao(subtensor.get_emission_value_by_subnet(cli.config.netuid))
         total_issuance = bittensor.Balance.from_tao(subtensor.total_issuance())
 
-        TABLE_DATA = [] 
+        TABLE_DATA = []
         total_stake = 0.0
         total_rank = 0.0
         total_validator_trust = 0.0
@@ -44,15 +44,15 @@ class MetagraphCommand:
         total_consensus = 0.0
         total_incentive = 0.0
         total_dividends = 0.0
-        total_emission = 0  
+        total_emission = 0
         for uid in metagraph.uids:
             neuron = metagraph.neurons[uid]
             ep = metagraph.axons[uid]
             row = [
-                str(neuron.uid), 
+                str(neuron.uid),
                 '{:.5f}'.format( metagraph.total_stake[uid]),
                 '{:.5f}'.format( metagraph.ranks[uid]),
-                '{:.5f}'.format( metagraph.trust[uid]), 
+                '{:.5f}'.format( metagraph.trust[uid]),
                 '{:.5f}'.format( metagraph.consensus[uid]),
                 '{:.5f}'.format( metagraph.incentive[uid]),
                 '{:.5f}'.format( metagraph.dividends[uid]),
@@ -61,7 +61,7 @@ class MetagraphCommand:
                 '*' if metagraph.validator_permit[uid] else '',
                 str((metagraph.block.item() - metagraph.last_update[uid].item())),
                 str( metagraph.active[uid].item() ),
-                ep.ip + ':' + str(ep.port) if ep.is_serving else '[yellow]none[/yellow]', 
+                ep.ip + ':' + str(ep.port) if ep.is_serving else '[yellow]none[/yellow]',
                 ep.hotkey[:10],
                 ep.coldkey[:10]
             ]
@@ -74,7 +74,7 @@ class MetagraphCommand:
             total_dividends += metagraph.dividends[uid]
             total_emission += int(metagraph.emission[uid] * 1000000000)
             TABLE_DATA.append(row)
-        total_neurons = len(metagraph.uids)                
+        total_neurons = len(metagraph.uids)
         table = Table(show_footer=False)
         table.title = (
             "[white]Metagraph: net: {}:{}, block: {}, N: {}/{}, stake: {}, issuance: {}, difficulty: {}".format(subtensor.network, metagraph.netuid, metagraph.block.item(), sum(metagraph.active.tolist()), metagraph.n.item(), bittensor.Balance.from_tao(total_stake), total_issuance, difficulty )
@@ -91,7 +91,7 @@ class MetagraphCommand:
         table.add_column("[overline white]VAL", justify='right', style='green', no_wrap=True)
         table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
         table.add_column("[overline white]ACTIVE", justify='right', style='green', no_wrap=True)
-        table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
+        table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True)
         table.add_column("[overline white]HOTKEY", style='dim blue', no_wrap=False)
         table.add_column("[overline white]COLDKEY", style='dim purple', no_wrap=False)
         table.show_footer = True
@@ -110,20 +110,20 @@ class MetagraphCommand:
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
         metagraph_parser = parser.add_parser(
-            'metagraph', 
+            'metagraph',
             help='''Metagraph commands'''
         )
         metagraph_parser.add_argument(
-            '--netuid', 
-            dest='netuid', 
+            '--netuid',
+            dest='netuid',
             type=int,
             help='''Set the netuid to get the metagraph of''',
             default=False,
         )
         metagraph_parser.add_argument(
-            '--no_prompt', 
-            dest='no_prompt', 
-            action='store_true', 
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
             help='''Set true to avoid prompting the user.''',
             default=False,
         )

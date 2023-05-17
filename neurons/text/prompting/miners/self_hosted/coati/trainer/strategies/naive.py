@@ -46,7 +46,7 @@ class NaiveStrategy(Strategy):
             if isinstance(module, LoraLinear):
                 module.merge_weights = True
                 module.eval()
-        
+
         if isinstance(model, RewardModel):
             state_dict = model.state_dict()
             torch.save(state_dict, path)

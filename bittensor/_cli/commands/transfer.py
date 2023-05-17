@@ -3,18 +3,18 @@
 # Copyright © 2021 Yuma Rao
 # Copyright © 2022 Opentensor Foundation
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import sys
@@ -52,7 +52,7 @@ class TransferCommand:
             with bittensor.__console__.status(":satellite: Checking Balance..."):
                 account_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
                 bittensor.__console__.print("Balance: [green]{}[/green]".format(account_balance))
-                    
+
         # Get amount.
         if not config.get('amount'):
             if not config.no_prompt:
@@ -69,26 +69,26 @@ class TransferCommand:
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
         transfer_parser = parser.add_parser(
-            'transfer', 
+            'transfer',
             help='''Transfer Tao between accounts.'''
         )
         transfer_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
         transfer_parser.add_argument(
-            '--dest', 
-            dest="dest", 
-            type=str, 
+            '--dest',
+            dest="dest",
+            type=str,
             required=False
         )
         transfer_parser.add_argument(
-            '--amount', 
-            dest="amount", 
-            type=float, 
+            '--amount',
+            dest="amount",
+            type=float,
             required=False
         )
         transfer_parser.add_argument(
-            '--no_prompt', 
-            dest='no_prompt', 
-            action='store_true', 
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
             help='''Set true to avoid prompting the user.''',
             default=False,
         )

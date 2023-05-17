@@ -18,7 +18,7 @@
 import torch
 import argparse
 import bittensor
-from transformers import AutoModel, AutoTokenizer, AutoConfig 
+from transformers import AutoModel, AutoTokenizer, AutoConfig
 
 class GatingModel( torch.nn.Module ):
     """
@@ -48,7 +48,7 @@ class GatingModel( torch.nn.Module ):
         """
         Returns a configuration object that contains the command line arguments for the gating model.
         """
-        parser = argparse.ArgumentParser()    
+        parser = argparse.ArgumentParser()
         cls.add_args( parser )
         return bittensor.config( parser )
 
@@ -59,10 +59,10 @@ class GatingModel( torch.nn.Module ):
         """
         pass
 
-    def __init__( 
-            self, 
+    def __init__(
+            self,
             metagraph: 'bittensor.metagraph.Metagraph',
-            config: 'bittensor.config' = None, 
+            config: 'bittensor.config' = None,
             model_name: str = None,
             num_uids: int = None
         ):
@@ -89,14 +89,14 @@ class GatingModel( torch.nn.Module ):
             momentum = self.config.gating.momentum,
         )
 
-    def backward( self, scores: torch.FloatTensor, rewards: torch.FloatTensor ): 
+    def backward( self, scores: torch.FloatTensor, rewards: torch.FloatTensor ):
         """ Runs a backward pass through the model.
             Args:
                 scores (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     Scores for each uids as output by the gating model.
                 rewards (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     Rewards for each uids as output by the reward model.
-        """   
+        """
         normalized_scores = torch.nn.functional.softmax( scores, dim=0 ).to( self.device )
         nomralized_rewards = torch.nn.functional.softmax( rewards, dim=0 ).to( self.device )
         loss = torch.nn.functional.mse_loss( normalized_scores, nomralized_rewards.detach() )
@@ -106,7 +106,7 @@ class GatingModel( torch.nn.Module ):
     def forward( self, message: str ) -> 'torch.FloatTensor':
         """ Runs a forward pass through the model.
             Args:
-                message (:obj:`str`): 
+                message (:obj:`str`):
                     text message to be encoded.
             Returns:
                 scores (:obj:`torch.FloatTensor` of shape :obj:`(network_size)`):

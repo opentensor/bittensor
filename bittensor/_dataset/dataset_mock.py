@@ -63,13 +63,13 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
     def __del__(self):
         self.close()
 
-    def construct_text_corpus(self, min_data_len = 0):         
+    def construct_text_corpus(self, min_data_len = 0):
         data_corpus = []
         total_dataset_len = 0
         i = 0
         while (total_dataset_len < min_data_len):
             text = "lorem ipsum data is not here this is super fake but maybe you could still learn from it?"
-            text_list = text.split() 
+            text_list = text.split()
             data_corpus.extend(text_list)
             total_dataset_len += len(text_list)
             i += 1
@@ -77,8 +77,8 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
 
     def _fill_data(self, epoch_length:int = 100):
         data_size = epoch_length * self.batch_size * self.block_size
-        
-        # Make sure the data remained is at least as big as data_size 
+
+        # Make sure the data remained is at least as big as data_size
         while len(self.data_remained) < (data_size) :
             self.data_remained += self.construct_text_corpus(min_data_len = data_size)
 
@@ -102,9 +102,9 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
                     batch_size=self.batch_size,
                     num_workers=self.num_workers,
                     drop_last=True)
-    
+
     def __next__(self):
-        """Returns the next element from the dataset. 
+        """Returns the next element from the dataset.
         """
         if self.__infinite_dataset_iterator == None:
             self.__infinite_dataset_iterator = iter(list(self.dataloader()))
