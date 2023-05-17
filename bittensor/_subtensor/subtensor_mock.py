@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from substrateinterface import SubstrateInterface, Keypair
+from substrateinterface.exceptions import SubstrateRequestException
 from scalecodec import GenericCall
 import psutil
 import subprocess
@@ -311,6 +312,9 @@ class mock_subtensor:
 class DecodedGenericExtrinsic(TypedDict):
     nonce: int
 
+class InvalidNonceError(Exception):
+    pass
+
 class Mock_Subtensor(subtensor_impl.Subtensor):
     """
     Handles interactions with the subtensor chain.
@@ -576,31 +580,39 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str], int]:
         
-        extrinsic = substrate.create_signed_extrinsic(
-            call=wrapped_call, keypair=self.sudo_keypair, nonce=nonce
-        )
+        try: 
+            extrinsic = substrate.create_signed_extrinsic(
+                call=wrapped_call, keypair=self.sudo_keypair, nonce=nonce
+            )
 
-        decoded_extrinsic: DecodedGenericExtrinsic = extrinsic.decode()
-        used_nonce = decoded_extrinsic["nonce"]
-        
-        response = substrate.submit_extrinsic(
-            extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+            decoded_extrinsic: DecodedGenericExtrinsic = extrinsic.decode()
+            used_nonce = decoded_extrinsic["nonce"]
+            
+            response = substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
-        if not wait_for_finalization:
-            return True, None, used_nonce
+            if not wait_for_finalization:
+                return True, None, used_nonce
 
-        try:
-            response.process_events()
-        except Exception as e:
-            print(f"Failed to process events: {e}")
+            try:
+                response.process_events()
+            except Exception as e:
+                print(f"Failed to process events: {e}")
 
-        if response.is_success:
-            return True, None, used_nonce
-        else:
-            return False, response.error_message, used_nonce
+            if response.is_success:
+                return True, None, used_nonce
+            else:
+                return False, response.error_message, used_nonce
+        except SubstrateRequestException as e:
+            if e['code'] == 1010:
+                raise InvalidNonceError()
+            else:
+                raise e
+                
+
 
     def sudo_register(
         self,
@@ -619,9 +631,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
             Optional[str]: The error message if the extrinsic failed, None otherwise.
             int: The nonce used for the extrinsic.
         """
-
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_call() -> Tuple[bool, Optional[str], int]:
+        def make_call(nonce: Optional[int]) -> Tuple[bool, Optional[str], int]:
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
@@ -645,4 +655,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                     wait_for_finalization=wait_for_finalization,
                 )
 
-        return make_call()
+        try:
+            return make_call(nonce)
+        except InvalidNonceError:
+            return make_call(None)
