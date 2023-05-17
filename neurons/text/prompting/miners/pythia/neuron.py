@@ -31,16 +31,16 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
     def add_args( cls, parser: argparse.ArgumentParser ):
         parser.add_argument( '--pythia.model_name', type=str, help='Name/path of model to load', default="togethercomputer/Pythia-Chat-Base-7B" )
         parser.add_argument( '--pythia.device', type=str, help='Device to load model', default="cuda" )
-        parser.add_argument( '--pythia.max_new_tokens', type=int, help='Max tokens for model output.', default=64 ) 
+        parser.add_argument( '--pythia.max_new_tokens', type=int, help='Max tokens for model output.', default=64 )
         parser.add_argument( '--pythia.temperature', type=float, help='Sampling temperature of model', default=0.8 )
         parser.add_argument( '--pythia.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
         parser.add_argument( '--pythia.do_prompt_injection', action='store_true', default=False, help='Whether to use a custom "system" prompt instead of the one sent by bittensor.' )
         parser.add_argument( '--pythia.system_prompt', type=str, help='What prompt to replace the system prompt with', default= "" )
-        
+
     def __init__( self ):
         super( PythiaMiner, self ).__init__()
         print ( self.config )
-        
+
         bittensor.logging.info( 'Loading ' + str(self.config.pythia.model_name))
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.pythia.model_name )
         self.model = AutoModelForCausalLM.from_pretrained( self.config.pythia.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
@@ -51,7 +51,7 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
 
     def _process_history(self, history: List[str]) -> str:
         processed_history = ''
-        
+
         if self.config.pythia.do_prompt_injection:
             processed_history += self.config.pythia.system_prompt
 
@@ -59,7 +59,7 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
             if message['role'] == 'system':
                 if not self.config.pythia.do_prompt_injection or message != history[0]:
                     processed_history += '<human>: ' + message['content'].strip() + '\n'
-                
+
             if message['role'] == 'assistant':
                 processed_history += '<bot>: ' + message['content'].strip() + '\n'
             if message['role'] == 'user':
@@ -79,7 +79,7 @@ class PythiaMiner( bittensor.BasePromptingMiner ):
         )
         generated_text = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
         generation = generated_text.split("<human>")[0].strip()
-        
+
         # Logging input and generation if debugging is active
         bittensor.logging.debug("Message: " + str(messages).replace("<","-").replace(">","-"))
         bittensor.logging.debug("Generation: " + str(generation).replace("<","-").replace(">","-"))

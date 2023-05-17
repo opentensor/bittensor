@@ -44,14 +44,14 @@ class Dataset:
     """ Implementation for the dataset class, which handles dataloading from ipfs
     """
     def __init__(self):
-        
+
         # Used to retrieve directory contentx
-        self.dataset_dir = 'http://global.ipfs.opentensor.ai/api/v0/cat' 
+        self.dataset_dir = 'http://global.ipfs.opentensor.ai/api/v0/cat'
         self.text_dir = 'http://global.ipfs.opentensor.ai/api/v0/object/get'
         self.mountain_hash = 'QmSdDg6V9dgpdAFtActs75Qfc36qJtm9y8a7yrQ1rHm7ZX'
         # Used when current corpus has been exhausted
         self.refresh_corpus = False
-        
+
 
     @staticmethod
     def requests_retry_session(
@@ -89,19 +89,19 @@ class Dataset:
         r"""Connects to IPFS gateway and retrieves directory.
         Args:
             address: (:type:`str`, required):
-                The target address of the request. 
+                The target address of the request.
             params: (:type:`tuple`, optional):
                 The arguments of the request. eg. (('arg', dataset_hash),)
             action: (:type:`str`, optional):
                 POST or GET.
             timeout: (:type:`int`, optional):
-                Timeout for getting the server's response. 
+                Timeout for getting the server's response.
         Returns:
             dict: A dictionary of the files inside of the genesis_datasets and their hashes.
         """
         session = requests.Session()
         session.params.update((('arg', file_meta['Hash']), ))
-        
+
         try:
             if action == 'get':
                 response = self.requests_retry_session(session=session).get(address, timeout=timeout)
@@ -123,7 +123,7 @@ class Dataset:
         """
 
 class GenesisTextDataset( Dataset ):
-    """ One kind of dataset that caters for the data from ipfs 
+    """ One kind of dataset that caters for the data from ipfs
     """
     def __init__(
         self,
@@ -134,7 +134,7 @@ class GenesisTextDataset( Dataset ):
         data_dir,
         save_dataset,
         max_datasets,
-        no_tokenizer, 
+        no_tokenizer,
         num_batches,
     ):
         super().__init__()
@@ -174,7 +174,7 @@ class GenesisTextDataset( Dataset ):
         self.build_hash_table()
 
         os.makedirs(os.path.expanduser(data_dir), exist_ok=True)
-            
+
         self.data_queue = ThreadQueue(
             producer_target = self.reserve_multiple_data,
             producer_arg = (self.num_batches, ),
@@ -192,10 +192,10 @@ class GenesisTextDataset( Dataset ):
         Args:
             folder (str):
                 The name of the folder
-        
+
         Returns:
             total_size (int):
-                The memory size of the folder (in byte). 
+                The memory size of the folder (in byte).
         """
         total_size = 0
         full_path = os.path.expanduser(os.path.join(self.data_dir, folder))
@@ -215,8 +215,8 @@ class GenesisTextDataset( Dataset ):
                 Specify the details of the dataset in the format of {'Name': , 'Hash':}.
 
         Returns:
-            text (str): 
-                The text in the file.                
+            text (str):
+                The text in the file.
         """
 
         full_path = os.path.expanduser(os.path.join(self.data_dir, file_meta['Folder'], file_meta['Hash']))
@@ -231,7 +231,7 @@ class GenesisTextDataset( Dataset ):
                 pass
 
             return text
-        
+
         return None
 
     def save_hash(self, file_meta, text):
@@ -239,12 +239,12 @@ class GenesisTextDataset( Dataset ):
         Args:
             file_meta (dict of str: int):
                 Specify the details of the dataset in the format of {'Name': , 'Hash':}.
-            text (str): 
+            text (str):
                 The string to save to the file.
-        
+
         Returns:
             text (str):
-                The text in the file.                
+                The text in the file.
         """
         folder_path = os.path.expanduser(os.path.join(self.data_dir, file_meta['Folder']))
         full_path = os.path.expanduser(os.path.join(self.data_dir, file_meta['Folder'], file_meta['Hash']))
@@ -255,7 +255,7 @@ class GenesisTextDataset( Dataset ):
                 f.write(text)
                 logger.success("Saved:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
             return True
-        
+
         except Exception as E:
             logger.warning("Save failed:".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
             return False
@@ -268,7 +268,7 @@ class GenesisTextDataset( Dataset ):
 
         Return:
             text (str):
-                The text that we get from the file (from disk or IPFS).     
+                The text that we get from the file (from disk or IPFS).
         """
         text = None
         response = self.get_ipfs_directory(self.text_dir, file_meta)
@@ -279,16 +279,16 @@ class GenesisTextDataset( Dataset ):
                 text = response.text
 
             self.IPFS_fails = 0
-            
+
             if self.save_dataset and self.dataset_hashes[file_meta['Folder']]['Size'] < self.backup_dataset_cap_size:
                 self.save_hash( file_meta, text )
                 self.dataset_hashes[file_meta['Folder']]['Size'] += file_meta['Size']
-            
+
         else:
             logger.warning("Failed to get text".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
             self.IPFS_fails += 1
-            
-        return text 
+
+        return text
 
     def get_dataset(self , file_meta):
         r""" Either load a dataset, which is a list of hashes, from disk or download it from IPFS
@@ -298,11 +298,11 @@ class GenesisTextDataset( Dataset ):
 
         Return:
             hashes (list):
-                The hashes from the dataset downloaded from disk or IPFS.     
+                The hashes from the dataset downloaded from disk or IPFS.
         """
         # --- Load text from path
         logger.success( f"Getting dataset: {file_meta['Name']}" )
-        
+
         hashes = self.load_hash(file_meta)
 
         if hashes != None:
@@ -318,7 +318,7 @@ class GenesisTextDataset( Dataset ):
                 # --- Save text if the save_dataset flag is on.
                 if self.save_dataset :
                     self.save_hash(file_meta, json.dumps(response.json()) )
-                    
+
             else:
                 self.IPFS_fails += 1
                 logger.warning("Failed to get dataset".ljust(20) + "<blue>{}</blue>".format(file_meta['Name']))
@@ -329,7 +329,7 @@ class GenesisTextDataset( Dataset ):
         else:
             for h in hashes:
                 h['Folder'] = file_meta['Name']
-            return hashes 
+            return hashes
 
     def get_hashes_from_dataset(self):
         r""" Getting directories .
@@ -338,7 +338,7 @@ class GenesisTextDataset( Dataset ):
         Returns:
             directories (:type:`list`, `required`)
                 A list of directory.
-                    directory: Map{ Name: str, Hash: str, Size: int }: 
+                    directory: Map{ Name: str, Hash: str, Size: int }:
                         A random directory that lead to a datafile.
         """
         def get_hashes(dataset_meta):
@@ -353,26 +353,26 @@ class GenesisTextDataset( Dataset ):
                 return sub_directories
 
             return []
-        
+
         directories = []
         self.IPFS_fails = 0
-        
+
         if self.dataset_names == ['default']:
             i = 0
             dataset_hashes = list(self.dataset_hashes.values())
             random.shuffle(dataset_hashes)
-            
-            for dataset_hash in dataset_hashes: 
+
+            for dataset_hash in dataset_hashes:
                 dataset_meta = {'Folder': 'mountain', 'Name': dataset_hash['Name'], 'Hash': dataset_hash['Hash']}
                 directories += get_hashes(dataset_meta)
                 i += 1
                 if i >= self.max_datasets:
                     break
-                    
+
         else:
             for key in self.dataset_names:
                 if key in self.dataset_hashes.keys():
-                    dataset_meta = {'Folder': 'mountain','Name': key, 'Hash': self.dataset_hashes[key]['Hash'] }  
+                    dataset_meta = {'Folder': 'mountain','Name': key, 'Hash': self.dataset_hashes[key]['Hash'] }
                     directories += get_hashes(dataset_meta)
 
                 else:
@@ -381,7 +381,7 @@ class GenesisTextDataset( Dataset ):
         if len(directories) == 0:
             logger.error('Could not get any directory from IPFS or local.')
             directories = None
-          
+
         return directories
 
     def get_root_text_hash(self, file_meta):
@@ -389,11 +389,11 @@ class GenesisTextDataset( Dataset ):
         With recursion, from the given directory, get a directory that leads to a datafile.
 
         Args:
-            directory: Map{ Name: str, Hash: str, Size: int }: 
+            directory: Map{ Name: str, Hash: str, Size: int }:
                 The original directory to look up a datafile for.
 
         Returns:
-            directory: Map{ Name: str, Hash: str, Size: int }: 
+            directory: Map{ Name: str, Hash: str, Size: int }:
                 A random directory that lead to a datafile.
         """
         # --- If the size of directory is small, it is leads to data file, return the data file.
@@ -407,19 +407,19 @@ class GenesisTextDataset( Dataset ):
             if (response == None) or (response.status_code != 200):
                 logger.warning("Failed to retrieve directory, ignoring directory:".ljust(20) + "<blue>{}</blue>".format(file_meta))
                 return None
-            
+
             # --- Pick a random sub_directory, run recursion until we have found a data file
             else:
                 sub_directories = response.json()
                 if sub_directories and 'Links' in sub_directories.keys() and len(sub_directories['Links']) >= 1:
                     random_sub_directory = random.choice(sub_directories['Links'])
 
-                    # --- Fill the name of the random_sub_directory if it is empty. 
+                    # --- Fill the name of the random_sub_directory if it is empty.
                     if random_sub_directory['Name'] == '':
                         random_sub_directory['Name'] = file_meta['Name']
                         random_sub_directory['Folder'] = file_meta['Folder']
 
-                    
+
                     return self.get_root_text_hash(random_sub_directory)
                 else:
                     logger.warning("Directory seems empty, ignoring directory:".ljust(20) + "<blue>{}</blue>". format(file_meta))
@@ -439,7 +439,7 @@ class GenesisTextDataset( Dataset ):
                     folders_avail.append(dataset_name)
             random.shuffle(folders_avail)
 
-        files = [] 
+        files = []
         for folder in folders_avail:
             file_names = os.listdir(os.path.expanduser(os.path.join(self.data_dir, folder)))
             sub_files = [{'Name': file_name,'Folder': folder, 'Hash': file_name} for file_name in file_names]
@@ -454,10 +454,10 @@ class GenesisTextDataset( Dataset ):
             text = self.load_hash(text_file)
 
             if text != None:
-                text_list = text.split() 
+                text_list = text.split()
                 data_corpus.extend(text_list)
                 total_dataset_len += len(text_list)
-            
+
             if (total_dataset_len > min_data_len) :
                 break
 
@@ -466,12 +466,12 @@ class GenesisTextDataset( Dataset ):
     def construct_text_corpus(self, min_data_len = 0):
         """ Main function for generating the text data.
         1. Get directories from a random dataset_hash (dataset_hash is the result from calling pin/ls).
-        2. Pick a random directory and get the directory that would lead to a datafile.    
+        2. Pick a random directory and get the directory that would lead to a datafile.
         3. Get text from the directory.
         4. Repeat 2,3 until we have reached the min data length
 
         Returns:
-            text: str: 
+            text: str:
                 Contents of the text data.
         """
         self.IPFS_fails = 0
@@ -497,14 +497,14 @@ class GenesisTextDataset( Dataset ):
                         for idx, call_arg in enumerate(directories[:n_workers]):
                             future = executor.submit(self.get_text, call_arg)
                             future_map[future] = call_arg
-                        
+
                         for i, future in enumerate(concurrent.futures.as_completed(future_map)):
                             text = future.result()
                             if text is not None:
                                 text_list = text.split()
                                 data_corpus.extend(text_list)
                                 total_dataset_len += len(text_list)
-                        
+
                         logger.success("Loaded from IPFS".ljust(20) + f"<yellow>{ round(total_dataset_len / min_data_len * 100) }%</yellow>  " + "<blue>{}</blue>".format([file_meta['Name'] for file_meta in directories[:n_workers]]))
                         directories = directories[n_workers:]
 
@@ -522,22 +522,22 @@ class GenesisTextDataset( Dataset ):
         return data_corpus
 
     def reserve_multiple_data(self, epoch_length = 100, multiples = 2):
-        r""" Make sure the reserved data meet the multiple, 
+        r""" Make sure the reserved data meet the multiple,
         If not, then keep constructing text corpus.
         Arg:
-            epoch_length (int, optional): 
+            epoch_length (int, optional):
                 A dataloader for a subset of the dataset of epoch_length is returned.
-            
+
             multiples (int, optional):
                 The number of dataloader that the data_reserved should be able to create.
 
-        Return: 
+        Return:
             success (bool):
                 If we have got the data ready.
         """
         logger.success(f"Reserving data with multiples: {multiples}")
         data_size = epoch_length * self.batch_size * self.block_size
-        
+
         while len(self.data_reserved) < data_size * multiples :
             self.data_reserved += self.construct_text_corpus(min_data_len = data_size)
 
@@ -547,12 +547,12 @@ class GenesisTextDataset( Dataset ):
     def set_data_size(self, batch_size, block_size):
         r""" Update the size of data (batch_size, block_size) that we need.
 
-        Args: 
+        Args:
             batch_size(int, required):
                 The batch_size of data that should be produced by dataloader.
 
             block_size(int, required):
-                The block_size of data that should be produced by dataloader. 
+                The block_size of data that should be produced by dataloader.
         """
         def check_valid(size):
             r""" Check if the size is a valid positive intiget, if not, return False.
@@ -564,10 +564,10 @@ class GenesisTextDataset( Dataset ):
 
         old_batch_size = self.batch_size
         old_block_size = self.block_size
-        
+
         if check_valid(batch_size):
             self.batch_size = batch_size
-        
+
         if check_valid(block_size):
             self.block_size = block_size
 
@@ -584,7 +584,7 @@ class GenesisTextDataset( Dataset ):
         r""" Creates a torch dataloader out of a subclass of this class.
 
         Args:
-            epoch_length (int, optional): 
+            epoch_length (int, optional):
                 A dataloader for a subset of the dataset of epoch_length is returned.
 
         Returns:
@@ -605,11 +605,11 @@ class GenesisTextDataset( Dataset ):
                     batch_size=self.batch_size,
                     num_workers=self.num_workers,
                     drop_last=True)
-    
+
     def set_dataset_iterator(self):
-        r""" Get a new dataset that is ready from the queue. The result would be updated to self.__infinite_dataset_iterator__ . 
+        r""" Get a new dataset that is ready from the queue. The result would be updated to self.__infinite_dataset_iterator__ .
         """
-        success = False 
+        success = False
         while not success:
             if not self.data_queue.queue.empty() :
                 ready = self.data_queue.queue.get() # the queue stores a bool ready signal
@@ -623,14 +623,14 @@ class GenesisTextDataset( Dataset ):
         return
 
     def __next__(self):
-        """Returns the next element from the dataset. 
+        """Returns the next element from the dataset.
         """
         if self.__infinite_dataset_iterator == None:
             self.set_dataset_iterator()
 
         try:
             return next(self.__infinite_dataset_iterator)
-        
+
         except StopIteration:
             self.set_dataset_iterator()
             return next(self.__infinite_dataset_iterator)
@@ -670,16 +670,16 @@ class GenesisTextDataset( Dataset ):
         response = None
 
         mountain_meta = {'Name': 'mountain', 'Folder': 'meta_data', 'Hash': self.mountain_hash}
-        
+
         while response == None:
             self.IPFS_fails += 1
             response = self.get_ipfs_directory(self.text_dir, mountain_meta)
-            
+
             if response:
                 dataset_hashes = response.json()['Links']
                 if self.save_dataset:
                     self.save_hash(mountain_meta, json.dumps(dataset_hashes) )
-            
+
             if self.IPFS_fails > self.IPFS_fails_max and response == None:
                 dataset_hashes = json.loads(self.load_hash(mountain_meta))
                 break

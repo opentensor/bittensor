@@ -1,18 +1,18 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import torch
@@ -117,7 +117,7 @@ prometheus_version__split = __prometheus_version__.split(".")
 __prometheus_version__as_int__ = (100 * int(prometheus_version__split[0])) + (10 * int(prometheus_version__split[1])) + (1 * int(prometheus_version__split[2]))
 try:
     bt_promo_info = Info("bittensor_info", "Information about the installed bittensor package.")
-    bt_promo_info.info ( 
+    bt_promo_info.info (
         {
             '__version__': str(__version__),
             '__version_as_int__': str(__version_as_int__),
@@ -126,11 +126,11 @@ try:
             '__blocktime__': str(__blocktime__),
             '__prometheus_version__': str(__prometheus_version__),
             '__prometheus_version__as_int__': str(__prometheus_version__as_int__),
-        } 
+        }
     )
-except ValueError: 
+except ValueError:
     # This can silently fail if we import bittensor twice in the same process.
-    # We simply pass over this error. 
+    # We simply pass over this error.
     pass
 
 
@@ -244,7 +244,7 @@ Chattensor is designed to be able to assist with a wide range of tasks, from ans
 default_prompting_validator_key = '5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3'
 
 __context_prompting_llm = None
-def prompt( 
+def prompt(
         content: Union[ str, List[str], List[Dict[ str ,str ]]],
         wallet_name: str = "default",
         hotkey: str = default_prompting_validator_key,
@@ -254,7 +254,7 @@ def prompt(
     ) -> str:
     global __context_prompting_llm
     if __context_prompting_llm == None:
-        __context_prompting_llm = prompting( 
+        __context_prompting_llm = prompting(
             wallet_name = wallet_name,
             hotkey = hotkey,
             subtensor_ = subtensor_,
@@ -284,7 +284,7 @@ class prompting ( torch.nn.Module ):
             self._keypair = wallet( name = wallet_name ).create_if_non_existent().coldkey
         else:
             self._keypair = wallet( name = wallet_name ).create_if_non_existent().hotkey
-        
+
         if axon_ is not None:
             self._axon = axon_
         else:
@@ -301,15 +301,15 @@ class prompting ( torch.nn.Module ):
             return ['system', 'user'], [ default_prompt, content ]
         elif isinstance( content, list ):
             if isinstance( content[0], str ):
-                return ['user' for _ in content ], content 
+                return ['user' for _ in content ], content
             elif isinstance( content[0], dict ):
                 return [ dictitem[ list(dictitem.keys())[0] ] for dictitem in content ], [ dictitem[ list(dictitem.keys())[1] ] for dictitem in content ]
             else:
                 raise ValueError('content has invalid type {}'.format( type( content )))
         else:
             raise ValueError('content has invalid type {}'.format( type( content )))
-        
-    def forward( 
+
+    def forward(
             self,
             content: Union[ str, List[str], List[Dict[ str ,str ]]],
             timeout: float = 24,
@@ -330,8 +330,8 @@ class prompting ( torch.nn.Module ):
                 timeout = timeout
             ).multi_completions
 
-       
-    async def async_forward( 
+
+    async def async_forward(
             self,
             content: Union[ str, List[str], List[Dict[ str ,str ]]],
             timeout: float = 24,
@@ -352,9 +352,9 @@ class prompting ( torch.nn.Module ):
             ).multi_completions
 
 class BittensorLLM(LLM):
-    """Wrapper around Bittensor Prompting Subnetwork. 
+    """Wrapper around Bittensor Prompting Subnetwork.
 This Python file implements the BittensorLLM class, a wrapper around the Bittensor Prompting Subnetwork for easy integration into language models. The class provides a query method to receive responses from the subnetwork for a given user message and an implementation of the _call method to return the best response. The class can be initialized with various parameters such as the wallet name and chain endpoint.
-    
+
     Example:
         .. code-block:: python
 

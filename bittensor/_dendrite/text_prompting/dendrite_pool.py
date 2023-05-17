@@ -25,9 +25,9 @@ from typing import Callable, List, Dict, Union
 class TextPromptingDendritePool( torch.nn.Module ):
 
     def __init__(
-            self, 
+            self,
             keypair: Union[ 'bittensor.Wallet', 'bittensor.Keypair'],
-            metagraph: 'bittensor.metagraph', 
+            metagraph: 'bittensor.metagraph',
         ):
         super(TextPromptingDendritePool, self).__init__()
         self.metagraph = metagraph
@@ -44,11 +44,11 @@ class TextPromptingDendritePool( torch.nn.Module ):
             priority: int = 1,
         ):
         def _backward():
-            self.loop.run_until_complete( 
+            self.loop.run_until_complete(
                 self.async_backward (
                     forward_calls = forward_calls,
                     timeout = timeout,
-                ) 
+                )
             )
         future = self.priority_threadpool.submit(
             _backward,
@@ -63,16 +63,16 @@ class TextPromptingDendritePool( torch.nn.Module ):
         ):
         rewards = rewards if not isinstance( rewards, torch.Tensor ) else rewards.tolist()
         async def query():
-            coroutines = [ forward_calls.async_backward( reward ) for call, reward in list(zip( forward_calls, rewards )) ]                
+            coroutines = [ forward_calls.async_backward( reward ) for call, reward in list(zip( forward_calls, rewards )) ]
             all_responses = await asyncio.gather( *coroutines )
             return all_responses
         await query()
 
-    def forward( 
-            self, 
-            roles: Union[ str, List[str] ], 
+    def forward(
+            self,
+            roles: Union[ str, List[str] ],
             messages: Union[ str, List[str] ],
-            uids: Union[ torch.LongTensor, List[int] ] = None, 
+            uids: Union[ torch.LongTensor, List[int] ] = None,
             return_call:bool = True,
             timeout: float = 12,
             priority: int = 1,
@@ -86,7 +86,7 @@ class TextPromptingDendritePool( torch.nn.Module ):
                     uids = uids,
                     return_call = return_call,
                     timeout = timeout,
-                ) 
+                )
             )
         future = self.priority_threadpool.submit(
             _forward,
@@ -94,30 +94,30 @@ class TextPromptingDendritePool( torch.nn.Module ):
         )
         return future.result()
 
-    async def async_forward( 
-            self, 
+    async def async_forward(
+            self,
             roles: Union[ str, List[str] ],
             messages: Union[ str, List[str] ],
-            uids: Union[ torch.LongTensor, List[int] ] = None, 
+            uids: Union[ torch.LongTensor, List[int] ] = None,
             return_call:bool = True,
-            timeout: float = 12 
-        ) -> List['DendriteForwardCall']:      
+            timeout: float = 12
+        ) -> List['DendriteForwardCall']:
         # We optionally set the uids to all if uids is None.
         if uids is None: uids = range( self.metagraph.n.item() )
         if isinstance( uids, torch.Tensor ): uids = uids.tolist()
         # The following asyncio defintion queries a single endpoint with the message
         # prompt and returns the response.
         async def call_single_uid( uid: int ) -> str:
-            return await self.dendrites[uid].async_forward( 
-                roles = roles, 
+            return await self.dendrites[uid].async_forward(
+                roles = roles,
                 messages = messages,
-                return_call = return_call, 
-                timeout = timeout 
+                return_call = return_call,
+                timeout = timeout
             )
         # The following asyncio definition gathers the responses
         # from multiple coroutines for each uid.
         async def query():
-            coroutines = [ call_single_uid( uid ) for uid in uids ]                
+            coroutines = [ call_single_uid( uid ) for uid in uids ]
             all_responses = await asyncio.gather(*coroutines)
             return all_responses
-        return await query() 
+        return await query()
