@@ -597,7 +597,6 @@ class neuron:
                     bittensor.logging.info( 'weights', weights )
 
                     # Set the weights on chain via our subtensor connection.
-                    """
                     self.subtensor.set_weights(
                         wallet = self.wallet,
                         netuid = self.config.netuid,
@@ -605,7 +604,6 @@ class neuron:
                         weights = weights,
                         wait_for_finalization = False,
                     )
-                    """
                 steps += 1 
 
         except Exception as e:
