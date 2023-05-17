@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.1.0 / 2023-05-17
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v4.0.1...v4.1.0
+
+
 ## 4.0.1 / 2023-04-21
 
 * Fix btcli my_delegates bug by @camfairchild in ef32a4da0d0827ab5977af1454d66ffe97cbc572
