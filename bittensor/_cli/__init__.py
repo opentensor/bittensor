@@ -67,7 +67,6 @@ class cli:
         StakeCommand.add_args( cmd_parsers )
         UpdateCommand.add_args( cmd_parsers )
         InspectCommand.add_args( cmd_parsers ) 
-        WeightsCommand.add_args( cmd_parsers )
         UnStakeCommand.add_args( cmd_parsers )
         OverviewCommand.add_args( cmd_parsers )
         RegisterCommand.add_args( cmd_parsers )
@@ -137,8 +136,6 @@ class cli:
             RegenHotkeyCommand.check_config( config )
         elif config.command == "metagraph":
             MetagraphCommand.check_config( config )
-        elif config.command == "weights":
-            WeightsCommand.check_config( config )
         elif config.command == "list":
             ListCommand.check_config( config )
         elif config.command == "inspect":

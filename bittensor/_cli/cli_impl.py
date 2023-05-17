@@ -64,8 +64,6 @@ class CLI:
             RegenHotkeyCommand.run( self )
         elif self.config.command == "metagraph":
             MetagraphCommand.run( self )
-        elif self.config.command == "weights":
-            WeightsCommand.run( self )
         elif self.config.command == "inspect":
             InspectCommand.run( self )
         elif self.config.command == 'update':
