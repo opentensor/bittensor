@@ -117,7 +117,7 @@ def setupSubnets():
 
 def killMockSubtensorProcess():
     # wait 30s to kill
-    time.sleep(10)
+    time.sleep(30)
     _subtensor_mock.optionally_kill_owned_mock_instance()
 
 
@@ -188,7 +188,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         return defaults
 
-    @unittest.skip("")
     def test_overview(self):
         config = self.config
         config.wallet.path = "/tmp/test_cli_test_overview"
@@ -234,17 +233,13 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Register each wallet to it's subnet.
         print("Registering wallets to mock subtensor...")
 
-        sudo_key_address = _subtensor_mock.sudo_keypair.ss58_address
-        used_nonce = _subtensor_mock.substrate.get_account_nonce(sudo_key_address)
-
         for netuid, wallet in mock_registrations:
-            result, err, used_nonce = _subtensor_mock.sudo_register(
+            result, err, _ = _subtensor_mock.sudo_register(
                 netuid=netuid,
                 coldkey=wallet.coldkey.ss58_address,
                 hotkey=wallet.hotkey.ss58_address,
                 wait_for_finalization=True,
                 wait_for_inclusion=True,
-                nonce=used_nonce + 1 if used_nonce else None
             )
             self.assertTrue(result, err)
 
@@ -302,7 +297,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         if wallet not in [w for _, w in mock_registrations]:
                             self.assertNotIn(wallet.hotkey_str, output_no_syntax)
 
-    @unittest.skip("")
     def test_overview_not_in_first_subnet(self):
         config = self.config
         config.wallet.path = "/tmp/test_cli_test_overview"
@@ -2074,7 +2068,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 balance.tao, mock_balances["w1"].tao - config.amount, places=4
             )  # no fees
 
-    @unittest.skip("")
     def test_transfer_not_enough_balance(self):
         config = self.config
         config.command = "transfer"
@@ -2256,7 +2249,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
             self.assertGreater(new_stake, old_stake)
 
-    @unittest.skip("")
     def test_metagraph(self):
         config = self.config
         config.wallet.name = "metagraph_testwallet"
