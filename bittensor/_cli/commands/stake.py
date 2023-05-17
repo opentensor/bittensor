@@ -1,18 +1,18 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import sys
@@ -35,7 +35,7 @@ class StakeCommand:
         config = cli.config.copy()
         wallet = bittensor.wallet( config = config )
         subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
-        
+
         # Get the hotkey_names (if any) and the hotkey_ss58s.
         hotkeys_to_stake_to: List[Tuple[Optional[str], str]] = []
         if config.get('all_hotkeys'):
@@ -75,10 +75,10 @@ class StakeCommand:
             #  so we stake to that single hotkey.
             assert config.wallet.hotkey is not None
             hotkeys_to_stake_to = [ (None, bittensor.wallet( config = config ).hotkey.ss58_address) ]
-        
+
         # Get coldkey balance
         wallet_balance: Balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
-        final_hotkeys: List[Tuple[str, str]] = [] 
+        final_hotkeys: List[Tuple[str, str]] = []
         final_amounts: List[Union[float, Balance]] = []
         for hotkey in tqdm(hotkeys_to_stake_to):
             hotkey: Tuple[Optional[str], str] # (hotkey_name (or None), hotkey_ss58)
@@ -106,7 +106,7 @@ class StakeCommand:
                     # Skip hotkey if max_stake is less than current stake.
                     continue
                 wallet_balance = Balance.from_tao(wallet_balance.tao - stake_amount_tao)
-            
+
                 if wallet_balance.tao < 0:
                     # No more balance to stake.
                     break
@@ -127,7 +127,7 @@ class StakeCommand:
                     ])
                 ):
                 return None
-        
+
         if len(final_hotkeys) == 1:
             # do regular stake
             return subtensor.add_stake( wallet=wallet, hotkey_ss58 = final_hotkeys[0][1], amount = None if config.get('stake_all') else final_amounts[0], wait_for_inclusion = True, prompt = not config.no_prompt )
@@ -135,7 +135,7 @@ class StakeCommand:
         subtensor.add_stake_multiple( wallet = wallet, hotkey_ss58s=[hotkey_ss58 for _, hotkey_ss58 in final_hotkeys], amounts =  None if config.get('stake_all') else final_amounts, wait_for_inclusion = True, prompt = False )
 
 
-    @classmethod   
+    @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
         if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
@@ -144,7 +144,7 @@ class StakeCommand:
         if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.get('all_hotkeys') and not config.get('hotkeys'):
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
-                    
+
         # Get amount.
         if not config.get('amount') and not config.get('stake_all') and not config.get('max_stake'):
             if not Confirm.ask("Stake all Tao from account: [bold]'{}'[/bold]?".format(config.wallet.get('name', bittensor.defaults.wallet.name))):
@@ -160,34 +160,34 @@ class StakeCommand:
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
         stake_parser = parser.add_parser(
-            'stake', 
+            'stake',
             help='''Stake to your hotkey accounts.'''
         )
-        stake_parser.add_argument( 
-            '--no_version_checking', 
-            action='store_true', 
-            help='''Set false to stop cli version checking''', 
-            default = False 
+        stake_parser.add_argument(
+            '--no_version_checking',
+            action='store_true',
+            help='''Set false to stop cli version checking''',
+            default = False
         )
         stake_parser.add_argument(
-            '--all', 
-            dest="stake_all", 
+            '--all',
+            dest="stake_all",
             action='store_true'
         )
         stake_parser.add_argument(
-            '--uid', 
-            dest="uid", 
-            type=int, 
+            '--uid',
+            dest="uid",
+            type=int,
             required=False
         )
         stake_parser.add_argument(
-            '--amount', 
-            dest="amount", 
-            type=float, 
+            '--amount',
+            dest="amount",
+            type=float,
             required=False
-        )        
+        )
         stake_parser.add_argument(
-            '--max_stake', 
+            '--max_stake',
             dest="max_stake",
             type=float,
             required=False,
@@ -196,9 +196,9 @@ class StakeCommand:
             help='''Specify the maximum amount of Tao to have staked in each hotkey.'''
         )
         stake_parser.add_argument(
-            '--no_prompt', 
-            dest='no_prompt', 
-            action='store_true', 
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
             help='''Set true to avoid prompting the user.''',
             default=False,
         )

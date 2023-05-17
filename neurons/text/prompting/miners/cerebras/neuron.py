@@ -43,12 +43,12 @@ class CerebrasMiner( bittensor.BasePromptingMiner ):
         model = AutoModelForCausalLM.from_pretrained( "cerebras/Cerebras-GPT-{}".format( self.config.cerebras.model_size) )
         tokenizer = AutoTokenizer.from_pretrained( "cerebras/Cerebras-GPT-{}".format( self.config.cerebras.model_size)  )
 
-        self.pipe = pipeline( 
-            "text-generation", 
-            model = model, 
-            tokenizer = tokenizer, 
-            device = 0, 
-            do_sample = False, 
+        self.pipe = pipeline(
+            "text-generation",
+            model = model,
+            tokenizer = tokenizer,
+            device = 0,
+            do_sample = False,
             max_new_tokens = self.config.cerebras.max_length,
             no_repeat_ngram_size = self.config.cerebras.no_repeat_ngram_size
         )
@@ -69,7 +69,7 @@ class CerebrasMiner( bittensor.BasePromptingMiner ):
 
     def forward( self, messages: List[Dict[str, str]]  ) -> str:
         history = self._process_history(messages)
-        return self.pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "") 
+        return self.pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "")
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()

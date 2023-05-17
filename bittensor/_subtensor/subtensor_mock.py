@@ -1,18 +1,18 @@
 # The MIT License (MIT)
 # Copyright © 2022 Opentensor Foundation
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 from substrateinterface import SubstrateInterface, Keypair
@@ -36,13 +36,13 @@ __type_registery__ = {
             "type": "struct",
             "type_mapping": [
                 ["version", "u32"],
-                ["ip", "u128"], 
-                ["port", "u16"], 
-                ["ip_type", "u8"], 
-                ["uid", "u32"], 
-                ["modality", "u8"], 
-                ["hotkey", "AccountId"], 
-                ["coldkey", "AccountId"], 
+                ["ip", "u128"],
+                ["port", "u16"],
+                ["ip_type", "u8"],
+                ["uid", "u32"],
+                ["modality", "u8"],
+                ["hotkey", "AccountId"],
+                ["coldkey", "AccountId"],
                 ["active", "bool"],
                 ["last_update", "u64"],
                 ["validator_permit", "bool"],
@@ -90,7 +90,7 @@ class mock_subtensor():
             url = "ws://{}".format('localhost:{}'.format(port)),
             use_remote_preset=True
         )
-        subtensor = Mock_Subtensor( 
+        subtensor = Mock_Subtensor(
             substrate = substrate,
             network = 'mock',
             chain_endpoint = 'localhost:{}'.format(port),
@@ -132,27 +132,27 @@ class mock_subtensor():
             path_root = "./tests/mock_subtensor"
             path = "{}/bin/{}/{}".format(path_root, operating_system, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME)
             path_to_spec = "{}/specs/local_raw.json".format(path_root)
-            
+
             ws_port = int(bittensor.__mock_entrypoint__.split(':')[1])
             print(f'MockSub ws_port: {ws_port}')
-            
+
             command_args = [ path ] + f'--chain {path_to_spec} --base-path {bittensor.__mock_chain_db__}_{pid} --execution native --ws-max-connections 1000 --no-mdns --rpc-cors all'.split(' ') + \
                 f'--port {int(bittensor.get_random_unused_port())} --rpc-port {int(bittensor.get_random_unused_port())} --ws-port {ws_port}'.split(' ') + \
                 '--validator --alice'.split(' ')
-            
+
             print ('Starting subtensor process with command: {}'.format(command_args))
-            
+
             _mock_subtensor_process = subprocess.Popen(
                 command_args,
                 close_fds=True, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
-            
+
             # Wait for the process to start. Check for errors.
             try:
                 # Timeout is okay.
                 error_code = _mock_subtensor_process.wait(timeout=12)
             except subprocess.TimeoutExpired:
                 error_code = None
-            
+
             if error_code is not None:
                 # Get the error message.
                 error_message = _mock_subtensor_process.stderr.read().decode('utf-8')
@@ -168,7 +168,7 @@ class mock_subtensor():
                 except requests.exceptions.ConnectionError as e:
                     errored = True
                     time.sleep(0.5) # Wait for the process to start.
-            
+
             return _mock_subtensor_process
         except Exception as e:
             raise RuntimeError( 'Failed to start mocked subtensor process: {}'.format(e) )
@@ -179,9 +179,9 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
     Handles interactions with the subtensor chain.
     """
     sudo_keypair: Keypair = Keypair.create_from_uri('//Alice') # Alice is the sudo keypair for the mock chain.
-    
-    def __init__( 
-        self, 
+
+    def __init__(
+        self,
         _is_mocked: bool,
         _owned_mock_subtensor_process: object,
         **kwargs,
@@ -208,10 +208,10 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
     def __del__(self):
         self.optionally_kill_owned_mock_instance()
-    
+
     def __exit__(self):
         pass
-    
+
     def optionally_kill_owned_mock_instance(self):
         r""" If this subtensor instance owns the mock process, it kills the process.
         """
@@ -223,7 +223,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                 time.sleep(2) # Buffer to ensure the processes actually die
             except Exception as e:
                 print(f"failed to kill owned mock instance: {e}")
-                # Occasionally 
+                # Occasionally
                 pass
 
     def wrap_sudo(self, call: GenericCall) -> GenericCall:
@@ -248,7 +248,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
             pass
         else:
             raise ValueError('Invalid type for balance: {}'.format(type(balance)))
-        
+
         with self.substrate as substrate:
             call = substrate.compose_call(
                     call_module='Balances',
@@ -270,7 +270,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
                 return True, None
             else:
                 return False, response.error_message
-            
+
     def sudo_set_tx_rate_limit(self, netuid: int, tx_rate_limit: int, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
         r""" Sets the tx rate limit of the subnet in the mock chain using the sudo key.
         """
@@ -291,13 +291,13 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
             if not wait_for_finalization:
                 return True, None
-            
+
             response.process_events()
             if response.is_success:
                 return True, None
             else:
                 return False, response.error_message
-        
+
     def sudo_set_difficulty(self, netuid: int, difficulty: int, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
         r""" Sets the difficulty of the mock chain using the sudo key.
         """
@@ -318,13 +318,13 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
             if not wait_for_finalization:
                 return True, None
-            
+
             response.process_events()
             if response.is_success:
                 return True, None
             else:
                 return False, response.error_message
-            
+
     def sudo_set_max_difficulty(self, netuid: int, max_difficulty: int, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
         r""" Sets the max difficulty of the mock chain using the sudo key.
         """
@@ -345,7 +345,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
             if not wait_for_finalization:
                 return True, None
-            
+
             response.process_events()
             if response.is_success:
                 return True, None
@@ -372,7 +372,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
             if not wait_for_finalization:
                 return True, None
-            
+
             response.process_events()
             if response.is_success:
                 return True, None
@@ -400,13 +400,13 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
             if not wait_for_finalization:
                 return True, None
-            
+
             response.process_events()
             if response.is_success:
                 return True, None
             else:
                 return False, response.error_message
-            
+
     def sudo_register(self, netuid: int, hotkey: str, coldkey: str, stake: int = 0, balance: int = 0, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
         r""" Registers a neuron to the subnet using sudo.
         """
@@ -430,7 +430,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
             if not wait_for_finalization:
                 return True, None
-            
+
             response.process_events()
             if response.is_success:
                 return True, None

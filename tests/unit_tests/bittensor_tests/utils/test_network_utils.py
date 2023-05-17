@@ -1,7 +1,7 @@
 from bittensor import utils
 import unittest.mock as mock
 from unittest.mock import MagicMock, PropertyMock
-import os 
+import os
 import requests
 import urllib
 import pytest
@@ -12,7 +12,7 @@ from bittensor.utils.networking import UPNPCException, upnpc_create_port_map
 def test_int_to_ip_zero():
     assert utils.networking.int_to_ip(0) == "0.0.0.0"
     assert utils.networking.ip_to_int("0.0.0.0") == 0
-    assert utils.networking.ip__str__(4, "0.0.0.0", 8888) == "/ipv4/0.0.0.0:8888" 
+    assert utils.networking.ip__str__(4, "0.0.0.0", 8888) == "/ipv4/0.0.0.0:8888"
 
 def test_int_to_ip_range():
     for i in range(10):
@@ -45,14 +45,14 @@ def test_int_to_ip6_max():
 def test_int_to_ip6_overflow():
     overflow = 340282366920938463463374607431768211455 + 1
     try:
-        utils.networking.int_to_ip(overflow) 
+        utils.networking.int_to_ip(overflow)
     except:
         assert True
 
 def test_int_to_ip6_underflow():
     underflow = -1
     try:
-        utils.networking.int_to_ip(underflow) 
+        utils.networking.int_to_ip(underflow)
     except:
         assert True
 
@@ -65,7 +65,7 @@ def test_get_external_ip_os_broken():
             return 1
     def mock_call():
         return fake()
-        
+
     with mock.patch.object(os, 'popen', new=mock_call):
         assert utils.networking.get_external_ip()
 
@@ -89,7 +89,7 @@ def test_get_external_ip_os_request_urllib_broken():
 
     with mock.patch.object(os, 'popen', new=mock_call):
         with mock.patch.object(requests, 'get', new=mock_call_two):
-            urllib.request= MagicMock(return_value = fake_a()) 
+            urllib.request= MagicMock(return_value = fake_a())
             with pytest.raises(Exception):
                 assert utils.networking.get_external_ip()
 
@@ -106,10 +106,10 @@ def test_upnpc_create_port_map(mocked_upnp):
     mocked_upnp.statusinfo = MagicMock(return_value = '200')
     mocked_upnp.connectiontype = MagicMock(return_value = 'some_type')
     mocked_upnp.getspecificportmapping = returnNoPortMapping
-    
+
     with pytest.raises(UPNPCException):
         upnpc_create_port_map(port=port)
-    
+
 @pytest.mark.parametrize("url, expected", [
     ("wss://exampleendpoint:9944", "wss://exampleendpoint:9944"),
     ("ws://exampleendpoint:9944", "ws://exampleendpoint:9944"),

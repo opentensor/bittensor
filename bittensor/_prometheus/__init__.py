@@ -4,18 +4,18 @@ Create and init the config class, which manages the config of different bittenso
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import os
@@ -45,7 +45,7 @@ class prometheus:
     port: int = None
     started: bool = False
 
-    def __new__( 
+    def __new__(
         cls,
         wallet: 'bittensor.wallet',
         netuid: int,
@@ -69,7 +69,7 @@ class prometheus:
                     The port to run the prometheus DB on, this uniquely identifies the prometheus DB.
                 level (:obj:`prometheus.level`, `optional`, defaults to bittensor.defaults.prometheus.level ):
                     Prometheus logging level. If OFF, the prometheus DB is not initialized.
-                subtensor (:obj:`bittensor.Subtensor`, `optional`): 
+                subtensor (:obj:`bittensor.Subtensor`, `optional`):
                     Chain connection through which to serve.
                 network (default='local', type=str)
                     If subtensor is not set, uses this network flag to create the subtensor connection.
@@ -82,14 +82,14 @@ class prometheus:
         if isinstance(level, prometheus.level):
             level = level.name # Convert ENUM to str.
 
-        if subtensor == None: subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint) 
-        
+        if subtensor == None: subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint)
+
         config.prometheus.port = port if port != None else config.prometheus.port
         config.prometheus.level = level if level != None else config.prometheus.level
 
         if isinstance(config.prometheus.level, str):
             config.prometheus.level = config.prometheus.level.upper() # Convert str to upper case.
-        
+
         cls.check_config( config )
 
         return cls.serve(
@@ -100,7 +100,7 @@ class prometheus:
             port = config.prometheus.port,
             level = config.prometheus.level,
         )
-        
+
     def serve(cls, wallet, subtensor, netuid, port, level) -> bool:
         if level == prometheus.level.OFF.name: # If prometheus is off, return true.
             logger.success('Prometheus:'.ljust(20) + '<red>OFF</red>')
@@ -150,14 +150,14 @@ class prometheus:
         """
         prefix_str = '' if prefix == None else prefix + '.'
         try:
-            parser.add_argument('--' + prefix_str + 'prometheus.port',  type=int, required=False, default = bittensor.defaults.prometheus.port, 
+            parser.add_argument('--' + prefix_str + 'prometheus.port',  type=int, required=False, default = bittensor.defaults.prometheus.port,
                 help='''Prometheus serving port.''')
             parser.add_argument(
-                '--' + prefix_str + 'prometheus.level', 
+                '--' + prefix_str + 'prometheus.level',
                 required = False,
-                type = str, 
+                type = str,
                 choices = [l.name for l in list(prometheus.level)],
-                default = bittensor.defaults.prometheus.level, 
+                default = bittensor.defaults.prometheus.level,
                 help = '''Prometheus logging level. <OFF | INFO | DEBUG>''')
         except argparse.ArgumentError as e:
             pass

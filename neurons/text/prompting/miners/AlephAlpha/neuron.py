@@ -37,11 +37,11 @@ class AlephAlphaMiner( bittensor.BasePromptingMiner ):
         parser.add_argument('--aleph.stop_sequences', type=List[str], help='Stop tokens.', default=['user: ', 'bot: ', 'system: '])
         parser.add_argument('--aleph.top_k', type=int, help='Number of most likely tokens to consider at each step.', default=0)
         parser.add_argument('--aleph.top_p', type=float, help='Total probability mass of tokens to consider at each step.', default=0.0)
-    
+
     def __init__( self ):
         super( AlephAlphaMiner, self ).__init__()
         print ( self.config )
-        
+
         self.model = AlephAlpha(
             aleph_alpha_api_key = self.config.aleph.api_key,
             model = self.config.aleph.model,

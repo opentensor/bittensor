@@ -1,18 +1,18 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import torch
@@ -29,7 +29,7 @@ class TestSerialization(unittest.TestCase):
             content = serializer.serialize(tensor_a, from_type = bittensor.proto.TensorType.TORCH)
             tensor_b = serializer.deserialize(content, to_type = bittensor.proto.TensorType.TORCH)
             torch.all(torch.eq(tensor_a, tensor_b))
-            
+
     def test_serialize_object_type_exception(self):
         # Let's grab a random image, and try and de-serialize it incorrectly.
         image = torch.ones( [1, 28, 28] )
@@ -40,13 +40,13 @@ class TestSerialization(unittest.TestCase):
 
     def test_deserialization_object_type_exception(self):
         data = torch.rand([12, 23])
-        
+
         serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
         tensor_message = serializer.serialize(data, from_type = bittensor.proto.TensorType.TORCH)
 
         with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
             serializer.deserialize(tensor_message, to_type = 11)
-    
+
     def test_serialize_deserialize_image(self):
         # Let's grab some image data
         # Let's grab a random image, and give it a crazy type to break the system
@@ -54,7 +54,7 @@ class TestSerialization(unittest.TestCase):
 
         serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
         serialized_image_tensor_message = serializer.serialize(image, from_type = bittensor.proto.TensorType.TORCH)
-        
+
         assert image.requires_grad == serialized_image_tensor_message.requires_grad
         assert list(image.shape) == serialized_image_tensor_message.shape
         assert serialized_image_tensor_message.dtype != bittensor.proto.DataType.UNKNOWN
@@ -82,7 +82,7 @@ class TestSerialization(unittest.TestCase):
 
         serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
         serialized_data_tensor_message = serializer.serialize(data, from_type = bittensor.proto.TensorType.TORCH)
-       
+
         assert data.requires_grad == serialized_data_tensor_message.requires_grad
         assert list(data.shape) == serialized_data_tensor_message.shape
         assert serialized_data_tensor_message.dtype != bittensor.proto.DataType.UNKNOWN
@@ -94,13 +94,13 @@ class TestSerialization(unittest.TestCase):
 
         assert torch.all(torch.eq(deserialized_data_tensor_message, data))
 
-    
+
     def test_serialize_deserialize_tensor(self):
         data = torch.rand([12, 23])
 
         serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.MSGPACK )
         serialized_tensor_message = serializer.serialize(data, from_type = bittensor.proto.TensorType.TORCH)
-       
+
         assert data.requires_grad == serialized_tensor_message.requires_grad
         assert list(data.shape) == serialized_tensor_message.shape
         assert serialized_tensor_message.dtype == bittensor.proto.DataType.FLOAT32
@@ -112,7 +112,7 @@ class TestSerialization(unittest.TestCase):
 
         assert torch.all(torch.eq(deserialized_tensor_message, data))
 
-    
+
     def test_bittensor_dtype_to_torch_dtype(self):
         with pytest.raises(bittensor.serializer.DeserializationException):
             bittensor.serializer.bittensor_dtype_to_torch_dtype(11)
@@ -127,7 +127,7 @@ class TestCMPSerialization(unittest.TestCase):
             content = serializer.serialize(tensor_a, from_type = bittensor.proto.TensorType.TORCH)
             tensor_b = serializer.deserialize(content, to_type = bittensor.proto.TensorType.TORCH)
             torch.all(torch.eq(tensor_a, tensor_b))
-            
+
     def test_serialize_object_type_exception(self):
         # Let's grab a random image, and try and de-serialize it incorrectly.
         image = torch.ones( [1, 28, 28] )
@@ -138,13 +138,13 @@ class TestCMPSerialization(unittest.TestCase):
 
     def test_deserialization_object_type_exception(self):
         data = torch.rand([12, 23])
-        
+
         serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.CMPPACK )
         tensor_message = serializer.serialize(data, from_type = bittensor.proto.TensorType.TORCH)
 
         with pytest.raises(bittensor.serializer.SerializationTypeNotImplementedException):
             serializer.deserialize(tensor_message, to_type = 11)
-    
+
     def test_serialize_deserialize_image(self):
         # Let's grab some image data
         # Let's grab a random image, and give it a crazy type to break the system
@@ -153,7 +153,7 @@ class TestCMPSerialization(unittest.TestCase):
 
         serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.CMPPACK )
         serialized_image_tensor_message = serializer.serialize(image, from_type = bittensor.proto.TensorType.TORCH)
-        
+
         assert image.requires_grad == serialized_image_tensor_message.requires_grad
         assert list(image.shape) == serialized_image_tensor_message.shape
         assert serialized_image_tensor_message.dtype != bittensor.proto.DataType.UNKNOWN
@@ -183,7 +183,7 @@ class TestCMPSerialization(unittest.TestCase):
 
         serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.CMPPACK )
         serialized_data_tensor_message = serializer.serialize(data, from_type = bittensor.proto.TensorType.TORCH)
-       
+
         assert data.requires_grad == serialized_data_tensor_message.requires_grad
         assert list(data.shape) == serialized_data_tensor_message.shape
         assert serialized_data_tensor_message.dtype != bittensor.proto.DataType.UNKNOWN
@@ -196,14 +196,14 @@ class TestCMPSerialization(unittest.TestCase):
 
         assert torch.all(torch.eq(deserialized_data_tensor_message, data))
 
-    
+
     def test_serialize_deserialize_tensor(self):
         data = torch.rand([12, 23])
         data_size = data.element_size()*data.nelement()
 
         serializer = bittensor.serializer( serializer_type = bittensor.proto.Serializer.CMPPACK )
         serialized_tensor_message = serializer.serialize(data, from_type = bittensor.proto.TensorType.TORCH)
-       
+
         assert data.requires_grad == serialized_tensor_message.requires_grad
         assert list(data.shape) == serialized_tensor_message.shape
         assert serialized_tensor_message.dtype == bittensor.proto.DataType.FLOAT32
@@ -217,7 +217,7 @@ class TestCMPSerialization(unittest.TestCase):
 
         assert torch.all(torch.eq(deserialized_tensor_message, data.to(torch.float16)))
 
-    
+
     def test_bittensor_dtype_to_torch_dtype(self):
         with pytest.raises(bittensor.serializer.DeserializationException):
             bittensor.serializer.bittensor_dtype_to_torch_dtype(11)

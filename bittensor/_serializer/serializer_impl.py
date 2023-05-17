@@ -3,18 +3,18 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import torch
@@ -40,24 +40,24 @@ class Serializer(object):
         """Serializes a torch object to bittensor.proto.Tensor wire format.
 
         Args:
-            tensor_obj (:obj:`object`, `required`): 
+            tensor_obj (:obj:`object`, `required`):
                 general tensor object i.e. torch.Tensor or tensorflow.Tensor
 
-            from_type (`obj`: bittensor.proto.TensorType, `Optional`): 
+            from_type (`obj`: bittensor.proto.TensorType, `Optional`):
                 Serialization from this type. i.e. bittensor.proto.TensorType.TORCH or bittensor.proto.TensorType.TENSORFLOW
 
         Returns:
-            tensor_pb2: (obj: `bittensor.proto.Tensor`, `Optional`): 
-                Serialized tensor as bittensor.proto.proto. 
+            tensor_pb2: (obj: `bittensor.proto.Tensor`, `Optional`):
+                Serialized tensor as bittensor.proto.proto.
 
         Raises:
             SerializationTypeNotImplementedException (Exception):
                 Raised if the serializer does not implement the conversion between the passed type and a bittensor.proto.Tensor
 
-            SerializationException: (Exception): 
+            SerializationException: (Exception):
                 Raised when the subclass serialization throws an error for the passed object.
         """
-        # TODO (const): add deserialization types for torch -> tensorflow 
+        # TODO (const): add deserialization types for torch -> tensorflow
         if from_type == bittensor.proto.TensorType.TORCH:
             return self.serialize_from_torch( torch_tensor = tensor_obj )
 
@@ -76,24 +76,24 @@ class Serializer(object):
         """Serializes a torch object to bittensor.proto.Tensor wire format.
 
         Args:
-            tensor_pb2 (`obj`: bittensor.proto.Tensor, `required`): 
-                Serialized tensor as bittensor.proto.proto. 
+            tensor_pb2 (`obj`: bittensor.proto.Tensor, `required`):
+                Serialized tensor as bittensor.proto.proto.
 
-            to_type (`obj`: bittensor.proto.TensorType, `required`): 
+            to_type (`obj`: bittensor.proto.TensorType, `required`):
                 Deserialization to this type. i.e. bittensor.proto.TensorType.TORCH or bittensor.proto.TensorType.TENSORFLOW
 
         Returns:
-            tensor_obj (:obj:`torch.FloatTensor`, `required`): 
+            tensor_obj (:obj:`torch.FloatTensor`, `required`):
                 tensor object of type from_type in bittensor.proto.TensorType
 
         Raises:
             SerializationTypeNotImplementedException (Exception):
                 Raised if the serializer does not implement the conversion between the pb2 and the passed type.
-          
-            DeserializationException: (Exception): 
+
+            DeserializationException: (Exception):
                 Raised when the subclass deserializer throws an error for the passed object.
         """
-        # TODO (const): add deserialization types for torch -> tensorflow 
+        # TODO (const): add deserialization types for torch -> tensorflow
         if to_type == bittensor.proto.TensorType.TORCH:
             return self.deserialize_to_torch( tensor_pb2 )
 
@@ -113,7 +113,7 @@ class Serializer(object):
     def serialize_from_torch( self, torch_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
         """ torch -> bittensor.proto.Tensor """
         raise bittensor.serializer.SerializationTypeNotImplementedException
-    
+
     def serialize_from_numpy( self, numpy_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
         """ numpy -> bittensor.proto.Tensor """
         raise bittensor.serializer.SerializationTypeNotImplementedException
@@ -138,11 +138,11 @@ class MSGPackSerializer( Serializer ):
         """ Serializes a torch.Tensor to an bittensor Tensor proto.
 
         Args:
-            torch_tensor (torch.Tensor): 
+            torch_tensor (torch.Tensor):
                 Torch tensor to serialize.
         Returns:
-            bittensor.proto.Tensor: 
-                The serialized torch tensor as bittensor.proto.proto. 
+            bittensor.proto.Tensor:
+                The serialized torch tensor as bittensor.proto.proto.
         """
         dtype = bittensor.serializer.torch_dtype_to_bittensor_dtype(torch_tensor.dtype)
         shape = list(torch_tensor.shape)
@@ -163,11 +163,11 @@ class MSGPackSerializer( Serializer ):
         """Deserializes an bittensor.proto.Tensor to a torch.Tensor object.
 
         Args:
-            torch_proto (bittensor.proto.Tensor): 
+            torch_proto (bittensor.proto.Tensor):
                 Proto containing torch tensor to derserialize.
 
         Returns:
-            torch.Tensor: 
+            torch.Tensor:
                 Deserialized torch tensor.
         """
         dtype = bittensor.serializer.bittensor_dtype_to_torch_dtype(torch_proto.dtype)
@@ -184,11 +184,11 @@ class CMPPackSerializer( Serializer ):
         """ Serializes a torch.Tensor to an bittensor Tensor proto in float16
 
         Args:
-            torch_tensor (torch.Tensor): 
+            torch_tensor (torch.Tensor):
                 Torch tensor to serialize.
         Returns:
-            bittensor.proto.Tensor: 
-                The serialized torch tensor as bittensor.proto.proto. 
+            bittensor.proto.Tensor:
+                The serialized torch tensor as bittensor.proto.proto.
         """
         dtype = bittensor.serializer.torch_dtype_to_bittensor_dtype(torch_tensor.dtype)
         shape = list(torch_tensor.shape)
@@ -209,11 +209,11 @@ class CMPPackSerializer( Serializer ):
         """Deserializes an bittensor.proto.Tensor to a torch.Tensor object.
 
         Args:
-            torch_proto (bittensor.proto.Tensor): 
+            torch_proto (bittensor.proto.Tensor):
                 Proto containing torch tensor to derserialize.
 
         Returns:
-            torch.Tensor: 
+            torch.Tensor:
                 Deserialized torch tensor.
         """
         dtype = bittensor.serializer.bittensor_dtype_to_torch_dtype(torch_proto.dtype)

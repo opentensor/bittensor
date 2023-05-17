@@ -35,7 +35,7 @@ class axon:
     """ Axon object for serving synapse receptors. """
 
     def info(self) -> 'axon_info':
-        """Returns the axon info object associate with this axon.""" 
+        """Returns the axon info object associate with this axon."""
         return axon_info(
             version = bittensor.__version_as_int__,
             ip = self.external_ip,
@@ -58,7 +58,7 @@ class axon:
         external_ip: Optional[str] = None,
         external_port: Optional[int] = None,
         max_workers: Optional[int] = None,
-        server: "grpc._server._Server" = None,        
+        server: "grpc._server._Server" = None,
         maximum_concurrent_rpcs: Optional[int] = None,
         blacklist: Optional[Callable] = None,
     ) -> "bittensor.Axon":
@@ -190,7 +190,7 @@ class axon:
             parser.add_argument(
                 "--" + prefix_str + "axon.max_workers",
                 type=int,
-                help="""The maximum number connection handler threads working simultaneously on this endpoint. 
+                help="""The maximum number connection handler threads working simultaneously on this endpoint.
                         The grpc server distributes new worker threads to service requests up to this number.""",
                 default=bittensor.defaults.axon.max_workers,
             )
@@ -312,7 +312,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             raise Exception("Request signature missing")
         if int(version) < 370:
             raise Exception("Incorrect Version")
-        
+
         parts = self.parse_signature_v2(signature)
         if parts is not None:
             return parts
@@ -398,7 +398,7 @@ class axon_info:
     ip: str
     port: int
     ip_type: int
-    hotkey: str 
+    hotkey: str
     coldkey: str
     protocol:int = 4,
     placeholder1:int = 0,
@@ -411,20 +411,20 @@ class axon_info:
         else:return True
 
     def ip_str(self) -> str:
-        """ Return the whole ip as string """ 
+        """ Return the whole ip as string """
         return net.ip__str__(self.ip_type, self.ip, self.port)
 
     def __eq__ (self, other: 'axon_info'):
         if other == None: return False
         if self.version == other.version and self.ip == other.ip and self.port == other.port and self.ip_type == other.ip_type and self.coldkey == other.coldkey and self.hotkey == other.hotkey: return True
-        else: return False 
+        else: return False
 
-    def __str__(self): 
+    def __str__(self):
         return "axon_info( {}, {}, {}, {} )".format( str(self.ip_str()), str(self.hotkey), str(self.coldkey), self.version)
-    
+
     def __repr__(self):
         return self.__str__()
-        
+
     @classmethod
     def from_neuron_info(cls, neuron_info: dict ) -> 'axon_info':
         """ Converts a dictionary to an axon_info object. """
@@ -440,10 +440,10 @@ class axon_info:
     def to_parameter_dict( self ) -> 'torch.nn.ParameterDict':
         r""" Returns a torch tensor of the subnet info.
         """
-        return torch.nn.ParameterDict( 
+        return torch.nn.ParameterDict(
             self.__dict__
         )
-    
+
     @classmethod
     def from_parameter_dict( cls, parameter_dict: 'torch.nn.ParameterDict' ) -> 'SubnetInfo':
         r""" Returns a SubnetInfo object from a torch parameter_dict.
