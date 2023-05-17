@@ -44,22 +44,24 @@ Drittes Gesetz: Ein roboter muss seine eigene existenz schützen, solange dieser
                             ]}
 
 
-def _test_tokenizer_equivalence():
+def test_tokenizer_equivalence():
     r"""
     Checks if two tokenizers are equivalent w.r.t. their vocabularies.
     Equivalent tokenizers should always produce the same tokenization for the same text.
         Returns:
             Asserts expected result for list of tokenizer pairs.
     """
-    test_pairs = [('gpt2', 'gpt2', True),
-                  ('gpt2', 'EleutherAI/gpt-neo-125M', True),
-                  ('gpt2', 'EleutherAI/gpt-neo-2.7B', True),
-                  ('gpt2', 'EleutherAI/gpt-j-6B', False),
-                  ('gpt2', 'KoboldAI/fairseq-dense-2.7B', False),
-                  ('gpt2', 'bert-base-uncased', False),
-                  ('gpt2', 'xlnet-base-cased', False),
-                  ('gpt2', 'facebook/xglm-564M', False),
-                  ('gpt2', 'benjamin/gerpt2-large', False)]
+    test_pairs = [
+        ('gpt2', 'gpt2', True),
+        ('gpt2', 'EleutherAI/gpt-neo-125M', True),
+        # ('gpt2', 'EleutherAI/gpt-neo-2.7B', True),
+        # ('gpt2', 'EleutherAI/gpt-j-6B', False),
+        # ('gpt2', 'KoboldAI/fairseq-dense-2.7B', False),
+        # ('gpt2', 'bert-base-uncased', False),
+        # ('gpt2', 'xlnet-base-cased', False),
+        # ('gpt2', 'facebook/xglm-564M', False),
+        # ('gpt2', 'benjamin/gerpt2-large', False)
+    ]
 
     for target, to_check, expected_result in test_pairs:
         tokenizer_to_check = AutoTokenizer.from_pretrained(to_check)
@@ -249,16 +251,18 @@ def tokenizer_translation(text_batch: List[str], model_name: str, max_length: in
     return original_loss, encoded_loss, translated_loss, enc_pre_logits
 
 
-def _test_tokenizer_translation():
+def test_tokenizer_translation():
     r"""
     Unit test for tokenizer translation.
 
         Returns:
             Asserts that tokenizer translation produces previous encoded and translated losses.
     """
-    test_pairs = [('English-1', 'EleutherAI/gpt-j-6B', 95),
-                  ('English-1', 'benjamin/gerpt2-large', 95),
-                  ('German-1', 'benjamin/gerpt2-large', 172)]
+    test_pairs = [
+        ('English-1', 'EleutherAI/gpt-j-6B', 95),
+        # ('English-1', 'benjamin/gerpt2-large', 95),
+        # ('German-1', 'benjamin/gerpt2-large', 172)
+    ]
 
     try:
         encodings = torch.load(encodings_cache_file)
@@ -395,16 +399,18 @@ def tokenizer_topk_phrases(text_batch: List[str], model_name: str, max_length: i
     assert (_topk_tensor - topk_tensor).abs().sum() < 1e-9
 
 
-def _test_topk_token_phrases():
+def test_topk_token_phrases():
     r"""
     Unit test for topk token phrases raveling and unraveling.
 
         Returns:
             Asserts that compact tensor of topk token phrases can be unraveled to recover original topk tensors.
     """
-    test_pairs = [('English-1', 'EleutherAI/gpt-j-6B', 95),
-                  ('English-1', 'benjamin/gerpt2-large', 95),
-                  ('German-1', 'benjamin/gerpt2-large', 172)]
+    test_pairs = [
+        ('English-1', 'EleutherAI/gpt-j-6B', 95),
+        # ('English-1', 'benjamin/gerpt2-large', 95),
+        # ('German-1', 'benjamin/gerpt2-large', 172)
+    ]
 
     try:
         encodings = torch.load(encodings_cache_file)
@@ -432,7 +438,7 @@ def _test_topk_token_phrases():
         _encoded_loss, _translated_loss, _enc_pre_logits = encodings[(text_name, model_name)]
         tokenizer_topk_phrases(sample_text[text_name], model_name, max_length, _enc_pre_logits, topk=128)
 
-
+# TODO: (philanthrope) Fix this test.  It is failing because the passed tensor has issues, NOT with unravel_topk_token_phrases
 def _test_random_topk_token_phrases(single_token_ratios: Tuple = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0),
                                     max_len_final: int = 10, batch_size: int = 32, topk: int = 4096,
                                     ignore_index: int = -100, vocab_len: int = 50256):
@@ -498,7 +504,7 @@ def _test_random_topk_token_phrases(single_token_ratios: Tuple = (0.1, 0.2, 0.3,
                     topk_tensor[batch, phrase_idx, 1:length+1] = 1. * torch.randint(vocab_len, (longer_phrases, length))
 
             topk_tensor[:, :, 0] = torch.rand((batch_size, topk + 1))  # assign random probabilities to first column
-
+            import pdb;pdb.set_trace()
             compact_topk = compact_topk_token_phrases(topk_tensor)  # [>= batch_size * (2 * topk + 1)]
             _topk_tensor = unravel_topk_token_phrases(compact_topk, topk=topk)  # [batch_size, (topk + 1), max_len]
             assert torch.all(torch.eq(_topk_tensor, topk_tensor))
