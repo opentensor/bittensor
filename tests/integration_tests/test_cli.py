@@ -117,6 +117,7 @@ def setupSubnets():
 
 def killMockSubtensorProcess():
     # wait 30s to kill
+    pass
     time.sleep(5 * 60)
     _subtensor_mock.optionally_kill_owned_mock_instance()
 
