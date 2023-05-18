@@ -1,18 +1,18 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
@@ -39,7 +39,7 @@ class OverviewCommand:
 
         all_hotkeys = []
         total_balance = bittensor.Balance(0)
-        
+
         # We are printing for every coldkey.
         if cli.config.get( 'all', d=None ):
             cold_wallets = get_coldkey_wallets_for_path(cli.config.wallet.path)
@@ -72,7 +72,7 @@ class OverviewCommand:
             console.print("[red]No wallets found.[/red]")
             return
 
-        # Pull neuron info for all keys.            
+        # Pull neuron info for all keys.
         neurons: Dict[str, List[bittensor.NeuronInfoLite, bittensor.Wallet]] = {}
         block = subtensor.block
 
@@ -82,7 +82,7 @@ class OverviewCommand:
         for netuid in netuids:
             neurons[str(netuid)] = []
         netuids_copy = netuids.copy()
-        
+
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
             for netuid in tqdm(netuids_copy, desc="Checking each subnet"):
                 all_neurons: List[bittensor.NeuronInfoLite] = subtensor.neurons_lite( netuid = netuid )
@@ -117,14 +117,14 @@ class OverviewCommand:
         for netuid in netuids:
             subnet_tempo = subtensor.tempo(netuid=netuid)
             last_subnet = netuid == netuids[-1]
-            TABLE_DATA = []  
+            TABLE_DATA = []
             total_rank = 0.0
             total_trust = 0.0
             total_consensus = 0.0
             total_validator_trust = 0.0
             total_incentive = 0.0
             total_dividends = 0.0
-            total_emission = 0   
+            total_emission = 0
 
             for nn, hotwallet in neurons[str(netuid)]:
                 nn: bittensor.NeuronInfoLite
@@ -143,11 +143,11 @@ class OverviewCommand:
                 row = [
                     hotwallet.name,
                     hotwallet.hotkey_str,
-                    str(uid), 
-                    str(active), 
+                    str(uid),
+                    str(active),
                     '{:.5f}'.format(stake),
-                    '{:.5f}'.format(rank), 
-                    '{:.5f}'.format(trust), 
+                    '{:.5f}'.format(rank),
+                    '{:.5f}'.format(trust),
                     '{:.5f}'.format(consensus),
                     '{:.5f}'.format(incentive),
                     '{:.5f}'.format(dividends),
@@ -155,10 +155,10 @@ class OverviewCommand:
                     '{:.5f}'.format(validator_trust),
                     '*' if validator_permit else '',
                     str(last_update),
-                    bittensor.utils.networking.int_to_ip( nn.axon_info.ip) + ':' + str(nn.axon_info.port) if nn.axon_info.port != 0 else '[yellow]none[/yellow]', 
+                    bittensor.utils.networking.int_to_ip( nn.axon_info.ip) + ':' + str(nn.axon_info.port) if nn.axon_info.port != 0 else '[yellow]none[/yellow]',
                     nn.hotkey
                 ]
-               
+
                 total_rank += rank
                 total_trust += trust
                 total_consensus += consensus
@@ -201,7 +201,7 @@ class OverviewCommand:
             table.add_column("[overline white]VTRUST", '{:.5f}'.format(total_validator_trust), footer_style="overline white", justify='right', style='green', no_wrap=True)
             table.add_column("[overline white]VPERMIT", justify='right', no_wrap=True)
             table.add_column("[overline white]UPDATED", justify='right', no_wrap=True)
-            table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True) 
+            table.add_column("[overline white]AXON", justify='left', style='dim blue', no_wrap=True)
             table.add_column("[overline white]HOTKEY_SS58", style='dim blue', no_wrap=False)
             table.show_footer = True
 
@@ -221,11 +221,11 @@ class OverviewCommand:
                     if  match_ratio > highest_matching_ratio:
                         highest_matching_ratio = match_ratio
                         column_to_sort_by = index
-                
+
                 if sort_order.lower() in { 'desc', 'descending', 'reverse'}:
                     # Sort descending if the sort_order matches desc, descending, or reverse
                     sort_descending = True
-                
+
                 def overview_sort_function(row):
                     data = row[column_to_sort_by]
                     # Try to convert to number if possible
@@ -254,33 +254,33 @@ class OverviewCommand:
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
         overview_parser = parser.add_parser(
-            'overview', 
+            'overview',
             help='''Show registered account overview.'''
         )
         overview_parser.add_argument(
-            '--no_prompt', 
-            dest='no_prompt', 
-            action='store_true', 
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
         overview_parser.add_argument(
-            '--all', 
-            dest='all', 
-            action='store_true', 
+            '--all',
+            dest='all',
+            action='store_true',
             help='''View overview for all wallets.''',
             default=False,
         )
         overview_parser.add_argument(
-            '--width', 
-            dest='width', 
+            '--width',
+            dest='width',
             action='store',
-            type=int, 
+            type=int,
             help='''Set the output width of the overview. Defaults to automatic width from terminal.''',
             default=None,
         )
         overview_parser.add_argument(
-            '--sort_by', 
+            '--sort_by',
             '--wallet.sort_by',
             dest='sort_by',
             required=False,
@@ -320,18 +320,18 @@ class OverviewCommand:
             help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.'''
         )
         overview_parser.add_argument(
-            '--netuid', 
-            dest='netuid', 
+            '--netuid',
+            dest='netuid',
             type=int,
             nargs='*',
             help='''Set the netuid(s) to filter by.''',
             default=[],
         )
-        overview_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )  
+        overview_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
         bittensor.wallet.add_args( overview_parser )
         bittensor.subtensor.add_args( overview_parser )
 
-    @staticmethod   
+    @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt and not config.get( 'all', d=None ):
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
@@ -342,4 +342,3 @@ class OverviewCommand:
                 config.netuid = [int(config.netuid)]
             else:
                 config.netuid = [int(netuid) for netuid in config.netuid]
-      

@@ -18,7 +18,7 @@
 import torch
 import argparse
 import bittensor
-from transformers import AutoModel, AutoTokenizer, AutoConfig 
+from transformers import AutoModel, AutoTokenizer, AutoConfig
 
 class GatingModel( torch.nn.Module ):
     """
@@ -48,7 +48,7 @@ class GatingModel( torch.nn.Module ):
         """
         Returns a configuration object that contains the command line arguments for the gating model.
         """
-        parser = argparse.ArgumentParser()    
+        parser = argparse.ArgumentParser()
         cls.add_args( parser )
         return bittensor.config( parser )
 
@@ -59,10 +59,10 @@ class GatingModel( torch.nn.Module ):
         """
         pass
 
-    def __init__( 
-            self, 
+    def __init__(
+            self,
             metagraph: 'bittensor.metagraph.Metagraph',
-            config: 'bittensor.config' = None, 
+            config: 'bittensor.config' = None,
             model_name: str = None,
             num_uids: int = None
         ):
@@ -76,28 +76,27 @@ class GatingModel( torch.nn.Module ):
         super(GatingModel, self).__init__()
         if config is None: config = GatingModel.config()
         if model_name is not None: config.gating.model_name = model_name
-        if num_uids is not None: config.gating.num_uids = self.metagraph.n
+        config.gating.num_uids = num_uids if num_uids is not None else metagraph.n
         self.config = config
-        self.metagraph = metagraph
-        self.num_uids = self.metagraph.n
+        self.num_uids = config.gating.num_uids
         self.device = torch.device( self.config.neuron.device )
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.gating.model_name )
         self.model = AutoModel.from_config( AutoConfig.from_pretrained(self.config.gating.model_name) ) #TODO: add pretrained flag
-        self.linear = torch.nn.Linear( self.model.config.hidden_size, self.metagraph.n )
+        self.linear = torch.nn.Linear( self.model.config.hidden_size, config.gating.num_uids  )
         self.optimizer = torch.optim.SGD(
             [ {"params": self.parameters()} ],
             lr = self.config.gating.learning_rate,
             momentum = self.config.gating.momentum,
         )
 
-    def backward( self, scores: torch.FloatTensor, rewards: torch.FloatTensor ): 
+    def backward( self, scores: torch.FloatTensor, rewards: torch.FloatTensor ):
         """ Runs a backward pass through the model.
             Args:
                 scores (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     Scores for each uids as output by the gating model.
                 rewards (:obj:`torch.FloatTensor` of shape :obj:`(metagraph.n)`):
                     Rewards for each uids as output by the reward model.
-        """   
+        """
         normalized_scores = torch.nn.functional.softmax( scores, dim=0 ).to( self.device )
         nomralized_rewards = torch.nn.functional.softmax( rewards, dim=0 ).to( self.device )
         loss = torch.nn.functional.mse_loss( normalized_scores, nomralized_rewards.detach() )
@@ -107,7 +106,7 @@ class GatingModel( torch.nn.Module ):
     def forward( self, message: str ) -> 'torch.FloatTensor':
         """ Runs a forward pass through the model.
             Args:
-                message (:obj:`str`): 
+                message (:obj:`str`):
                     text message to be encoded.
             Returns:
                 scores (:obj:`torch.FloatTensor` of shape :obj:`(network_size)`):

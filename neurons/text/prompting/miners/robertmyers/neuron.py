@@ -32,7 +32,7 @@ class RobertMyersMiner( bittensor.BasePromptingMiner ):
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
         pass
-    
+
     def __init__( self ):
         super( RobertMyersMiner, self ).__init__()
         print ( self.config )
@@ -41,7 +41,7 @@ class RobertMyersMiner( bittensor.BasePromptingMiner ):
         self.model.to( "cuda" )
         self.pipe = pipeline( "text-generation", self.model, tokenizer=tokenizer, device = 0, max_new_tokens = 256 )
         print("Model loaded")
-    
+
     @staticmethod
     def _process_history( history: List[ Dict[str, str] ] ) -> str:
         processed_history = ''
@@ -58,7 +58,7 @@ class RobertMyersMiner( bittensor.BasePromptingMiner ):
 
     def forward( self, messages: List[Dict[str, str]]  ) -> str:
         history = self._process_history(messages)
-        resp = self.pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "") 
+        resp = self.pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "")
         return resp
 
 if __name__ == "__main__":

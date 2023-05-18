@@ -35,7 +35,7 @@ class axon:
     """ Axon object for serving synapse receptors. """
 
     def info(self) -> 'axon_info':
-        """Returns the axon info object associate with this axon.""" 
+        """Returns the axon info object associate with this axon."""
         return axon_info(
             version = bittensor.__version_as_int__,
             ip = self.external_ip,
@@ -58,6 +58,7 @@ class axon:
         external_ip: Optional[str] = None,
         external_port: Optional[int] = None,
         max_workers: Optional[int] = None,
+        server: "grpc._server._Server" = None,
         maximum_concurrent_rpcs: Optional[int] = None,
         blacklist: Optional[Callable] = None,
     ) -> "bittensor.Axon":
@@ -123,14 +124,19 @@ class axon:
         )
 
         # Build grpc server
-        self.thread_pool = futures.ThreadPoolExecutor(max_workers=self.config.axon.max_workers)
-        self.server = grpc.server(
-            self.thread_pool,
-            interceptors=(self.auth_interceptor,),
-            maximum_concurrent_rpcs=self.config.axon.maximum_concurrent_rpcs,
-            options=[("grpc.keepalive_time_ms", 100000), ("grpc.keepalive_timeout_ms", 500000)],
-        )
-        self.server.add_insecure_port(self.full_address)
+        if server is None:
+            self.thread_pool = futures.ThreadPoolExecutor(max_workers=self.config.axon.max_workers)
+            self.server = grpc.server(
+                self.thread_pool,
+                interceptors=(self.auth_interceptor,),
+                maximum_concurrent_rpcs=self.config.axon.maximum_concurrent_rpcs,
+                options=[("grpc.keepalive_time_ms", 100000), ("grpc.keepalive_timeout_ms", 500000)],
+            )
+            self.server.add_insecure_port(self.full_address)
+        else:
+            self.server = server
+            self.thread_pool = server._state.thread_pool
+            self.server.add_insecure_port(self.full_address)
 
     @classmethod
     def config(cls) -> "bittensor.Config":
@@ -184,7 +190,7 @@ class axon:
             parser.add_argument(
                 "--" + prefix_str + "axon.max_workers",
                 type=int,
-                help="""The maximum number connection handler threads working simultaneously on this endpoint. 
+                help="""The maximum number connection handler threads working simultaneously on this endpoint.
                         The grpc server distributes new worker threads to service requests up to this number.""",
                 default=bittensor.defaults.axon.max_workers,
             )
@@ -258,7 +264,7 @@ class axon:
 
     def stop(self) -> "bittensor.axon":
         r"""Stop the axon grpc server."""
-        if self.server is not None:
+        if hasattr(self, "server") and self.server is not None:
             self.server.stop(grace=1)
         self.started = False
 
@@ -306,7 +312,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
             raise Exception("Request signature missing")
         if int(version) < 370:
             raise Exception("Incorrect Version")
-        
         parts = self.parse_signature_v2(signature)
         if parts is not None:
             return parts
@@ -338,7 +343,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             raise Exception("Signature mismatch")
         self.nonces[endpoint_key] = nonce
 
-    def black_list_checking(self, hotkey: str):
+    def black_list_checking(self, hotkey: str, method: str):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
         if self.blacklist is None:
             return
@@ -353,7 +358,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
         failed, error_message =  self.blacklist(hotkey, request_type)
         if failed:
             raise Exception(str(error_message))
-
 
     def intercept_service(self, continuation, handler_call_details):
         r"""Authentication between bittensor nodes. Intercepts messages and checks them"""
@@ -374,7 +378,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
             )
 
             # blacklist checking
-            self.black_list_checking(sender_hotkey)
+            self.black_list_checking(sender_hotkey, method)
 
             return continuation(handler_call_details)
 
@@ -393,7 +397,7 @@ class axon_info:
     ip: str
     port: int
     ip_type: int
-    hotkey: str 
+    hotkey: str
     coldkey: str
     protocol:int = 4,
     placeholder1:int = 0,
@@ -406,20 +410,20 @@ class axon_info:
         else:return True
 
     def ip_str(self) -> str:
-        """ Return the whole ip as string """ 
+        """ Return the whole ip as string """
         return net.ip__str__(self.ip_type, self.ip, self.port)
 
     def __eq__ (self, other: 'axon_info'):
         if other == None: return False
         if self.version == other.version and self.ip == other.ip and self.port == other.port and self.ip_type == other.ip_type and self.coldkey == other.coldkey and self.hotkey == other.hotkey: return True
-        else: return False 
+        else: return False
 
-    def __str__(self): 
+    def __str__(self):
         return "axon_info( {}, {}, {}, {} )".format( str(self.ip_str()), str(self.hotkey), str(self.coldkey), self.version)
-    
+
     def __repr__(self):
         return self.__str__()
-        
+
     @classmethod
     def from_neuron_info(cls, neuron_info: dict ) -> 'axon_info':
         """ Converts a dictionary to an axon_info object. """
@@ -435,10 +439,10 @@ class axon_info:
     def to_parameter_dict( self ) -> 'torch.nn.ParameterDict':
         r""" Returns a torch tensor of the subnet info.
         """
-        return torch.nn.ParameterDict( 
+        return torch.nn.ParameterDict(
             self.__dict__
         )
-    
+
     @classmethod
     def from_parameter_dict( cls, parameter_dict: 'torch.nn.ParameterDict' ) -> 'SubnetInfo':
         r""" Returns a SubnetInfo object from a torch parameter_dict.

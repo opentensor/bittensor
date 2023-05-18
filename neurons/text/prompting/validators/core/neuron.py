@@ -203,10 +203,18 @@ class neuron:
                         return False # Everyone else, dont blacklist.
 
                 def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+                
                 def forward( _, messages: List[Dict[str, str]] ) -> str:
                     return self.inference(
                         messages = messages,
                         timeout = self.config.neuron.inference_timeout
+                    )
+                
+                def multi_forward( _, messages: List[Dict[str, str]] ) -> str:
+                    return self.inference(
+                        messages = messages,
+                        timeout = self.config.neuron.inference_timeout,
+                        return_all = True
                     )
 
             # Serve axon.
@@ -375,7 +383,8 @@ class neuron:
             self, 
             messages: List[Dict[str, str]],
             timeout: float,
-            dont_use_reward_model: bool = True
+            dont_use_reward_model: bool = True,
+            return_all = False
         ) -> str:
         bittensor.logging.info( 'inference()')
 
@@ -413,11 +422,25 @@ class neuron:
             bittensor.logging.info('not applying the reward model taking the best completed response')
             # Return first best from scores.
             forward_calls.reverse()
-            for call in forward_calls:
-                if len( call.completion ) > 0:
-                    bittensor.logging.info( 'best completion', call.completion )
-                    return call.completion
-            return 'no valid completions'
+            
+            if return_all:
+                completions = []
+                for call in forward_calls:
+                    if len( call.completion ) > 0:
+                        completions.append(call.completion)
+                if len(completions) > 0:
+                    return completions
+            else:
+                for call in forward_calls:
+                    if len( call.completion ) > 0:
+                        bittensor.logging.info( 'best completion', call.completion )
+                        return call.completion
+
+            if return_all:
+                return ['no valid completions']
+            else:
+                return 'no valid completions'
+            
 
         else:
             # Format messages for reward model.
@@ -433,8 +456,11 @@ class neuron:
             rewards = self.reward_model.reward( flattened_completions_for_reward, completions_for_reward, difference =False ).to( self.device )
             best_completion = completions[ rewards.argmax( dim = 0 ) ]
             bittensor.logging.info('finished applying the reward model ', time.time() - reward_model_start )
-            bittensor.logging.info( 'best completion', best_completion)
-            return best_completion
+            
+            if return_all: 
+                return completions
+            else:
+                return best_completion
 
     def get_question(self, uids, bootstrap_prompt, reset_bootstrap_prompt = False, random_sample_uids = False):
         
@@ -624,8 +650,14 @@ class neuron:
     def run(self):
         if self.config.neuron.inference_only:
             # Start an infinite loop, allows axon to service inference requests.
+            last_sync = self.subtensor.block
             while True:
-                time.sleep(1)
+                time.sleep(12)
+                if self.subtensor.block -last_sync > 100:
+                    self.metagraph.sync()
+                    self.last_sync = self.subtensor.block
+                    self.load(inference_only = True)
+
         else:
             # Normal validator train operation for validation.
             self.train()
@@ -643,10 +675,16 @@ class neuron:
             torch.save(state_dict, f'{path}/model.torch')
             bittensor.logging.success(prefix='Saved model', sufix=f'<blue>{path}/model.torch</blue>')
 
+            gating_state_dict = {
+                'model_state_dict':self.gating_model.state_dict(),
+                'num_hotkeys': self.gating_model.num_uids
+            }
+            torch.save(gating_state_dict, f'{path}/gating.torch')
+            bittensor.logging.success(prefix='Saved gating model', sufix=f'<blue>{path}/gating.torch</blue>')
         except Exception as e:
             logger.warning(f'Failed to save model with error: {e}')
 
-    def load(self, path=None):
+    def load(self, path=None, inference_only=False):
         r""" Load hotkeys and moving average scores from filesystem. """
         try:
             if path is None:
@@ -655,6 +693,16 @@ class neuron:
             self.moving_averaged_scores = state_dict['neuron_weights'].clone().detach()
             self.hotkeys = state_dict['neuron_hotkeys']
             bittensor.logging.success(prefix='Reloaded model', sufix=f'<blue>{path}/model.torch</blue>')
+
+            gating_state_dict = torch.load(f'{path}/gating.torch')
+            if self.gating_model.num_uids == gating_state_dict['num_hotkeys']:
+                self.gating_model.load_state_dict(gating_state_dict['model_state_dict'], strict=False)
+                bittensor.logging.success(prefix='Reloaded Gating model', sufix=f'<blue>{path}/gating.torch</blue>')
+
+            elif inference_only:
+                self.gating_model = GatingModel( metagraph = self.metagraph, config = self.config, num_uids=gating_state_dict['num_hotkeys']).to( self.device )
+                self.gating_model.load_state_dict(gating_state_dict['model_state_dict'], strict=False)
+                bittensor.logging.success(prefix='Reloaded Gating model', sufix=f'<blue>{path}/gating.torch</blue>')
 
         except Exception as e:
             logger.warning(f'Failed to load model with error: {e}')

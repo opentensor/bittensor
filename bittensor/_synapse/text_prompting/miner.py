@@ -48,14 +48,14 @@ class BasePromptingMiner( ABC ):
             if not is_registered:
                 if self.config.neuron.blacklist.allow_non_registered: return False, 'passed blacklist'
                 else: return True, 'pubkey not registered'
-        
+
         # Blacklist based on stake.
         def stake_check() -> bool:
             default_stake = self.config.neuron.blacklist.default_stake
             if default_stake <= 0.0:
                 return False, 'passed blacklist'
             uid = self.metagraph.hotkeys.index(forward_call.src_hotkey)
-            if self.metagraph.S[uid].item() < default_stake: 
+            if self.metagraph.S[uid].item() < default_stake:
                 bittensor.logging.debug( "Blacklisted. Stake too low.")
                 return True, 'Stake too low.'
             else: return False, 'passed blacklist'
@@ -68,7 +68,7 @@ class BasePromptingMiner( ABC ):
         except Exception as e:
             bittensor.logging.warning( "Blacklisted. Error in `registration_check` or `stake_check()" )
             return True, 'Error in `registration_check` or `stake_check()'
-        
+
     @abstractmethod
     def forward( self, messages: List[Dict[str, str]] ) -> str:
         ...
@@ -110,46 +110,46 @@ class BasePromptingMiner( ABC ):
     def add_super_args( cls, parser: argparse.ArgumentParser ):
         cls.add_args(parser)
         parser.add_argument(
-            '--netuid', 
-            type = int, 
-            help = 'Subnet netuid', 
+            '--netuid',
+            type = int,
+            help = 'Subnet netuid',
             default = 41
         )
         parser.add_argument(
-            '--neuron.name', 
+            '--neuron.name',
             type = str,
             help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
             default = 'openai_prompting_miner'
         )
         parser.add_argument(
-            '--neuron.blocks_per_epoch', 
-            type = str, 
+            '--neuron.blocks_per_epoch',
+            type = str,
             help = 'Blocks until the miner sets weights on chain',
             default = 100
         )
         parser.add_argument(
-            '--neuron.no_set_weights', 
-            action = 'store_true', 
+            '--neuron.no_set_weights',
+            action = 'store_true',
             help = 'If True, the model does not set weights.',
             default = False
         )
         parser.add_argument(
-            '--neuron.max_batch_size', 
-            type = int, 
+            '--neuron.max_batch_size',
+            type = int,
             help = 'The maximum batch size for forward requests.',
             default = -1
         )
         parser.add_argument(
-            '--neuron.max_sequence_len', 
-            type = int, 
+            '--neuron.max_sequence_len',
+            type = int,
             help = 'The maximum sequence length for forward requests.',
             default = -1
         )
         parser.add_argument(
-            '--neuron.blacklist.hotkeys', 
-            type = str, 
-            required = False, 
-            nargs = '*', 
+            '--neuron.blacklist.hotkeys',
+            type = str,
+            required = False,
+            nargs = '*',
             action = 'store',
             help = 'To blacklist certain hotkeys', default=[]
         )
@@ -188,7 +188,7 @@ class BasePromptingMiner( ABC ):
         self.subtensor = bittensor.subtensor( self.config )
         self.wallet = bittensor.wallet( self.config )
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
-        self.axon = bittensor.axon( 
+        self.axon = bittensor.axon(
             wallet = self.wallet,
             metagraph = self.metagraph,
             config = self.config,
