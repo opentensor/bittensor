@@ -2,18 +2,18 @@
 # Copyright © 2021 Yuma Rao
 # Copyright © 2022 Opentensor Foundation
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import time
@@ -77,7 +77,7 @@ def sign_v2(sender_wallet, receiver_wallet):
     signature = f"0x{sender_wallet.hotkey.sign(message).hex()}"
     return ".".join([nonce, sender_hotkey, signature, receptor_uid])
 
-def sign(sender_wallet, receiver_wallet, receiver_version):    
+def sign(sender_wallet, receiver_wallet, receiver_version):
     return sign_v2(sender_wallet, receiver_wallet)
 
 def test_sign_v2():
@@ -144,7 +144,7 @@ def test_axon_is_destroyed():
 # test external axon args
 class TestExternalAxon(unittest.TestCase):
     """
-    Tests the external axon config flags 
+    Tests the external axon config flags
     `--axon.external_port` and `--axon.external_ip`
     Need to verify the external config is used when broadcasting to the network
     and the internal config is used when creating the grpc server
@@ -207,11 +207,11 @@ class TestExternalAxon(unittest.TestCase):
         mock_server = mock.MagicMock(
             add_insecure_port=mock_add_insecure_port
         )
-        
+
         mock_config = bittensor.axon.config()
 
         _ = bittensor.axon( wallet = mock_wallet, metagraph = None, port = internal_port, external_port = external_port, server = mock_server, config = mock_config )
-        
+
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
         full_address0 = args[0]
@@ -227,7 +227,7 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.external_port = external_port
 
         _ = bittensor.axon( wallet = mock_wallet, metagraph = None, config = mock_config, server = mock_server )
-        
+
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
         full_address0 = args[0]
@@ -255,7 +255,7 @@ class TestExternalAxon(unittest.TestCase):
         mock_config = bittensor.axon.config()
 
         _ = bittensor.axon( wallet = mock_wallet, metagraph = None, ip=internal_ip, external_ip=external_ip, server=mock_server, config=mock_config )
-        
+
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
         full_address0 = args[0]
@@ -270,7 +270,7 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.ip = internal_ip
 
         _ = bittensor.axon( wallet = mock_wallet, metagraph = None, config=mock_config, server=mock_server )
-        
+
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
         full_address0 = args[0]
@@ -300,7 +300,7 @@ class TestExternalAxon(unittest.TestCase):
         mock_config = bittensor.axon.config()
 
         _ = bittensor.axon( wallet = mock_wallet, metagraph = None, ip=internal_ip, external_ip=external_ip, port=internal_port, external_port=external_port, server=mock_server, config=mock_config )
-        
+
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
         full_address0 = args[0]
@@ -318,7 +318,7 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.external_port = external_port
 
         _ = bittensor.axon( wallet = mock_wallet, metagraph = None, config=mock_config, server=mock_server )
-        
+
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
         full_address1 = args[0]

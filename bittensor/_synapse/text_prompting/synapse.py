@@ -29,9 +29,9 @@ class SynapseForwardMulti( bittensor.SynapseCall ):
     is_forward: bool = True
     multi_completions: List[ str ] = [""]
 
-    def __init__( 
-            self, 
-            synapse: "TextPromptingSynapseMulti", 
+    def __init__(
+            self,
+            synapse: "TextPromptingSynapseMulti",
             request_proto: bittensor.proto.MultiForwardTextPromptingRequest,
             multi_forward_callback: Callable,
         ):
@@ -45,15 +45,15 @@ class SynapseForwardMulti( bittensor.SynapseCall ):
         self.multi_completions = self.multi_forward_callback( messages = self.formatted_messages )
         bittensor.logging.trace( "SynapseForward.apply() = ", self.multi_completions )
 
-    def get_response_proto( self ) -> bittensor.proto.MultiForwardTextPromptingResponse: 
+    def get_response_proto( self ) -> bittensor.proto.MultiForwardTextPromptingResponse:
         bittensor.logging.trace( "SynapseForward.get_response_proto()")
         return bittensor.MultiForwardTextPromptingResponse( multi_completions = self.multi_completions )
-            
-    def get_inputs_shape(self) -> Union[torch.Size, None]: 
+
+    def get_inputs_shape(self) -> Union[torch.Size, None]:
         bittensor.logging.trace( "SynapseForward.get_inputs_shape()" )
         return torch.Size( [ len(message) for message in self.messages ] )
-    
-    def get_outputs_shape(self) -> Union[torch.Size, None]: 
+
+    def get_outputs_shape(self) -> Union[torch.Size, None]:
         bittensor.logging.trace( "SynapseForward.get_outputs_shape()" )
         return torch.Size( [ len(self.multi_completions) ]  )
 
@@ -62,9 +62,9 @@ class SynapseForward( bittensor.SynapseCall ):
     is_forward: bool = True
     completion: str = ""
 
-    def __init__( 
-            self, 
-            synapse: "TextPromptingSynapse", 
+    def __init__(
+            self,
+            synapse: "TextPromptingSynapse",
             request_proto: bittensor.proto.ForwardTextPromptingRequest,
             forward_callback: Callable,
         ):
@@ -78,25 +78,25 @@ class SynapseForward( bittensor.SynapseCall ):
         self.completion = self.forward_callback( messages = self.formatted_messages )
         bittensor.logging.trace( "SynapseForward.apply() = ", self.completion )
 
-    def get_response_proto( self ) -> bittensor.proto.ForwardTextPromptingResponse: 
+    def get_response_proto( self ) -> bittensor.proto.ForwardTextPromptingResponse:
         bittensor.logging.trace( "SynapseForward.get_response_proto()" )
         return bittensor.ForwardTextPromptingResponse( response = self.completion )
-    
-    def get_inputs_shape(self) -> Union[torch.Size, None]: 
+
+    def get_inputs_shape(self) -> Union[torch.Size, None]:
         bittensor.logging.trace( "SynapseForward.get_inputs_shape()" )
         return torch.Size( [ len(message) for message in self.messages ] )
-    
-    def get_outputs_shape(self) -> Union[torch.Size, None]: 
+
+    def get_outputs_shape(self) -> Union[torch.Size, None]:
         bittensor.logging.trace( "SynapseForward.get_outputs_shape()" )
         return torch.Size( [ len(self.completion) ]  )
-    
+
 class SynapseBackward( bittensor.SynapseCall ):
     name: str = "text_prompting_backward"
     is_forward: bool = False
 
-    def __init__( 
-            self, 
-            synapse: "TextPromptingSynapse", 
+    def __init__(
+            self,
+            synapse: "TextPromptingSynapse",
             request_proto: bittensor.proto.BackwardTextPromptingRequest,
             backward_callback: Callable,
         ):
@@ -111,15 +111,15 @@ class SynapseBackward( bittensor.SynapseCall ):
             rewards = self.formatted_rewards,
             messages = self.formatted_messages,
             response = self.completion,
-        )    
-    
-    def get_response_proto( self ) -> bittensor.proto.BackwardTextPromptingResponse: 
+        )
+
+    def get_response_proto( self ) -> bittensor.proto.BackwardTextPromptingResponse:
         return bittensor.BackwardTextPromptingResponse( )
 
-    def get_inputs_shape(self) -> torch.Size: 
+    def get_inputs_shape(self) -> torch.Size:
         return torch.Size( [ len(message) for message in self.formatted_messages ] )
-    
-    def get_outputs_shape(self) -> torch.Size: 
+
+    def get_outputs_shape(self) -> torch.Size:
         return torch.Size( [ 0 ] )
 
 
@@ -142,15 +142,15 @@ class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServi
     def Forward( self, request: bittensor.proto.ForwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.ForwardTextPromptingResponse:
         call = SynapseForward( self, request, self.forward )
         bittensor.logging.trace( 'Forward: {} '.format( call ) )
-        return self.apply( call = call ) 
+        return self.apply( call = call )
 
     def MultiForward( self, request: bittensor.proto.MultiForwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.MultiForwardTextPromptingResponse:
         call = SynapseForwardMulti( self, request, self.multi_forward )
         bittensor.logging.trace( 'MultiForward: {} '.format( call ) )
-        return self.apply( call = call ) 
-                         
+        return self.apply( call = call )
+
     def Backward( self, request: bittensor.proto.BackwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.BackwardTextPromptingResponse:
         call = SynapseBackward( self, request, self.backward )
         bittensor.logging.trace( 'Backward: {}'.format( call ) )
-        return self.apply( call = call ) 
+        return self.apply( call = call )
 

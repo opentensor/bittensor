@@ -14,9 +14,9 @@ RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
-def indexed_values_to_dataframe ( 
+def indexed_values_to_dataframe (
         prefix: Union[str, int],
-        index: Union[list, torch.LongTensor], 
+        index: Union[list, torch.LongTensor],
         values: Union[list, torch.Tensor],
         filter_zeros: bool = False
     ) -> 'pandas.DataFrame':
@@ -50,7 +50,7 @@ def unbiased_topk( values, k, dim=0, sorted = True, largest = True):
                 Values to index into.
             k: (int):
                 Number to take.
-            
+
         Return:
             topk: (torch.Tensor):
                 topk k values.
@@ -95,9 +95,9 @@ def is_valid_ed25519_pubkey( public_key: Union[str, bytes] ) -> bool:
     Args:
         public_key(Union[str, bytes]): The public_key to check.
 
-    Returns:    
+    Returns:
         True if the public_key is a valid ed25519 key, False otherwise.
-    
+
     """
     try:
         if isinstance( public_key, str ):
@@ -185,7 +185,7 @@ def get_explorer_root_url_by_network_from_map(network: str, network_map: Dict[st
     Args:
         network(str): The network to get the explorer url for.
         network_map(Dict[str, str]): The network map to get the explorer url from.
-    
+
     Returns:
         The explorer url for the given network.
         Or None if the network is not in the network map.
@@ -195,7 +195,7 @@ def get_explorer_root_url_by_network_from_map(network: str, network_map: Dict[st
         explorer_url = network_map[network]
 
     return explorer_url
-    
+
 
 def get_explorer_url_for_network(network: str, block_hash: str, network_map: Dict[str, str]) -> Optional[str]:
     r"""
@@ -205,7 +205,7 @@ def get_explorer_url_for_network(network: str, block_hash: str, network_map: Dic
         network(str): The network to get the explorer url for.
         block_hash(str): The block hash to get the explorer url for.
         network_map(Dict[str, str]): The network map to get the explorer url from.
-    
+
     Returns:
         The explorer url for the given block hash and network.
         Or None if the network is not known.
@@ -218,7 +218,7 @@ def get_explorer_url_for_network(network: str, block_hash: str, network_map: Dic
     if explorer_root_url is not None:
         # We are on a known network.
         explorer_url = "{root_url}/query/{block_hash}".format( root_url=explorer_root_url, block_hash = block_hash )
-    
+
     return explorer_url
 
 def ss58_address_to_bytes(ss58_address: str) -> bytes:
@@ -227,7 +227,7 @@ def ss58_address_to_bytes(ss58_address: str) -> bytes:
     return bytes.fromhex(account_id_hex)
 
 def U16_NORMALIZED_FLOAT( x: int ) -> float:
-    return float( x ) / float( U16_MAX ) 
+    return float( x ) / float( U16_MAX )
 
 def U64_NORMALIZED_FLOAT( x: int ) -> float:
     return float( x ) / float( U64_MAX )

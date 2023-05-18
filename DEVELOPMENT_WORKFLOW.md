@@ -37,7 +37,7 @@ Each of these branches have a specific purpose and are bound to strict rules as 
 - May branch off from: `nobunaga`
 - Must merge back into: `nobunaga`
 - Branch naming convention:
-    - Anything except master, nobunaga, nakamoto, release/* or hotfix/*
+    - Anything except master, nobunaga, finney, release/* or hotfix/*
     - Suggested: `feature/<ticket>/<descriptive-sentence>`
 
 Feature branches are used to develop new features for the upcoming or a distant future release. When starting development of a feature, the target release in which this feature will be incorporated may well be unknown at that point. 

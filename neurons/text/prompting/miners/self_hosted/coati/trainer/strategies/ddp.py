@@ -78,12 +78,12 @@ class DDPStrategy(NaiveStrategy):
     def save_model(self, model: nn.Module, path: str, only_rank0: bool = False, tokenizer: Optional[PreTrainedTokenizerBase] = None) -> None:
         if only_rank0 and dist.get_rank() != 0:
             return None
-        
+
         for module in model.modules():
             if isinstance(module, LoraLinear):
                 module.merge_weights = True
                 module.eval()
-        
+
         if isinstance(model, RewardModel):
             state_dict = model.state_dict()
             if only_rank0 and dist.get_rank() != 0:

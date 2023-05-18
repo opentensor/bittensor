@@ -2,18 +2,18 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import sys
@@ -28,7 +28,7 @@ console = bittensor.__console__
 
 class IntListPrompt(PromptBase):
     """ Prompt for a list of integers. """
-    
+
     def check_choice( self, value: str ) -> bool:
         assert self.choices is not None
         # check if value is a valid choice or all the values in a list of ints are valid choices
@@ -52,7 +52,7 @@ def check_netuid_set( config: 'bittensor.Config', subtensor: 'bittensor.Subtenso
                 netuid = str(bittensor.defaults.netuid) if not allow_none else 'None'
         else:
             netuid = config.netuid
-            
+
         if isinstance(netuid, str) and netuid.lower() in ['none'] and allow_none:
             config.netuid = None
         else:
@@ -94,7 +94,7 @@ def check_for_cuda_reg_config( config: 'bittensor.Config' ) -> None:
                 config.subtensor.register.cuda.dev_id = dev_id
         else:
             # flag was not set, use default value.
-            if config.subtensor.register.cuda.get('use_cuda') is None: 
+            if config.subtensor.register.cuda.get('use_cuda') is None:
                 config.subtensor.register.cuda.use_cuda = bittensor.defaults.subtensor.register.cuda.use_cuda
 
 def get_hotkey_wallets_for_wallet( wallet ) -> List['bittensor.wallet']:
@@ -148,7 +148,6 @@ class DelegatesDetails:
 
 def _get_delegates_details_from_github(requests_get, url: str) -> Dict[str, DelegatesDetails]:
     response = requests_get(url)
-    
 
     if response.status_code == 200:
         all_delegates: Dict[str, Any] = response.json()
@@ -158,8 +157,8 @@ def _get_delegates_details_from_github(requests_get, url: str) -> Dict[str, Dele
         return all_delegates_details
     else:
         return {}
-    
-def get_delegates_details(url: str) -> Optional[Dict[str, DelegatesDetails]]: 
+
+def get_delegates_details(url: str) -> Optional[Dict[str, DelegatesDetails]]:
     try:
         return _get_delegates_details_from_github(requests.get, url)
     except Exception:

@@ -1,18 +1,18 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import sys
@@ -53,19 +53,19 @@ class RegisterCommand:
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
         register_parser = parser.add_parser(
-            'register', 
+            'register',
             help='''Register a wallet to a network.'''
         )
-        register_parser.add_argument( 
-            '--no_version_checking', 
-            action='store_true', 
-            help='''Set false to stop cli version checking''', 
-            default = False 
+        register_parser.add_argument(
+            '--no_version_checking',
+            action='store_true',
+            help='''Set false to stop cli version checking''',
+            default = False
         )
         register_parser.add_argument(
-            '--no_prompt', 
-            dest='no_prompt', 
-            action='store_true', 
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
@@ -79,7 +79,7 @@ class RegisterCommand:
         bittensor.wallet.add_args( register_parser )
         bittensor.subtensor.add_args( register_parser )
 
-    @staticmethod   
+    @staticmethod
     def check_config( config: 'bittensor.Config' ):
         check_netuid_set( config, subtensor = bittensor.subtensor( config = config ) )
 
@@ -119,7 +119,7 @@ class RecycleRegisterCommand:
         if not cli.config.no_prompt:
             if Confirm.ask(f"Your balance is: [bold green]{balance}[/bold green]\nThe cost to register by recycle is [bold red]{current_recycle}[/bold red]\nDo you want to continue?", default = False) == False:
                 sys.exit(1)
-        
+
         subtensor.burned_register(
             wallet = wallet,
             netuid = cli.config.netuid,
@@ -130,19 +130,19 @@ class RecycleRegisterCommand:
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
         recycle_register_parser = parser.add_parser(
-            'recycle_register', 
+            'recycle_register',
             help='''Register a wallet to a network.'''
         )
-        recycle_register_parser.add_argument( 
-            '--no_version_checking', 
-            action='store_true', 
-            help='''Set false to stop cli version checking''', 
-            default = False 
+        recycle_register_parser.add_argument(
+            '--no_version_checking',
+            action='store_true',
+            help='''Set false to stop cli version checking''',
+            default = False
         )
         recycle_register_parser.add_argument(
-            '--no_prompt', 
-            dest='no_prompt', 
-            action='store_true', 
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
@@ -156,7 +156,7 @@ class RecycleRegisterCommand:
         bittensor.wallet.add_args( recycle_register_parser )
         bittensor.subtensor.add_args( recycle_register_parser )
 
-    @staticmethod   
+    @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if config.subtensor.get('network') == bittensor.defaults.subtensor.network and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
@@ -170,4 +170,3 @@ class RecycleRegisterCommand:
         if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
-      

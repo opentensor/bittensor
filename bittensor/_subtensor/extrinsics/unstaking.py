@@ -2,18 +2,18 @@
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
@@ -22,13 +22,13 @@ from rich.prompt import Confirm
 from time import sleep
 from typing import List, Dict, Union, Optional
 from bittensor.utils.balance import Balance
-from ..errors import * 
+from ..errors import *
 
 def __do_remove_stake_single(
     subtensor: 'bittensor.Subtensor',
     wallet: 'bittensor.wallet',
     hotkey_ss58: str,
-    amount: 'bittensor.Balance', 
+    amount: 'bittensor.Balance',
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -42,8 +42,8 @@ def __do_remove_stake_single(
         amount (bittensor.Balance):
             Amount to unstake as bittensor balance object.
         wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true, 
-            or returns false if the extrinsic fails to enter the block within the timeout.   
+            If set, waits for the extrinsic to enter a block before returning true,
+            or returns false if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
             If set, waits for the extrinsic to be finalized on the chain before returning true,
             or returns false if the extrinsic fails to be finalized within the timeout.
@@ -51,7 +51,7 @@ def __do_remove_stake_single(
             If true, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block. 
+            flag is true if extrinsic was finalized or uncluded in the block.
             If we did not wait for finalization / inclusion, the response is true.
     Raises:
         StakeError:
@@ -65,7 +65,7 @@ def __do_remove_stake_single(
 
     with subtensor.substrate as substrate:
         call = substrate.compose_call(
-        call_module='SubtensorModule', 
+        call_module='SubtensorModule',
         call_function='remove_stake',
         call_params={
             'hotkey': hotkey_ss58,
@@ -88,8 +88,8 @@ def unstake_extrinsic (
         subtensor: 'bittensor.Subtensor',
         wallet: 'bittensor.wallet',
         hotkey_ss58: Optional[str] = None,
-        amount: Union[Balance, float] = None, 
-        wait_for_inclusion:bool = True, 
+        amount: Union[Balance, float] = None,
+        wait_for_inclusion:bool = True,
         wait_for_finalization:bool = False,
         prompt: bool = False,
     ) -> bool:
@@ -103,8 +103,8 @@ def unstake_extrinsic (
         amount (Union[Balance, float]):
             Amount to stake as bittensor balance, or float interpreted as tao.
         wait_for_inclusion (bool):
-            if set, waits for the extrinsic to enter a block before returning true, 
-            or returns false if the extrinsic fails to enter the block within the timeout.   
+            if set, waits for the extrinsic to enter a block before returning true,
+            or returns false if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
             if set, waits for the extrinsic to be finalized on the chain before returning true,
             or returns false if the extrinsic fails to be finalized within the timeout.
@@ -112,7 +112,7 @@ def unstake_extrinsic (
             If true, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block. 
+            flag is true if extrinsic was finalized or uncluded in the block.
             If we did not wait for finalization / inclusion, the response is true.
     """
     # Decrypt keys,
@@ -122,7 +122,7 @@ def unstake_extrinsic (
         hotkey_ss58 = wallet.hotkey.ss58_address # Default to wallet's own hotkey.
 
     with bittensor.__console__.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(subtensor.network)):
-        old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )        
+        old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
         old_stake = subtensor.get_stake_for_coldkey_and_hotkey( coldkey_ss58 = wallet.coldkeypub.ss58_address, hotkey_ss58 = hotkey_ss58 )
 
     # Convert to bittensor.Balance
@@ -139,13 +139,13 @@ def unstake_extrinsic (
     if unstaking_balance > stake_on_uid:
         bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]: [green]{}[/green] to unstake: [blue]{}[/blue] from hotkey: [white]{}[/white]".format(stake_on_uid, unstaking_balance, wallet.hotkey_str))
         return False
-    
+
     # Ask before moving on.
     if prompt:
         if not Confirm.ask("Do you want to unstake:\n[bold white]  amount: {}\n  hotkey: {}[/bold white ]?".format( unstaking_balance, wallet.hotkey_str) ):
             return False
 
-    
+
     try:
         with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(subtensor.network)):
             staking_response: bool = __do_remove_stake_single(
@@ -180,13 +180,13 @@ def unstake_extrinsic (
     except StakeError as e:
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
-        
+
 def unstake_multiple_extrinsic (
         subtensor: 'bittensor.Subtensor',
         wallet: 'bittensor.wallet',
         hotkey_ss58s: List[str],
-        amounts: List[Union[Balance, float]] = None, 
-        wait_for_inclusion: bool = True, 
+        amounts: List[Union[Balance, float]] = None,
+        wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
     ) -> bool:
@@ -199,8 +199,8 @@ def unstake_multiple_extrinsic (
         amounts (List[Union[Balance, float]]):
             List of amounts to unstake. If None, unstake all.
         wait_for_inclusion (bool):
-            if set, waits for the extrinsic to enter a block before returning true, 
-            or returns false if the extrinsic fails to enter the block within the timeout.   
+            if set, waits for the extrinsic to enter a block before returning true,
+            or returns false if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
             if set, waits for the extrinsic to be finalized on the chain before returning true,
             or returns false if the extrinsic fails to be finalized within the timeout.
@@ -214,7 +214,7 @@ def unstake_multiple_extrinsic (
     """
     if not isinstance(hotkey_ss58s, list) or not all(isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s):
         raise TypeError("hotkey_ss58s must be a list of str")
-    
+
     if len(hotkey_ss58s) == 0:
         return True
 
@@ -261,12 +261,12 @@ def unstake_multiple_extrinsic (
         if unstaking_balance > stake_on_uid:
             bittensor.__console__.print(":cross_mark: [red]Not enough stake[/red]: [green]{}[/green] to unstake: [blue]{}[/blue] from hotkey: [white]{}[/white]".format(stake_on_uid, unstaking_balance, wallet.hotkey_str))
             continue
-      
+
         # Ask before moving on.
         if prompt:
             if not Confirm.ask("Do you want to unstake:\n[bold white]  amount: {}\n  hotkey: {}[/bold white ]?".format( unstaking_balance, wallet.hotkey_str) ):
                 continue
-        
+
         try:
             with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(subtensor.network)):
                 staking_response: bool = __do_remove_stake_single(
@@ -309,8 +309,8 @@ def unstake_multiple_extrinsic (
         except StakeError as e:
             bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
             continue
-            
-    
+
+
     if successful_unstakes != 0:
         with bittensor.__console__.status(":satellite: Checking Balance on: ([white]{}[/white] ...".format(subtensor.network)):
             new_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )

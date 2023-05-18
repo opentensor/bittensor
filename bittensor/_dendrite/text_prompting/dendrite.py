@@ -41,19 +41,19 @@ class DendriteForwardCall( bittensor.DendriteCall ):
 
     def __repr__(self) -> str:
         return f"DendriteForwardCall( {bittensor.utils.codes.code_to_string(self.return_code)}, to: {self.dest_hotkey[:4]}...{self.dest_hotkey[-4:]}, msg: {self.return_message}, completion: {self.completion.strip()})"
-    
+
     def __str__(self) -> str: return self.__repr__()
-    
+
     def get_callable( self ) -> Callable:
         return bittensor.grpc.TextPromptingStub( self.dendrite.channel ).Forward
 
     def get_request_proto( self ) -> bittensor.proto.ForwardTextPromptingRequest:
         return bittensor.ForwardTextPromptingRequest( timeout = self.timeout, messages = self.packed_messages )
-    
+
     def apply_response_proto( self, response_proto: bittensor.ForwardTextPromptingResponse ):
         self.completion = response_proto.response
-        
-    def get_inputs_shape(self) -> torch.Size: 
+
+    def get_inputs_shape(self) -> torch.Size:
         return torch.Size( [len(message) for message in self.packed_messages] )
 
     def get_outputs_shape(self) -> torch.Size:
@@ -98,30 +98,30 @@ class MultiDendriteForwardCall( bittensor.DendriteCall ):
 
     def __repr__(self) -> str:
         return f"MultiDendriteForwardCall( {bittensor.utils.codes.code_to_string(self.return_code)}, to: {self.dest_hotkey[:4]}...{self.dest_hotkey[-4:]}, msg: {self.return_message}, n_completion: {len(self.multi_completions)})"
-    
+
     def __str__(self) -> str: return self.__repr__()
-    
+
     def get_callable( self ) -> Callable:
         return bittensor.grpc.TextPromptingStub( self.dendrite.channel ).MultiForward
 
     def get_request_proto( self ) -> bittensor.proto.MultiForwardTextPromptingRequest:
         return bittensor.MultiForwardTextPromptingRequest( timeout = self.timeout, messages = self.packed_messages )
-    
+
     def apply_response_proto( self, response_proto: bittensor.MultiForwardTextPromptingResponse ):
         self.multi_completions = response_proto.multi_completions
-        
-    def get_inputs_shape(self) -> torch.Size: 
+
+    def get_inputs_shape(self) -> torch.Size:
         return torch.Size( [len(message) for message in self.packed_messages] )
 
     def get_outputs_shape(self) -> torch.Size:
         return torch.Size([ len(self.multi_completions) ] )
-    
-    
+
+
 class DendriteBackwardCall( bittensor.DendriteCall ):
 
     name: str = "text_prompting_backward"
     is_forward: bool = False
-    
+
     def __init__(
         self,
         dendrite: 'bittensor.TextPromptingDendrite',
@@ -140,7 +140,7 @@ class DendriteBackwardCall( bittensor.DendriteCall ):
 
     def __repr__(self) -> str:
         return f"DendriteBackwardCall( {bittensor.utils.codes.code_to_string(self.return_code)}, to: {self.dest_hotkey[:4]}...{self.dest_hotkey[-4:]}, msg: {self.return_message} )"
-    
+
     def __str__(self) -> str: return self.__repr__()
 
     def get_callable( self ) -> Callable:
@@ -148,10 +148,10 @@ class DendriteBackwardCall( bittensor.DendriteCall ):
 
     def get_request_proto( self ) -> bittensor.proto.BackwardTextPromptingRequest:
         return bittensor.BackwardTextPromptingRequest( messages = self.packed_messages, response = self.completion, rewards = self.rewards, timeout = self.timeout )
-    
+
     def apply_response_proto( self, response_proto: bittensor.ForwardTextPromptingResponse ):
         pass
-        
+
     def get_inputs_shape(self) -> torch.Size:
         return torch.Size( [len(message) for message in self.packed_messages] )
 
@@ -172,7 +172,7 @@ class TextPromptingDendrite( bittensor.Dendrite ):
             return_call:bool = True,
         ) -> Union[ str, DendriteForwardCall ]:
         forward_call = DendriteForwardCall(
-            dendrite = self, 
+            dendrite = self,
             messages = messages,
             roles = roles,
             timeout = timeout,
@@ -180,7 +180,7 @@ class TextPromptingDendrite( bittensor.Dendrite ):
         response_call = self.loop.run_until_complete( self.apply( dendrite_call = forward_call ) )
         if return_call: return response_call
         else: return response_call.completion
-    
+
     async def async_forward(
         self,
         roles: List[ str ],
@@ -189,7 +189,7 @@ class TextPromptingDendrite( bittensor.Dendrite ):
         return_call: bool = True,
     ) -> Union[ str, DendriteForwardCall ]:
         forward_call = DendriteForwardCall(
-            dendrite = self, 
+            dendrite = self,
             messages = messages,
             roles = roles,
             timeout = timeout,
@@ -206,7 +206,7 @@ class TextPromptingDendrite( bittensor.Dendrite ):
             return_call:bool = True,
         ) -> Union[ str, DendriteForwardCall ]:
         forward_call = MultiDendriteForwardCall(
-            dendrite = self, 
+            dendrite = self,
             messages = messages,
             roles = roles,
             timeout = timeout,
@@ -214,7 +214,7 @@ class TextPromptingDendrite( bittensor.Dendrite ):
         response_call = self.loop.run_until_complete( self.apply( dendrite_call = forward_call ) )
         if return_call: return response_call
         else: return response_call.multi_completions
-    
+
     async def async_multi_forward(
         self,
         roles: List[ str ],
@@ -223,7 +223,7 @@ class TextPromptingDendrite( bittensor.Dendrite ):
         return_call: bool = True,
     ) -> Union[ str, DendriteForwardCall ]:
         forward_call = MultiDendriteForwardCall(
-            dendrite = self, 
+            dendrite = self,
             messages = messages,
             roles = roles,
             timeout = timeout,
@@ -254,7 +254,7 @@ class TextPromptingDendrite( bittensor.Dendrite ):
         self,
         roles: List[ str ],
         messages: List[ str ],
-        completion: str,        
+        completion: str,
         rewards: Union[ List[ float], torch.FloatTensor ],
         timeout: float = bittensor.__blocktime__,
     ) -> DendriteBackwardCall:
@@ -266,7 +266,7 @@ class TextPromptingDendrite( bittensor.Dendrite ):
             rewards = rewards,
             timeout = timeout,
         )
-        return await self.apply( dendrite_call = backward_call ) 
+        return await self.apply( dendrite_call = backward_call )
 
 
 
