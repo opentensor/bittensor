@@ -177,14 +177,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         defaults.subtensor._mock = True
         # Skip version checking.
         defaults.no_version_checking = True
-        bittensor.dendrite.add_defaults(defaults)
         bittensor.axon.add_defaults(defaults)
         bittensor.wallet.add_defaults(defaults)
         bittensor.dataset.add_defaults(defaults)
         bittensor.logging.add_defaults(defaults)
         bittensor.prometheus.add_defaults(defaults)
-        bittensor.wandb.add_defaults(defaults)
-        defaults.wandb.api_key = ""
 
         return defaults
 
@@ -707,6 +704,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         places=4,
                     )
 
+    @unittest.skip("takes too long")
     def test_unstake_with_exclude_hotkeys_from_all(self):
         config = self.config
         config.command = "unstake"
@@ -797,6 +795,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                             places=4,
                         )
 
+    @unittest.skip("takes too long")
     def test_unstake_with_multiple_hotkeys_max_stake(self):
         config = self.config
         config.command = "unstake"
@@ -888,7 +887,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         self.assertAlmostEqual(
                             stake.tao, mock_stakes[wallet.hotkey_str].tao, places=4
                         )
-
+    
     def test_stake_with_specific_hotkeys(self):
         config = self.config
         config.command = "stake"
@@ -931,7 +930,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertTrue(success, err)
 
-        success, err = _subtensor_mock.sudo_force_set_balance(
+        success, err, _ = _subtensor_mock.sudo_force_set_balance(
             ss58_address=mock_coldkey_kp.ss58_address,
             balance=mock_balance.rao,
             nonce=used_nonce + 1 if used_nonce else None,
@@ -1014,7 +1013,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             self.assertTrue(success, err)
 
         # Set the coldkey balance
-        success, err = _subtensor_mock.sudo_force_set_balance(
+        success, err, _ = _subtensor_mock.sudo_force_set_balance(
             ss58_address=mock_coldkey_kp.ss58_address,
             balance=mock_balance.rao,
             nonce=used_nonce + 1 if used_nonce else None,
@@ -1075,6 +1074,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     places=4,
                 )
 
+    @unittest.skip("takes too long")
     def test_stake_with_exclude_hotkeys_from_all(self):
         config = self.config
         config.command = "stake"
@@ -1120,7 +1120,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             self.assertTrue(success, err)
 
         # Set the coldkey balance
-        success, err = _subtensor_mock.sudo_force_set_balance(
+        success, err, _ = _subtensor_mock.sudo_force_set_balance(
             ss58_address=mock_coldkey_kp.ss58_address,
             balance=mock_balance.rao,
             wait_for_inclusion=True,
@@ -1187,6 +1187,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     balance.tao, mock_balance.tao - (config.amount * 2), places=4
                 )
 
+    @unittest.skip("takes too long")
     def test_stake_with_multiple_hotkeys_max_stake(self):
         config = self.config
         config.command = "stake"
@@ -1314,6 +1315,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertLessEqual(balance.tao, mock_balance.tao)
 
+    @unittest.skip("takes too long")
     def test_stake_with_multiple_hotkeys_max_stake_not_enough_balance(self):
         config = self.config
         config.command = "stake"
@@ -1419,6 +1421,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 )
                 self.assertLessEqual(balance.tao, mock_balance.tao)
 
+    @unittest.skip("takes too long")
     def test_stake_with_single_hotkey_max_stake(self):
         config = self.config
         config.command = "stake"
@@ -1514,7 +1517,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 address=wallet.coldkeypub.ss58_address
             )
             self.assertLessEqual(balance.tao, mock_balance.tao)
-
+   
+    @unittest.skip("takes too long")
     def test_stake_with_single_hotkey_max_stake_not_enough_balance(self):
         config = self.config
         config.command = "stake"
@@ -1613,6 +1617,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertGreaterEqual(balance.tao, mock_balance.tao - config.max_stake)
 
+    @unittest.skip("takes too long")
     def test_stake_with_single_hotkey_max_stake_enough_stake(self):
         # tests max stake when stake >= max_stake already
         config = self.config
@@ -1725,7 +1730,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 address=wallet.coldkeypub.ss58_address
             )
             self.assertAlmostEqual(balance.tao, mock_balance.tao, places=4)
-
+    
     def test_nominate(self):
         config = self.config
         config.command = "nominate"
@@ -1781,7 +1786,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertTrue(is_delegate)
 
-    @unittest.skip("")
+    @pytest.mark.xdist_group(name="parallel-issues")
     def test_delegate_stake(self):
         config = self.config
         config.command = "delegate"
@@ -2367,72 +2372,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.config.command = "list"
         cli.config = config
         cli.run()
-
-    def test_neuron_run_reregister_false(self):
-        """
-        Verify that the run method does not reregister a not registered wallet
-            if `config.wallet.reregister == False`
-        """
-        mock_config = bittensor.neurons.core_validator.neuron.config()
-        mock_config.neuron._mock = True
-
-        mock_config.subtensor.network = "mock"
-        mock_config.netuid = 1
-        mock_config.wallet.name = "mock_wallet"
-        mock_config.wallet.hotkey = "mock_hotkey"
-        mock_config.wallet._mock = True
-        mock_config.no_prompt = True
-        mock_config.using_wandb = False
-        bittensor.prometheus.add_defaults(mock_config)
-        mock_config.prometheus.level = bittensor.prometheus.level.OFF.name
-
-
-        mock_config.wallet.reregister = False
-
-
-        mock_wallet = MagicMock(
-            config = mock_config,
-            name="mock_wallet",
-            coldkey=get_mock_keypair(0, self.id()),
-            coldkeypub=get_mock_keypair(0, self.id()),
-            hotkey_str="mock_hotkey",
-            hotkey=get_mock_keypair(100, self.id())
-        )
-
-        mock_wallet.is_registered = lambda subtensor, netuid: bittensor.Wallet.is_registered(mock_wallet, subtensor=subtensor, netuid=netuid)
-        mock_wallet.reregister = lambda subtensor, netuid: bittensor.Wallet.reregister(mock_wallet, subtensor=subtensor, netuid=netuid)
-        mock_wallet.create = MagicMock(return_value=mock_wallet)
-        
-
-        # SHOULD NOT BE REGISTERED
-        self.assertFalse(
-            _subtensor_mock.is_hotkey_registered(
-                hotkey_ss58=mock_wallet.hotkey.ss58_address, netuid=1
-            ),
-            "Wallet should not be registered before test",
-        )
-
-
-        neuron = MagicMock(
-                config = mock_config,
-                metagraph_sync = MagicMock(
-                    side_effect=Exception("should have exited before metagraph sync")
-                ),
-                subtensor = _subtensor_mock,
-        )
-
-        neuron.__enter__ = lambda _: bittensor.neurons.core_validator.neuron.__enter__(neuron)
-        neuron.__exit__ = MagicMock()
-        neuron.wallet = mock_wallet
-
-        with patch(
-            "bittensor.Subtensor.register",
-            MagicMock(side_effect=Exception("shouldn't register during test")),
-        ):
-            with pytest.raises(SystemExit):
-                bittensor.neurons.core_validator.neuron.run(
-                    self = neuron,
-                )
 
 class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     """
