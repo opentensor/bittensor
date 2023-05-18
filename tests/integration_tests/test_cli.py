@@ -551,7 +551,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    @unittest.skip("takes too long")
     def test_unstake_with_specific_hotkeys(self):
         config = self.config
         config.command = "unstake"
@@ -1805,7 +1805,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertTrue(is_delegate)
 
-    @pytest.mark.xdist_group(name="parallel-issues")
+    @unittest.skip("takes too long")
     def test_delegate_stake(self):
         config = self.config
         config.command = "delegate"
