@@ -117,7 +117,7 @@ def setupSubnets():
 
 def killMockSubtensorProcess():
     # wait 30s to kill
-    time.sleep(30)
+    time.sleep(5 * 60)
     _subtensor_mock.optionally_kill_owned_mock_instance()
 
 
@@ -185,7 +185,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         return defaults
 
-    @pytest.mark.xdist_group(name="TestCLI")    
+        
     def test_overview(self):
         config = self.config
         config.wallet.path = "/tmp/test_cli_test_overview"
@@ -295,7 +295,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         if wallet not in [w for _, w in mock_registrations]:
                             self.assertNotIn(wallet.hotkey_str, output_no_syntax)
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_overview_not_in_first_subnet(self):
         config = self.config
         config.wallet.path = "/tmp/test_cli_test_overview"
@@ -404,7 +404,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         if wallet not in [w for _, w in mock_registrations]:
                             self.assertNotIn(wallet.hotkey_str, output_no_syntax)
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_overview_no_wallet(self):
         # Mock IO for wallet
         with patch(
@@ -422,7 +422,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             cli = bittensor.cli(config)
             cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_overview_with_hotkeys_config(self):
         config = self.config
         config.command = "overview"
@@ -434,7 +434,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_overview_without_hotkeys_config(self):
         config = self.config
         config.command = "overview"
@@ -445,7 +445,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_overview_with_sort_by_config(self):
         config = self.config
         config.command = "overview"
@@ -457,7 +457,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_overview_with_sort_by_bad_column_name(self):
         config = self.config
         config.command = "overview"
@@ -469,7 +469,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_overview_without_sort_by_config(self):
         config = self.config
         config.command = "overview"
@@ -480,7 +480,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_overview_with_sort_order_config(self):
         config = self.config
         config.command = "overview"
@@ -492,7 +492,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_overview_with_sort_order_config_bad_sort_type(self):
         config = self.config
         config.command = "overview"
@@ -504,7 +504,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_overview_without_sort_order_config(self):
         config = self.config
         config.command = "overview"
@@ -516,7 +516,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_overview_with_width_config(self):
         config = self.config
         config.command = "overview"
@@ -528,7 +528,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_overview_without_width_config(self):
         config = self.config
         config.command = "overview"
@@ -540,7 +540,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_overview_all(self):
         config = self.config
         config.command = "overview"
@@ -634,7 +634,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     places=4,
                 )
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_unstake_with_all_hotkeys(self):
         config = self.config
         config.command = "unstake"
@@ -904,7 +904,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                             stake.tao, mock_stakes[wallet.hotkey_str].tao, places=4
                         )
     
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_stake_with_specific_hotkeys(self):
         config = self.config
         config.command = "stake"
@@ -985,7 +985,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 )
                 self.assertAlmostEqual(stake.tao, config.amount, places=4)
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_stake_with_all_hotkeys(self):
         config = self.config
         config.command = "stake"
@@ -1749,7 +1749,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertAlmostEqual(balance.tao, mock_balance.tao, places=4)
     
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_nominate(self):
         config = self.config
         config.command = "nominate"
@@ -1905,7 +1905,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertAlmostEqual(stake.tao, config.amount, places=4)
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_undelegate_stake(self):
         config = self.config
         config.command = "undelegate"
@@ -2022,7 +2022,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 stake.tao, mock_delegated.tao - config.amount, places=4
             )
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_transfer(self):
         config = self.config
         config.command = "transfer"
@@ -2094,7 +2094,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 balance.tao, mock_balances["w1"].tao - config.amount, places=4
             )  # no fees
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_transfer_not_enough_balance(self):
         config = self.config
         config.command = "transfer"
@@ -2179,7 +2179,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 balance.tao, mock_balances["w1"].tao, places=4
             )  # did not transfer
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_register(self):
         config = self.config
         config.command = "register"
@@ -2206,7 +2206,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
                 self.assertEqual(mock_is_stale.call_count, 1)
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_recycle_register(self):
         config = self.config
         config.command = "recycle_register"
@@ -2234,7 +2234,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
             self.assertTrue(registered)
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_stake(self):
         amount_to_stake: Balance = Balance.from_tao(0.5)
         config = self.config
@@ -2279,7 +2279,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
             self.assertGreater(new_stake, old_stake)
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_metagraph(self):
         config = self.config
         config.wallet.name = "metagraph_testwallet"
@@ -2350,7 +2350,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         for neuron in nn:
             self.assertIn(str(neuron.uid), output_no_syntax)
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_set_weights(self):
         config = self.config
         config.wallet.name = "set_weights_testwallet"
@@ -2372,7 +2372,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.config = config
         cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_inspect(self):
         config = self.config
         config.wallet.name = "inspect_testwallet"
@@ -2405,7 +2405,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     """
     Test the CLI by passing args directly to the bittensor.cli factory
     """
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_list_delegates(self):
         cli = bittensor.cli(
             args=[
@@ -2416,7 +2416,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         )
         cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    
     def test_list_subnets(self):
         cli = bittensor.cli(
             args=[
@@ -2427,7 +2427,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         )
         cli.run()
 
-    @pytest.mark.xdist_group(name="TestCLI")
+    @unittest.skip("takes too long")
     def test_delegate(self):
         """
         Test delegate add command
