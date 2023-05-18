@@ -81,7 +81,7 @@ class GatingModel( torch.nn.Module ):
         self.num_uids = config.gating.num_uids
         self.device = torch.device( self.config.neuron.device )
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.gating.model_name )
-        self.model = AutoModel.from_config( AutoConfig.from_pretrained(self.config.gating.model_name) ) #TODO: add pretrained flag
+        self.model = AutoModel.from_pretrained( self.config.gating.model_name)
         self.linear = torch.nn.Linear( self.model.config.hidden_size, config.gating.num_uids  )
         self.optimizer = torch.optim.SGD(
             [ {"params": self.parameters()} ],
