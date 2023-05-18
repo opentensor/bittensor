@@ -66,7 +66,7 @@ jobs:
           command: |
             . env/bin/activate
             export PYTHONUNBUFFERED=1
-            pytest -n2 --reruns 3 --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
+            pytest -n2 --reruns 3 --reruns-delay 15 --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
             --cov=. --cov-append --cov-config .coveragerc \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
             --splitting-algorithm duration_based_chunks --store-durations --durations-path .test_durations \
