@@ -3,31 +3,31 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 from loguru import logger
-import bittensor 
+import bittensor
 
 logger = logger.opt(colors=True)
 
 def code_to_string( code: 'bittensor.proto.ReturnCode' ) -> str:
     """ Return code -> string
     """
-    if code == 0: 
+    if code == 0:
         return 'NoReturn'
-    elif code == 1: 
+    elif code == 1:
         return 'Success'
     elif code == 2:
         return 'Timeout'
@@ -75,15 +75,17 @@ def code_to_string( code: 'bittensor.proto.ReturnCode' ) -> str:
         return 'Unauthenticated'
     elif code == 24:
         return 'BadEndpoint'
+    elif code == 25:
+        return 'Blacklisted'
     else:
         return 'UnknownCode'
 
 def code_to_loguru_color( code: 'bittensor.proto.ReturnCode' ) -> str:
     """ Return code -> loguru color
     """
-    if code == 0: 
+    if code == 0:
         return 'red'
-    elif code == 1: 
+    elif code == 1:
         return 'green'
     elif code == 2:
         return 'yellow'
@@ -127,6 +129,12 @@ def code_to_loguru_color( code: 'bittensor.proto.ReturnCode' ) -> str:
         return 'red'
     elif code == 22:
         return 'red'
+    elif code == 23:
+        return 'red'
+    elif code == 24:
+        return 'red'
+    elif code == 25:
+        return 'magenta'
     else:
         return 'red'
 

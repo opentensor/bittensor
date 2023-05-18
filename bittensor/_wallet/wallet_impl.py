@@ -3,18 +3,18 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import os
@@ -43,13 +43,13 @@ def display_mnemonic_msg( keypair : Keypair, key_type : str ):
 
 class Wallet():
     """
-    Bittensor wallet maintenance class. Each wallet contains a coldkey and a hotkey. 
+    Bittensor wallet maintenance class. Each wallet contains a coldkey and a hotkey.
     The coldkey is the user's primary key for holding stake in their wallet
     and is the only way that users can access Tao. Coldkeys can hold tokens and should be encrypted on your device.
     The coldkey must be used to stake and unstake funds from a running node. The hotkey, on the other hand, is only used
-    for suscribing and setting weights from running code. Hotkeys are linked to coldkeys through the metagraph. 
+    for suscribing and setting weights from running code. Hotkeys are linked to coldkeys through the metagraph.
     """
-    def __init__( 
+    def __init__(
         self,
         name:str,
         path:str,
@@ -64,7 +64,7 @@ class Wallet():
                     The name of hotkey used to running the miner.
                 path (required=True, default='~/.bittensor/wallets/'):
                     The path to your bittensor wallets
-                config (:obj:`bittensor.Config`, `optional`): 
+                config (:obj:`bittensor.Config`, `optional`):
                     bittensor.wallet.config()
         """
         self.name = name
@@ -77,7 +77,7 @@ class Wallet():
 
     def __str__(self):
         return "Wallet ({}, {}, {})".format(self.name, self.hotkey_str, self.path)
-    
+
     def __repr__(self):
         return self.__str__()
 
@@ -169,16 +169,13 @@ class Wallet():
                     Is the wallet registered on the chain.
         """
         if subtensor == None: subtensor = bittensor.subtensor(self.config)
-        if subtensor.network == 'nakamoto':
-            neuron = subtensor.neuron_for_pubkey( ss58_hotkey = self.hotkey.ss58_address )
-            return not neuron.is_null
+
+        # default to finney
+        if netuid == None:
+            return subtensor.is_hotkey_registered_any( self.hotkey.ss58_address )
         else:
-            # default to finney
-            if netuid == None:
-                return subtensor.is_hotkey_registered_any( self.hotkey.ss58_address )
-            else:
-                return subtensor.is_hotkey_registered_on_subnet( self.hotkey.ss58_address, netuid = netuid )
-        
+            return subtensor.is_hotkey_registered_on_subnet( self.hotkey.ss58_address, netuid = netuid )
+
 
     def get_neuron ( self, netuid: int, subtensor: Optional['bittensor.Subtensor'] = None ) -> Optional['bittensor.NeuronInfo'] :
         """ Returns this wallet's neuron information from subtensor.
@@ -192,7 +189,7 @@ class Wallet():
                     neuron account on the chain or None if you are not registered.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(netuid = netuid, subtensor=subtensor): 
+        if not self.is_registered(netuid = netuid, subtensor=subtensor):
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return None
         neuron = subtensor.neuron_for_wallet( self, netuid = netuid )
@@ -210,7 +207,7 @@ class Wallet():
                     Network uid or -1 if you are not registered.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        if not self.is_registered(netuid = netuid, subtensor=subtensor): 
+        if not self.is_registered(netuid = netuid, subtensor=subtensor):
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return -1
         neuron = self.get_neuron(netuid = netuid, subtensor = subtensor)
@@ -233,7 +230,7 @@ class Wallet():
         if not stake: # Not registered.
             print(colored('This wallet is not registered. Call wallet.register() before this function.','red'))
             return bittensor.Balance(0)
-        
+
         return stake
 
     def get_balance( self, subtensor: Optional['bittensor.Subtensor'] = None ) -> 'bittensor.Balance':
@@ -263,14 +260,14 @@ class Wallet():
                 subtensor( Optional['bittensor.Subtensor'] ):
                     Bittensor subtensor connection. Overrides with defaults if None.
                 wait_for_inclusion (bool):
-                    if set, waits for the extrinsic to enter a block before returning true, 
-                    or returns false if the extrinsic fails to enter the block within the timeout.   
+                    if set, waits for the extrinsic to enter a block before returning true,
+                    or returns false if the extrinsic fails to enter the block within the timeout.
                 wait_for_finalization (bool):
                     if set, waits for the extrinsic to be finalized on the chain before returning true,
                     or returns false if the extrinsic fails to be finalized within the timeout.
                 prompt (bool):
                     If true, the call waits for confirmation from the user before proceeding.
-                
+
             Return:
                 wallet (bittensor.Wallet):
                     This wallet.
@@ -299,10 +296,10 @@ class Wallet():
 
         return self
 
-    def register ( 
-            self, 
+    def register (
+            self,
             netuid: int,
-            subtensor: Optional['bittensor.Subtensor'] = None, 
+            subtensor: Optional['bittensor.Subtensor'] = None,
             wait_for_inclusion: bool = False,
             wait_for_finalization: bool = True,
             prompt: bool = False,
@@ -322,8 +319,8 @@ class Wallet():
             subtensor( Optional['bittensor.Subtensor'] ):
                 Bittensor subtensor connection. Overrides with defaults if None.
             wait_for_inclusion (bool):
-                If set, waits for the extrinsic to enter a block before returning true, 
-                or returns false if the extrinsic fails to enter the block within the timeout.   
+                If set, waits for the extrinsic to enter a block before returning true,
+                or returns false if the extrinsic fails to enter the block within the timeout.
             wait_for_finalization (bool):
                 If set, waits for the extrinsic to be finalized on the chain before returning true,
                 or returns false if the extrinsic fails to be finalized within the timeout.
@@ -347,7 +344,7 @@ class Wallet():
                 If true, the registration output is more verbose.
         Returns:
             success (bool):
-                flag is true if extrinsic was finalized or uncluded in the block. 
+                flag is true if extrinsic was finalized or uncluded in the block.
                 If we did not wait for finalization / inclusion, the response is true.
         """
         # Get chain connection.
@@ -366,11 +363,11 @@ class Wallet():
             log_verbose=log_verbose,
             netuid = netuid,
         )
-        
+
         return self
 
-    def add_stake( self, 
-        amount: Union[float, bittensor.Balance] = None, 
+    def add_stake( self,
+        amount: Union[float, bittensor.Balance] = None,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         subtensor: Optional['bittensor.Subtensor'] = None,
@@ -381,8 +378,8 @@ class Wallet():
                 amount_tao (float):
                     amount of tao to stake or bittensor balance object. If None, stakes all available balance.
                 wait_for_inclusion (bool):
-                    if set, waits for the extrinsic to enter a block before returning true, 
-                    or returns false if the extrinsic fails to enter the block within the timeout.   
+                    if set, waits for the extrinsic to enter a block before returning true,
+                    or returns false if the extrinsic fails to enter the block within the timeout.
                 wait_for_finalization (bool):
                     if set, waits for the extrinsic to be finalized on the chain before returning true,
                     or returns false if the extrinsic fails to be finalized within the timeout.
@@ -392,14 +389,14 @@ class Wallet():
                     If true, the call waits for confirmation from the user before proceeding.
             Returns:
                 success (bool):
-                    flag is true if extrinsic was finalized or uncluded in the block. 
+                    flag is true if extrinsic was finalized or uncluded in the block.
                     If we did not wait for finalization / inclusion, the response is true.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
         return subtensor.add_stake( wallet = self, amount = amount, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
 
-    def remove_stake( self, 
-        amount: Union[float, bittensor.Balance] = None, 
+    def remove_stake( self,
+        amount: Union[float, bittensor.Balance] = None,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         subtensor: Optional['bittensor.Subtensor'] = None,
@@ -410,8 +407,8 @@ class Wallet():
                 amount_tao (float):
                     amount of tao to unstake or bittensor balance object. If None, unstakes all available hotkey balance.
                 wait_for_inclusion (bool):
-                    if set, waits for the extrinsic to enter a block before returning true, 
-                    or returns false if the extrinsic fails to enter the block within the timeout.   
+                    if set, waits for the extrinsic to enter a block before returning true,
+                    or returns false if the extrinsic fails to enter the block within the timeout.
                 wait_for_finalization (bool):
                     if set, waits for the extrinsic to be finalized on the chain before returning true,
                     or returns false if the extrinsic fails to be finalized within the timeout.
@@ -421,16 +418,16 @@ class Wallet():
                     If true, the call waits for confirmation from the user before proceeding.
             Returns:
                 success (bool):
-                    flag is true if extrinsic was finalized or uncluded in the block. 
+                    flag is true if extrinsic was finalized or uncluded in the block.
                     If we did not wait for finalization / inclusion, the response is true.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
         return subtensor.unstake( wallet = self, amount = amount, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
 
-    def transfer( 
-        self, 
+    def transfer(
+        self,
         dest:str,
-        amount: Union[float, bittensor.Balance] , 
+        amount: Union[float, bittensor.Balance] ,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         subtensor: Optional['bittensor.Subtensor'] = None,
@@ -439,13 +436,13 @@ class Wallet():
         """ Transfers Tao from this wallet's coldkey to the destination address.
             Args:
                 dest (`type`:str, required):
-                    The destination address either encoded as a ss58 or ed255 public-key string of 
+                    The destination address either encoded as a ss58 or ed255 public-key string of
                     secondary account.
                 amount (float, required):
                     amount of tao to transfer or a bittensor balance object.
                 wait_for_inclusion (bool):
-                    if set, waits for the extrinsic to enter a block before returning true, 
-                    or returns false if the extrinsic fails to enter the block within the timeout.   
+                    if set, waits for the extrinsic to enter a block before returning true,
+                    or returns false if the extrinsic fails to enter the block within the timeout.
                 wait_for_finalization (bool):
                     if set, waits for the extrinsic to be finalized on the chain before returning true,
                     or returns false if the extrinsic fails to be finalized within the timeout.
@@ -455,10 +452,10 @@ class Wallet():
                     If true, the call waits for confirmation from the user before proceeding.
             Returns:
                 success (bool):
-                    flag is true if extrinsic was finalized or uncluded in the block. 
+                    flag is true if extrinsic was finalized or uncluded in the block.
                     If we did not wait for finalization / inclusion, the response is true.
         """
-        if subtensor == None: subtensor = bittensor.subtensor() 
+        if subtensor == None: subtensor = bittensor.subtensor()
         return subtensor.transfer( wallet = self, dest = dest, amount = amount, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization, prompt=prompt )
 
     def create_if_non_existent( self, coldkey_use_password:bool = True, hotkey_use_password:bool = False) -> 'Wallet':
@@ -565,7 +562,7 @@ class Wallet():
         if self._coldkeypub == None:
             self._coldkeypub = self.coldkeypub_file.keypair
         return self._coldkeypub
-            
+
     def create_coldkey_from_uri(self, uri:str, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
         """ Creates coldkey from suri string, optionally encrypts it with the user's inputed password.
             Args:
@@ -573,7 +570,7 @@ class Wallet():
                     URI string to use i.e. /Alice or /Bob
                 use_password (bool, optional):
                     Is the created key password protected.
-                overwrite (bool, optional): 
+                overwrite (bool, optional):
                     Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
             Returns:
                 wallet (bittensor.Wallet):
@@ -585,14 +582,14 @@ class Wallet():
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self
 
-    def create_hotkey_from_uri( self, uri:str, use_password: bool = False, overwrite:bool = False) -> 'Wallet':  
+    def create_hotkey_from_uri( self, uri:str, use_password: bool = False, overwrite:bool = False) -> 'Wallet':
         """ Creates hotkey from suri string, optionally encrypts it with the user's inputed password.
             Args:
                 uri: (str, required):
                     URI string to use i.e. /Alice or /Bob
                 use_password (bool, optional):
                     Is the created key password protected.
-                overwrite (bool, optional): 
+                overwrite (bool, optional):
                     Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
             Returns:
                 wallet (bittensor.Wallet):
@@ -603,14 +600,14 @@ class Wallet():
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self
 
-    def new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+    def new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
         """ Creates a new coldkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
                     Number of mnemonic words to use.
                 use_password (bool, optional):
                     Is the created key password protected.
-                overwrite (bool, optional): 
+                overwrite (bool, optional):
                     Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
             Returns:
                 wallet (bittensor.Wallet):
@@ -618,14 +615,14 @@ class Wallet():
         """
         self.create_new_coldkey( n_words, use_password, overwrite )
 
-    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':  
+    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'Wallet':
         """ Creates a new coldkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
                     Number of mnemonic words to use.
                 use_password (bool, optional):
                     Is the created key password protected.
-                overwrite (bool, optional): 
+                overwrite (bool, optional):
                     Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
             Returns:
                 wallet (bittensor.Wallet):
@@ -638,14 +635,14 @@ class Wallet():
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self
 
-    def new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False) -> 'Wallet':  
+    def new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False) -> 'Wallet':
         """ Creates a new hotkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
                     Number of mnemonic words to use.
                 use_password (bool, optional):
                     Is the created key password protected.
-                overwrite (bool, optional): 
+                overwrite (bool, optional):
                     Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
             Returns:
                 wallet (bittensor.Wallet):
@@ -653,14 +650,14 @@ class Wallet():
         """
         self.create_new_hotkey( n_words, use_password, overwrite )
 
-    def create_new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False) -> 'Wallet':  
+    def create_new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False) -> 'Wallet':
         """ Creates a new hotkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
                     Number of mnemonic words to use.
                 use_password (bool, optional):
                     Is the created key password protected.
-                overwrite (bool, optional): 
+                overwrite (bool, optional):
                     Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
             Returns:
                 wallet (bittensor.Wallet):
@@ -685,13 +682,13 @@ class Wallet():
             Returns:
                 wallet (bittensor.Wallet):
                     newly re-generated Wallet with coldkeypub.
-            
+
         """
         if ss58_address is None and public_key is None:
             raise ValueError("Either ss58_address or public_key must be passed")
 
         if not is_valid_bittensor_address_or_public_key( ss58_address if ss58_address is not None else public_key ):
-            raise ValueError(f"Invalid {'ss58_address' if ss58_address is not None else 'public_key'}") 
+            raise ValueError(f"Invalid {'ss58_address' if ss58_address is not None else 'public_key'}")
 
         if ss58_address is not None:
             ss58_format = bittensor.utils.get_ss58_format( ss58_address )
@@ -751,7 +748,7 @@ class Wallet():
                     Restore from encrypted JSON backup as (json_data: Union[str, Dict], passphrase: str)
                 use_password (bool, optional):
                     Is the created key password protected.
-                overwrite (bool, optional): 
+                overwrite (bool, optional):
                     Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
             Returns:
                 wallet (bittensor.Wallet):
@@ -761,12 +758,12 @@ class Wallet():
         """
         if len(kwargs) == 0:
             raise ValueError("Must pass either mnemonic, seed, or json")
-        
+
         # Get from kwargs
         mnemonic = kwargs.get('mnemonic', None)
         seed = kwargs.get('seed', None)
         json = kwargs.get('json', None)
-        
+
         if mnemonic is None and seed is None and json is None:
             raise ValueError("Must pass either mnemonic, seed, or json")
         if mnemonic is not None:
@@ -784,10 +781,10 @@ class Wallet():
 
             json_data, passphrase = json
             keypair = Keypair.create_from_encrypted_json( json_data, passphrase, ss58_format=bittensor.__ss58_format__ )
-            
+
         self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
-        return self 
+        return self
 
     # Short name for regenerate_coldkey
     regen_coldkey = regenerate_coldkey
@@ -835,7 +832,7 @@ class Wallet():
                     Restore from encrypted JSON backup as (json_data: Union[str, Dict], passphrase: str)
                 use_password (bool, optional):
                     Is the created key password protected.
-                overwrite (bool, optional): 
+                overwrite (bool, optional):
                     Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
             Returns:
                 wallet (bittensor.Wallet):
@@ -843,7 +840,7 @@ class Wallet():
         """
         if len(kwargs) == 0:
             raise ValueError("Must pass either mnemonic, seed, or json")
-        
+
         # Get from kwargs
         mnemonic = kwargs.get('mnemonic', None)
         seed = kwargs.get('seed', None)
@@ -867,9 +864,9 @@ class Wallet():
             json_data, passphrase = json
             keypair = Keypair.create_from_encrypted_json( json_data, passphrase, ss58_format=bittensor.__ss58_format__ )
 
-        
+
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
-        return self 
-    
+        return self
+
     # Short name for regenerate_hotkey
     regen_hotkey = regenerate_hotkey

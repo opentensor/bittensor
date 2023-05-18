@@ -1,21 +1,21 @@
 
-            
+
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
@@ -28,11 +28,11 @@ from .staking import __do_add_stake_single
 from loguru import logger
 logger = logger.opt(colors=True)
 
-def nominate_extrinsic( 
+def nominate_extrinsic(
     subtensor: 'bittensor.Subtensor',
-    wallet: 'bittensor.Wallet', 
-    wait_for_finalization: bool = False, 
-    wait_for_inclusion: bool = True 
+    wallet: 'bittensor.Wallet',
+    wait_for_finalization: bool = False,
+    wait_for_inclusion: bool = True
 ) -> bool:
     r""" Becomes a delegate for the hotkey.
     Args:
@@ -83,20 +83,20 @@ def nominate_extrinsic(
 
     if response.is_success:
         return True
-    
+
     return False
 
 def do_delegation(
-        subtensor: 'bittensor.Subtensor', 
+        subtensor: 'bittensor.Subtensor',
         wallet: 'bittensor.wallet',
         delegate_ss58: str,
-        amount: 'bittensor.Balance', 
+        amount: 'bittensor.Balance',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
     with subtensor.substrate as substrate:
         call = substrate.compose_call(
-        call_module='SubtensorModule', 
+        call_module='SubtensorModule',
         call_function='add_stake',
         call_params={
             'hotkey': delegate_ss58,
@@ -115,16 +115,16 @@ def do_delegation(
             raise StakeError(response.error_message)
 
 def do_undelegation(
-        subtensor: 'bittensor.Subtensor', 
+        subtensor: 'bittensor.Subtensor',
         wallet: 'bittensor.wallet',
         delegate_ss58: str,
-        amount: 'bittensor.Balance', 
+        amount: 'bittensor.Balance',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
     with subtensor.substrate as substrate:
         call = substrate.compose_call(
-        call_module='SubtensorModule', 
+        call_module='SubtensorModule',
         call_function='remove_stake',
         call_params={
             'hotkey': delegate_ss58,
@@ -144,10 +144,10 @@ def do_undelegation(
 
 
 def delegate_extrinsic(
-        subtensor: 'bittensor.Subtensor', 
+        subtensor: 'bittensor.Subtensor',
         wallet: 'bittensor.wallet',
         delegate_ss58: Optional[str] = None,
-        amount: Union[Balance, float] = None, 
+        amount: Union[Balance, float] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -161,8 +161,8 @@ def delegate_extrinsic(
         amount (Union[Balance, float]):
             Amount to stake as bittensor balance, or float interpreted as Tao.
         wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true, 
-            or returns false if the extrinsic fails to enter the block within the timeout.   
+            If set, waits for the extrinsic to enter a block before returning true,
+            or returns false if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
             If set, waits for the extrinsic to be finalized on the chain before returning true,
             or returns false if the extrinsic fails to be finalized within the timeout.
@@ -170,7 +170,7 @@ def delegate_extrinsic(
             If true, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block. 
+            flag is true if extrinsic was finalized or uncluded in the block.
             If we did not wait for finalization / inclusion, the response is true.
 
     Raises:
@@ -209,7 +209,7 @@ def delegate_extrinsic(
     if staking_balance > my_prev_coldkey_balance:
         bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance:{}\n  amount: {}\n  coldkey: {}[/bold white]".format(my_prev_coldkey_balance, staking_balance, wallet.name))
         return False
-            
+
     # Ask before moving on.
     if prompt:
         if not Confirm.ask("Do you want to delegate:[bold white]\n  amount: {}\n  to: {}\n owner: {}[/bold white]".format( staking_balance, delegate_ss58, delegate_owner) ):
@@ -257,10 +257,10 @@ def delegate_extrinsic(
         return False
 
 def undelegate_extrinsic(
-        subtensor: 'bittensor.Subtensor', 
+        subtensor: 'bittensor.Subtensor',
         wallet: 'bittensor.wallet',
         delegate_ss58: Optional[str] = None,
-        amount: Union[Balance, float] = None, 
+        amount: Union[Balance, float] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -274,8 +274,8 @@ def undelegate_extrinsic(
         amount (Union[Balance, float]):
             Amount to unstake as bittensor balance, or float interpreted as Tao.
         wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true, 
-            or returns false if the extrinsic fails to enter the block within the timeout.   
+            If set, waits for the extrinsic to enter a block before returning true,
+            or returns false if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
             If set, waits for the extrinsic to be finalized on the chain before returning true,
             or returns false if the extrinsic fails to be finalized within the timeout.
@@ -283,7 +283,7 @@ def undelegate_extrinsic(
             If true, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block. 
+            flag is true if extrinsic was finalized or uncluded in the block.
             If we did not wait for finalization / inclusion, the response is true.
 
     Raises:
@@ -318,7 +318,7 @@ def undelegate_extrinsic(
     if unstaking_balance > my_prev_delegated_stake:
         bittensor.__console__.print(":cross_mark: [red]Not enough delegated stake[/red]:[bold white]\n  stake:{}\n  amount: {}\n coldkey: {}[/bold white]".format(my_prev_delegated_stake, unstaking_balance, wallet.name))
         return False
-            
+
     # Ask before moving on.
     if prompt:
         if not Confirm.ask("Do you want to un-delegate:[bold white]\n  amount: {}\n  from: {}\n  owner: {}[/bold white]".format( unstaking_balance, delegate_ss58, delegate_owner) ):

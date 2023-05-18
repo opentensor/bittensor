@@ -3,18 +3,18 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import torch
@@ -38,21 +38,21 @@ class serializer:
 
     class SerializationTypeNotImplementedException (Exception):
         """ Raised if serialization/deserialization is not implemented for the passed object type """
-    
+
     def __new__(cls, serializer_type: bittensor.proto.Serializer = bittensor.proto.Serializer.MSGPACK ) -> 'bittensor.Serializer':
-        r"""Returns the correct serializer object for the passed Serializer enum. 
+        r"""Returns the correct serializer object for the passed Serializer enum.
 
             Args:
-                serializer_type (:obj:`bittensor.proto.Serializer`, `required`): 
+                serializer_type (:obj:`bittensor.proto.Serializer`, `required`):
                     The serializer_type ENUM from bittensor.proto.
 
             Returns:
-                Serializer: (obj: `bittensor.Serializer`, `required`): 
+                Serializer: (obj: `bittensor.Serializer`, `required`):
                     The bittensor serializer/deserialzer for the passed type.
 
             Raises:
-                NoSerializerForEnum: (Exception): 
-                    Raised if the passed there is no serialzier for the passed type. 
+                NoSerializerForEnum: (Exception):
+                    Raised if the passed there is no serialzier for the passed type.
         """
         # WARNING: the pickle serializer is not safe. Should be removed in future verions.
         # if serializer_type == bittensor.proto.Serializer.PICKLE:
@@ -84,6 +84,8 @@ class serializer:
             dtype = bittensor.proto.DataType.INT64
         elif tdtype == torch.float16:
             dtype = bittensor.proto.DataType.FLOAT16
+        elif tdtype == torch.bool:
+            dtype = bittensor.proto.DataType.BOOL
         else:
             dtype = bittensor.proto.DataType.UNKNOWN
         return dtype
@@ -108,6 +110,8 @@ class serializer:
             dtype=torch.int64
         elif bdtype == bittensor.proto.DataType.FLOAT16:
             dtype=torch.float16
+        elif bdtype == bittensor.proto.DataType.BOOL:
+            dtype=torch.bool
         else:
             raise bittensor.serializer.DeserializationException(
                 'Unknown bittensor.Dtype or no equivalent torch.dtype for bittensor.dtype = {}'

@@ -1,250 +1,61 @@
-// python3 -m grpc.tools.protoc bittensor/_proto/bittensor.proto  -I. --python_out=. --grpc_python_out=.
-
+// python3 -m grpc.tools.protoc bittensor/_proto/bittensor.proto  -I. --python_out=. --grpc_python_out=. --proto_path bittensor/_proto/
 syntax = "proto3";
 
-// Service definition for tensor processing servers.
-service Bittensor {
-	// Forward tensor request. 
-	rpc Forward (TensorMessage) returns (TensorMessage) {}
-	
-	// Backward tensor request i.e. gradient.
-	rpc Backward (TensorMessage) returns (TensorMessage) {}
+service TextPrompting  {
+    rpc Forward (ForwardTextPromptingRequest) returns (ForwardTextPromptingResponse) {}
+    rpc MultiForward (MultiForwardTextPromptingRequest) returns (MultiForwardTextPromptingResponse) {}
+    rpc Backward (BackwardTextPromptingRequest) returns (BackwardTextPromptingResponse) {}
 }
 
-// Neuron endpoint definition.
-// Fully describes a tensor processing service for a bittensor Neuron.
-// SIZE: (256 * 4) + (512 * 2) + (128 * 3) + 32 + 64 = 2504-bits (~314 bytes)
-// NOTE: only the (address, port, identity) need to be stored in RAM.
-// (address, port, identity) = (128 + 32 + 256) = 412 (52 bytes)
-// Holding 20,000,000 endpoints in 1-GB of RAM and 6-GB of Disk.
-message Neuron {
-	// Version: [REQUIRED] Strictly increasing protocol version identifier.
-	// Indentifies protocol version for backward compatibility.
-	// i.e. '0.1.5' = (100 * 0) + (10 * 1) + (1 * 5) = 15
-	int32 version = 1;
-
-	// uid: [REQUIRED] unique network identifier assigned by the chain.
-  	// i.e. '1223213221'
-	// SIZE: 64-bits (8-bytes)
-	int64 uid = 2;
-
-	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key (the hotkey).
-	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
-	// SIZE: 256-bits (32-bytes)
-	string hotkey = 3;
-
-	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key (the coldkey).
-	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
-	// SIZE: 256-bits (32-bytes)
-	string coldkey = 4;
-
-	// Address: [REQUIRED] Neuron ip address. 
-  	// i.e. '0.0.0.0' or [2001:0db8:85a3:0000:0000:8a2e:0370:7334]
-	// SIZE: < 128-bits (16-bytes)
-	string ip = 5;
-	
-	// Port: [REQUIRED] Neuron endpoint listening port.
-  	// i.e. '8081'
-	// SIZE: 32-bits (4-bytes)
-	int32 port = 6;
-
-	// IPType: [REQUIRED] Ip endpoint type, i.e. v6, or v4
-  	// i.e. '6'
-	// SIZE: 32-bits (4-bytes)
-	int32 ip_type = 7;
-
-	// Modality: TEXT, TENSOR, IMAGE
-	Modality modality = 8;
-}	
-
-// TensorMessage
-// Contains a payload of 1 or more serialized tensors and their definitions.
-// Also contains information to identity and verify the sender. 
-// Protocol for bittensor-hivemind message passing.
-// SIZE: 136 bytes + (tensor_size)
-message TensorMessage {
-	// Version: [REQUIRED] Strictly increasing protocol version identifier.
-	// Indentifies protocol version for backward compatibility.
-	// i.e. '0.1.5' = (100 * 0) + (10 * 1) + (1 * 5) = 15
-	int32 version = 1;
-
-	// Neuron key: [REQUIRED] Ed25519 raw hex encoded public key.
-	// Public key of the caller. Used to make a call to the public key of the neuron.
-	// Links message to calling neuron-account.
-	// i.e. b'4c598ff31b68eb6c458c2dc51b25367fa213c566088077f46d93156148429d78'
-	// SIZE: 256-bits (32-bytes)
-	string hotkey = 2;
-	
-	// Tensors: [REQUIRED] 1 or more tensors passed on the wire.
-	// SIZE: variable.
-	// NOTE: During backward calls the tensors should be ordered [input_1, input_2, ... grad_1, grad_2, ...] 
-	repeated Tensor tensors = 5;
-
-	// Return codes from Backward and Forward call.
-	ReturnCode return_code = 6; 
-
-	// Message associated with return code.
-	string message = 7; 
-
-	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
-	bool requires_grad = 8;
-
-	// Synapses hold function information this tells the axon how to use the tensor inputs.
-	// i.e. where to send them
- 	repeated Synapse synapses = 9;
+/////////////////////////
+// TextPrompting //
+/////////////////////////
+message ForwardTextPromptingRequest {
+    int32 version = 1;
+    string hotkey = 2;
+    repeated string messages = 3;
+    float timeout = 4;
+}
+message ForwardTextPromptingResponse {
+    int32 version = 1;
+    string hotkey = 2;
+    string response = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+message MultiForwardTextPromptingRequest {
+    int32 version = 1;
+    string hotkey = 2;
+    repeated string messages = 3;
+    float timeout = 4;
+}
+message MultiForwardTextPromptingResponse {
+    int32 version = 1;
+    string hotkey = 2;
+    repeated string multi_completions = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+message BackwardTextPromptingRequest {
+    int32 version = 1;
+    string hotkey = 2;
+	repeated float rewards = 3;
+	repeated string messages = 4;
+	string response = 5;
+    float timeout = 6;
+}
+message BackwardTextPromptingResponse {
+    int32 version = 1;
+    string hotkey = 2;
+	string return_message = 4;
+	ReturnCode return_code = 5;
 }
 
-
-message Synapse {
-	
-	enum SynapseType {
-		NULL_SYNAPSE = 0;
-		TEXT_LAST_HIDDEN_STATE = 1;
-		TEXT_CAUSAL_LM = 2;
-		TEXT_SEQ_2_SEQ = 3;
-		TEXT_CAUSAL_LM_NEXT = 4;
-	}
-
-	// Position of Tensor inputs for corresponding synapse call.
-	repeated int32 tensor_pos = 1;
-
-	// Serialized special argmument data. This is proto data which
-	// is packed according to the SynapseType enum. 
-	bytes synapse_data = 2;
-
-	// Type of Synapse. i.e. LastHidden specifies how to decode args_data 
-	// and route information in the axon to the correct function call.
-	SynapseType synapse_type = 3;
-
-	// Return codes from Backward and Forward call associated 
-	// with this synapse call.
-	ReturnCode return_code = 4;
-
-	// Message associated with the return code.
-	string message = 5;
-
-	// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
-	bool requires_grad = 6;
-
-	message TextLastHiddenState { 
-		// Might as well have this
-		SynapseType synapse_type = 1;
-
-		// Serializer typing.
-		Serializer forward_request_serializer_type = 2;
-		Serializer forward_response_serializer_type = 3;
-		Serializer backward_request_serializer_type = 4;
-		Serializer backward_response_serializer_type = 5;
-
-		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
-		bool requires_grad = 6;
-
-		// Mask
-		repeated int32 mask = 7;
-	}
-
-	message TextCausalLM {
-		// Might as well have this
-		SynapseType synapse_type = 1;
-
-		// Specifies the number of Topk logits to return.
-		// Logit values are packed (pos, value) acocording 
-		// to the bittensor tokenizer vocab size.
-		int32 topk = 2;
-
-		// Serializer typing.
-		Serializer forward_request_serializer_type = 3;
-		Serializer forward_response_serializer_type = 4;
-		Serializer backward_request_serializer_type = 5;
-		Serializer backward_response_serializer_type = 6;
-
-		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
-		bool requires_grad = 7;
-	}
-
-	message TextSeq2Seq {
-		// Might as well have this
-		SynapseType synapse_type = 1;
-
-		// Specifies the number of Topk logits to return.
-		// Logit values are packed (pos, value) acocording 
-		// to the bittensor tokenizer vocab size.
-		int32 topk = 2;
-
-		// Number of tokens to predict
-		int32 num_to_generate = 3;
-
-
-		// Serializer typing.
-		Serializer forward_request_serializer_type = 4;
-		Serializer forward_response_serializer_type = 5;
-		Serializer backward_request_serializer_type = 6;
-		Serializer backward_response_serializer_type = 7;
-
-		//Generate Arguments
-		// Number of beams
-        int32 num_beams = 8;
-
-		//Number of repeat words
-        int32 no_repeat_ngram_size = 9;
-
-		//Early Stopping
-        bool early_stopping = 10;
-        
-		//Number of return seuqences
-		int32 num_return_sequences = 11;
-
-		//If sampling should be used
-		bool do_sample = 12;
-
-		//The probability cutoff
-		float top_p = 13;
-
-		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
-		bool requires_grad = 14;
-
-		//temperature of the softmax function
-		float temperature = 15;
-
-		//penalty for repeated words
-		float repetition_penalty = 16; 
-
-		//penalty for length 
-		float length_penalty = 17;
-
-		//maximum amount of time 
-		float max_time = 18;
-
-		//groups for beam search
-		int32 num_beam_groups = 19;
-	}
-
-	message TextCausalLMNext {
-		// Specifies messaging of topk server token phrases with probabilities.
-		// Server last position token predictions are retokenized to token phrases with the bittensor tokenizer.
-		// Allows for zero translation loss CausalLM next generation between different tokenizers.
-
-		// Might as well have this
-		SynapseType synapse_type = 1;
-
-		// Specifies the number of topk server token phrases to return.
-		int32 topk = 2;
-
-		// Serializer typing.
-		Serializer forward_request_serializer_type = 3;
-		Serializer forward_response_serializer_type = 4;
-		Serializer backward_request_serializer_type = 5;
-		Serializer backward_response_serializer_type = 6;
-
-		// Requires grad: [OPTIONAL] Does this synapse call require a gradient.
-		bool requires_grad = 7;
-	}
-}
 
 // Return codes from Backward and Forward call.
 enum ReturnCode {
 	NoReturn = 0; // Default Value
-	Success = 1; // Succesfull query.
+	Success = 1; // Successful query.
 	Timeout = 2; // Request timeout.
 	Backoff = 3; // Call triggered a backoff.
 	Unavailable = 4; // Endpoint not available.
@@ -264,12 +75,16 @@ enum ReturnCode {
 	NucleusFull = 18; // Returned when the processing queue on the server is full.
 	RequestIncompatibleVersion = 19; // The request handler is incompatible with the request version.
 	ResponseIncompatibleVersion = 20; // The request handler is incompatible with the request version.
-	SenderUnknown = 21; // The requester is not known by the reciever. 
+	SenderUnknown = 21; // The requester is not known by the receiver.
 	UnknownException = 22; // Unknown exception.
 	Unauthenticated = 23; // Authentication failed.
 	BadEndpoint = 24; // Dummy endpoint
+	Blacklisted = 25; // Blacklisted
 }
 
+/////////////////
+// TensorProto //
+/////////////////
 // A serialized tensor object created using the serializer class.
 // SIZE: 32 bytes + variable buffer size.
 message Tensor {
@@ -306,13 +121,9 @@ message Tensor {
 	// int32 32-bits (4-bytes)
 	DataType dtype = 6;
 
-	// Modality: TEXT, TENSOR, IMAGE
-	Modality modality = 7;
-
 	// Requires grad: [OPTIONAL] Does this tensor require a gradient.
 	// 1 bit.
 	bool requires_grad = 8;
-
 }
 
 enum Serializer {
@@ -339,16 +150,7 @@ enum DataType {
 	INT64 = 4;
 	UTF8 = 5;
 	FLOAT16 = 6;
+	BOOL = 7;
 }
 
-enum Modality {
-	TEXT = 0;
-	IMAGE = 1;
-	TENSOR = 2;
-}
 
-enum RequestType {
-	NOTDEFINED = 0;
-	FORWARD = 1;
-	BACKWARD = 2;
-}

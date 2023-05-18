@@ -5,9 +5,8 @@ import grpc
 from bittensor._proto import bittensor_pb2 as bittensor_dot___proto_dot_bittensor__pb2
 
 
-class BittensorStub(object):
-    """Service definition for tensor processing servers.
-    """
+class TextPromptingStub(object):
+    """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
         """Constructor.
@@ -16,58 +15,70 @@ class BittensorStub(object):
             channel: A grpc.Channel.
         """
         self.Forward = channel.unary_unary(
-                '/Bittensor/Forward',
-                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
-                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
+                '/TextPrompting/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextPromptingRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextPromptingResponse.FromString,
+                )
+        self.MultiForward = channel.unary_unary(
+                '/TextPrompting/MultiForward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.MultiForwardTextPromptingRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.MultiForwardTextPromptingResponse.FromString,
                 )
         self.Backward = channel.unary_unary(
-                '/Bittensor/Backward',
-                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
-                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
+                '/TextPrompting/Backward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextPromptingRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextPromptingResponse.FromString,
                 )
 
 
-class BittensorServicer(object):
-    """Service definition for tensor processing servers.
-    """
+class TextPromptingServicer(object):
+    """Missing associated documentation comment in .proto file."""
 
     def Forward(self, request, context):
-        """Forward tensor request. 
-        """
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def MultiForward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def Backward(self, request, context):
-        """Backward tensor request i.e. gradient.
-        """
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_BittensorServicer_to_server(servicer, server):
+def add_TextPromptingServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Forward': grpc.unary_unary_rpc_method_handler(
                     servicer.Forward,
-                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
-                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextPromptingRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextPromptingResponse.SerializeToString,
+            ),
+            'MultiForward': grpc.unary_unary_rpc_method_handler(
+                    servicer.MultiForward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.MultiForwardTextPromptingRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.MultiForwardTextPromptingResponse.SerializeToString,
             ),
             'Backward': grpc.unary_unary_rpc_method_handler(
                     servicer.Backward,
-                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
-                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextPromptingRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextPromptingResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'Bittensor', rpc_method_handlers)
+            'TextPrompting', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
  # This class is part of an EXPERIMENTAL API.
-class Bittensor(object):
-    """Service definition for tensor processing servers.
-    """
+class TextPrompting(object):
+    """Missing associated documentation comment in .proto file."""
 
     @staticmethod
     def Forward(request,
@@ -80,9 +91,26 @@ class Bittensor(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Bittensor/Forward',
-            bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
-            bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
+        return grpc.experimental.unary_unary(request, target, '/TextPrompting/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardTextPromptingRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardTextPromptingResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def MultiForward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/TextPrompting/MultiForward',
+            bittensor_dot___proto_dot_bittensor__pb2.MultiForwardTextPromptingRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.MultiForwardTextPromptingResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -97,8 +125,8 @@ class Bittensor(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Bittensor/Backward',
-            bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.SerializeToString,
-            bittensor_dot___proto_dot_bittensor__pb2.TensorMessage.FromString,
+        return grpc.experimental.unary_unary(request, target, '/TextPrompting/Backward',
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardTextPromptingRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.BackwardTextPromptingResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

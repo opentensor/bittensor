@@ -4,7 +4,7 @@ import pytest
 import random
 
 def test_convert_weight_and_uids():
-    uids = torch.tensor(list(range(10))) 
+    uids = torch.tensor(list(range(10)))
     weights = torch.rand(10)
     weight_utils.convert_weights_and_uids_for_emit( uids, weights )
 
@@ -12,25 +12,25 @@ def test_convert_weight_and_uids():
     weights[5] = -1
     with pytest.raises(ValueError) as pytest_wrapped_e:
         weight_utils.convert_weights_and_uids_for_emit( uids, weights )
-    
+
     # min uid < 0
     weights[5] = 0
     uids[3] = -1
     with pytest.raises(ValueError) as pytest_wrapped_e:
         weight_utils.convert_weights_and_uids_for_emit( uids, weights )
-    
+
     # len(uids) != len(weights)
     uids[3] = 3
     with pytest.raises(ValueError) as pytest_wrapped_e:
         weight_utils.convert_weights_and_uids_for_emit( uids, weights[1:] )
-    
+
     # sum(weights) == 0
     weights = torch.zeros(10)
     weight_utils.convert_weights_and_uids_for_emit( uids, weights )
 
     # test for overflow and underflow
     for _ in range (5):
-        uids = torch.tensor(list(range(10))) 
+        uids = torch.tensor(list(range(10)))
         weights = torch.rand(10)
         weight_utils.convert_weights_and_uids_for_emit( uids, weights )
 
@@ -59,14 +59,14 @@ def test_normalize_with_max_weight():
     wn = weight_utils.normalize_max_weight( weights, limit = 0.03 )
     assert wn.max() <= 0.03
 
-    # Check for Limit  
+    # Check for Limit
     limit = 0.001
     weights = torch.rand(2000)
     w = weights / weights.sum()
     wn = weight_utils.normalize_max_weight( weights, limit = limit )
     assert (w.max() >= limit and (limit - wn.max()).abs() < 0.001) or (w.max() < limit and wn.max() < limit)
 
-    # Check for Zeros 
+    # Check for Zeros
     limit = 0.01
     weights = torch.zeros(2000)
     wn = weight_utils.normalize_max_weight( weights, limit = limit )
