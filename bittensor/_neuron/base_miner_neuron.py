@@ -155,6 +155,7 @@ class BaseMinerNeuron:
 
         # --- Run Forever.
         last_update = self.subtensor.get_current_block()
+        retries = 0
         while not self.should_exit:
 
             # --- Wait until next epoch.
@@ -166,8 +167,20 @@ class BaseMinerNeuron:
             last_update = self.subtensor.get_current_block()
 
             # --- Update the metagraph with the latest network state.
-            self.metagraph.sync( lite = True )
-            uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
+            try:
+                self.metagraph.sync( lite = True )
+                uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
+            except:
+                # --- If we fail to sync the metagraph, wait and try again.
+                if(retries >= 4):
+                    bittensor.logging.error( f'Failed to sync metagraph, exiting.')
+                    self.stop()
+                    break 
+                seconds_to_sleep = 10 * 2**(retries)
+                bittensor.logging.error( f'Failed to sync metagraph, retrying in {seconds_to_sleep} seconds.')
+                time.sleep( seconds_to_sleep )
+                retries += 1
+                continue
 
             # --- Log performance.
             print(
