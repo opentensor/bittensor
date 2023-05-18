@@ -58,8 +58,8 @@ class StablelmMiner( bittensor.BasePromptingMiner ):
         for message in history:
             if message['role'] == 'system':
                 processed_history += '<|SYSTEM|>' + message['content'].strip() + '\n'
-            if message['role'] == '<|ASSISTANT|>':
-                processed_history += '' + message['content'].strip() + '\n'
+            if message['role'] == 'assistant':
+                processed_history += '<|ASSISTANT|>' + message['content'].strip() + '\n'
             if message['role'] == 'user':
                 processed_history += '<|USER|>' + message['content'].strip() + '\n'
         return processed_history
