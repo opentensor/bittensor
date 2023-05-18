@@ -2,18 +2,18 @@
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
@@ -27,8 +27,8 @@ from ..errors import *
 def transfer_extrinsic(
         subtensor: 'bittensor.Subtensor',
         wallet: 'bittensor.wallet',
-        dest: str, 
-        amount: Union[Balance, float], 
+        dest: str,
+        amount: Union[Balance, float],
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         keep_alive: bool = True,
@@ -39,12 +39,12 @@ def transfer_extrinsic(
         wallet (bittensor.wallet):
             Bittensor wallet object to make transfer from.
         dest (str, ss58_address or ed25519):
-            Destination public key address of reciever. 
+            Destination public key address of reciever.
         amount (Union[Balance, int]):
             Amount to stake as bittensor balance, or float interpreted as Tao.
         wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true, 
-            or returns false if the extrinsic fails to enter the block within the timeout.   
+            If set, waits for the extrinsic to enter a block before returning true,
+            or returns false if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
             If set, waits for the extrinsic to be finalized on the chain before returning true,
             or returns false if the extrinsic fails to be finalized within the timeout.
@@ -54,7 +54,7 @@ def transfer_extrinsic(
             If true, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            Flag is true if extrinsic was finalized or uncluded in the block. 
+            Flag is true if extrinsic was finalized or uncluded in the block.
             If we did not wait for finalization / inclusion, the response is true.
     """
     # Validate destination address.
@@ -87,7 +87,7 @@ def transfer_extrinsic(
                 call_module='Balances',
                 call_function='transfer',
                 call_params={
-                    'dest': dest, 
+                    'dest': dest,
                     'value': transfer_balance.rao
                 }
             )
@@ -97,11 +97,11 @@ def transfer_extrinsic(
             except Exception as e:
                 bittensor.__console__.print(":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {}[/bold white]".format(e))
                 payment_info = {
-                    'partialFee': 2e7, # assume  0.02 Tao 
+                    'partialFee': 2e7, # assume  0.02 Tao
                 }
 
             fee = bittensor.Balance.from_rao( payment_info['partialFee'] )
-    
+
     if not keep_alive:
         # Check if the transfer should keep_alive the account
         existential_deposit = bittensor.Balance(0)
@@ -122,7 +122,7 @@ def transfer_extrinsic(
                 call_module='Balances',
                 call_function='transfer',
                 call_params={
-                    'dest': dest, 
+                    'dest': dest,
                     'value': transfer_balance.rao
                 }
             )
@@ -139,11 +139,11 @@ def transfer_extrinsic(
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 block_hash = response.block_hash
                 bittensor.__console__.print("[green]Block Hash: {}[/green]".format( block_hash ))
-                
+
                 explorer_url = bittensor.utils.get_explorer_url_for_network( subtensor.network, block_hash, bittensor.__network_explorer_map__ )
                 if explorer_url is not None:
                     bittensor.__console__.print("[green]Explorer Link: {}[/green]".format( explorer_url ))
-                
+
             else:
                 bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
 
@@ -152,5 +152,5 @@ def transfer_extrinsic(
             new_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
             bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(account_balance, new_balance))
             return True
-    
+
     return False

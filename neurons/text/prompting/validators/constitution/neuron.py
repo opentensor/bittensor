@@ -46,7 +46,7 @@ class neuron:
 
     @classmethod
     def config ( cls ):
-        parser = argparse.ArgumentParser()    
+        parser = argparse.ArgumentParser()
         parser.add_argument( '--netuid', type = int, help = 'Prompting network netuid', default = 1 )
         parser.add_argument( '--neuron.name', type = str, help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ', default = 'core_prompting_validator')
         parser.add_argument( '--neuron.device', type = str, help = 'Device to run the validator on.', default = "cuda" if torch.cuda.is_available() else "cpu" )
@@ -55,7 +55,7 @@ class neuron:
         bt.logging.add_args( parser )
         bt.axon.add_args( parser )
         return bt.config( parser )
-    
+
     def __init__( self ):
         self.config = neuron.config()
         self.check_config( self.config )
@@ -71,14 +71,14 @@ class neuron:
             uids = torch.tensor( random.sample( self.metagraph.uids.tolist(), 2 ), dtype = torch.int64 )
             A = bittensor.text_prompting( keypair = self.wallet.hotkey, axon = self.metagraph.axons[uids[0]] )
             B = bittensor.text_prompting( keypair = self.wallet.hotkey, axon = self.metagraph.axons[uids[1]] )
-            resp_A = A.forward( 
-                roles = ['user'], 
-                messages = ['ask me a random question?'], 
+            resp_A = A.forward(
+                roles = ['user'],
+                messages = ['ask me a random question?'],
                 timeout = 5,
             )
-            resp_B = B.forward( 
-                roles = ['user'], 
-                messages = ['ask me a random question?'], 
+            resp_B = B.forward(
+                roles = ['user'],
+                messages = ['ask me a random question?'],
                 timeout = 5,
             )
             bittensor.logging.info(str(resp_A))

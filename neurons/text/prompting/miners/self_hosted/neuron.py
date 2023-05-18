@@ -95,19 +95,19 @@ def main():
 
     # --- Turn on logging.
     bittensor.logging(config=config, logging_dir=config.neuron.full_path)
-    
+
     # --- Create our chain connection.
     subtensor = bittensor.subtensor(config)
-    
+
     # --- Create our wallet and register it to the subnetwork.
     wallet = bittensor.wallet(config)
     wallet.register(netuid=config.netuid, subtensor=subtensor)
-    
+
     # --- Create our network state cache
     metagraph = bittensor.metagraph(config=config, netuid=config.netuid, )
     metagraph.sync(netuid=config.netuid, subtensor=subtensor).save()
     uid = metagraph.hotkeys.index(wallet.hotkey.ss58_address)
-    
+
     # --- Build /Load our model and set the device.
     with bittensor.__console__.status("Loading huggingface model robertmyers/bpt-sft ..."):
         bittensor.logging.info('Loading', "robertmyers/bpt-sft" )
@@ -117,10 +117,10 @@ def main():
         actor_optim = Adam(actor.parameters(), lr=1e-7)
         critic_optim = Adam(critic.parameters(), lr=1e-7)
         # model = AutoModelForCausalLM.from_pretrained(  "robertmyers/bpt-sft", torch_dtype=torch.float16 )
-        
+
         actor.to( "cuda" )
-        pipe = pipeline("text-generation", actor, tokenizer=tokenizer, device=0, max_new_tokens = 256 )   
-    
+        pipe = pipeline("text-generation", actor, tokenizer=tokenizer, device=0, max_new_tokens = 256 )
+
     # --- Build axon server and start it.tensor.loggi
     axon = bittensor.axon(
         wallet=wallet,
@@ -137,7 +137,7 @@ def main():
 
             if message['role'] == 'assistant':
                 processed_history += 'assistant: ' + message['content'] + '\n'
-            
+
             if message['role'] == 'user':
                 processed_history += 'user: ' + message['content'] + '\n'
         return processed_history
@@ -153,14 +153,14 @@ def main():
 
         def forward(self, messages: List[str]) -> str:
             history = _process_history(messages)
-            return pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "") 
+            return pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "")
 
     syn = Synapse()
     axon.attach(syn)
     axon.start()
     axon.netuid = config.netuid
     axon.protocol = 4
-    subtensor.serve_axon( axon )  
+    subtensor.serve_axon( axon )
     print (axon)
 
     # --- Run Forever.

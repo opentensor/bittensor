@@ -57,24 +57,24 @@ class StabilityAIMiner( bittensor.BasePromptingMiner ):
         super( StabilityAIMiner, self ).__init__()
         print ( self.config )
         bittensor.logging.info( 'Loading togethercomputer/StabilityAI {}B model...'.format( self.config.stabilityai.model_size ) )
-        self.model = AutoModelForCausalLM.from_pretrained( 
-            "stabilityai/stablelm-tuned-alpha-{}b".format( self.config.stabilityai.model_size ), 
-            use_auth_token=self.config.stabilityai.api_key, 
-            torch_dtype=torch.float16 
+        self.model = AutoModelForCausalLM.from_pretrained(
+            "stabilityai/stablelm-tuned-alpha-{}b".format( self.config.stabilityai.model_size ),
+            use_auth_token=self.config.stabilityai.api_key,
+            torch_dtype=torch.float16
         ).cuda()
-        self.tokenizer = AutoTokenizer.from_pretrained( 
-            "stabilityai/stablelm-tuned-alpha-{}b".format( self.config.stabilityai.model_size ), 
-            use_auth_token=self.config.stabilityai.api_key 
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            "stabilityai/stablelm-tuned-alpha-{}b".format( self.config.stabilityai.model_size ),
+            use_auth_token=self.config.stabilityai.api_key
         )
 
         if self.config.stabilityai.device == "cuda":
             self.model = self.model.to( self.config.stabilityai.device )
 
-        self.pipe = pipeline( 
-            "text-generation", 
-            self.model, 
-            tokenizer = self.tokenizer, 
-            device = 0, 
+        self.pipe = pipeline(
+            "text-generation",
+            self.model,
+            tokenizer = self.tokenizer,
+            device = 0,
             max_new_tokens = self.config.stabilityai.max_tokens,
             num_return_sequences = self.config.stabilityai.num_return_sequences,
             num_beams = self.config.stabilityai.num_beams,
@@ -85,7 +85,7 @@ class StabilityAIMiner( bittensor.BasePromptingMiner ):
             stopping_criteria=StoppingCriteriaList([StopOnTokens()])
         )
         bittensor.logging.info( "StabilityAI {}B model loaded".format( self.config.stabilityai.model_size ) )
-    
+
     def blacklist( self, foward_call ) -> bool:
         return False
 
@@ -105,8 +105,8 @@ class StabilityAIMiner( bittensor.BasePromptingMiner ):
 
     def forward( self, messages: List[Dict[str, str]]  ) -> str:
         history = self._process_history(messages)
-        return self.pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "") 
-        
+        return self.pipe( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "")
+
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
