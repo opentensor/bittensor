@@ -57,7 +57,7 @@ class logging:
         ):
         r""" Instantiate bittensor logging system backend.
             Args:
-                config (:obj:`bittensor.Config`, `optional`): 
+                config (:obj:`bittensor.Config`, `optional`):
                     bittensor.logging.config()
                 debug (:obj:`bool`, `optional`):
                     Turn on debug.
@@ -66,12 +66,12 @@ class logging:
                 record_log (:obj:`bool`, `optional`):
                     If true, logs are saved to loggind dir.
                 logging_dir (:obj:`str`, `optional`):
-                    Directory where logs are sunk. 
-        """   
+                    Directory where logs are sunk.
+        """
 
         cls.__has_been_inited__ = True
 
-        if config == None: 
+        if config == None:
             config = logging.config()
         config = copy.deepcopy(config)
         config.logging.debug = debug if debug != None else config.logging.debug
@@ -129,7 +129,7 @@ class logging:
         logging.add_args( parser )
         return bittensor.config( parser )
 
-    @classmethod   
+    @classmethod
     def help(cls):
         """ Print help to stdout
         """
@@ -152,7 +152,7 @@ class logging:
             # re-parsing arguments.
             pass
 
-    @classmethod   
+    @classmethod
     def add_defaults(cls, defaults):
         """ Adds parser defaults to object from enviroment variables.
         """
@@ -170,7 +170,7 @@ class logging:
 
     @classmethod
     def set_debug(cls, debug_on: bool = True ):
-        """ Set debug for the specific cls class 
+        """ Set debug for the specific cls class
         """
         if not cls.__has_been_inited__:
             cls()
@@ -178,7 +178,7 @@ class logging:
 
     @classmethod
     def set_trace(cls, trace_on: bool = True):
-        """ Set trace back for the specific cls class 
+        """ Set trace back for the specific cls class
         """
         if not cls.__has_been_inited__:
             cls()
@@ -213,7 +213,7 @@ class logging:
             return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[uid_str]} | {extra[inputs]} | {extra[call_time]} | {extra[key_str]} | {extra[rpc_message]} | {extra[synapse]} \n"
         else:
             return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | <level>{level: ^16}</level> | {message}\n"
-   
+
     @classmethod
     def log_save_formatter(cls, record):
         extra = record['extra']
@@ -227,21 +227,21 @@ class logging:
 
 
     @classmethod
-    def rpc_log( 
-                 cls, 
+    def rpc_log(
+                 cls,
                  axon: bool,
                  forward: bool,
                  is_response: bool,
                  code:int,
-                 call_time: float, 
-                 pubkey: str, 
-                 uid: int = None, 
-                 inputs:list = None, 
-                 outputs:list = None, 
+                 call_time: float,
+                 pubkey: str,
+                 uid: int = None,
+                 inputs:list = None,
+                 outputs:list = None,
                  message:str = '',
                  synapse:'bittensor.Synapse' = None
         ):
-        """ Debug logging for the communication between endpoints with axon/dendrite 
+        """ Debug logging for the communication between endpoints with axon/dendrite
         """
 
         if axon:
@@ -260,7 +260,7 @@ class logging:
             arrow = "<---"
         else:
             arrow = "--->"
-        
+
         key_str = "{}".format( pubkey )
         call_time_str = "{:.2f}s".format(call_time).center(6)
 
@@ -284,17 +284,17 @@ class logging:
             synapse = codes.code_to_synapse(synapse)
 
         rpc_message = message if message != None else 'None'
-        logger.debug( 
-                    'rpc', 
-                    rpc=True, 
-                    prefix=prefix, 
-                    direction=direction, 
-                    arrow=arrow, 
-                    call_time = call_time_str, 
-                    uid_str=uid_str, 
-                    key_str=key_str, 
-                    code_str=code_str, 
-                    inputs = inputs, 
+        logger.debug(
+                    'rpc',
+                    rpc=True,
+                    prefix=prefix,
+                    direction=direction,
+                    arrow=arrow,
+                    call_time = call_time_str,
+                    uid_str=uid_str,
+                    key_str=key_str,
+                    code_str=code_str,
+                    inputs = inputs,
                     rpc_message = rpc_message,
                     synapse = synapse
         )
@@ -317,7 +317,7 @@ class logging:
 
     @classmethod
     def success( cls, prefix:object, sufix:object = None ):
-        """ Success logging 
+        """ Success logging
         """
         if not cls.__has_been_inited__: cls()
         logger.success( cls._format( prefix, sufix ) )

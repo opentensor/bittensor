@@ -4,7 +4,7 @@ import json
 def test_ipfs_init():
     ipfs = bittensor.Ipfs()
 
-    assert ipfs.cat == 'http://global.ipfs.opentensor.ai/api/v0/cat' 
+    assert ipfs.cat == 'http://global.ipfs.opentensor.ai/api/v0/cat'
     assert ipfs.node_get == 'http://global.ipfs.opentensor.ai/api/v0/object/get'
     assert ipfs.ipns_resolve == 'http://global.ipfs.opentensor.ai/api/v0/name/resolve'
 
@@ -21,4 +21,4 @@ def test_retrieve_directory():
     folder_list = json.loads(directory.text)
     assert directory.status_code == 200
     assert len(folder_list) > 1
-    
+

@@ -3,36 +3,31 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import json
 import torch
 import bittensor
 
-import torch.nn.functional as f
-import bittensor.utils.networking as net
-
 from os import listdir
-from os.path import isfile, join
-from bittensor import Balance
-from typing import List, Optional, Dict, Union
+from os.path import join
+from typing import List, Optional
 
 
 # Return directory path from network and netuid
-def get_save_dir(  network: str, netuid: int ) -> str: 
+def get_save_dir(  network: str, netuid: int ) -> str:
     return os.path.expanduser(f"~/.bittensor/metagraphs/network-{str(network)}/netuid-{str(netuid)}/")
 
 def latest_block_path( dir_path: str ) -> int:
@@ -47,11 +42,11 @@ def latest_block_path( dir_path: str ) -> int:
                     latest_file_full_path = full_path_filename
             except Exception as e:
                 pass
-        if not latest_file_full_path: 
+        if not latest_file_full_path:
             raise ValueError( f"Metagraph not found at: {dir_path}" )
         else:
             return latest_file_full_path
-        
+
 class metagraph( torch.nn.Module ):
 
     @property
@@ -82,12 +77,12 @@ class metagraph( torch.nn.Module ):
     def addresses( self ) -> List[str]: return [ axon.ip_str() for axon in self.axons ]
 
     def __str__(self): return "Metagraph(netuid:{}, n:{}, block:{}, network:{})".format(self.netuid, self.n.item(), self.block.item(), self.network)
-        
+
     def __repr__(self): return self.__str__()
 
     def metadata(self) -> dict: return {"netuid": self.netuid, "n": self.n.item(), "block": self.block.item(), "network": self.network, "version": bittensor.__version__ }
 
-    def __init__(self, netuid: int, network: str = 'finney', lite:bool = True, sync: bool = True ) -> 'metagraph':    
+    def __init__(self, netuid: int, network: str = 'finney', lite: bool = True, sync: bool = True ) -> 'metagraph':
         super(metagraph, self).__init__()
         self.netuid = netuid
         self.network = network
@@ -140,19 +135,25 @@ class metagraph( torch.nn.Module ):
         if not lite:
             weights_array = []
             for n in self.neurons:
-                w_uids, w_weights = zip(*n.weights)
-                weights_array.append( bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( len(self.neurons), w_uids, w_weights ).tolist() )
-            self.weights = torch.nn.Parameter( torch.stack( weights_array ), requires_grad=False ) if len( weights_array ) else torch.Tensor()
+                if len(n.weights) == 0:
+                    weights_array.append( torch.zeros( len( self.neurons ) ) )
+                else:
+                    w_uids, w_weights = zip(*n.weights)
+                    weights_array.append( bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( len(self.neurons), w_uids, w_weights ) )
+            self.weights = torch.nn.Parameter( torch.stack( weights_array ), requires_grad=False ) if len( weights_array ) else torch.nn.Parameter()
             if len(weights_array) == 0:
-                bittensor.logging.warning("Empty weights_array on metagraph.sync(). The 'weights' tensor is empty.")      
+                bittensor.logging.warning("Empty weights_array on metagraph.sync(). The 'weights' tensor is empty.")
         if not lite:
             bonds_array = []
             for n in self.neurons:
-                b_uids, b_bonds = zip(*n.bonds)
-                bonds_array.append( bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor( len(self.neurons), b_uids, b_bonds ).tolist() )
-            self.bonds = torch.nn.Parameter( torch.stack( bonds_array ), requires_grad=False ) if len( bonds_array ) else torch.Tensor()
+                if len(n.bonds) == 0:
+                    bonds_array.append( torch.zeros( len( self.neurons ) ) )
+                else:
+                    b_uids, b_bonds = zip(*n.bonds)
+                    bonds_array.append( bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor( len(self.neurons), b_uids, b_bonds ) )
+            self.bonds = torch.nn.Parameter( torch.stack( bonds_array ), requires_grad=False ) if len( bonds_array ) else torch.nn.Parameter()
             if len(bonds_array) == 0:
-                bittensor.logging.warning("Empty bonds_array on metagraph.sync(). The 'bonds' tensor is empty.")    
+                bittensor.logging.warning("Empty bonds_array on metagraph.sync(). The 'bonds' tensor is empty.")
 
     def save( self ) -> 'metagraph':
         r""" Saves this metagraph object's state_dict under bittensor root dir."""
@@ -161,20 +162,18 @@ class metagraph( torch.nn.Module ):
         graph_file = save_directory + f'/block-{self.block.item()}.pt'
         state_dict = self.state_dict()
         state_dict['axons'] = self.axons
-        torch.save(state_dict, graph_file) 
+        torch.save(state_dict, graph_file)
         state_dict = torch.load( graph_file )
         return self
 
     def load( self ) -> 'metagraph':
         r""" Loads this metagraph object's state_dict from bittensor root dir. """
         self.load_from_path( get_save_dir( self.network, self.netuid ) )
-    
+
     def load_from_path( self, dir_path:str ) -> 'metagraph':
         r""" Loads this metagraph object with state_dict under the specified path."""
         graph_file = latest_block_path( dir_path )
         state_dict = torch.load( graph_file )
-        # self.info = bittensor.SubnetInfo.from_parameter_dict( state_dict['info'] ) if 'info' in state_dict else None
-        # self.version = torch.nn.Parameter( state_dict['version'], requires_grad=False )
         self.n = torch.nn.Parameter( state_dict['n'], requires_grad=False )
         self.block = torch.nn.Parameter( state_dict['block'], requires_grad=False )
         self.uids = torch.nn.Parameter( state_dict['uids'], requires_grad=False )

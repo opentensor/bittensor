@@ -106,6 +106,3 @@ def test_text_prompting_synapse_priority():
     priority = synapse.priority( call )
     assert priority == 0.0
 
-@unittest.skip("TODO: Implement this test")
-def test_text_prompting_synapse_apply():
-    pass
