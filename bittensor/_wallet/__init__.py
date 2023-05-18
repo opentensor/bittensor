@@ -1,20 +1,18 @@
-""" Create and init wallet that stores coldkey and hotkey
-"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
@@ -24,9 +22,7 @@ import os
 
 import bittensor
 from bittensor.utils import strtobool
-
 from . import wallet_impl, wallet_mock
-from .naka_wallet_impl import Wallet as naka_wallet
 
 class wallet:
     """ Create and init wallet that stores hot and coldkey
@@ -36,7 +32,7 @@ class wallet:
         return wallet( name='mock' )
 
     def __new__(
-            cls, 
+            cls,
             config: 'bittensor.Config' = None,
             name: str = None,
             hotkey: str = None,
@@ -46,7 +42,7 @@ class wallet:
         r""" Init bittensor wallet object containing a hot and coldkey.
 
             Args:
-                config (:obj:`bittensor.Config`, `optional`): 
+                config (:obj:`bittensor.Config`, `optional`):
                     bittensor.wallet.config()
                 name (required=False, default='default'):
                     The name of the wallet to unlock for running bittensor
@@ -57,7 +53,7 @@ class wallet:
                 _mock (required=False, default=False):
                     If true creates a mock wallet with random keys.
         """
-        if config == None: 
+        if config == None:
             config = wallet.config()
         config = copy.deepcopy( config )
         config.wallet.name = name if name != None else config.wallet.name
@@ -71,31 +67,24 @@ class wallet:
             _mock = True
 
             return wallet_mock.Wallet_mock(
-                name = config.wallet.get('name', bittensor.defaults.wallet.name), 
-                hotkey = config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), 
+                name = config.wallet.get('name', bittensor.defaults.wallet.name),
+                hotkey = config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey),
                 path = config.wallet.path,
                 _mock = True,
                 config = config
             )
 
         network = config.get('subtensor.network', bittensor.defaults.subtensor.network)
-        if network == 'nakamoto':
-            return naka_wallet(
-                name = config.wallet.get('name', bittensor.defaults.wallet.name), 
-                hotkey = config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), 
-                path = config.wallet.path,
-                config = config
-            )
-        else:
-            # Default to finney.
-            return wallet_impl.Wallet(
-                name = config.wallet.get('name', bittensor.defaults.wallet.name), 
-                hotkey = config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), 
-                path = config.wallet.path,
-                config = config
-            )
 
-    @classmethod   
+        # Default to finney.
+        return wallet_impl.Wallet(
+            name = config.wallet.get('name', bittensor.defaults.wallet.name),
+            hotkey = config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey),
+            path = config.wallet.path,
+            config = config
+        )
+
+    @classmethod
     def config(cls) -> 'bittensor.Config':
         """ Get config from the argument parser
         Return: bittensor.config object
@@ -104,7 +93,7 @@ class wallet:
         wallet.add_args( parser )
         return bittensor.config( parser )
 
-    @classmethod   
+    @classmethod
     def help(cls):
         """ Print help to stdout
         """
@@ -123,13 +112,13 @@ class wallet:
             parser.add_argument('--' + prefix_str + 'wallet.hotkey', required=False, default=bittensor.defaults.wallet.hotkey, help='''The name of wallet's hotkey.''')
             parser.add_argument('--' + prefix_str + 'wallet.path', required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
             parser.add_argument('--' + prefix_str + 'wallet._mock', action='store_true', default=bittensor.defaults.wallet._mock, help='To turn on wallet mocking for testing purposes.')
-        
+
             parser.add_argument('--' + prefix_str + 'wallet.reregister', required=False, action='store', default=bittensor.defaults.wallet.reregister, type=strtobool, help='''Whether to reregister the wallet if it is not already registered.''')
 
         except argparse.ArgumentError as e:
             pass
 
-    @classmethod   
+    @classmethod
     def add_defaults(cls, defaults):
         """ Adds parser defaults to object from enviroment variables.
         """
@@ -141,7 +130,7 @@ class wallet:
         # Defaults for registration
         defaults.wallet.reregister = True
 
-    @classmethod   
+    @classmethod
     def check_config(cls, config: 'bittensor.Config' ):
         """ Check config for wallet name/hotkey/path/hotkeys/sort_by
         """

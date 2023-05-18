@@ -5,18 +5,18 @@ Implementation of the config class, which manages the config of different bitten
 # Copyright © 2021 Yuma Rao
 # Copyright © 2022 Opentensor Foundation
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 import yaml
@@ -37,7 +37,7 @@ class Config ( Munch ):
 
     def __repr__(self) -> str:
         return self.__str__()
-    
+
     def __str__(self) -> str:
         return "\n" + yaml.dump(self.toDict())
 
@@ -51,6 +51,11 @@ class Config ( Munch ):
         """
         for key,val in kwargs.items():
             self[key] = val
+
+    def merge(self, b):
+        """ Merge two configs
+        """
+        self = _merge(self, b)
 
     def to_prometheus(self):
         """
@@ -70,7 +75,7 @@ class Config ( Munch ):
             bittensor.__console__.print("The config has already been added to prometheus.", highlight=True)
 
     def to_defaults(self):
-        try: 
+        try:
             if 'axon' in self.keys():
                 bittensor.defaults.axon.port = self.axon.port
                 bittensor.defaults.axon.ip = self.axon.ip
@@ -78,7 +83,7 @@ class Config ( Munch ):
                 bittensor.defaults.axon.external_ip = self.axon.external_ip
                 bittensor.defaults.axon.max_workers = self.axon.max_workers
                 bittensor.defaults.axon.maximum_concurrent_rpcs = self.axon.maximum_concurrent_rpcs
-            
+
             if 'dataset' in self.keys():
                 bittensor.defaults.dataset.batch_size = self.dataset.batch_size
                 bittensor.defaults.dataset.block_size = self.dataset.block_size
@@ -89,30 +94,25 @@ class Config ( Munch ):
                 bittensor.defaults.dataset.save_dataset = self.dataset.save_dataset
                 bittensor.defaults.dataset.max_datasets = self.dataset.max_datasets
 
-            if 'dendrite' in self.keys():
-                bittensor.defaults.dendrite.timeout = self.dendrite.timeout
-                bittensor.defaults.dendrite.max_active_receptors = self.dendrite.max_active_receptors
-                bittensor.defaults.dendrite.requires_grad = self.dendrite.requires_grad
-
             if  'logging' in self.keys():
                 bittensor.defaults.logging.debug = self.logging.debug
                 bittensor.defaults.logging.trace = self.logging.trace
                 bittensor.defaults.logging.record_log = self.logging.record_log
                 bittensor.defaults.logging.logging_dir = self.logging.logging_dir
-            
+
             if 'subtensor' in self.keys():
                 bittensor.defaults.subtensor.network = self.subtensor.network
                 bittensor.defaults.subtensor.chain_endpoint = self.subtensor.chain_endpoint
-            
+
             if 'threadpool' in self.keys():
                 bittensor.defaults.threadpool.max_workers = self.threadpool.max_workers
-                bittensor.defaults.threadpool.maxsize = self.threadpool.maxsize 
+                bittensor.defaults.threadpool.maxsize = self.threadpool.maxsize
 
             if 'wallet' in self.keys():
                 bittensor.defaults.wallet.name = self.wallet.name
                 bittensor.defaults.wallet.hotkey = self.wallet.hotkey
                 bittensor.defaults.wallet.path = self.wallet.path
-            
+
             if 'wandb' in self.keys():
                 bittensor.defaults.wandb.name = self.wandb.name
                 bittensor.defaults.wandb.project = self.wandb.project

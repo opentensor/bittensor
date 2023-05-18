@@ -2,18 +2,18 @@
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import bittensor
 
@@ -25,9 +25,9 @@ from ..errors import *
 def serve_extrinsic (
     subtensor: 'bittensor.Subtensor',
     wallet: 'bittensor.wallet',
-    ip: str, 
-    port: int, 
-    protocol: int, 
+    ip: str,
+    port: int,
+    protocol: int,
     netuid: int,
     placeholder1: int = 0,
     placeholder2: int = 0,
@@ -44,7 +44,7 @@ def serve_extrinsic (
         port (int):
             endpoint port number i.e. 9221
         protocol (int):
-            int representation of the protocol 
+            int representation of the protocol
         netuid (int):
             network uid to serve on.
         placeholder1 (int):
@@ -52,8 +52,8 @@ def serve_extrinsic (
         placeholder2 (int):
             placeholder for future use.
         wait_for_inclusion (bool):
-            if set, waits for the extrinsic to enter a block before returning true, 
-            or returns false if the extrinsic fails to enter the block within the timeout.   
+            if set, waits for the extrinsic to enter a block before returning true,
+            or returns false if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
             if set, waits for the extrinsic to be finalized on the chain before returning true,
             or returns false if the extrinsic fails to be finalized within the timeout.
@@ -61,12 +61,11 @@ def serve_extrinsic (
             If true, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block. 
+            flag is true if extrinsic was finalized or uncluded in the block.
             If we did not wait for finalization / inclusion, the response is true.
     """
     # Decrypt hotkey
     wallet.hotkey
-
     params = {
         'version': bittensor.__version_as_int__,
         'ip': net.ip_to_int(ip),
@@ -78,7 +77,6 @@ def serve_extrinsic (
         'placeholder1': placeholder1,
         'placeholder2': placeholder2,
     }
-
     with bittensor.__console__.status(":satellite: Checking Axon..."):
         neuron = subtensor.get_neuron_for_pubkey_and_subnet( wallet.hotkey.ss58_address, netuid = netuid )
         neuron_up_to_date = not neuron.is_null and params == {
@@ -92,11 +90,9 @@ def serve_extrinsic (
             'placeholder1': neuron.axon_info.placeholder1,
             'placeholder2': neuron.axon_info.placeholder2,
         }
-
     output = params.copy()
     output['coldkey'] = wallet.coldkeypub.ss58_address
     output['hotkey'] = wallet.hotkey.ss58_address
-
     if neuron_up_to_date:
         bittensor.__console__.print(f":white_heavy_check_mark: [green]Axon already Served[/green]\n"
                                     f"[green not bold]- coldkey: [/green not bold][white not bold]{output['coldkey']}[/white not bold] \n"
@@ -146,6 +142,7 @@ def serve_extrinsic (
 
 def serve_axon_extrinsic (
     subtensor: 'bittensor.Subtensor',
+    netuid: int,
     axon: 'bittensor.Axon',
     use_upnpc: bool = False,
     wait_for_inclusion: bool = False,
@@ -154,14 +151,16 @@ def serve_axon_extrinsic (
 ) -> bool:
     r""" Serves the axon to the network.
     Args:
+        netuid ( int ):
+            The netuid being served on.
         axon (bittensor.Axon):
             Axon to serve.
-        use_upnpc (:type:bool, `optional`): 
-            If true, the axon attempts port forward through your router before 
-            subscribing.                
+        use_upnpc (:type:bool, `optional`):
+            If true, the axon attempts port forward through your router before
+            subscribing.
         wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true, 
-            or returns false if the extrinsic fails to enter the block within the timeout.   
+            If set, waits for the extrinsic to enter a block before returning true,
+            or returns false if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
             If set, waits for the extrinsic to be finalized on the chain before returning true,
             or returns false if the extrinsic fails to be finalized within the timeout.
@@ -169,7 +168,7 @@ def serve_axon_extrinsic (
             If true, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block. 
+            flag is true if extrinsic was finalized or uncluded in the block.
             If we did not wait for finalization / inclusion, the response is true.
     """
     axon.wallet.hotkey
@@ -199,14 +198,14 @@ def serve_axon_extrinsic (
             raise RuntimeError('Unable to attain your external ip. Check your internet connection. error: {}'.format(E)) from E
     else:
         external_ip = axon.external_ip
-    
+
     # ---- Subscribe to chain ----
     serve_success = subtensor.serve(
             wallet = axon.wallet,
             ip = external_ip,
             port = external_port,
-            netuid = axon.netuid,
-            protocol = axon.protocol,
+            netuid = netuid,
+            protocol = 4,
             wait_for_inclusion = wait_for_inclusion,
             wait_for_finalization = wait_for_finalization,
             prompt = prompt

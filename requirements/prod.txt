@@ -6,7 +6,7 @@ cryptography==39.0.0
 idna==2.10
 jinja2==3.0
 fuzzywuzzy==0.18.0
-google-api-python-client==2.6.0
+google-api-python-client==2.7.0
 python-levenshtein==0.12.1
 grpcio==1.42.0
 grpcio-tools==1.42.0
@@ -35,13 +35,14 @@ scalecodec==1.2.0
 sentencepiece==0.1.97
 termcolor==2.1.1
 torch==1.13.1
-transformers==4.20.1
+transformers>=4.20.1
 numpy==1.21.6
 wheel==0.37.1
 tqdm==4.64.1
 qqdm==0.0.7
-wandb>=0.11.1,<0.13.4
 ansible_vault>=2.1
 substrate-interface==1.5.0
 jsonschema[format-nongpl]>=4.14.0,<=4.17.0
 markupsafe==2.0.1
+langchain>=0.0.132
+datasets==2.12.0

@@ -1,18 +1,18 @@
 # The MIT License (MIT)
 # Copyright © 2023 Opentensor Foundation
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
 from dataclasses import dataclass
@@ -76,7 +76,7 @@ custom_rpc_type_registry = {
                 ["uid", "Compact<u16>"],
                 ["netuid", "Compact<u16>"],
                 ["active", "bool"],
-                ["axon_info", "AxonInfo"],
+                ["axon_info", "axon_info"],
                 ["prometheus_info", "PrometheusInfo"],
                 ["stake", "Vec<(AccountId, Compact<u64>)>"],
                 ["rank", "Compact<u16>"],
@@ -101,7 +101,7 @@ custom_rpc_type_registry = {
                 ["uid", "Compact<u16>"],
                 ["netuid", "Compact<u16>"],
                 ["active", "bool"],
-                ["axon_info", "AxonInfo"],
+                ["axon_info", "axon_info"],
                 ["prometheus_info", "PrometheusInfo"],
                 ["stake", "Vec<(AccountId, Compact<u64>)>"],
                 ["rank", "Compact<u16>"],
@@ -116,7 +116,7 @@ custom_rpc_type_registry = {
                 ["pruning_score", "Compact<u16>"]
             ],
         },
-        "AxonInfo": {
+        "axon_info": {
             "type": "struct",
             "type_mapping": [
                 ["block", "u64"],
@@ -139,7 +139,7 @@ custom_rpc_type_registry = {
                 ["ip_type", "u8"],
             ],
         },
-    }   
+    }
 }
 
 class ChainDataType(Enum):
@@ -187,7 +187,7 @@ class NeuronInfo:
     coldkey: str
     uid: int
     netuid: int
-    active: int    
+    active: int
     stake: Balance
     # mapping of coldkey to amount staked to this Neuron
     stake_dict: Dict[str, Balance]
@@ -204,7 +204,7 @@ class NeuronInfo:
     weights: List[List[int]]
     bonds: List[List[int]]
     prometheus_info: 'PrometheusInfo'
-    axon_info: 'AxonInfo'
+    axon_info: 'axon_info'
     pruning_score: int
     is_null: bool = False
 
@@ -228,30 +228,30 @@ class NeuronInfo:
         neuron_info_decoded['validator_trust'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['validator_trust'])
         neuron_info_decoded['dividends'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['dividends'])
         neuron_info_decoded['prometheus_info'] = PrometheusInfo.fix_decoded_values(neuron_info_decoded['prometheus_info'])
-        neuron_info_decoded['axon_info'] = AxonInfo.fix_decoded_values(neuron_info_decoded['axon_info'])
+        neuron_info_decoded['axon_info'] = bittensor.axon_info.from_neuron_info( neuron_info_decoded )
 
         return cls(**neuron_info_decoded)
-    
+
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> 'NeuronInfo':
         r""" Returns a NeuronInfo object from a vec_u8.
         """
         if len(vec_u8) == 0:
             return NeuronInfo._null_neuron()
-        
+
         decoded = from_scale_encoding(vec_u8, ChainDataType.NeuronInfo)
         if decoded is None:
             return NeuronInfo._null_neuron()
-        
+
         decoded = NeuronInfo.fix_decoded_values(decoded)
 
         return decoded
-    
+
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List['NeuronInfo']:
         r""" Returns a list of NeuronInfo objects from a vec_u8.
         """
-        
+
         decoded_list = from_scale_encoding(vec_u8, ChainDataType.NeuronInfo, is_vec=True)
         if decoded_list is None:
             return []
@@ -306,9 +306,9 @@ class NeuronInfo:
             neuron.incentive = neuron.incentive / U16_MAX
             neuron.dividends = neuron.dividends / U16_MAX
             neuron.emission = neuron.emission / RAOPERTAO
-                
+
             return neuron
-        
+
 @dataclass
 class NeuronInfoLite:
     r"""
@@ -318,7 +318,7 @@ class NeuronInfoLite:
     coldkey: str
     uid: int
     netuid: int
-    active: int    
+    active: int
     stake: Balance
     # mapping of coldkey to amount staked to this Neuron
     stake_dict: Dict[str, Balance]
@@ -335,7 +335,7 @@ class NeuronInfoLite:
     #weights: List[List[int]]
     #bonds: List[List[int]] No weights or bonds in lite version
     prometheus_info: 'PrometheusInfo'
-    axon_info: 'AxonInfo'
+    axon_info: 'axon_info'
     pruning_score: int
     is_null: bool = False
 
@@ -360,30 +360,29 @@ class NeuronInfoLite:
         neuron_info_decoded['validator_trust'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['validator_trust'])
         neuron_info_decoded['dividends'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['dividends'])
         neuron_info_decoded['prometheus_info'] = PrometheusInfo.fix_decoded_values(neuron_info_decoded['prometheus_info'])
-        neuron_info_decoded['axon_info'] = AxonInfo.fix_decoded_values(neuron_info_decoded['axon_info'])
-
+        neuron_info_decoded['axon_info'] = bittensor.axon_info.from_neuron_info(neuron_info_decoded)
         return cls(**neuron_info_decoded)
-    
+
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> 'NeuronInfoLite':
         r""" Returns a NeuronInfoLite object from a vec_u8.
         """
         if len(vec_u8) == 0:
             return NeuronInfoLite._null_neuron()
-        
+
         decoded = from_scale_encoding(vec_u8, ChainDataType.NeuronInfoLite)
         if decoded is None:
             return NeuronInfoLite._null_neuron()
-        
+
         decoded = NeuronInfoLite.fix_decoded_values(decoded)
 
         return decoded
-    
+
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List['NeuronInfoLite']:
         r""" Returns a list of NeuronInfoLite objects from a vec_u8.
         """
-        
+
         decoded_list = from_scale_encoding(vec_u8, ChainDataType.NeuronInfoLite, is_vec=True)
         if decoded_list is None:
             return []
@@ -438,11 +437,11 @@ class NeuronInfoLite:
             neuron.incentive = neuron.incentive / U16_MAX
             neuron.dividends = neuron.dividends / U16_MAX
             neuron.emission = neuron.emission / RAOPERTAO
-                
+
             return neuron
 
 @dataclass
-class AxonInfo:
+class axon_info:
     r"""
     Dataclass for axon info.
     """
@@ -456,11 +455,11 @@ class AxonInfo:
     placeholder2: int
 
     @classmethod
-    def fix_decoded_values(cls, axon_info_decoded: Dict) -> 'AxonInfo':
-        r""" Returns an AxonInfo object from an axon_info_decoded dictionary.
+    def fix_decoded_values(cls, axon_info_decoded: Dict) -> 'axon_info':
+        r""" Returns an axon_info object from an axon_info_decoded dictionary.
         """
         axon_info_decoded['ip'] = bittensor.utils.networking.int_to_ip(int(axon_info_decoded['ip']))
-                                                                       
+
         return cls(**axon_info_decoded)
 
 @dataclass
@@ -479,7 +478,7 @@ class PrometheusInfo:
         r""" Returns a PrometheusInfo object from a prometheus_info_decoded dictionary.
         """
         prometheus_info_decoded['ip'] = bittensor.utils.networking.int_to_ip(int(prometheus_info_decoded['ip']))
-        
+
         return cls(**prometheus_info_decoded)
 @dataclass
 class DelegateInfo:
@@ -500,7 +499,7 @@ class DelegateInfo:
     def fix_decoded_values(cls, decoded: Any) -> 'DelegateInfo':
         r""" Fixes the decoded values.
         """
-        
+
         return cls(
             hotkey_ss58 = ss58_encode(decoded['delegate_ss58'], bittensor.__ss58_format__),
             owner_ss58 = ss58_encode(decoded['owner_ss58'], bittensor.__ss58_format__),
@@ -522,16 +521,16 @@ class DelegateInfo:
         """
         if len(vec_u8) == 0:
             return None
-        
+
         decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfo)
 
         if decoded is None:
             return None
-        
+
         decoded = DelegateInfo.fix_decoded_values(decoded)
 
         return decoded
-    
+
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List['DelegateInfo']:
         r""" Returns a list of DelegateInfo objects from a vec_u8.
@@ -540,11 +539,11 @@ class DelegateInfo:
 
         if decoded is None:
             return []
-        
+
         decoded = [DelegateInfo.fix_decoded_values(d) for d in decoded]
 
         return decoded
-    
+
     @classmethod
     def delegated_list_from_vec_u8(cls, vec_u8: List[int]) -> List[Tuple['DelegateInfo', Balance]]:
         r""" Returns a list of Tuples of DelegateInfo objects, and Balance, from a vec_u8.
@@ -554,7 +553,7 @@ class DelegateInfo:
 
         if decoded is None:
             return []
-        
+
         decoded = [(DelegateInfo.fix_decoded_values(d), Balance.from_rao(s)) for d, s in decoded]
 
         return decoded
@@ -599,9 +598,9 @@ class SubnetInfo:
 
         if decoded is None:
             return None
-        
+
         return SubnetInfo.fix_decoded_values(decoded)
-    
+
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List['SubnetInfo']:
         r""" Returns a list of SubnetInfo objects from a vec_u8.
@@ -610,7 +609,7 @@ class SubnetInfo:
 
         if decoded is None:
             return []
-        
+
         decoded = [SubnetInfo.fix_decoded_values(d) for d in decoded]
 
         return decoded
@@ -643,16 +642,16 @@ class SubnetInfo:
                 str(int(netuid)): bittensor.utils.U16_NORMALIZED_FLOAT(int(req)) for netuid, req in decoded['network_connect']
             },
             emission_value= decoded['emission_values'],
-            burn = Balance(0)#Balance.from_rao(decoded['burn'])
+            burn = Balance.from_rao(decoded['burn'])
         )
-    
+
     def to_parameter_dict( self ) -> 'torch.nn.ParameterDict':
         r""" Returns a torch tensor of the subnet info.
         """
-        return torch.nn.ParameterDict( 
+        return torch.nn.ParameterDict(
             self.__dict__
         )
-    
+
     @classmethod
     def from_parameter_dict( cls, parameter_dict: 'torch.nn.ParameterDict' ) -> 'SubnetInfo':
         r""" Returns a SubnetInfo object from a torch parameter_dict.

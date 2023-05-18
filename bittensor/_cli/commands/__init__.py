@@ -1,4 +1,3 @@
-from .run import RunCommand
 from .stake import StakeCommand
 from .unstake import UnStakeCommand
 from .overview import OverviewCommand
@@ -9,5 +8,4 @@ from .transfer import TransferCommand
 from .inspect import InspectCommand
 from .metagraph import MetagraphCommand
 from .list import ListCommand
-from .weights import WeightsCommand
-from .misc import HelpCommand, UpdateCommand, ListSubnetsCommand
+from .misc import UpdateCommand, ListSubnetsCommand

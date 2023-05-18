@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"\x8f\x01\n\x06Neuron\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0b\n\x03uid\x18\x02 \x01(\x03\x12\x0e\n\x06hotkey\x18\x03 \x01(\t\x12\x0f\n\x07\x63oldkey\x18\x04 \x01(\t\x12\n\n\x02ip\x18\x05 \x01(\t\x12\x0c\n\x04port\x18\x06 \x01(\x05\x12\x0f\n\x07ip_type\x18\x07 \x01(\x05\x12\x1b\n\x08modality\x18\x08 \x01(\x0e\x32\t.Modality\"\xb0\x01\n\rTensorMessage\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x18\n\x07tensors\x18\x05 \x03(\x0b\x32\x07.Tensor\x12 \n\x0breturn_code\x18\x06 \x01(\x0e\x32\x0b.ReturnCode\x12\x0f\n\x07message\x18\x07 \x01(\t\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08\x12\x1a\n\x08synapses\x18\t \x03(\x0b\x32\x08.Synapse\"\xbf\x0e\n\x07Synapse\x12\x12\n\ntensor_pos\x18\x01 \x03(\x05\x12\x14\n\x0csynapse_data\x18\x02 \x01(\x0c\x12*\n\x0csynapse_type\x18\x03 \x01(\x0e\x32\x14.Synapse.SynapseType\x12 \n\x0breturn_code\x18\x04 \x01(\x0e\x32\x0b.ReturnCode\x12\x0f\n\x07message\x18\x05 \x01(\t\x12\x15\n\rrequires_grad\x18\x06 \x01(\x08\x1a\xc2\x02\n\x13TextLastHiddenState\x12*\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x14.Synapse.SynapseType\x12\x34\n\x1f\x66orward_request_serializer_type\x18\x02 \x01(\x0e\x32\x0b.Serializer\x12\x35\n forward_response_serializer_type\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12\x35\n backward_request_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x36\n!backward_response_serializer_type\x18\x05 \x01(\x0e\x32\x0b.Serializer\x12\x15\n\rrequires_grad\x18\x06 \x01(\x08\x12\x0c\n\x04mask\x18\x07 \x03(\x05\x1a\xbb\x02\n\x0cTextCausalLM\x12*\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x14.Synapse.SynapseType\x12\x0c\n\x04topk\x18\x02 \x01(\x05\x12\x34\n\x1f\x66orward_request_serializer_type\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12\x35\n forward_response_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x35\n backward_request_serializer_type\x18\x05 \x01(\x0e\x32\x0b.Serializer\x12\x36\n!backward_response_serializer_type\x18\x06 \x01(\x0e\x32\x0b.Serializer\x12\x15\n\rrequires_grad\x18\x07 \x01(\x08\x1a\xd0\x04\n\x0bTextSeq2Seq\x12*\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x14.Synapse.SynapseType\x12\x0c\n\x04topk\x18\x02 \x01(\x05\x12\x17\n\x0fnum_to_generate\x18\x03 \x01(\x05\x12\x34\n\x1f\x66orward_request_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x35\n forward_response_serializer_type\x18\x05 \x01(\x0e\x32\x0b.Serializer\x12\x35\n backward_request_serializer_type\x18\x06 \x01(\x0e\x32\x0b.Serializer\x12\x36\n!backward_response_serializer_type\x18\x07 \x01(\x0e\x32\x0b.Serializer\x12\x11\n\tnum_beams\x18\x08 \x01(\x05\x12\x1c\n\x14no_repeat_ngram_size\x18\t \x01(\x05\x12\x16\n\x0e\x65\x61rly_stopping\x18\n \x01(\x08\x12\x1c\n\x14num_return_sequences\x18\x0b \x01(\x05\x12\x11\n\tdo_sample\x18\x0c \x01(\x08\x12\r\n\x05top_p\x18\r \x01(\x02\x12\x15\n\rrequires_grad\x18\x0e \x01(\x08\x12\x13\n\x0btemperature\x18\x0f \x01(\x02\x12\x1a\n\x12repetition_penalty\x18\x10 \x01(\x02\x12\x16\n\x0elength_penalty\x18\x11 \x01(\x02\x12\x10\n\x08max_time\x18\x12 \x01(\x02\x12\x17\n\x0fnum_beam_groups\x18\x13 \x01(\x05\x1a\xbf\x02\n\x10TextCausalLMNext\x12*\n\x0csynapse_type\x18\x01 \x01(\x0e\x32\x14.Synapse.SynapseType\x12\x0c\n\x04topk\x18\x02 \x01(\x05\x12\x34\n\x1f\x66orward_request_serializer_type\x18\x03 \x01(\x0e\x32\x0b.Serializer\x12\x35\n forward_response_serializer_type\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12\x35\n backward_request_serializer_type\x18\x05 \x01(\x0e\x32\x0b.Serializer\x12\x36\n!backward_response_serializer_type\x18\x06 \x01(\x0e\x32\x0b.Serializer\x12\x15\n\rrequires_grad\x18\x07 \x01(\x08\"|\n\x0bSynapseType\x12\x10\n\x0cNULL_SYNAPSE\x10\x00\x12\x1a\n\x16TEXT_LAST_HIDDEN_STATE\x10\x01\x12\x12\n\x0eTEXT_CAUSAL_LM\x10\x02\x12\x12\n\x0eTEXT_SEQ_2_SEQ\x10\x03\x12\x17\n\x13TEXT_CAUSAL_LM_NEXT\x10\x04\"\xc9\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x1b\n\x08modality\x18\x07 \x01(\x0e\x32\t.Modality\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08*\xc9\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17\x12\x0f\n\x0b\x42\x61\x64\x45ndpoint\x10\x18*&\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00\x12\x0b\n\x07\x43MPPACK\x10\x01*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*^\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05\x12\x0b\n\x07\x46LOAT16\x10\x06*+\n\x08Modality\x12\x08\n\x04TEXT\x10\x00\x12\t\n\x05IMAGE\x10\x01\x12\n\n\x06TENSOR\x10\x02*8\n\x0bRequestType\x12\x0e\n\nNOTDEFINED\x10\x00\x12\x0b\n\x07\x46ORWARD\x10\x01\x12\x0c\n\x08\x42\x41\x43KWARD\x10\x02\x32\x66\n\tBittensor\x12+\n\x07\x46orward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x12,\n\x08\x42\x61\x63kward\x12\x0e.TensorMessage\x1a\x0e.TensorMessage\"\x00\x62\x06proto3'
+  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"a\n\x1b\x46orwardTextPromptingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08messages\x18\x03 \x03(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x8b\x01\n\x1c\x46orwardTextPromptingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"f\n MultiForwardTextPromptingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08messages\x18\x03 \x03(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x99\x01\n!MultiForwardTextPromptingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x19\n\x11multi_completions\x18\x03 \x03(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\x85\x01\n\x1c\x42\x61\x63kwardTextPromptingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0f\n\x07rewards\x18\x03 \x03(\x02\x12\x10\n\x08messages\x18\x04 \x03(\t\x12\x10\n\x08response\x18\x05 \x01(\t\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"z\n\x1d\x42\x61\x63kwardTextPromptingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\xac\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08*\xda\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17\x12\x0f\n\x0b\x42\x61\x64\x45ndpoint\x10\x18\x12\x0f\n\x0b\x42lacklisted\x10\x19*&\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00\x12\x0b\n\x07\x43MPPACK\x10\x01*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*h\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05\x12\x0b\n\x07\x46LOAT16\x10\x06\x12\x08\n\x04\x42OOL\x10\x07\x32\xff\x01\n\rTextPrompting\x12H\n\x07\x46orward\x12\x1c.ForwardTextPromptingRequest\x1a\x1d.ForwardTextPromptingResponse\"\x00\x12W\n\x0cMultiForward\x12!.MultiForwardTextPromptingRequest\x1a\".MultiForwardTextPromptingResponse\"\x00\x12K\n\x08\x42\x61\x63kward\x12\x1d.BackwardTextPromptingRequest\x1a\x1e.BackwardTextPromptingResponse\"\x00\x62\x06proto3'
 )
 
 _RETURNCODE = _descriptor.EnumDescriptor(
@@ -155,11 +155,16 @@ _RETURNCODE = _descriptor.EnumDescriptor(
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='Blacklisted', index=25, number=25,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2424,
-  serialized_end=3009,
+  serialized_start=973,
+  serialized_end=1575,
 )
 _sym_db.RegisterEnumDescriptor(_RETURNCODE)
 
@@ -184,8 +189,8 @@ _SERIALIZER = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=3011,
-  serialized_end=3049,
+  serialized_start=1577,
+  serialized_end=1615,
 )
 _sym_db.RegisterEnumDescriptor(_SERIALIZER)
 
@@ -215,8 +220,8 @@ _TENSORTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=3051,
-  serialized_end=3101,
+  serialized_start=1617,
+  serialized_end=1667,
 )
 _sym_db.RegisterEnumDescriptor(_TENSORTYPE)
 
@@ -263,77 +268,20 @@ _DATATYPE = _descriptor.EnumDescriptor(
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='BOOL', index=7, number=7,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=3103,
-  serialized_end=3197,
+  serialized_start=1669,
+  serialized_end=1773,
 )
 _sym_db.RegisterEnumDescriptor(_DATATYPE)
 
 DataType = enum_type_wrapper.EnumTypeWrapper(_DATATYPE)
-_MODALITY = _descriptor.EnumDescriptor(
-  name='Modality',
-  full_name='Modality',
-  filename=None,
-  file=DESCRIPTOR,
-  create_key=_descriptor._internal_create_key,
-  values=[
-    _descriptor.EnumValueDescriptor(
-      name='TEXT', index=0, number=0,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-    _descriptor.EnumValueDescriptor(
-      name='IMAGE', index=1, number=1,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-    _descriptor.EnumValueDescriptor(
-      name='TENSOR', index=2, number=2,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-  ],
-  containing_type=None,
-  serialized_options=None,
-  serialized_start=3199,
-  serialized_end=3242,
-)
-_sym_db.RegisterEnumDescriptor(_MODALITY)
-
-Modality = enum_type_wrapper.EnumTypeWrapper(_MODALITY)
-_REQUESTTYPE = _descriptor.EnumDescriptor(
-  name='RequestType',
-  full_name='RequestType',
-  filename=None,
-  file=DESCRIPTOR,
-  create_key=_descriptor._internal_create_key,
-  values=[
-    _descriptor.EnumValueDescriptor(
-      name='NOTDEFINED', index=0, number=0,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-    _descriptor.EnumValueDescriptor(
-      name='FORWARD', index=1, number=1,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-    _descriptor.EnumValueDescriptor(
-      name='BACKWARD', index=2, number=2,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-  ],
-  containing_type=None,
-  serialized_options=None,
-  serialized_start=3244,
-  serialized_end=3300,
-)
-_sym_db.RegisterEnumDescriptor(_REQUESTTYPE)
-
-RequestType = enum_type_wrapper.EnumTypeWrapper(_REQUESTTYPE)
 NoReturn = 0
 Success = 1
 Timeout = 2
@@ -359,6 +307,7 @@ SenderUnknown = 21
 UnknownException = 22
 Unauthenticated = 23
 BadEndpoint = 24
+Blacklisted = 25
 MSGPACK = 0
 CMPPACK = 1
 TORCH = 0
@@ -371,267 +320,106 @@ INT32 = 3
 INT64 = 4
 UTF8 = 5
 FLOAT16 = 6
-TEXT = 0
-IMAGE = 1
-TENSOR = 2
-NOTDEFINED = 0
-FORWARD = 1
-BACKWARD = 2
+BOOL = 7
 
 
-_SYNAPSE_SYNAPSETYPE = _descriptor.EnumDescriptor(
-  name='SynapseType',
-  full_name='Synapse.SynapseType',
-  filename=None,
-  file=DESCRIPTOR,
-  create_key=_descriptor._internal_create_key,
-  values=[
-    _descriptor.EnumValueDescriptor(
-      name='NULL_SYNAPSE', index=0, number=0,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-    _descriptor.EnumValueDescriptor(
-      name='TEXT_LAST_HIDDEN_STATE', index=1, number=1,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-    _descriptor.EnumValueDescriptor(
-      name='TEXT_CAUSAL_LM', index=2, number=2,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-    _descriptor.EnumValueDescriptor(
-      name='TEXT_SEQ_2_SEQ', index=3, number=3,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-    _descriptor.EnumValueDescriptor(
-      name='TEXT_CAUSAL_LM_NEXT', index=4, number=4,
-      serialized_options=None,
-      type=None,
-      create_key=_descriptor._internal_create_key),
-  ],
-  containing_type=None,
-  serialized_options=None,
-  serialized_start=2093,
-  serialized_end=2217,
-)
-_sym_db.RegisterEnumDescriptor(_SYNAPSE_SYNAPSETYPE)
 
-
-_NEURON = _descriptor.Descriptor(
-  name='Neuron',
-  full_name='Neuron',
+_FORWARDTEXTPROMPTINGREQUEST = _descriptor.Descriptor(
+  name='ForwardTextPromptingRequest',
+  full_name='ForwardTextPromptingRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='version', full_name='Neuron.version', index=0,
+      name='version', full_name='ForwardTextPromptingRequest.version', index=0,
       number=1, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='uid', full_name='Neuron.uid', index=1,
-      number=2, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='hotkey', full_name='Neuron.hotkey', index=2,
-      number=3, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='coldkey', full_name='Neuron.coldkey', index=3,
-      number=4, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='ip', full_name='Neuron.ip', index=4,
-      number=5, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='port', full_name='Neuron.port', index=5,
-      number=6, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='ip_type', full_name='Neuron.ip_type', index=6,
-      number=7, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='modality', full_name='Neuron.modality', index=7,
-      number=8, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=37,
-  serialized_end=180,
-)
-
-
-_TENSORMESSAGE = _descriptor.Descriptor(
-  name='TensorMessage',
-  full_name='TensorMessage',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='version', full_name='TensorMessage.version', index=0,
-      number=1, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='hotkey', full_name='TensorMessage.hotkey', index=1,
+      name='hotkey', full_name='ForwardTextPromptingRequest.hotkey', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='tensors', full_name='TensorMessage.tensors', index=2,
-      number=5, type=11, cpp_type=10, label=3,
+      name='messages', full_name='ForwardTextPromptingRequest.messages', index=2,
+      number=3, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='return_code', full_name='TensorMessage.return_code', index=3,
-      number=6, type=14, cpp_type=8, label=1,
+      name='timeout', full_name='ForwardTextPromptingRequest.timeout', index=3,
+      number=4, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=36,
+  serialized_end=133,
+)
+
+
+_FORWARDTEXTPROMPTINGRESPONSE = _descriptor.Descriptor(
+  name='ForwardTextPromptingResponse',
+  full_name='ForwardTextPromptingResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextPromptingResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='message', full_name='TensorMessage.message', index=4,
-      number=7, type=9, cpp_type=9, label=1,
+      name='hotkey', full_name='ForwardTextPromptingResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='requires_grad', full_name='TensorMessage.requires_grad', index=5,
-      number=8, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
+      name='response', full_name='ForwardTextPromptingResponse.response', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='synapses', full_name='TensorMessage.synapses', index=6,
-      number=9, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=183,
-  serialized_end=359,
-)
-
-
-_SYNAPSE_TEXTLASTHIDDENSTATE = _descriptor.Descriptor(
-  name='TextLastHiddenState',
-  full_name='Synapse.TextLastHiddenState',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='synapse_type', full_name='Synapse.TextLastHiddenState.synapse_type', index=0,
-      number=1, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
+      name='return_message', full_name='ForwardTextPromptingResponse.return_message', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='forward_request_serializer_type', full_name='Synapse.TextLastHiddenState.forward_request_serializer_type', index=1,
-      number=2, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='forward_response_serializer_type', full_name='Synapse.TextLastHiddenState.forward_response_serializer_type', index=2,
-      number=3, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='backward_request_serializer_type', full_name='Synapse.TextLastHiddenState.backward_request_serializer_type', index=3,
-      number=4, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='backward_response_serializer_type', full_name='Synapse.TextLastHiddenState.backward_response_serializer_type', index=4,
+      name='return_code', full_name='ForwardTextPromptingResponse.return_code', index=4,
       number=5, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='requires_grad', full_name='Synapse.TextLastHiddenState.requires_grad', index=5,
-      number=6, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='mask', full_name='Synapse.TextLastHiddenState.mask', index=6,
-      number=7, type=5, cpp_type=1, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -644,369 +432,179 @@ _SYNAPSE_TEXTLASTHIDDENSTATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=534,
-  serialized_end=856,
+  serialized_start=136,
+  serialized_end=275,
 )
 
-_SYNAPSE_TEXTCAUSALLM = _descriptor.Descriptor(
-  name='TextCausalLM',
-  full_name='Synapse.TextCausalLM',
+
+_MULTIFORWARDTEXTPROMPTINGREQUEST = _descriptor.Descriptor(
+  name='MultiForwardTextPromptingRequest',
+  full_name='MultiForwardTextPromptingRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='synapse_type', full_name='Synapse.TextCausalLM.synapse_type', index=0,
-      number=1, type=14, cpp_type=8, label=1,
+      name='version', full_name='MultiForwardTextPromptingRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='topk', full_name='Synapse.TextCausalLM.topk', index=1,
-      number=2, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
+      name='hotkey', full_name='MultiForwardTextPromptingRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='forward_request_serializer_type', full_name='Synapse.TextCausalLM.forward_request_serializer_type', index=2,
-      number=3, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='forward_response_serializer_type', full_name='Synapse.TextCausalLM.forward_response_serializer_type', index=3,
-      number=4, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='backward_request_serializer_type', full_name='Synapse.TextCausalLM.backward_request_serializer_type', index=4,
-      number=5, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='backward_response_serializer_type', full_name='Synapse.TextCausalLM.backward_response_serializer_type', index=5,
-      number=6, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='requires_grad', full_name='Synapse.TextCausalLM.requires_grad', index=6,
-      number=7, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=859,
-  serialized_end=1174,
-)
-
-_SYNAPSE_TEXTSEQ2SEQ = _descriptor.Descriptor(
-  name='TextSeq2Seq',
-  full_name='Synapse.TextSeq2Seq',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='synapse_type', full_name='Synapse.TextSeq2Seq.synapse_type', index=0,
-      number=1, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='topk', full_name='Synapse.TextSeq2Seq.topk', index=1,
-      number=2, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='num_to_generate', full_name='Synapse.TextSeq2Seq.num_to_generate', index=2,
-      number=3, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='forward_request_serializer_type', full_name='Synapse.TextSeq2Seq.forward_request_serializer_type', index=3,
-      number=4, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='forward_response_serializer_type', full_name='Synapse.TextSeq2Seq.forward_response_serializer_type', index=4,
-      number=5, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='backward_request_serializer_type', full_name='Synapse.TextSeq2Seq.backward_request_serializer_type', index=5,
-      number=6, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='backward_response_serializer_type', full_name='Synapse.TextSeq2Seq.backward_response_serializer_type', index=6,
-      number=7, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='num_beams', full_name='Synapse.TextSeq2Seq.num_beams', index=7,
-      number=8, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='no_repeat_ngram_size', full_name='Synapse.TextSeq2Seq.no_repeat_ngram_size', index=8,
-      number=9, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='early_stopping', full_name='Synapse.TextSeq2Seq.early_stopping', index=9,
-      number=10, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='num_return_sequences', full_name='Synapse.TextSeq2Seq.num_return_sequences', index=10,
-      number=11, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='do_sample', full_name='Synapse.TextSeq2Seq.do_sample', index=11,
-      number=12, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='top_p', full_name='Synapse.TextSeq2Seq.top_p', index=12,
-      number=13, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='requires_grad', full_name='Synapse.TextSeq2Seq.requires_grad', index=13,
-      number=14, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='temperature', full_name='Synapse.TextSeq2Seq.temperature', index=14,
-      number=15, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='repetition_penalty', full_name='Synapse.TextSeq2Seq.repetition_penalty', index=15,
-      number=16, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='length_penalty', full_name='Synapse.TextSeq2Seq.length_penalty', index=16,
-      number=17, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='max_time', full_name='Synapse.TextSeq2Seq.max_time', index=17,
-      number=18, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='num_beam_groups', full_name='Synapse.TextSeq2Seq.num_beam_groups', index=18,
-      number=19, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=1177,
-  serialized_end=1769,
-)
-
-_SYNAPSE_TEXTCAUSALLMNEXT = _descriptor.Descriptor(
-  name='TextCausalLMNext',
-  full_name='Synapse.TextCausalLMNext',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='synapse_type', full_name='Synapse.TextCausalLMNext.synapse_type', index=0,
-      number=1, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='topk', full_name='Synapse.TextCausalLMNext.topk', index=1,
-      number=2, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='forward_request_serializer_type', full_name='Synapse.TextCausalLMNext.forward_request_serializer_type', index=2,
-      number=3, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='forward_response_serializer_type', full_name='Synapse.TextCausalLMNext.forward_response_serializer_type', index=3,
-      number=4, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='backward_request_serializer_type', full_name='Synapse.TextCausalLMNext.backward_request_serializer_type', index=4,
-      number=5, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='backward_response_serializer_type', full_name='Synapse.TextCausalLMNext.backward_response_serializer_type', index=5,
-      number=6, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='requires_grad', full_name='Synapse.TextCausalLMNext.requires_grad', index=6,
-      number=7, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=1772,
-  serialized_end=2091,
-)
-
-_SYNAPSE = _descriptor.Descriptor(
-  name='Synapse',
-  full_name='Synapse',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='tensor_pos', full_name='Synapse.tensor_pos', index=0,
-      number=1, type=5, cpp_type=1, label=3,
+      name='messages', full_name='MultiForwardTextPromptingRequest.messages', index=2,
+      number=3, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='synapse_data', full_name='Synapse.synapse_data', index=1,
-      number=2, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
+      name='timeout', full_name='MultiForwardTextPromptingRequest.timeout', index=3,
+      number=4, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=277,
+  serialized_end=379,
+)
+
+
+_MULTIFORWARDTEXTPROMPTINGRESPONSE = _descriptor.Descriptor(
+  name='MultiForwardTextPromptingResponse',
+  full_name='MultiForwardTextPromptingResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
     _descriptor.FieldDescriptor(
-      name='synapse_type', full_name='Synapse.synapse_type', index=2,
-      number=3, type=14, cpp_type=8, label=1,
+      name='version', full_name='MultiForwardTextPromptingResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='return_code', full_name='Synapse.return_code', index=3,
-      number=4, type=14, cpp_type=8, label=1,
+      name='hotkey', full_name='MultiForwardTextPromptingResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='multi_completions', full_name='MultiForwardTextPromptingResponse.multi_completions', index=2,
+      number=3, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='MultiForwardTextPromptingResponse.return_message', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='MultiForwardTextPromptingResponse.return_code', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=382,
+  serialized_end=535,
+)
+
+
+_BACKWARDTEXTPROMPTINGREQUEST = _descriptor.Descriptor(
+  name='BackwardTextPromptingRequest',
+  full_name='BackwardTextPromptingRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardTextPromptingRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='message', full_name='Synapse.message', index=4,
+      name='hotkey', full_name='BackwardTextPromptingRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='rewards', full_name='BackwardTextPromptingRequest.rewards', index=2,
+      number=3, type=2, cpp_type=6, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='messages', full_name='BackwardTextPromptingRequest.messages', index=3,
+      number=4, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='response', full_name='BackwardTextPromptingRequest.response', index=4,
       number=5, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='requires_grad', full_name='Synapse.requires_grad', index=5,
-      number=6, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
+      name='timeout', full_name='BackwardTextPromptingRequest.timeout', index=5,
+      number=6, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
-  nested_types=[_SYNAPSE_TEXTLASTHIDDENSTATE, _SYNAPSE_TEXTCAUSALLM, _SYNAPSE_TEXTSEQ2SEQ, _SYNAPSE_TEXTCAUSALLMNEXT, ],
+  nested_types=[],
   enum_types=[
-    _SYNAPSE_SYNAPSETYPE,
   ],
   serialized_options=None,
   is_extendable=False,
@@ -1014,8 +612,61 @@ _SYNAPSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=362,
-  serialized_end=2217,
+  serialized_start=538,
+  serialized_end=671,
+)
+
+
+_BACKWARDTEXTPROMPTINGRESPONSE = _descriptor.Descriptor(
+  name='BackwardTextPromptingResponse',
+  full_name='BackwardTextPromptingResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='BackwardTextPromptingResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='BackwardTextPromptingResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='BackwardTextPromptingResponse.return_message', index=2,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='BackwardTextPromptingResponse.return_code', index=3,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=673,
+  serialized_end=795,
 )
 
 
@@ -1070,14 +721,7 @@ _TENSOR = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='modality', full_name='Tensor.modality', index=6,
-      number=7, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='requires_grad', full_name='Tensor.requires_grad', index=7,
+      name='requires_grad', full_name='Tensor.requires_grad', index=6,
       number=8, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
@@ -1095,109 +739,70 @@ _TENSOR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2220,
-  serialized_end=2421,
+  serialized_start=798,
+  serialized_end=970,
 )
 
-_NEURON.fields_by_name['modality'].enum_type = _MODALITY
-_TENSORMESSAGE.fields_by_name['tensors'].message_type = _TENSOR
-_TENSORMESSAGE.fields_by_name['return_code'].enum_type = _RETURNCODE
-_TENSORMESSAGE.fields_by_name['synapses'].message_type = _SYNAPSE
-_SYNAPSE_TEXTLASTHIDDENSTATE.fields_by_name['synapse_type'].enum_type = _SYNAPSE_SYNAPSETYPE
-_SYNAPSE_TEXTLASTHIDDENSTATE.fields_by_name['forward_request_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTLASTHIDDENSTATE.fields_by_name['forward_response_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTLASTHIDDENSTATE.fields_by_name['backward_request_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTLASTHIDDENSTATE.fields_by_name['backward_response_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTLASTHIDDENSTATE.containing_type = _SYNAPSE
-_SYNAPSE_TEXTCAUSALLM.fields_by_name['synapse_type'].enum_type = _SYNAPSE_SYNAPSETYPE
-_SYNAPSE_TEXTCAUSALLM.fields_by_name['forward_request_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTCAUSALLM.fields_by_name['forward_response_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTCAUSALLM.fields_by_name['backward_request_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTCAUSALLM.fields_by_name['backward_response_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTCAUSALLM.containing_type = _SYNAPSE
-_SYNAPSE_TEXTSEQ2SEQ.fields_by_name['synapse_type'].enum_type = _SYNAPSE_SYNAPSETYPE
-_SYNAPSE_TEXTSEQ2SEQ.fields_by_name['forward_request_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTSEQ2SEQ.fields_by_name['forward_response_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTSEQ2SEQ.fields_by_name['backward_request_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTSEQ2SEQ.fields_by_name['backward_response_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTSEQ2SEQ.containing_type = _SYNAPSE
-_SYNAPSE_TEXTCAUSALLMNEXT.fields_by_name['synapse_type'].enum_type = _SYNAPSE_SYNAPSETYPE
-_SYNAPSE_TEXTCAUSALLMNEXT.fields_by_name['forward_request_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTCAUSALLMNEXT.fields_by_name['forward_response_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTCAUSALLMNEXT.fields_by_name['backward_request_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTCAUSALLMNEXT.fields_by_name['backward_response_serializer_type'].enum_type = _SERIALIZER
-_SYNAPSE_TEXTCAUSALLMNEXT.containing_type = _SYNAPSE
-_SYNAPSE.fields_by_name['synapse_type'].enum_type = _SYNAPSE_SYNAPSETYPE
-_SYNAPSE.fields_by_name['return_code'].enum_type = _RETURNCODE
-_SYNAPSE_SYNAPSETYPE.containing_type = _SYNAPSE
+_FORWARDTEXTPROMPTINGRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_MULTIFORWARDTEXTPROMPTINGRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_BACKWARDTEXTPROMPTINGRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
 _TENSOR.fields_by_name['serializer'].enum_type = _SERIALIZER
 _TENSOR.fields_by_name['tensor_type'].enum_type = _TENSORTYPE
 _TENSOR.fields_by_name['dtype'].enum_type = _DATATYPE
-_TENSOR.fields_by_name['modality'].enum_type = _MODALITY
-DESCRIPTOR.message_types_by_name['Neuron'] = _NEURON
-DESCRIPTOR.message_types_by_name['TensorMessage'] = _TENSORMESSAGE
-DESCRIPTOR.message_types_by_name['Synapse'] = _SYNAPSE
+DESCRIPTOR.message_types_by_name['ForwardTextPromptingRequest'] = _FORWARDTEXTPROMPTINGREQUEST
+DESCRIPTOR.message_types_by_name['ForwardTextPromptingResponse'] = _FORWARDTEXTPROMPTINGRESPONSE
+DESCRIPTOR.message_types_by_name['MultiForwardTextPromptingRequest'] = _MULTIFORWARDTEXTPROMPTINGREQUEST
+DESCRIPTOR.message_types_by_name['MultiForwardTextPromptingResponse'] = _MULTIFORWARDTEXTPROMPTINGRESPONSE
+DESCRIPTOR.message_types_by_name['BackwardTextPromptingRequest'] = _BACKWARDTEXTPROMPTINGREQUEST
+DESCRIPTOR.message_types_by_name['BackwardTextPromptingResponse'] = _BACKWARDTEXTPROMPTINGRESPONSE
 DESCRIPTOR.message_types_by_name['Tensor'] = _TENSOR
 DESCRIPTOR.enum_types_by_name['ReturnCode'] = _RETURNCODE
 DESCRIPTOR.enum_types_by_name['Serializer'] = _SERIALIZER
 DESCRIPTOR.enum_types_by_name['TensorType'] = _TENSORTYPE
 DESCRIPTOR.enum_types_by_name['DataType'] = _DATATYPE
-DESCRIPTOR.enum_types_by_name['Modality'] = _MODALITY
-DESCRIPTOR.enum_types_by_name['RequestType'] = _REQUESTTYPE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-Neuron = _reflection.GeneratedProtocolMessageType('Neuron', (_message.Message,), {
-  'DESCRIPTOR' : _NEURON,
+ForwardTextPromptingRequest = _reflection.GeneratedProtocolMessageType('ForwardTextPromptingRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTPROMPTINGREQUEST,
   '__module__' : 'bittensor._proto.bittensor_pb2'
-  # @@protoc_insertion_point(class_scope:Neuron)
+  # @@protoc_insertion_point(class_scope:ForwardTextPromptingRequest)
   })
-_sym_db.RegisterMessage(Neuron)
+_sym_db.RegisterMessage(ForwardTextPromptingRequest)
 
-TensorMessage = _reflection.GeneratedProtocolMessageType('TensorMessage', (_message.Message,), {
-  'DESCRIPTOR' : _TENSORMESSAGE,
+ForwardTextPromptingResponse = _reflection.GeneratedProtocolMessageType('ForwardTextPromptingResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTPROMPTINGRESPONSE,
   '__module__' : 'bittensor._proto.bittensor_pb2'
-  # @@protoc_insertion_point(class_scope:TensorMessage)
+  # @@protoc_insertion_point(class_scope:ForwardTextPromptingResponse)
   })
-_sym_db.RegisterMessage(TensorMessage)
+_sym_db.RegisterMessage(ForwardTextPromptingResponse)
 
-Synapse = _reflection.GeneratedProtocolMessageType('Synapse', (_message.Message,), {
-
-  'TextLastHiddenState' : _reflection.GeneratedProtocolMessageType('TextLastHiddenState', (_message.Message,), {
-    'DESCRIPTOR' : _SYNAPSE_TEXTLASTHIDDENSTATE,
-    '__module__' : 'bittensor._proto.bittensor_pb2'
-    # @@protoc_insertion_point(class_scope:Synapse.TextLastHiddenState)
-    })
-  ,
-
-  'TextCausalLM' : _reflection.GeneratedProtocolMessageType('TextCausalLM', (_message.Message,), {
-    'DESCRIPTOR' : _SYNAPSE_TEXTCAUSALLM,
-    '__module__' : 'bittensor._proto.bittensor_pb2'
-    # @@protoc_insertion_point(class_scope:Synapse.TextCausalLM)
-    })
-  ,
-
-  'TextSeq2Seq' : _reflection.GeneratedProtocolMessageType('TextSeq2Seq', (_message.Message,), {
-    'DESCRIPTOR' : _SYNAPSE_TEXTSEQ2SEQ,
-    '__module__' : 'bittensor._proto.bittensor_pb2'
-    # @@protoc_insertion_point(class_scope:Synapse.TextSeq2Seq)
-    })
-  ,
-
-  'TextCausalLMNext' : _reflection.GeneratedProtocolMessageType('TextCausalLMNext', (_message.Message,), {
-    'DESCRIPTOR' : _SYNAPSE_TEXTCAUSALLMNEXT,
-    '__module__' : 'bittensor._proto.bittensor_pb2'
-    # @@protoc_insertion_point(class_scope:Synapse.TextCausalLMNext)
-    })
-  ,
-  'DESCRIPTOR' : _SYNAPSE,
+MultiForwardTextPromptingRequest = _reflection.GeneratedProtocolMessageType('MultiForwardTextPromptingRequest', (_message.Message,), {
+  'DESCRIPTOR' : _MULTIFORWARDTEXTPROMPTINGREQUEST,
   '__module__' : 'bittensor._proto.bittensor_pb2'
-  # @@protoc_insertion_point(class_scope:Synapse)
+  # @@protoc_insertion_point(class_scope:MultiForwardTextPromptingRequest)
   })
-_sym_db.RegisterMessage(Synapse)
-_sym_db.RegisterMessage(Synapse.TextLastHiddenState)
-_sym_db.RegisterMessage(Synapse.TextCausalLM)
-_sym_db.RegisterMessage(Synapse.TextSeq2Seq)
-_sym_db.RegisterMessage(Synapse.TextCausalLMNext)
+_sym_db.RegisterMessage(MultiForwardTextPromptingRequest)
+
+MultiForwardTextPromptingResponse = _reflection.GeneratedProtocolMessageType('MultiForwardTextPromptingResponse', (_message.Message,), {
+  'DESCRIPTOR' : _MULTIFORWARDTEXTPROMPTINGRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:MultiForwardTextPromptingResponse)
+  })
+_sym_db.RegisterMessage(MultiForwardTextPromptingResponse)
+
+BackwardTextPromptingRequest = _reflection.GeneratedProtocolMessageType('BackwardTextPromptingRequest', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDTEXTPROMPTINGREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardTextPromptingRequest)
+  })
+_sym_db.RegisterMessage(BackwardTextPromptingRequest)
+
+BackwardTextPromptingResponse = _reflection.GeneratedProtocolMessageType('BackwardTextPromptingResponse', (_message.Message,), {
+  'DESCRIPTOR' : _BACKWARDTEXTPROMPTINGRESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:BackwardTextPromptingResponse)
+  })
+_sym_db.RegisterMessage(BackwardTextPromptingResponse)
 
 Tensor = _reflection.GeneratedProtocolMessageType('Tensor', (_message.Message,), {
   'DESCRIPTOR' : _TENSOR,
@@ -1208,39 +813,49 @@ _sym_db.RegisterMessage(Tensor)
 
 
 
-_BITTENSOR = _descriptor.ServiceDescriptor(
-  name='Bittensor',
-  full_name='Bittensor',
+_TEXTPROMPTING = _descriptor.ServiceDescriptor(
+  name='TextPrompting',
+  full_name='TextPrompting',
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=3302,
-  serialized_end=3404,
+  serialized_start=1776,
+  serialized_end=2031,
   methods=[
   _descriptor.MethodDescriptor(
     name='Forward',
-    full_name='Bittensor.Forward',
+    full_name='TextPrompting.Forward',
     index=0,
     containing_service=None,
-    input_type=_TENSORMESSAGE,
-    output_type=_TENSORMESSAGE,
+    input_type=_FORWARDTEXTPROMPTINGREQUEST,
+    output_type=_FORWARDTEXTPROMPTINGRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='MultiForward',
+    full_name='TextPrompting.MultiForward',
+    index=1,
+    containing_service=None,
+    input_type=_MULTIFORWARDTEXTPROMPTINGREQUEST,
+    output_type=_MULTIFORWARDTEXTPROMPTINGRESPONSE,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),
   _descriptor.MethodDescriptor(
     name='Backward',
-    full_name='Bittensor.Backward',
-    index=1,
+    full_name='TextPrompting.Backward',
+    index=2,
     containing_service=None,
-    input_type=_TENSORMESSAGE,
-    output_type=_TENSORMESSAGE,
+    input_type=_BACKWARDTEXTPROMPTINGREQUEST,
+    output_type=_BACKWARDTEXTPROMPTINGRESPONSE,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),
 ])
-_sym_db.RegisterServiceDescriptor(_BITTENSOR)
+_sym_db.RegisterServiceDescriptor(_TEXTPROMPTING)
 
-DESCRIPTOR.services_by_name['Bittensor'] = _BITTENSOR
+DESCRIPTOR.services_by_name['TextPrompting'] = _TEXTPROMPTING
 
 # @@protoc_insertion_point(module_scope)

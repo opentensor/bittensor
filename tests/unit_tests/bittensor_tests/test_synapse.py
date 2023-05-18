@@ -17,197 +17,92 @@
 # DEALINGS IN THE SOFTWARE.
 import bittensor
 import torch
+import unittest
+from unittest.mock import MagicMock
 
 
-def test_create_last_hidden_state():
-    bittensor.synapse.TextLastHiddenState()
+class MockTextPromptingSynapse( bittensor.TextPromptingSynapse ):
+    def forward( self, messages ):
+        return messages
 
+    def multi_forward( self, messages ):
+        return messages
 
-def test_create_casuallm():
-    bittensor.synapse.TextCausalLM()
+    def backward( self, messages, response, rewards ):
+        return messages, response, rewards
 
+    def priority( self, call: bittensor.SynapseCall ) -> float:
+        return 0.0
 
-def test_create_casuallm_next():
-    bittensor.synapse.TextCausalLMNext()
+    def blacklist( self, call: bittensor.SynapseCall ) -> bool:
+        return False
 
-
-def test_create_seq2seq():
-    bittensor.synapse.TextSeq2Seq()
-
-
-def test_last_hidden_state_encode_forward_response_tensor_no_mask():
-    synapse = bittensor.synapse.TextLastHiddenState()
-    forward_response_tensor = torch.randn(30, 256, 1024)
-    encoded_forward_response_tensor = synapse.encode_forward_response_tensor(
-        forward_response_tensor
+def test_create_text_prompting():
+    mock_wallet = MagicMock(
+        spec=bittensor.Wallet,
+        coldkey=MagicMock(),
+        coldkeypub=MagicMock(
+            # mock ss58 address
+            ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+        ),
+        hotkey=MagicMock(
+            ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
+        ),
     )
-    assert len(encoded_forward_response_tensor.shape) == 3
-    assert encoded_forward_response_tensor.shape[0] == 30
-    assert encoded_forward_response_tensor.shape[1] == 256
-    assert encoded_forward_response_tensor.shape[2] == 1024
-    assert torch.all(
-        torch.eq(
-            encoded_forward_response_tensor[0, 0, :], forward_response_tensor[0, 0, :]
-        )
+    axon = bittensor.axon( wallet = mock_wallet, metagraph = None )
+    synapse = MockTextPromptingSynapse( axon = axon )
+
+# @unittest.skip("This is for convenience of testing without violating DRY too much")
+def get_synapse():
+    mock_wallet = MagicMock(
+        spec=bittensor.Wallet,
+        coldkey=MagicMock(),
+        coldkeypub=MagicMock(
+            # mock ss58 address
+            ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+        ),
+        hotkey=MagicMock(
+            ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
+        ),
     )
-
-    decoded_forward_response_tensor = synapse.decode_forward_response_tensor(
-        torch.randn(30, 256), encoded_forward_response_tensor
-    )
-    assert decoded_forward_response_tensor.shape[0] == 30
-    assert decoded_forward_response_tensor.shape[1] == 256
-    assert decoded_forward_response_tensor.shape[2] == 1024
-    for i in range(30):
-        for j in range(256):
-            assert torch.all(
-                torch.eq(
-                    decoded_forward_response_tensor[i, j, :],
-                    forward_response_tensor[i, j, :],
-                )
-            )
+    axon = bittensor.axon( wallet = mock_wallet, metagraph = None )
+    return MockTextPromptingSynapse( axon = axon )
 
 
-def test_last_hidden_state_encode_forward_response_tensor_mask_first():
-    # Test mask all but first.
-    synapse = bittensor.synapse.TextLastHiddenState(
-        mask=[0],  # Only return the first representation from each batch.
-    )
-    forward_response_tensor = torch.randn(30, 256, 1024)
-    encoded_forward_response_tensor = synapse.encode_forward_response_tensor(
-        forward_response_tensor
-    )
-    assert len(encoded_forward_response_tensor.shape) == 2
-    assert encoded_forward_response_tensor.shape[0] == 30
-    assert encoded_forward_response_tensor.shape[1] == 1024
-    assert torch.all(
-        torch.eq(
-            encoded_forward_response_tensor[0, :], forward_response_tensor[0, 0, :]
-        )
-    )
+def test_text_prompting_synapse_forward():
+    synapse = get_synapse()
+    messages = ['test message']
+    response = synapse.forward( messages )
+    assert response == messages
 
-    decoded_forward_response_tensor = synapse.decode_forward_response_tensor(
-        torch.randn(30, 256), encoded_forward_response_tensor
-    )
-    assert decoded_forward_response_tensor.shape[0] == 30
-    assert decoded_forward_response_tensor.shape[1] == 256
-    assert decoded_forward_response_tensor.shape[2] == 1024
-    for i in range(30):
-        assert torch.all(
-            torch.eq(
-                decoded_forward_response_tensor[i, 0, :],
-                forward_response_tensor[i, 0, :],
-            )
-        )
-    for i in range(30):
-        for j in range(1, 256):
-            assert torch.all(
-                torch.eq(
-                    decoded_forward_response_tensor[i, j, :],
-                    torch.zeros_like(forward_response_tensor[i, j, :]),
-                )
-            )
+def test_text_prompting_synapse_multi_forward():
+    synapse = get_synapse()
+    messages = ['test message'] * 10
+    responses = synapse.multi_forward( messages )
+    assert responses == messages
 
+def test_text_prompting_synapse_backward():
+    synapse = get_synapse()
+    messages = ['test message']
+    response = ['test response']
+    rewards = torch.tensor([1.0])
+    output = synapse.backward( messages, response, rewards )
+    assert len(output) == 3
+    assert messages == output[0]
+    assert response == output[1]
+    assert torch.all(torch.eq(rewards, output[2]))
 
-def test_last_hidden_state_encode_forward_response_tensor_mask_last():
-    # Test mask last
-    mask = [-1]
-    synapse = bittensor.synapse.TextLastHiddenState(
-        mask=mask,  # Only return the first representation from each batch.
-    )
-    forward_response_tensor = torch.randn(30, 256, 1024)
-    encoded_forward_response_tensor = synapse.encode_forward_response_tensor(
-        forward_response_tensor
-    )
-    assert len(encoded_forward_response_tensor.shape) == 2
-    assert encoded_forward_response_tensor.shape[0] == 30
-    assert encoded_forward_response_tensor.shape[1] == 1024
-    assert torch.all(
-        torch.eq(
-            encoded_forward_response_tensor[0, :], forward_response_tensor[0, 255, :]
-        )
-    )
+def test_text_prompting_synapse_blacklist():
+    synapse = get_synapse()
+    request = bittensor.proto.ForwardTextPromptingRequest()
+    call = bittensor._synapse.text_prompting.synapse.SynapseForward( synapse, request, synapse.forward )
+    blacklist = synapse.blacklist( call )
+    assert blacklist == False
 
-    decoded_forward_response_tensor = synapse.decode_forward_response_tensor(
-        torch.randn(30, 256), encoded_forward_response_tensor
-    )
-    assert decoded_forward_response_tensor.shape[0] == 30
-    assert decoded_forward_response_tensor.shape[1] == 256
-    assert decoded_forward_response_tensor.shape[2] == 1024
-    for i in range(30):
-        assert torch.all(
-            torch.eq(
-                decoded_forward_response_tensor[i, -1, :],
-                forward_response_tensor[i, -1, :],
-            )
-        )
-    for i in range(30):
-        for j in range(255):
-            assert torch.all(
-                torch.eq(
-                    decoded_forward_response_tensor[i, j, :],
-                    torch.zeros_like(forward_response_tensor[i, j, :]),
-                )
-            )
+def test_text_prompting_synapse_priority():
+    synapse = get_synapse()
+    request = bittensor.proto.ForwardTextPromptingRequest()
+    call = bittensor._synapse.text_prompting.synapse.SynapseForward( synapse, request, synapse.forward )
+    priority = synapse.priority( call )
+    assert priority == 0.0
 
-
-def test_last_hidden_state_encode_forward_response_tensor_mask_multiple():
-    # Test mask last
-    n = 5
-    mask = list(range(n))
-    synapse = bittensor.synapse.TextLastHiddenState(
-        mask=mask,  # Only return the first representation from each batch.
-    )
-    forward_response_tensor = torch.randn(30, 256, 1024)
-    encoded_forward_response_tensor = synapse.encode_forward_response_tensor(
-        forward_response_tensor
-    )
-    assert len(encoded_forward_response_tensor.shape) == 2
-    assert encoded_forward_response_tensor.shape[0] == 30 * n
-    assert encoded_forward_response_tensor.shape[1] == 1024
-
-    # Iterate through all and check equality.
-    idx = 0
-    for j in range(30):
-        for i in range(n):
-            assert torch.all(
-                torch.eq(
-                    encoded_forward_response_tensor[idx, :],
-                    forward_response_tensor[j, i, :],
-                )
-            )
-            idx += 1
-
-    decoded_forward_response_tensor = synapse.decode_forward_response_tensor(
-        torch.randn(30, 256), encoded_forward_response_tensor
-    )
-    assert decoded_forward_response_tensor.shape[0] == 30
-    assert decoded_forward_response_tensor.shape[1] == 256
-    assert decoded_forward_response_tensor.shape[2] == 1024
-
-    for i in range(30):
-        for j in range(256):
-            if j in mask:
-                assert torch.all(
-                    torch.eq(
-                        decoded_forward_response_tensor[i, j, :],
-                        forward_response_tensor[i, j, :],
-                    )
-                )
-            if j not in mask:
-                assert torch.all(
-                    torch.eq(
-                        decoded_forward_response_tensor[i, j, :],
-                        torch.zeros_like(forward_response_tensor[i, j, :]),
-                    )
-                )
-
-
-if __name__ == "__main__":
-    test_create_last_hidden_state()
-    test_create_casuallm()
-    test_create_casuallm_next()
-    test_create_seq2seq()
-    test_last_hidden_state_encode_forward_response_tensor_no_mask()
-    test_last_hidden_state_encode_forward_response_tensor_mask_first()
-    test_last_hidden_state_encode_forward_response_tensor_mask_last()
-    test_last_hidden_state_encode_forward_response_tensor_mask_multiple()
