@@ -158,6 +158,7 @@ def generate_wallet(coldkey: "Keypair" = None, hotkey: "Keypair" = None):
     return wallet
 
 
+@pytest.mark.xdist_group(name="TestCLI")
 class TestCLIWithNetworkAndConfig(unittest.TestCase):
     def setUp(self):
         self._config = TestCLIWithNetworkAndConfig.construct_config()
@@ -2373,6 +2374,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.config = config
         cli.run()
 
+@pytest.mark.xdist_group(name="TestCLI")
 class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     """
     Test the CLI by passing args directly to the bittensor.cli factory
