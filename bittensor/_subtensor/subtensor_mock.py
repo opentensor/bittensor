@@ -400,7 +400,7 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
         else:
             raise ValueError("Invalid type for balance: {}".format(type(balance)))
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(exceptions=(PriorityTooLowError, InvalidNonceError), delay=2, tries=3, backoff=2, max_delay=4)
         def make_call() -> Tuple[bool, Optional[str], int]:
             with self.substrate as substrate:
                 call = substrate.compose_call(
@@ -415,13 +415,22 @@ class Mock_Subtensor(subtensor_impl.Subtensor):
 
                 wrapped_call = self.wrap_sudo(call)
 
-                return self._submit_call(
-                    substrate,
-                    wrapped_call,
-                    nonce,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
+                try:
+                    return self._submit_call(
+                        substrate,
+                        wrapped_call,
+                        nonce,
+                        wait_for_inclusion=wait_for_inclusion,
+                        wait_for_finalization=wait_for_finalization,
+                    )
+                except InvalidNonceError:
+                    return self._submit_call(
+                        substrate,
+                        wrapped_call,
+                        nonce = None,
+                        wait_for_inclusion=wait_for_inclusion,
+                        wait_for_finalization=wait_for_finalization,
+                    )
 
         return make_call()
 
