@@ -39,7 +39,7 @@ class WizardLMVicunaUncensoredMiner( bittensor.BasePromptingMiner ):
         parser.add_argument( '--wiz_vic.system_prompt', type=str, help='What prompt to replace the system prompt with', default= "BEGINNING OF CONVERSATION: " )
 
     def __init__( self ):
-        super( WizardLMVicunaMiner, self ).__init__()
+        super( WizardLMVicunaUncensoredMiner, self ).__init__()
         print ( self.config )
 
         bittensor.logging.info( 'Loading ' + str(self.config.wiz_vic.model_name) )
