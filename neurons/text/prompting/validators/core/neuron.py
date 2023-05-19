@@ -252,16 +252,19 @@ class neuron:
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
         
         tokenized = self.filter_tokenizer(message)
-        output = self.filter_model(torch.tensor([tokenized['input_ids']]).to(self.device))
+        
+        with torch.no_grad():
+            output = self.filter_model(torch.tensor([tokenized['input_ids']]).to(self.device))
+        
         filter_out = output.logits.argmax().bool()
 
         if filter_out:
             bittensor.logging.debug( 'filtered message', message )
-            with open('~/filtered_text_history.txt', 'a') as file:
+            with open('filtered_text_history.txt', 'a') as file:
                 file.write(f"{self.filter_message_count}| {dt_string} | {message}" + '\n') 
         else:
             bittensor.logging.debug( 'safe message', message )
-            with open('~/safe_text_history.txt', 'a') as file:
+            with open('safe_text_history.txt', 'a') as file:
                 file.write(f"{self.filter_message_count}| {dt_string} | {message}" + '\n') 
 
         self.filter_message_count += 1
