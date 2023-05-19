@@ -16,11 +16,44 @@
 # DEALINGS IN THE SOFTWARE.
 import torch
 import argparse
+import warnings
 import bittensor
 from typing import List, Dict
-from transformers import AutoTokenizer, pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from transformers import StoppingCriteria, StoppingCriteriaList
 
+
+class TextGenerationPipeline:
+    def __init__(
+        self,
+        model_name,
+        torch_dtype=torch.bfloat16,
+        trust_remote_code=True,
+        use_auth_token=None,
+        device="cuda",
+    ) -> None:
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            torch_dtype=torch_dtype,
+            trust_remote_code=trust_remote_code,
+            use_auth_token=use_auth_token,
+            max_seq_len=10240, 
+        )
+
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name,
+            trust_remote_code=trust_remote_code,
+            use_auth_token=use_auth_token,
+        )
+        if tokenizer.pad_token_id is None:
+            warnings.warn(
+                "pad_token_id is not set for the tokenizer. Using eos_token_id as pad_token_id."
+            )
+            tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.padding_side = "left"
+        self.tokenizer = tokenizer
+        self.model.eval()
+        self.model.to(device=device, dtype=torch_dtype)
 
 
 class StopOnTokens(StoppingCriteria):
@@ -45,57 +78,47 @@ class Mpt7BMiner( bittensor.BasePromptingMiner ):
         parser.add_argument( '--mpt7B.model_name', type=str, default='mosaicml/mpt-7b-instruct', help='Name/path of model to load' )
         parser.add_argument( '--mpt7B.device', type=str, help='Device to load model', default="cuda" )
         parser.add_argument( '--mpt7B.max_new_tokens', type=int, help='Max tokens for model output.', default=512 )
-        parser.add_argument( '--mpt7B.temperature', type=float, help='Sampling temperature of model', default=0.5 )
-        parser.add_argument( '--mpt7B.greedy_sampling', action='store_true', default=False, help='Whether to use greedy sampling or not (if not, uses multinomial sampling).')
-        parser.add_argument( '--mpt7B.do_prompt_injection', action='store_true', default=False, help='Whether to use a custom "system" prompt instead of the one sent by bittensor.' )
-        parser.add_argument( '--mpt7B.system_prompt', type=str, help='What prompt to replace the system prompt with', default= "This is the most correct and relevant answer to the question, with a rating of 10." )
+        parser.add_argument( '--mpt7B.temperature', type=float, help='Sampling temperature of model', default=0.8 )
+        parser.add_argument( '--mpt7B.greedy_sampling', action='store_true', default=False, help='Whether to use greedy sampling or not (if not, uses multinomial sampling).' )
         parser.add_argument( '--mpt7B.no_repeat_ngram_size', type=int, default=3, help='If set to int > 0, all ngrams of size no_repeat_ngram_size can only occur once.' )
-        parser.add_argument( '--mpt7B.top_p', type=float, default=0.9, help='Top-p (nucleus) sampling. Defaults to 1.0 (top-k sampling). Must be between 0.0 and 1.0.' )
-        parser.add_argument( '--mpt7B.top_k', type=int, default=0, help='Top-k sampling. Defaults to 0 (no top-k sampling). Must be between 0 and 1000.' )
+        parser.add_argument( '--mpt7B.top_p', type=float, default=0.95, help='Top-p (nucleus) sampling. Defaults to 1.0 (top-k sampling). Must be between 0.0 and 1.0.' )
+        parser.add_argument( '--mpt7B.top_k', type=int, default=50, help='Top-k sampling. Defaults to 0 (no top-k sampling). Must be between 0 and 1000.' )
+        parser.add_argument( '--mpt7B.repitition_penalty', type=float, default=1.02, help='Repetition penalty for greedy decoding. Between 1.0 and infinity. 1.0 means no penalty. Default: 1.0' )
 
     def __init__( self ):
         super( Mpt7BMiner, self ).__init__()
         print ( self.config )
 
-        self.system_prompt = self.config.mpt7B.system_prompt
-        self.system_key = "### System: "
-        self.assistant_key = "### Response: "
-        self.user_key = "### Instruction: "
-
         bittensor.logging.info( 'Loading ' + str( self.config.mpt7B.model_name ) )
-        self.pipe = pipeline(
-            "text-generation",
-            model="mosaicml/mpt-7b-storywriter",
+        self.pipe = TextGenerationPipeline(
+            "mosaicml/mpt-7b-storywriter",
             torch_dtype=torch.bfloat16,
             trust_remote_code=True,
             device=self.config.mpt7B.device,
         )
         self.tokenizer = AutoTokenizer.from_pretrained( "EleutherAI/gpt-neox-20b" )
-        self.stop = StopOnTokens( self.tokenizer.convert_tokens_to_ids(["<|endoftext|>"]) )
+        self.stop = StopOnTokens( self.tokenizer.convert_tokens_to_ids( [ "<|endoftext|>" ] ) )
         bittensor.logging.info( 'Model loaded!' )
 
     def _process_history( self, history: List[Dict[str, str]] ) -> str:
         processed_history = ''
 
-        if self.config.mpt7B.do_prompt_injection:
-            processed_history += self.config.mpt7B.system_prompt
-
         for message in history:
             if message['role'].lower() == 'system':
-                if not self.config.mpt7B.do_prompt_injection or message != history[0]:
-                    processed_history += self.system_key + message['content'].strip() + ' '
+                if message != history[0]:
+                    processed_history += message['content'].strip() + ' '
             if message['role'].lower() == 'assistant':
-                processed_history += self.assistant_key + message['content'].strip() + '</s>'
+                processed_history += message['content'].strip() + '</s>'
             if message['role'].lower() == 'user':
-                processed_history += self.user_key + message['content'].strip() + ' '
+                processed_history += message['content'].strip() + ' '
 
         return processed_history
     
     def forward( self, messages: List[Dict[str, str]] ):
-        history = self._process_history(messages)
-        prompt = history + self.assistant_key
+        history = self._process_history( messages )
+        prompt = history
 
-        input_ids = self.tokenizer(prompt, return_tensors="pt" ).input_ids
+        input_ids = self.tokenizer( prompt, return_tensors="pt" ).input_ids
         input_ids = input_ids.to( self.pipe.model.device )
 
         gkw = {
@@ -107,14 +130,16 @@ class Mpt7BMiner( bittensor.BasePromptingMiner ):
                 "no_repeat_ngram_size": self.no_repeat_ngram_size,
                 "top_p": self.config.mpt7B.top_p,
                 "top_k": self.config.mpt7B.top_k,
+                "eos_token_id": self.tokenizer.eos_token_id,
+                "pad_token_id": self.tokenizer.pad_token_id,
                 "stopping_criteria": StoppingCriteriaList( [ self.stop ] ),
             },
         }
-        output = self.pipe.model.generate(**gkw)
-        generation = self.tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
+        output = self.pipe.model.generate( **gkw )
+        generation = self.tokenizer.decode( output[ 0 ][ input_ids.shape[ 1 ]: ], skip_special_tokens=True )
 
-        bittensor.logging.debug("Message: " + str(messages))
-        bittensor.logging.debug("Generation: " + str(generation))
+        bittensor.logging.debug( "Message: " + str( messages ) )
+        bittensor.logging.debug( "Generation: " + str( generation ) )
         return generation
 
 

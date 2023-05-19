@@ -46,8 +46,6 @@ class Mpt7BMiner( bittensor.BasePromptingMiner ):
         parser.add_argument( '--mpt7B.max_new_tokens', type=int, help='Max tokens for model output.', default=512 )
         parser.add_argument( '--mpt7B.temperature', type=float, help='Sampling temperature of model', default=0.5 )
         parser.add_argument( '--mpt7B.greedy_sampling', action='store_true', default=False, help='Whether to use greedy sampling or not (if not, uses multinomial sampling).')
-        parser.add_argument( '--mpt7B.do_prompt_injection', action='store_true', default=False, help='Whether to use a custom "system" prompt instead of the one sent by bittensor.' )
-        parser.add_argument( '--mpt7B.system_prompt', type=str, help='What prompt to replace the system prompt with', default= "This is the most correct and relevant answer to the question, with a rating of 10." )
         parser.add_argument( '--mpt7B.repetition-penalty', type=float, default=1.1, help='Repetition penalty for greedy decoding. Between 1.0 and infinity. 1.0 means no penalty. Default: 1.0' )
         parser.add_argument( '--mpt7B.top_p', type=float, default=0.9, help='Top-p (nucleus) sampling. Defaults to 1.0 (top-k sampling). Must be between 0.0 and 1.0.' )
         parser.add_argument( '--mpt7B.top_k', type=int, default=0, help='Top-k sampling. Defaults to 0 (no top-k sampling). Must be between 0 and 1000.' )
@@ -76,12 +74,9 @@ class Mpt7BMiner( bittensor.BasePromptingMiner ):
     def _process_history( self, history: List[Dict[str, str]] ) -> str:
         processed_history = ''
 
-        if self.config.mpt7B.do_prompt_injection:
-            processed_history += self.config.mpt7B.system_prompt
-
         for message in history:
             if message['role'].lower() == 'system':
-                if not self.config.mpt7B.do_prompt_injection or message != history[0]:
+                if message != history[0]:
                     processed_history += self.system_key + message['content'].strip() + ' '
             if message['role'].lower() == 'assistant':
                 processed_history += self.assistant_key + message['content'].strip() + '</s>'
