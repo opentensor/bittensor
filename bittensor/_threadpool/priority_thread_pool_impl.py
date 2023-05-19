@@ -84,7 +84,7 @@ def _worker(executor_reference, work_queue, initializer, initargs):
                 # Delete references to object. See issue16284
                 del item
                 continue
-                
+
             executor = executor_reference()
             # Exit if:
             #   - The interpreter is shutting down OR
@@ -111,7 +111,7 @@ class BrokenThreadPool(_base.BrokenExecutor):
 
 
 class PriorityThreadPoolExecutor(_base.Executor):
-    """ Base threadpool executor with a priority queue 
+    """ Base threadpool executor with a priority queue
     """
     # Used to assign unique thread names when thread_name_prefix is not supplied.
     _counter = itertools.count().__next__
@@ -170,7 +170,7 @@ class PriorityThreadPoolExecutor(_base.Executor):
             start_time = time.time()
             if 'priority' in kwargs:
                 del kwargs['priority']
-            
+
 
             f = _base.Future()
             w = _WorkItem(f, fn, start_time, args, kwargs)
@@ -221,7 +221,7 @@ class PriorityThreadPoolExecutor(_base.Executor):
         with self._shutdown_lock:
             self._shutdown = True
             self._work_queue.put(NULL_ENTRY)
-        
+
         if wait:
             for t in self._threads:
                 try:

@@ -23,11 +23,11 @@ import argparse
 import bittensor
 
 from rich import print
-from typing import List, Dict
+from typing import List, Dict, Union, Tuple, Optional
 from datetime import datetime
 from abc import ABC, abstractmethod
 
-class BasePromptingMiner(ABC):
+class BasePromptingMiner( ABC ):
 
     @classmethod
     @abstractmethod
@@ -36,41 +36,39 @@ class BasePromptingMiner(ABC):
 
     def priority( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
         if self.metagraph is not None:
-            uid = self.metagraph.hotkeys.index(forward_call.hotkey)
+            uid = self.metagraph.hotkeys.index(forward_call.src_hotkey)
             return self.metagraph.S[uid].item()
         else:
             return self.config.neuron.default_priority
 
-    def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
+    def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> Union[ Tuple[bool, str], bool ]:
         # Check for registration
         def registration_check():
-            is_registered = forward_call.hotkey in self.metagraph.hotkeys
+            is_registered = forward_call.src_hotkey in self.metagraph.hotkeys
             if not is_registered:
-                if self.config.neuron.blacklist.allow_non_registered:
-                    return False
-                bittensor.logging.debug( "Blacklisted. Not registered.")
-                raise Exception("Registration blacklist") 
-        
+                if self.config.neuron.blacklist.allow_non_registered: return False, 'passed blacklist'
+                else: return True, 'pubkey not registered'
+
         # Blacklist based on stake.
         def stake_check() -> bool:
             default_stake = self.config.neuron.blacklist.default_stake
             if default_stake <= 0.0:
-                return False
-            uid = self.metagraph.hotkeys.index(forward_call.hotkey)
+                return False, 'passed blacklist'
+            uid = self.metagraph.hotkeys.index(forward_call.src_hotkey)
             if self.metagraph.S[uid].item() < default_stake:
                 bittensor.logging.debug( "Blacklisted. Stake too low.")
-                raise Exception("Stake blacklist")
-            return False
+                return True, 'Stake too low.'
+            else: return False, 'passed blacklist'
 
         # Optionally blacklist based on checks.
         try:
             registration_check()
             stake_check()
-            return False
+            return False, 'passed blacklist'
         except Exception as e:
             bittensor.logging.warning( "Blacklisted. Error in `registration_check` or `stake_check()" )
-            return True
-        
+            return True, 'Error in `registration_check` or `stake_check()'
+
     @abstractmethod
     def forward( self, messages: List[Dict[str, str]] ) -> str:
         ...
@@ -101,7 +99,6 @@ class BasePromptingMiner(ABC):
         bittensor.wallet.check_config( config )
         bittensor.logging.check_config( config )
         bittensor.subtensor.check_config( config )
-        bittensor.metagraph.check_config( config )
         full_path = os.path.expanduser(
             '{}/{}/{}/{}'.format( config.logging.logging_dir, config.wallet.get('name', bittensor.defaults.wallet.name),
                                   config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey), config.neuron.name ) )
@@ -113,46 +110,46 @@ class BasePromptingMiner(ABC):
     def add_super_args( cls, parser: argparse.ArgumentParser ):
         cls.add_args(parser)
         parser.add_argument(
-            '--netuid', 
-            type = int, 
-            help = 'Subnet netuid', 
+            '--netuid',
+            type = int,
+            help = 'Subnet netuid',
             default = 41
         )
         parser.add_argument(
-            '--neuron.name', 
+            '--neuron.name',
             type = str,
             help = 'Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ',
             default = 'openai_prompting_miner'
         )
         parser.add_argument(
-            '--neuron.blocks_per_epoch', 
-            type = str, 
+            '--neuron.blocks_per_epoch',
+            type = str,
             help = 'Blocks until the miner sets weights on chain',
             default = 100
         )
         parser.add_argument(
-            '--neuron.no_set_weights', 
-            action = 'store_true', 
+            '--neuron.no_set_weights',
+            action = 'store_true',
             help = 'If True, the model does not set weights.',
             default = False
         )
         parser.add_argument(
-            '--neuron.max_batch_size', 
-            type = int, 
+            '--neuron.max_batch_size',
+            type = int,
             help = 'The maximum batch size for forward requests.',
             default = -1
         )
         parser.add_argument(
-            '--neuron.max_sequence_len', 
-            type = int, 
+            '--neuron.max_sequence_len',
+            type = int,
             help = 'The maximum sequence length for forward requests.',
             default = -1
         )
         parser.add_argument(
-            '--neuron.blacklist.hotkeys', 
-            type = str, 
-            required = False, 
-            nargs = '*', 
+            '--neuron.blacklist.hotkeys',
+            type = str,
+            required = False,
+            nargs = '*',
             action = 'store',
             help = 'To blacklist certain hotkeys', default=[]
         )
@@ -178,7 +175,6 @@ class BasePromptingMiner(ABC):
         bittensor.axon.add_args( parser )
         bittensor.subtensor.add_args( parser )
         bittensor.logging.add_args( parser )
-        bittensor.metagraph.add_args( parser )
 
     def __init__(
         self,
@@ -192,29 +188,29 @@ class BasePromptingMiner(ABC):
         self.subtensor = bittensor.subtensor( self.config )
         self.wallet = bittensor.wallet( self.config )
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
-        self.axon = bittensor.axon( 
+        self.axon = bittensor.axon(
             wallet = self.wallet,
             metagraph = self.metagraph,
             config = self.config,
         )
         class Synapse( bittensor.TextPromptingSynapse ):
-            def _priority( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
+            def priority( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
                 return self.priority( forward_call )
-            def _blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> bool:
+            def blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> Union[ Tuple[bool, str], bool ]:
                 return self.blacklist( forward_call )
+            def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
             def forward( _, messages: List[Dict[str, str]] ) -> str:
                 return self.forward( messages )
-        self.synapse = Synapse()
+        self.synapse = Synapse( axon = self.axon )
 
     def run( self ):
 
         # --- Start the miner.
         self.wallet.reregister( netuid = self.config.netuid, subtensor = self.subtensor )
-        self.axon.attach( self.synapse )
         self.axon.start()
         self.axon.netuid = self.config.netuid
         self.axon.protocol = 4
-        self.subtensor.serve_axon( self.axon )
+        self.subtensor.serve_axon( netuid = self.config.netuid, axon = self.axon )
 
         # --- Run Forever.
         last_update = self.subtensor.get_current_block()
@@ -228,7 +224,7 @@ class BasePromptingMiner(ABC):
             last_update = self.subtensor.get_current_block()
 
             # --- Update the metagraph with the latest network state.
-            self.metagraph.sync( netuid = self.config.netuid, subtensor = self.subtensor )
+            self.metagraph.sync( lite = True )
             uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
 
             # --- Log performance.

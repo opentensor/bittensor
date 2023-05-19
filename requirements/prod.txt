@@ -40,9 +40,9 @@ numpy==1.21.6
 wheel==0.37.1
 tqdm==4.64.1
 qqdm==0.0.7
-wandb>=0.11.1,<0.13.4
 ansible_vault>=2.1
 substrate-interface==1.5.0
 jsonschema[format-nongpl]>=4.14.0,<=4.17.0
 markupsafe==2.0.1
 langchain>=0.0.132
+datasets==2.12.0

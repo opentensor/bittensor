@@ -46,7 +46,7 @@ class GPT4ALLMiner( bittensor.BasePromptingMiner ):
         parser.add_argument('--gpt4all.repeat_penalty', type=float, default=1.3, help='The penalty to apply to repeated tokens.')
         parser.add_argument('--gpt4all.n_batch', type=int, default=1, help='Batch size for prompt processing.')
         parser.add_argument('--gpt4all.streaming', action='store_true', default=False, help='Whether to stream the results or not.')
-        
+
     def __init__( self ):
         super( GPT4ALLMiner, self ).__init__()
         print ( self.config )
@@ -72,7 +72,9 @@ class GPT4ALLMiner( bittensor.BasePromptingMiner ):
             n_batch=self.config.gpt4all.n_batch,
             streaming=self.config.gpt4all.streaming,
         )
-    
+
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+
     @staticmethod
     def _process_history(history: List[dict]) -> str:
         processed_history = ''

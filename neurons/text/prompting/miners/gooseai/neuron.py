@@ -39,7 +39,7 @@ class GooseAIMiner( bittensor.BasePromptingMiner ):
         parser.add_argument("--gooseai.model_kwargs", type=Dict[str, Any], default=dict(), help="Holds any model parameters valid for `create` call not explicitly specified")
         parser.add_argument("--gooseai.logit_bias", type=Optional[Dict[str, float]], default=dict(), help="Adjust the probability of specific tokens being generated")
 
-        
+
     def __init__( self ):
         super( GooseAIMiner, self ).__init__()
         print ( self.config )
@@ -52,6 +52,8 @@ class GooseAIMiner( bittensor.BasePromptingMiner ):
             'repeat_penalty': self.config.gooseai.frequency_penalty,
         }
         self.model = GooseAI(gooseai_api_key=self.config.gooseai.api_key, model_kwargs=model_kwargs)
+
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
 
     @staticmethod
     def _process_history(history: List[dict]) -> str:
