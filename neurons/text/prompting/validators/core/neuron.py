@@ -256,7 +256,7 @@ class neuron:
         with torch.no_grad():
             output = self.filter_model(torch.tensor([tokenized['input_ids']]).to(self.device))
         
-        filter_out = output.logits.argmax().bool()
+        filter_out = output.logits[0, 0] < -2.3
 
         if filter_out:
             bittensor.logging.debug( 'filtered message', message )
@@ -438,10 +438,13 @@ class neuron:
             contents.append( message_dict['content'] )
             if message_dict['role'] == 'system': unravelled_message += 'system: ' + message_dict['content'] + '\n'
             if message_dict['role'] == 'assistant': unravelled_message += 'assistant: ' + message_dict['content'] + '\n'
-            if message_dict['role'] == 'user': unravelled_message += 'user: ' + message_dict['content'] + '\n'
+            if message_dict['role'] == 'user': 
+                unravelled_message += 'user: ' + message_dict['content'] + '\n'
+                user_message = message_dict['content']
+
         bittensor.logging.info( 'inference message', str(unravelled_message) )
-        
-        if self.filter_message(unravelled_message):
+
+        if self.filter_message(user_message):
             if return_all:
                 return ['Received possible explicit content.']
             else:
@@ -475,14 +478,14 @@ class neuron:
             if return_all:
                 completions = []
                 for call in forward_calls:
-                    if len( call.completion ) > 0 and not self.filter_messaage(call.completion):
+                    if len( call.completion ) > 0 and not self.filter_message(call.completion):
                         completions.append(call.completion)
                 if len(completions) > 0:
                     return completions
             
             else:
                 for call in forward_calls:
-                    if len( call.completion ) > 0 and not self.filter_messaage(call.completion):
+                    if len( call.completion ) > 0 and not self.filter_message(call.completion):
                         bittensor.logging.info( 'best completion', call.completion )
                         return call.completion
 
@@ -498,7 +501,7 @@ class neuron:
             flattened_message_for_reward = ''
             for role_i, message_i in list(zip(roles, messages)):
                 if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n\n'
-            completions = [ call.completion for call in forward_calls if len(call.completion) > 0 and not self.filter_messaage(call.completion) ] 
+            completions = [ call.completion for call in forward_calls if len(call.completion) > 0 and not self.filter_message(call.completion) ] 
             flattened_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in completions ] 
 
             # Return best via reward model.
