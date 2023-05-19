@@ -47,8 +47,9 @@ class TextToImageForward( bittensor.SynapseCall ):
         self.num_images_per_prompt = request_proto.num_images_per_prompt
         self.num_inference_steps = request_proto.num_inference_steps
         self.guidance_scale = request_proto.guidance_scale
-        self.negative_prompt = request_proto.negative_prompt
         self.strength = request_proto.strength
+        self.negative_prompt = request_proto.negative_prompt
+        self.seed = request_proto.seed
         self.forward_callback = forward_callback
 
     def apply( self ):
@@ -63,6 +64,7 @@ class TextToImageForward( bittensor.SynapseCall ):
             guidance_scale = self.guidance_scale,
             strength = self.strength,
             negative_prompt = self.negative_prompt,
+            seed = self.seed,
             )
         bittensor.logging.trace( "TextToImageForward.apply() = len(result)", len(self.image) )
 
@@ -90,6 +92,7 @@ class TextToImage(BaseModel):
     guidance_scale: float = 7.5
     strength: float = 0.75
     negative_prompt: str = ""
+    seed: int = -1
     
 
 class TextToImageSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer ):
@@ -119,6 +122,7 @@ class TextToImageSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer 
             guidance_scale = item.guidance_scale,
             strength = item.strength,
             negative_prompt = item.negative_prompt,
+            seed= item.seed,
         )
         call = TextToImageForward( self, request_proto, self.forward )
         bittensor.logging.trace( 'FastAPITextToImageForward: {} '.format( call ) )

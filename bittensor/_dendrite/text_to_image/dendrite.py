@@ -36,6 +36,7 @@ class TextToImageForwardCall( bittensor.DendriteCall ):
         guidance_scale: float = 7.5,
         strength: float = 0.75, # for img2img
         negative_prompt: str = '',
+        seed: int = -1,
         timeout: float = bittensor.__blocktime__,
     ):
         super().__init__( dendrite = dendrite, timeout = timeout )
@@ -48,6 +49,7 @@ class TextToImageForwardCall( bittensor.DendriteCall ):
         self.guidance_scale = guidance_scale
         self.strength = strength
         self.negative_prompt = negative_prompt
+        self.seed = seed
 
         
     def get_callable( self ) -> Callable:
@@ -62,8 +64,9 @@ class TextToImageForwardCall( bittensor.DendriteCall ):
             num_images_per_prompt = self.num_images_per_prompt,
             num_inference_steps = self.num_inference_steps,
             guidance_scale = self.guidance_scale,
-            negative_prompt = self.negative_prompt,
             strength = self.strength,
+            negative_prompt = self.negative_prompt,
+            seed = self.seed,
         )
     
     def apply_response_proto( self, response_proto: bittensor.proto.ForwardTextToImageResponse ):
@@ -88,6 +91,7 @@ class TextToImageDendrite( bittensor.Dendrite ):
             guidance_scale: float = 7.5,
             strength: float = 0.75, # for img2img
             negative_prompt: str = '',
+            seed: int = -1,
             timeout: float = bittensor.__blocktime__,
             return_call:bool = True,
         ) -> Union[ str, TextToImageForwardCall ]:
@@ -103,6 +107,7 @@ class TextToImageDendrite( bittensor.Dendrite ):
             guidance_scale=guidance_scale,
             strength=strength,
             negative_prompt=negative_prompt,
+            seed=seed,
         )
         response_call = self.loop.run_until_complete( self.apply( dendrite_call = forward_call ) )
         if return_call: return response_call
@@ -119,6 +124,7 @@ class TextToImageDendrite( bittensor.Dendrite ):
         guidance_scale: float = 7.5,
         strength: float = 0.75, # for img2img
         negative_prompt: str = '',
+        seed: int = -1,
         timeout: float = bittensor.__blocktime__,
         return_call: bool = True,
     ) -> Union[ str, TextToImageForwardCall ]:
@@ -134,6 +140,7 @@ class TextToImageDendrite( bittensor.Dendrite ):
             guidance_scale=guidance_scale,
             strength=strength,
             negative_prompt=negative_prompt,
+            seed=seed,
         )
         forward_call = await self.apply( dendrite_call = forward_call )
         if return_call: return forward_call

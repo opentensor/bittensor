@@ -19,7 +19,8 @@ message ForwardTextToImageRequest {
 	float guidance_scale = 9;
 	float strength = 10;
 	string negative_prompt = 11; //TODO: investigate if this is the right type see: https://github.com/huggingface/diffusers/blob/82e6fa56f0bfc219c26168a27a8ddb3a5488535e/src/diffusers/pipelines/stable_diffusion/pipeline_stable_diffusion.py#LL546C9-L546C46
-	float timeout = 12;
+	int32 seed = 12;
+	float timeout = 13;
 }
 
 message ForwardTextToImageResponse {

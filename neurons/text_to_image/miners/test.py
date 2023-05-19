@@ -6,13 +6,16 @@ from io import BytesIO
 import numpy as np
 import requests
 import base64
+import torch
 
 hotkey = 'asdasd'
 
-text = "mdjrny-v4 style Pepe the frog enormous, surrounded by colorful sea creatures and plants, - surreal, Dreamlike, ethereal lighting, Highly detailed, Intricate, Digital painting, Artstation, Concept art, Smooth, Sharp focus, Fantasy, trending on art websites, art by magali villeneuve and jock and ashley wood and rachel lee and loish"
-
+text = "(beautiful) (best quality) mdjrny-v4 style Pepe the frog enormous, surrounded by colorful sea creatures and plants, - surreal, Dreamlike, ethereal lighting, Highly detailed, Intricate, Digital painting, Artstation, Concept art, Smooth, Sharp focus, Fantasy, trending on art websites, art by magali villeneuve and jock and ashley wood and rachel lee and loish"
+negative_prompt = "(worst quality) (poorly drawn)"
 
 buffered = BytesIO()
+
+
 data = { 
   "text": text,
   "height": 768, # anything less than 512x512 causes image degradation
@@ -22,7 +25,8 @@ data = {
   "num_inference_steps": 30,
   "guidance_scale": 7.5,
   "strength": 0.75,
-  "negative_prompt": ""
+  "negative_prompt": negative_prompt,
+  "seed": 0
 }
 
 # from bytes to PIL image
@@ -39,6 +43,9 @@ pil = Image.open(BytesIO(img_bytes))
 pil.save('test.png')
 print('saved image to test.png')
 
+seed = torch.randint(1000000000, (1,)).item()
+print("seed: ", seed)
+
 # high strength (less like input image)
 data_img_2_img = {
   "text": text,
@@ -47,7 +54,8 @@ data_img_2_img = {
   "num_inference_steps": 30,
   "guidance_scale": 7.5,
   "strength": 0.9,
-  "negative_prompt": ""
+  "negative_prompt": negative_prompt,
+  "seed": seed
 }
 
 req = requests.post('http://127.0.0.1:8092/TextToImage/Forward/?hotkey={}'.format(hotkey), json=data_img_2_img)
@@ -72,7 +80,8 @@ data_img_2_img = {
   "num_inference_steps": 30,
   "guidance_scale": 7.5,
   "strength": 0.5,
-  "negative_prompt": ""
+  "negative_prompt": negative_prompt,
+  "seed": seed
 }
 
 req = requests.post('http://127.0.0.1:8092/TextToImage/Forward/?hotkey={}'.format(hotkey), json=data_img_2_img)
