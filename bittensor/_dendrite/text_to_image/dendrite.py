@@ -34,6 +34,7 @@ class TextToImageForwardCall( bittensor.DendriteCall ):
         num_images_per_prompt: int = 1,
         num_inference_steps: int = 30,
         guidance_scale: float = 7.5,
+        strength: float = 0.75, # for img2img
         negative_prompt: str = '',
         timeout: float = bittensor.__blocktime__,
     ):
@@ -45,6 +46,7 @@ class TextToImageForwardCall( bittensor.DendriteCall ):
         self.num_images_per_prompt = num_images_per_prompt
         self.num_inference_steps = num_inference_steps
         self.guidance_scale = guidance_scale
+        self.strength = strength
         self.negative_prompt = negative_prompt
 
         
@@ -60,7 +62,8 @@ class TextToImageForwardCall( bittensor.DendriteCall ):
             num_images_per_prompt = self.num_images_per_prompt,
             num_inference_steps = self.num_inference_steps,
             guidance_scale = self.guidance_scale,
-            negative_prompt = self.negative_prompt
+            negative_prompt = self.negative_prompt,
+            strength = self.strength,
         )
     
     def apply_response_proto( self, response_proto: bittensor.proto.ForwardTextToImageResponse ):
@@ -83,6 +86,7 @@ class TextToImageDendrite( bittensor.Dendrite ):
             num_images_per_prompt: int = 1,
             num_inference_steps: int = 30,
             guidance_scale: float = 7.5,
+            strength: float = 0.75, # for img2img
             negative_prompt: str = '',
             timeout: float = bittensor.__blocktime__,
             return_call:bool = True,
@@ -97,6 +101,7 @@ class TextToImageDendrite( bittensor.Dendrite ):
             num_images_per_prompt=num_images_per_prompt,
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
+            strength=strength,
             negative_prompt=negative_prompt,
         )
         response_call = self.loop.run_until_complete( self.apply( dendrite_call = forward_call ) )
@@ -112,6 +117,7 @@ class TextToImageDendrite( bittensor.Dendrite ):
         num_images_per_prompt: int = 1,
         num_inference_steps: int = 30,
         guidance_scale: float = 7.5,
+        strength: float = 0.75, # for img2img
         negative_prompt: str = '',
         timeout: float = bittensor.__blocktime__,
         return_call: bool = True,
@@ -126,6 +132,7 @@ class TextToImageDendrite( bittensor.Dendrite ):
             num_images_per_prompt=num_images_per_prompt,
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
+            strength=strength,
             negative_prompt=negative_prompt,
         )
         forward_call = await self.apply( dendrite_call = forward_call )
