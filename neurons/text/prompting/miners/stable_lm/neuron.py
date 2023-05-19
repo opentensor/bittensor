@@ -49,7 +49,7 @@ class StablelmMiner( bittensor.BasePromptingMiner ):
         
         bittensor.logging.info( 'Loading ' + str(self.config.stable_lm.model_name))
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.stable_lm.model_name )
-        self.model = AutoModelForCausalLM.from_pretrained( self.config.stable_lm.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True ).half().to(self.config.pythia.device)
+        self.model = AutoModelForCausalLM.from_pretrained( self.config.stable_lm.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True ).half().to(self.config.stable_lm.device)
         bittensor.logging.info( 'Model loaded!' )
 
     def _process_history(self, history: List[str]) -> str:
@@ -65,6 +65,7 @@ class StablelmMiner( bittensor.BasePromptingMiner ):
         return processed_history
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
+        print("forward")
         history = self._process_history(messages)
         prompt = history + "<|ASSISTANT|>"
         input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.config.pythia.device)
@@ -79,6 +80,8 @@ class StablelmMiner( bittensor.BasePromptingMiner ):
         generated_text = self.tokenizer.decode(output[0], skip_special_tokens=True)
         generation = generated_text.split("<|USER|>")[0].strip()
         
+        print(("Message: " + str(messages).replace("<","-").replace(">","-")))
+        print("Generation: " + str(generation).replace("<","-").replace(">","-"))
         # Logging input and generation if debugging is active
         bittensor.logging.debug("Message: " + str(messages).replace("<","-").replace(">","-"))
         bittensor.logging.debug("Generation: " + str(generation).replace("<","-").replace(">","-"))
