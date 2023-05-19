@@ -32,8 +32,9 @@ from types import SimpleNamespace
 from typing import List, Optional, Tuple, Dict
 from reward import RewardModel
 from gating import GatingModel
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from datasets import load_dataset
+from datetime import datetime
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific. Do not include the answer in the question.
@@ -178,6 +179,13 @@ class neuron:
         self.load()
         self.check_weights()
 
+        # set up filter model
+        filter_model_path = 'valurank/finetuned-distilbert-adult-content-detection'
+        self.filter_model = AutoModelForSequenceClassification.from_pretrained(filter_model_path).to(self.device)
+        self.filter_tokenizer = AutoTokenizer.from_pretrained(filter_model_path)
+        self.filter_tokenizer.pad_token = self.filter_tokenizer.eos_token
+        self.filter_message_count = 0
+
         # Axon set and served for inference requests, unless --neuron.axon_off flag is set.
         if not self.config.neuron.axon_off:
             # Build synapse entrypoint.
@@ -226,6 +234,38 @@ class neuron:
             self.synapse = Synapse( axon = self.axon )
             self.axon.start()
             self.subtensor.serve_axon( self.config.netuid, self.axon )
+
+    def filter_message(
+            self,
+            message 
+    ) -> bool:
+        """ Check if the message is related to any sexual content. 
+
+        Args: 
+            message (str):
+                The message that we check if we should filter out.
+        Returns: 
+            result (bool):
+                True indicates we should filter out the result, false indicates the result is safe.
+        """
+        now = datetime.now()
+        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        
+        tokenized = self.filter_tokenizer(message)
+        output = self.filter_model(torch.tensor([tokenized['input_ids']]).to(self.device))
+        filter_out = output.logits.argmax().bool()
+
+        if filter_out:
+            bittensor.logging.debug( 'filtered message', message )
+            with open('~/filtered_text_history.txt', 'a') as file:
+                file.write(f"{self.filter_message_count}| {dt_string} | {message}" + '\n') 
+        else:
+            bittensor.logging.debug( 'safe message', message )
+            with open('~/safe_text_history.txt', 'a') as file:
+                file.write(f"{self.filter_message_count}| {dt_string} | {message}" + '\n') 
+
+        self.filter_message_count += 1
+        return filter_out
 
     def forward(
             self, 
@@ -398,6 +438,12 @@ class neuron:
             if message_dict['role'] == 'user': unravelled_message += 'user: ' + message_dict['content'] + '\n'
         bittensor.logging.info( 'inference message', str(unravelled_message) )
         
+        if self.filter_message(unravelled_message):
+            if return_all:
+                return ['Received possibly explicite content.']
+            else:
+                return 'Received possibly explicite content.'
+
         # Get scores for query.
         scores = self.gating_model( unravelled_message ).to( self.device )
         bittensor.logging.info( 'inference scores', str(scores) )
@@ -426,18 +472,20 @@ class neuron:
             if return_all:
                 completions = []
                 for call in forward_calls:
-                    if len( call.completion ) > 0:
+                    if len( call.completion ) > 0 and not self.filter_messaage(call.completion):
                         completions.append(call.completion)
                 if len(completions) > 0:
                     return completions
+            
             else:
                 for call in forward_calls:
-                    if len( call.completion ) > 0:
+                    if len( call.completion ) > 0 and not self.filter_messaage(call.completion):
                         bittensor.logging.info( 'best completion', call.completion )
                         return call.completion
 
             if return_all:
                 return ['no valid completions']
+            
             else:
                 return 'no valid completions'
             
@@ -447,7 +495,7 @@ class neuron:
             flattened_message_for_reward = ''
             for role_i, message_i in list(zip(roles, messages)):
                 if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n\n'
-            completions = [ call.completion for call in forward_calls if len(call.completion) > 0 ] 
+            completions = [ call.completion for call in forward_calls if len(call.completion) > 0 and not self.filter_messaage(call.completion) ] 
             flattened_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in completions ] 
 
             # Return best via reward model.
