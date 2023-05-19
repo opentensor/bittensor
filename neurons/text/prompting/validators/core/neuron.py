@@ -440,9 +440,9 @@ class neuron:
         
         if self.filter_message(unravelled_message):
             if return_all:
-                return ['Received possibly explicite content.']
+                return ['Received possible explicit content.']
             else:
-                return 'Received possibly explicite content.'
+                return 'Received possible explicit content.'
 
         # Get scores for query.
         scores = self.gating_model( unravelled_message ).to( self.device )
