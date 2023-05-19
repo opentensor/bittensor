@@ -1,11 +1,11 @@
 
 ## RoberMyers Miner
-MosaicAI's MPT-7B Chat completion miner for bittensor's prompting network. 
+MosaicAI's MPT-7B Instruct completion miner for bittensor's prompting network. 
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/mosaic_chat/requirements.txt
-python3 neurons/text/prompting/miners/mosaic_chat/neuron.py
+python3 -m pip install -r neurons/text/prompting/miners/mosaic/insntruct/requirements.txt
+python3 neurons/text/prompting/miners/mosaic/instruct/neuron.py
 ```
 
 # Full Usage

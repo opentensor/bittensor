@@ -1,5 +1,19 @@
-# https://huggingface.co/mosaicml/mpt-7b-instruct
+# The MIT License (MIT)
+# Copyright © 2023 Opentensor Foundation
 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
 import torch
 import argparse
 import bittensor
@@ -8,10 +22,7 @@ from transformers import AutoTokenizer, pipeline
 from transformers import StoppingCriteria, StoppingCriteriaList
 
 
-# TODO: Add Flast Attention dependencies and options
-# TODO: Add Triton Attention dependencies and options
 
-# Define a custom stopping criteria
 class StopOnTokens(StoppingCriteria):
     def __init__(self, stop_token_ids: List[int] = None):
         self.stop_token_ids = stop_token_ids
@@ -38,7 +49,7 @@ class Mpt7BMiner( bittensor.BasePromptingMiner ):
         parser.add_argument( '--mpt7B.greedy_sampling', action='store_true', default=False, help='Whether to use greedy sampling or not (if not, uses multinomial sampling).')
         parser.add_argument( '--mpt7B.do_prompt_injection', action='store_true', default=False, help='Whether to use a custom "system" prompt instead of the one sent by bittensor.' )
         parser.add_argument( '--mpt7B.system_prompt', type=str, help='What prompt to replace the system prompt with', default= "This is the most correct and relevant answer to the question, with a rating of 10." )
-        parser.add_argument( '--mpt7B.repetition-penalty', type=float, default=1.1, help='Repetition penalty for greedy decoding. Between 1.0 and infinity. 1.0 means no penalty. Default: 1.0' )
+        parser.add_argument( '--mpt7B.no_repeat_ngram_size', type=int, default=3, help='If set to int > 0, all ngrams of size no_repeat_ngram_size can only occur once.' )
         parser.add_argument( '--mpt7B.top_p', type=float, default=0.9, help='Top-p (nucleus) sampling. Defaults to 1.0 (top-k sampling). Must be between 0.0 and 1.0.' )
         parser.add_argument( '--mpt7B.top_k', type=int, default=0, help='Top-k sampling. Defaults to 0 (no top-k sampling). Must be between 0 and 1000.' )
 
@@ -54,7 +65,7 @@ class Mpt7BMiner( bittensor.BasePromptingMiner ):
         bittensor.logging.info( 'Loading ' + str( self.config.mpt7B.model_name ) )
         self.pipe = pipeline(
             "text-generation",
-            model="mosaicml/mpt-7b-instruct",
+            model="mosaicml/mpt-7b-storywriter",
             torch_dtype=torch.bfloat16,
             trust_remote_code=True,
             device=self.config.mpt7B.device,
@@ -92,10 +103,10 @@ class Mpt7BMiner( bittensor.BasePromptingMiner ):
                 "input_ids": input_ids,
                 "max_new_tokens": self.config.mpt7B.max_new_tokens,
                 "temperature": self.config.mpt7B.temperature,
-                "do_sample": not self.config.mpt7B.greedy_sampling,
+                "do_sample": not self.config.mpt7B.greedy_sampling,            
+                "no_repeat_ngram_size": self.no_repeat_ngram_size,
                 "top_p": self.config.mpt7B.top_p,
                 "top_k": self.config.mpt7B.top_k,
-                "repetition_penalty": self.config.mpt7B.repetition_penalty,
                 "stopping_criteria": StoppingCriteriaList( [ self.stop ] ),
             },
         }
