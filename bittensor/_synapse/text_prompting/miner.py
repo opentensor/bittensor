@@ -94,8 +94,8 @@ class BasePromptingMiner( ABC ):
 
             return False, 'passed blacklist'
         except Exception as e:
-            bittensor.logging.warning( "Blacklisted. Error in `registration_check` or `stake_check()" )
-            return True, 'Error in `registration_check` or `stake_check()'
+            bittensor.logging.warning( "Blacklisted. Error in `is_registered()` or `enough_stake()` or `has_vpermit()`" )
+            return True, 'Error in `is_registered()` or `enough_stake()` or `has_vpermit()`'
 
     @abstractmethod
     def forward( self, messages: List[Dict[str, str]] ) -> str:
