@@ -30,7 +30,7 @@ class DromedaryMiner( bittensor.BasePromptingMiner ):
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
         parser.add_argument( '--dromedary.model_name', type=str, default="TheBloke/dromedary-65b-lora-HF", help='Name/path of model to load' )
-        parser.add_argument( '--dromedary.device', type=str, help='Device to load model', default="cuda" )
+        parser.add_argument( '--dromedary.device_map', type=str, help='Device to load model: Default "auto" for multi-GPU', default="auto" )
         parser.add_argument( '--dromedary.max_new_tokens', type=int, help='Max tokens for model output.', default=256 )
         parser.add_argument( '--dromedary.temperature', type=float, help='Sampling temperature of model', default=0.5 )
         parser.add_argument( '--dromedary.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
@@ -43,11 +43,13 @@ class DromedaryMiner( bittensor.BasePromptingMiner ):
 
         bittensor.logging.info( 'Loading ' + str(self.config.dromedary.model_name))
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.dromedary.model_name, use_fast=False )
-        self.model = AutoModelForCausalLM.from_pretrained( self.config.dromedary.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
+        self.model = AutoModelForCausalLM.from_pretrained( 
+            self.config.dromedary.model_name,  
+            device_map=self.config.dromedary.device_map, 
+            torch_dtype = torch.float16, 
+            low_cpu_mem_usage=True 
+        )
         bittensor.logging.info( 'Model loaded!' )
-
-        if self.config.dromedary.device != "cpu":
-            self.model = self.model.to( self.config.dromedary.device )
 
     def _process_history(self, history: List[str]) -> str:
         processed_history = ''
@@ -68,7 +70,7 @@ class DromedaryMiner( bittensor.BasePromptingMiner ):
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
 
-        history = self._process_history(messages)
+        history = self._process_history(self, messages)
         prompt = history + "ASSISTANT:"
 
         input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.config.dromedary.device)
@@ -88,29 +90,7 @@ class DromedaryMiner( bittensor.BasePromptingMiner ):
         bittensor.logging.debug("Generation: " + str(generation))
         return generation
 
-def test(model):
-    prompt = """
-    You are George Carlin.
-    George Carlin is a comedian known for his witty, cutting, poignant observational comedy.
-    George is able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a real human, George Carlin is able to generate amazing humor and jokes based on the input he receives, allowing him to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
-    """
-
-    message = "who are you?"
-
-    if prompt is not None: 
-        roles = ['system', 'user']
-        messages = [ prompt, message ]
-    else:
-        roles = ['user']
-        messages = [ message ]
-
-    messages = [{'role': role, 'content': message} for role, message in zip(roles, messages)]
-
-    resp = model.forward( messages )
-    print( resp )
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
-
-    model = DromedaryMiner()
-    test(model)
+    DromedaryMiner().run()
