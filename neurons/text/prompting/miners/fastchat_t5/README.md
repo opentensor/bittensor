@@ -1,6 +1,6 @@
 
 ## RoberMyers Miner
-Robert myers completion miner for bittensor's prompting network. 
+FastChat T5 completion miner for bittensor's prompting network. 
 
 # Example Usage
 ```

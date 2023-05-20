@@ -1,10 +1,10 @@
 
 ## RoberMyers Miner
-Robert myers completion miner for bittensor's prompting network. 
+WizardLM Vicuna completion miner for bittensor's prompting network. 
 
 # Example Usage
 ```
-python3 neurons/text/prompting/miners/WizardLMUncensored/neuron.py
+python3 neurons/text/prompting/miners/WizardLMVicunaUncensored/neuron.py
 ```
 
 # Full Usage
