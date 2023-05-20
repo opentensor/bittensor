@@ -109,7 +109,7 @@ $ tree ~/.bittensor/
                 hotkeys/        # The folder containing all of your hotkeys.
                     default     # You unencrypeted hotkey information.
 ```
-Your default wallet ```Wallet (default, default, ~/.bittensor/wallets/)``` is always used unless you specify otherwise. Be sure to store your mnemonics safely. If you lose your password to your wallet, or the access to the machine where the wallet is stored, you can always regenerate the coldkey using the mnemonic you saved in above. 
+Your default wallet ```Wallet (default, default, ~/.bittensor/wallets/)``` is always used unless you specify otherwise. Be sure to store your mnemonics safely. If you lose your password to your wallet, or the access to the machine where the wallet is stored, you can always regenerate the coldkey using the mnemonic you saved from above. 
 ```bash
 $ btcli regen_coldkey --mnemonic **** *** **** **** ***** **** *** **** **** **** ***** *****
 ```
@@ -155,15 +155,25 @@ $ btcli list_subnets
     1       691    1.02 K   198.08 T    99     None     28.44%   τ4.75710
     3      4096    4.10 K   320.81 T    99     None     71.56%   τ1.00000
     2      5120
+    
+    Description:
+    	# NETUID: A unique network index on Bittensor
+    	# NEURONS: The number of uid slots taken by miners
+    	# MAX_N: The total allowed slots on a subnetwork
+	# DIFFICULTY: The difficulty of the POW registration challenge required to win a slot.
+	# TEMPO: The number of blocks before new tokens are distributed.
+	# CON_REQ: The list of subnetworks that a miner must enter before entering this network.
+	# EMISSION: The proportion of the total token emission which flows through this network.
+	# BURN: The recycle burn cost to enter this network.
 ```
 
-Each subnetwork contains a set of UIDs, or slots, into which miners must ***register*** into before they are considered for evaluation by validators in the system and thus mine TAO. These slots fill up through continuous registrations and miners are dropped from the network based on performance. Each time a new hotkey is registered to the network, the lowest ranked miner is removed from the network. The process of registering aminer is competitive, and uses two mutually adaptive method to determine the price to entry, those are:
+Each subnetwork contains a set of UIDs, or slots, into which miners must ***register*** into before they are considered for evaluation by validators in the network and thus mine TAO. These slots fill up through continuous registrations and miners are dropped from the network based on performance. Each time a new hotkey is registered to the subnet, the lowest ranked miner is removed from the subnet. The process of registering a miner is competitive, and uses two mutually adaptive method to determine the price to entry, those are:
 
 1. Proof of work based registration. 
 ```bash
 $ btcli register --netuid <subnetwork uid>
 ```
-NOTE: If you are using a Nvidia GPU to register, you must also install Cubit to enable registration to use your GPU for a faster hash rate.
+NOTE: It is suggested that you use a Nvidia GPU to register. To do this, you can install Cubit to enable registrations via your GPU for a faster hash rate.
 ```bash
 (optional): pip install git+https://github.com/opentensor/cubit.git@v1.1.2
 ```
@@ -191,10 +201,10 @@ $ git clone https://github.com/opentensor/bittensor.git
                         README.md           # GPT4ALL instructions.
                     ...
 ```
-For instance you can run the GPT4ALL miner on subnetwork 1 as follows. Note it is recommended to run most miners on machines with a GPU. In the future bittensor/neurons is likely to expand into its own repository. 
+For instance, you can run the GPT4ALL miner on subnetwork 1 as follows. Note: it is recommended to run most miners on machines with a GPU. In the future bittensor/neurons is likely to expand into its own repository. 
 ```bash
 $ python3 -m pip install -r bittensor/neurons/text_prompting/miners/GPT4ALL/requirements.txt
-$ python3 bittensor/neurons/text_prompting/miners/GPT4ALL/neuron.py --help
+$ python3 bittensor/neurons/text_prompting/miners/GPT4ALL/neuron.py --netuid 1
 ```
 
 # Validators
@@ -225,13 +235,9 @@ $ tree bittensor/neurons
 ```
 For instance you can run the core text prompting validator on subnetwork 1 as follows. Note it is also recommended that you run validators on machines with a GPU. In the future bittensor/neurons/valdidators is likely to expand into its own repository. 
 
-```bash
-$ python3 bittensor/neurons/text_prompting/miners/gooseai/neuron.py --help
-```
-
 # Using the CLI
 
-The Bittensor command line interface (btcli) comes installed with this repository. It is the primary command line tool to deploy, analyze, and interface with the Bittensor network. It can be used to run a model, stake, unstake, nominate, delegate, and more. You can use btcli --help command as follows to see a full list of commands
+The Bittensor command line interface (btcli) comes installed with this repository. It is the primary command line tool to deploy, analyze, and interface with the Bittensor network. It can be used to transfer tao, stake, unstake, nominate, delegate, and more. You can use btcli --help command as follows to see a full list of commands
 ```bash
 $ btcli --help
         help                Displays the help.
@@ -266,41 +272,99 @@ $ btcli --help
 ```
 
 # The Bittensor Package
-The bittensor package contains data structures for interacting with the bittensor ecosystem, writing miners, validators and querying the network. Additionally, it provides many utilities for efficient serialization of Tensors over the wire and doing data analysis of the network, and other useful utilities.
+The bittensor package contains data structures for interacting with the bittensor ecosystem, writing miners, validators and querying the network. Additionally, it provides many utilities for efficient serialization of Tensors over the wire, performing data analysis of the network, and other useful utilities.
 
-Wallet
+Wallet: Interface over locally stored bittensor hot + coldkey styled wallets. 
 ```python
 import bittensor as bt
 # Bittensor's wallet maintenance class.
 wallet = bt.wallet() 
+# Access the hotkey
+wallet.hotkey 
+# Access the coldkey
+wallet.coldkey ( requires decryption )
+# Sign data with the keypair.
+wallet.coldkey.sign( data )
+
 ```
 
-Subtensor
+Subtensor: Interfaces with bittensor's blochain and can perform operations like extracting state information or sending transactions.
 ```python
 import bittensor as bt
 # Bittensor's chain interface.
 subtensor = bt.subtensor() 
+# Get the chain block
+subtensor.get_current_block()
+# Transfer Tao to a destination address.
+subtensor.transfer( wallet = wallet, dest = "xxxxxxx..xxxxx", amount = 10.0)
+# Register a wallet onto a subnetwork
+subtensor.register( wallet = wallet, netuid = 1 )
 ```
 
-Metagraph
+Metagraph: Encapsulates the chain state of a particular subnetwork at a specific block.
 ```python
 import bittensor as bt
 # Bittensor's chain state object.
 metagraph = bt.metagraph( netuid = 1 ) 
+# Resync the graph with the most recent chain state
+metagraph.sync()
+# Get the list of stake values
+print ( metagraph.S )
+# Get endpoint information for the entire subnetwork
+print ( metagraph.axons )
+# Get the hotkey information for the miner in the 10th slot
+print ( metagraph.hotkeys[ 10 ] )
+# Sync the metagraph at another block
+metagraph.sync( block = 100000 )
+# Save the metagraph
+metagraph.save()
+# Load the same
+metagraph.load()
 ```
 
-Axon
+Axon: Maintains a queryable endpoint for accepting messages on the wire.
 ```python
 import bittensor as bt
-# Bittensor's core RPC endpoint.
-axon = bt.axon() 
+# Instantiate a Bittensor endpoint.
+axon = bt.axon( wallet = wallet, metagraph = metagraph ) 
+# Start servicing messages on the wire.
+axon.start()
+# Register this axon on a subnetwork
+subtensor.serve_axon( netuid = 1, axon = axon )
+# Turn off the axon.
+axon.stop()
 ```
 
-Dendrite
+Synapse: Implements the wire protocol required to service requests from validators on a subnetwor
 ```python
 import bittensor as bt
-# Bittensor's core RPC client.
-dendrite = bt.text_prompting() 
+
+# Netuid 1 specification.
+class Synapse( bittensor.TextPromptingSynapse ):
+   	
+	# Return the priority of the request, larger numbers are serviced by the endpoint first.
+    	def priority(self, forward_call: "bittensor.TextPromptingForwardCall") -> float: return 0.0
+	
+	# Return True if the request will not be serviced by this miner endpoint.
+    	def blacklist(self, forward_call: "bittensor.TextPromptingForwardCall") -> Union[ Tuple[bool, str], bool ]: return False
+	
+	# Accept and optionally apply the feedback from a validator on the network.
+    	def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+	
+	# Return an output which will be rewarded highly by validators on this subnetwork.
+    	def forward(self, messages: List[Dict[str, str]]) -> str: return "hello im a chat bot."
+	
+# Attach this synapse to the running axon.
+synapse = Synapse( axon = axon )
+```
+
+Dendrite: Packages and sends messages to synapses over the wire. 
+```python
+import bittensor as bt
+# Connect to the axon running on slot 10, use the wallet to sign messages.
+dendrite = bt.text_prompting( keypair = wallet.hotkey, axon = metagraph.axons[10] ) 
+# Send a prompt to this endpoint
+dendrite.forward( roles = ['user'], messages = ['what are you?'] )
 ```
 
 ## Release
