@@ -116,11 +116,15 @@ $ btcli regen_coldkey --mnemonic **** *** **** **** ***** **** *** **** **** ***
 
 # Developers
 
-Without participating directly in Bittensor’s incentive mechanism, i.e. before holding TAO, becoming a miner, or being a validator, the only way to access Bittensor is by relaying queries through models who have opened exterior access to developers. By default, Bittensor’s api uses the Opentensor Foundation’s endpoint which acts as a bridge onto the network. Note: if you have not already generated default wallets, the above script will generate keys on your local machine automatically. Read wallets, to understand how Bittensor manages and creates keys.
+Without participating directly in Bittensor’s incentive mechanism, i.e. before holding TAO, becoming a miner, or being a validator, the only way to access Bittensor is by relaying queries through models who have opened exterior access to developers. By default, Bittensor’s api uses the Opentensor Foundation’s endpoint which acts as a bridge onto the network. Note: if you have not already generated default wallets, the above script will generate keys on your local machine automatically. Read wallets, to understand how Bittensor manages and creates keys. To access other validators endpoints you can specify their hotkey. A number of other validator endpoints can be found by running ```btcli list_delegates```
 ```python
 import bittensor as bt
+
+# Query through the foundation endpoint.
 print ( bt.prompt( "Heraclitus was a ") )
 'Greek philosopher known for his doctrine of change and the famous quote, "No man ever steps in the same river twice."'
+
+# Return multiple responses for a single prompt.
 bt.prompt( "What should I do today?", return_all = True )
 [
 	'You should buy a boat.',
@@ -129,10 +133,8 @@ bt.prompt( "What should I do today?", return_all = True )
 	'Mine bittensor.'
 	...
 ] 
-```
-To access other validators endpoints you can specify their hotkey. A number of other validator endpoints can be found by running ```btcli list_delegates```
-```python
-import bittensor as bt
+
+# Specify a separate entrypoint based on the delegate key.
 print ( bt.prompt( "Heraclitus was a ", hotkey = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3" ) )
 'Greek philosopher known for his doctrine of change and the famous quote, "No man ever steps in the same river twice."'
 ```
@@ -196,19 +198,19 @@ $ python3 bittensor/neurons/text_prompting/miners/GPT4ALL/neuron.py --help
 ```
 
 # Validators
-Network Validation is open to any participants who hold TAO. The validation mechanims uses dual proof-of-stake, proof-of-work mechanism called Yuma Consensus which you can read about [here](https://drive.google.com/file/d/1VnsobL6lIAAqcA1_Tbm8AYIQscfJV4KU/view). Yuma consensus is designed to reward consensus between validators which are measuring the value produced by miners across each subnetwork. The validation process for each subnetwork is distinct and requires running a separate instance of the each validator for each network.
+Network Validation is open to participants who hold TAO. The validation mechanims uses a dual proof-of-stake, proof-of-work mechanism called Yuma Consensus which you can read about [here](https://drive.google.com/file/d/1VnsobL6lIAAqcA1_Tbm8AYIQscfJV4KU/view). Yuma consensus rewards the agreement between the evaluations of miner-value produced by validators across each subnetwork. Because each subnetwork task is distinct this requires a separate implementation of the each validator for each network. 
 
 Before becoming a validator you will need to register a slot as described above in the mining section. Keys are automatically considered Validators in each subnetwork if the registered hotkey is a member of the top 128 keys ranked by total stake. Stake determines the weight given to the value estimations of your validator in Yuma Consensus. There are exclusively two ways to attain stake on your validator.
 
 1. By staking the funds yourself
 ```bash
-$ btcli stake 
+$ btcli stake --help # To add funds to the staking account associated with your wallet.
 ```
 
 2. Or by attracting delegated stake
 ```bash
-$ btcli nominate # to become a key available for delegated stake
-$ btcli delegate # for others to delegate stake to your wallet.
+$ btcli nominate --help # to become a key available for delegated stake
+$ btcli delegate --help # for others to delegate stake to your wallet.
 ```
 Bittensor's API is designed to allow Validators to write their own validation mechanisms and express their own subjective prefrences about what the network should learn. However, going too far outside consensus reduces the rewards validators attain while performing validation. To ensure your validator remains in alignment with others this repository contains a "core" validator for each subnetwork
 ```bash
