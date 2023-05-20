@@ -185,7 +185,7 @@ class BasePromptingMiner( ABC ):
             '--neuron.blacklist.allow_non_registered',
             action = 'store_true',
             help = 'If True, this miner will allow non-registered hotkeys to query it.',
-            default = True
+            default = False
         )
         parser.add_argument(
             '--neuron.blacklist.default_stake',
