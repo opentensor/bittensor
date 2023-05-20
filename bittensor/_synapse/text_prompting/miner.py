@@ -42,28 +42,56 @@ class BasePromptingMiner( ABC ):
             return self.config.neuron.default_priority
 
     def blacklist( self, forward_call: "bittensor.TextPromptingForwardCall" ) -> Union[ Tuple[bool, str], bool ]:
-        # Check for registration
-        def registration_check():
-            is_registered = forward_call.src_hotkey in self.metagraph.hotkeys
-            if not is_registered:
-                if self.config.neuron.blacklist.allow_non_registered: return False, 'passed blacklist'
-                else: return True, 'pubkey not registered'
+        def is_registered() -> bool:
+            """
+            Return true if the hotkey is registered or if the miner doesn't require it.
+            """
+            if self.config.neuron.blacklist.allow_non_registered:
+                return True
+            
+            hotkey_registered = forward_call.src_hotkey in self.metagraph.hotkeys
+            return hotkey_registered
+
+        def has_vpermit() -> bool:
+            """
+            Return true if the neuron querying this miner has a vpermit or if the miner doesn't require one.
+            """
+            if self.config.neuron.blacklist.vpermit_required:
+                hotkey_registered = forward_call.src_hotkey in self.metagraph.hotkeys
+                if hotkey_registered:
+                    uid = self.metagraph.hotkeys.index(forward_call.src_hotkey)
+                    return self.metagraph.neurons[uid].validator_permit
+                return False
+            return True
+
 
         # Blacklist based on stake.
-        def stake_check() -> bool:
-            default_stake = self.config.neuron.blacklist.default_stake
-            if default_stake <= 0.0:
-                return False, 'passed blacklist'
-            uid = self.metagraph.hotkeys.index(forward_call.src_hotkey)
-            if self.metagraph.S[uid].item() < default_stake:
-                bittensor.logging.debug( "Blacklisted. Stake too low.")
-                return True, 'Stake too low.'
-            else: return False, 'passed blacklist'
+        def enough_stake() -> bool:
+            """
+            Returns true if required stake is <= 0 or <= the neuron's stake, otherwise false.
+            """
+            required_stake = self.config.neuron.blacklist.default_stake
+            if required_stake <= 0.0:
+                return True
+            
+            hotkey_registered = forward_call.src_hotkey in self.metagraph.hotkeys
+            if hotkey_registered:
+                uid = self.metagraph.hotkeys.index(forward_call.src_hotkey)
+                if required_stake <= self.metagraph.S[uid].item():
+                    return True
+            return False
 
         # Optionally blacklist based on checks.
         try:
-            registration_check()
-            stake_check()
+            checks = [
+                (is_registered(), "Key is not registered"),
+                (enough_stake(), "Key doesn't have enough stake"),
+                (has_vpermit(), "Key doesn't have a vpermit"),
+            ]
+            for passed, error_message in checks:
+                if not passed:
+                    return True, error_message
+
             return False, 'passed blacklist'
         except Exception as e:
             bittensor.logging.warning( "Blacklisted. Error in `registration_check` or `stake_check()" )
@@ -156,7 +184,7 @@ class BasePromptingMiner( ABC ):
         parser.add_argument(
             '--neuron.blacklist.allow_non_registered',
             action = 'store_true',
-            help = 'If True, the miner will allow non-registered hotkeys to mine.',
+            help = 'If True, this miner will allow non-registered hotkeys to query it.',
             default = True
         )
         parser.add_argument(
@@ -164,6 +192,12 @@ class BasePromptingMiner( ABC ):
             type = float,
             help = 'Set default stake for miners.',
             default = 0.0
+        )
+        parser.add_argument(
+            '--neuron.blacklist.vpermit_required',
+            action="store_true",
+            help = 'Require vpermit to query this miner.',
+            default = False
         )
         parser.add_argument(
             '--neuron.default_priority',
