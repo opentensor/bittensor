@@ -144,7 +144,7 @@ llm = bt.BittensorLLM()
 llm( 'prompt me' )
 ```
 
-# Mining
+# Miners
 The mining challenge on Bittensor is divided into ***subnetworks*** where miners within each subnet are incentivized to contribute distinct forms of value determined by the verification mechanism that that subnetwork’s Validators are running. You can view a list of these subnetworks with ```btcli list_subnets```
 
 ```bash
@@ -195,7 +195,7 @@ $ python3 -m pip install -r bittensor/neurons/text_prompting/miners/GPT4ALL/requ
 $ python3 bittensor/neurons/text_prompting/miners/GPT4ALL/neuron.py --help
 ```
 
-# Validating
+# Validators
 Network Validation is open to any participants who hold TAO. The validation mechanims uses dual proof-of-stake, proof-of-work mechanism called Yuma Consensus which you can read about [here](https://drive.google.com/file/d/1VnsobL6lIAAqcA1_Tbm8AYIQscfJV4KU/view). Yuma consensus is designed to reward consensus between validators which are measuring the value produced by miners across each subnetwork. The validation process for each subnetwork is distinct and requires running a separate instance of the each validator for each network.
 
 Before becoming a validator you will need to register a slot as described above in the mining section. Keys are automatically considered Validators in each subnetwork if the registered hotkey is a member of the top 128 keys ranked by total stake. Stake determines the weight given to the value estimations of your validator in Yuma Consensus. There are exclusively two ways to attain stake on your validator.
