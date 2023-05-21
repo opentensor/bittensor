@@ -170,8 +170,6 @@ class BaseMinerNeuron:
             try:
                 self.metagraph.sync( lite = True )
                 uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
-                if(retries > 0):
-                    retries = 0
             except:
                 # --- If we fail to sync the metagraph, wait and try again.
                 if(retries > 8):
@@ -183,6 +181,9 @@ class BaseMinerNeuron:
                 time.sleep( seconds_to_sleep )
                 retries += 1
                 continue
+
+            if(retries > 0):
+                retries = 0
 
             # --- Log performance.
             print(
