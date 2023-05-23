@@ -116,13 +116,18 @@ $ btcli regen_coldkey --mnemonic **** *** **** **** ***** **** *** **** **** ***
 
 # Developers
 
-Without participating directly in Bittensor’s incentive mechanism, i.e. before holding TAO, becoming a miner, or being a validator, the only way to access Bittensor is by relaying queries through models who have opened exterior access to developers. By default, Bittensor’s api uses the Opentensor Foundation’s endpoint which acts as a bridge onto the network. Note: if you have not already generated default wallets, the above script will generate keys on your local machine automatically. Read wallets, to understand how Bittensor manages and creates keys. To access other validators endpoints you can specify their hotkey. A number of other validator endpoints can be found by running ```btcli list_delegates```
+Without participating directly in Bittensor’s incentive mechanism, i.e. before holding TAO, becoming a miner, or being a validator, the only way to access Bittensor is by relaying queries through models who have opened exterior access to developers. By default, Bittensor’s api uses the Opentensor Foundation’s endpoint which acts as a bridge onto the network. To access other validators endpoints you must specify their hotkey key, found by running ```btcli list_delegates```
 ```python
 import bittensor as bt
 
 # Query through the foundation endpoint.
 print ( bt.prompt( "Heraclitus was a ") )
 'Greek philosopher known for his doctrine of change and the famous quote, "No man ever steps in the same river twice."'
+
+# The API also contains BittensorLLM which can be integrated with langchain.
+import bittensor as bt
+llm = bt.BittensorLLM()
+llm( 'prompt me' )
 
 # Return multiple responses for a single prompt.
 bt.prompt( "What should I do today?", return_all = True )
@@ -139,11 +144,13 @@ print ( bt.prompt( "Heraclitus was a ", hotkey = "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ
 'Greek philosopher known for his doctrine of change and the famous quote, "No man ever steps in the same river twice."'
 ```
 
-The API also contains BittensorLLM which can be integrated with langchain.
+Validators can access Bittensor directly without the need to bridge requests. 
 ```python
 import bittensor as bt
-llm = bt.BittensorLLM()
-llm( 'prompt me' )
+wallet = bt.wallet() # Your validator wallet.
+metagraph = bt.metagraph( netuid = 1 ) # Get state from subnetwork 1.
+dendrite = bt.text_prompting( keypair = wallet.hotkey, axon = metagraph.axons[ 10 ] ) # Connection to uid 10
+dendrite.forward( roles = ['system', 'user'], messages = ['you are my financial advisor', 'should I buy a boat?'] ) 
 ```
 
 # Miners
