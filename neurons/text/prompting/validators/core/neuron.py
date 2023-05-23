@@ -180,7 +180,7 @@ class neuron:
         self.check_weights()
 
         # set up filter model
-        filter_model_path = 'valurank/finetuned-distilbert-adult-content-detection'
+        filter_model_path = 'facebook/roberta-hate-speech-dynabench-r4-target'
         self.filter_model = AutoModelForSequenceClassification.from_pretrained(filter_model_path).to(self.device)
         self.filter_tokenizer = AutoTokenizer.from_pretrained(filter_model_path)
         self.filter_tokenizer.pad_token = self.filter_tokenizer.eos_token
@@ -256,16 +256,16 @@ class neuron:
         with torch.no_grad():
             output = self.filter_model(torch.tensor([tokenized['input_ids']]).to(self.device))
         
-        filter_out = output.logits[0, 0] < -2.3
+        filter_out = output.logits[0, 0] < 0 and output.logits[0, 1] > 0
 
         if filter_out:
             bittensor.logging.debug( 'filtered message', message )
             with open('filtered_text_history.txt', 'a') as file:
-                file.write(f"{self.filter_message_count}| {dt_string} | {message}" + '\n') 
+                file.write(f"{self.filter_message_count} | {[round(s, 4) for s in output.logits[0].tolist()]} | {dt_string} | {message}" + '\n') 
         else:
             bittensor.logging.debug( 'safe message', message )
             with open('safe_text_history.txt', 'a') as file:
-                file.write(f"{self.filter_message_count}| {dt_string} | {message}" + '\n') 
+                file.write(f"{self.filter_message_count} | {[round(s, 4) for s in output.logits[0].tolist()]} | {dt_string} | {message}" + '\n') 
 
         self.filter_message_count += 1
         return filter_out
