@@ -109,14 +109,14 @@ def main():
     uid = metagraph.hotkeys.index(wallet.hotkey.ss58_address)
 
     # --- Build /Load our model and set the device.
-    with bittensor.__console__.status("Loading huggingface model robertmyers/bpt-sft ..."):
-        bittensor.logging.info('Loading', "robertmyers/bpt-sft" )
-        tokenizer = AutoTokenizer.from_pretrained( "robertmyers/bpt-sft" )
-        actor = Actor( pretrained="robertmyers/bpt-sft", lora_rank=config.neuron.lora_rank )
-        critic = Critic( pretrained="robertmyers/bpt-sft", lora_rank=config.neuron.lora_rank, use_action_mask=True )
+    with bittensor.__console__.status("Loading huggingface model foundry/9013_pygmalion6b_allenaisoda ..."):
+        bittensor.logging.info('Loading', "foundry/9013_pygmalion6b_allenaisoda" )
+        tokenizer = AutoTokenizer.from_pretrained( "foundry/9013_pygmalion6b_allenaisoda" )
+        actor = Actor( pretrained="foundry/9013_pygmalion6b_allenaisoda", lora_rank=config.neuron.lora_rank )
+        critic = Critic( pretrained="foundry/9013_pygmalion6b_allenaisoda", lora_rank=config.neuron.lora_rank, use_action_mask=True )
         actor_optim = Adam(actor.parameters(), lr=1e-7)
         critic_optim = Adam(critic.parameters(), lr=1e-7)
-        # model = AutoModelForCausalLM.from_pretrained(  "robertmyers/bpt-sft", torch_dtype=torch.float16 )
+        # model = AutoModelForCausalLM.from_pretrained(  "foundry/9013_pygmalion6b_allenaisoda", torch_dtype=torch.float16 )
 
         actor.to( "cuda" )
         pipe = pipeline("text-generation", actor, tokenizer=tokenizer, device=0, max_new_tokens = 256 )
