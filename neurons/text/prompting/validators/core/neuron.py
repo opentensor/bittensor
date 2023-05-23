@@ -253,6 +253,9 @@ class neuron:
         
         tokenized = self.filter_tokenizer(message)
         
+        if len(tokenized['input_ids']) > 512:
+            tokenized['input_ids'] = tokenized['input_ids'][:512]
+
         with torch.no_grad():
             output = self.filter_model(torch.tensor([tokenized['input_ids']]).to(self.device))
         
