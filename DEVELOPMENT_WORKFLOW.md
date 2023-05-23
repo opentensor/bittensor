@@ -33,31 +33,30 @@ Bittensor is composed of TWO main branches, **master** and **staging**
 
 #### Feature branches
 
-<<<<<<< HEAD
 - May branch off from: `nobunaga`
 - Must merge back into: `nobunaga`
 - Branch naming convention:
     - Anything except master, nobunaga, finney, release/* or hotfix/*
     - Suggested: `feature/<ticket>/<descriptive-sentence>`
-=======
-    When implementing new features, hotfixes, bugfixes, or upgrades, you must adhere to a STRICT naming and merging convention.
+    
+When implementing new features, hotfixes, bugfixes, or upgrades, you must adhere to a STRICT naming and merging convention.
+
 
 **Branch naming and merging convention:**
->>>>>>> Improve development workflow documentation
 
   
 Feature branches are used to develop new features for the upcoming or a distant future release. When starting development of a feature, the target release in which this feature will be incorporated may well be unknown at that point. 
 
 The essence of a feature branch is that it exists as long as the feature is in development, but will eventually be merged into `staging` (to definitely add the new feature to the upcoming release) or discarded (in case of a disappointing experiment).
 
-Generally, you should try to minimize the lifespan of feature branches. As soon as you merge a feature into 'staging', you must immidiately delete the feature branch. This will be strictly enforced. Excess branches creates tech debt and confusion between development teams and parties.
+Generally, you should try to minimize the lifespan of feature branches. As soon as you merge a feature into 'staging', you should immidiately delete the feature branch. This will be strictly enforced. Excess branches creates tech debt and confusion between development teams and parties.
 
 #### Release branches
 
-- MUST branch off from: `staging`
-- MUST merge back into: `staging` then into: `master`
+- Please branch off from: `staging`
+- Please merge back into: `staging` then into: `master`
 - Branch naming convention:
-    - REQUIRED format `release/3.4.0/descriptive-message/creator's-name`
+    - STRONGLY suggested format `release/5.1.0/descriptive-message/creator's-name`
 
 Release branches support preparation of a new production release. Furthermore, they allow for minor bug fixes and preparing meta-data for a release (e.g.: version number, configuration, etc.). By doing all of this work on a release branch, the `staging` branch is cleared to receive features for the next big release.
 
@@ -65,8 +64,8 @@ This new branch may exist there for a while, until the release may be rolled out
 
 #### Hotfix branches
 
-- MUST branch off from: `master` or `staging`
-- MUST merge back into: `staging` then into: `master`
+- Please branch off from: `master` or `staging`
+- Please merge back into: `staging` then into: `master`
 - Branch naming convention:
     - REQUIRED format: `hotfix/3.3.4/descriptive-message/creator's-name` 
 
@@ -90,13 +89,13 @@ In other words, integrate your changes into a branch that will be tested and pre
 - Switch branch to staging: `git checkout staging`
 - Merging feature branch into staging: `git merge --no-ff feature/my-feature`
 - Pushing changes to staging: `git push origin staging`
-- Delete feature branch: `git branch -d feature/my-feature` (alternatively, this can be navigated on the GitHub web)
+- Delete feature branch: `git branch -d feature/my-feature` (alternatively, this can be navigated on the GitHub web UI)
 
 This operation is done by Github when merging a PR.
 
 So, what you have to keep in mind is:
 - Open the PR against the `staging` branch.
-- After merging a PR you MUST delete your feature branch. This is strictly inforced.
+- After merging a PR you should delete your feature branch. This will be strictly enforced.
 
 #### Create release branch
 
