@@ -250,25 +250,30 @@ class neuron:
         """
         now = datetime.now()
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-        
         tokenized = self.filter_tokenizer(message)
+        input_ids = tokenized['input_ids']
+        bound_score1 = 0.5
+        bound_score2 = 0.5
         
-        if len(tokenized['input_ids']) > 512:
-            tokenized['input_ids'] = tokenized['input_ids'][:512]
+        while len(input_ids) > 0:
+            _input_ids = input_ids[:512]
 
-        with torch.no_grad():
-            output = self.filter_model(torch.tensor([tokenized['input_ids']]).to(self.device))
-        
-        filter_out = output.logits[0, 0] < 0 and output.logits[0, 1] > 0
+            with torch.no_grad():
+                output = self.filter_model(torch.tensor([_input_ids]).to(self.device))
+            
+            filter_out = output.logits[0, 0] < bound_score1 or output.logits[0, 1] > bound_score2
 
-        if filter_out:
-            bittensor.logging.debug( 'filtered message', message )
-            with open('filtered_text_history.txt', 'a') as file:
-                file.write(f"{self.filter_message_count} | {[round(s, 4) for s in output.logits[0].tolist()]} | {dt_string} | {message}" + '\n') 
-        else:
-            bittensor.logging.debug( 'safe message', message )
-            with open('safe_text_history.txt', 'a') as file:
-                file.write(f"{self.filter_message_count} | {[round(s, 4) for s in output.logits[0].tolist()]} | {dt_string} | {message}" + '\n') 
+            if filter_out:
+                bittensor.logging.debug( 'filtered message', message )
+                with open('filtered_text_history.txt', 'a') as file:
+                    file.write(f"{self.filter_message_count} | {[round(s, 4) for s in output.logits[0].tolist()]} | {dt_string} | {message}" + '\n') 
+                break
+            else:
+                bittensor.logging.debug( 'safe message', message )
+                with open('safe_text_history.txt', 'a') as file:
+                    file.write(f"{self.filter_message_count} | {[round(s, 4) for s in output.logits[0].tolist()]} | {dt_string} | {message}" + '\n') 
+            
+            input_ids = input_ids[512:]
 
         self.filter_message_count += 1
         return filter_out
