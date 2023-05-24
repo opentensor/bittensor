@@ -22,7 +22,7 @@ import bittensor
 import scalecodec
 from retry import retry
 from typing import List, Dict, Union, Optional, Tuple
-from substrateinterface import SubstrateInterface
+from substrateinterface import SubstrateInterface, QueryMapResult
 from bittensor.utils.balance import Balance
 from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
 
@@ -379,7 +379,7 @@ class Subtensor:
         return make_substrate_call_with_retry()
 
     """ Queries subtensor map storage with params and block. """
-    def query_map_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
+    def query_map_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> QueryMapResult:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:

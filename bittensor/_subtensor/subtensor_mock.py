@@ -20,11 +20,37 @@ from random import randint
 
 from substrateinterface import SubstrateInterface
 from bittensor import Balance, NeuronInfo, NeuronInfoLite, SubnetInfo, PrometheusInfo, __version_as_int__, axon_info
-from bittensor.utils import U16_NORMALIZED_FLOAT
+from bittensor.utils import U16_NORMALIZED_FLOAT, RAOPERTAO
 
 from subtensor_impl import Subtensor
 
 BlockNumber = str # str(int)
+
+class AxonInfoDict(TypedDict):
+    block: int
+    version: int
+    ip: int # integer representation of ip address
+    port: int
+    ip_type: int
+    protocol: int
+    placeholder1: int # placeholder for future use
+    placeholder2: int
+
+class PrometheusInfoDict(TypedDict):
+    block: int
+    version: int
+    ip: int # integer representation of ip address
+    port: int
+    ip_type: int
+
+class MockMapResult:
+    records: Optional[List[Any]]
+
+    def __init__(self, records: Optional[List[Any]] = None):
+        self.records = records
+
+    def __iter__(self):
+        return iter(self.records)
 
 class MockSystemState(TypedDict):
     Account: Dict[str, Dict[str, Balance]] # address -> block -> balance
@@ -239,7 +265,7 @@ class MockSubtensor(Subtensor):
         else:
             return None
             
-    def query_map_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
+    def query_map_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[MockMapResult]:
         if block:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
@@ -261,8 +287,12 @@ class MockSubtensor(Subtensor):
             while state_at_block is None and block > 0:
                 block -= 1
                 state_at_block = self.state.get(str(block), None)
+                if state_at_block is not None:
+                    break
+            else:
+                return None
 
-            return state_at_block # Can be None
+            return MockMapResult(state_at_block)
         else:
             return None
 
@@ -371,6 +401,21 @@ class MockSubtensor(Subtensor):
                 block_number -= 1
             
             return None
+        
+    def _get_axon_info( self, netuid: int, hotkey: str, block: Optional[int] = None ) -> Optional[AxonInfoDict]:
+        # Axons [netuid][hotkey][block_number]
+        subtensor_state = self.chain_state['SubtensorModule']
+        if str(netuid) not in subtensor_state['Axons']:
+            return None
+        
+        return self._get_most_recent_storage(subtensor_state['Axons'][str(netuid)][hotkey], block)
+
+    def _get_prometheus_info( self, netuid: int, hotkey: str, block: Optional[int] = None ) -> Optional[PrometheusInfoDict]:
+        subtensor_state = self.chain_state['SubtensorModule']
+        if str(netuid) not in subtensor_state['Prometheus']:
+            return None
+        
+        return self._get_most_recent_storage(subtensor_state['Prometheus'][str(netuid)][hotkey], block)
 
     def _neuron_subnet_exists( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfo]:
         subtensor_state = self.chain_state['SubtensorModule']
@@ -385,9 +430,9 @@ class MockSubtensor(Subtensor):
             return None
 
 
-        axon_info = self._get_axon_info( netuid, hotkey )
+        axon_info_ = self._get_axon_info( netuid, hotkey, block )
 
-        prometheus_info = self._get_prometheus_info( netuid, hotkey )
+        prometheus_info = self._get_prometheus_info( netuid, hotkey, block )
 
 
         coldkey = self._get_most_recent_storage(subtensor_state['Owner'][hotkey], block)
@@ -407,7 +452,7 @@ class MockSubtensor(Subtensor):
         bonds = self._get_most_recent_storage(subtensor_state['Bonds'][str(netuid)][str(uid)], block)
 
         stake_dict = [(coldkey, Balance.from_rao(self._get_most_recent_storage(
-            Balance.from_raosubtensor_state['Stake'][hotkey][coldkey], block
+            subtensor_state['Stake'][hotkey][coldkey], block
         ))) for coldkey in subtensor_state['Stake'][hotkey]]
 
         stake = sum(stake_dict.values())
@@ -416,17 +461,20 @@ class MockSubtensor(Subtensor):
         weights = [[int(weight[0]), int(weight[1])] for weight in weights]
         bonds = [[int(bond[0]), int(bond[1])] for bond in bonds]
         rank = U16_NORMALIZED_FLOAT(rank)
-        emission = neuron_info_decoded['emission'] / RAOPERTAO
-        neuron_info_decoded['incentive'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['incentive'])
-        neuron_info_decoded['consensus'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['consensus'])
-        neuron_info_decoded['trust'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['trust'])
-        neuron_info_decoded['validator_trust'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['validator_trust'])
-        neuron_info_decoded['dividends'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['dividends'])
-        neuron_info_decoded['prometheus_info'] = PrometheusInfo.fix_decoded_values(neuron_info_decoded['prometheus_info'])
-        neuron_info_decoded['axon_info'] = bittensor.axon_info.from_neuron_info( neuron_info_decoded )
+        emission = emission / RAOPERTAO
+        incentive = U16_NORMALIZED_FLOAT(incentive)
+        consensus = U16_NORMALIZED_FLOAT(consensus)
+        trust = U16_NORMALIZED_FLOAT(trust)
+        validator_trust = U16_NORMALIZED_FLOAT(validator_trust)
+        dividends = U16_NORMALIZED_FLOAT(dividends)
+        prometheus_info = PrometheusInfo.fix_decoded_values(prometheus_info)
+        axon_info_ = axon_info.from_neuron_info( {
+            'hotkey': hotkey,
+            'coldkey': coldkey,
+            'axon_info': axon_info_,
+        })
 
-        neuron_info = NeuronInfo.
-        
+        neuron_info = NeuronInfo(
             hotkey = hotkey,
             coldkey = coldkey,
             uid = uid,
@@ -442,9 +490,17 @@ class MockSubtensor(Subtensor):
             pruning_score = pruning_score,
             last_update = last_update,
             validator_permit = validator_permit,
+            stake = stake,
+            stake_dict = stake_dict,
+            total_stake=stake,
+            prometheus_info=prometheus_info,
+            axon_info=axon_info_,
             weights = weights,
             bonds = bonds,
-            
+            is_null=False,
+        )
+
+        return neuron_info
 
 
     def neuron_for_uid_lite( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfoLite]:
@@ -470,8 +526,6 @@ class MockSubtensor(Subtensor):
                 **neuron_info
             )
             return neuron_info_lite
-
-        
 
     def neurons_lite(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfoLite]:
         if str(netuid) not in self.chain_state['SubtensorModule']['NetworksAdded']:
