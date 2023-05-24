@@ -15,11 +15,12 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
-
+import os
 import time
 import unittest
 import unittest.mock as mock
 import uuid
+import json
 
 import grpc
 import pytest
@@ -28,8 +29,9 @@ import torch
 import bittensor
 from bittensor.utils.test_utils import get_random_unused_port
 import concurrent
-
+from bittensor._axon import AuthInterceptor
 from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import patch, mock_open
 
 wallet = bittensor.wallet.mock()
 axon = bittensor.axon( netuid = -1, wallet = wallet)
@@ -1263,6 +1265,94 @@ class TestExternalAxon(unittest.TestCase):
         assert f'{internal_ip}:{internal_port}' == full_address1, f'{internal_ip}:{internal_port} is not eq to {full_address1}'
         assert f'{external_ip}:{external_port}' != full_address1, f'{external_ip}:{external_port} is eq to {full_address1}'
 
+class TestInterceptor(unittest.TestCase):
+
+    def setUp(self):
+        self.interceptor = AuthInterceptor(
+            receiver_hotkey = 'receiver_hotkey',
+            path = '.'
+        )
+        self.hotkey = bittensor.wallet().create().hotkey.ss58_address
+
+    def test_init(self):
+        # test init
+        assert self.interceptor.path == './nonces_dict.txt'
+        assert self.interceptor.nonces == {}
+
+    @patch('builtins.open', new_callable=mock_open, read_data='1')
+    def test_saving(self, m):
+        self.interceptor.nonces = {
+            'hotkey:1': 1,
+            'hotkey:2': 1e20,
+        }
+
+        self.interceptor.save()
+
+    @patch('builtins.open', new_callable=mock_open, read_data='{}')
+    def test_loading(self, m):
+        self.interceptor.load()
+
+    def test_check_signature_success(self):
+        self.interceptor.nonces = {
+            f'{self.hotkey}:5': (1,1),
+            f'{self.hotkey}:6': (int(1e+20), int(1e+20)),
+        }
+
+        with patch('substrateinterface.Keypair.verify', return_value = True):
+            self.interceptor.check_signature(
+                nonce = int(1e+20),
+                sender_hotkey = self.hotkey,
+                receptor_uuid = '7',
+                signature = None
+            )        
+        
+        with patch('substrateinterface.Keypair.verify', return_value = True):
+            self.interceptor.check_signature(
+                nonce = int(1e+20) + 1,
+                sender_hotkey = self.hotkey,
+                receptor_uuid = '6',
+                signature = None
+            )        
+        
+        with patch('substrateinterface.Keypair.verify', return_value = True):
+            self.interceptor.check_signature(
+                nonce = self.interceptor.upper_bound + int(1e+20),
+                sender_hotkey = self.hotkey,
+                receptor_uuid = '6',
+                signature = None
+            )        
+
+    def test_check_signature_nonce_too_small(self):
+        self.interceptor.nonces = {
+            f'{self.hotkey}:5': (1, 1),
+            f'{self.hotkey}:6': (int(1e+20), int(1e+20)),
+        }
+
+        with patch('substrateinterface.Keypair.verify', return_value = True):
+            with self.assertRaises(Exception) as context:
+                self.interceptor.check_signature(
+                    nonce = int(1e+20),
+                    sender_hotkey = self.hotkey,
+                    receptor_uuid = '6',
+                    signature = None
+                )        
+                self.assertTrue('smaller then or equal to previous nonce' in context.exception)
+
+    def test_check_signature_nonce_too_big(self):
+        self.interceptor.nonces = {
+            f'{self.hotkey}:5': (1, 1),
+            f'{self.hotkey}:6': (int(1e+20), int(1e+20)),
+        }
+
+        with patch('substrateinterface.Keypair.verify', return_value = True):
+            with self.assertRaises(Exception) as context:
+                self.interceptor.check_signature(
+                    nonce = self.interceptor.upper_bound + 1 + int(1e+20),
+                    sender_hotkey = self.hotkey,
+                    receptor_uuid = '6',
+                    signature = None
+                )        
+                self.assertTrue('larger then' in context.exception)
 
 if __name__ == "__main__":
     test_grpc_forward_fails()

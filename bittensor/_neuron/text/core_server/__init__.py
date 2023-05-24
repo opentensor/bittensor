@@ -168,6 +168,7 @@ class neuron:
                 synapse_seq_2_seq = self.forward_generate if self.model.config.neuron.seq2seq else None ,
                 blacklist = self.blacklist if not self.model.config.neuron.disable_blacklist else None,
                 priority = self.priority if not self.model.config.neuron.disable_priority else None,
+                path = self.config.neuron.full_path
             )
         self.axon = axon
         self.query_data = {}

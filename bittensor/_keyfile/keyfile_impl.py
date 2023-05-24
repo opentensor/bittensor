@@ -90,7 +90,7 @@ def deserialize_keypair_from_keyfile_data( keyfile_data:bytes ) -> 'bittensor.Ke
                 'ss58Address': string_value
             }
         else:
-            raise KeyFileError('Keypair could not be created from keyfile data: {}'.format( string_value ))
+            raise KeyFileError('Keypair could not be created from keyfile data')
 
     if "secretSeed" in keyfile_dict and keyfile_dict['secretSeed'] != None:
         return bittensor.Keypair.create_from_seed(keyfile_dict['secretSeed'])
@@ -102,7 +102,12 @@ def deserialize_keypair_from_keyfile_data( keyfile_data:bytes ) -> 'bittensor.Ke
         return bittensor.Keypair( ss58_address = keyfile_dict['ss58Address'] )
 
     else:
-        raise KeyFileError('Keypair could not be created from keyfile data: {}'.format( keyfile_dict ))
+        raise KeyFileError('Keypair could not be created from keyfile data: {}'.format( 
+            {
+                'accountId': keyfile_dict['accountId'],
+                'publicKey': keyfile_dict['publicKey'],
+            }
+        ))
 
 def validate_password( password:str ) -> bool:
     """ Validates the password again a password policy.
@@ -227,7 +232,7 @@ def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name
                 decrypted_keyfile_data = cipher_suite.decrypt( keyfile_data )   
             # Unknown.
             else: 
-                raise KeyFileError( "Keyfile data: {} is corrupt".format( keyfile_data ))
+                raise KeyFileError( "Keyfile data is corrupted.")
 
     except (InvalidSignature, InvalidKey, InvalidToken):
         raise KeyFileError('Invalid password')

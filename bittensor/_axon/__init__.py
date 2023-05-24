@@ -22,7 +22,6 @@ import argparse
 import os
 import copy
 import inspect
-import time
 from concurrent import futures
 from typing import Dict, List, Callable, Optional, Tuple, Union
 from bittensor._threadpool import prioritythreadpool
@@ -31,6 +30,7 @@ import torch
 import grpc
 from substrateinterface import Keypair
 
+import json
 import bittensor
 from . import axon_impl
 
@@ -79,6 +79,7 @@ class axon:
             forward_timeout: Optional[int] = None,
             backward_timeout: Optional[int] = None,
             compression:Optional[str] = None,
+            path:Optional[str] = None,
         ) -> 'bittensor.Axon':
         r""" Creates a new bittensor.Axon object from passed arguments.
             Args:
@@ -127,7 +128,9 @@ class axon:
                 forward_timeout (:type:`Optional[int]`, `optional`):
                     timeout on the forward requests. 
                 backward_timeout (:type:`Optional[int]`, `optional`):
-                    timeout on the backward requests.              
+                    timeout on the backward requests.    
+                path (:type:`Optional[str]`, `optional`):
+                    Path to save axon data.    
         """   
         if config == None: 
             config = axon.config()
@@ -163,7 +166,7 @@ class axon:
         if server == None:
             receiver_hotkey = wallet.hotkey.ss58_address
             server = grpc.server( thread_pool,
-                                  interceptors=(AuthInterceptor(receiver_hotkey=receiver_hotkey, blacklist=blacklist),),
+                                  interceptors=(AuthInterceptor(receiver_hotkey=receiver_hotkey, blacklist=blacklist, path = path),),
                                   maximum_concurrent_rpcs = config.axon.maximum_concurrent_rpcs,
                                   options = [('grpc.keepalive_time_ms', 100000),
                                              ('grpc.keepalive_timeout_ms', 500000),
@@ -361,6 +364,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self,
         receiver_hotkey: str,
         blacklist: Callable = None,
+        path:str = None
     ):
         r"""Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
@@ -368,11 +372,31 @@ class AuthInterceptor(grpc.ServerInterceptor):
                 the SS58 address of the hotkey which should be targeted by RPCs
             black_list (Function, `optional`):
                 black list function that prevents certain pubkeys from sending messages
+            path (:type:`Optional[str]`, `optional`):
+                Path to save axon data.    
         """
         super().__init__()
+        self.path = f"{path}/nonces_dict.txt" if path != None else None
         self.nonces = {}
         self.blacklist = blacklist
         self.receiver_hotkey = receiver_hotkey
+        self.load()
+        self.upper_bound = int(3.154e+17) # 10 years in nano second
+
+    def load(self):
+        if self.path is not None and os.path.exists(self.path):
+            with open(self.path) as nonces_file:
+                self.nonces = json.load(nonces_file)
+        else:
+            self.nonces = {}
+
+    def save(self):
+        if self.path is not None:
+            with open(self.path, "w") as nonces_file:
+                json.dump(self.nonces, nonces_file)
+
+    def close(self):
+        self.save()
 
 
     def parse_signature_v2(
@@ -423,15 +447,26 @@ class AuthInterceptor(grpc.ServerInterceptor):
         # the message.
         endpoint_key = f"{sender_hotkey}:{receptor_uuid}"
 
-        if endpoint_key in self.nonces.keys():
-            previous_nonce = self.nonces[endpoint_key]
-            # Nonces must be strictly monotonic over time.
-            if nonce <= previous_nonce:
-                raise Exception("Nonce is too small")
+        # nonce must be int
+        nonce = int(nonce)
 
+        if nonce < 0: raise Exception('Nonce cannot be smaller then 0.')
+
+        if endpoint_key in self.nonces.keys():
+            first_nonce = self.nonces[endpoint_key][0]
+            previous_nonce = self.nonces[endpoint_key][1]
+            # Nonces must be strictly monotonic over time.
+            if nonce <= previous_nonce or nonce > first_nonce + self.upper_bound:
+                raise Exception(f"Nonce {nonce} is smaller or equal to previous nonce {previous_nonce} or larger than {first_nonce + 3.154e+17}.")
+        else:
+            # Initializing the (first_nonce, nonce) 
+            self.nonces[endpoint_key] = (nonce, nonce)
+        
         if not keypair.verify(message, signature):
             raise Exception("Signature mismatch")
-        self.nonces[endpoint_key] = nonce
+        
+        # update nonce when all checking pass
+        self.nonces[endpoint_key] = (self.nonces[endpoint_key][0], nonce)
 
     def black_list_checking(self, hotkey: str, method: str):
         r"""Tries to call to blacklist function in the miner and checks if it should blacklist the pubkey"""
