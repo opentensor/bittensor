@@ -284,7 +284,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self.receiver_hotkey = receiver_hotkey
 
 
-    def parse_signature_v2(self, signature: str) -> Union[Tuple[int, str, str, str], None]:
+    def parse_signature_v2(self, signature: str) -> Optional[Tuple[int, str, str, str]]:
         r"""Attempts to parse a signature using the v2 format"""
         parts = signature.split(".")
         if len(parts) != 4:
