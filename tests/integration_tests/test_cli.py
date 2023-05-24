@@ -34,6 +34,8 @@ from substrateinterface.base import Keypair
 import bittensor
 from bittensor.utils.balance import Balance
 from tests.helpers import MockConsole, get_mock_keypair
+from bittensor._subtensor.subtensor_mock import MockSubtensor
+
 
 def generate_wallet(coldkey: "Keypair" = None, hotkey: "Keypair" = None):
     wallet = bittensor.wallet(_mock=True).create()
@@ -48,6 +50,8 @@ def generate_wallet(coldkey: "Keypair" = None, hotkey: "Keypair" = None):
     wallet.set_hotkey(hotkey, encrypt=False, overwrite=True)
 
     return wallet
+
+_subtensor_mock: MockSubtensor = bittensor.subtensor( network = 'mock', _mock = True )
 
 class TestCLIWithNetworkAndConfig(unittest.TestCase):
     def setUp(self):
