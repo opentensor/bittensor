@@ -492,6 +492,11 @@ class Subtensor:
         if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor('SynergyScalingLawPower', block, [netuid] ).value / 100.
 
+    """ Returns network QuadraticVotingPower hyper parameter """
+    def quadratic_voting_power (self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
+        if not self.subnet_exists( netuid, block ): return None
+        return self.query_subtensor('QuadraticVotingPower', block, [netuid] ).value / 100.
+
     """ Returns network SubnetworkN hyper parameter """
     def subnetwork_n (self, netuid: int, block: Optional[int] = None ) -> int:
         if not self.subnet_exists( netuid, block ): return None
