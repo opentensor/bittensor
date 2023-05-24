@@ -97,13 +97,6 @@ __network_explorer_map__ = {
     'finney': "https://explorer.finney.opentensor.ai/#/explorer"
 }
 
-# Avoid collisions with other processes
-from .utils.test_utils import get_random_unused_port
-mock_subtensor_port = get_random_unused_port()
-__mock_entrypoint__ = f"localhost:{mock_subtensor_port}"
-
-__mock_chain_db__ = './tmp/mock_chain_db'
-
 # --- Type Registry ---
 __type_registry__ = {
     'types': {

@@ -958,12 +958,6 @@ class Subtensor:
         """
         return bittensor.metagraph( network = self.network, netuid = netuid, lite = lite )
 
-    ################
-    #### Transfer ##
-    ################
-
-
-
 
     ################
     #### Legacy ####

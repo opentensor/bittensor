@@ -32,117 +32,8 @@ import pytest
 from substrateinterface.base import Keypair
 
 import bittensor
-from bittensor._subtensor.subtensor_mock import Mock_Subtensor, mock_subtensor
 from bittensor.utils.balance import Balance
 from tests.helpers import MockConsole, get_mock_keypair
-
-_subtensor_mock: Mock_Subtensor = None
-
-
-def setupMockSubtensor():
-    global _subtensor_mock
-    # Start a mock instance of subtensor.
-    _subtensor_mock = bittensor.subtensor(_mock=True, network="finney")
-
-
-# Only run once per session.
-# Runs before all tests and only once.
-def setupSubnets():
-    # Setup mock subtensor networks.
-    try:
-        # create mock subnet 2
-        created_subnet, err, _ = _subtensor_mock.sudo_add_network(
-            netuid=2, tempo=90, modality=0, wait_for_finalization=False
-        )
-        if err != None:
-            raise Exception(err)
-
-        # create mock subnet 3
-        created_subnet, err, _ = _subtensor_mock.sudo_add_network(
-            netuid=3, tempo=90, modality=0, wait_for_finalization=False
-        )
-        if err != None:
-            raise Exception(err)
-
-        # create a mock subnet 1
-        created_subnet, err, _ = _subtensor_mock.sudo_add_network(
-            netuid=1, tempo=99, modality=0, wait_for_finalization=False
-        )
-        if err != None:
-            raise Exception(err)
-
-        # Make registration difficulty 0. Instant registration.
-        set_diff, err, _ = _subtensor_mock.sudo_set_difficulty(
-            netuid=1, difficulty=0, wait_for_finalization=False
-        )
-        if err != None:
-            raise Exception(err)
-
-        # Make registration min difficulty 0.
-        set_min_diff, err, _ = _subtensor_mock.sudo_set_min_difficulty(
-            netuid=1, min_difficulty=0, wait_for_finalization=False
-        )
-        if err != None:
-            raise Exception(err)
-
-        # Make registration max difficulty 1.
-        set_max_diff, err, _ = _subtensor_mock.sudo_set_max_difficulty(
-            netuid=1, max_difficulty=1, wait_for_finalization=False
-        )
-        if err != None:
-            raise Exception(err)
-
-        set_serving_rate_limit, err, _ = _subtensor_mock.sudo_set_serving_rate_limit(
-            netuid=1, serving_rate_limit=0, wait_for_finalization=False
-        )  # No serving limit
-        if err != None:
-            raise Exception(err)
-
-        set_tx_limit, err, _ = _subtensor_mock.sudo_set_tx_rate_limit(
-            tx_rate_limit=0, wait_for_finalization=False
-        )  # No tx limit
-        if err != None:
-            raise Exception(err)
-
-    except Exception as e:
-        print("Error in setup: ", e)
-        raise e
-
-    # Write ws_port to file.
-    ws_port_str: str = _subtensor_mock.chain_endpoint.split(":")[1]
-    if ws_port_str is not None:
-        # Should be the case
-        mock_subtensor.save_global_ws_port(int(ws_port_str))
-
-
-def killMockSubtensorProcess():
-    # wait 30s to kill
-    pass
-    time.sleep(5 * 60)
-    _subtensor_mock.optionally_kill_owned_mock_instance()
-
-
-def setUpModule():
-    setupMockSubtensor()
-
-    if _subtensor_mock._owned_mock_subtensor_process is not None:
-        # Owns the mock instance. Setup mock subnets.
-        setupSubnets()
-
-    else:
-        # Not owned, wait until mock chain setup done
-        tx_limit = float("inf")
-        while tx_limit != 0:
-            tx_limit = _subtensor_mock.get_tx_rate_limit()
-            time.sleep(1)
-        return
-
-
-def tearDownModule():
-    if _subtensor_mock._owned_mock_subtensor_process is not None:
-        # Owns the mock instance. Kill it.
-        killMockSubtensorProcess()
-
 
 def generate_wallet(coldkey: "Keypair" = None, hotkey: "Keypair" = None):
     wallet = bittensor.wallet(_mock=True).create()
@@ -157,7 +48,6 @@ def generate_wallet(coldkey: "Keypair" = None, hotkey: "Keypair" = None):
     wallet.set_hotkey(hotkey, encrypt=False, overwrite=True)
 
     return wallet
-
 
 class TestCLIWithNetworkAndConfig(unittest.TestCase):
     def setUp(self):

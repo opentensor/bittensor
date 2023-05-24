@@ -15,677 +15,473 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from substrateinterface import SubstrateInterface, Keypair
-from substrateinterface.exceptions import SubstrateRequestException
-from scalecodec import GenericCall
-import psutil
-import subprocess
-from sys import platform
-import bittensor
-import time
-import os
-from typing import Optional, Tuple, Dict, Union, TypedDict
-import requests
-from urllib3.exceptions import LocationValueError
-import numpy as np
-from filelock import Timeout, FileLock
-from retry import retry
+from typing import Optional, Tuple, Dict, Union, TypedDict, List, Any
+from random import randint
 
-from . import subtensor_impl
+from substrateinterface import SubstrateInterface
+from bittensor import Balance, NeuronInfo, NeuronInfoLite, SubnetInfo, PrometheusInfo, __version_as_int__, axon_info
+from bittensor.utils import U16_NORMALIZED_FLOAT
 
-__type_registery__ = {
-    "runtime_id": 2,
-    "types": {
-        "Balance": "u64",
-        "NeuronMetadataOf": {
-            "type": "struct",
-            "type_mapping": [
-                ["version", "u32"],
-                ["ip", "u128"],
-                ["port", "u16"],
-                ["ip_type", "u8"],
-                ["uid", "u32"],
-                ["modality", "u8"],
-                ["hotkey", "AccountId"],
-                ["coldkey", "AccountId"],
-                ["active", "bool"],
-                ["last_update", "u64"],
-                ["validator_permit", "bool"],
-                ["stake", "u64"],
-                ["rank", "u16"],
-                ["trust", "u16"],
-                ["consensus", "u16"],
-                ["validator_trust", "u16"],
-                ["incentive", "u16"],
-                ["dividends", "u16"],
-                ["emission", "u64"],
-                ["bonds", "Vec<(u16, u16)>"],
-                ["weights", "Vec<(u16, u16)>"],
-            ],
-        },
-    },
-}
+from subtensor_impl import Subtensor
 
-GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = "mock-node-subtensor"
+BlockNumber = str # str(int)
+
+class MockSystemState(TypedDict):
+    Account: Dict[str, Dict[str, Balance]] # address -> block -> balance
+
+class MockSubtensorState(TypedDict):
+    Rho: Dict[str, Dict[BlockNumber, int]] # netuid -> block -> rho
+    Kappa: Dict[str, Dict[BlockNumber, int]] # netuid -> block -> kappa
+    Difficulty: Dict[str, Dict[BlockNumber, int]] # netuid -> block -> difficulty
+    ImmunityPeriod: Dict[str, Dict[BlockNumber, int]] # netuid -> block -> immunity_period
+    ValidatorBatchSize: Dict[str, Dict[BlockNumber, int]] # netuid -> block -> validator_batch_size
+    Active: Dict[str, Dict[BlockNumber, bool]] # (netuid, uid), block -> active
+
+    NetworksAdded: Dict[str, Dict[BlockNumber, bool]] # netuid -> block -> added
 
 
-class mock_subtensor:
-    r"""Returns a subtensor connection interface to a mocked subtensor process running in the background.
-    Optionall creates the background process if it does not exist.
+class MockChainState(TypedDict):
+    System: MockSystemState
+    SubtensorModule: MockSubtensorState
+    
+
+class MockSubtensor(Subtensor):
     """
+    A Mock Subtensor class for running tests. 
+    This should mock only methods that make queries to the chain.
+    e.g. We mock `Subtensor.query_subtensor` instead of all query methods.
 
-    @classmethod
-    def mock(cls):
-        _owned_mock_subtensor_process = None
+    This class will also store a local (mock) state of the chain.
+    """
+    __shared_state = {}
 
-        if not cls.global_mock_process_is_running():
-            # Remove any old chain db
-            if os.path.exists(f"{bittensor.__mock_chain_db__}_{os.getpid()}"):
-                # Name mock chain db using pid to avoid conflicts while multiple processes are running.
-                os.system(f"rm -rf {bittensor.__mock_chain_db__}_{os.getpid()}")
-            _owned_mock_subtensor_process = cls.create_global_mock_process(os.getpid())
+    chain_state: MockChainState
+    block_number: int
 
-        endpoint: str = bittensor.__mock_entrypoint__
-        url_root, ws_port = endpoint.split(":")
+    def __init__(self) -> None:
+        self.__dict__ = self.__shared_state
+        
+        if not hasattr(self, 'chain_state'):
+            self.chain_state = {
+                'System': {
+                    'Account': {}
+                },
+                'SubtensorModule': {
+                    'NetworksAdded': {},
+                },
+            }
 
-        if _owned_mock_subtensor_process is None:
-            print("Mock subtensor already running.")
-            # THen ws_port is set by the global process.
-            ws_port = None
+            self.block_number = 0
 
-            # Wait for other process to finish setting up the mock subtensor.
-            timeout = 35  # seconds
-            time_elapsed = 0
-            time_start = time.time()
-            # Try to get ws_port
-            while time_elapsed < timeout:
-                try:
-                    ws_port = cls.get_global_ws_port()
-                    if ws_port is None:
-                        continue
+    def create_subnet( self, netuid: int ) -> None:
+        subtensor_state = self.chain_state['SubtensorModule']
+        if str(netuid) not in subtensor_state['NetworksAdded']:
+            subtensor_state['Rho'][str(netuid)] = 10
+            subtensor_state['SubtensorModule']['Kappa'][str(netuid)] = 32_767
+            subtensor_state['Difficulty'][str(netuid)] = 10_000_000
+            subtensor_state['ImmunityPeriod'][str(netuid)] = 4096
+            subtensor_state['ValidatorBatchSize'][str(netuid)] = 32
+            subtensor_state['ValidatorSequenceLen'][str(netuid)] = 256
+            subtensor_state['ValidatorEpochsPerReset'][str(netuid)] = 60
+            subtensor_state['ValidatorEpochLen'][str(netuid)] = 100
+            subtensor_state['MaxAllowedValidators'][str(netuid)] = 128
+            subtensor_state['MinAllowedWeights'][str(netuid)] = 1024
+            subtensor_state['MaxWeightsLimit'][str(netuid)] = 1_000
+            subtensor_state['SynergyScalingLawPower'][str(netuid)] = 50
+            subtensor_state['ScalingLawPower'][str(netuid)] = 50
+            subtensor_state['SubnetworkN'][str(netuid)] = 0
+            subtensor_state['MaxAllowedUids'][str(netuid)] = 4096
+            subtensor_state['NetworkModality'][str(netuid)] = 0
+            subtensor_state['BlocksSinceLastStep'][str(netuid)] = 0
+            subtensor_state['Tempo'][str(netuid)] = 99
+            subtensor_state['NetworkConnect'][str(netuid)] = {}
+            subtensor_state['EmissionValue'][str(netuid)] = 0
+            subtensor_state['Burn'][str(netuid)] = 0
 
-                    # Try to connect to the mock subtensor process.
-                    errored = cls.try_connect_to_mock(ws_port, timeout=2)
-                    connected = not errored
+            subtensor_state['Active'][str(netuid)] = {}
 
-                    if connected:
-                        break
-                except FileNotFoundError:
-                    time.sleep(0.1)
-                    time_elapsed = time.time() - time_start
+            subtensor_state['UIDs'][str(netuid)] = {}
+            subtensor_state['Keys'][str(netuid)] = {}
+            subtensor_state['LastUpdate'][str(netuid)] = {}
+            
+            subtensor_state['Rank'][str(netuid)] = {}
+            subtensor_state['Emission'][str(netuid)] = {}
+            subtensor_state['Incentive'][str(netuid)] = {}
+            subtensor_state['Consensus'][str(netuid)] = {}
+            subtensor_state['Trust'][str(netuid)] = {}
+            subtensor_state['ValidatorTrust'][str(netuid)] = {}
+            subtensor_state['Dividends'][str(netuid)] = {}
+            subtensor_state['PruningScores'][str(netuid)] = {}
+            subtensor_state['ValidatorPermit'][str(netuid)] = {}
+
+            subtensor_state['Weights'][str(netuid)] = {}
+            subtensor_state['Bonds'][str(netuid)] = {}
+
+            subtensor_state['TotalStake'][str(self.block_number)] = Balance(0)
+
+        else:
+            raise Exception("Subnet already exists")
+        
+    def force_register_neuron(
+        self,
+        netuid: int,
+        hotkey: str, 
+        coldkey: str,
+        stake: Union[Balance, float] = Balance(0),
+    ) -> int:
+        """
+        Force register a neuron on the mock chain, returning the UID.
+        """
+        if isinstance(stake, float):
+            stake = Balance.from_tao(stake)
+
+        subtensor_state = self.chain_state['SubtensorModule']
+        if str(netuid) not in subtensor_state['NetworksAdded']:
+            raise Exception("Subnet does not exist")
+
+        subnetwork_n = subtensor_state['SubnetworkN'][str(netuid)][-1]
+        for uid in range(subnetwork_n): # Get last block
+            if subtensor_state['Keys'][str(netuid)][uid][-1] == hotkey:
+                # already_registered 
+                break
+
+        else:
+            # Not found
+            if subnetwork_n >= subtensor_state['MaxAllowedUids'][str(netuid)][-1]:
+                # Subnet full, replace neuron randomly
+                uid = randint(0, subnetwork_n-1)
             else:
-                raise TimeoutError(f"Could not get ws_port from file")
+                # Subnet not full, add new neuron
+                # Append as next uid and increment subnetwork_n
+                uid = subnetwork_n
+                subtensor_state['SubnetworkN'][str(netuid)][str(self.block_number)] = subnetwork_n + 1
 
-        substrate = SubstrateInterface(
-            ss58_format=bittensor.__ss58_format__,
-            type_registry_preset="substrate-node-template",
-            type_registry=__type_registery__,
-            url=f"ws://{url_root}:{ws_port}",
-            use_remote_preset=True,
-        )
-        subtensor = Mock_Subtensor(
-            substrate=substrate,
-            network="mock",
-            chain_endpoint=f"{url_root}:{ws_port}",
-            # Is mocked, optionally has owned process for ref counting.
-            _is_mocked=True,
-            _owned_mock_subtensor_process=_owned_mock_subtensor_process,
-        )
-        return subtensor
+            subtensor_state['Stake'][hotkey][coldkey][str(self.block_number)] = stake
+            subtensor_state['UIDs'][str(netuid)][hotkey][str(self.block_number)] = uid
+            subtensor_state['Keys'][str(netuid)][str(uid)][str(self.block_number)] = hotkey
+            subtensor_state['Owner'][hotkey][str(self.block_number)] = coldkey
+            subtensor_state['LastUpdate'][str(netuid)][str(uid)][str(self.block_number)] = self.block_number
+            
+            subtensor_state['Rank'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['Emission'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['Incentive'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['Consensus'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['Trust'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['ValidatorTrust'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['Dividends'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['PruningScores'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['ValidatorPermit'][str(netuid)][str(uid)][str(self.block_number)] = False
 
-    @staticmethod
-    def global_mock_process_is_running() -> bool:
-        r"""Check if the global mocked subtensor process is running on the machine.
-        This means only one mock subtensor will run for ALL processes.
-        """
-        for p in psutil.process_iter():
-            if (
-                p.status() != psutil.STATUS_ZOMBIE
-                and p.status() != psutil.STATUS_DEAD
-                and p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME
-            ):
-                print(
-                    f"Found process with name {p.name()}, parent {p.parent().pid} status {p.status()} and pid {p.pid}"
-                )
-                return True
-        return False
+            subtensor_state['Weights'][str(netuid)][str(uid)][str(self.block_number)] = []
+            subtensor_state['Bonds'][str(netuid)][str(uid)][str(self.block_number)] = []
 
-    @classmethod
-    def kill_global_mock_process(cls):
-        r"""Kills the global mocked subtensor process even if not owned."""
-        for p in psutil.process_iter():
-            if (
-                p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME
-                and p.parent().pid == os.getpid()
-            ):
-                p.terminate()
-                p.kill()
-                cls.destroy_lock()  # Remove lock file.
-        time.sleep(2)  # Buffer to ensure the processes actually die
+            subtensor_state['TotalStake'][str(self.block_number)] = subtensor_state['TotalStake'][-1] + stake
 
-    @staticmethod
-    def try_connect_to_mock(ws_port: int, timeout: Optional[int] = None) -> bool:
-        r"""Tries to connect to the mock subtensor process.
-        Returns False if the connection fails.
-        """
-        time_elapsed = 0
-        time_start = time.time()
 
-        errored: bool = True
-        while errored and (timeout is None or time_elapsed < timeout):
-            errored = False
-            try:
-                _ = requests.get("http://localhost:{}".format(ws_port))
-            except (requests.exceptions.ConnectionError, LocationValueError) as e:
-                errored = True
-                time.sleep(0.3)  # Wait for the process to start.
-                time_elapsed = time.time() - time_start
 
-        return errored
+        raise Exception("Hotkey already registered")
+            
 
-    @staticmethod
-    def _get_ws_port_from_file(filename: str) -> int:
-        r"""Gets the ws port from `filename`."""
-        with open(filename, "r") as f:
-            ws_port = int(f.read())
-        return ws_port
+    def force_set_balance(
+        self,
+        ss58_address: str,
+        balance: Union[Balance, float] = Balance(0),
+        stake: Union[Balance, float] = Balance(0),
+    ) -> None:
+        if isinstance(stake, float):
+            stake = Balance.from_tao(stake)
+            
+        if isinstance(balance, float):
+            balance = Balance.from_tao(balance)
 
-    @staticmethod
-    def _write_ws_port_to_file(ws_port: int, filename: str) -> None:
-        r"""Writes the global ws port to `filename`."""
-        with open(filename, "w") as f:
-            f.write(str(ws_port))
+        if ss58_address not in self.chain_state['System']['Account']:
+            self.chain_state['System']['Account'][ss58_address] = {}
 
-    @classmethod
-    def get_global_ws_port(cls) -> Optional[int]:
-        r"""Gets the ws port from the global mock subtensor process."""
-        filename = "./tests/mock_subtensor/ws_port.txt"
-        if os.path.exists(filename):
-            return cls._get_ws_port_from_file(filename)
+        self.chain_state['System']['Account'][ss58_address][str(self.block_number)] = {
+            'data': {
+                'free': balance.rao,
+            }
+        }
+        
+        
+    def do_block_step( self ) -> None:
+        self.block_number += 1
+
+        # Doesn't do epoch
+        subtensor_state = self.chain_state['SubtensorModule']
+        for subnet in subtensor_state['NetworksAdded']:
+            subtensor_state['BlocksSinceLastStep'][subnet][str(self.block_number)] = subtensor_state['BlocksSinceLastStep'][subnet][-1] + 1
+
+    def query_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
+        if block:
+            if self.block_number < block:
+                raise Exception("Cannot query block in the future")
+            
+        else:
+            block = self.block_number
+
+        state = self.chain_state['SubtensorModule'][name]
+        if state is not None:
+            # Use prefix
+            if len(params) > 0:
+                while state is not None and len(params) > 0:
+                    state = state.get(params.pop(0), None)
+                    if state is None:
+                        return None
+                    
+            # Use block
+            state_at_block = state.get(str(block), None)
+            while state_at_block is None and block > 0:
+                block -= 1
+                state_at_block = self.state.get(str(block), None)
+
+            return state_at_block # Can be None
+        else:
+            return None
+            
+    def query_map_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
+        if block:
+            if self.block_number < block:
+                raise Exception("Cannot query block in the future")
+            
+        else:
+            block = self.block_number
+
+        state = self.chain_state['SubtensorModule'][name]
+        if state is not None:
+            # Use prefix
+            if len(params) > 0:
+                while state is not None and len(params) > 0:
+                    state = state.get(params.pop(0), None)
+                    if state is None:
+                        return None
+                    
+            # Use block
+            state_at_block = state.get(str(block), None)
+            while state_at_block is None and block > 0:
+                block -= 1
+                state_at_block = self.state.get(str(block), None)
+
+            return state_at_block # Can be None
         else:
             return None
 
-    @classmethod
-    def save_global_ws_port(cls, ws_port: int) -> None:
-        r""" """
-        root_path = "./tests/mock_subtensor"
-        filename = f"{root_path}/ws_port.txt"
-        if not os.path.exists(root_path):
-            os.makedirs(root_path, exist_ok=True)
-
-        cls._write_ws_port_to_file(ws_port, filename)
-
-    _lock_filename = "./tests/mock_subtensor/lock.lock"
-
-    @classmethod
-    def make_lock(cls) -> FileLock:
-        r"""Creates a file lock."""
-        lock_file = cls._lock_filename
-        lock = FileLock(lock_file, timeout=1)
-        return lock
-
-    @classmethod
-    def destroy_lock(cls) -> None:
-        r"""Destroys the file lock."""
-        lock_file = cls._lock_filename
-        if os.path.exists(lock_file):
-            os.remove(lock_file)
-
-    @classmethod
-    def create_global_mock_process(
-        cls, pid: int
-    ) -> Optional["subprocess.Popen[bytes]"]:
-        r"""Creates a global mocked subtensor process running in the backgroun with name GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME.
-        Returns None if the process is already running.
-        Raises:
-            RuntimeError: If the process cannot be created.
-        """
-        try:
-            # acquire file lock
-            lock = cls.make_lock()
-            lock.acquire(timeout=1)  # Wait for 1 seconds to acquire the lock.
-
-            operating_system = "OSX" if platform == "darwin" else "Linux"
-            path_root = "./tests/mock_subtensor"
-            path = "{}/bin/{}/{}".format(
-                path_root, operating_system, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME
-            )
-            path_to_spec = "{}/specs/local_raw.json".format(path_root)
-
-            ws_port = int(bittensor.__mock_entrypoint__.split(":")[1])
-            print(f"MockSub ws_port: {ws_port}")
-
-            command_args = (
-                [path]
-                + f"--chain {path_to_spec} --base-path {bittensor.__mock_chain_db__}_{pid} --execution native --ws-max-connections 1000 --no-mdns --rpc-cors all".split(
-                    " "
-                )
-                + f"--port {int(bittensor.get_random_unused_port())} --rpc-port {int(bittensor.get_random_unused_port())} --ws-port {ws_port}".split(
-                    " "
-                )
-                + "--validator --alice".split(" ")
-            )
-
-            print("Starting subtensor process with command: {}".format(command_args))
-
-            _mock_subtensor_process = subprocess.Popen(
-                command_args,
-                close_fds=True,
-                shell=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-
-            # # Write the ws port to a file
-            # cls.save_global_ws_port(ws_port)
-
-            # Wait for the process to start. Check for errors.
-            try:
-                # Timeout is okay.
-                error_code = _mock_subtensor_process.wait(timeout=12)
-            except subprocess.TimeoutExpired:
-                error_code = None
-
-            if error_code is not None:
-                # Get the error message.
-                error_message = _mock_subtensor_process.stderr.read().decode("utf-8")
-                raise RuntimeError(
-                    "Failed to start mocked subtensor process: {}".format(error_code),
-                    error_message,
-                )
-
-            print(
-                "Starting subtensor process with pid {} and name {}".format(
-                    _mock_subtensor_process.pid, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME
-                )
-            )
-
-            # Wait for the process to start.
-            errored = cls.try_connect_to_mock(ws_port)
-
-            return _mock_subtensor_process
-        except Timeout:
-            return None  # Another process has the lock.
-        except Exception as e:
-            raise RuntimeError("Failed to start mocked subtensor process: {}".format(e))
-
-class DecodedGenericExtrinsic(TypedDict):
-    nonce: int
-
-class TxError(Exception):
-    pass
-
-class PriorityTooLowError(TxError):
-    pass
-
-class InvalidNonceError(TxError):
-    pass
-
-
-class Mock_Subtensor(subtensor_impl.Subtensor):
-    """
-    Handles interactions with the subtensor chain.
-    """
-
-    sudo_keypair: Keypair = Keypair.create_from_uri(
-        "//Alice"
-    )  # Alice is the sudo keypair for the mock chain.
-
-    def __init__(
-        self,
-        _is_mocked: bool,
-        _owned_mock_subtensor_process: object,
-        **kwargs,
-    ):
-        r"""Initializes a subtensor chain interface.
-        Args:
-            _owned_mock_subtensor_process (Used for testing):
-                a subprocess where a mock chain is running.
-        """
-        super().__init__(**kwargs)
-        # Exclusively used to mock a connection to our chain.
-        self._owned_mock_subtensor_process = _owned_mock_subtensor_process
-        self._is_mocked = _is_mocked
-
-        print("---- MOCKED SUBTENSOR INITIALIZED ----")
-
-    def __str__(self) -> str:
-        if self._is_mocked == True and self._owned_mock_subtensor_process != None:
-            # Mocked and owns background process.
-            return "MockSubtensor({}, PID:{})".format(
-                self.chain_endpoint, self._owned_mock_subtensor_process.pid
-            )
+    def query_constant( self, module_name: str, constant_name: str, block: Optional[int] = None ) -> Optional[object]:
+        if block:
+            if self.block_number < block:
+                raise Exception("Cannot query block in the future")
+            
         else:
-            # Mocked but does not own process.
-            return "MockSubtensor({})".format(self.chain_endpoint)
+            block = self.block_number
 
-    def __exit__(self):
-        pass
+        state = self.chain_state.get(module_name, None)
+        if state is not None:
+            if constant_name in state:
+                state = state[constant_name]
+            else:
+                return None
+                    
+            # Use block
+            state_at_block = state.get(str(block), None)
+            while state_at_block is None and block > 0:
+                block -= 1
+                state_at_block = self.state.get(str(block), None)
 
-    def optionally_kill_owned_mock_instance(self):
-        r"""If this subtensor instance owns the mock process, it kills the process."""
-        if self._owned_mock_subtensor_process != None:
-            try:
-                self._owned_mock_subtensor_process.terminate()
-                self._owned_mock_subtensor_process.kill()
-                os.system("kill %i" % self._owned_mock_subtensor_process.pid)
-                mock_subtensor.destroy_lock()  # Remove lock file.
-                time.sleep(2)  # Buffer to ensure the processes actually die
-            except Exception as e:
-                print(f"failed to kill owned mock instance: {e}")
-                # Occasionally
-                pass
-
-    def wrap_sudo(self, call: GenericCall) -> GenericCall:
-        r"""Wraps a call in a sudo call."""
-        return self.substrate.compose_call(
-            call_module="Sudo", call_function="sudo", call_params={"call": call.value}
-        )
-
-    def sudo_force_set_balance(
-        self,
-        ss58_address: str,
-        balance: Union["bittensor.Balance", int, float],
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-        nonce: Optional[int] = None,
-    ) -> Tuple[bool, Optional[str], int]:
-        r"""Sets the balance of an account using the sudo key."""
-        if isinstance(balance, bittensor.Balance):
-            balance = balance.rao
-        elif isinstance(balance, float):
-            balance = int(balance * bittensor.utils.RAOPERTAO)
-        elif isinstance(balance, int):
-            pass
+            return state_at_block # Can be None
         else:
-            raise ValueError("Invalid type for balance: {}".format(type(balance)))
+            return None
 
-        @retry(exceptions=(PriorityTooLowError, InvalidNonceError), delay=2, tries=3, backoff=2, max_delay=4)
-        def make_call() -> Tuple[bool, Optional[str], int]:
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="Balances",
-                    call_function="set_balance",
-                    call_params={
-                        "who": ss58_address,
-                        "new_free": balance,
-                        "new_reserved": 0,
-                    },
-                )
+    def get_current_block( self ) -> int:
+        return self.block_number
 
-                wrapped_call = self.wrap_sudo(call)
+    # ==== Balance RPC methods ====
 
-                try:
-                    return self._submit_call(
-                        substrate,
-                        wrapped_call,
-                        nonce,
-                        wait_for_inclusion=wait_for_inclusion,
-                        wait_for_finalization=wait_for_finalization,
-                    )
-                except InvalidNonceError:
-                    return self._submit_call(
-                        substrate,
-                        wrapped_call,
-                        nonce = None,
-                        wait_for_inclusion=wait_for_inclusion,
-                        wait_for_finalization=wait_for_finalization,
-                    )
+    def get_balance(self, address: str, block: int = None) -> Balance:
+        if block:
+            if self.block_number < block:
+                raise Exception("Cannot query block in the future")
+            
+        else:
+            block = self.block_number
 
-        return make_call()
+        state = self.chain_state['System']['Account']
+        if state is not None:
+            if address in state:
+                state = state[address]
+            else:
+                return Balance(0)
+                    
+            # Use block
+            state_at_block = state.get(str(block), None)
+            while state_at_block is None and block > 0:
+                block -= 1
+                state_at_block = self.state.get(str(block), None)
 
-    def sudo_set_serving_rate_limit(
-        self,
-        netuid: int,
-        serving_rate_limit: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str], int]:
-        r"""Sets the serving rate limit of the subnet in the mock chain using the sudo key."""
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="sudo_set_serving_rate_limit",
-                call_params={
-                    "netuid": netuid,
-                    "serving_rate_limit": serving_rate_limit,
-                },
-            )
+            return state_at_block # Can be None
+        else:
+            return None
 
-            wrapped_call = self.wrap_sudo(call)
+    def get_balances(self, block: int = None) -> Dict[str, Balance]:
+        balances = {}
+        for address in self.chain_state['System']['Account']:
+            balances[address] = self.get_balance(address, block)
 
-            return self._submit_call(
-                substrate,
-                wrapped_call,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
+    # ==== Neuron RPC methods ====
 
-    def sudo_set_tx_rate_limit(
-        self,
-        tx_rate_limit: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str], int]:
-        r"""Sets the tx rate limit of the subnet in the mock chain using the sudo key."""
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="sudo_set_tx_rate_limit",
-                call_params={"tx_rate_limit": tx_rate_limit},
-            )
+    def neuron_for_uid( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfo]:
+        if block:
+            if self.block_number < block:
+                raise Exception("Cannot query block in the future")
+            
+        else:
+            block = self.block_number
 
-            wrapped_call = self.wrap_sudo(call)
-
-            return self._submit_call(
-                substrate,
-                wrapped_call,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-
-    def get_tx_rate_limit(self) -> int:
-        r"""Gets the tx rate limit of the subnet in the mock chain."""
-        result = self.query_subtensor("TxRateLimit")
-
-        return result.value
-
-    def sudo_set_difficulty(
-        self,
-        netuid: int,
-        difficulty: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str], int]:
-        r"""Sets the difficulty of the mock chain using the sudo key."""
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="sudo_set_difficulty",
-                call_params={"netuid": netuid, "difficulty": difficulty},
-            )
-
-            wrapped_call = self.wrap_sudo(call)
-
-            return self._submit_call(
-                substrate,
-                wrapped_call,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-
-    def sudo_set_max_difficulty(
-        self,
-        netuid: int,
-        max_difficulty: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str], int]:
-        r"""Sets the max difficulty of the mock chain using the sudo key."""
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="sudo_set_max_difficulty",
-                call_params={"netuid": netuid, "max_difficulty": max_difficulty},
-            )
-
-            wrapped_call = self.wrap_sudo(call)
-
-            return self._submit_call(
-                substrate,
-                wrapped_call,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-
-    def sudo_set_min_difficulty(
-        self,
-        netuid: int,
-        min_difficulty: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str], int]:
-        r"""Sets the min difficulty of the mock chain using the sudo key."""
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="sudo_set_min_difficulty",
-                call_params={"netuid": netuid, "min_difficulty": min_difficulty},
-            )
-
-            wrapped_call = self.wrap_sudo(call)
-
-            return self._submit_call(
-                substrate,
-                wrapped_call,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-
-    def sudo_add_network(
-        self,
-        netuid: int,
-        tempo: int = 0,
-        modality: int = 0,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str], int]:
-        r"""Adds a network to the mock chain using the sudo key."""
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="sudo_add_network",
-                call_params={"netuid": netuid, "tempo": tempo, "modality": modality},
-            )
-
-            wrapped_call = self.wrap_sudo(call)
-
-            return self._submit_call(
-                substrate,
-                wrapped_call,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-    
-    def _submit_call(
-        self,
-        substrate: SubstrateInterface,
-        wrapped_call: GenericCall,
-        nonce: Optional[int] = None,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str], int]:
+        if str(netuid) not in self.chain_state['SubtensorModule']['NetworksAdded']:
+            return None
         
-        try: 
-            extrinsic = substrate.create_signed_extrinsic(
-                call=wrapped_call, keypair=self.sudo_keypair, nonce=nonce
-            )
+        neuron_info = self._neuron_subnet_exists( uid, netuid, block )
+        if neuron_info is None:
+            return None
+        
+        else:
+            return neuron_info
 
-            decoded_extrinsic: DecodedGenericExtrinsic = extrinsic.decode()
-            used_nonce = decoded_extrinsic["nonce"]
-            
-            response = substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
+    def neurons(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]:
+        if str(netuid) not in self.chain_state['SubtensorModule']['NetworksAdded']:
+            raise Exception("Subnet does not exist")
+        
+        neurons = []
+        for uid in range(self.chain_state['SubtensorModule']['SubnetworkN'][str(netuid)][-1]):
+            neuron_info = self.neuron_for_uid( uid, netuid, block )
+            if neuron_info is not None:
+                neurons.append(neuron_info)
 
-            if not wait_for_finalization:
-                return True, None, used_nonce
+        return neurons
 
-            try:
-                response.process_events()
-            except Exception as e:
-                print(f"Failed to process events: {e}")
-
-            if response.is_success:
-                return True, None, used_nonce
-            else:
-                return False, response.error_message, used_nonce
-        except SubstrateRequestException as e:
-            code = None
-            if hasattr(e, 'args') and len(e.args) > 0:
-                args = e.args[0]
-                code = args['code']
-            
-            if code == 1010:
-                raise InvalidNonceError()
-            elif code == 1014:
-                raise PriorityTooLowError()
-            else:
-                raise e
+    @staticmethod
+    def _get_most_recent_storage( storage: Dict[BlockNumber, Any], block_number: Optional[int] ) -> Any:
+        if block_number is None:
+            return storage[-1]
+        
+        else:
+            while block_number > 0:
+                if str(block_number) in storage:
+                    return storage[str(block_number)]
                 
+                block_number -= 1
+            
+            return None
 
-
-    def sudo_register(
-        self,
-        netuid: int,
-        hotkey: str,
-        coldkey: str,
-        stake: int = 0,
-        balance: int = 0,
-        nonce: Optional[int] = None,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str], int]:
-        r"""Registers a neuron to the subnet using sudo.
-        Returns:
-            bool: True if the extrinsic was successful, False otherwise.
-            Optional[str]: The error message if the extrinsic failed, None otherwise.
-            int: The nonce used for the extrinsic.
-        """
-        @retry(exceptions=(PriorityTooLowError, InvalidNonceError), delay=2, tries=3, backoff=2, max_delay=4)
-        def make_call(nonce: Optional[int]) -> Tuple[bool, Optional[str], int]:
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="sudo_register",
-                    call_params={
-                        "netuid": netuid,
-                        "hotkey": hotkey,
-                        "coldkey": coldkey,
-                        "stake": stake,
-                        "balance": balance,
-                    },
-                )
-
-                wrapped_call = self.wrap_sudo(call)
-
-                try:
-                    return self._submit_call(
-                        substrate,
-                        wrapped_call,
-                        nonce,
-                        wait_for_inclusion=wait_for_inclusion,
-                        wait_for_finalization=wait_for_finalization,
-                    )
-                except InvalidNonceError:
-                    return self._submit_call(
-                        substrate,
-                        wrapped_call,
-                        nonce = None,
-                        wait_for_inclusion=wait_for_inclusion,
-                        wait_for_finalization=wait_for_finalization,
-                    )
+    def _neuron_subnet_exists( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfo]:
+        subtensor_state = self.chain_state['SubtensorModule']
+        if str(netuid) not in subtensor_state['NetworksAdded']:
+            return None
         
-        return make_call(nonce)
+        if subtensor_state['SubnetworkN'][str(netuid)][-1] <= uid:
+            return None
+        
+        hotkey = subtensor_state['Keys'][str(netuid)][str(uid)][-1]
+        if hotkey is None:
+            return None
+
+
+        axon_info = self._get_axon_info( netuid, hotkey )
+
+        prometheus_info = self._get_prometheus_info( netuid, hotkey )
+
+
+        coldkey = self._get_most_recent_storage(subtensor_state['Owner'][hotkey], block)
+        active = self._get_most_recent_storage(subtensor_state['Active'][str(netuid)][str(uid)], block)
+        rank = self._get_most_recent_storage(subtensor_state['Rank'][str(netuid)][str(uid)], block)
+        emission = self._get_most_recent_storage(subtensor_state['Emission'][str(netuid)][str(uid)], block)
+        incentive = self._get_most_recent_storage(subtensor_state['Incentive'][str(netuid)][str(uid)], block)
+        consensus = self._get_most_recent_storage(subtensor_state['Consensus'][str(netuid)][str(uid)], block)
+        trust = self._get_most_recent_storage(subtensor_state['Trust'][str(netuid)][str(uid)], block)
+        validator_trust = self._get_most_recent_storage(subtensor_state['ValidatorTrust'][str(netuid)][str(uid)], block)
+        dividends = self._get_most_recent_storage(subtensor_state['Dividends'][str(netuid)][str(uid)], block)
+        pruning_score = self._get_most_recent_storage(subtensor_state['PruningScores'][str(netuid)][str(uid)], block)
+        last_update = self._get_most_recent_storage(subtensor_state['LastUpdate'][str(netuid)][str(uid)], block)
+        validator_permit = self._get_most_recent_storage(subtensor_state['ValidatorPermit'][str(netuid)][str(uid)], block)
+        
+        weights = self._get_most_recent_storage(subtensor_state['Weights'][str(netuid)][str(uid)], block)
+        bonds = self._get_most_recent_storage(subtensor_state['Bonds'][str(netuid)][str(uid)], block)
+
+        stake_dict = [(coldkey, Balance.from_rao(self._get_most_recent_storage(
+            Balance.from_raosubtensor_state['Stake'][hotkey][coldkey], block
+        ))) for coldkey in subtensor_state['Stake'][hotkey]]
+
+        stake = sum(stake_dict.values())
+
+
+        weights = [[int(weight[0]), int(weight[1])] for weight in weights]
+        bonds = [[int(bond[0]), int(bond[1])] for bond in bonds]
+        rank = U16_NORMALIZED_FLOAT(rank)
+        emission = neuron_info_decoded['emission'] / RAOPERTAO
+        neuron_info_decoded['incentive'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['incentive'])
+        neuron_info_decoded['consensus'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['consensus'])
+        neuron_info_decoded['trust'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['trust'])
+        neuron_info_decoded['validator_trust'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['validator_trust'])
+        neuron_info_decoded['dividends'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['dividends'])
+        neuron_info_decoded['prometheus_info'] = PrometheusInfo.fix_decoded_values(neuron_info_decoded['prometheus_info'])
+        neuron_info_decoded['axon_info'] = bittensor.axon_info.from_neuron_info( neuron_info_decoded )
+
+        neuron_info = NeuronInfo.
+        
+            hotkey = hotkey,
+            coldkey = coldkey,
+            uid = uid,
+            netuid = netuid,
+            active = active,
+            rank = rank,
+            emission = emission,
+            incentive = incentive,
+            consensus = consensus,
+            trust = trust,
+            validator_trust = validator_trust,
+            dividends = dividends,
+            pruning_score = pruning_score,
+            last_update = last_update,
+            validator_permit = validator_permit,
+            weights = weights,
+            bonds = bonds,
+            
+
+
+    def neuron_for_uid_lite( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfoLite]:
+        if block:
+            if self.block_number < block:
+                raise Exception("Cannot query block in the future")
+            
+        else:
+            block = self.block_number
+
+        if str(netuid) not in self.chain_state['SubtensorModule']['NetworksAdded']:
+            raise Exception("Subnet does not exist")
+        
+        neuron_info = self._neuron_subnet_exists( uid, netuid, block )
+        if neuron_info is None:
+            return None
+        
+        else:
+            del neuron_info['weights']
+            del neuron_info['bonds']
+
+            neuron_info_lite = NeuronInfoLite(
+                **neuron_info
+            )
+            return neuron_info_lite
+
+        
+
+    def neurons_lite(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfoLite]:
+        if str(netuid) not in self.chain_state['SubtensorModule']['NetworksAdded']:
+            raise Exception("Subnet does not exist")
+        
+        neurons = []
+        for uid in range(self.chain_state['SubtensorModule']['SubnetworkN'][str(netuid)][-1]):
+            neuron_info = self.neuron_for_uid_lite( uid, netuid, block )
+            if neuron_info is not None:
+                neurons.append(neuron_info)
+
+        return neurons
+        
