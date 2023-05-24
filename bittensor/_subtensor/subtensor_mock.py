@@ -203,6 +203,9 @@ class MockSubtensor(Subtensor):
 
             subtensor_state['TotalStake'][str(self.block_number)] = subtensor_state['TotalStake'][-1] + stake
 
+            subtensor_state['Axons'][str(netuid)][hotkey][str(self.block_number)] = {}
+            subtensor_state['Prometheus'][str(netuid)][hotkey][str(self.block_number)] = {}
+
 
 
         raise Exception("Hotkey already registered")
