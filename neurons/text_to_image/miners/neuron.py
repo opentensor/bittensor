@@ -39,7 +39,8 @@ def main( config ):
     base_miner = bittensor.base_miner_neuron( netuid = 14, config = config )
 
     # --- Build diffusion pipeline ---
-    text2img = StableDiffusionPipeline.from_pretrained( config.neuron.model_name, safety_checker=None, torch_dtype=torch.float16).to( config.device )
+    # lpw_stable_diffusion is used to increase CLIP token length from 77 only works for text2img
+    text2img = StableDiffusionPipeline.from_pretrained( config.neuron.model_name, custom_pipeline="lpw_stable_diffusion", safety_checker=None, torch_dtype=torch.float16).to( config.device )
     img2img = StableDiffusionImg2ImgPipeline(**text2img.components)
     inpaint = StableDiffusionInpaintPipeline(**text2img.components)
 
@@ -54,7 +55,7 @@ def main( config ):
             # return base_miner.blacklist( forward_call )
             return False
         
-        def forward( self, text: str, image: str, height: int, width: int, num_images_per_prompt: int, num_inference_steps: int, guidance_scale: float, negative_prompt: str, ) -> List[str]:
+        def forward( self, text: str, image: str, height: int, width: int, num_images_per_prompt: int, num_inference_steps: int, guidance_scale: float, strength: float, negative_prompt: str, seed: int ) -> List[str]:
             
             use_image = False
             
@@ -69,6 +70,11 @@ def main( config ):
                 except Exception as e:
                     pass
 
+            if(seed == -1):
+                seed = torch.randint(1000000000, (1,)).item()
+
+            generator = torch.Generator(device=config.device).manual_seed(seed)
+
             if use_image:
                 # turn image from base64 to PIL image
                 # Load bytes into a PIL image
@@ -81,7 +87,10 @@ def main( config ):
                     num_images_per_prompt = num_images_per_prompt,
                     num_inference_steps = num_inference_steps,
                     guidance_scale = guidance_scale,
+                    strength=strength,
                     negative_prompt = negative_prompt,
+                    generator=generator
+                    
                     # safety_checker = None,
                 )
             else:
@@ -93,6 +102,7 @@ def main( config ):
                     num_inference_steps = num_inference_steps,
                     guidance_scale = guidance_scale,
                     negative_prompt = negative_prompt,
+                    generator=generator,
                     # safety_checker = None,
                 )
 

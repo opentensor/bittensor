@@ -172,15 +172,18 @@ class BaseMinerNeuron:
                 uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
             except:
                 # --- If we fail to sync the metagraph, wait and try again.
-                if(retries >= 4):
+                if(retries > 8):
                     bittensor.logging.error( f'Failed to sync metagraph, exiting.')
                     self.stop()
                     break 
-                seconds_to_sleep = 10 * 2**(retries)
+                seconds_to_sleep = 5 * 1.5**(retries)
                 bittensor.logging.error( f'Failed to sync metagraph, retrying in {seconds_to_sleep} seconds.')
                 time.sleep( seconds_to_sleep )
                 retries += 1
                 continue
+
+            if(retries > 0):
+                retries = 0
 
             # --- Log performance.
             print(
