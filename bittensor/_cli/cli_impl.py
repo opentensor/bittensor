@@ -68,12 +68,8 @@ class CLI:
             MetagraphCommand.run( self )
         elif self.config.command == "weights":
             WeightsCommand.run( self )
-        elif self.config.command == "set_weights":
-            SetWeightsCommand.run( self )
         elif self.config.command == "inspect":
             InspectCommand.run( self )
-        elif self.config.command == "query":
-            QueryCommand.run( self )
         elif self.config.command == "help":
             HelpCommand.run( self )
         elif self.config.command == 'update':

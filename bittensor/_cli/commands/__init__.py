@@ -9,6 +9,5 @@ from .transfer import TransferCommand
 from .inspect import InspectCommand
 from .metagraph import MetagraphCommand
 from .list import ListCommand
-from .weights import SetWeightsCommand, WeightsCommand
-from .query import QueryCommand
+from .weights import WeightsCommand
 from .misc import HelpCommand, UpdateCommand, ListSubnetsCommand
