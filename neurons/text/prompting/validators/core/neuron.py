@@ -116,6 +116,7 @@ class neuron:
         parser.add_argument( '--neuron.no_reward_model', action = 'store_true', help = 'If set, we dont load the reward model instead use just the scores.', default = False )
         parser.add_argument( '--neuron.question_random_sample_uids', action = 'store_true', help = 'If set, random sample uids to get question.', default = False )
         parser.add_argument( '--neuron.reward_shift', type = int, help = 'The value to shift rewards for calculation.', default = 3 )
+        parser.add_argument( '--neuron.no_nsfw_filter', type = 'store_true', help = 'If set, allow handling of not-safe-for-work messages.', default = False )
 
     @classmethod
     def config ( cls ):
@@ -248,6 +249,10 @@ class neuron:
             result (bool):
                 True indicates we should filter out the result, false indicates the result is safe.
         """
+        # If no filter needed, then just return false withough checking.
+        if self.config.neuron.no_nsfw_filter: 
+            return False
+        
         now = datetime.now()
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
         tokenized = self.filter_tokenizer(message)
@@ -550,8 +555,8 @@ class neuron:
                 timeout = 12,
             )
             
-            successful_questions = [question.completion for question in questions if question is not None and question.completion is not None and len(question.completion) > 10]
-            full_completions_for_reward = [ bootstrap_prompt + comp.strip() for comp in successful_questions ]
+            successful_questions = [question.completion for question in questions if question is not None and question.completion is not None and len(question.completion) > 10 and not self.filter_message(question.completion) ]
+            full_completions_for_reward = [ 'Question: ' + bootstrap_prompt + 'Answer: ' + comp.strip() for comp in successful_questions ]
             completions_for_reward = [comp.strip() for comp in successful_questions] 
             reward_diffs = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True, shift = self.config.neuron.reward_shift).to( self.device )
             
