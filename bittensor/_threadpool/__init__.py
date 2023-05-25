@@ -55,6 +55,10 @@ class prioritythreadpool:
         """ Accept specific arguments from parser
         """
         prefix_str = '' if prefix == None else prefix + '.'
+        if prefix is not None:
+            if not hasattr(bittensor.defaults, prefix):
+                setattr(bittensor.defaults, prefix, bittensor.Config())
+            getattr(bittensor.defaults, prefix).priority = bittensor.defaults.priority
         try:
             parser.add_argument('--' + prefix_str + 'priority.max_workers', type = int, help='''maximum number of threads in thread pool''', default = bittensor.defaults.priority.max_workers)
             parser.add_argument('--' + prefix_str + 'priority.maxsize', type=int, help='''maximum size of tasks in priority queue''', default = bittensor.defaults.priority.maxsize)

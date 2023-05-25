@@ -141,6 +141,10 @@ class subtensor:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
         prefix_str = '' if prefix == None else prefix + '.'
+        if prefix is not None:
+            if not hasattr(bittensor.defaults, prefix):
+                setattr(bittensor.defaults, prefix, bittensor.Config())
+            getattr(bittensor.defaults, prefix).subtensor = bittensor.defaults.subtensor
         try:
             parser.add_argument('--' + prefix_str + 'subtensor.network', default = argparse.SUPPRESS, type=str,
                                 help='''The subtensor network flag. The likely choices are:
