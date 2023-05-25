@@ -159,6 +159,11 @@ class axon:
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         """Accept specific arguments from parser"""
         prefix_str = "" if prefix is None else prefix + "."
+        if prefix is not None:
+            if not hasattr(bittensor.defaults, prefix):
+                setattr(bittensor.defaults, prefix, bittensor.Config())
+            getattr(bittensor.defaults, prefix).axon = bittensor.defaults.axon
+
         bittensor.prioritythreadpool.add_args(parser, prefix=prefix_str + "axon")
         try:
             parser.add_argument(

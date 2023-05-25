@@ -44,7 +44,7 @@ class RegenColdkeyCommand:
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
+        if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
         if config.mnemonic == None and config.get( 'seed', d=None ) == None and config.get( 'json', d=None ) == None:
@@ -128,7 +128,7 @@ class RegenColdkeypubCommand:
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
+        if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
         if config.ss58_address == None and config.public_key_hex == None:
@@ -204,11 +204,11 @@ class RegenHotkeyCommand:
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
+        if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt:
+        if not config.is_set('wallet.hotkey') and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
         if config.mnemonic == None and config.get( 'seed', d=None ) == None and config.get( 'json', d=None ) == None:
@@ -295,11 +295,11 @@ class NewHotkeyCommand:
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
+        if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt:
+        if not config.is_set('wallet.hotkey') and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
@@ -351,7 +351,7 @@ class NewColdkeyCommand:
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        if config.wallet.get('name') == bittensor.defaults.wallet.name  and not config.no_prompt:
+        if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
