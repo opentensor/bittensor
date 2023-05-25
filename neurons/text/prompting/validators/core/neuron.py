@@ -180,7 +180,7 @@ class neuron:
         self.check_weights()
 
         # set up filter model
-        filter_model_path = 'valurank/finetuned-distilbert-adult-content-detection'
+        filter_model_path = 'facebook/roberta-hate-speech-dynabench-r4-target'
         self.filter_model = AutoModelForSequenceClassification.from_pretrained(filter_model_path).to(self.device)
         self.filter_tokenizer = AutoTokenizer.from_pretrained(filter_model_path)
         self.filter_tokenizer.pad_token = self.filter_tokenizer.eos_token
@@ -252,7 +252,10 @@ class neuron:
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
         
         tokenized = self.filter_tokenizer(message)
-        output = self.filter_model(torch.tensor([tokenized['input_ids']]).to(self.device))
+        
+        with torch.no_grad():
+            output = self.filter_model(torch.tensor([tokenized['input_ids']]).to(self.device))
+        
         filter_out = output.logits.argmax().bool()
 
         if filter_out:
