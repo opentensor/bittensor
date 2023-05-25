@@ -112,7 +112,7 @@ class GatingModel( torch.nn.Module ):
                 scores (:obj:`torch.FloatTensor` of shape :obj:`(network_size)`):
                     Scores for each uids as output by the gating model.
         """
-        inputs = self.tokenizer( message, return_tensors="pt" ).to( self.device )
+        inputs = self.tokenizer( message, return_tensors="pt" ,truncation=True, max_length=2048).to( self.device )
         with torch.no_grad():
             hidden_states = self.model( **inputs ).last_hidden_state[0, -1, :]
         return self.linear( hidden_states )
