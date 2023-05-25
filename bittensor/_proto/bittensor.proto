@@ -32,7 +32,7 @@ message ForwardTextToImageResponse {
 }
 
 /////////////////////////
-// Image to Text //
+//  Text-to-Embedding  //
 /////////////////////////
 
 service TextToEmbedding { rpc Forward (ForwardTextToEmbeddingRequest) returns (ForwardTextToEmbeddingResponse) {} }
@@ -40,7 +40,7 @@ service TextToEmbedding { rpc Forward (ForwardTextToEmbeddingRequest) returns (F
 message ForwardTextToEmbeddingRequest {
 	int32 version = 1;
 	string hotkey = 2;
-	repeated string text = 3;
+	string text = 3;
 	float timeout = 4;
 }
 

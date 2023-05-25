@@ -23,6 +23,10 @@ import bittensor
 from fastapi import FastAPI, APIRouter
 from typing import List, Dict, Union, Callable
 from abc import ABC, abstractmethod
+from pydantic import BaseModel
+
+# TODO: implement multi-forward for text_to_embedding
+# TODO: add list of strings for text argument like text_propmting...
 
 class TextToEmbeddingForward( bittensor.SynapseCall ):
     name: str = "text_to_embedding_forward"
@@ -57,25 +61,30 @@ class TextToEmbeddingForward( bittensor.SynapseCall ):
         bittensor.logging.trace( "TextToEmbeddingForward.get_outputs_shape()" )
         return self.embedding.shape if self.embedding is not None else None
 
+
+class TextToEmbedding(BaseModel):
+    text: str
+    timeout: int = 12
+
 class TextToEmbeddingSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer ):
     name: str = "text_to_embedding"
 
     def attach( self, axon: 'bittensor.axon.Axon' ):
-        self.router = APIRouter()
-        self.router.add_api_route("/TextToEmbedding/Forward/", self.fast_api_forward_text_to_embedding, methods=["GET"])
-        self.axon.fastapi_app.include_router( self.router )
         bittensor.grpc.add_TextToEmbeddingServicer_to_server( self, self.axon.server )
+        self.router = APIRouter()
+        self.router.add_api_route("/TextToEmbedding/Forward/", self.fast_api_forward_text_to_embedding, methods=["GET", "POST"])
+        self.axon.fastapi_app.include_router( self.router )
 
     @abstractmethod
     def forward( self, text: str ) -> torch.FloatTensor: 
         ...
 
-    def fast_api_forward_text_to_embedding( self, hotkey: str, timeout: int, text: List[str] ) -> List[List[float]]:
+    def fast_api_forward_text_to_embedding( self, hotkey: str, item: TextToEmbedding ) -> List[List[float]]:
         request_proto = bittensor.proto.ForwardTextToEmbeddingRequest( 
             hotkey = hotkey, 
             version = bittensor.__version_as_int__,
-            timeout = timeout, 
-            text = text
+            text = item.text,
+            timeout = item.timeout, 
         )
         call = TextToEmbeddingForward( self, request_proto, self.forward )
         bittensor.logging.trace( 'FastTextToEmbeddingForward: {} '.format( call ) )

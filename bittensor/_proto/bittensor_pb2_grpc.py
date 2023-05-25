@@ -80,7 +80,7 @@ class TextToImage(object):
 
 class TextToEmbeddingStub(object):
     """///////////////////////
-    Image to Text //
+    Text-to-Embedding  //
     ///////////////////////
 
     """
@@ -100,7 +100,7 @@ class TextToEmbeddingStub(object):
 
 class TextToEmbeddingServicer(object):
     """///////////////////////
-    Image to Text //
+    Text-to-Embedding  //
     ///////////////////////
 
     """
@@ -128,7 +128,7 @@ def add_TextToEmbeddingServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class TextToEmbedding(object):
     """///////////////////////
-    Image to Text //
+    Text-to-Embedding  //
     ///////////////////////
 
     """
