@@ -270,13 +270,9 @@ class neuron:
 
             if filter_out:
                 bittensor.logging.debug( 'filtered message', message )
-                with open('filtered_text_history.txt', 'a') as file:
-                    file.write(f"{self.filter_message_count} | {[round(s, 4) for s in output.logits[0].tolist()]} | {dt_string} | {message}" + '\n') 
                 break
             else:
                 bittensor.logging.debug( 'safe message', message )
-                with open('safe_text_history.txt', 'a') as file:
-                    file.write(f"{self.filter_message_count} | {[round(s, 4) for s in output.logits[0].tolist()]} | {dt_string} | {message}" + '\n') 
             
             input_ids = input_ids[512:]
 
@@ -445,7 +441,7 @@ class neuron:
         bittensor.logging.info( 'inference()')
 
         # Pre-process messages.
-        roles = []; contents = []; unravelled_message = ''
+        roles = []; contents = []; unravelled_message = ''; user_message = None
         for message_dict in messages:
             roles.append( message_dict['role'] )
             contents.append( message_dict['content'] )
@@ -457,7 +453,7 @@ class neuron:
 
         bittensor.logging.info( 'inference message', str(unravelled_message) )
 
-        if self.filter_message(user_message):
+        if user_message and self.filter_message(user_message):
             if return_all:
                 return ['Received possible explicit content.']
             else:
