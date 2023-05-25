@@ -107,9 +107,13 @@ class wallet:
         """ Accept specific arguments from parser
         """
         prefix_str = '' if prefix == None else prefix + '.'
+        if prefix is not None:
+            if not hasattr(bittensor.defaults, prefix):
+                setattr(bittensor.defaults, prefix, bittensor.Config())
+            getattr(bittensor.defaults, prefix).wallet = bittensor.defaults.wallet
         try:
-            parser.add_argument('--' + prefix_str + 'wallet.name', required=False, default=bittensor.defaults.wallet.name, help='''The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)''')
-            parser.add_argument('--' + prefix_str + 'wallet.hotkey', required=False, default=bittensor.defaults.wallet.hotkey, help='''The name of wallet's hotkey.''')
+            parser.add_argument('--' + prefix_str + 'wallet.name', required=False, default=argparse.SUPPRESS, help='''The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)''')
+            parser.add_argument('--' + prefix_str + 'wallet.hotkey', required=False, default=argparse.SUPPRESS, help='''The name of wallet's hotkey.''')
             parser.add_argument('--' + prefix_str + 'wallet.path', required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
             parser.add_argument('--' + prefix_str + 'wallet._mock', action='store_true', default=bittensor.defaults.wallet._mock, help='To turn on wallet mocking for testing purposes.')
 
