@@ -265,13 +265,9 @@ class neuron:
 
             if filter_out:
                 bittensor.logging.debug( 'filtered message', message )
-                with open('filtered_text_history.txt', 'a') as file:
-                    file.write(f"{self.filter_message_count} | {[round(s, 4) for s in output.logits[0].tolist()]} | {dt_string} | {message}" + '\n') 
                 break
             else:
                 bittensor.logging.debug( 'safe message', message )
-                with open('safe_text_history.txt', 'a') as file:
-                    file.write(f"{self.filter_message_count} | {[round(s, 4) for s in output.logits[0].tolist()]} | {dt_string} | {message}" + '\n') 
             
             input_ids = input_ids[512:]
 
