@@ -116,7 +116,7 @@ class neuron:
         parser.add_argument( '--neuron.no_reward_model', action = 'store_true', help = 'If set, we dont load the reward model instead use just the scores.', default = False )
         parser.add_argument( '--neuron.question_random_sample_uids', action = 'store_true', help = 'If set, random sample uids to get question.', default = False )
         parser.add_argument( '--neuron.reward_shift', type = int, help = 'The value to shift rewards for calculation.', default = 3 )
-        parser.add_argument( '--neuron.no_nsfw_filter', type = 'store_true', help = 'If set, allow handling of not-safe-for-work messages.', default = False )
+        parser.add_argument( '--neuron.no_nsfw_filter', action = 'store_true', help = 'If set, allow handling of not-safe-for-work messages.', default = False )
 
     @classmethod
     def config ( cls ):
