@@ -19,9 +19,8 @@ https://git-lfs.com/
 #### Grab the GGML weights
 ```bash
 git lfs install
-git clone https://huggingface.co/TheBloke/dromedary-65B-lora-GGML
+git clone https://huggingface.co/TheBloke/Wizard-Vicuna-7B-Uncensored-GGML
 ```
-
 
 Or, to use any model you like:
 ```bash
@@ -33,10 +32,9 @@ Install dependencies
 python -m pip install langchain>=0.0.172 llama-cpp-python
 ```
 
-
 # Example Usage
 ```
-python3 neurons/text/prompting/miners/LlamaCpp/neuron.py --llama.model_path
+python3 neurons/text/prompting/miners/LlamaCpp/neuron.py --llama.model_path /path/to/llamacpp/model_GGML.bin
 ```
 
 # Full Usage

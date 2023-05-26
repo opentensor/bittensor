@@ -18,7 +18,9 @@ These percentages refer to the amount of training data from that particular lang
 ```
 wget https://huggingface.co/spaces/BlinkDL/Raven-RWKV-7B/resolve/main/20B_tokenizer.json
 python3 -m pip install -r neurons/text/prompting/miners/raven-rwkv/requirements.txt
-python3 neurons/text/prompting/miners/raven-rwkv/neuron.py --raven.tokenizer_path 20B_tokenizer.json --raven.model_name RWKV-4-Raven-7B-v11x-Eng99%-Other1%-20230429-ctx8192
+python3 neurons/text/prompting/miners/huggingface/raven-rwkv.py --raven.tokenizer_path /home/jason/bittensor/20B_tokenizer.json \
+ --raven.model_name RWKV-4-Raven-7B-v11x-Eng99%-Other1%-20230429-ctx8192 \
+ --raven.repetition-penalty 0.2 --raven.top_p 0.0 --raven.temperature 1.0
 ```
 
 # Full Usage
