@@ -50,30 +50,4 @@ class RobertMyersMiner( HuggingFaceMiner ):
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
-    # RobertMyersMiner().run()
-
-
-
-def test_miner( model ):
-    prompt = """
-    You are George Carlin.
-    George Carlin is a comedian known for his witty, cutting, poignant observational comedy.
-    He is also known for his social commentary, philosophy, and cutting remarks on religion.
-    Write a joke about the following topic:
-    """
-
-    message = "who are you?"
-
-    if prompt is not None: 
-        roles = ['system', 'user']
-        messages = [ prompt, message ]
-    else:
-        roles = ['user']
-        messages = [ message ]
-
-    messages = [{'role': role, 'content': message} for role, message in zip(roles, messages)]
-
-    return model.forward( messages )
-
-miner = RobertMyersMiner()
-print( test_miner(miner) )
+    RobertMyersMiner().run()

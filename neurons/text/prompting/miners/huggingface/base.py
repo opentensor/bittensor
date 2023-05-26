@@ -32,7 +32,8 @@ class HuggingFaceMiner( bittensor.BasePromptingMiner, ABC ):
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument( f'--{cls.arg_prefix}.model_name', type=str, required=True, help='Name or path of model to load' )
+        parser.add_argument( f'--{cls.arg_prefix}.model_name', type=str, default=None, help='Name or path of model to load' )
+        parser.add_argument( f'--{cls.arg_prefix}.api_key', type=str, help='huggingface api key', default=None )
         parser.add_argument( f'--{cls.arg_prefix}.device', type=str, help='Device to load model', default="cuda" )
         parser.add_argument( f'--{cls.arg_prefix}.max_new_tokens', type=int, help='Max tokens for model output.', default=256 )
         parser.add_argument( f'--{cls.arg_prefix}.temperature', type=float, help='Sampling temperature of model', default=0.5 )
@@ -49,14 +50,19 @@ class HuggingFaceMiner( bittensor.BasePromptingMiner, ABC ):
     def __init__(self):
         super( HuggingFaceMiner, self ).__init__()
         print( self.config )
-        bittensor.logging.info( 'Loading ' + str(getattr(self.config, self.arg_prefix).model_name))
+
+        # Set model name if unset.
+        if getattr( self.config, self.arg_prefix ).model_name == None:
+            getattr( self.config, self.arg_prefix ).model_name = self.arg_prefix
+
+        bittensor.logging.info( 'Loading ' + str( getattr( self.config, self.arg_prefix ).model_name ) )
         self.tokenizer = self.load_tokenizer()
         self.model = self.load_model()
         bittensor.logging.info( 'Model loaded!' )
 
         # Device already configured if using pipieline. (i.e. Pipelines have no `.to()` method)
-        if getattr(self.config, self.arg_prefix).device != "cpu" and 'pipeline' not in self.model.__class__.__name__.lower():
-            self.model = self.model.to( getattr(self.config, self.arg_prefix).device )
+        if getattr( self.config, self.arg_prefix ).device != "cpu" and 'pipeline' not in self.model.__class__.__name__.lower():
+            self.model = self.model.to( getattr( self.config, self.arg_prefix ).device )
 
     @abstractmethod
     def load_model(self):
