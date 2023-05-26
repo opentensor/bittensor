@@ -1,15 +1,23 @@
 
-## RoberMyers Miner
+# FastChat T5 Miner
 FastChat T5 completion miner for bittensor's prompting network. 
+
+# Download weights
+They disabled API inference requests via HuggingFace so you've gotta do it yourself by downloading the weights and passing the path directly. 
+
+```bash
+git lfs install
+git clone https://huggingface.co/lmsys/fastchat-t5-3b-v1.0
+```
 
 # Example Usage
 ```
-python3 neurons/text/prompting/miners/fastchat_t5/neuron.py
+python3 neurons/text/prompting/miners/huggingface/fastchat_t5_miner.py --fastchat_t5.model_path /path/to/fastchat-t5-3b-v1.0
 ```
 
 # Full Usage
 ```
-usage: fastchat-t5.py [-h] [--fastchat_t5.model_name FASTCHAT_T5.MODEL_NAME] [--fastchat_t5.device FASTCHAT_T5.DEVICE] [--fastchat_t5.max_new_tokens FASTCHAT_T5.MAX_NEW_TOKENS]
+usage: fastchat-t5.py [-h] [--fastchat_t5.MODEL_PATH FASTCHAT_T5.MODEL_PATH] [--fastchat_t5.device FASTCHAT_T5.DEVICE] [--fastchat_t5.max_new_tokens FASTCHAT_T5.MAX_NEW_TOKENS]
                       [--fastchat_t5.temperature FASTCHAT_T5.TEMPERATURE] [--fastchat_t5.greedy_decoding] [--fastchat_t5.repetition_penalty FASTCHAT_T5.REPETITION_PENALTY]
                       [--fastchat_t5.do_prompt_injection] [--fastchat_t5.system_prompt FASTCHAT_T5.SYSTEM_PROMPT] [--netuid NETUID] [--neuron.name NEURON.NAME]
                       [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights] [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE]
@@ -28,7 +36,7 @@ usage: fastchat-t5.py [-h] [--fastchat_t5.model_name FASTCHAT_T5.MODEL_NAME] [--
 
 optional arguments:
   -h, --help            show this help message and exit
-  --fastchat_t5.model_name FASTCHAT_T5.MODEL_NAME
+  --fastchat_t5.MODEL_PATH FASTCHAT_T5.MODEL_PATH
                         Name/path of model to load
   --fastchat_t5.device FASTCHAT_T5.DEVICE
                         Device to load model

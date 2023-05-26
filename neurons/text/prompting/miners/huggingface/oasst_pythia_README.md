@@ -1,16 +1,18 @@
 
-## Databricks Dolly 12B Miner
-Dolyl 12B completion miner for bittensor's prompting network. 
+## OpenAssistant Pythia Miner
+OpenAssistant's Pythia (12B) completion miner for bittensor's prompting network. 
 
 # Example Usage
 ```
-python3 neurons/text/prompting/miners/dolly12b/neuron.py
+python3 -m pip install -r neurons/text/prompting/miners/huggingface/oasst_pythia_requirements.txt
+python3 neurons/text/prompting/miners/huggingface/oasst_pythia_miner.py --oasst_pythia.OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5
 ```
 
 # Full Usage
 ```
-usage: neuron.py [-h] [--dolly.model_name DOLLY.MODEL_NAME] [--dolly.device DOLLY.DEVICE] [--dolly.max_new_tokens DOLLY.MAX_NEW_TOKENS] [--dolly.temperature DOLLY.TEMPERATURE]
-                 [--dolly.do_sample] [--dolly.do_prompt_injection] [--dolly.system_prompt DOLLY.SYSTEM_PROMPT] [--netuid NETUID] [--neuron.name NEURON.NAME]
+usage: neuron.py [-h] [--pythia12B.model_name PYTHIA12B.MODEL_NAME] [--pythia12B.load_in_8bit PYTHIA12B.LOAD_IN_8BIT] [--pythia12B.max_new_tokens PYTHIA12B.MAX_NEW_TOKENS]
+                 [--pythia12B.temperature PYTHIA12B.TEMPERATURE] [--pythia12B.greedy_sampling] [--pythia12B.repetition-penalty PYTHIA12B.REPETITION_PENALTY]
+                 [--pythia12B.top_p PYTHIA12B.TOP_P] [--pythia12B.top_k PYTHIA12B.TOP_K] [--netuid NETUID] [--neuron.name NEURON.NAME]
                  [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights] [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE]
                  [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN] [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS [NEURON.BLACKLIST.HOTKEYS ...]]]
                  [--neuron.blacklist.allow_non_registered] [--neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE] [--neuron.default_priority NEURON.DEFAULT_PRIORITY]
@@ -22,22 +24,24 @@ usage: neuron.py [-h] [--dolly.model_name DOLLY.MODEL_NAME] [--dolly.device DOLL
                  [--subtensor.register.no_output_in_place] [--subtensor.register.verbose] [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
                  [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]] [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB]
                  [--logging.debug] [--logging.trace] [--logging.record_log] [--logging.logging_dir LOGGING.LOGGING_DIR] [--config CONFIG] [--strict]
-
 optional arguments:
   -h, --help            show this help message and exit
-  --dolly.model_name DOLLY.MODEL_NAME
+  --pythia12B.model_name PYTHIA12B.MODEL_NAME
                         Name/path of model to load
-  --dolly.device DOLLY.DEVICE
-                        Device to load model
-  --dolly.max_new_tokens DOLLY.MAX_NEW_TOKENS
+  --pythia12B.load_in_8bit PYTHIA12B.LOAD_IN_8BIT
+                        Load model in 8 bit precision
+  --pythia12B.max_new_tokens PYTHIA12B.MAX_NEW_TOKENS
                         Max tokens for model output.
-  --dolly.temperature DOLLY.TEMPERATURE
+  --pythia12B.temperature PYTHIA12B.TEMPERATURE
                         Sampling temperature of model
-  --dolly.do_sample     Whether to use sampling or not (if not, uses greedy decoding).
-  --dolly.do_prompt_injection
-                        Whether to use a custom "system" prompt instead of the one sent by bittensor.
-  --dolly.system_prompt DOLLY.SYSTEM_PROMPT
-                        What prompt to replace the system prompt with
+  --pythia12B.greedy_sampling
+                        Whether to use greedy sampling or not (if not, uses multinomial sampling).
+  --pythia12B.repetition-penalty PYTHIA12B.REPETITION_PENALTY
+                        Repetition penalty for greedy decoding. Between 1.0 and infinity. 1.0 means no penalty. Default: 1.0
+  --pythia12B.top_p PYTHIA12B.TOP_P
+                        Top-p (nucleus) sampling. Defaults to 1.0 (top-k sampling). Must be between 0.0 and 1.0.
+  --pythia12B.top_k PYTHIA12B.TOP_K
+                        Top-k sampling. Defaults to 0 (no top-k sampling). Must be between 0 and 1000.
   --netuid NETUID       Subnet netuid
   --neuron.name NEURON.NAME
                         Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name
@@ -78,13 +82,13 @@ optional arguments:
   --axon.external_ip AXON.EXTERNAL_IP
                         The external ip this axon broadcasts to the network to. ie. [::]
   --axon.max_workers AXON.MAX_WORKERS
-                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes new worker threads to service requests up to
-                        this number.
+                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes new worker threads to service requests up
+                        to this number.
   --axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS
                         Maximum number of allowed active connections
   --subtensor.network SUBTENSOR.NETWORK
-                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running network) -- mock (creates a mock connection (for testing))
-                        If this option is set it overloads subtensor.chain_endpoint with an entry point node from that network.
+                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running network) -- mock (creates a mock connection (for
+                        testing)) If this option is set it overloads subtensor.chain_endpoint with an entry point node from that network.
   --subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT
                         The subtensor endpoint flag. If set, overrides the --network flag.
   --subtensor._mock     To turn on subtensor mocking for testing purposes.
@@ -111,4 +115,4 @@ optional arguments:
                         Logging default root directory.
   --config CONFIG       If set, defaults are overridden by passed file.
   --strict              If flagged, config will check that only exact arguemnts have been set.
-  ```
+```
