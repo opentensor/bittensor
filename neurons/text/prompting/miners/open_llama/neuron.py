@@ -19,7 +19,7 @@ import torch
 import argparse
 import bittensor
 from typing import List, Dict
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import LlamaForCausalLM, LlamaTokenizer
 
 class Open_llama_miner( bittensor.BasePromptingMiner ):
 
@@ -42,8 +42,8 @@ class Open_llama_miner( bittensor.BasePromptingMiner ):
         print ( self.config )
         
         bittensor.logging.info( 'Loading ' + str(self.config.open_llama.model_name))
-        self.tokenizer = AutoTokenizer.from_pretrained( self.config.open_llama.model_name, use_fast=False )
-        self.model = AutoModelForCausalLM.from_pretrained( self.config.open_llama.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
+        self.tokenizer = LlamaTokenizer.from_pretrained( self.config.open_llama.model_name, use_fast=False )
+        self.model = LlamaForCausalLM.from_pretrained( self.config.open_llama.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
         bittensor.logging.info( 'Model loaded!' )
 
         if self.config.open_llama.device != "cpu":
