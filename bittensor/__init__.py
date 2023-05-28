@@ -219,6 +219,7 @@ from bittensor._dendrite.speech_to_text.dendrite import SpeechToTextDendrite as 
 from bittensor._dendrite.text_to_embedding.dendrite import TextToEmbeddingDendrite as text_to_embedding
 from bittensor._dendrite.text_to_video.dendrite import TextToVideoDendrite as text_to_video
 from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
+from bittensor._dendrite.text_to_embedding.dendrite import TextToEmbeddingDendrite as text_to_embedding
 
 # ---- Text Prompting -----
 from bittensor._dendrite.text_prompting import prompt as prompt

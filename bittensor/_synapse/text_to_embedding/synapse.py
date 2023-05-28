@@ -52,7 +52,7 @@ class TextToEmbeddingForward( bittensor.SynapseCall ):
         bittensor.logging.trace( "TextToEmbeddingForward.get_response_proto()" )
         embedding_tensor = bittensor.serializer().serialize( self.embedding )
         return bittensor.proto.ForwardTextToEmbeddingResponse( embedding = embedding_tensor )
-    
+
     def get_inputs_shape(self) -> Union[torch.Size, None]: 
         bittensor.logging.trace( "TextToEmbeddingForward.get_inputs_shape()" )
         return torch.Size( [ len(self.text) ] )
@@ -61,12 +61,11 @@ class TextToEmbeddingForward( bittensor.SynapseCall ):
         bittensor.logging.trace( "TextToEmbeddingForward.get_outputs_shape()" )
         return self.embedding.shape if self.embedding is not None else None
 
-
-class TextToEmbedding(BaseModel):
+class TextToEmbedding( BaseModel ):
     text: str
     timeout: int = 12
 
-class TextToEmbeddingSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServicer ):
+class TextToEmbeddingSynapse( bittensor.Synapse, bittensor.grpc.TextToEmbeddingServicer ):
     name: str = "text_to_embedding"
 
     def attach( self, axon: 'bittensor.axon.Axon' ):
@@ -95,4 +94,4 @@ class TextToEmbeddingSynapse( bittensor.Synapse, bittensor.grpc.TextToImageServi
     def Forward( self, request: bittensor.proto.ForwardTextToEmbeddingRequest, context: grpc.ServicerContext ) -> bittensor.proto.ForwardTextToEmbeddingResponse:
         call = TextToEmbeddingForward( self, request, self.forward )
         bittensor.logging.trace( 'GRPCTextToEmbeddingForward: {} '.format( call ) )
-        return self.apply( call = call ) 
+        return self.apply( call = call )

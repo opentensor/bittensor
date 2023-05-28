@@ -34,7 +34,7 @@ class TextToEmbeddingForwardCall( bittensor.DendriteCall ):
         super().__init__( dendrite = dendrite, timeout = timeout )
         self.text = [text] if isinstance(text, str) else text # Check if we get a single string or a list
         self.packed_text = [json.dumps( text ) for text in self.text]
-        
+    
     def get_callable( self ) -> Callable:
         return bittensor.grpc.TextToEmbeddingStub( self.dendrite.channel ).Forward
 
@@ -61,7 +61,7 @@ class TextToEmbeddingDendrite( bittensor.Dendrite ):
         forward_call = TextToEmbeddingForwardCall(
             dendrite = self, 
             timeout = timeout,
-            text=text
+            text = text
         )
         response_call = self.loop.run_until_complete( self.apply( dendrite_call = forward_call ) )
         if return_call: return response_call
