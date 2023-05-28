@@ -1,63 +1,76 @@
-# Pythia Miner
-togethercomputer/Pythia-7B Language Model Serving with BitTensor
+# Guanaco Miner
+timdettmers Guanaco Language Model Serving with BitTensor
 This code is for running a language model powered by togethercomputer through the BitTensor framework. 
+Reference: [code](https://github.com/artidoro/qlora)
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/huggingface/pythia_requirements.txt
-python3 neurons/text/prompting/miners/huggingface/pythia_miner.py --pythia.model_name togethercomputer/Pythia-Chat-Base-7B
+python3 -m pip install -r neurons/text/prompting/miners/huggingface/guanaco_requirements.txt
+python neurons/text/prompting/miners/huggingface/guanaco_miner.py --guanaco.model_name timdettmers/guanaco-33b-merged --guanaco.device_map auto
 ```
 
 # Full Usage
 ```
-usage: pythia_miner.py [-h] --pythia.model_name PYTHIA.MODEL_NAME [--pythia.device PYTHIA.DEVICE] [--pythia.max_new_tokens PYTHIA.MAX_NEW_TOKENS]
-                       [--pythia.temperature PYTHIA.TEMPERATURE] [--pythia.do_sample] [--pythia.repetition_penalty PYTHIA.REPETITION_PENALTY]
-                       [--pythia.do_prompt_injection] [--pythia.system_prompt PYTHIA.SYSTEM_PROMPT]
-                       [--pythia.repetition-penalty PYTHIA.REPETITION_PENALTY] [--pythia.top_p PYTHIA.TOP_P] [--pythia.top_k PYTHIA.TOP_K]
-                       [--pythia.load_in_8bit PYTHIA.LOAD_IN_8BIT] [--pythia.pad_tokens PYTHIA.PAD_TOKENS [PYTHIA.PAD_TOKENS ...]]
-                       [--netuid NETUID] [--neuron.name NEURON.NAME] [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights]
-                       [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN]
-                       [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS [NEURON.BLACKLIST.HOTKEYS ...]]]
-                       [--neuron.blacklist.allow_non_registered] [--neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE]
-                       [--neuron.default_priority NEURON.DEFAULT_PRIORITY] [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY]
-                       [--wallet.path WALLET.PATH] [--wallet._mock] [--wallet.reregister WALLET.REREGISTER]
-                       [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS] [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE]
-                       [--axon.port AXON.PORT] [--axon.ip AXON.IP] [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP]
-                       [--axon.max_workers AXON.MAX_WORKERS] [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS]
-                       [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT] [--subtensor._mock]
-                       [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
-                       [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL] [--subtensor.register.no_output_in_place]
-                       [--subtensor.register.verbose] [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
-                       [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]]
-                       [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug] [--logging.trace] [--logging.record_log]
-                       [--logging.logging_dir LOGGING.LOGGING_DIR] [--config CONFIG] [--strict]
+usage: guanaco_miner.py [-h] [--guanaco.model_name GUANACO.MODEL_NAME] [--guanaco.api_key GUANACO.API_KEY]
+                        [--guanaco.device GUANACO.DEVICE] [--guanaco.max_new_tokens GUANACO.MAX_NEW_TOKENS]
+                        [--guanaco.temperature GUANACO.TEMPERATURE] [--guanaco.do_sample]
+                        [--guanaco.repetition_penalty GUANACO.REPETITION_PENALTY] [--guanaco.do_prompt_injection]
+                        [--guanaco.system_prompt GUANACO.SYSTEM_PROMPT]
+                        [--guanaco.repetition-penalty GUANACO.REPETITION_PENALTY] [--guanaco.top_p GUANACO.TOP_P]
+                        [--guanaco.top_k GUANACO.TOP_K] [--guanaco.load_in_8bit GUANACO.LOAD_IN_8BIT]
+                        [--guanaco.device_map GUANACO.DEVICE_MAP]
+                        [--guanaco.pad_tokens GUANACO.PAD_TOKENS [GUANACO.PAD_TOKENS ...]] [--netuid NETUID]
+                        [--neuron.name NEURON.NAME] [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH]
+                        [--neuron.no_set_weights] [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE]
+                        [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN]
+                        [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS [NEURON.BLACKLIST.HOTKEYS ...]]]
+                        [--neuron.blacklist.allow_non_registered]
+                        [--neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE]
+                        [--neuron.default_priority NEURON.DEFAULT_PRIORITY] [--wallet.name WALLET.NAME]
+                        [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock]
+                        [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS]
+                        [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT] [--axon.ip AXON.IP]
+                        [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP]
+                        [--axon.max_workers AXON.MAX_WORKERS] [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS]
+                        [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT]
+                        [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
+                        [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL]
+                        [--subtensor.register.no_output_in_place] [--subtensor.register.verbose]
+                        [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
+                        [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]]
+                        [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug] [--logging.trace]
+                        [--logging.record_log] [--logging.logging_dir LOGGING.LOGGING_DIR] [--config CONFIG] [--strict]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --pythia.model_name PYTHIA.MODEL_NAME
+  --guanaco.model_name GUANACO.MODEL_NAME
                         Name or path of model to load
-  --pythia.device PYTHIA.DEVICE
+  --guanaco.api_key GUANACO.API_KEY
+                        huggingface api key
+  --guanaco.device GUANACO.DEVICE
                         Device to load model
-  --pythia.max_new_tokens PYTHIA.MAX_NEW_TOKENS
+  --guanaco.max_new_tokens GUANACO.MAX_NEW_TOKENS
                         Max tokens for model output.
-  --pythia.temperature PYTHIA.TEMPERATURE
+  --guanaco.temperature GUANACO.TEMPERATURE
                         Sampling temperature of model
-  --pythia.do_sample    Whether to use multinomial sampling.
-  --pythia.repetition_penalty PYTHIA.REPETITION_PENALTY
+  --guanaco.do_sample   Whether to use multinomial sampling.
+  --guanaco.repetition_penalty GUANACO.REPETITION_PENALTY
                         Repetition penalty for model
-  --pythia.do_prompt_injection
+  --guanaco.do_prompt_injection
                         Whether to use a custom "system" prompt instead of the one sent by bittensor.
-  --pythia.system_prompt PYTHIA.SYSTEM_PROMPT
+  --guanaco.system_prompt GUANACO.SYSTEM_PROMPT
                         What prompt to replace the system prompt with
-  --pythia.repetition-penalty PYTHIA.REPETITION_PENALTY
+  --guanaco.repetition-penalty GUANACO.REPETITION_PENALTY
                         Repetition penalty for greedy decoding. Between 1.0 and infinity. 1.0 means no penalty. Default: 1.0
-  --pythia.top_p PYTHIA.TOP_P
+  --guanaco.top_p GUANACO.TOP_P
                         Top-p (nucleus) sampling. Defaults to 1.0 (top-k sampling). Must be between 0.0 and 1.0.
-  --pythia.top_k PYTHIA.TOP_K
+  --guanaco.top_k GUANACO.TOP_K
                         Top-k sampling. Defaults to 0 (no top-k sampling). Must be between 0 and 1000.
-  --pythia.load_in_8bit PYTHIA.LOAD_IN_8BIT
+  --guanaco.load_in_8bit GUANACO.LOAD_IN_8BIT
                         Load model in 8 bit precision
-  --pythia.pad_tokens PYTHIA.PAD_TOKENS [PYTHIA.PAD_TOKENS ...]
+  --guanaco.device_map GUANACO.DEVICE_MAP
+                        Device map for model parallelism.
+  --guanaco.pad_tokens GUANACO.PAD_TOKENS [GUANACO.PAD_TOKENS ...]
                         A list of integers separated by spaces for the pad_tokens.
   --netuid NETUID       Subnet netuid
   --neuron.name NEURON.NAME
@@ -79,7 +92,8 @@ optional arguments:
   --neuron.default_priority NEURON.DEFAULT_PRIORITY
                         Set default priority for miners.
   --wallet.name WALLET.NAME
-                        The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)
+                        The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this
+                        wallet)
   --wallet.hotkey WALLET.HOTKEY
                         The name of wallet's hotkey.
   --wallet.path WALLET.PATH
@@ -99,14 +113,14 @@ optional arguments:
   --axon.external_ip AXON.EXTERNAL_IP
                         The external ip this axon broadcasts to the network to. ie. [::]
   --axon.max_workers AXON.MAX_WORKERS
-                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes new
-                        worker threads to service requests up to this number.
+                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc
+                        server distributes new worker threads to service requests up to this number.
   --axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS
                         Maximum number of allowed active connections
   --subtensor.network SUBTENSOR.NETWORK
-                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running network) -- mock
-                        (creates a mock connection (for testing)) If this option is set it overloads subtensor.chain_endpoint with an entry point
-                        node from that network.
+                        The subtensor network flag. The likely choices are: -- finney (main network) -- local (local running
+                        network) -- mock (creates a mock connection (for testing)) If this option is set it overloads
+                        subtensor.chain_endpoint with an entry point node from that network.
   --subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT
                         The subtensor endpoint flag. If set, overrides the --network flag.
   --subtensor._mock     To turn on subtensor mocking for testing purposes.
