@@ -45,6 +45,7 @@ class HuggingFaceMiner( bittensor.BasePromptingMiner, ABC ):
         parser.add_argument( f'--{cls.arg_prefix}.top_p', type=float, default=0.9, help='Top-p (nucleus) sampling. Defaults to 1.0 (top-k sampling). Must be between 0.0 and 1.0.' )
         parser.add_argument( f'--{cls.arg_prefix}.top_k', type=int, default=0, help='Top-k sampling. Defaults to 0 (no top-k sampling). Must be between 0 and 1000.' )
         parser.add_argument( f'--{cls.arg_prefix}.load_in_8bit', type=bool, default=False, help='Load model in 8 bit precision')
+        parser.add_argument( f'--{cls.arg_prefix}.device_map', type=str, default=None, help='Device map for model parallelism.')
         parser.add_argument( f'--{cls.arg_prefix}.pad_tokens', type=int, default=[], nargs='+', help='A list of integers separated by spaces for the pad_tokens.')
 
     def __init__(self):
@@ -60,8 +61,10 @@ class HuggingFaceMiner( bittensor.BasePromptingMiner, ABC ):
         self.model = self.load_model()
         bittensor.logging.info( 'Model loaded!' )
 
-        # Device already configured if using pipieline. (i.e. Pipelines have no `.to()` method)
-        if getattr( self.config, self.arg_prefix ).device != "cpu" and 'pipeline' not in self.model.__class__.__name__.lower():
+        # Device already configured if using pipieline or device_map is set. (i.e. Pipelines have no `.to()` method)
+        if getattr( self.config, self.arg_prefix ).device != "cpu" \
+            and 'pipeline' not in self.model.__class__.__name__.lower() \
+            and  getattr( self.config, self.arg_prefix ).device_map == None:
             self.model = self.model.to( getattr( self.config, self.arg_prefix ).device )
 
     @abstractmethod
