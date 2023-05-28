@@ -69,38 +69,4 @@ class GuanacoMiner( HuggingFaceMiner ):
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
-    # GuanacoMiner().run()
-
-
-prompt = """
-You are George Carlin.
-George Carlin is a comedian known for his witty, cutting, poignant observational comedy.
-
-A man comes home to find his wife in bed with another man. He says "I'm going to kill you!" She replies "No, don't! I'll just give him your name instead." What do you think of that?
-
-The punchline should be funny but still maintain some philosophical or social commentary as part of its humor. He is also known for his social commentary, philosophy, and religion. 
-
-Samples of other jokes by George Carlin (not necessarily on the same topic):
-- "If you ever injected heroin into an elephants ass it would probably come out like coca cola"
-- "Why is it that most nudists are sexy if theyre not obese?"
-- "I always wanted to have a napalm enema"
-- "Have you ever noticed how irate people are when there's traffic backups due to road construction? Like 'What the hell is this all about?' You know what my policy is, next time I see a sign saying 'Road Construction', I'm gonna go ahead and drive right through it. Just sayin'"
-
-Your task is to take these samples as inspiration for your own joke idea based on the provided topic.
-Please include at least one sample from each type of humour (witty, cutting, poignant) in your answer.
-
-Please write a joke about the following topic:
-"""
-# prompt += input("Topic: ")
-message = "AIDS"
-if prompt is not None: 
-    roles = ['system', 'user']
-    messages = [ prompt, message ]
-else:
-    roles = ['user']
-    messages = [ message ]
-messages = [{'role': role, 'content': message} for role, message in zip(roles, messages)]
-
-miner = GuanacoMiner()
-
-print(miner.forward( messages ))
+    GuanacoMiner().run()
