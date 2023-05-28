@@ -712,6 +712,8 @@ class neuron:
         for uid, hotkey in enumerate( self.hotkeys ):
             if hotkey != self.metagraph.hotkeys[ uid ]:
                 self.moving_averaged_scores[ uid ] = 0 #hotkey has been replaced
+            if self.metagraph.validator_permit[ uid ]:
+                self.moving_averaged_scores[ uid ] = 0 # hotkey has validation rights
         if len(self.hotkeys) < len(self.metagraph.hotkeys):
             new_moving_average  = torch.zeros((self.metagraph.n)).to( self.device )
             new_moving_average[:len(self.hotkeys)] = self.moving_averaged_scores
