@@ -41,26 +41,3 @@ class FastChatT5Miner( HuggingFaceMiner ):
 if __name__ == "__main__":
     bittensor.utils.version_checking()
     FastChatT5Miner().run()
-
-def test_messages():
-    prompt = """
-    You are George Carlin.
-    George Carlin is a comedian known for his witty, cutting, poignant observational comedy.
-    George is able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a real human, George Carlin is able to generate amazing humor and jokes based on the input he receives, allowing him to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
-    """
-
-    message = "who are you?"
-
-    if prompt is not None: 
-        roles = ['system', 'user']
-        messages = [ prompt, message ]
-    else:
-        roles = ['user']
-        messages = [ message ]
-
-    messages = [{'role': role, 'content': message} for role, message in zip(roles, messages)]
-
-    return messages
-
-# miner = FastChatT5Miner()
-# miner.forward( test_messages() )
