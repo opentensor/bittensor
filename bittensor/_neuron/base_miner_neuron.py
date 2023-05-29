@@ -17,14 +17,13 @@
 
 import os
 import time
-import copy
 import torch
 import threading
 import argparse
 import bittensor
 
 from rich import print
-from typing import List, Dict, Union, Tuple, Optional
+from typing import Union, Tuple
 from datetime import datetime
 
 class BaseMinerNeuron:
@@ -107,8 +106,8 @@ class BaseMinerNeuron:
         self.wallet = bittensor.wallet( self.config )
         self.metagraph = self.subtensor.metagraph( self.config.netuid )
         self.axon = bittensor.axon( wallet = self.wallet, config = self.config )
-        self.blacklister = bittensor.blacklist( config = self.config.neuron.blacklist )
-        self.prioritizer = bittensor.priority( config = self.config.neuron.priority )
+        self.blacklister = bittensor.blacklist( config = self.config.neuron )
+        self.prioritizer = bittensor.priority( config = self.config.neuron )
 
         # Used for backgounr process.
         self.is_running = False

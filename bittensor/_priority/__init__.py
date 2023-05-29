@@ -18,7 +18,6 @@
 import math
 import argparse
 import bittensor
-from typing import List, Dict, Union, Tuple, Optional
 
 class priority:
 
