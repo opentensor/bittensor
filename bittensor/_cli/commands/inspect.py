@@ -121,6 +121,16 @@ class InspectCommand:
             for netuid in netuids:
                 for neuron in neuron_state_dict[netuid]:
                     if neuron.coldkey == wallet.coldkeypub.ss58_address:
+                        hotkey_name: str = ''
+
+                        hotkey_names: List[str] = \
+                            [ wallet.hotkey_str for wallet in filter( 
+                                lambda hotkey: hotkey.hotkey.ss58_address == neuron.hotkey,
+                                hotkeys
+                            ) ]
+                        if len(hotkey_names) > 0:
+                            hotkey_name = f'{hotkey_names[0]}-' 
+                        
                         table.add_row(
                             '',
                             '',
@@ -128,7 +138,7 @@ class InspectCommand:
                             '',
                             '',
                             str( netuid ),
-                            str( neuron.hotkey ),
+                            f'{hotkey_name}{neuron.hotkey}',
                             str( neuron.stake ),
                             str( bittensor.Balance.from_tao(neuron.emission) )
                         )
@@ -139,7 +149,7 @@ class InspectCommand:
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
-        if not config.get( 'all', d=None ) and config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
+        if not config.get( 'all', d=None ) and not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 

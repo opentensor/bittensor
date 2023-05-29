@@ -11,3 +11,4 @@
 **/venv/*
 ./circleci/*
 ./github/*
+.ipynb
