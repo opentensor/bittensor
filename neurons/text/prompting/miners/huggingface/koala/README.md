@@ -14,7 +14,7 @@ This code is for running the Koala model through the BitTensor framework.
 # Installing Dependencies
 
 ```
-python3 -m pip install -r neurons/text/prompting/miners/koala/requirements.txt
+python3 -m pip install -r neurons/text/prompting/miners/huggingface/koala/requirements.txt
 ```
 
 # Converting Weights Into Model
@@ -62,7 +62,7 @@ python -m EasyLM.scripts.diff_checkpoint \
 
 # Starting Miner
 ```
-python3 neurons/text/prompting/miners/koala/neuron.py
+python3 neurons/text/prompting/miners/huggingface/koala_miner.py --koala.model_name TheBloke/koala-7B-HF
 ```
 
 # Full Usage
