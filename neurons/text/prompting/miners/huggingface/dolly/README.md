@@ -4,7 +4,7 @@ Dolyl 3B and 12B completion miner for bittensor's prompting network.
 
 # Example Usage
 ```
-python3 neurons/text/prompting/miners/huggingface/dolly_miner.py --dolly.model_name databricks/dolly-v2-12b
+python3 neurons/text/prompting/miners/huggingface/dolly/neuron.py --dolly.model_name databricks/dolly-v2-12b
 ```
 
 # Full Usage
