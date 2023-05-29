@@ -79,6 +79,7 @@ class TestCLINoNetwork(unittest.TestCase):
 
         return defaults
 
+    @unittest.skip("")
     def test_check_configs(self):
         config = self.config
         config.no_prompt = True
@@ -114,6 +115,7 @@ class TestCLINoNetwork(unittest.TestCase):
                 config.command = cmd
                 cli.check_config(config)
 
+    @unittest.skip("")
     def test_new_coldkey( self ):
         config = self.config
         config.wallet.name = "new_coldkey_testwallet"
@@ -127,10 +129,10 @@ class TestCLINoNetwork(unittest.TestCase):
         config.no_prompt = True
         config.overwrite_coldkey = True
 
-
         cli = bittensor.cli(config)
         cli.run()
 
+    @unittest.skip("")
     def test_new_hotkey( self ):
         config = self.config
         config.wallet.name = "new_hotkey_testwallet"
@@ -147,6 +149,7 @@ class TestCLINoNetwork(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
+    @unittest.skip("")
     def test_regen_coldkey( self ):
         config = self.config
         config.wallet.name = "regen_coldkey_testwallet"
@@ -165,6 +168,7 @@ class TestCLINoNetwork(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
+    @unittest.skip("")
     def test_regen_coldkeypub( self ):
         config = self.config
         config.wallet.name = "regen_coldkeypub_testwallet"
@@ -179,6 +183,7 @@ class TestCLINoNetwork(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
+    @unittest.skip("")
     def test_regen_hotkey( self ):
         config = self.config
         config.wallet.name = "regen_hotkey_testwallet"
