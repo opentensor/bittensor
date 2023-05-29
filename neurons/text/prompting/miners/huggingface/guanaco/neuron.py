@@ -20,9 +20,7 @@ import bittensor
 from typing import List, Dict
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-from base import HuggingFaceMiner
-
-class GuanacoMiner( HuggingFaceMiner ):
+class GuanacoMiner( bittensor.HuggingFaceMiner ):
 
     arg_prefix: str = 'guanaco'
     assistant_label: str = '### Assistant:'

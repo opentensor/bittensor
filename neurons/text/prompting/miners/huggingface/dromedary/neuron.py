@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Opentensor Foundation
+# Copyright © 2023 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -16,33 +16,47 @@
 # DEALINGS IN THE SOFTWARE.
 
 import torch
+import argparse
 import bittensor
 from typing import List, Dict
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-from base import HuggingFaceMiner
 
-class KoalaMiner( HuggingFaceMiner ):
-    arg_prefix: str = 'koala'
-    assistant_label: str = 'GPT:'
-    user_label: str = 'USER:'
-    system_label: str = ''
+class DromedaryMiner( bittensor.HuggingFaceMiner ):
+    arg_prefix: str = "dromedary"
+    assistant_label: str = "Dromedary:"
+    user_label: str = "User:"
+    system_label: str = "System:"
 
-    def load_tokenizer( self ):
-        return AutoTokenizer.from_pretrained( self.config.koala.model_name, use_fast=False )
-    
-    def load_model( self ):
-        return AutoModelForCausalLM.from_pretrained( self.config.koala.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        parser.add_argument( '--dromedary.device_map', type=str, help='Device to load model: Default "auto" for multi-GPU', default="auto" )
+
+    def __init__( self ):
+        super( DromedaryMiner, self ).__init__()
+        print ( self.config )
+
+        bittensor.logging.info( 'Loading ' + str( self.config.dromedary.model_name ) )
+        self.tokenizer = AutoTokenizer.from_pretrained( self.config.dromedary.model_name, use_fast=False )
+        self.model = AutoModelForCausalLM.from_pretrained( 
+            self.config.dromedary.model_name,  
+            device_map=self.config.dromedary.device_map, 
+            torch_dtype=torch.float16, 
+            low_cpu_mem_usage=True 
+        )
+        bittensor.logging.info( 'Model loaded!' )
 
     def forward( self, messages: List[Dict[str, str]] ) -> str:
-        history = self._process_history( messages )
-        prompt = history + self.system_label
-        input_ids = self.tokenizer.encode( prompt, return_tensors="pt" ).to( self.config.koala.device )
+
+        history = self._process_history( self, messages )
+        prompt = history + self.assistant_label
+
+        input_ids = self.tokenizer.encode( prompt, return_tensors="pt" ).to( self.config.dromedary.device )
         output = self.model.generate(
             input_ids,
-            max_length=input_ids.shape[1] + self.config.koala.max_new_tokens,
-            temperature=self.config.koala.temperature,
-            do_sample=self.config.koala.do_sample,
+            max_length=input_ids.shape[1] + self.config.dromedary.max_new_tokens,
+            temperature=self.config.dromedary.temperature,
+            do_sample=self.config.dromedary.do_sample,
             pad_token_id=self.tokenizer.eos_token_id,
         )
         generation = self.tokenizer.decode( output[0][input_ids.shape[1]:], skip_special_tokens=True )
@@ -53,4 +67,4 @@ class KoalaMiner( HuggingFaceMiner ):
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
-    KoalaMiner().run()
+    DromedaryMiner().run()

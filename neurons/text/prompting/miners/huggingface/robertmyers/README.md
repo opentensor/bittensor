@@ -4,8 +4,8 @@ Robert myers completion miner for bittensor's prompting network.
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/huggingface/robertmyers_requirements.txt
-python3 neurons/text/prompting/miners/huggingface/robertmyers_miner.py --robertmyers.model_name robertmyers/bpt-sft
+python3 -m pip install -r neurons/text/prompting/miners/huggingface/robertmyers/requirements.txt
+python3 neurons/text/prompting/miners/huggingface/robertmyers/neuron.py --robertmyers.model_name robertmyers/bpt-sft
 ```
 
 # Full Usage

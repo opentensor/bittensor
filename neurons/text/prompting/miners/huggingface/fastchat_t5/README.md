@@ -1,47 +1,56 @@
+# FastChat T5 Miner
+FastChat T5 completion miner for bittensor's prompting network. 
 
-## OpenAssistant Pythia Miner
-OpenAssistant's Pythia (12B) completion miner for bittensor's prompting network. 
+# Download weights
+They disabled API inference requests via HuggingFace so you've gotta do it yourself by downloading the weights and passing the path directly. 
+
+```bash
+git lfs install
+git clone https://huggingface.co/lmsys/fastchat-t5-3b-v1.0
+```
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/huggingface/oasst_pythia_requirements.txt
-python3 neurons/text/prompting/miners/huggingface/oasst_pythia_miner.py --oasst_pythia.OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5
+python3 neurons/text/prompting/miners/huggingface/fastchat_t5/neuron.py --fastchat_t5.model_path /path/to/fastchat-t5-3b-v1.0
 ```
 
 # Full Usage
 ```
-usage: neuron.py [-h] [--pythia12B.model_name PYTHIA12B.MODEL_NAME] [--pythia12B.load_in_8bit PYTHIA12B.LOAD_IN_8BIT] [--pythia12B.max_new_tokens PYTHIA12B.MAX_NEW_TOKENS]
-                 [--pythia12B.temperature PYTHIA12B.TEMPERATURE] [--pythia12B.greedy_sampling] [--pythia12B.repetition-penalty PYTHIA12B.REPETITION_PENALTY]
-                 [--pythia12B.top_p PYTHIA12B.TOP_P] [--pythia12B.top_k PYTHIA12B.TOP_K] [--netuid NETUID] [--neuron.name NEURON.NAME]
-                 [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights] [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE]
-                 [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN] [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS [NEURON.BLACKLIST.HOTKEYS ...]]]
-                 [--neuron.blacklist.allow_non_registered] [--neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE] [--neuron.default_priority NEURON.DEFAULT_PRIORITY]
-                 [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock] [--wallet.reregister WALLET.REREGISTER]
-                 [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS] [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT] [--axon.ip AXON.IP]
-                 [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP] [--axon.max_workers AXON.MAX_WORKERS]
-                 [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS] [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT]
-                 [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES] [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL]
-                 [--subtensor.register.no_output_in_place] [--subtensor.register.verbose] [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
-                 [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]] [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB]
-                 [--logging.debug] [--logging.trace] [--logging.record_log] [--logging.logging_dir LOGGING.LOGGING_DIR] [--config CONFIG] [--strict]
+usage: fastchat-t5.py [-h] [--fastchat_t5.MODEL_PATH FASTCHAT_T5.MODEL_PATH] [--fastchat_t5.device FASTCHAT_T5.DEVICE] [--fastchat_t5.max_new_tokens FASTCHAT_T5.MAX_NEW_TOKENS]
+                      [--fastchat_t5.temperature FASTCHAT_T5.TEMPERATURE] [--fastchat_t5.greedy_decoding] [--fastchat_t5.repetition_penalty FASTCHAT_T5.REPETITION_PENALTY]
+                      [--fastchat_t5.do_prompt_injection] [--fastchat_t5.system_prompt FASTCHAT_T5.SYSTEM_PROMPT] [--netuid NETUID] [--neuron.name NEURON.NAME]
+                      [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights] [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE]
+                      [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN] [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS [NEURON.BLACKLIST.HOTKEYS ...]]]
+                      [--neuron.blacklist.allow_non_registered] [--neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE]
+                      [--neuron.default_priority NEURON.DEFAULT_PRIORITY] [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock]
+                      [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS] [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE]
+                      [--axon.port AXON.PORT] [--axon.ip AXON.IP] [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP]
+                      [--axon.max_workers AXON.MAX_WORKERS] [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS] [--subtensor.network SUBTENSOR.NETWORK]
+                      [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT] [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
+                      [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL] [--subtensor.register.no_output_in_place] [--subtensor.register.verbose]
+                      [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
+                      [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]]
+                      [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug] [--logging.trace] [--logging.record_log]
+                      [--logging.logging_dir LOGGING.LOGGING_DIR] [--config CONFIG] [--strict]
+
 optional arguments:
   -h, --help            show this help message and exit
-  --pythia12B.model_name PYTHIA12B.MODEL_NAME
+  --fastchat_t5.MODEL_PATH FASTCHAT_T5.MODEL_PATH
                         Name/path of model to load
-  --pythia12B.load_in_8bit PYTHIA12B.LOAD_IN_8BIT
-                        Load model in 8 bit precision
-  --pythia12B.max_new_tokens PYTHIA12B.MAX_NEW_TOKENS
+  --fastchat_t5.device FASTCHAT_T5.DEVICE
+                        Device to load model
+  --fastchat_t5.max_new_tokens FASTCHAT_T5.MAX_NEW_TOKENS
                         Max tokens for model output.
-  --pythia12B.temperature PYTHIA12B.TEMPERATURE
+  --fastchat_t5.temperature FASTCHAT_T5.TEMPERATURE
                         Sampling temperature of model
-  --pythia12B.greedy_sampling
+  --fastchat_t5.greedy_decoding
                         Whether to use greedy sampling or not (if not, uses multinomial sampling).
-  --pythia12B.repetition-penalty PYTHIA12B.REPETITION_PENALTY
-                        Repetition penalty for greedy decoding. Between 1.0 and infinity. 1.0 means no penalty. Default: 1.0
-  --pythia12B.top_p PYTHIA12B.TOP_P
-                        Top-p (nucleus) sampling. Defaults to 1.0 (top-k sampling). Must be between 0.0 and 1.0.
-  --pythia12B.top_k PYTHIA12B.TOP_K
-                        Top-k sampling. Defaults to 0 (no top-k sampling). Must be between 0 and 1000.
+  --fastchat_t5.repetition_penalty FASTCHAT_T5.REPETITION_PENALTY
+                        Repetition penalty for model
+  --fastchat_t5.do_prompt_injection
+                        Whether to use a custom "system" prompt instead of the one sent by bittensor.
+  --fastchat_t5.system_prompt FASTCHAT_T5.SYSTEM_PROMPT
+                        What prompt to replace the system prompt with
   --netuid NETUID       Subnet netuid
   --neuron.name NEURON.NAME
                         Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name

@@ -3,8 +3,8 @@ StabilityAI 7B completion miner for bittensor's prompting network.
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/huggingface/stabilityai_requirements.txt
-python3 neurons/text/prompting/miners/huggingface/stabilityai_miner.py --stabilityai.model_size 7 # for 7B model
+python3 -m pip install -r neurons/text/prompting/miners/huggingface/stabilityai/requirements.txt
+python3 neurons/text/prompting/miners/huggingface/stabilityai/neuron.py --stabilityai.model_size 7 # for 7B model
 
 # Some suggested settings
 python3 neurons/text/prompting/miners/stabilityai/neuron.py --stabilityai.temperature 1.0 --stabilityai.top_k 10 --stabilityai.top_p 0.95 --stabilityai.do_sample

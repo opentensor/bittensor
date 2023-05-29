@@ -6,9 +6,7 @@ from huggingface_hub import hf_hub_download
 from rwkv.model import RWKV
 from rwkv.utils import PIPELINE
 
-from base import HuggingFaceMiner
-
-class RavenMiner( HuggingFaceMiner ):
+class RavenMiner( bittensor.HuggingFaceMiner ):
 
     arg_prefix = 'raven'
     system_label = ""

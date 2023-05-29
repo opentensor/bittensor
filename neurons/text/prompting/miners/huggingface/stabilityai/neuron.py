@@ -23,8 +23,6 @@ import bittensor
 from typing import List, Dict
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, StoppingCriteria, StoppingCriteriaList
 
-from base import HuggingFaceMiner
-
 class StopOnTokens( StoppingCriteria ):
     def __call__( self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs ) -> bool:
         stop_ids = [50278, 50279, 50277, 1, 0]
@@ -33,7 +31,7 @@ class StopOnTokens( StoppingCriteria ):
                 return True
         return False
 
-class StabilityAIMiner( HuggingFaceMiner ):
+class StabilityAIMiner( bittensor.HuggingFaceMiner ):
     arg_prefix: str = 'stabilityai'
     system_label: str = '<|SYSTEM|>:'
     assistant_label: str = '<|ASSISTANT|>:'

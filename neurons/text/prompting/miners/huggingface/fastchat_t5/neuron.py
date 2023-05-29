@@ -4,9 +4,7 @@ import bittensor
 from typing import List, Dict
 from transformers import T5Tokenizer, AutoModelForSeq2SeqLM
 
-from base import HuggingFaceMiner
-
-class FastChatT5Miner( HuggingFaceMiner ):
+class FastChatT5Miner( bittensor.HuggingFaceMiner ):
 
     arg_prefix: str = "fastchat_t5"
     assistant_label: str = "ASSISTANT:"
