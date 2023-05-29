@@ -18,38 +18,39 @@
 import torch
 import bittensor
 from typing import List, Dict
-from transformers import pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
-from base import HuggingFaceMiner
+class PythiaMiner( bittensor.HuggingFaceMiner ):
 
-
-class Dolly12BMiner( HuggingFaceMiner ):
-
-    arg_prefix: str = "dolly"
-    assistant_label: str = "### Response:"
-    user_label: str = "### Instruction:"
-    system_label: str = ""
-
-    def load_model( self ):
-        bittensor.logging.info( 'Loading ' + str( self.config.dolly.model_name ) )
-        model = pipeline( model=self.config.dolly.model_name, torch_dtype=torch.bfloat16, trust_remote_code=True, device=0 )
-        bittensor.logging.info( 'Model loaded!' )
-        return model
+    arg_prefix: str = 'pythia'
+    assistant_label: str = '<bot>:'
+    user_label: str = '<human>:'
+    system_label: str = ''
 
     def load_tokenizer( self ):
-        pass
+        return AutoTokenizer.from_pretrained( self.config.pythia.model_name )
 
+    def load_model( self ):
+        return AutoModelForCausalLM.from_pretrained( self.config.pythia.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
+    
     def forward(self, messages: List[Dict[str, str]]) -> str:
-
         history = self.process_history( messages )
         prompt = history + self.assistant_label
-        generation = self.model( prompt )
+        input_ids = self.tokenizer.encode( prompt, return_tensors="pt" ).to( self.config.pythia.device )
+        output = self.model.generate(
+            input_ids,
+            max_length=input_ids.shape[1] + self.config.pythia.max_new_tokens,
+            temperature=self.config.pythia.temperature,
+            do_sample=self.config.pythia.do_sample,
+            pad_token_id=self.tokenizer.eos_token_id,
+        )
+        generated_text = self.tokenizer.decode( output[0][input_ids.shape[1]:], skip_special_tokens=True )
+        generation = generated_text.split( "<human>" )[0].strip()
 
-        bittensor.logging.debug(" Message: " + str( messages ) )
-        bittensor.logging.debug( "Generation: " + str( generation ) )
+        bittensor.logging.debug("Message: " + str( messages ).replace( "<","-" ).replace( ">","-" ) )
+        bittensor.logging.debug("Generation: " + str( generation ).replace( "<","-" ).replace( ">","-" ) )
         return generation
-
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
-    Dolly12BMiner().run()
+    PythiaMiner().run()

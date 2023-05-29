@@ -5,8 +5,8 @@ Reference: [code](https://github.com/artidoro/qlora)
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/huggingface/guanaco_requirements.txt
-python neurons/text/prompting/miners/huggingface/guanaco_miner.py --guanaco.model_name timdettmers/guanaco-33b-merged --guanaco.device_map auto
+python3 -m pip install -r neurons/text/prompting/miners/huggingface/guanaco/requirements.txt
+python neurons/text/prompting/miners/huggingface/guanaco/neuron.py --guanaco.model_name timdettmers/guanaco-33b-merged --guanaco.device_map auto
 ```
 
 # Full Usage

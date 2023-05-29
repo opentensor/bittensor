@@ -21,9 +21,7 @@ import bittensor
 from typing import List, Dict
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
-from base import HuggingFaceMiner
-
-class RobertMyersMiner( HuggingFaceMiner ):
+class RobertMyersMiner( bittensor.HuggingFaceMiner ):
 
     arg_prefix: str = 'robertmyers'
     system_label: str = 'system:'

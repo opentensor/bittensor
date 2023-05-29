@@ -60,10 +60,10 @@ python3 -m fastchat.model.apply_delta \
 # Starting Miner
 ```
 # If using HuggingFace model directly, only need to supply the repo ID.
-python3 neurons/text/prompting/miners/vicuna/neuron.py --vicuna.model_name TheBloke/vicuna-7B-1.1-HF
+python3 neurons/text/prompting/miners/huggingface/vicuna/neuron.py --vicuna.model_name <repo_id/repo_name>
 
 # If merging the weights yourself supply the path.
-python3 neurons/text/prompting/miners/vicuna/neuron.py --vicuna.model_name /path/to/merged/vicuna/weights
+python3 neurons/text/prompting/miners/huggingface/vicuna/neuron.py --vicuna.model_name /path/to/merged/vicuna/weights
 
 ```
 

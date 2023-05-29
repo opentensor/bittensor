@@ -18,49 +18,36 @@
 import torch
 import bittensor
 from typing import List, Dict
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import pipeline
 
-from base import HuggingFaceMiner
 
-class VicunaMiner( HuggingFaceMiner ):
+class Dolly12BMiner( bittensor.HuggingFaceMiner ):
 
-    arg_prefix: str = 'vicuna'
-    system_label: str = ''
-    assistant_label: str = 'ASSISTANT:'
-    user_label: str = 'USER:'
-
-    def __init__( self ):
-        super( VicunaMiner, self ).__init__()
-        print ( self.config )
-
-    def load_tokenizer( self ):
-        return AutoTokenizer.from_pretrained( self.config.vicuna.model_name, use_fast=False )
+    arg_prefix: str = "dolly"
+    assistant_label: str = "### Response:"
+    user_label: str = "### Instruction:"
+    system_label: str = ""
 
     def load_model( self ):
-        return AutoModelForCausalLM.from_pretrained( self.config.vicuna.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
+        bittensor.logging.info( 'Loading ' + str( self.config.dolly.model_name ) )
+        model = pipeline( model=self.config.dolly.model_name, torch_dtype=torch.bfloat16, trust_remote_code=True, device=0 )
+        bittensor.logging.info( 'Model loaded!' )
+        return model
+
+    def load_tokenizer( self ):
+        pass
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
 
         history = self.process_history( messages )
         prompt = history + self.assistant_label
-        print(prompt)
+        generation = self.model( prompt )
 
-        input_ids = self.tokenizer.encode( prompt, return_tensors="pt" ).to( self.config.vicuna.device )
-        output = self.model.generate(
-            input_ids,
-            max_length=input_ids.shape[1] + self.config.vicuna.max_new_tokens,
-            temperature=self.config.vicuna.temperature,
-            do_sample=self.config.vicuna.do_sample,
-            pad_token_id=self.tokenizer.eos_token_id,
-        )
-
-        generation = self.tokenizer.decode( output[0][input_ids.shape[1]:], skip_special_tokens=True )
-        print(generation)
-
-        bittensor.logging.debug( "Message: " + str( messages ) )
+        bittensor.logging.debug(" Message: " + str( messages ) )
         bittensor.logging.debug( "Generation: " + str( generation ) )
         return generation
 
+
 if __name__ == "__main__":
     bittensor.utils.version_checking()
-    VicunaMiner().run()
+    Dolly12BMiner().run()

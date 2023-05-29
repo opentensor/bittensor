@@ -22,8 +22,6 @@ from typing import List, Dict
 from transformers import AutoTokenizer, GPTNeoXForCausalLM
 from transformers import StoppingCriteria, StoppingCriteriaList
 
-from base import HuggingFaceMiner
-
 class StopOnTokens( StoppingCriteria ):
     def __init__( self, stop_token_ids: List[int] = None ):
         self.stop_token_ids = stop_token_ids
@@ -34,7 +32,7 @@ class StopOnTokens( StoppingCriteria ):
                 return True
         return False
 
-class OasstPythiaMiner( HuggingFaceMiner ):
+class OasstPythiaMiner( bittensor.HuggingFaceMiner ):
     arg_prefix = 'oasst_pythia'
     system_label = "<|system|>"
     assistant_label = "<|assistant|>"
