@@ -17,7 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 import argparse
 import bittensor
-from typing import List, Dict, Union, Tuple, Optional
+from typing import Union, Tuple
 
 class blacklist:
 
@@ -68,6 +68,12 @@ class blacklist:
             help = 'Minimum stake required to pass blacklist.',
             default = 0.0
         )
+        parser.add_argument(
+            '--' + prefix_str + 'blacklist.vpermit_required',
+            action = 'store_true',
+            help = 'If True, the miner will require a vpermit to pass blacklist.',
+            default = False
+        )
 
     def blacklist( 
             self, 
@@ -84,21 +90,25 @@ class blacklist:
         if src_hotkey in self.config.blacklist.whitelisted_keys:
             return False, 'whitelisted key'
 
-        # Check for registration.
+        # Check if pubkey is registered.
+        is_registered = False
         if metagraph is not None:
             is_registered = src_hotkey in metagraph.hotkeys
-            if not is_registered and not self.config.blacklist.allow_non_registered:
-                return True, 'pubkey not registered'
+
+        if not is_registered and not self.config.blacklist.allow_non_registered:
+            return True, 'pubkey not registered'
 
         # Check for stake amount.
-        if metagraph is not None:
-            is_registered = src_hotkey in metagraph.hotkeys
-            if not is_registered and self.config.blacklist.min_allowed_stake > 0.0:
-                return True, 'pubkey not registered and min_allowed_stake > 0.0'
-            else:
-                uid = metagraph.hotkeys.index( src_hotkey )
-                stake = metagraph.S[ uid ].item()
-                if stake < self.config.blacklist.min_allowed_stake:
-                    return True, 'pubkey stake below min_allowed_stake'
+        if is_registered and self.config.blacklist.min_allowed_stake > 0.0:
+            uid = metagraph.hotkeys.index(src_hotkey)
+            stake = metagraph.S[uid].item()
+            if stake < self.config.blacklist.min_allowed_stake:
+                return True, 'pubkey stake below min_allowed_stake'
+
+        # Check for vpermit.
+        if metagraph is not None and self.config.blacklist.vpermit_required and is_registered:
+            uid = metagraph.hotkeys.index(src_hotkey)
+            return metagraph.neurons[uid].validator_permit
+
         # All checks passed.
         return False, 'passed blacklist'
