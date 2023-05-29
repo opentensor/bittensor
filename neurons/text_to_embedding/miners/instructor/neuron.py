@@ -19,7 +19,7 @@ import time
 import torch
 import argparse
 import bittensor
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 
 from InstructorEmbedding import INSTRUCTOR
 
@@ -49,9 +49,9 @@ def main( config ):
 
         def blacklist( self, forward_call: "bittensor.SynapseCall" ) -> Union[ Tuple[bool, str], bool ]:
             return base_miner.blacklist( forward_call )
-        
-        def forward( self, text: str ) -> torch.Tensor:
-            return self.model.encode( [text] )
+
+        def forward( self, text: List[str] ) -> torch.FloatTensor:
+            return torch.tensor( self.model.encode( text ) )
 
     # --- Attach the synapse to the base miner ---
     text_to_embedding_synapse = InstructorTextToEmbeddingSynapse( config )

@@ -30,7 +30,7 @@ def mean_pooling( model_output, attention_mask ):
 
 def config():
     parser = argparse.ArgumentParser( description='Template Embdding miner.' )
-    parser.add_argument( '--model_name', default='bert-base-cased', choices=['bert-base-cased', 'sentence-transformers/all-MiniLM-L6-v2'], type=str, help='Name of the model to use for embedding' )
+    parser.add_argument( '--model_name', default='bert-base-cased', choices=['bert-base-cased', 'bert-base-uncased', 'sentence-transformers/all-MiniLM-L6-v2'], type=str, help='Name of the model to use for embedding' )
     parser.add_argument( '--device', type=str, help='Device to load model', default="cuda:0" )
     bittensor.base_miner_neuron.add_args( parser )
     return bittensor.config( parser )
@@ -53,8 +53,8 @@ def main(config):
             # return base_miner.priority( forward_call )
 
         def blacklist( self, forward_call: "bittensor.SynapseCall" ) -> Union[Tuple[bool, str], bool]:
-            return False
-            # return base_miner.blacklist( forward_call )
+            # return False
+            return base_miner.blacklist( forward_call )
 
         def forward( self, text: List[str] ) -> torch.FloatTensor:
             encoded_input = tokenizer( text, padding=True, truncation=True, return_tensors='pt' ).to( config.device )
