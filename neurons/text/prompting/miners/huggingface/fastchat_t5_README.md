@@ -1,40 +1,56 @@
-## Neoxt Miner
-togethercomputer/GPT-NeoXT-Chat-Base-20B Language Model Serving with BitTensor
-This code is for running a language model powered by togethercomputer through the BitTensor framework. 
+# FastChat T5 Miner
+FastChat T5 completion miner for bittensor's prompting network. 
+
+# Download weights
+They disabled API inference requests via HuggingFace so you've gotta do it yourself by downloading the weights and passing the path directly. 
+
+```bash
+git lfs install
+git clone https://huggingface.co/lmsys/fastchat-t5-3b-v1.0
+```
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text/prompting/miners/neoxt/requirements.txt
-python3 neurons/text/prompting/miners/neoxt/neuron.py
+python3 neurons/text/prompting/miners/huggingface/fastchat_t5_miner.py --fastchat_t5.model_path /path/to/fastchat-t5-3b-v1.0
 ```
 
 # Full Usage
 ```
-usage: neuron.py [-h] [--neoxt.model_name NEOXT.MODEL_NAME] [--neoxt.device NEOXT.DEVICE] [--neoxt.max_new_tokens NEOXT.MAX_NEW_TOKENS] [--neoxt.temperature NEOXT.TEMPERATURE] [--neoxt.do_sample]
-                 [--netuid NETUID] [--neuron.name NEURON.NAME] [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights]
-                 [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN] [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]]
-                 [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock] [--wallet.reregister WALLET.REREGISTER]
-                 [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS] [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE] [--axon.port AXON.PORT] [--axon.ip AXON.IP]
-                 [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP] [--axon.max_workers AXON.MAX_WORKERS]
-                 [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS] [--subtensor.network SUBTENSOR.NETWORK] [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT]
-                 [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
-                 [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL] [--subtensor.register.no_output_in_place] [--subtensor.register.verbose]
-                 [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
-                 [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]]
-                 [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug] [--logging.trace] [--logging.record_log]
-                 [--logging.logging_dir LOGGING.LOGGING_DIR] [--metagraph._mock] [--config CONFIG] [--strict]
+usage: fastchat-t5.py [-h] [--fastchat_t5.MODEL_PATH FASTCHAT_T5.MODEL_PATH] [--fastchat_t5.device FASTCHAT_T5.DEVICE] [--fastchat_t5.max_new_tokens FASTCHAT_T5.MAX_NEW_TOKENS]
+                      [--fastchat_t5.temperature FASTCHAT_T5.TEMPERATURE] [--fastchat_t5.greedy_decoding] [--fastchat_t5.repetition_penalty FASTCHAT_T5.REPETITION_PENALTY]
+                      [--fastchat_t5.do_prompt_injection] [--fastchat_t5.system_prompt FASTCHAT_T5.SYSTEM_PROMPT] [--netuid NETUID] [--neuron.name NEURON.NAME]
+                      [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights] [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE]
+                      [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN] [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS [NEURON.BLACKLIST.HOTKEYS ...]]]
+                      [--neuron.blacklist.allow_non_registered] [--neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE]
+                      [--neuron.default_priority NEURON.DEFAULT_PRIORITY] [--wallet.name WALLET.NAME] [--wallet.hotkey WALLET.HOTKEY] [--wallet.path WALLET.PATH] [--wallet._mock]
+                      [--wallet.reregister WALLET.REREGISTER] [--axon.priority.max_workers AXON.PRIORITY.MAX_WORKERS] [--axon.priority.maxsize AXON.PRIORITY.MAXSIZE]
+                      [--axon.port AXON.PORT] [--axon.ip AXON.IP] [--axon.external_port AXON.EXTERNAL_PORT] [--axon.external_ip AXON.EXTERNAL_IP]
+                      [--axon.max_workers AXON.MAX_WORKERS] [--axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS] [--subtensor.network SUBTENSOR.NETWORK]
+                      [--subtensor.chain_endpoint SUBTENSOR.CHAIN_ENDPOINT] [--subtensor._mock] [--subtensor.register.num_processes SUBTENSOR.REGISTER.NUM_PROCESSES]
+                      [--subtensor.register.update_interval SUBTENSOR.REGISTER.UPDATE_INTERVAL] [--subtensor.register.no_output_in_place] [--subtensor.register.verbose]
+                      [--subtensor.register.cuda.use_cuda] [--subtensor.register.cuda.no_cuda]
+                      [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]]
+                      [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug] [--logging.trace] [--logging.record_log]
+                      [--logging.logging_dir LOGGING.LOGGING_DIR] [--config CONFIG] [--strict]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --neoxt.model_name NEOXT.MODEL_NAME
-                        Name/path of model to load of model to load
-  --neoxt.device NEOXT.DEVICE
+  --fastchat_t5.MODEL_PATH FASTCHAT_T5.MODEL_PATH
+                        Name/path of model to load
+  --fastchat_t5.device FASTCHAT_T5.DEVICE
                         Device to load model
-  --neoxt.max_new_tokens NEOXT.MAX_NEW_TOKENS
+  --fastchat_t5.max_new_tokens FASTCHAT_T5.MAX_NEW_TOKENS
                         Max tokens for model output.
-  --neoxt.temperature NEOXT.TEMPERATURE
+  --fastchat_t5.temperature FASTCHAT_T5.TEMPERATURE
                         Sampling temperature of model
-  --neoxt.do_sample    Whether to use sampling or not (if not, uses greedy decoding).
+  --fastchat_t5.greedy_decoding
+                        Whether to use greedy sampling or not (if not, uses multinomial sampling).
+  --fastchat_t5.repetition_penalty FASTCHAT_T5.REPETITION_PENALTY
+                        Repetition penalty for model
+  --fastchat_t5.do_prompt_injection
+                        Whether to use a custom "system" prompt instead of the one sent by bittensor.
+  --fastchat_t5.system_prompt FASTCHAT_T5.SYSTEM_PROMPT
+                        What prompt to replace the system prompt with
   --netuid NETUID       Subnet netuid
   --neuron.name NEURON.NAME
                         Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name
@@ -46,8 +62,14 @@ optional arguments:
                         The maximum batch size for forward requests.
   --neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN
                         The maximum sequence length for forward requests.
-  --neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]
+  --neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS [NEURON.BLACKLIST.HOTKEYS ...]]
                         To blacklist certain hotkeys
+  --neuron.blacklist.allow_non_registered
+                        If True, the miner will allow non-registered hotkeys to mine.
+  --neuron.blacklist.default_stake NEURON.BLACKLIST.DEFAULT_STAKE
+                        Set default stake for miners.
+  --neuron.default_priority NEURON.DEFAULT_PRIORITY
+                        Set default priority for miners.
   --wallet.name WALLET.NAME
                         The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)
   --wallet.hotkey WALLET.HOTKEY
@@ -69,8 +91,8 @@ optional arguments:
   --axon.external_ip AXON.EXTERNAL_IP
                         The external ip this axon broadcasts to the network to. ie. [::]
   --axon.max_workers AXON.MAX_WORKERS
-                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes new worker threads to service requests
-                        up to this number.
+                        The maximum number connection handler threads working simultaneously on this endpoint. The grpc server distributes new worker threads to service requests up
+                        to this number.
   --axon.maximum_concurrent_rpcs AXON.MAXIMUM_CONCURRENT_RPCS
                         Maximum number of allowed active connections
   --subtensor.network SUBTENSOR.NETWORK
@@ -100,7 +122,6 @@ optional arguments:
   --logging.record_log  Turns on logging to file.
   --logging.logging_dir LOGGING.LOGGING_DIR
                         Logging default root directory.
-  --metagraph._mock     To turn on metagraph mocking for testing purposes.
   --config CONFIG       If set, defaults are overridden by passed file.
   --strict              If flagged, config will check that only exact arguemnts have been set.
-  ```
+```
