@@ -209,8 +209,8 @@ from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as
 from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
 
 # ---- Base Miners -----
-from bittensor._neuron.base_miner_neuron import BaseMinerNeuron as base_miner_neuron
-from bittensor._neuron.base_validator import BaseValidator as base_validator
+from bittensor._neuron.base_miner_neuron import BaseMinerNeuron
+from bittensor._neuron.base_validator import BaseValidator
 from bittensor._neuron.base_prompting_miner import BasePromptingMiner
 
 # ---- Errors and Exceptions -----
