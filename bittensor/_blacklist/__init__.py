@@ -79,27 +79,26 @@ class blacklist:
         src_hotkey = forward_call.src_hotkey
         if src_hotkey in self.config.blacklist.blacklisted_keys:
             return True, 'blacklisted key'
-        
+
         # Check for whitelisted keys which take priority over all remaining checks.
         if src_hotkey in self.config.blacklist.whitelisted_keys:
             return False, 'whitelisted key'
 
         # Check for registration.
         if metagraph is not None:
-            is_registered = src_hotkey in self.metagraph.hotkeys
+            is_registered = src_hotkey in metagraph.hotkeys
             if not is_registered and not self.config.blacklist.allow_non_registered:
                 return True, 'pubkey not registered'
-        
+
         # Check for stake amount.
         if metagraph is not None:
-            is_registered = src_hotkey in self.metagraph.hotkeys
+            is_registered = src_hotkey in metagraph.hotkeys
             if not is_registered and self.config.blacklist.min_allowed_stake > 0.0:
                 return True, 'pubkey not registered and min_allowed_stake > 0.0'
             else:
-                uid = self.metagraph.hotkeys.index( src_hotkey )
-                stake = self.metagraph.S[ uid ].item()
+                uid = metagraph.hotkeys.index( src_hotkey )
+                stake = metagraph.S[ uid ].item()
                 if stake < self.config.blacklist.min_allowed_stake:
                     return True, 'pubkey stake below min_allowed_stake'
-                
         # All checks passed.
         return False, 'passed blacklist'
