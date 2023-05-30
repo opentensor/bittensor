@@ -159,6 +159,11 @@ class axon:
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         """Accept specific arguments from parser"""
         prefix_str = "" if prefix is None else prefix + "."
+        if prefix is not None:
+            if not hasattr(bittensor.defaults, prefix):
+                setattr(bittensor.defaults, prefix, bittensor.Config())
+            getattr(bittensor.defaults, prefix).axon = bittensor.defaults.axon
+
         bittensor.prioritythreadpool.add_args(parser, prefix=prefix_str + "axon")
         try:
             parser.add_argument(
@@ -290,7 +295,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self.receiver_hotkey = receiver_hotkey
 
 
-    def parse_signature_v2(self, signature: str) -> Union[Tuple[int, str, str, str, int], None]:
+    def parse_signature_v2(self, signature: str) -> Optional[Tuple[int, str, str, str]]:
         r"""Attempts to parse a signature using the v2 format"""
         parts = signature.split(".")
         if len(parts) != 4:
@@ -304,7 +309,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         receptor_uuid = parts[3]
         return (nonce, sender_hotkey, signature, receptor_uuid)
 
-    def parse_signature(self, metadata: Dict[str, str]) -> Tuple[int, str, str, str, int]:
+    def parse_signature(self, metadata: Dict[str, str]) -> Tuple[int, str, str, str]:
         r"""Attempts to parse a signature from the metadata"""
         signature = metadata.get("bittensor-signature")
         version = metadata.get('bittensor-version')
@@ -444,7 +449,7 @@ class axon_info:
         )
 
     @classmethod
-    def from_parameter_dict( cls, parameter_dict: 'torch.nn.ParameterDict' ) -> 'SubnetInfo':
-        r""" Returns a SubnetInfo object from a torch parameter_dict.
+    def from_parameter_dict( cls, parameter_dict: 'torch.nn.ParameterDict' ) -> 'axon_info':
+        r""" Returns an axon_info object from a torch parameter_dict.
         """
         return cls( **dict(parameter_dict) )
