@@ -22,62 +22,6 @@ from typing import List, Dict
 from transformers import AutoTokenizer, AutoModel
 
 class ChatGLMMiner( bittensor.HuggingFaceMiner ):
-
-    @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
-        pass
-
-    @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument( '--chat_glm.device', type=str, help='Device to load model', default="cuda" )
-        parser.add_argument( '--chat_glm.max_new_tokens', type=int, help='Max tokens for model output.', default=64 ) 
-        parser.add_argument( '--chat_glm.temperature', type=float, help='Sampling temperature of model', default=0.8 )
-        parser.add_argument( '--chat_glm.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).' )
-        
-    def __init__( self ):
-        super( ChatGLMMiner, self ).__init__()
-        print ( self.config )
-        
-        bittensor.logging.info( 'Loading THUDM/chatglm-6b model...' )
-        self.tokenizer = AutoTokenizer.from_pretrained( "THUDM/chatglm-6b", trust_remote_code=True)
-        self.model = AutoModel.from_pretrained( "THUDM/chatglm-6b", trust_remote_code=True, torch_dtype = torch.float16 )
-        bittensor.logging.info( 'Model loaded!' )
-
-        if self.config.chat_glm.device != "cpu":
-            self.model = self.model.to( self.config.chat_glm.device )
-
-    
-    @staticmethod
-    def _process_history(history: List[str]) -> str:
-        processed_history = []
-        system_message = ""
-        for message in history:
-            if message['role'] == 'system':
-                system_message = message['content']
-            if message['role'] == 'user':
-                processed_history.append((system_message + '\n' + message['content'],))
-            if message['role'] == 'assistant':
-                processed_history[-1] += (message['content'])
-        return processed_history
-
-    def forward(self, messages: List[Dict[str, str]]) -> str:
-
-        history = self._process_history(messages)
-        prompt = history[-1][-1]
-        if len(history) == 1:
-            history = []
-
-        generation, history = self.model.chat(
-            self.tokenizer,
-            prompt,
-            history,
-            max_length=self.config.chat_glm.max_new_tokens,
-            temperature=self.config.chat_glm.temperature,
-            do_sample=self.config.chat_glm.do_sample,
-            pad_token_id=self.tokenizer.eos_token_id,
-        )
-
-        return generation
     
     arg_prefix: str = 'chat_glm'
     assistant_label: str = ''
