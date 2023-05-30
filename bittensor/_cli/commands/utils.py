@@ -38,14 +38,14 @@ class IntListPrompt(PromptBase):
 
 
 def check_netuid_set( config: 'bittensor.Config', subtensor: 'bittensor.Subtensor', allow_none: bool = False ):
-    if subtensor.network =='finney':
+    if subtensor.network != 'nakamoto':
         all_netuids = [str(netuid) for netuid in subtensor.get_subnets()]
         if len(all_netuids) == 0:
             console.print(":cross_mark:[red]There are no open networks.[/red]")
             sys.exit()
 
         # Make sure netuid is set.
-        if config.get('netuid', 'notset') == 'notset':
+        if not config.is_set('netuid'):
             if not config.no_prompt:
                 netuid = IntListPrompt.ask("Enter netuid", choices=all_netuids, default=str(all_netuids[0]))
             else:

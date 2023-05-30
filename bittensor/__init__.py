@@ -27,7 +27,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = '5.0.0'
+__version__ = '5.1.0'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 __new_signature_version__ = 360
@@ -168,6 +168,8 @@ from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
 from bittensor._dataset import dataset as dataset
 from bittensor._threadpool import prioritythreadpool as prioritythreadpool
+from bittensor._blacklist import blacklist  as blacklist
+from bittensor._priority import priority as priority
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
@@ -207,7 +209,10 @@ from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as
 from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
 
 # ---- Base Miners -----
-from bittensor._synapse.text_prompting.miner import BasePromptingMiner
+from bittensor._neuron.base_miner_neuron import BaseMinerNeuron
+from bittensor._neuron.base_validator import BaseValidator
+from bittensor._neuron.base_prompting_miner import BasePromptingMiner
+from bittensor._neuron.base_huggingface_miner import HuggingFaceMiner
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
