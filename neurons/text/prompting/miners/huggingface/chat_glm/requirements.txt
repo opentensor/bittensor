@@ -1,0 +1,4 @@
+protobuf==3.20.0
+transformers==4.27.1
+icetk
+cpm_kernels
