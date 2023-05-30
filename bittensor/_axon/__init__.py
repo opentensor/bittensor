@@ -51,7 +51,7 @@ class axon:
     def __init__(
         self,
         wallet: "bittensor.Wallet",
-        metagraph: "bittensor.Metagraph",
+        metagraph: Optional["bittensor.Metagraph"] = None,
         config: Optional["bittensor.config"] = None,
         port: Optional[int] = None,
         ip: Optional[str] = None,
