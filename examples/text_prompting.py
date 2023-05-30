@@ -39,7 +39,7 @@ class Synapse( bittensor.TextPromptingSynapse ):
 
 # Create a mock wallet.
 wallet = bittensor.wallet().create_if_non_existent()
-axon = bittensor.axon( wallet = wallet, port = 9090, external_ip = "127.0.0.1", metagraph = None )
+axon = bittensor.axon( wallet = wallet, port = 9090, external_ip = "127.0.0.1" )
 
 dendrite = bittensor.text_prompting( axon = axon, keypair = wallet.hotkey )
 synapse = Synapse( axon = axon )
