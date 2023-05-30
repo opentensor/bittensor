@@ -45,6 +45,17 @@ dendrite = bittensor.text_prompting( axon = axon, keypair = wallet.hotkey )
 synapse = Synapse( axon = axon )
 axon.start()
 
+
+forward_call = dendrite.forward(
+    roles = ['system', 'assistant'],
+    messages = ['you are chat bot', 'what is the whether'],
+    timeout = 1e6
+)
+print ( forward_call )
+print ( 'success', forward_call.is_success, 'failed', forward_call.did_fail, 'timedout', forward_call.did_timeout )
+print ( 'completion', forward_call.completion )
+
+
 multi_forward_call = dendrite.multi_forward(
     roles = ['system', 'assistant'],
     messages = ['you are chat bot', 'what is the whether'],
