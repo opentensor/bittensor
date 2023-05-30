@@ -4,8 +4,8 @@
 
  # Example Usage
  ```
- python3 -m pip install -r neurons/text/prompting/miners/chat_glm/requirements.txt
- python3 neurons/text/prompting/miners/chat_glm/neuron.py
+ python3 -m pip install -r neurons/text/prompting/miners/huggingface/chat_glm/requirements.txt
+ python3 neurons/text/prompting/miners/huggingface/chat_glm/neuron.py
  ```
 
  # Full Usage
