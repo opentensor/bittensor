@@ -21,7 +21,7 @@ import bittensor
 from typing import List, Dict
 from transformers import AutoTokenizer, AutoModel
 
-class ChatGLMMiner( bittensor.BasePromptingMiner ):
+class ChatGLMMiner( bittensor.HuggingFaceMiner ):
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -78,6 +78,37 @@ class ChatGLMMiner( bittensor.BasePromptingMiner ):
         )
 
         return generation
+    
+    arg_prefix: str = 'chat_glm'
+    assistant_label: str = ''
+    user_label: str = ''
+    system_label: str = ''
+
+    def load_tokenizer( self ):
+        return AutoTokenizer.from_pretrained( "THUDM/chatglm-6b", trust_remote_code=True)
+
+    def load_model( self ):
+        return AutoModel.from_pretrained( "THUDM/chatglm-6b",trust_remote_code=True, torch_dtype = torch.float16 )
+    
+    def forward(self, messages: List[Dict[str, str]]) -> str:
+        history = self.process_history( messages )
+        prompt = history[-1][-1]
+        if len(history) == 1:
+            history = []
+        generation, history = self.model.chat(
+            self.tokenizer,
+            prompt,
+            history,
+            max_length=self.config.chat_glm.max_new_tokens,
+            temperature=self.config.chat_glm.temperature,
+            do_sample=self.config.chat_glm.do_sample,
+            pad_token_id=self.tokenizer.eos_token_id,
+        )
+
+        bittensor.logging.debug("Message: " + str( messages ).replace( "<","-" ).replace( ">","-" ) )
+        bittensor.logging.debug("Generation: " + str( generation ).replace( "<","-" ).replace( ">","-" ) )
+        return generation
+
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
