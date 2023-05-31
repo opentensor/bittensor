@@ -966,6 +966,14 @@ class Subtensor:
 
 
     ################
+    #### Senate ####
+    ################
+
+    def get_proposals (self, block: Optional[int] = None ) -> List['bittensor.Balance']:
+        return bittensor.Balance.from_rao( self.query_subtensor( 'TotalIssuance', block ).value )
+
+
+    ################
     #### Legacy ####
     ################
 

@@ -139,6 +139,12 @@ custom_rpc_type_registry = {
                 ["ip_type", "u8"],
             ],
         },
+		"Proposals": {
+            "type": "struct",
+            "type_mapping": [
+                ["netuid", "Compact<u16>"],
+            ]
+        },
     }
 }
 
@@ -148,6 +154,7 @@ class ChainDataType(Enum):
     DelegateInfo = 3
     NeuronInfoLite = 4
     DelegatedInfo = 5
+	ProposalInfo = 6
 
 # Constants
 RAOPERTAO = 1e9
