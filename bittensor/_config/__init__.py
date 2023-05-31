@@ -144,6 +144,9 @@ class config:
         for key in config_d.keys():
             if key in defaults.keys():
                 defaults_filtered[key] = getattr(defaults, key)
+        # Avoid erroring out if defaults aren't set for a submodule
+        if defaults_filtered == {}:
+            return is_set_map
 
         flat_config = pd.json_normalize(config_d, sep='.').to_dict('records')[0]
         flat_defaults = pd.json_normalize(defaults_filtered, sep='.').to_dict('records')[0]

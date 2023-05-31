@@ -58,10 +58,25 @@ class Config ( Munch ):
         for key,val in kwargs.items():
             self[key] = val
 
+    @classmethod
+    def _merge( cls, a, b ):
+        """Merge two configurations recursively.
+        If there is a conflict, the value from the second configuration will take precedence.
+        """
+        for key in b:
+            if key in a:
+                if isinstance( a[key], dict ) and isinstance( b[key], dict ):
+                    a[key] = cls._merge( a[key], b[key] )
+                else:
+                    a[key] = b[key]
+            else:
+                a[key] = b[key]
+        return a
+
     def merge(self, b):
         """ Merge two configs
         """
-        self = _merge(self, b)
+        self = self._merge( self, b )
 
     def to_prometheus(self):
         """
@@ -102,6 +117,8 @@ class Config ( Munch ):
         for key in self.keys():
             if key in defaults.keys():
                 defaults_filtered[key] = getattr(defaults, key)
+        # Avoid erroring out if defaults aren't set for a submodule
+        if defaults_filtered == {}: return
 
         flat_defaults = json_normalize(defaults_filtered, sep='.').to_dict('records')[0]
         for key, val in flat_defaults.items():
