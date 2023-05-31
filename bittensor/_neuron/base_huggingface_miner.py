@@ -50,7 +50,6 @@ class HuggingFaceMiner( bittensor.BasePromptingMiner, ABC ):
 
     def __init__(self):
         super( HuggingFaceMiner, self ).__init__()
-        print( self.config )
 
         # Set model name if unset.
         if getattr( self.config, self.arg_prefix ).model_name == None:
