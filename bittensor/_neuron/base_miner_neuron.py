@@ -95,8 +95,10 @@ class BaseMinerNeuron:
         bittensor.priority.add_args( parser, prefix = prefix_str + 'neuron' )
 
     def __init__(self, netuid: int = None, config: "bittensor.Config" = None ):
-        # Build config.
-        self.config = config if config != None else BaseMinerNeuron.config()
+        super_config = config if config != None else BaseMinerNeuron.config() # Grab super (BaseMinerNeuron) config
+        child_config = self.config() # grab child (<subclass>Miner) class configs.
+        self.config = child_config
+        self.config.merge( super_config ) # Merge the two configs. Child configs override super configs.
         self.config.netuid = netuid or self.config.netuid
         BaseMinerNeuron.check_config( self.config )
 
