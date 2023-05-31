@@ -614,10 +614,10 @@ class neuron:
                     question = False
                 )
                 
-                with open('prompt_history.txt', 'a') as file:
-                    file.write(f"{steps} | A score({round(forward_result.rewards.sort(descending = True)[0][0].item(), 4)}): {forward_result.best_completion}" + '\n')
-
                 if forward_result is not None:
+                    with open('prompt_history.txt', 'a') as file:
+                        file.write(f"{steps} | A score({round(forward_result.rewards.sort(descending = True)[0][0].item(), 4)}): {forward_result.best_completion}" + '\n')
+                    
                     idx_reward_sorted = forward_result.rewards.sort(descending = True)[1]
                     prompt, reward_diff = self.get_question(
                         uids = forward_result.uids[idx_reward_sorted],
