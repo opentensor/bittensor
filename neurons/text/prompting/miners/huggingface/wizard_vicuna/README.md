@@ -1,5 +1,5 @@
 
-## RoberMyers Miner
+## WizardLM + Vicuna Miner
 WizardLM Vicuna completion miner for bittensor's prompting network. 
 
 # Example Usage
