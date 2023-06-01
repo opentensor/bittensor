@@ -14,7 +14,7 @@ This code is for running the Vicuna model through the BitTensor framework.
 # Installing Dependencies
 
 ```
-python3 -m pip install -r neurons/text/prompting/miners/vicuna/requirements.txt
+python3 -m pip install -r neurons/text/prompting/miners/huggingface/vicuna/requirements.txt
 ```
 
 # Converting Weights Into Model
