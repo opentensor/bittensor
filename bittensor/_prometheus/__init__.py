@@ -149,6 +149,10 @@ class prometheus:
         """ Accept specific arguments from parser
         """
         prefix_str = '' if prefix == None else prefix + '.'
+        if prefix is not None:
+            if not hasattr(bittensor.defaults, prefix):
+                setattr(bittensor.defaults, prefix, bittensor.Config())
+            getattr(bittensor.defaults, prefix).prometheus = bittensor.defaults.prometheus
         try:
             parser.add_argument('--' + prefix_str + 'prometheus.port',  type=int, required=False, default = bittensor.defaults.prometheus.port,
                 help='''Prometheus serving port.''')

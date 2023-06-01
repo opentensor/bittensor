@@ -108,8 +108,9 @@ class metagraph( torch.nn.Module ):
         if sync:
             self.sync( block = None, lite = lite )
 
-    def sync ( self, block: Optional[int] = None, lite: bool = True ) -> 'metagraph':
-        subtensor = bittensor.subtensor( network = self.network )
+    def sync ( self, block: Optional[int] = None, lite: bool = True, subtensor: Optional['bittensor.Subtensor'] = None ) -> 'metagraph':
+        if not subtensor:
+            subtensor = bittensor.subtensor( network = self.network )
         if lite:
             self.neurons = subtensor.neurons_lite( block = block, netuid = self.netuid )
         else:
@@ -117,7 +118,7 @@ class metagraph( torch.nn.Module ):
         self.lite = lite
         self.n = torch.nn.Parameter( torch.tensor( len(self.neurons), dtype=torch.int64 ), requires_grad=False )
         self.version = torch.nn.Parameter( torch.tensor( [bittensor.__version_as_int__], dtype=torch.int64 ), requires_grad=False )
-        self.block = torch.nn.Parameter( torch.tensor( subtensor.block, dtype=torch.int64 ), requires_grad=False )
+        self.block = torch.nn.Parameter( torch.tensor( block if block else subtensor.block, dtype=torch.int64 ), requires_grad=False )
         self.uids = torch.nn.Parameter( torch.tensor( [ neuron.uid for neuron in self.neurons ], dtype=torch.int64 ), requires_grad=False )
         self.trust = torch.nn.Parameter( torch.tensor( [ neuron.trust for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
         self.consensus = torch.nn.Parameter( torch.tensor( [ neuron.consensus for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )

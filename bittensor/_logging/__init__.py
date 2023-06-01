@@ -143,6 +143,10 @@ class logging:
         """ Accept specific arguments fro parser
         """
         prefix_str = '' if prefix == None else prefix + '.'
+        if prefix is not None:
+            if not hasattr(bittensor.defaults, prefix):
+                setattr(bittensor.defaults, prefix, bittensor.Config())
+            getattr(bittensor.defaults, prefix).logging = bittensor.defaults.logging
         try:
             parser.add_argument('--' + prefix_str + 'logging.debug', action='store_true', help='''Turn on bittensor debugging information''', default = bittensor.defaults.logging.debug )
             parser.add_argument('--' + prefix_str + 'logging.trace', action='store_true', help='''Turn on bittensor trace level information''', default = bittensor.defaults.logging.trace )

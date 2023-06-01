@@ -43,6 +43,7 @@ class DendriteCall( ABC ):
         self.completed = False
         self.timeout = timeout
         self.start_time = time.time()
+        self.elapsed_time = 0.0
         self.src_hotkey = self.dendrite.keypair.ss58_address
         self.src_version = bittensor.__version_as_int__
         self.dest_hotkey = self.dendrite.axon_info.hotkey
@@ -208,6 +209,7 @@ class Dendrite( ABC, torch.nn.Module ):
         finally:
             dendrite_call.end()
             dendrite_call.log_inbound()
+            dendrite_call.elapsed_time = time.time() - dendrite_call.start_time
             return dendrite_call
 
     def __exit__ ( self ):
