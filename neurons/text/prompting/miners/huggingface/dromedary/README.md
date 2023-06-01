@@ -4,7 +4,7 @@ Dromedary 65B completion miner for bittensor's prompting network.
 
 # Example Usage
 ```
-python3 neurons/text/prompting/miners/dromedary/neuron.py
+python3 neurons/text/prompting/miners/huggingface/dromedary/neuron.py
 ```
 
 # Full Usage
