@@ -165,8 +165,6 @@ from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
 from bittensor._dataset import dataset as dataset
 from bittensor._threadpool import prioritythreadpool as prioritythreadpool
-from bittensor._blacklist import blacklist  as blacklist
-from bittensor._priority import priority as priority
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
@@ -206,10 +204,7 @@ from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as
 from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
 
 # ---- Base Miners -----
-from bittensor._neuron.base_miner_neuron import BaseMinerNeuron
-from bittensor._neuron.base_validator import BaseValidator
-from bittensor._neuron.base_prompting_miner import BasePromptingMiner
-from bittensor._neuron.base_huggingface_miner import HuggingFaceMiner
+from bittensor._synapse.text_prompting.miner import BasePromptingMiner
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
