@@ -1,5 +1,15 @@
 # Changelog
 
+## 5.1.0 / 2023-05-30
+
+## What's Changed
+* update readme by @unconst in https://github.com/opentensor/bittensor/pull/1344
+* Reset scores for validators by @adriansmares in https://github.com/opentensor/bittensor/pull/1359
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.0.0...v5.1.0
+
+
 ## 5.0.0 / 2023-05-17
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v4.0.1...v5.0.0
