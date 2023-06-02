@@ -330,7 +330,7 @@ class neuron:
         # Find the available `uids` that are currently serving.
         # If `topk` is larger than the number of available `uids`, set `topk` to the number of available `uids`.
         # Check if we have vpermit and if we do, ensure query only UIDs with less than vpermit_tao_limit.
-        candidate_uids = [uid for uid, ax in enumerate(self.metagraph.axons) if ax.is_serving and (self.metagraph.validator_permit[uid] and self.metagraph.S[uid] < self.config.neuron.vpermit_tao_limit or not self.metagraph.validator_permit[uid])]
+        candidate_uids = [uid for uid, ax in enumerate(self.metagraph.axons) if ax.is_serving and ((self.metagraph.validator_permit[uid] and self.metagraph.S[uid] < self.config.neuron.vpermit_tao_limit) or not self.metagraph.validator_permit[uid])]
         available_uids = torch.tensor( candidate_uids, dtype = torch.int64 ).to( self.device )
         if topk is None or topk == -1: topk = self.metagraph.n.item()
         if topk > len( available_uids ): topk = len( available_uids )
