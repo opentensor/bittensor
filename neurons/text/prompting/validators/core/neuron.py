@@ -135,7 +135,6 @@ class neuron:
         self.check_config( self.config )
         bt.logging( config = self.config, logging_dir = self.config.neuron.full_path )
         print( self.config )
-        import pdb; pdb.set_trace()
         
         self.subtensor = bt.subtensor ( config = self.config )
         self.device = torch.device( self.config.neuron.device )
