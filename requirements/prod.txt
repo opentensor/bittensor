@@ -10,7 +10,7 @@ jsonschema[format-nongpl]>=4.14.0,<=4.17.0
 langchain>=0.0.132
 loguru==0.6.0
 msgpack==1.0.4
-miniupnpc==2.0.2 # for testing only tests/unit_tests/bittensor_tests/utils/test_network_utils.py
+miniupnpc==2.0.2
 munch==2.5.0
 nest_asyncio==1.5.6
 netaddr==0.8.0
@@ -19,7 +19,7 @@ pandas==1.5.2
 password_strength==0.0.3.post2
 prometheus_client==0.14.1
 protobuf==3.19.5
-psutil==5.9.4 # for mock subtensor only
+psutil==5.9.4
 pyyaml==6.0
 retry==0.9.2
 rich==12.5.1
