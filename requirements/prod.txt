@@ -34,9 +34,9 @@ requests==2.25.0
 scalecodec==1.2.0
 sentencepiece==0.1.97
 termcolor==2.1.1
-torch==1.13.1
+torch>=1.13.1,<=2.0.1
 transformers>=4.20.1,<=4.28.0
-numpy==1.21.6
+numpy>=1.21.6,<=1.24.2
 wheel==0.37.1
 tqdm==4.64.1
 qqdm==0.0.7
