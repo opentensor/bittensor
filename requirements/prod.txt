@@ -3,6 +3,7 @@ argparse==1.4.0
 base58==2.0.1
 backoff==2.1.0
 cryptography==39.0.0
+fuzzywuzzy==0.18.0
 grpcio==1.42.0
 hypothesis==6.47.4
 idna<3,>=2.5
