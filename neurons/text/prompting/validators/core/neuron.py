@@ -117,6 +117,7 @@ class neuron:
         parser.add_argument( '--neuron.question_random_sample_uids', action = 'store_true', help = 'If set, random sample uids to get question.', default = False )
         parser.add_argument( '--neuron.reward_shift', type = int, help = 'The value to shift rewards for calculation.', default = 3 )
         parser.add_argument( '--neuron.no_nsfw_filter', action = 'store_true', help = 'If set, allow handling of not-safe-for-work messages.', default = False )
+        parser.add_argument( '--neuron.vpermit_tao_limit', type = int, help = 'The maximum number of TAO allowed to query a validator with a vpermit.', default = 1024 )
 
     @classmethod
     def config ( cls ):
@@ -328,12 +329,14 @@ class neuron:
         # Set `topk` to the number of items in `self.metagraph.n` if `topk` is not provided or is -1.
         # Find the available `uids` that are currently serving.
         # If `topk` is larger than the number of available `uids`, set `topk` to the number of available `uids`.
-        available_uids = torch.tensor( [ uid for uid, ax in enumerate( self.metagraph.axons ) if (ax.is_serving) and (not self.metagraph.validator_permit[uid]) ], dtype = torch.int64 ).to( self.device )
+        # Check if we have vpermit and if we do, ensure query only UIDs with less than vpermit_tao_limit.
+        candidate_uids = [uid for uid, ax in enumerate(self.metagraph.axons) if ax.is_serving and not self.metagraph.validator_permit[uid] or self.metagraph.S[uid] < self.config.neuron.vpermit_tao_limit]
+        available_uids = torch.tensor( candidate_uids, dtype = torch.int64 ).to( self.device )
         if topk is None or topk == -1: topk = self.metagraph.n.item()
         if topk > len( available_uids ): topk = len( available_uids )
-        if len( available_uids ) == 0: bittensor.logging.error('no available uids'); return None
+        if len( available_uids ) == 0: bittensor.logging.error( 'no available uids' ); return None
         bittensor.logging.trace( 'available_uids', available_uids )
-        bittensor.logging.trace( 'topk', topk)
+        bittensor.logging.trace( 'topk', topk )
 
         # We run the gating network here to get the best uids
         # Use the gating model to generate scores for each `uid`.
@@ -364,8 +367,8 @@ class neuron:
 
         # Calculate the rewards for the successful `completions` using the reward model.
         # Print the rewards for all `uids`.`
+        flattened_message_for_reward = ''
         if not self.config.neuron.no_reward_model:
-            flattened_message_for_reward = ''
             for role_i, message_i in list(zip(roles, messages)):
                 if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n'
             full_completions_for_reward = [ 'Question: ' + flattened_message_for_reward + 'Answer: ' + comp.strip() for comp in successful_completions ]
@@ -553,9 +556,10 @@ class neuron:
             
             successful_questions = [question.completion for question in questions if question is not None and question.completion is not None and len(question.completion) > 10 and not self.filter_message(question.completion) ]
             full_completions_for_reward = [ 'Question: ' + bootstrap_prompt + 'Answer: ' + comp.strip() for comp in successful_questions ]
-            completions_for_reward = [comp.strip() for comp in successful_questions] 
-            reward_diffs = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True, shift = self.config.neuron.reward_shift).to( self.device )
-            
+            completions_for_reward = [comp.strip() for comp in successful_questions]
+            reward_diffs = torch.zeros(len(successful_questions))
+            if not self.config.neuron.no_reward_model:
+                reward_diffs = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True, shift = self.config.neuron.reward_shift ).to( self.device )
             for question, reward_diff in zip(successful_questions, reward_diffs.tolist()):
                 print(f"\n=== Question score: {reward_diff}===\n")
                 print(question)
@@ -775,8 +779,8 @@ class neuron:
         for uid, hotkey in enumerate( self.hotkeys ):
             if hotkey != self.metagraph.hotkeys[ uid ]:
                 self.moving_averaged_scores[ uid ] = 0 #hotkey has been replaced
-            if self.metagraph.validator_permit[ uid ]:
-                self.moving_averaged_scores[ uid ] = 0 # hotkey has validation rights
+            if self.metagraph.validator_permit[ uid ] and self.metagraph.S[ uid ] < self.config.neuron.vpermit_tao_limit:
+                self.moving_averaged_scores[ uid ] = 0 # hotkey has validation rights and is below the tao limit
         if len(self.hotkeys) < len(self.metagraph.hotkeys):
             new_moving_average  = torch.zeros((self.metagraph.n)).to( self.device )
             new_moving_average[:len(self.hotkeys)] = self.moving_averaged_scores
