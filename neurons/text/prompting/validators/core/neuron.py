@@ -330,7 +330,7 @@ class neuron:
         # Find the available `uids` that are currently serving.
         # If `topk` is larger than the number of available `uids`, set `topk` to the number of available `uids`.
         # Check if we have vpermit and if we do, ensure query only UIDs with less than vpermit_tao_limit.
-        candidate_uids = [uid for uid, ax in enumerate(self.metagraph.axons) if ax.is_serving and ((self.metagraph.validator_permit[uid] and self.metagraph.S[uid] < self.config.neuron.vpermit_tao_limit) or not self.metagraph.validator_permit[uid])]
+        candidate_uids = [uid for uid, ax in enumerate(self.metagraph.axons) if ax.is_serving and not self.metagraph.validator_permit[uid] or self.metagraph.S[uid] < self.config.neuron.vpermit_tao_limit]
         available_uids = torch.tensor( candidate_uids, dtype = torch.int64 ).to( self.device )
         if topk is None or topk == -1: topk = self.metagraph.n.item()
         if topk > len( available_uids ): topk = len( available_uids )
@@ -367,8 +367,8 @@ class neuron:
 
         # Calculate the rewards for the successful `completions` using the reward model.
         # Print the rewards for all `uids`.`
+        flattened_message_for_reward = ''
         if not self.config.neuron.no_reward_model:
-            flattened_message_for_reward = ''
             for role_i, message_i in list(zip(roles, messages)):
                 if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n'
             full_completions_for_reward = [ 'Question: ' + flattened_message_for_reward + 'Answer: ' + comp.strip() for comp in successful_completions ]
@@ -556,9 +556,10 @@ class neuron:
             
             successful_questions = [question.completion for question in questions if question is not None and question.completion is not None and len(question.completion) > 10 and not self.filter_message(question.completion) ]
             full_completions_for_reward = [ 'Question: ' + bootstrap_prompt + 'Answer: ' + comp.strip() for comp in successful_questions ]
-            completions_for_reward = [comp.strip() for comp in successful_questions] 
-            reward_diffs = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True, shift = self.config.neuron.reward_shift).to( self.device )
-            
+            completions_for_reward = [comp.strip() for comp in successful_questions]
+            reward_diffs = torch.zeros(len(successful_questions))
+            if not self.config.neuron.no_reward_model:
+                reward_diffs = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True, shift = self.config.neuron.reward_shift ).to( self.device )
             for question, reward_diff in zip(successful_questions, reward_diffs.tolist()):
                 print(f"\n=== Question score: {reward_diff}===\n")
                 print(question)
