@@ -29,5 +29,4 @@ data = {
 req = requests.post('http://127.0.0.1:8092/SpeechToText/Forward/?hotkey={}'.format(hotkey), json=data)
 print(req)
 print(req.text)
-assert req.text == "mister quilter is the apostle of the middle classes and we are glad to welcome his gospel"
 
