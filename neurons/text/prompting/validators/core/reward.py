@@ -115,7 +115,7 @@ class RewardModel(nn.Module):
         chosen_rewards = rewards[:bs]
         rejected_rewards = rewards[bs:]
 
-        loss = 0
+        loss = -0.1
         inference = False
         for i in range(bs):
             if torch.all(torch.eq(chosen[i], rejected[i])).item():
