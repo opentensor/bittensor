@@ -330,7 +330,17 @@ class neuron:
         # Find the available `uids` that are currently serving.
         # If `topk` is larger than the number of available `uids`, set `topk` to the number of available `uids`.
         # Check if we have vpermit and if we do, ensure query only UIDs with less than vpermit_tao_limit.
-        candidate_uids = [uid for uid, ax in enumerate(self.metagraph.axons) if ax.is_serving and not self.metagraph.validator_permit[uid] or self.metagraph.S[uid] < self.config.neuron.vpermit_tao_limit]
+        def available( uid ) -> bool:
+            # Filter non serving axons.
+            if not self.metagraph.axons[uid].is_serving: 
+                return False
+            # Filter validator permit > 1024 stake.
+            if self.metagraph.validator_permit[uid]:
+                if self.metagraph.S[uid] > self.config.neuron.vpermit_tao_limit:
+                    return False
+            # Available otherwise.
+            return True
+        candidate_uids = [uid for uid, ax in enumerate(self.metagraph.axons) if available( uid )]
         available_uids = torch.tensor( candidate_uids, dtype = torch.int64 ).to( self.device )
         if topk is None or topk == -1: topk = self.metagraph.n.item()
         if topk > len( available_uids ): topk = len( available_uids )
@@ -779,7 +789,7 @@ class neuron:
         for uid, hotkey in enumerate( self.hotkeys ):
             if hotkey != self.metagraph.hotkeys[ uid ]:
                 self.moving_averaged_scores[ uid ] = 0 #hotkey has been replaced
-            if self.metagraph.validator_permit[ uid ] and self.metagraph.S[ uid ] < self.config.neuron.vpermit_tao_limit:
+            if self.metagraph.validator_permit[ uid ] and self.metagraph.S[ uid ] > self.config.neuron.vpermit_tao_limit:
                 self.moving_averaged_scores[ uid ] = 0 # hotkey has validation rights and is below the tao limit
         if len(self.hotkeys) < len(self.metagraph.hotkeys):
             new_moving_average  = torch.zeros((self.metagraph.n)).to( self.device )
