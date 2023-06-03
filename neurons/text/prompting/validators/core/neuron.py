@@ -789,7 +789,7 @@ class neuron:
         for uid, hotkey in enumerate( self.hotkeys ):
             if hotkey != self.metagraph.hotkeys[ uid ]:
                 self.moving_averaged_scores[ uid ] = 0 #hotkey has been replaced
-            if self.metagraph.validator_permit[ uid ] and self.metagraph.S[ uid ] < self.config.neuron.vpermit_tao_limit:
+            if self.metagraph.validator_permit[ uid ] and self.metagraph.S[ uid ] > self.config.neuron.vpermit_tao_limit:
                 self.moving_averaged_scores[ uid ] = 0 # hotkey has validation rights and is below the tao limit
         if len(self.hotkeys) < len(self.metagraph.hotkeys):
             new_moving_average  = torch.zeros((self.metagraph.n)).to( self.device )
