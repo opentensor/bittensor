@@ -15,6 +15,7 @@ data = {
 req = requests.post('http://127.0.0.1:8092/TextToEmbedding/Forward/?hotkey={}'.format(hotkey), json=data)
 print(req)
 print(req.text)
+
 x = json.loads(req.text)
 emb = torch.Tensor(x)
 print("emb.shape: ", emb.shape)

@@ -214,6 +214,7 @@ from bittensor._dendrite.text_to_embedding.dendrite import TextToEmbeddingDendri
 from bittensor._neuron.base_miner_neuron import BaseMinerNeuron
 from bittensor._neuron.base_validator import BaseValidator
 from bittensor._neuron.base_prompting_miner import BasePromptingMiner
+from bittensor._neuron.base_embedding_miner import BaseEmbeddingMiner
 from bittensor._neuron.base_huggingface_miner import HuggingFaceMiner
 
 # ---- Errors and Exceptions -----

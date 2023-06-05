@@ -89,8 +89,8 @@ class TextToEmbeddingSynapse( bittensor.Synapse, bittensor.grpc.TextToEmbeddingS
             text = item.text,
             timeout = item.timeout, 
         )
-        bittensor.logging.trace( 'FastTextToEmbeddingForward: {} '.format( call ) )
         call = TextToEmbeddingForward( self, request_proto, self.forward )
+        bittensor.logging.trace( 'FastTextToEmbeddingForward: {} '.format( call ) )
         self.apply( call = call )
         response = call.embedding.tolist() if isinstance( call.embedding, torch.Tensor) else call.embedding 
         return response
