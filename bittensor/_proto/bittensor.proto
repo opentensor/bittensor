@@ -52,6 +52,28 @@ message BackwardTextPromptingResponse {
 }
 
 
+/////////////////////////
+//  Text-to-Embedding  //
+/////////////////////////
+
+service TextToEmbedding { rpc Forward (ForwardTextToEmbeddingRequest) returns (ForwardTextToEmbeddingResponse) {} }
+
+message ForwardTextToEmbeddingRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string text = 3;
+	float timeout = 4;
+}
+
+message ForwardTextToEmbeddingResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	Tensor embedding = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+
 // Return codes from Backward and Forward call.
 enum ReturnCode {
 	NoReturn = 0; // Default Value

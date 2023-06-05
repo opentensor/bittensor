@@ -201,12 +201,14 @@ from bittensor._proto.bittensor_pb2 import BackwardTextPromptingResponse
 from bittensor._synapse.synapse import Synapse
 from bittensor._synapse.synapse import SynapseCall
 from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
+from bittensor._synapse.text_to_embedding.synapse import TextToEmbeddingSynapse
 
 # ---- Dendrites -----
 from bittensor._dendrite.dendrite import Dendrite
 from bittensor._dendrite.dendrite import DendriteCall
 from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as text_prompting
 from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
+from bittensor._dendrite.text_to_embedding.dendrite import TextToEmbeddingDendrite as text_to_embedding
 
 # ---- Base Miners -----
 from bittensor._neuron.base_miner_neuron import BaseMinerNeuron
