@@ -74,6 +74,47 @@ class FastAPIThreadedServer(uvicorn.Server):
             self.should_exit = True
 
 
+import uvicorn
+from fastapi import FastAPI, APIRouter
+
+""" FastAPI server that runs in a thread. 
+"""
+class FastAPIThreadedServer(uvicorn.Server):
+    should_exit: bool = False
+    is_running: bool = False
+
+    def install_signal_handlers(self):
+        pass
+
+    @contextlib.contextmanager
+    def run_in_thread(self):
+        thread = threading.Thread(target=self.run, daemon=True)
+        thread.start()
+        try:
+            while not self.started:
+                time.sleep(1e-3)
+            yield
+        finally:
+            self.should_exit = True
+            thread.join()
+
+    def _wrapper_run(self):
+        with self.run_in_thread():
+            while not self.should_exit:
+                time.sleep(1e-3)
+
+    def start(self):
+        if not self.is_running:
+            self.should_exit = False
+            thread = threading.Thread(target=self._wrapper_run, daemon=True)
+            thread.start()
+            self.is_running = True
+
+    def stop(self):
+        if self.is_running:
+            self.should_exit = True
+
+
 class axon:
     """ Axon object for serving synapse receptors. """
 
@@ -128,8 +169,6 @@ class axon:
                 Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
             maximum_concurrent_rpcs (:type:`Optional[int]`, `optional`):
                 Maximum allowed concurrently processed RPCs.
-            blacklist (:obj:`Optional[callable]`, `optional`):
-                function to blacklist requests.
             disable_fast_api (:obj:`Optional[bool]`, `optional`):
                 turn off http fast api entrypoint server.
             fast_api_port (:type:`Optional[int]`, `optional`):
