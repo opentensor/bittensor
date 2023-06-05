@@ -188,6 +188,8 @@ def serve_axon_extrinsic (
     else:
         external_port = axon.external_port
 
+    external_fast_api_port = axon.external_fast_api_port
+
     # ---- Get external ip ----
     if axon.external_ip == None:
         try:
@@ -205,6 +207,7 @@ def serve_axon_extrinsic (
             ip = external_ip,
             port = external_port,
             netuid = netuid,
+            # placeholder1 = external_fast_api_port, # TODO: fix this so not u8! (scalecodec)
             protocol = 4,
             wait_for_inclusion = wait_for_inclusion,
             wait_for_finalization = wait_for_finalization,

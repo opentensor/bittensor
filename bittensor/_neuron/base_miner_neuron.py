@@ -116,10 +116,6 @@ class BaseMinerNeuron:
         self.should_exit = False 
         self.background_thread = None
 
-    def attach( self, synapse: "bittensor.Synapse" ):
-        # pass through attach function.
-        self.axon.attach( synapse )
-
     def __enter__(self):
         bittensor.logging.trace( 'BaseMinerNeuron.__enter__()' )
         self.start_in_background()
