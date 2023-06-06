@@ -203,3 +203,149 @@ class TextToEmbedding(object):
             bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToEmbeddingResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
+class TextToSpeechStub(object):
+    """///////////////////////
+    Text to Speech //
+    ///////////////////////
+
+    """
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/TextToSpeech/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToSpeechRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToSpeechResponse.FromString,
+                )
+
+
+class TextToSpeechServicer(object):
+    """///////////////////////
+    Text to Speech //
+    ///////////////////////
+
+    """
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_TextToSpeechServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToSpeechRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToSpeechResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'TextToSpeech', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class TextToSpeech(object):
+    """///////////////////////
+    Text to Speech //
+    ///////////////////////
+
+    """
+
+    @staticmethod
+    def Forward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/TextToSpeech/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToSpeechRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardTextToSpeechResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+
+class SpeechToTextStub(object):
+    """///////////////////////
+    Speech to Text //
+    ///////////////////////
+
+    """
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Forward = channel.unary_unary(
+                '/SpeechToText/Forward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardSpeechToTextRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardSpeechToTextResponse.FromString,
+                )
+
+
+class SpeechToTextServicer(object):
+    """///////////////////////
+    Speech to Text //
+    ///////////////////////
+
+    """
+
+    def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_SpeechToTextServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Forward': grpc.unary_unary_rpc_method_handler(
+                    servicer.Forward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardSpeechToTextRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardSpeechToTextResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'SpeechToText', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+ # This class is part of an EXPERIMENTAL API.
+class SpeechToText(object):
+    """///////////////////////
+    Speech to Text //
+    ///////////////////////
+
+    """
+
+    @staticmethod
+    def Forward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/SpeechToText/Forward',
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardSpeechToTextRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.ForwardSpeechToTextResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

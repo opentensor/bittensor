@@ -192,6 +192,10 @@ from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse
+from bittensor._proto.bittensor_pb2 import ForwardTextToEmbeddingRequest
+from bittensor._proto.bittensor_pb2 import ForwardTextToEmbeddingResponse
+from bittensor._proto.bittensor_pb2 import ForwardSpeechToTextRequest
+from bittensor._proto.bittensor_pb2 import ForwardSpeechToTextResponse
 from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingResponse
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingRequest
@@ -202,6 +206,7 @@ from bittensor._synapse.synapse import Synapse
 from bittensor._synapse.synapse import SynapseCall
 from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
 from bittensor._synapse.text_to_embedding.synapse import TextToEmbeddingSynapse
+from bittensor._synapse.speech_to_text.synapse import SpeechToTextSynapse
 
 # ---- Dendrites -----
 from bittensor._dendrite.dendrite import Dendrite
@@ -209,6 +214,8 @@ from bittensor._dendrite.dendrite import DendriteCall
 from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as text_prompting
 from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
 from bittensor._dendrite.text_to_embedding.dendrite import TextToEmbeddingDendrite as text_to_embedding
+from bittensor._dendrite.speech_to_text.dendrite import SpeechToTextDendrite as speech_to_text
+from bittensor._dendrite.text_to_speech.dendrite import TextToSpeechDendrite as text_to_speech
 
 # ---- Base Miners -----
 from bittensor._neuron.base_miner_neuron import BaseMinerNeuron
@@ -216,6 +223,7 @@ from bittensor._neuron.base_validator import BaseValidator
 from bittensor._neuron.base_prompting_miner import BasePromptingMiner
 from bittensor._neuron.base_embedding_miner import BaseEmbeddingMiner
 from bittensor._neuron.base_huggingface_miner import HuggingFaceMiner
+from bittensor._neuron.base_stt_miner import BaseSpeechToTextMiner
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError

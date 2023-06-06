@@ -74,6 +74,51 @@ message ForwardTextToEmbeddingResponse {
 }
 
 
+/////////////////////////
+// Text to Speech //
+/////////////////////////
+
+service TextToSpeech { rpc Forward (ForwardTextToSpeechRequest) returns (ForwardTextToSpeechResponse) {} }
+
+message ForwardTextToSpeechRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string text = 3;
+	float timeout = 4;
+}
+
+message ForwardTextToSpeechResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string speech = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+
+
+/////////////////////////
+// Speech to Text //
+/////////////////////////
+
+service SpeechToText { rpc Forward (ForwardSpeechToTextRequest) returns (ForwardSpeechToTextResponse) {} }
+
+message ForwardSpeechToTextRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string speech = 3;
+	float timeout = 4;
+}
+
+message ForwardSpeechToTextResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string text = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+
 // Return codes from Backward and Forward call.
 enum ReturnCode {
 	NoReturn = 0; // Default Value
