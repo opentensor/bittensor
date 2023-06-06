@@ -1,10 +1,10 @@
-## StableDiffusion Text to Embedding Miner
-Miner for serving a text to embedding miner.
+## OpenAI Whisper Miner
+Servers an open ai whisper endpoint.
 
 # Example Usage
 ```
-python3 -m pip install -r neurons/text_to_image/miners/stablediffusion/requirements.txt 
-python3 neurons/text_to_image/miners/stablediffusion/neuron.py 
+python3 -m pip install -r neurons/text_to_speech/miners/whisper/requirements.txt 
+python3 neurons/text_to_speech/miners/whisper/neuron.py 
 ```
 
 # Full Usage
@@ -21,7 +21,7 @@ usage: neuron.py [-h] [--model_name MODEL_NAME] [--chunk_length_s CHUNK_LENGTH_S
                  [--subtensor.register.cuda.dev_id SUBTENSOR.REGISTER.CUDA.DEV_ID [SUBTENSOR.REGISTER.CUDA.DEV_ID ...]] [--subtensor.register.cuda.TPB SUBTENSOR.REGISTER.CUDA.TPB] [--logging.debug]
                  [--logging.trace] [--logging.record_log] [--logging.logging_dir LOGGING.LOGGING_DIR] [--config CONFIG] [--strict]
 
-Stable Diffusion Text to Image Miner
+Whisper Text to Speech Miner
 
 options:
   -h, --help            show this help message and exit

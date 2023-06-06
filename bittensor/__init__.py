@@ -224,6 +224,7 @@ from bittensor._neuron.base_prompting_miner import BasePromptingMiner
 from bittensor._neuron.base_embedding_miner import BaseEmbeddingMiner
 from bittensor._neuron.base_huggingface_miner import HuggingFaceMiner
 from bittensor._neuron.base_stt_miner import BaseSpeechToTextMiner
+from bittensor._neuron.base_tts_miner import BaseTextToSpeechMiner
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError

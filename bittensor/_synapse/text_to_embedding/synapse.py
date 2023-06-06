@@ -15,14 +15,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import json
 import grpc
 import torch
 import bittensor
 
 from fastapi import APIRouter
 from typing import List, Union, Callable
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from pydantic import BaseModel
 
 # TODO: implement multi-forward for text_to_embedding
@@ -70,7 +69,6 @@ class TextToEmbeddingSynapse( bittensor.Synapse, bittensor.grpc.TextToEmbeddingS
 
     def __init__( self, axon: "bittensor.axon" ):
         super().__init__( axon = axon )
-        self.axon = axon
         bittensor.grpc.add_TextToEmbeddingServicer_to_server( self, self.axon.server )
 
         # Add FastApi routes.

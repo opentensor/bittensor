@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
+# Copyright © 2023 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -14,47 +14,32 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+
 import time
 import torch
 import argparse
 import bittensor
-from typing import List, Dict, Union, Tuple, Optional
+from typing import List
 
-def config():       
-    parser = argparse.ArgumentParser( description = 'Template Embdding miner.' )
-    bittensor.BaseMinerNeuron.add_args( parser )
-    return bittensor.config( parser )
+class TemplateEmbeddingMiner( bittensor.BaseEmbeddingMiner ):
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        pass
 
-def main( config ):
-    print ( config )
-    
-    # --- Build the base miner
-    base_miner = bittensor.BaseMinerNeuron( netuid = config.netuid, config = config )
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        parser.add_argument( '--device', type=str, help='Device to load model', default="cuda:0" )
 
-    # --- Build the synapse ---
-    class TemplateEmbedding( bittensor.TextPromptingSynapse ):
+    def __init__( self, *args, **kwargs ):
+        super( TemplateEmbeddingMiner, self ).__init__( *args, **kwargs )
 
-        def priority( self, forward_call: "bittensor.SynapseCall" ) -> float: 
-            return base_miner.priority( forward_call )
+    def forward( self, text: List[str] ) -> torch.FloatTensor:
+        # Returns a list of 0s of length 2048 for each input text string.
+        return torch.FloatTensor( [ [ 0 for _ in range( 2048 ) ] for _ in text ] ).to( self.config.device )
 
-        def blacklist( self, forward_call: "bittensor.SynapseCall" ) -> Union[ Tuple[bool, str], bool ]:
-            return base_miner.blacklist( forward_call )
-        
-        def forward( self, text: List[str] ) -> Union[ torch.FloatTensor, List[float] ]:
-            return [ 0 for _ in range( 2048 ) ]
-
-    # --- Attach the synapse to the base miner ---
-    base_miner.attach( TemplateEmbedding() )
-
-    # --- Run the miner continually until a Keyboard break ---
-    with base_miner: 
-        while True: 
-            time.sleep( 1 )
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
-    main( config() )
-
-
-
-
+    with TemplateEmbeddingMiner():
+        while True:
+            time.sleep( 1 )
