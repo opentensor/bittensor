@@ -100,7 +100,7 @@ linux_update_pip() {
 }
 
 linux_install_bittensor() {
-    ohai "Cloning bittensor@text_prompting into ~/.bittensor/bittensor"
+    ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
     mkdir -p ~/.bittensor/bittensor
     git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git fetch origin master ; git checkout master ; git pull --ff-only ; git reset --hard ; git clean -xdf)
     ohai "Installing bittensor"
