@@ -54,6 +54,12 @@ $ pip3 install bittensor
 $ git clone https://github.com/opentensor/bittensor.git
 $ python3 -m pip install -e bittensor/
 ```
+4. Using Conda (recommended for **Apple M1**):
+```bash
+$ conda env create -f ~/.bittensor/bittensor/scripts/environments/apple_m1_environment.yml
+$ conda activate bittensor
+```
+
 To test your installation, type:
 ```bash
 $ btcli --help
