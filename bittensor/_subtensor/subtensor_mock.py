@@ -287,7 +287,7 @@ class MockSubtensor(Subtensor):
                 # Subnet not full, add new neuron
                 # Append as next uid and increment subnetwork_n
                 uid = subnetwork_n
-                subtensor_state['SubnetworkN'][netuid][self.block_number] = subnetwork_n 
+                subtensor_state['SubnetworkN'][netuid][self.block_number] = subnetwork_n + 1
 
             subtensor_state['Stake'][hotkey] = {}
             subtensor_state['Stake'][hotkey][coldkey] = {}
