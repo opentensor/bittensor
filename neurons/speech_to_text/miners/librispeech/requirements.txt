@@ -1,3 +1,0 @@
-torchaudio
-transformers[speech, sentencepiece]
-soundfile

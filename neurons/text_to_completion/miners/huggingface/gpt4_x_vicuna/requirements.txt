@@ -1,4 +1,0 @@
-transformers>=4.28.0
-fschat
-tokenizers>=0.13.3
-accelerate

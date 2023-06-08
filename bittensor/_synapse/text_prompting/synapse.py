@@ -21,9 +21,10 @@ import bittensor
 from fastapi import APIRouter
 
 from typing import List, Dict, Union, Callable
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import json
 
+<<<<<<< HEAD
 
 class SynapseForwardMulti( bittensor.SynapseCall ):
     name: str = "text_prompting_forward_multi"
@@ -59,6 +60,8 @@ class SynapseForwardMulti( bittensor.SynapseCall ):
         bittensor.logging.trace( "SynapseForward.get_outputs_shape()" )
         return torch.Size( [ len(self.multi_completions) ]  )
 
+=======
+>>>>>>> d11e9923... remove neurons, take out multiforward Synapse
 class SynapseForward( bittensor.SynapseCall ):
     name: str = "text_prompting_forward"
     is_forward: bool = True
@@ -168,11 +171,14 @@ class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServi
         bittensor.logging.trace( 'Forward: {} '.format( call ) )
         return self.apply( call = call )
 
+<<<<<<< HEAD
     def MultiForward( self, request: bittensor.proto.MultiForwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.MultiForwardTextPromptingResponse:
         call = SynapseForwardMulti( self, request, self.multi_forward, context )
         bittensor.logging.trace( 'MultiForward: {} '.format( call ) )
         return self.apply( call = call )
 
+=======
+>>>>>>> d11e9923... remove neurons, take out multiforward Synapse
     def Backward( self, request: bittensor.proto.BackwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.BackwardTextPromptingResponse:
         call = SynapseBackward( self, request, self.backward, context )
         bittensor.logging.trace( 'Backward: {}'.format( call ) )
