@@ -29,7 +29,7 @@ from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
 from bittensor.utils.registration import POWSolution
 
 # Local imports.
-from .chain_data import NeuronInfo, axon_info, DelegateInfo, PrometheusInfo, SubnetInfo, NeuronInfoLite
+from .chain_data import NeuronInfo, DelegateInfo, PrometheusInfo, SubnetInfo, NeuronInfoLite, axon_info
 from .errors import *
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic

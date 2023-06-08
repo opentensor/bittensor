@@ -18,13 +18,12 @@
 from dataclasses import dataclass
 from typing import List, Tuple, Dict, Optional, Any
 import bittensor
-from bittensor import Balance
+from bittensor import Balance, axon_info
 import torch
 from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
 from enum import Enum
-
 
 custom_rpc_type_registry = {
     "types": {
@@ -360,7 +359,7 @@ class NeuronInfoLite:
         neuron_info_decoded['validator_trust'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['validator_trust'])
         neuron_info_decoded['dividends'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['dividends'])
         neuron_info_decoded['prometheus_info'] = PrometheusInfo.fix_decoded_values(neuron_info_decoded['prometheus_info'])
-        neuron_info_decoded['axon_info'] = bittensor.axon_info.from_neuron_info(neuron_info_decoded)
+        neuron_info_decoded['axon_info'] = axon_info.from_neuron_info(neuron_info_decoded)
         return cls(**neuron_info_decoded)
 
     @classmethod
@@ -439,28 +438,6 @@ class NeuronInfoLite:
             neuron.emission = neuron.emission / RAOPERTAO
 
             return neuron
-
-@dataclass
-class axon_info:
-    r"""
-    Dataclass for axon info.
-    """
-    block: int
-    version: int
-    ip: str
-    port: int
-    ip_type: int
-    protocol: int
-    placeholder1: int # placeholder for future use
-    placeholder2: int
-
-    @classmethod
-    def fix_decoded_values(cls, axon_info_decoded: Dict) -> 'axon_info':
-        r""" Returns an axon_info object from an axon_info_decoded dictionary.
-        """
-        axon_info_decoded['ip'] = bittensor.utils.networking.int_to_ip(int(axon_info_decoded['ip']))
-
-        return cls(**axon_info_decoded)
 
 @dataclass
 class PrometheusInfo:
