@@ -14,12 +14,10 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import grpc
 import json
 import torch
-import asyncio
 import bittensor
-from typing import Callable, List, Dict, Union
+from typing import Callable, List, Union
 
 class DendriteForwardCall( bittensor.DendriteCall ):
 
@@ -197,40 +195,6 @@ class TextPromptingDendrite( bittensor.Dendrite ):
         forward_call = await self.apply( dendrite_call = forward_call )
         if return_call: return forward_call
         else: return forward_call.completion
-
-    def multi_forward(
-            self,
-            roles: List[ str ] ,
-            messages: List[ str ],
-            timeout: float = bittensor.__blocktime__,
-            return_call:bool = True,
-        ) -> Union[ str, DendriteForwardCall ]:
-        forward_call = MultiDendriteForwardCall(
-            dendrite = self,
-            messages = messages,
-            roles = roles,
-            timeout = timeout,
-        )
-        response_call = self.loop.run_until_complete( self.apply( dendrite_call = forward_call ) )
-        if return_call: return response_call
-        else: return response_call.multi_completions
-
-    async def async_multi_forward(
-        self,
-        roles: List[ str ],
-        messages: List[ str ],
-        timeout: float = bittensor.__blocktime__,
-        return_call: bool = True,
-    ) -> Union[ str, DendriteForwardCall ]:
-        forward_call = MultiDendriteForwardCall(
-            dendrite = self,
-            messages = messages,
-            roles = roles,
-            timeout = timeout,
-        )
-        forward_call = await self.apply( dendrite_call = forward_call )
-        if return_call: return forward_call
-        else: return forward_call.multi_completions
 
     def backward(
             self,
