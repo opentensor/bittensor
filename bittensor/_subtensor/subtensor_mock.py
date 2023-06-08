@@ -71,17 +71,18 @@ class MockMapResult:
         return iter(self.records)
 
 class MockSystemState(TypedDict):
-    Account: Dict[str, Dict[str, 'bittensor.Balance']] # address -> block -> balance
+    Account: Dict[str, Dict[int, int]] # address -> block -> balance
 
 class MockSubtensorState(TypedDict):
-    Rho: Dict[str, Dict[BlockNumber, int]] # netuid -> block -> rho
-    Kappa: Dict[str, Dict[BlockNumber, int]] # netuid -> block -> kappa
-    Difficulty: Dict[str, Dict[BlockNumber, int]] # netuid -> block -> difficulty
-    ImmunityPeriod: Dict[str, Dict[BlockNumber, int]] # netuid -> block -> immunity_period
-    ValidatorBatchSize: Dict[str, Dict[BlockNumber, int]] # netuid -> block -> validator_batch_size
-    Active: Dict[str, Dict[BlockNumber, bool]] # (netuid, uid), block -> active
+    Rho: Dict[int, Dict[BlockNumber, int]] # netuid -> block -> rho
+    Kappa: Dict[int, Dict[BlockNumber, int]] # netuid -> block -> kappa
+    Difficulty: Dict[int, Dict[BlockNumber, int]] # netuid -> block -> difficulty
+    ImmunityPeriod: Dict[int, Dict[BlockNumber, int]] # netuid -> block -> immunity_period
+    ValidatorBatchSize: Dict[int, Dict[BlockNumber, int]] # netuid -> block -> validator_batch_size
+    Active: Dict[int, Dict[BlockNumber, bool]] # (netuid, uid), block -> active
+    Stake:  Dict[str, Dict[int, int]] # address -> block -> stake
 
-    NetworksAdded: Dict[str, Dict[BlockNumber, bool]] # netuid -> block -> added
+    NetworksAdded: Dict[int, Dict[BlockNumber, bool]] # netuid -> block -> added
 
 class MockChainState(TypedDict):
     System: MockSystemState
@@ -291,7 +292,7 @@ class MockSubtensor(Subtensor):
 
             subtensor_state['Stake'][hotkey] = {}
             subtensor_state['Stake'][hotkey][coldkey] = {}
-            subtensor_state['Stake'][hotkey][coldkey][self.block_number] = bittensor.Balance(0)
+            subtensor_state['Stake'][hotkey][coldkey][self.block_number] = 0
             
             subtensor_state['UIDs'][netuid][hotkey] = {}
             subtensor_state['UIDs'][netuid][hotkey][self.block_number] = uid
@@ -372,18 +373,15 @@ class MockSubtensor(Subtensor):
             coldkey=coldkey,
         )
 
-        subtensor_state['TotalStake'][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalStake']) + stake
-        subtensor_state['Stake'][hotkey][coldkey][self.block_number] = stake
+        subtensor_state['TotalStake'][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalStake']) + stake.rao
+        subtensor_state['Stake'][hotkey][coldkey][self.block_number] = stake.rao
             
 
     def force_set_balance(
         self,
         ss58_address: str,
         balance: Union['bittensor.Balance', float] = bittensor.Balance(0),
-        stake: Union['bittensor.Balance', float] = bittensor.Balance(0),
     ) -> None:
-        if isinstance(stake, float):
-            stake = bittensor.Balance.from_tao(stake)
             
         if isinstance(balance, float):
             balance = bittensor.Balance.from_tao(balance)
