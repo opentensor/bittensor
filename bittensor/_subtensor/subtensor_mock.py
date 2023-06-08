@@ -302,6 +302,9 @@ class MockSubtensor(Subtensor):
             subtensor_state['Owner'][hotkey] = {}
             subtensor_state['Owner'][hotkey][self.block_number] = coldkey
 
+            subtensor_state['Active'][netuid][uid] = {}
+            subtensor_state['Active'][netuid][uid][self.block_number] = True
+
             subtensor_state['LastUpdate'][netuid][uid] = {}
             subtensor_state['LastUpdate'][netuid][uid][self.block_number] = self.block_number
             
