@@ -20,6 +20,8 @@ from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
 from unittest.mock import MagicMock
 from dataclasses import dataclass
+from abc import ABC, abstractclassmethod
+from collections.abc import Mapping
 
 import bittensor
 from bittensor.utils import RAOPERTAO, U16_NORMALIZED_FLOAT
@@ -32,7 +34,25 @@ from .subtensor_impl import Subtensor
 
 BlockNumber = int
 
-class AxonInfoDict(TypedDict):
+class InfoDict(Mapping):
+    @abstractclassmethod
+    def default(cls):
+        raise NotImplementedError
+    
+    def __getitem__(self, key):
+        return getattr(self, key)
+    
+    def __setitem__(self, key, value):
+        return setattr(self, key, value)
+
+    def __iter__(self):
+        return iter(self.__dict__)
+    
+    def __len__(self):
+        return len(self.__dict__)
+
+@dataclass
+class AxonInfoDict(InfoDict):
     block: int
     version: int
     ip: int # integer representation of ip address
@@ -42,12 +62,36 @@ class AxonInfoDict(TypedDict):
     placeholder1: int # placeholder for future use
     placeholder2: int
 
-class PrometheusInfoDict(TypedDict):
+    @classmethod
+    def default(cls):
+        return cls(
+            block=0,
+            version=0,
+            ip=0,
+            port=0,
+            ip_type=0,
+            protocol=0,
+            placeholder1=0,
+            placeholder2=0,
+        )
+    
+@dataclass
+class PrometheusInfoDict(InfoDict):
     block: int
     version: int
     ip: int # integer representation of ip address
     port: int
     ip_type: int
+
+    @classmethod
+    def default(cls):
+        return cls(
+            block=0,
+            version=0,
+            ip=0,
+            port=0,
+            ip_type=0,
+        )
 
 @dataclass
 class MockSubtensorValue:
@@ -586,26 +630,34 @@ class MockSubtensor(Subtensor):
             
             return None
         
-    def _get_axon_info( self, netuid: int, hotkey: str, block: Optional[int] = None ) -> Optional[AxonInfoDict]:
+    def _get_axon_info( self, netuid: int, hotkey: str, block: Optional[int] = None ) -> AxonInfoDict:
         # Axons [netuid][hotkey][block_number]
         subtensor_state = self.chain_state['SubtensorModule']
         if netuid not in subtensor_state['Axons']:
-            return None
+            return AxonInfoDict.default()
         
         if hotkey not in subtensor_state['Axons'][netuid]:
-            return None
+            return AxonInfoDict.default()
         
-        return self._get_most_recent_storage(subtensor_state['Axons'][netuid][hotkey], block)
+        result = self._get_most_recent_storage(subtensor_state['Axons'][netuid][hotkey], block)
+        if not result:
+            return AxonInfoDict.default()
+        
+        return result
 
-    def _get_prometheus_info( self, netuid: int, hotkey: str, block: Optional[int] = None ) -> Optional[PrometheusInfoDict]:
+    def _get_prometheus_info( self, netuid: int, hotkey: str, block: Optional[int] = None ) -> PrometheusInfoDict:
         subtensor_state = self.chain_state['SubtensorModule']
         if netuid not in subtensor_state['Prometheus']:
-            return None
+            return PrometheusInfoDict.default()
         
         if hotkey not in subtensor_state['Prometheus'][netuid]:
-            return None
+            return PrometheusInfoDict.default()
         
-        return self._get_most_recent_storage(subtensor_state['Prometheus'][netuid][hotkey], block)
+        result = self._get_most_recent_storage(subtensor_state['Prometheus'][netuid][hotkey], block)
+        if not result:
+            return PrometheusInfoDict.default()
+        
+        return result
 
     def _neuron_subnet_exists( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfo]:
         subtensor_state = self.chain_state['SubtensorModule']
@@ -709,11 +761,13 @@ class MockSubtensor(Subtensor):
             return None
         
         else:
-            del neuron_info['weights']
-            del neuron_info['bonds']
+            neuron_info_dict = neuron_info.__dict__
+            del neuron_info
+            del neuron_info_dict['weights']
+            del neuron_info_dict['bonds']
 
             neuron_info_lite = NeuronInfoLite(
-                **neuron_info
+                **neuron_info_dict
             )
             return neuron_info_lite
 
