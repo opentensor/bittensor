@@ -75,46 +75,6 @@ class DendriteForwardCall( bittensor.DendriteCall ):
             timeout = self.timeout if timeout is None else bittensor.__blocktime__
         )
 
-
-class MultiDendriteForwardCall( bittensor.DendriteCall ):
-
-    name: str = "text_prompting_multi_forward"
-    is_forward: bool = True
-    multi_completions: List[str] = [""] # To be filled.
-
-    def __init__(
-        self,
-        dendrite: 'bittensor.TextPromptingDendrite',
-        messages: List[str],
-        roles: List[str],
-        timeout: float = bittensor.__blocktime__,
-    ):
-        super().__init__( dendrite = dendrite, timeout = timeout )
-        self.messages = messages
-        self.roles = roles
-        self.packed_messages = [json.dumps({"role": role, "content": message}) for role, message in zip(self.roles, self.messages)]
-
-    def __repr__(self) -> str:
-        return f"MultiDendriteForwardCall( {bittensor.utils.codes.code_to_string(self.return_code)}, to: {self.dest_hotkey[:4]}...{self.dest_hotkey[-4:]}, msg: {self.return_message}, n_completion: {len(self.multi_completions)})"
-
-    def __str__(self) -> str: return self.__repr__()
-
-    def get_callable( self ) -> Callable:
-        return bittensor.grpc.TextPromptingStub( self.dendrite.channel ).MultiForward
-
-    def get_request_proto( self ) -> bittensor.proto.MultiForwardTextPromptingRequest:
-        return bittensor.MultiForwardTextPromptingRequest( timeout = self.timeout, messages = self.packed_messages )
-
-    def apply_response_proto( self, response_proto: bittensor.MultiForwardTextPromptingResponse ):
-        self.multi_completions = response_proto.multi_completions
-
-    def get_inputs_shape(self) -> torch.Size:
-        return torch.Size( [len(message) for message in self.packed_messages] )
-
-    def get_outputs_shape(self) -> torch.Size:
-        return torch.Size([ len(self.multi_completions) ] )
-
-
 class DendriteBackwardCall( bittensor.DendriteCall ):
 
     name: str = "text_prompting_backward"
