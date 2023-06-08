@@ -19,6 +19,7 @@ from random import randint
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
 from unittest.mock import MagicMock
+from dataclasses import dataclass
 
 import bittensor
 from bittensor.utils import RAOPERTAO, U16_NORMALIZED_FLOAT
@@ -29,7 +30,7 @@ from .chain_data import (NeuronInfo, NeuronInfoLite, PrometheusInfo,
 from .errors import *
 from .subtensor_impl import Subtensor
 
-BlockNumber = str # str(int)
+BlockNumber = int
 
 class AxonInfoDict(TypedDict):
     block: int
@@ -48,11 +49,23 @@ class PrometheusInfoDict(TypedDict):
     port: int
     ip_type: int
 
-class MockMapResult:
-    records: Optional[List[Any]]
+@dataclass
+class MockSubtensorValue:
+    value: Any
 
-    def __init__(self, records: Optional[List[Any]] = None):
-        self.records = records
+class MockMapResult:
+    records: Optional[List[Tuple[MockSubtensorValue, MockSubtensorValue]]]
+
+    def __init__(self, records: Optional[List[Tuple[Union[Any, MockSubtensorValue], Union[Any, MockSubtensorValue]]]] = None):
+        _records = [
+                (MockSubtensorValue( value=record[0] ), MockSubtensorValue( value=record[1] )) 
+                    # Make sure record is a tuple of MockSubtensorValue (dict with value attr)
+                    if not (isinstance(record, tuple) and all(isinstance(item, dict) and hasattr(item, 'value') for item in record))
+                else record 
+            for record in records 
+        ]
+        
+        self.records = _records
 
     def __iter__(self):
         return iter(self.records)
@@ -69,7 +82,6 @@ class MockSubtensorState(TypedDict):
     Active: Dict[str, Dict[BlockNumber, bool]] # (netuid, uid), block -> active
 
     NetworksAdded: Dict[str, Dict[BlockNumber, bool]] # netuid -> block -> added
-
 
 class MockChainState(TypedDict):
     System: MockSystemState
@@ -90,6 +102,8 @@ class MockSubtensor(Subtensor):
     def reset(cls) -> None:
         bittensor.__GLOBAL_MOCK_STATE__.clear()
 
+        _ = cls()
+
     def setup(self) -> None:
         if not hasattr(self, 'chain_state') or getattr(self, 'chain_state') is None:
             self.chain_state = {
@@ -98,7 +112,7 @@ class MockSubtensor(Subtensor):
                 },
                 'Balances': {
                     'ExistentialDeposit': {
-                        '0': 500
+                        0: 500
                     },
                 },
                 'SubtensorModule': {
@@ -147,7 +161,7 @@ class MockSubtensor(Subtensor):
                     
                     'Stake': {},
                     'TotalStake': {
-                        '0': 0
+                        0: 0
                     },
 
                     'Delegates': {},
@@ -172,79 +186,79 @@ class MockSubtensor(Subtensor):
 
     def create_subnet( self, netuid: int ) -> None:
         subtensor_state = self.chain_state['SubtensorModule']
-        if str(netuid) not in subtensor_state['NetworksAdded']:
+        if netuid not in subtensor_state['NetworksAdded']:
             # Per Subnet
-            subtensor_state['Rho'][str(netuid)] = {}
-            subtensor_state['Rho'][str(netuid)]['0'] = 10
-            subtensor_state['Kappa'][str(netuid)] = {}
-            subtensor_state['Kappa'][str(netuid)]['0'] = 32_767
-            subtensor_state['Difficulty'][str(netuid)] = {}
-            subtensor_state['Difficulty'][str(netuid)]['0'] = 10_000_000
-            subtensor_state['ImmunityPeriod'][str(netuid)] = {}
-            subtensor_state['ImmunityPeriod'][str(netuid)]['0'] = 4096
-            subtensor_state['ValidatorBatchSize'][str(netuid)] = {}
-            subtensor_state['ValidatorBatchSize'][str(netuid)]['0'] = 32
-            subtensor_state['ValidatorSequenceLen'][str(netuid)] = {}
-            subtensor_state['ValidatorSequenceLen'][str(netuid)]['0'] = 256
-            subtensor_state['ValidatorEpochsPerReset'][str(netuid)] = {}
-            subtensor_state['ValidatorEpochsPerReset'][str(netuid)]['0'] = 60
-            subtensor_state['ValidatorEpochLen'][str(netuid)] = {}
-            subtensor_state['ValidatorEpochLen'][str(netuid)]['0'] = 100
-            subtensor_state['MaxAllowedValidators'][str(netuid)] = {}
-            subtensor_state['MaxAllowedValidators'][str(netuid)]['0'] = 128
-            subtensor_state['MinAllowedWeights'][str(netuid)] = {}
-            subtensor_state['MinAllowedWeights'][str(netuid)]['0'] = 1024
-            subtensor_state['MaxWeightsLimit'][str(netuid)] = {}
-            subtensor_state['MaxWeightsLimit'][str(netuid)]['0'] = 1_000
-            subtensor_state['SynergyScalingLawPower'][str(netuid)] = {}
-            subtensor_state['SynergyScalingLawPower'][str(netuid)]['0'] = 50
-            subtensor_state['ScalingLawPower'][str(netuid)] = {}
-            subtensor_state['ScalingLawPower'][str(netuid)]['0'] = 50
-            subtensor_state['SubnetworkN'][str(netuid)] = {}
-            subtensor_state['SubnetworkN'][str(netuid)]['0'] = 0
-            subtensor_state['MaxAllowedUids'][str(netuid)] = {}
-            subtensor_state['MaxAllowedUids'][str(netuid)]['0'] = 4096
-            subtensor_state['NetworkModality'][str(netuid)] = {}
-            subtensor_state['NetworkModality'][str(netuid)]['0'] = 0
-            subtensor_state['BlocksSinceLastStep'][str(netuid)] = {}
-            subtensor_state['BlocksSinceLastStep'][str(netuid)]['0'] = 0
-            subtensor_state['Tempo'][str(netuid)] = {}
-            subtensor_state['Tempo'][str(netuid)]['0'] = 99
-            subtensor_state['NetworkConnect'][str(netuid)] = {}
-            subtensor_state['NetworkConnect'][str(netuid)]['0'] = {}
-            subtensor_state['EmissionValue'][str(netuid)] = {}
-            subtensor_state['EmissionValue'][str(netuid)]['0'] = 0
-            subtensor_state['Burn'][str(netuid)] = {}
-            subtensor_state['Burn'][str(netuid)]['0'] = 0
+            subtensor_state['Rho'][netuid] = {}
+            subtensor_state['Rho'][netuid][0] = 10
+            subtensor_state['Kappa'][netuid] = {}
+            subtensor_state['Kappa'][netuid][0] = 32_767
+            subtensor_state['Difficulty'][netuid] = {}
+            subtensor_state['Difficulty'][netuid][0] = 10_000_000
+            subtensor_state['ImmunityPeriod'][netuid] = {}
+            subtensor_state['ImmunityPeriod'][netuid][0] = 4096
+            subtensor_state['ValidatorBatchSize'][netuid] = {}
+            subtensor_state['ValidatorBatchSize'][netuid][0] = 32
+            subtensor_state['ValidatorSequenceLen'][netuid] = {}
+            subtensor_state['ValidatorSequenceLen'][netuid][0] = 256
+            subtensor_state['ValidatorEpochsPerReset'][netuid] = {}
+            subtensor_state['ValidatorEpochsPerReset'][netuid][0] = 60
+            subtensor_state['ValidatorEpochLen'][netuid] = {}
+            subtensor_state['ValidatorEpochLen'][netuid][0] = 100
+            subtensor_state['MaxAllowedValidators'][netuid] = {}
+            subtensor_state['MaxAllowedValidators'][netuid][0] = 128
+            subtensor_state['MinAllowedWeights'][netuid] = {}
+            subtensor_state['MinAllowedWeights'][netuid][0] = 1024
+            subtensor_state['MaxWeightsLimit'][netuid] = {}
+            subtensor_state['MaxWeightsLimit'][netuid][0] = 1_000
+            subtensor_state['SynergyScalingLawPower'][netuid] = {}
+            subtensor_state['SynergyScalingLawPower'][netuid][0] = 50
+            subtensor_state['ScalingLawPower'][netuid] = {}
+            subtensor_state['ScalingLawPower'][netuid][0] = 50
+            subtensor_state['SubnetworkN'][netuid] = {}
+            subtensor_state['SubnetworkN'][netuid][0] = 0
+            subtensor_state['MaxAllowedUids'][netuid] = {}
+            subtensor_state['MaxAllowedUids'][netuid][0] = 4096
+            subtensor_state['NetworkModality'][netuid] = {}
+            subtensor_state['NetworkModality'][netuid][0] = 0
+            subtensor_state['BlocksSinceLastStep'][netuid] = {}
+            subtensor_state['BlocksSinceLastStep'][netuid][0] = 0
+            subtensor_state['Tempo'][netuid] = {}
+            subtensor_state['Tempo'][netuid][0] = 99
+            subtensor_state['NetworkConnect'][netuid] = {}
+            subtensor_state['NetworkConnect'][netuid][0] = {}
+            subtensor_state['EmissionValue'][netuid] = {}
+            subtensor_state['EmissionValue'][netuid][0] = 0
+            subtensor_state['Burn'][netuid] = {}
+            subtensor_state['Burn'][netuid][0] = 0
 
             # Per-UID/Hotkey
 
-            subtensor_state['UIDs'][str(netuid)] = {}
-            subtensor_state['Keys'][str(netuid)] = {}
-            subtensor_state['Owner'][str(netuid)] = {}
+            subtensor_state['UIDs'][netuid] = {}
+            subtensor_state['Keys'][netuid] = {}
+            subtensor_state['Owner'][netuid] = {}
             
-            subtensor_state['LastUpdate'][str(netuid)] = {}
-            subtensor_state['Active'][str(netuid)] = {}
-            subtensor_state['Rank'][str(netuid)] = {}
-            subtensor_state['Emission'][str(netuid)] = {}
-            subtensor_state['Incentive'][str(netuid)] = {}
-            subtensor_state['Consensus'][str(netuid)] = {}
-            subtensor_state['Trust'][str(netuid)] = {}
-            subtensor_state['ValidatorTrust'][str(netuid)] = {}
-            subtensor_state['Dividends'][str(netuid)] = {}
-            subtensor_state['PruningScores'][str(netuid)] = {}
-            subtensor_state['PruningScores'][str(netuid)]['0'] = {}
-            subtensor_state['ValidatorPermit'][str(netuid)] = {}
+            subtensor_state['LastUpdate'][netuid] = {}
+            subtensor_state['Active'][netuid] = {}
+            subtensor_state['Rank'][netuid] = {}
+            subtensor_state['Emission'][netuid] = {}
+            subtensor_state['Incentive'][netuid] = {}
+            subtensor_state['Consensus'][netuid] = {}
+            subtensor_state['Trust'][netuid] = {}
+            subtensor_state['ValidatorTrust'][netuid] = {}
+            subtensor_state['Dividends'][netuid] = {}
+            subtensor_state['PruningScores'][netuid] = {}
+            subtensor_state['PruningScores'][netuid][0] = {}
+            subtensor_state['ValidatorPermit'][netuid] = {}
 
-            subtensor_state['Weights'][str(netuid)] = {}
-            subtensor_state['Bonds'][str(netuid)] = {}
+            subtensor_state['Weights'][netuid] = {}
+            subtensor_state['Bonds'][netuid] = {}
 
-            subtensor_state['Axons'][str(netuid)] = {}
-            subtensor_state['Prometheus'][str(netuid)] = {}
-            subtensor_state['Stake'][str(netuid)] = {}
+            subtensor_state['Axons'][netuid] = {}
+            subtensor_state['Prometheus'][netuid] = {}
+            subtensor_state['Stake'][netuid] = {}
 
-            subtensor_state['NetworksAdded'][str(netuid)] = {}
-            subtensor_state['NetworksAdded'][str(netuid)]['0'] = True
+            subtensor_state['NetworksAdded'][netuid] = {}
+            subtensor_state['NetworksAdded'][netuid][0] = True
 
         else:
             raise Exception("Subnet already exists")
@@ -256,79 +270,79 @@ class MockSubtensor(Subtensor):
         coldkey: str,
     ) -> int:
         subtensor_state = self.chain_state['SubtensorModule']
-        if str(netuid) not in subtensor_state['NetworksAdded']:
+        if netuid not in subtensor_state['NetworksAdded']:
             raise Exception("Subnet does not exist")
 
-        subnetwork_n = self._get_most_recent_storage(subtensor_state['SubnetworkN'][str(netuid)])
+        subnetwork_n = self._get_most_recent_storage(subtensor_state['SubnetworkN'][netuid])
         
-        if subnetwork_n > 0 and any(self._get_most_recent_storage(subtensor_state['Keys'][str(netuid)][uid]) == hotkey for uid in range(subnetwork_n)):
+        if subnetwork_n > 0 and any(self._get_most_recent_storage(subtensor_state['Keys'][netuid][uid]) == hotkey for uid in range(subnetwork_n)):
             # already_registered
             raise Exception("Hotkey already registered")
         else:
             # Not found
-            if subnetwork_n >= self._get_most_recent_storage(subtensor_state['MaxAllowedUids'][str(netuid)]):
+            if subnetwork_n >= self._get_most_recent_storage(subtensor_state['MaxAllowedUids'][netuid]):
                 # Subnet full, replace neuron randomly
                 uid = randint(0, subnetwork_n-1)
             else:
                 # Subnet not full, add new neuron
                 # Append as next uid and increment subnetwork_n
                 uid = subnetwork_n
-                subtensor_state['SubnetworkN'][str(netuid)][str(self.block_number)] = subnetwork_n 
+                subtensor_state['SubnetworkN'][netuid][self.block_number] = subnetwork_n 
 
             subtensor_state['Stake'][hotkey] = {}
             subtensor_state['Stake'][hotkey][coldkey] = {}
-            subtensor_state['Stake'][hotkey][coldkey][str(self.block_number)] = bittensor.Balance(0)
+            subtensor_state['Stake'][hotkey][coldkey][self.block_number] = bittensor.Balance(0)
             
-            subtensor_state['UIDs'][str(netuid)][hotkey] = {}
-            subtensor_state['UIDs'][str(netuid)][hotkey][str(self.block_number)] = uid
+            subtensor_state['UIDs'][netuid][hotkey] = {}
+            subtensor_state['UIDs'][netuid][hotkey][self.block_number] = uid
 
-            subtensor_state['Keys'][str(netuid)][str(uid)] = {}
-            subtensor_state['Keys'][str(netuid)][str(uid)][str(self.block_number)] = hotkey
+            subtensor_state['Keys'][netuid][uid] = {}
+            subtensor_state['Keys'][netuid][uid][self.block_number] = hotkey
 
             subtensor_state['Owner'][hotkey] = {}
-            subtensor_state['Owner'][hotkey][str(self.block_number)] = coldkey
+            subtensor_state['Owner'][hotkey][self.block_number] = coldkey
 
-            subtensor_state['LastUpdate'][str(netuid)][str(uid)] = {}
-            subtensor_state['LastUpdate'][str(netuid)][str(uid)][str(self.block_number)] = self.block_number
+            subtensor_state['LastUpdate'][netuid][uid] = {}
+            subtensor_state['LastUpdate'][netuid][uid][self.block_number] = self.block_number
             
-            subtensor_state['Rank'][str(netuid)][str(uid)] = {}
-            subtensor_state['Rank'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['Rank'][netuid][uid] = {}
+            subtensor_state['Rank'][netuid][uid][self.block_number] = 0.0
 
-            subtensor_state['Emission'][str(netuid)][str(uid)] = {}
-            subtensor_state['Emission'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['Emission'][netuid][uid] = {}
+            subtensor_state['Emission'][netuid][uid][self.block_number] = 0.0
 
-            subtensor_state['Incentive'][str(netuid)][str(uid)] = {}
-            subtensor_state['Incentive'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['Incentive'][netuid][uid] = {}
+            subtensor_state['Incentive'][netuid][uid][self.block_number] = 0.0
 
-            subtensor_state['Consensus'][str(netuid)][str(uid)] = {}
-            subtensor_state['Consensus'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['Consensus'][netuid][uid] = {}
+            subtensor_state['Consensus'][netuid][uid][self.block_number] = 0.0
 
-            subtensor_state['Trust'][str(netuid)][str(uid)] = {}
-            subtensor_state['Trust'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['Trust'][netuid][uid] = {}
+            subtensor_state['Trust'][netuid][uid][self.block_number] = 0.0
 
-            subtensor_state['ValidatorTrust'][str(netuid)][str(uid)] = {}
-            subtensor_state['ValidatorTrust'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['ValidatorTrust'][netuid][uid] = {}
+            subtensor_state['ValidatorTrust'][netuid][uid][self.block_number] = 0.0
 
-            subtensor_state['Dividends'][str(netuid)][str(uid)] = {}
-            subtensor_state['Dividends'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['Dividends'][netuid][uid] = {}
+            subtensor_state['Dividends'][netuid][uid][self.block_number] = 0.0
 
-            subtensor_state['PruningScores'][str(netuid)][str(uid)] = {}
-            subtensor_state['PruningScores'][str(netuid)][str(uid)][str(self.block_number)] = 0.0
+            subtensor_state['PruningScores'][netuid][uid] = {}
+            subtensor_state['PruningScores'][netuid][uid][self.block_number] = 0.0
 
-            subtensor_state['ValidatorPermit'][str(netuid)][str(uid)] = {}
-            subtensor_state['ValidatorPermit'][str(netuid)][str(uid)][str(self.block_number)] = False
+            subtensor_state['ValidatorPermit'][netuid][uid] = {}
+            subtensor_state['ValidatorPermit'][netuid][uid][self.block_number] = False
 
-            subtensor_state['Weights'][str(netuid)][str(uid)] = {}
-            subtensor_state['Weights'][str(netuid)][str(uid)][str(self.block_number)] = []
+            subtensor_state['Weights'][netuid][uid] = {}
+            subtensor_state['Weights'][netuid][uid][self.block_number] = []
 
-            subtensor_state['Bonds'][str(netuid)][str(uid)] = {}
-            subtensor_state['Bonds'][str(netuid)][str(uid)][str(self.block_number)] = []
+            subtensor_state['Bonds'][netuid][uid] = {}
+            subtensor_state['Bonds'][netuid][uid][self.block_number] = []
 
-            subtensor_state['Axons'][str(netuid)][hotkey] = {}
-            subtensor_state['Axons'][str(netuid)][hotkey][str(self.block_number)] = {}
+            subtensor_state['Axons'][netuid][hotkey] = {}
+            subtensor_state['Axons'][netuid][hotkey][self.block_number] = {}
 
-            subtensor_state['Prometheus'][str(netuid)][hotkey] = {}
-            subtensor_state['Prometheus'][str(netuid)][hotkey][str(self.block_number)] = {}
+            subtensor_state['Prometheus'][netuid][hotkey] = {}
+            subtensor_state['Prometheus'][netuid][hotkey][self.block_number] = {}
             
             return uid
 
@@ -346,7 +360,7 @@ class MockSubtensor(Subtensor):
             stake = bittensor.Balance.from_tao(stake)
 
         subtensor_state = self.chain_state['SubtensorModule']
-        if str(netuid) not in subtensor_state['NetworksAdded']:
+        if netuid not in subtensor_state['NetworksAdded']:
             raise Exception("Subnet does not exist")
 
         self._register_neuron(
@@ -355,8 +369,8 @@ class MockSubtensor(Subtensor):
             coldkey=coldkey,
         )
 
-        subtensor_state['TotalStake'][str(self.block_number)] = self._get_most_recent_storage(subtensor_state['TotalStake']) + stake
-        subtensor_state['Stake'][hotkey][coldkey][str(self.block_number)] = stake
+        subtensor_state['TotalStake'][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalStake']) + stake
+        subtensor_state['Stake'][hotkey][coldkey][self.block_number] = stake
             
 
     def force_set_balance(
@@ -374,7 +388,7 @@ class MockSubtensor(Subtensor):
         if ss58_address not in self.chain_state['System']['Account']:
             self.chain_state['System']['Account'][ss58_address] = {}
 
-        self.chain_state['System']['Account'][ss58_address][str(self.block_number)] = {
+        self.chain_state['System']['Account'][ss58_address][self.block_number] = {
             'data': {
                 'free': balance.rao,
             }
@@ -387,7 +401,7 @@ class MockSubtensor(Subtensor):
         # Doesn't do epoch
         subtensor_state = self.chain_state['SubtensorModule']
         for subnet in subtensor_state['NetworksAdded']:
-            subtensor_state['BlocksSinceLastStep'][subnet][str(self.block_number)] = self._get_most_recent_storage(subtensor_state['BlocksSinceLastStep'][subnet]) + 1
+            subtensor_state['BlocksSinceLastStep'][subnet][self.block_number] = self._get_most_recent_storage(subtensor_state['BlocksSinceLastStep'][subnet]) + 1
 
     def query_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
         if block:
@@ -407,10 +421,10 @@ class MockSubtensor(Subtensor):
                         return None
                     
             # Use block
-            state_at_block = state.get(str(block), None)
+            state_at_block = state.get(block, None)
             while state_at_block is None and block > 0:
                 block -= 1
-                state_at_block = self.state.get(str(block), None)
+                state_at_block = self.state.get(block, None)
             if state_at_block is not None:
                 return SimpleNamespace(
                     value=state_at_block
@@ -421,6 +435,9 @@ class MockSubtensor(Subtensor):
             return None
             
     def query_map_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[MockMapResult]:
+        """
+        Note: Double map requires one param
+        """
         if block:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
@@ -436,18 +453,31 @@ class MockSubtensor(Subtensor):
                     state = state.get(params.pop(0), None)
                     if state is None:
                         return MockMapResult([])
-                    
-            # Use block
-            state_at_block = state.get(str(block), None)
-            while state_at_block is None and block > 0:
-                block -= 1
-                state_at_block = self.state.get(str(block), None)
-                if state_at_block is not None:
-                    break
-            else:
+            
+            # Check if single map or double map
+            if len(state.keys()) == 0:
                 return MockMapResult([])
+        
+            inner = list(state.values())[0]
+            # Should have at least one key
+            if len(inner.keys()) == 0:
+                raise Exception("Invalid state")
+            
+            # Check if double map
+            if isinstance(list(inner.values())[0], dict):
+                # is double map
+                raise ChainQueryError("Double map requires one param")
+            
+            # Iterate over each key and add value to list, max at block
+            records = []
+            for key in state:
+                result = self._get_most_recent_storage(state[key], block)
+                if result is None:
+                    continue # Skip if no result for this key at `block` or earlier
 
-            return MockMapResult(state_at_block)
+                records.append((key, result))
+
+            return MockMapResult(records)
         else:
             return MockMapResult([])
 
@@ -467,10 +497,7 @@ class MockSubtensor(Subtensor):
                 return None
                     
             # Use block
-            state_at_block = state.get(str(block), None)
-            while state_at_block is None and block > 0:
-                block -= 1
-                state_at_block = self.state.get(str(block), None)
+            state_at_block = self._get_most_recent_storage(state, block)
             if state_at_block is not None:
                 return SimpleNamespace(value=state_at_block)
 
@@ -499,11 +526,7 @@ class MockSubtensor(Subtensor):
                 return bittensor.Balance(0)
                     
             # Use block
-            state_at_block = state.get(str(block), None)
-            while state_at_block is None and block > 0:
-                block -= 1
-                state_at_block = self.state.get(str(block), None)
-
+            state_at_block = self._get_most_recent_storage(state, block)
             return state_at_block # Can be None
         else:
             return None
@@ -523,7 +546,7 @@ class MockSubtensor(Subtensor):
         else:
             block = self.block_number
 
-        if str(netuid) not in self.chain_state['SubtensorModule']['NetworksAdded']:
+        if netuid not in self.chain_state['SubtensorModule']['NetworksAdded']:
             return None
         
         neuron_info = self._neuron_subnet_exists( uid, netuid, block )
@@ -534,11 +557,11 @@ class MockSubtensor(Subtensor):
             return neuron_info
 
     def neurons(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]:
-        if str(netuid) not in self.chain_state['SubtensorModule']['NetworksAdded']:
+        if netuid not in self.chain_state['SubtensorModule']['NetworksAdded']:
             raise Exception("Subnet does not exist")
         
         neurons = []
-        subnet_n = self._get_most_recent_storage( self.chain_state['SubtensorModule']['SubnetworkN'][str(netuid)], block )
+        subnet_n = self._get_most_recent_storage( self.chain_state['SubtensorModule']['SubnetworkN'][netuid], block )
         for uid in range( subnet_n ):
             neuron_info = self.neuron_for_uid( uid, netuid, block )
             if neuron_info is not None:
@@ -554,9 +577,9 @@ class MockSubtensor(Subtensor):
             return items[0][1]
         
         else:
-            while block_number > 0:
-                if str(block_number) in storage:
-                    return storage[str(block_number)]
+            while block_number >= 0:
+                if block_number in storage:
+                    return storage[block_number]
                 
                 block_number -= 1
             
@@ -565,33 +588,33 @@ class MockSubtensor(Subtensor):
     def _get_axon_info( self, netuid: int, hotkey: str, block: Optional[int] = None ) -> Optional[AxonInfoDict]:
         # Axons [netuid][hotkey][block_number]
         subtensor_state = self.chain_state['SubtensorModule']
-        if str(netuid) not in subtensor_state['Axons']:
+        if netuid not in subtensor_state['Axons']:
             return None
         
-        if hotkey not in subtensor_state['Axons'][str(netuid)]:
+        if hotkey not in subtensor_state['Axons'][netuid]:
             return None
         
-        return self._get_most_recent_storage(subtensor_state['Axons'][str(netuid)][hotkey], block)
+        return self._get_most_recent_storage(subtensor_state['Axons'][netuid][hotkey], block)
 
     def _get_prometheus_info( self, netuid: int, hotkey: str, block: Optional[int] = None ) -> Optional[PrometheusInfoDict]:
         subtensor_state = self.chain_state['SubtensorModule']
-        if str(netuid) not in subtensor_state['Prometheus']:
+        if netuid not in subtensor_state['Prometheus']:
             return None
         
-        if hotkey not in subtensor_state['Prometheus'][str(netuid)]:
+        if hotkey not in subtensor_state['Prometheus'][netuid]:
             return None
         
-        return self._get_most_recent_storage(subtensor_state['Prometheus'][str(netuid)][hotkey], block)
+        return self._get_most_recent_storage(subtensor_state['Prometheus'][netuid][hotkey], block)
 
     def _neuron_subnet_exists( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfo]:
         subtensor_state = self.chain_state['SubtensorModule']
-        if str(netuid) not in subtensor_state['NetworksAdded']:
+        if netuid not in subtensor_state['NetworksAdded']:
             return None
         
-        if self._get_most_recent_storage(subtensor_state['SubnetworkN'][str(netuid)]) <= uid:
+        if self._get_most_recent_storage(subtensor_state['SubnetworkN'][netuid]) <= uid:
             return None
         
-        hotkey = self._get_most_recent_storage(subtensor_state['Keys'][str(netuid)][str(uid)])
+        hotkey = self._get_most_recent_storage(subtensor_state['Keys'][netuid][uid])
         if hotkey is None:
             return None
 
@@ -602,20 +625,20 @@ class MockSubtensor(Subtensor):
 
 
         coldkey = self._get_most_recent_storage(subtensor_state['Owner'][hotkey], block)
-        active = self._get_most_recent_storage(subtensor_state['Active'][str(netuid)][str(uid)], block)
-        rank = self._get_most_recent_storage(subtensor_state['Rank'][str(netuid)][str(uid)], block)
-        emission = self._get_most_recent_storage(subtensor_state['Emission'][str(netuid)][str(uid)], block)
-        incentive = self._get_most_recent_storage(subtensor_state['Incentive'][str(netuid)][str(uid)], block)
-        consensus = self._get_most_recent_storage(subtensor_state['Consensus'][str(netuid)][str(uid)], block)
-        trust = self._get_most_recent_storage(subtensor_state['Trust'][str(netuid)][str(uid)], block)
-        validator_trust = self._get_most_recent_storage(subtensor_state['ValidatorTrust'][str(netuid)][str(uid)], block)
-        dividends = self._get_most_recent_storage(subtensor_state['Dividends'][str(netuid)][str(uid)], block)
-        pruning_score = self._get_most_recent_storage(subtensor_state['PruningScores'][str(netuid)][str(uid)], block)
-        last_update = self._get_most_recent_storage(subtensor_state['LastUpdate'][str(netuid)][str(uid)], block)
-        validator_permit = self._get_most_recent_storage(subtensor_state['ValidatorPermit'][str(netuid)][str(uid)], block)
+        active = self._get_most_recent_storage(subtensor_state['Active'][netuid][uid], block)
+        rank = self._get_most_recent_storage(subtensor_state['Rank'][netuid][uid], block)
+        emission = self._get_most_recent_storage(subtensor_state['Emission'][netuid][uid], block)
+        incentive = self._get_most_recent_storage(subtensor_state['Incentive'][netuid][uid], block)
+        consensus = self._get_most_recent_storage(subtensor_state['Consensus'][netuid][uid], block)
+        trust = self._get_most_recent_storage(subtensor_state['Trust'][netuid][uid], block)
+        validator_trust = self._get_most_recent_storage(subtensor_state['ValidatorTrust'][netuid][uid], block)
+        dividends = self._get_most_recent_storage(subtensor_state['Dividends'][netuid][uid], block)
+        pruning_score = self._get_most_recent_storage(subtensor_state['PruningScores'][netuid][uid], block)
+        last_update = self._get_most_recent_storage(subtensor_state['LastUpdate'][netuid][uid], block)
+        validator_permit = self._get_most_recent_storage(subtensor_state['ValidatorPermit'][netuid][uid], block)
         
-        weights = self._get_most_recent_storage(subtensor_state['Weights'][str(netuid)][str(uid)], block)
-        bonds = self._get_most_recent_storage(subtensor_state['Bonds'][str(netuid)][str(uid)], block)
+        weights = self._get_most_recent_storage(subtensor_state['Weights'][netuid][uid], block)
+        bonds = self._get_most_recent_storage(subtensor_state['Bonds'][netuid][uid], block)
 
         stake_dict = [(coldkey, bittensor.Balance.from_rao(self._get_most_recent_storage(
             subtensor_state['Stake'][hotkey][coldkey], block
@@ -677,7 +700,7 @@ class MockSubtensor(Subtensor):
         else:
             block = self.block_number
 
-        if str(netuid) not in self.chain_state['SubtensorModule']['NetworksAdded']:
+        if netuid not in self.chain_state['SubtensorModule']['NetworksAdded']:
             raise Exception("Subnet does not exist")
         
         neuron_info = self._neuron_subnet_exists( uid, netuid, block )
@@ -694,11 +717,11 @@ class MockSubtensor(Subtensor):
             return neuron_info_lite
 
     def neurons_lite(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfoLite]:
-        if str(netuid) not in self.chain_state['SubtensorModule']['NetworksAdded']:
+        if netuid not in self.chain_state['SubtensorModule']['NetworksAdded']:
             raise Exception("Subnet does not exist")
         
         neurons = []
-        subnet_n = self._get_most_recent_storage( self.chain_state['SubtensorModule']['SubnetworkN'][str(netuid)] )
+        subnet_n = self._get_most_recent_storage( self.chain_state['SubtensorModule']['SubnetworkN'][netuid] )
         for uid in range(subnet_n):
             neuron_info = self.neuron_for_uid_lite( uid, netuid, block )
             if neuron_info is not None:
@@ -792,7 +815,7 @@ class MockSubtensor(Subtensor):
             raise Exception("Insufficient balance")
         
         # Remove from the free balance
-        self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][str(self.block_number)] = (bal - transfer_balance - transfer_fee).rao
+        self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal - transfer_balance - transfer_fee).rao
 
         # Add to the free balance
         if dest not in self.chain_state['System']['Account']:
@@ -802,7 +825,7 @@ class MockSubtensor(Subtensor):
                 }
             }
 
-        self.chain_state['System']['Account'][dest]['data']['free'][str(self.block_number)] = (dest_bal + transfer_balance).rao
+        self.chain_state['System']['Account'][dest]['data']['free'][self.block_number] = (dest_bal + transfer_balance).rao
 
     def do_pow_register(
         self,
@@ -815,7 +838,7 @@ class MockSubtensor(Subtensor):
         # Assume pow result is valid
 
         subtensor_state = self.chain_state['SubtensorModule']
-        if str(netuid) not in subtensor_state['NetworksAdded']:
+        if netuid not in subtensor_state['NetworksAdded']:
             raise Exception("Subnet does not exist")
 
         self._register_neuron(
@@ -832,7 +855,7 @@ class MockSubtensor(Subtensor):
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
         subtensor_state = self.chain_state['SubtensorModule']
-        if str(netuid) not in subtensor_state['NetworksAdded']:
+        if netuid not in subtensor_state['NetworksAdded']:
             raise Exception("Subnet does not exist")
         
         bal = self.get_balance( wallet.coldkeypub.ss58_address )
@@ -849,7 +872,7 @@ class MockSubtensor(Subtensor):
         )
 
         # Burn the funds
-        self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][str(self.block_number)] = (bal - burn).rao
+        self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal - burn).rao
 
     def do_stake(
         self,
@@ -881,9 +904,9 @@ class MockSubtensor(Subtensor):
         if not wallet.coldkeypub.ss58_address in stake_state[hotkey_ss58]:
             stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address] = {}
         
-        stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][str(self.block_number)] = amount.rao
+        stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][self.block_number] = amount.rao
         # Remove from free balance
-        self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][str(self.block_number)] = (bal - amount).rao
+        self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal - amount).rao
 
     def do_unstake(
         self,
@@ -913,7 +936,7 @@ class MockSubtensor(Subtensor):
         
         # Unstake the funds
         # We know that the hotkey has stake, so we can just remove it
-        stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][str(self.block_number)] = (curr_stake - amount).rao
+        stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][self.block_number] = (curr_stake - amount).rao
         # Add to the free balance
         if wallet.coldkeypub.ss58_address not in self.chain_state['System']['Account']:
             self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address] = {
@@ -922,5 +945,5 @@ class MockSubtensor(Subtensor):
                 }
             }
 
-        self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][str(self.block_number)] = (bal + amount).rao
+        self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal + amount).rao
 
