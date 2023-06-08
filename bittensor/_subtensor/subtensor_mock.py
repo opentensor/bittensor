@@ -641,9 +641,9 @@ class MockSubtensor(Subtensor):
         weights = self._get_most_recent_storage(subtensor_state['Weights'][netuid][uid], block)
         bonds = self._get_most_recent_storage(subtensor_state['Bonds'][netuid][uid], block)
 
-        stake_dict = [(coldkey, bittensor.Balance.from_rao(self._get_most_recent_storage(
+        stake_dict = {coldkey: bittensor.Balance.from_rao(self._get_most_recent_storage(
             subtensor_state['Stake'][hotkey][coldkey], block
-        ))) for coldkey in subtensor_state['Stake'][hotkey]]
+        )) for coldkey in subtensor_state['Stake'][hotkey]}
 
         stake = sum(stake_dict.values())
 
