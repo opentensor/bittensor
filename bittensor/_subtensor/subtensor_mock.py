@@ -181,12 +181,12 @@ class MockSubtensor(Subtensor):
                     'BlocksSinceLastStep': {},
                     'Tempo': {},
                     'NetworkConnect': {},
-                    'EmissionValue': {},
+                    'EmissionValues': {},
                     'Burn': {},
 
                     'Active': {},
 
-                    'UIDs': {},
+                    'Uids': {},
                     'Keys': {},
                     'Owner': {},
                     'LastUpdate': {},
@@ -271,16 +271,17 @@ class MockSubtensor(Subtensor):
             subtensor_state['Tempo'][netuid][0] = 99
             subtensor_state['NetworkConnect'][netuid] = {}
             subtensor_state['NetworkConnect'][netuid][0] = {}
-            subtensor_state['EmissionValue'][netuid] = {}
-            subtensor_state['EmissionValue'][netuid][0] = 0
+            subtensor_state['EmissionValues'][netuid] = {}
+            subtensor_state['EmissionValues'][netuid][0] = 0
             subtensor_state['Burn'][netuid] = {}
             subtensor_state['Burn'][netuid][0] = 0
-
+            
             # Per-UID/Hotkey
 
-            subtensor_state['UIDs'][netuid] = {}
+            subtensor_state['Uids'][netuid] = {}
             subtensor_state['Keys'][netuid] = {}
             subtensor_state['Owner'][netuid] = {}
+            subtensor_state['IsNetworkMember'][netuid] = {}
             
             subtensor_state['LastUpdate'][netuid] = {}
             subtensor_state['Active'][netuid] = {}
@@ -338,8 +339,8 @@ class MockSubtensor(Subtensor):
             subtensor_state['Stake'][hotkey][coldkey] = {}
             subtensor_state['Stake'][hotkey][coldkey][self.block_number] = 0
             
-            subtensor_state['UIDs'][netuid][hotkey] = {}
-            subtensor_state['UIDs'][netuid][hotkey][self.block_number] = uid
+            subtensor_state['Uids'][netuid][hotkey] = {}
+            subtensor_state['Uids'][netuid][hotkey][self.block_number] = uid
 
             subtensor_state['Keys'][netuid][uid] = {}
             subtensor_state['Keys'][netuid][uid][self.block_number] = hotkey
@@ -391,21 +392,39 @@ class MockSubtensor(Subtensor):
 
             subtensor_state['Prometheus'][netuid][hotkey] = {}
             subtensor_state['Prometheus'][netuid][hotkey][self.block_number] = {}
+
+
+            subtensor_state['IsNetworkMember'][netuid][hotkey] = {}
+            subtensor_state['IsNetworkMember'][netuid][hotkey][self.block_number] = True
             
             return uid
+        
+    @staticmethod
+    def _convert_to_balance(
+        balance: Union['bittensor.Balance', float, int]
+    ) -> 'bittensor.Balance':
+        if isinstance(balance, float):
+            balance = bittensor.Balance.from_tao(balance)
+
+        if isinstance(balance, int):
+            balance = bittensor.Balance.from_rao(balance)
+
+        return balance
+    
 
     def force_register_neuron(
         self,
         netuid: int,
         hotkey: str, 
         coldkey: str,
-        stake: Union['bittensor.Balance', float] = bittensor.Balance(0),
+        stake: Union['bittensor.Balance', float, int] = bittensor.Balance(0),
+        balance: Union['bittensor.Balance', float, int] = bittensor.Balance(0),
     ) -> int:
         """
         Force register a neuron on the mock chain, returning the UID.
         """
-        if isinstance(stake, float):
-            stake = bittensor.Balance.from_tao(stake)
+        stake = self._convert_to_balance(stake)
+        balance = self._convert_to_balance(balance)
 
         subtensor_state = self.chain_state['SubtensorModule']
         if netuid not in subtensor_state['NetworksAdded']:
@@ -419,16 +438,17 @@ class MockSubtensor(Subtensor):
 
         subtensor_state['TotalStake'][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalStake']) + stake.rao
         subtensor_state['Stake'][hotkey][coldkey][self.block_number] = stake.rao
-            
+
+        if balance.rao > 0:
+            self.force_set_balance(coldkey, balance)
+        self.force_set_balance(coldkey, balance)
 
     def force_set_balance(
         self,
         ss58_address: str,
-        balance: Union['bittensor.Balance', float] = bittensor.Balance(0),
+        balance: Union['bittensor.Balance', float, int] = bittensor.Balance(0),
     ) -> None:
-            
-        if isinstance(balance, float):
-            balance = bittensor.Balance.from_tao(balance)
+        balance = self._convert_to_balance(balance)
 
         if ss58_address not in self.chain_state['System']['Account']:
             self.chain_state['System']['Account'][ss58_address] = {}
@@ -438,7 +458,9 @@ class MockSubtensor(Subtensor):
                 'free': balance.rao,
             }
         }
-        
+    
+    # Alias for force_set_balance
+    sudo_force_set_balance = force_set_balance
         
     def do_block_step( self ) -> None:
         self.block_number += 1

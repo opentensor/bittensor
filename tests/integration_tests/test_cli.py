@@ -827,7 +827,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=wallet.coldkey.ss58_address,
             )
             
-        success, err, _ = _subtensor_mock.sudo_force_set_balance(
+        success, err, _ = _subtensor_mock.force_set_balance(
             ss58_address=mock_coldkey_kp.ss58_address,
             balance=mock_balance.rao,
         )
@@ -903,7 +903,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             
         # Set the coldkey balance
-        success, err, _ = _subtensor_mock.sudo_force_set_balance(
+        success, err, _ = _subtensor_mock.force_set_balance(
             ss58_address=mock_coldkey_kp.ss58_address,
             balance=mock_balance.rao,
         )
@@ -1497,7 +1497,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 stake=mock_stakes[wallet.hotkey_str].rao,  # More than max_stake
             )
             
-        success, err, used_nonce = _subtensor_mock.sudo_force_set_balance(
+        success, err, used_nonce = _subtensor_mock.force_set_balance(
             ss58_address=mock_coldkey_kp.ss58_address,
             balance=mock_balance.rao,
         )
@@ -1581,8 +1581,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             hotkey=mock_wallet.hotkey.ss58_address,
             coldkey=mock_wallet.coldkey.ss58_address,
             balance=mock_balance.rao,
-            wait_for_inclusion=True,
-            wait_for_finalization=True,
         )
         
         cli = bittensor.cli(config)
@@ -1657,7 +1655,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         )
         
         # Give w1 some balance
-        success, err, used_nonce = _subtensor_mock.sudo_force_set_balance(
+        success, err, used_nonce = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallets[1].coldkey.ss58_address,
             balance=mock_balances["w1"]["hk1"].rao,
         )
@@ -1745,11 +1743,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         )
         
         # Give w1 some balance
-        success, err, used_nonce = _subtensor_mock.sudo_force_set_balance(
+        success, err, used_nonce = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallets[1].coldkey.ss58_address,
             balance=mock_balances["w1"]["hk1"].rao,
-            wait_for_finalization=True,
-            wait_for_inclusion=False,
         )
         
         # Make the first wallet a delegate
@@ -1837,7 +1833,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Give w0 and w1 balance
        
         for wallet in mock_wallets:
-            success, err, used_nonce = _subtensor_mock.sudo_force_set_balance(
+            success, err, used_nonce = _subtensor_mock.force_set_balance(
                 ss58_address=wallet.coldkey.ss58_address,
                 balance=mock_balances[wallet.name].rao,
             )
@@ -1907,7 +1903,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Give w0 and w1 balance
        
         for wallet in mock_wallets:
-            success, err, used_nonce = _subtensor_mock.sudo_force_set_balance(
+            success, err, used_nonce = _subtensor_mock.force_set_balance(
                 ss58_address=wallet.coldkey.ss58_address,
                 balance=mock_balances[wallet.name].rao,
             )
@@ -1994,7 +1990,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         mock_wallet = generate_wallet()
 
         # Give the wallet some balance for burning
-        success, err, _ = _subtensor_mock.sudo_force_set_balance(
+        success, err, _ = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallet.coldkeypub.ss58_address,
             balance=bittensor.Balance.from_float(200.0),
         )
@@ -2227,7 +2223,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         )
 
         # Give the wallet some TAO
-        _, err, _ = _subtensor_mock.sudo_force_set_balance(
+        _, err, _ = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallet.coldkey.ss58_address,
             balance=bittensor.Balance.from_tao(20.0),
         )
