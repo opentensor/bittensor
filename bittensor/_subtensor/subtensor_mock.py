@@ -27,7 +27,7 @@ import bittensor
 from bittensor.utils import RAOPERTAO, U16_NORMALIZED_FLOAT
 from bittensor.utils.registration import POWSolution
 
-from .chain_data import (NeuronInfo, NeuronInfoLite, PrometheusInfo,
+from .chain_data import (NeuronInfo, NeuronInfoLite, PrometheusInfo, DelegateInfo,
                          SubnetInfo, axon_info)
 from .errors import *
 from .subtensor_impl import Subtensor
@@ -125,6 +125,8 @@ class MockSubtensorState(TypedDict):
     ValidatorBatchSize: Dict[int, Dict[BlockNumber, int]] # netuid -> block -> validator_batch_size
     Active: Dict[int, Dict[BlockNumber, bool]] # (netuid, uid), block -> active
     Stake:  Dict[str, Dict[int, int]] # address -> block -> stake
+
+    Delegates: Dict[str, Dict[int, float]] # address -> block -> delegate_take
 
     NetworksAdded: Dict[int, Dict[BlockNumber, bool]] # netuid -> block -> added
 
@@ -877,9 +879,18 @@ class MockSubtensor(Subtensor):
         hotkey_ss58 = wallet.hotkey.ss58_address
         coldkey_ss58 = wallet.coldkeypub.ss58_address
 
-        if hotkey_ss58 not in self.chain_state['SubtensorModule']['Neurons']:
-            pass
-    
+        subtensor_state = self.chain_state['SubtensorModule']
+        if self.is_hotkey_delegate(
+            hotkey_ss58=hotkey_ss58
+        ):
+            return True
+        
+        else:
+            subtensor_state['Delegates'][hotkey_ss58] = {}
+            subtensor_state['Delegates'][hotkey_ss58][self.block_number] = 0.18 # Constant for now 
+
+            return True
+        
     def get_transfer_fee(
         self,
         wallet: 'bittensor.Wallet',
@@ -1038,3 +1049,205 @@ class MockSubtensor(Subtensor):
 
         self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal + amount).rao
 
+
+    def get_delegate_by_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional['bittensor.DelegateInfo']:
+        subtensor_state = self.chain_state['SubtensorModule']
+
+        if not self.is_hotkey_delegate(
+            hotkey_ss58=hotkey_ss58,
+            block=block,
+        ):
+            return None
+        
+        nom_result = {}
+        nominators = subtensor_state['Stake'][hotkey_ss58]
+        for nominator in nominators:
+            nom_amount = self.get_stake_for_coldkey_and_hotkey(
+                hotkey_ss58=hotkey_ss58,
+                coldkey_ss58=nominator,
+                block=block,
+            )
+            if nom_amount is not None and nom_amount.rao > 0:
+                nom_result[nominator] = nom_amount
+
+        registered_subnets = []
+        for subnet in self.get_all_subnet_netuids(block=block):
+            uid = self.get_uid_for_hotkey_on_subnet(
+                hotkey_ss58=hotkey_ss58,
+                netuid=subnet,
+                block=block,
+            )
+            
+            if uid is not None:
+                registered_subnets.append((subnet, uid))
+
+        info = DelegateInfo(
+            hotkey_ss58=hotkey_ss58,
+            total_stake=self.get_total_stake_for_hotkey(
+                hotkey_ss58=hotkey_ss58,
+            ),
+            nominators=nom_result,
+            owner_ss58=self.get_hotkey_owner(
+                hotkey_ss58=hotkey_ss58,
+                block=block,
+            ),
+            take=0.18,
+            validator_permits=[subnet for subnet, uid in registered_subnets if self.neuron_has_validator_permit( uid = uid, netuid = subnet, block=block )],
+            registrations=[subnet for subnet, _ in registered_subnets],
+            return_per_1000=bittensor.Balance.from_tao(1234567), # Doesn't matter for mock?
+            total_daily_return=bittensor.Balance.from_tao(1234567), # Doesn't matter for mock?
+        )
+
+        return info
+
+
+    def get_delegates( self, block: Optional[int] = None ) -> List['bittensor.DelegateInfo']:
+        subtensor_state = self.chain_state['SubtensorModule']
+        delegates_info = []
+        for hotkey in subtensor_state['Delegates']:
+            info = self.get_delegate_by_hotkey(
+                hotkey_ss58=hotkey,
+                block=block,
+            )
+            if info is not None:
+                delegates_info.append(info)
+
+        return delegates_info
+
+    def get_delegated( self, coldkey_ss58: str, block: Optional[int] = None ) -> List[Tuple['bittensor.DelegateInfo', 'bittensor.Balance']]:
+        """ Returns the list of delegates that a given coldkey is staked to.
+        """
+        delegates = self.get_delegates(block=block)
+
+        result = []
+        for delegate in delegates:
+            if coldkey_ss58 in [nom_ss58 for nom_ss58, _ in delegate.nominators]:
+                result.append((delegate, delegate.nominators[coldkey_ss58]))
+
+        return result
+    
+
+    def get_all_subnets_info( self, block: Optional[int] = None ) -> List[SubnetInfo]:
+        subtensor_state = self.chain_state['SubtensorModule']
+        result = []
+        for subnet in subtensor_state['NetworksAdded']:
+            info = self.get_subnet_info(
+                netuid=subnet,
+                block=block,
+            )
+            if info is not None:
+                result.append(info)
+
+        return result
+
+    def get_subnet_info( self, netuid: int, block: Optional[int] = None ) -> Optional[SubnetInfo]:
+        subtensor_state = self.chain_state['SubtensorModule']
+
+        """
+        difficulty: int
+        immunity_period: int
+        validator_batch_size: int
+        validator_sequence_length: int
+        validator_epochs_per_reset: int
+        validator_epoch_length: int
+        max_allowed_validators: int
+        min_allowed_weights: int
+        max_weight_limit: float
+        scaling_law_power: float
+        synergy_scaling_law_power: float
+        subnetwork_n: int
+        max_n: int
+        blocks_since_epoch: int
+        tempo: int
+        modality: int
+        # netuid -> topk percentile prunning score requirement (u16:MAX normalized.)
+        connection_requirements: Dict[str, float]
+        emission_value: float
+        burn: Balance
+        """
+        
+        if not self.subnet_exists(
+            netuid=netuid,
+            block=block,
+        ):
+            return None
+        
+        def query_subnet_info( name: str ) -> Optional[object]:
+            return self.query_subtensor(
+                name=name,
+                block=block,
+                params=[netuid]
+            )
+        
+        info = SubnetInfo(
+            netuid=netuid,
+            rho = query_subnet_info(
+                name = 'Rho',
+            ),
+            kappa=query_subnet_info(
+                name = 'Kappa',
+            ),
+            difficulty=query_subnet_info(
+                name = 'Difficulty',
+            ),
+            immunity_period=query_subnet_info(
+                name = 'ImmunityPeriod',
+            ),
+            validator_batch_size=query_subnet_info(
+                name = 'ValidatorBatchSize',
+            ),
+            validator_sequence_length=query_subnet_info(
+                name = 'ValidatorSequenceLength',
+            ),
+            validator_epochs_per_reset=query_subnet_info(
+                name = 'ValidatorEpochsPerReset',
+            ),
+            validator_epoch_length=query_subnet_info(
+                name = 'ValidatorEpochLength',
+            ),
+            max_allowed_validators=query_subnet_info(
+                name = 'MaxAllowedValidators',
+            ),
+            min_allowed_weights=query_subnet_info(
+                name = 'MinAllowedWeights',
+            ),
+            max_weight_limit=query_subnet_info(
+                name = 'MaxWeightLimit',
+            ),
+            scaling_law_power=query_subnet_info(
+                name = 'ScalingLawPower',
+            ),
+            synergy_scaling_law_power=query_subnet_info(
+                name = 'SynergyScalingLawPower',
+            ),
+            subnetwork_n=query_subnet_info(
+                name = 'SubnetworkN',
+            ),
+            max_n=query_subnet_info(
+                name = 'MaxAllowedUids',
+            ),
+            blocks_since_epoch=query_subnet_info(
+                name = 'BlocksSinceEpoch',
+            ),
+            tempo=query_subnet_info(
+                name = 'Tempo',
+            ),
+            modality=query_subnet_info(
+                name = 'Modality',
+            ),
+            connection_requirements={
+                str(netuid_.value): percentile.value for netuid_, percentile in self.query_map_subtensor(
+                    name = 'NetworkConnect',
+                    block = block,
+                    params = [netuid]
+                ).records
+            },
+            emission_value=query_subnet_info(
+                name = 'EmissionValues',
+            ),
+            burn=query_subnet_info(
+                name = 'Burn',
+            ),
+        )
+
+        return info
