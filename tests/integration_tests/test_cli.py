@@ -1488,7 +1488,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 stake=mock_stakes[wallet.hotkey_str].rao,  # More than max_stake
             )
             
-        success, err, used_nonce = _subtensor_mock.force_set_balance(
+        success, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_coldkey_kp.ss58_address,
             balance=mock_balance.rao,
         )
@@ -1641,11 +1641,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             coldkey=mock_wallets[0].coldkey.ss58_address,
             balance=mock_balances["w0"]["hk0"].rao,
             stake=mock_stake.rao,  # Needs set stake to be a validator
-            nonce = used_nonce + 100 # Force nonce to be high
         )
         
         # Give w1 some balance
-        success, err, used_nonce = _subtensor_mock.force_set_balance(
+        success, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallets[1].coldkey.ss58_address,
             balance=mock_balances["w1"]["hk1"].rao,
         )
@@ -1733,7 +1732,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         )
         
         # Give w1 some balance
-        success, err, used_nonce = _subtensor_mock.force_set_balance(
+        success, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallets[1].coldkey.ss58_address,
             balance=mock_balances["w1"]["hk1"].rao,
         )
@@ -1823,7 +1822,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Give w0 and w1 balance
        
         for wallet in mock_wallets:
-            success, err, used_nonce = _subtensor_mock.force_set_balance(
+            success, err = _subtensor_mock.force_set_balance(
                 ss58_address=wallet.coldkey.ss58_address,
                 balance=mock_balances[wallet.name].rao,
             )
@@ -1893,7 +1892,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Give w0 and w1 balance
        
         for wallet in mock_wallets:
-            success, err, used_nonce = _subtensor_mock.force_set_balance(
+            success, err = _subtensor_mock.force_set_balance(
                 ss58_address=wallet.coldkey.ss58_address,
                 balance=mock_balances[wallet.name].rao,
             )

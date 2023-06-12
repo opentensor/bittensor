@@ -448,10 +448,10 @@ class MockSubtensor(Subtensor):
         self,
         ss58_address: str,
         balance: Union['bittensor.Balance', float, int] = bittensor.Balance(0),
-    ) -> Tuple[bool, Optional[str], Optional['bittensor.Balance']]:
+    ) -> Tuple[bool, Optional[str]]:
         """
         Returns:
-            Tuple[bool, Optional[str], Optional[bittensor.Balance]]: (success, err_msg, balance)
+            Tuple[bool, Optional[str]]: (success, err_msg)
         """
         balance = self._convert_to_balance(balance)
 
@@ -464,7 +464,7 @@ class MockSubtensor(Subtensor):
             }
         }
 
-        return True, None, balance
+        return True, None
     
     # Alias for force_set_balance
     sudo_force_set_balance = force_set_balance
