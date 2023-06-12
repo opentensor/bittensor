@@ -458,9 +458,11 @@ class MockSubtensor(Subtensor):
         if ss58_address not in self.chain_state['System']['Account']:
             self.chain_state['System']['Account'][ss58_address] = {}
 
-        self.chain_state['System']['Account'][ss58_address][self.block_number] = {
+        self.chain_state['System']['Account'][ss58_address] = {
             'data': {
-                'free': balance.rao,
+                'free': {
+                    self.block_number: balance.rao
+                }
             }
         }
 
@@ -600,9 +602,10 @@ class MockSubtensor(Subtensor):
                 return bittensor.Balance(0)
                     
             # Use block
-            state_at_block = self._get_most_recent_storage(state, block) # Can be None
+            balance_state = state['data']['free']
+            state_at_block = self._get_most_recent_storage(balance_state, block) # Can be None
             if state_at_block is not None:
-                bal_as_int = state_at_block['data']['free']
+                bal_as_int = state_at_block
                 return bittensor.Balance.from_rao(bal_as_int)
             else:
                 return bittensor.Balance(0)
