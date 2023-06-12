@@ -211,6 +211,8 @@ class MockSubtensor(Subtensor):
                     'TotalStake': {
                         0: 0
                     },
+                    'TotalHotkeyStake': {},
+                    'TotalColdkeyStake': {},
 
                     'Delegates': {},
 
@@ -1013,6 +1015,21 @@ class MockSubtensor(Subtensor):
             stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address] = {}
         
         stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][self.block_number] = amount.rao
+
+        # Add to total_stake storage
+        subtensor_state['TotalStake'][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalStake']) + amount.rao
+
+        total_hotkey_stake_state = subtensor_state['TotalHotkeyStake']
+        if not hotkey_ss58 in total_hotkey_stake_state:
+            total_hotkey_stake_state[hotkey_ss58] = {}
+
+        total_coldkey_stake_state = subtensor_state['TotalColdkeyStake']
+        if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
+            total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
+
+        total_hotkey_stake_state[hotkey_ss58][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalHotkeyStake'][hotkey_ss58]) + amount.rao
+        total_coldkey_stake_state[wallet.coldkeypub.ss58_address][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalColdkeyStake'][wallet.coldkeypub.ss58_address]) + amount.rao
+        
         # Remove from free balance
         self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal - amount).rao
 
@@ -1052,6 +1069,22 @@ class MockSubtensor(Subtensor):
                     'free': {},
                 }
             }
+
+        # Remove from total stake storage
+        subtensor_state['TotalStake'][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalStake']) - amount.rao
+
+        total_hotkey_stake_state = subtensor_state['TotalHotkeyStake']
+        if not hotkey_ss58 in total_hotkey_stake_state:
+            total_hotkey_stake_state[hotkey_ss58] = {}
+            total_hotkey_stake_state[hotkey_ss58][self.block_number] = 0 # Shouldn't happen
+
+        total_coldkey_stake_state = subtensor_state['TotalColdkeyStake']
+        if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
+            total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
+            total_coldkey_stake_state[wallet.coldkeypub.ss58_address][self.block_number] = amount.rao # Shouldn't happen
+
+        total_hotkey_stake_state[hotkey_ss58][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalHotkeyStake'][hotkey_ss58]) - amount.rao
+        total_coldkey_stake_state[wallet.coldkeypub.ss58_address][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalColdkeyStake'][wallet.coldkeypub.ss58_address]) - amount.rao
 
         self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal + amount).rao
 
@@ -1094,7 +1127,7 @@ class MockSubtensor(Subtensor):
         info = DelegateInfo(
             hotkey_ss58=hotkey_ss58,
             total_stake=self.get_total_stake_for_hotkey(
-                hotkey_ss58=hotkey_ss58,
+                ss58_address=hotkey_ss58,
             ),
             nominators=nom_result,
             owner_ss58=self.get_hotkey_owner(
