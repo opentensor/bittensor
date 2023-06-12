@@ -483,6 +483,16 @@ class MockSubtensor(Subtensor):
         for subnet in subtensor_state['NetworksAdded']:
             subtensor_state['BlocksSinceLastStep'][subnet][self.block_number] = self._get_most_recent_storage(subtensor_state['BlocksSinceLastStep'][subnet]) + 1
 
+    def _handle_type_default( self, name: str, params: List[object] ) -> object:
+        defaults_mapping = {
+            'TotalStake': 0,
+            'TotalHotkeyStake': 0,
+            'TotalColdkeyStake': 0,
+            'Stake': 0,
+        }
+
+        return defaults_mapping.get(name, None)
+
     def query_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> MockSubtensorValue:
         if block:
             if self.block_number < block:
@@ -499,7 +509,7 @@ class MockSubtensor(Subtensor):
                     state = state.get(params.pop(0), None)
                     if state is None:
                         return SimpleNamespace(
-                            value=None
+                            value = self._handle_type_default(name, params)
                         )
                     
             # Use block
@@ -513,11 +523,11 @@ class MockSubtensor(Subtensor):
                 )
 
             return SimpleNamespace(
-                value=None
+                value = self._handle_type_default(name, params)
             )
         else:
             return SimpleNamespace(
-                value=None
+                value = self._handle_type_default(name, params)
             )
             
     def query_map_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[MockMapResult]:
@@ -1128,7 +1138,7 @@ class MockSubtensor(Subtensor):
             hotkey_ss58=hotkey_ss58,
             total_stake=self.get_total_stake_for_hotkey(
                 ss58_address=hotkey_ss58,
-            ),
+            ) or bittensor.Balance(0),
             nominators=nom_result,
             owner_ss58=self.get_hotkey_owner(
                 hotkey_ss58=hotkey_ss58,
