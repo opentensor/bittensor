@@ -286,7 +286,6 @@ class MockSubtensor(Subtensor):
             subtensor_state['Uids'][netuid] = {}
             subtensor_state['Keys'][netuid] = {}
             subtensor_state['Owner'][netuid] = {}
-            subtensor_state['IsNetworkMember'][netuid] = {}
             
             subtensor_state['LastUpdate'][netuid] = {}
             subtensor_state['Active'][netuid] = {}
@@ -398,9 +397,10 @@ class MockSubtensor(Subtensor):
             subtensor_state['Prometheus'][netuid][hotkey] = {}
             subtensor_state['Prometheus'][netuid][hotkey][self.block_number] = {}
 
-
-            subtensor_state['IsNetworkMember'][netuid][hotkey] = {}
-            subtensor_state['IsNetworkMember'][netuid][hotkey][self.block_number] = True
+            if hotkey not in subtensor_state['IsNetworkMember']:
+                subtensor_state['IsNetworkMember'][hotkey] = {}
+            subtensor_state['IsNetworkMember'][hotkey][netuid] = {}
+            subtensor_state['IsNetworkMember'][hotkey][netuid][self.block_number] = True
             
             return uid
         
@@ -675,6 +675,9 @@ class MockSubtensor(Subtensor):
         if block_number is None:
             items = list(storage.items())
             items.sort(key=lambda x: x[0], reverse=True)
+            if len(items) == 0:
+                return None
+            
             return items[0][1]
         
         else:
@@ -1037,8 +1040,19 @@ class MockSubtensor(Subtensor):
         if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
             total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
 
-        total_hotkey_stake_state[hotkey_ss58][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalHotkeyStake'][hotkey_ss58]) + amount.rao
-        total_coldkey_stake_state[wallet.coldkeypub.ss58_address][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalColdkeyStake'][wallet.coldkeypub.ss58_address]) + amount.rao
+        curr_total_hotkey_stake = self.query_subtensor(
+            name='TotalHotkeyStake',
+            params=[hotkey_ss58],
+            block=min(self.block_number - 1, 0),
+        )
+        curr_total_coldkey_stake = self.query_subtensor(
+            name='TotalColdkeyStake',
+            params=[wallet.coldkeypub.ss58_address],
+            block=min(self.block_number - 1, 0),
+        )
+
+        total_hotkey_stake_state[hotkey_ss58][self.block_number] = curr_total_hotkey_stake.value + amount.rao
+        total_coldkey_stake_state[wallet.coldkeypub.ss58_address][self.block_number] = curr_total_coldkey_stake.value + amount.rao
         
         # Remove from free balance
         self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal - amount).rao
