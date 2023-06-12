@@ -461,7 +461,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @unittest.skip("takes too long")
     def test_unstake_with_specific_hotkeys(self):
         config = self.config
         config.command = "unstake"
@@ -618,7 +617,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         places=4,
                     )
 
-    @unittest.skip("takes too long")
     def test_unstake_with_exclude_hotkeys_from_all(self):
         config = self.config
         config.command = "unstake"
@@ -703,7 +701,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                             places=4,
                         )
 
-    @unittest.skip("takes too long")
     def test_unstake_with_multiple_hotkeys_max_stake(self):
         config = self.config
         config.command = "unstake"
@@ -962,7 +959,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     places=4,
                 )
 
-    @unittest.skip("takes too long")
     def test_stake_with_exclude_hotkeys_from_all(self):
         config = self.config
         config.command = "stake"
@@ -1065,7 +1061,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     balance.tao, mock_balance.tao - (config.amount * 2), places=4
                 )
 
-    @unittest.skip("takes too long")
     def test_stake_with_multiple_hotkeys_max_stake(self):
         config = self.config
         config.command = "stake"
@@ -1179,7 +1174,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertLessEqual(balance.tao, mock_balance.tao)
 
-    @unittest.skip("takes too long")
     def test_stake_with_multiple_hotkeys_max_stake_not_enough_balance(self):
         config = self.config
         config.command = "stake"
@@ -1275,7 +1269,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 )
                 self.assertLessEqual(balance.tao, mock_balance.tao)
 
-    @unittest.skip("takes too long")
     def test_stake_with_single_hotkey_max_stake(self):
         config = self.config
         config.command = "stake"
@@ -1363,8 +1356,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 address=wallet.coldkeypub.ss58_address
             )
             self.assertLessEqual(balance.tao, mock_balance.tao)
-   
-    @unittest.skip("takes too long")
+
     def test_stake_with_single_hotkey_max_stake_not_enough_balance(self):
         config = self.config
         config.command = "stake"
@@ -1453,7 +1445,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertGreaterEqual(balance.tao, mock_balance.tao - config.max_stake)
 
-    @unittest.skip("takes too long")
     def test_stake_with_single_hotkey_max_stake_enough_stake(self):
         # tests max stake when stake >= max_stake already
         config = self.config
@@ -1610,7 +1601,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertTrue(is_delegate)
 
-    @unittest.skip("takes too long")
     def test_delegate_stake(self):
         config = self.config
         config.command = "delegate"
@@ -2191,7 +2181,6 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         )
         cli.run()
 
-    @unittest.skip("takes too long")
     def test_delegate(self):
         """
         Test delegate add command
