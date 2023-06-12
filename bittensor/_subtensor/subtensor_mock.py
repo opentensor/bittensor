@@ -1053,10 +1053,14 @@ class MockSubtensor(Subtensor):
     def get_delegate_by_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional['bittensor.DelegateInfo']:
         subtensor_state = self.chain_state['SubtensorModule']
 
-        if not self.is_hotkey_delegate(
-            hotkey_ss58=hotkey_ss58,
-            block=block,
-        ):
+        if hotkey_ss58 not in subtensor_state['Delegates']:
+            return None
+        
+        newest_state = self._get_most_recent_storage(
+            subtensor_state['Delegates'][hotkey_ss58],
+            block
+        )
+        if newest_state is None:
             return None
         
         nom_result = {}
@@ -1072,13 +1076,17 @@ class MockSubtensor(Subtensor):
 
         registered_subnets = []
         for subnet in self.get_all_subnet_netuids(block=block):
-            uid = self.get_uid_for_hotkey_on_subnet(
+            if self.is_hotkey_registered_on_subnet(
                 hotkey_ss58=hotkey_ss58,
                 netuid=subnet,
                 block=block,
-            )
+            ):
+                uid = self.get_uid_for_hotkey_on_subnet(
+                    hotkey_ss58=hotkey_ss58,
+                    netuid=subnet,
+                    block=block,
+                )
             
-            if uid is not None:
                 registered_subnets.append((subnet, uid))
 
         info = DelegateInfo(
