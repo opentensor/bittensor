@@ -934,8 +934,8 @@ class Subtensor:
     ####################
     #### Nomination ####
     ####################
-    def is_hotkey_delegate( self, hotkey_ss58: str ) -> bool:
-        return hotkey_ss58 in [ info.hotkey_ss58 for info in self.get_delegates() ]
+    def is_hotkey_delegate( self, hotkey_ss58: str, block: Optional[int] = None ) -> bool:
+        return hotkey_ss58 in [ info.hotkey_ss58 for info in self.get_delegates( block = block ) ]
 
     def get_delegate_take( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional[float]:
         return U16_NORMALIZED_FLOAT( self.query_subtensor( 'Delegates', block, [ hotkey_ss58 ] ).value )
