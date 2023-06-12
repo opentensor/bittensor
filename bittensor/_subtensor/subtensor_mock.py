@@ -212,6 +212,9 @@ class MockSubtensor(Subtensor):
                     'TotalStake': {
                         0: 0
                     },
+                    'TotalIssuance': {
+                        0: 0
+                    },
                     'TotalHotkeyStake': {},
                     'TotalColdkeyStake': {},
 
@@ -471,7 +474,19 @@ class MockSubtensor(Subtensor):
         balance = self._convert_to_balance(balance)
 
         if ss58_address not in self.chain_state['System']['Account']:
-            self.chain_state['System']['Account'][ss58_address] = {}
+            self.chain_state['System']['Account'][ss58_address] = {
+                'data': {
+                    'free': {
+                        0: 0,
+                    },
+                },
+            }
+
+        old_balance = self.get_balance(ss58_address, self.block_number)
+        diff = balance.rao - old_balance.rao
+
+        # Update total issuance
+        self.chain_state['SubtensorModule']['TotalIssuance'][self.block_number] = self._get_most_recent_storage(self.chain_state['SubtensorModule']['TotalIssuance']) + diff
 
         self.chain_state['System']['Account'][ss58_address] = {
             'data': {
@@ -873,13 +888,15 @@ class MockSubtensor(Subtensor):
             raise Exception("Not a delegate")
         
         # do stake
-        self.do_stake(
+        success = self.do_stake(
             wallet = wallet,
             hotkey_ss58 = delegate_ss58,
             amount = amount,
             wait_for_inclusion = wait_for_inclusion,
             wait_for_finalization = wait_for_finalization,
         )
+
+        return success
     
 
     def do_undelegation(
@@ -1075,6 +1092,8 @@ class MockSubtensor(Subtensor):
         # Remove from free balance
         self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal - amount).rao
 
+        return True
+
     def do_unstake(
         self,
         wallet: 'bittensor.Wallet',
@@ -1129,6 +1148,8 @@ class MockSubtensor(Subtensor):
         total_coldkey_stake_state[wallet.coldkeypub.ss58_address][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalColdkeyStake'][wallet.coldkeypub.ss58_address]) - amount.rao
 
         self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal + amount).rao
+
+        return True
 
 
     def get_delegate_by_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional['bittensor.DelegateInfo']:
