@@ -448,7 +448,11 @@ class MockSubtensor(Subtensor):
         self,
         ss58_address: str,
         balance: Union['bittensor.Balance', float, int] = bittensor.Balance(0),
-    ) -> None:
+    ) -> Tuple[bool, Optional[str], Optional['bittensor.Balance']]:
+        """
+        Returns:
+            Tuple[bool, Optional[str], Optional[bittensor.Balance]]: (success, err_msg, balance)
+        """
         balance = self._convert_to_balance(balance)
 
         if ss58_address not in self.chain_state['System']['Account']:
@@ -459,6 +463,8 @@ class MockSubtensor(Subtensor):
                 'free': balance.rao,
             }
         }
+
+        return True, None, balance
     
     # Alias for force_set_balance
     sudo_force_set_balance = force_set_balance
@@ -594,10 +600,14 @@ class MockSubtensor(Subtensor):
                 return bittensor.Balance(0)
                     
             # Use block
-            state_at_block = self._get_most_recent_storage(state, block)
-            return state_at_block['data']['free'] # Can be None
+            state_at_block = self._get_most_recent_storage(state, block) # Can be None
+            if state_at_block is not None:
+                bal_as_int = state_at_block['data']['free']
+                return bittensor.Balance.from_rao(bal_as_int)
+            else:
+                return bittensor.Balance(0)
         else:
-            return None
+            return bittensor.Balance(0)
 
     def get_balances(self, block: int = None) -> Dict[str, 'bittensor.Balance']:
         balances = {}
