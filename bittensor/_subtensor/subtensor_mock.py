@@ -95,7 +95,7 @@ class PrometheusInfoDict(InfoDict):
 
 @dataclass
 class MockSubtensorValue:
-    value: Any
+    value: Optional[Any]
 
 class MockMapResult:
     records: Optional[List[Tuple[MockSubtensorValue, MockSubtensorValue]]]
@@ -481,7 +481,7 @@ class MockSubtensor(Subtensor):
         for subnet in subtensor_state['NetworksAdded']:
             subtensor_state['BlocksSinceLastStep'][subnet][self.block_number] = self._get_most_recent_storage(subtensor_state['BlocksSinceLastStep'][subnet]) + 1
 
-    def query_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
+    def query_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> MockSubtensorValue:
         if block:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
@@ -496,7 +496,9 @@ class MockSubtensor(Subtensor):
                 while state is not None and len(params) > 0:
                     state = state.get(params.pop(0), None)
                     if state is None:
-                        return None
+                        return SimpleNamespace(
+                            value=None
+                        )
                     
             # Use block
             state_at_block = state.get(block, None)
@@ -508,9 +510,13 @@ class MockSubtensor(Subtensor):
                     value=state_at_block
                 )
 
-            return None
+            return SimpleNamespace(
+                value=None
+            )
         else:
-            return None
+            return SimpleNamespace(
+                value=None
+            )
             
     def query_map_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[MockMapResult]:
         """
@@ -1076,17 +1082,13 @@ class MockSubtensor(Subtensor):
 
         registered_subnets = []
         for subnet in self.get_all_subnet_netuids(block=block):
-            if self.is_hotkey_registered_on_subnet(
+            uid = self.get_uid_for_hotkey_on_subnet(
                 hotkey_ss58=hotkey_ss58,
                 netuid=subnet,
                 block=block,
-            ):
-                uid = self.get_uid_for_hotkey_on_subnet(
-                    hotkey_ss58=hotkey_ss58,
-                    netuid=subnet,
-                    block=block,
-                )
-            
+            )
+
+            if uid is not None:
                 registered_subnets.append((subnet, uid))
 
         info = DelegateInfo(

@@ -1029,7 +1029,7 @@ class Subtensor:
     def is_hotkey_registered( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> bool:
         return self.get_uid_for_hotkey_on_subnet( hotkey_ss58, netuid, block ) != None
 
-    def get_uid_for_hotkey_on_subnet( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> int:
+    def get_uid_for_hotkey_on_subnet( self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> Optional[int]:
         return self.query_subtensor( 'Uids', block, [ netuid, hotkey_ss58 ] ).value
 
     def get_all_uids_for_hotkey( self, hotkey_ss58: str, block: Optional[int] = None) -> List[int]:
