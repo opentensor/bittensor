@@ -824,7 +824,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=wallet.coldkey.ss58_address,
             )
             
-        success, err, _ = _subtensor_mock.force_set_balance(
+        success, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_coldkey_kp.ss58_address,
             balance=mock_balance.rao,
         )
@@ -900,7 +900,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             
         # Set the coldkey balance
-        success, err, _ = _subtensor_mock.force_set_balance(
+        success, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_coldkey_kp.ss58_address,
             balance=mock_balance.rao,
         )
@@ -1979,7 +1979,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         mock_wallet = generate_wallet()
 
         # Give the wallet some balance for burning
-        success, err, _ = _subtensor_mock.force_set_balance(
+        success, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallet.coldkeypub.ss58_address,
             balance=bittensor.Balance.from_float(200.0),
         )
@@ -2211,7 +2211,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         )
 
         # Give the wallet some TAO
-        _, err, _ = _subtensor_mock.force_set_balance(
+        _, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallet.coldkey.ss58_address,
             balance=bittensor.Balance.from_tao(20.0),
         )
