@@ -217,6 +217,10 @@ class MockSubtensor(Subtensor):
                     },
                     'TotalHotkeyStake': {},
                     'TotalColdkeyStake': {},
+                    
+                    'TxRateLimit': {
+                        0: 0 # No limit
+                    },
 
                     'Delegates': {},
 
