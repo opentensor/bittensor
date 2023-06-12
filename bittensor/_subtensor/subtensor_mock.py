@@ -189,6 +189,7 @@ class MockSubtensor(Subtensor):
                     'Uids': {},
                     'Keys': {},
                     'Owner': {},
+                    'IsNetworkMember': {},
                     'LastUpdate': {},
                     
                     'Rank': {},
@@ -594,7 +595,7 @@ class MockSubtensor(Subtensor):
                     
             # Use block
             state_at_block = self._get_most_recent_storage(state, block)
-            return state_at_block # Can be None
+            return state_at_block['data']['free'] # Can be None
         else:
             return None
 
