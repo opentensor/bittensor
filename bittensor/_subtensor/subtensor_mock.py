@@ -1231,7 +1231,7 @@ class MockSubtensor(Subtensor):
 
         result = []
         for delegate in delegates:
-            if coldkey_ss58 in [nom_ss58 for nom_ss58, _ in delegate.nominators]:
+            if coldkey_ss58 in delegate.nominators:
                 result.append((delegate, delegate.nominators[coldkey_ss58]))
 
         return result
