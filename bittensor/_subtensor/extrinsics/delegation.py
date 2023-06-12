@@ -151,7 +151,6 @@ def delegate_extrinsic(
     try:
         with bittensor.__console__.status(":satellite: Staking to: [bold white]{}[/bold white] ...".format(subtensor.network)):
             staking_response: bool = subtensor.do_delegation(
-                subtensor = subtensor,
                 wallet = wallet,
                 delegate_ss58 = delegate_ss58,
                 amount = staking_balance,
@@ -260,7 +259,6 @@ def undelegate_extrinsic(
     try:
         with bittensor.__console__.status(":satellite: Unstaking from: [bold white]{}[/bold white] ...".format(subtensor.network)):
             staking_response: bool = subtensor.do_undelegation(
-                subtensor = subtensor,
                 wallet = wallet,
                 delegate_ss58 = delegate_ss58,
                 amount = unstaking_balance,
