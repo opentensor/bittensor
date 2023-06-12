@@ -68,6 +68,22 @@ def setUpModule():
         netuid = 3
     )
 
+    # Set diff 0
+    _subtensor_mock.set_difficulty(
+        netuid = 1,
+        difficulty = 0
+    )
+
+    _subtensor_mock.set_difficulty(
+        netuid = 2,
+        difficulty = 0
+    )
+
+    _subtensor_mock.set_difficulty(
+        netuid = 3,
+        difficulty = 0
+    )
+
 class TestCLIWithNetworkAndConfig(unittest.TestCase):
     def setUp(self):
         self._config = TestCLIWithNetworkAndConfig.construct_config()

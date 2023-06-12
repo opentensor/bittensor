@@ -316,7 +316,14 @@ class MockSubtensor(Subtensor):
 
         else:
             raise Exception("Subnet already exists")
-    
+
+    def set_difficulty( self, netuid: int, difficulty: int ) -> None:
+        subtensor_state = self.chain_state['SubtensorModule']
+        if netuid not in subtensor_state['NetworksAdded']:
+            raise Exception("Subnet does not exist")
+
+        subtensor_state['Difficulty'][netuid][self.block_number] = difficulty    
+
     def _register_neuron(
         self,
         netuid: int,
