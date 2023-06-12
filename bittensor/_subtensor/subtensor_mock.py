@@ -1007,6 +1007,8 @@ class MockSubtensor(Subtensor):
             coldkey=wallet.coldkeypub.ss58_address,
         )
 
+        return True, None
+
     def do_burned_register(
         self,
         netuid: int,
