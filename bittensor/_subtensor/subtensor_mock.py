@@ -26,6 +26,7 @@ from collections.abc import Mapping
 import bittensor
 from bittensor.utils import RAOPERTAO, U16_NORMALIZED_FLOAT
 from bittensor.utils.registration import POWSolution
+from hashlib import sha256
 
 from .chain_data import (NeuronInfo, NeuronInfoLite, PrometheusInfo, DelegateInfo,
                          SubnetInfo, axon_info)
@@ -232,6 +233,9 @@ class MockSubtensor(Subtensor):
         
         if not hasattr(self, 'chain_state') or getattr(self, 'chain_state') is None:
             self.setup()
+
+    def get_block_hash(self, block_id: int) -> str:
+        return '0x' + sha256(str(block_id).encode()).hexdigest()[:64]
         
 
     def create_subnet( self, netuid: int ) -> None:
@@ -1001,6 +1005,8 @@ class MockSubtensor(Subtensor):
 
         # Burn the funds
         self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal - burn).rao
+
+        return True, None
 
     def do_stake(
         self,

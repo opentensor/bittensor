@@ -1370,3 +1370,6 @@ class Subtensor:
             hotkey = "000000000000000000000000000000000000000000000000"
         )
         return neuron
+
+    def get_block_hash(self, block_id: int) -> str:
+        return self.substrate.get_block_hash( block_id = block_id )
