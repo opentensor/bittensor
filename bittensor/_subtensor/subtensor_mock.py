@@ -640,6 +640,9 @@ class MockSubtensor(Subtensor):
     # ==== Neuron RPC methods ====
 
     def neuron_for_uid( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfo]:
+        if uid is None:
+            return NeuronInfo._null_neuron()
+        
         if block:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
@@ -949,6 +952,8 @@ class MockSubtensor(Subtensor):
             }
 
         self.chain_state['System']['Account'][dest]['data']['free'][self.block_number] = (dest_bal + transfer_balance).rao
+
+        return True, None, None
 
     def do_pow_register(
         self,
