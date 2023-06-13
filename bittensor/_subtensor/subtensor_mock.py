@@ -172,7 +172,7 @@ class MockSubtensor(Subtensor):
                     'ValidatorBatchSize': {},
                     'ValidatorSequenceLength': {},
                     'ValidatorEpochsPerReset': {},
-                    'ValidatorEpochLen': {},
+                    'ValidatorEpochLength': {},
                     'MaxAllowedValidators': {},
                     'MinAllowedWeights': {},
                     'MaxWeightsLimit': {},
@@ -263,8 +263,8 @@ class MockSubtensor(Subtensor):
             subtensor_state['ValidatorSequenceLength'][netuid][0] = 256
             subtensor_state['ValidatorEpochsPerReset'][netuid] = {}
             subtensor_state['ValidatorEpochsPerReset'][netuid][0] = 60
-            subtensor_state['ValidatorEpochLen'][netuid] = {}
-            subtensor_state['ValidatorEpochLen'][netuid][0] = 100
+            subtensor_state['ValidatorEpochLength'][netuid] = {}
+            subtensor_state['ValidatorEpochLength'][netuid][0] = 100
             subtensor_state['MaxAllowedValidators'][netuid] = {}
             subtensor_state['MaxAllowedValidators'][netuid][0] = 128
             subtensor_state['MinAllowedWeights'][netuid] = {}
