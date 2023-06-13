@@ -125,7 +125,7 @@ class MockSubtensorState(TypedDict):
     ImmunityPeriod: Dict[int, Dict[BlockNumber, int]] # netuid -> block -> immunity_period
     ValidatorBatchSize: Dict[int, Dict[BlockNumber, int]] # netuid -> block -> validator_batch_size
     Active: Dict[int, Dict[BlockNumber, bool]] # (netuid, uid), block -> active
-    Stake:  Dict[str, Dict[int, int]] # address -> block -> stake
+    Stake:  Dict[str, Dict[str, Dict[int, int]]] # (hotkey, coldkey) -> block -> stake
 
     Delegates: Dict[str, Dict[int, float]] # address -> block -> delegate_take
 
@@ -316,7 +316,6 @@ class MockSubtensor(Subtensor):
 
             subtensor_state['Axons'][netuid] = {}
             subtensor_state['Prometheus'][netuid] = {}
-            subtensor_state['Stake'][netuid] = {}
 
             subtensor_state['NetworksAdded'][netuid] = {}
             subtensor_state['NetworksAdded'][netuid][0] = True
@@ -1180,7 +1179,7 @@ class MockSubtensor(Subtensor):
                 block=block,
             )
             if nom_amount is not None and nom_amount.rao > 0:
-                nom_result[nominator] = nom_amount
+                nom_result[nominator] = (nominator, nom_amount)
 
         registered_subnets = []
         for subnet in self.get_all_subnet_netuids(block=block):
