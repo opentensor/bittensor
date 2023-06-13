@@ -69,7 +69,7 @@ class TestCLINoNetwork(unittest.TestCase):
     @staticmethod
     def construct_config():
         defaults = bittensor.Config()
-        
+
         # Get defaults for this config
         is_set_map = bittensor.config.__fill_is_set_list__(defaults, bittensor.defaults)
 
@@ -365,7 +365,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             "return_per_1000": bittensor.Balance.from_rao(0), 
             "total_daily_return": bittensor.Balance.from_rao(0)
         }
-        cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.mock_subtensor.mock', new=MagicMock(
+        cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.MockSubtensor.__new__', new=MagicMock(
             return_value=MagicMock(
                 get_subnets=MagicMock(return_value=[1]), # Mock subnet 1 ONLY.
                 block=10_000,
