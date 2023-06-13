@@ -1338,7 +1338,7 @@ class MockSubtensor(Subtensor):
                 name = 'MaxAllowedUids',
             ),
             blocks_since_epoch=query_subnet_info(
-                name = 'BlocksSinceEpoch',
+                name = 'BlocksSinceLastStep',
             ),
             tempo=query_subnet_info(
                 name = 'Tempo',
