@@ -31,7 +31,7 @@ from hashlib import sha256
 from .chain_data import (NeuronInfo, NeuronInfoLite, PrometheusInfo, DelegateInfo,
                          SubnetInfo, axon_info)
 from .errors import *
-from .subtensor_impl import Subtensor
+from .subtensor_impl import Subtensor, PrometheusServeCallParams
 
 BlockNumber = int
 
@@ -1337,3 +1337,12 @@ class MockSubtensor(Subtensor):
         )
 
         return info
+
+    def do_serve_prometheus(
+        self,
+        wallet: 'bittensor.wallet',
+        call_params: 'PrometheusServeCallParams',
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        return True, None

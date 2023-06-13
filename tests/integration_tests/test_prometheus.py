@@ -3,7 +3,21 @@ import bittensor
 import pytest
 import unittest
 from unittest.mock import MagicMock, patch
+from bittensor._subtensor.subtensor_mock import MockSubtensor
 
+_subtensor_mock: MockSubtensor = bittensor.subtensor( network = 'mock', _mock = True )
+
+def setUpModule():
+    _subtensor_mock.reset()
+
+    _subtensor_mock.create_subnet(
+        netuid = 3
+    )
+
+    _subtensor_mock.set_difficulty(
+        netuid = 3,
+        difficulty = 0
+    )
 
 class TestPrometheus(unittest.TestCase):
 

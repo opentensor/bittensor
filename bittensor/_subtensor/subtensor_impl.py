@@ -44,6 +44,16 @@ from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic,undele
 from loguru import logger
 logger = logger.opt(colors=True)
 
+class PrometheusServeCallParams(TypedDict):
+    """
+    Prometheus serve chain call parameters.
+    """
+    version: int
+    ip: int
+    port: int
+    ip_type: int
+    netuid: int
+
 class Subtensor:
     """
     Handles interactions with the subtensor chain.
@@ -457,16 +467,6 @@ class Subtensor:
         wait_for_finalization: bool = True,
     ) -> bool:
         return prometheus_extrinsic( self, wallet = wallet, port = port, netuid = netuid, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization)
-    
-    class PrometheusServeCallParams(TypedDict):
-        """
-        Prometheus serve chain call parameters.
-        """
-        version: int
-        ip: int
-        port: int
-        ip_type: int
-        netuid: int
 
     def do_serve_prometheus(
         self,
