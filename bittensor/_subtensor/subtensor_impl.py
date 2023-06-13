@@ -21,7 +21,7 @@ import torch
 import bittensor
 import scalecodec
 from retry import retry
-from typing import List, Dict, Union, Optional, Tuple
+from typing import List, Dict, Union, Optional, Tuple, TypedDict
 from substrateinterface.base import QueryMapResult, SubstrateInterface
 
 from bittensor.utils.balance import Balance
@@ -457,6 +457,52 @@ class Subtensor:
         wait_for_finalization: bool = True,
     ) -> bool:
         return prometheus_extrinsic( self, wallet = wallet, port = port, netuid = netuid, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization)
+    
+    class PrometheusServeCallParams(TypedDict):
+        """
+        Prometheus serve chain call parameters.
+        """
+        version: int
+        ip: int
+        port: int
+        ip_type: int
+        netuid: int
+
+    def do_serve_prometheus(
+        self,
+        wallet: 'bittensor.wallet',
+        call_params: PrometheusServeCallParams,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        """
+        Sends a serve prometheus extrinsic to the chain.
+        Args:
+            wallet (:obj:`bittensor.wallet`): Wallet object.
+            call_params (:obj:`PrometheusServeCallParams`): Prometheus serve call parameters.
+            wait_for_inclusion (:obj:`bool`): If true, waits for inclusion.
+            wait_for_finalization (:obj:`bool`): If true, waits for finalization.
+        Returns:
+            success (:obj:`bool`): True if serve prometheus was successful.
+            error (:obj:`Optional[str]`): Error message if serve prometheus failed, None otherwise.
+        """
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                call_module='SubtensorModule',
+                call_function='serve_prometheus',
+                call_params = call_params
+            )
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey)
+            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+            if wait_for_inclusion or wait_for_finalization:
+                response.process_events()
+                if response.is_success:
+                    return True, None
+                else:
+                    return False, response.error_message
+            else:
+                return True
+    
     #################
     #### Staking ####
     #################
