@@ -43,7 +43,7 @@ class TestCLINoNetwork(unittest.TestCase):
             "return_per_1000": bittensor.Balance.from_rao(0),
             "total_daily_return": bittensor.Balance.from_rao(0)
         }
-        cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.mock_subtensor.mock', new=MagicMock(
+        cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.MockSubtensor.__new__', new=MagicMock(
             return_value=MagicMock(
                 get_subnets=MagicMock(return_value=[1]), # Mock subnet 1 ONLY.
                 block=10_000,
@@ -79,7 +79,6 @@ class TestCLINoNetwork(unittest.TestCase):
 
         return defaults
 
-    @unittest.skip("")
     def test_check_configs(self):
         config = self.config
         config.no_prompt = True
@@ -115,7 +114,6 @@ class TestCLINoNetwork(unittest.TestCase):
                 config.command = cmd
                 cli.check_config(config)
 
-    @unittest.skip("")
     def test_new_coldkey( self ):
         config = self.config
         config.wallet.name = "new_coldkey_testwallet"
@@ -132,7 +130,6 @@ class TestCLINoNetwork(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @unittest.skip("")
     def test_new_hotkey( self ):
         config = self.config
         config.wallet.name = "new_hotkey_testwallet"
@@ -149,7 +146,6 @@ class TestCLINoNetwork(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @unittest.skip("")
     def test_regen_coldkey( self ):
         config = self.config
         config.wallet.name = "regen_coldkey_testwallet"
@@ -168,7 +164,6 @@ class TestCLINoNetwork(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @unittest.skip("")
     def test_regen_coldkeypub( self ):
         config = self.config
         config.wallet.name = "regen_coldkeypub_testwallet"
@@ -183,7 +178,6 @@ class TestCLINoNetwork(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @unittest.skip("")
     def test_regen_hotkey( self ):
         config = self.config
         config.wallet.name = "regen_hotkey_testwallet"
