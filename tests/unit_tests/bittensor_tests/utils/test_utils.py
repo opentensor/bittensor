@@ -523,16 +523,11 @@ class TestPOWCalled(unittest.TestCase):
     def test_pow_called_for_cuda(self):
         class MockException(Exception):
             pass
-        mock_compose_call = MagicMock(side_effect=MockException)
+        mock_pow_register_call = MagicMock(side_effect=MockException)
 
         mock_subtensor = bittensor.subtensor(_mock=True)
         mock_subtensor.get_neuron_for_pubkey_and_subnet=MagicMock(is_null=True)
-        mock_subtensor.substrate = MagicMock(
-            __enter__= MagicMock(return_value=MagicMock(
-                compose_call=mock_compose_call
-            )),
-            __exit__ = MagicMock(return_value=None),
-        )
+        mock_subtensor.do_pow_register = mock_pow_register_call
 
         mock_wallet = SimpleNamespace(
             hotkey=bittensor.Keypair.create_from_seed(
@@ -571,11 +566,10 @@ class TestPOWCalled(unittest.TestCase):
                 _, kwargs = call0
                 assert kwargs['subtensor'] == mock_subtensor
 
-                mock_compose_call.assert_called_once()
-                call1 = mock_compose_call.call_args
-                assert call1[1]['call_function'] == 'register'
-                call_params = call1[1]['call_params']
-                assert call_params['nonce'] == mock_result.nonce
+                mock_pow_register_call.assert_called_once()
+                _, kwargs = mock_pow_register_call.call_args
+                kwargs['pow_result'].nonce == mock_result.nonce
+
 
 class TestCUDASolverRun(unittest.TestCase):
     def test_multi_cuda_run_updates_nonce_start(self):
