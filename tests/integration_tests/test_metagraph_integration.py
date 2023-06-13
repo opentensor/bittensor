@@ -21,10 +21,20 @@ import torch
 import pytest
 from bittensor._subtensor.subtensor_mock import MockSubtensor
 
+_subtensor_mock: MockSubtensor = bittensor.subtensor( network = 'mock', _mock = True )
 
-@pytest.fixture(autouse=True)
-def setup():
-    MockSubtensor.reset()
+def setUpModule():
+    _subtensor_mock.reset()
+
+    _subtensor_mock.create_subnet(
+        netuid = 3
+    )
+
+    # Set diff 0
+    _subtensor_mock.set_difficulty(
+        netuid = 3,
+        difficulty = 0
+    )
 
 
 class TestMetagraph:
