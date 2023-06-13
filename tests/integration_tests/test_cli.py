@@ -2210,7 +2210,6 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
             hotkey=mock_wallet.hotkey.ss58_address,
             coldkey=mock_wallet.coldkey.ss58_address,
         )
-        self.assertEqual(err, None)
 
         # register the delegate
         _ = _subtensor_mock.force_register_neuron(
@@ -2218,7 +2217,6 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
             hotkey=delegate_wallet.hotkey.ss58_address,
             coldkey=delegate_wallet.coldkey.ss58_address,
         )
-        self.assertEqual(err, None)
 
         # make the delegate a delegate
         _subtensor_mock.nominate(delegate_wallet, wait_for_finalization=True)
