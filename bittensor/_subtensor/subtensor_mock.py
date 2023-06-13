@@ -285,8 +285,8 @@ class MockSubtensor(Subtensor):
             subtensor_state['BlocksSinceLastStep'][netuid][0] = 0
             subtensor_state['Tempo'][netuid] = {}
             subtensor_state['Tempo'][netuid][0] = 99
-            subtensor_state['NetworkConnect'][netuid] = {}
-            subtensor_state['NetworkConnect'][netuid][0] = {}
+            # subtensor_state['NetworkConnect'][netuid] = {}
+            # subtensor_state['NetworkConnect'][netuid][0] = {}
             subtensor_state['EmissionValues'][netuid] = {}
             subtensor_state['EmissionValues'][netuid][0] = 0
             subtensor_state['Burn'][netuid] = {}
@@ -1252,31 +1252,6 @@ class MockSubtensor(Subtensor):
         return result
 
     def get_subnet_info( self, netuid: int, block: Optional[int] = None ) -> Optional[SubnetInfo]:
-        subtensor_state = self.chain_state['SubtensorModule']
-
-        """
-        difficulty: int
-        immunity_period: int
-        validator_batch_size: int
-        validator_sequence_length: int
-        validator_epochs_per_reset: int
-        validator_epoch_length: int
-        max_allowed_validators: int
-        min_allowed_weights: int
-        max_weight_limit: float
-        scaling_law_power: float
-        synergy_scaling_law_power: float
-        subnetwork_n: int
-        max_n: int
-        blocks_since_epoch: int
-        tempo: int
-        modality: int
-        # netuid -> topk percentile prunning score requirement (u16:MAX normalized.)
-        connection_requirements: Dict[str, float]
-        emission_value: float
-        burn: Balance
-        """
-        
         if not self.subnet_exists(
             netuid=netuid,
             block=block,
@@ -1288,7 +1263,7 @@ class MockSubtensor(Subtensor):
                 name=name,
                 block=block,
                 params=[netuid]
-            )
+            ).value
         
         info = SubnetInfo(
             netuid=netuid,
@@ -1344,7 +1319,7 @@ class MockSubtensor(Subtensor):
                 name = 'Tempo',
             ),
             modality=query_subnet_info(
-                name = 'Modality',
+                name = 'NetworkModality',
             ),
             connection_requirements={
                 str(netuid_.value): percentile.value for netuid_, percentile in self.query_map_subtensor(
