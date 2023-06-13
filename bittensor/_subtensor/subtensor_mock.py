@@ -170,7 +170,7 @@ class MockSubtensor(Subtensor):
                     'Difficulty': {},
                     'ImmunityPeriod': {},
                     'ValidatorBatchSize': {},
-                    'ValidatorSequenceLen': {},
+                    'ValidatorSequenceLength': {},
                     'ValidatorEpochsPerReset': {},
                     'ValidatorEpochLen': {},
                     'MaxAllowedValidators': {},
@@ -259,8 +259,8 @@ class MockSubtensor(Subtensor):
             subtensor_state['ImmunityPeriod'][netuid][0] = 4096
             subtensor_state['ValidatorBatchSize'][netuid] = {}
             subtensor_state['ValidatorBatchSize'][netuid][0] = 32
-            subtensor_state['ValidatorSequenceLen'][netuid] = {}
-            subtensor_state['ValidatorSequenceLen'][netuid][0] = 256
+            subtensor_state['ValidatorSequenceLength'][netuid] = {}
+            subtensor_state['ValidatorSequenceLength'][netuid][0] = 256
             subtensor_state['ValidatorEpochsPerReset'][netuid] = {}
             subtensor_state['ValidatorEpochsPerReset'][netuid][0] = 60
             subtensor_state['ValidatorEpochLen'][netuid] = {}
