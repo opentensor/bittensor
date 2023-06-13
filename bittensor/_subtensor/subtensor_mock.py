@@ -175,7 +175,7 @@ class MockSubtensor(Subtensor):
                     'ValidatorEpochLength': {},
                     'MaxAllowedValidators': {},
                     'MinAllowedWeights': {},
-                    'MaxWeightsLimit': {},
+                    'MaxWeightLimit': {},
                     'SynergyScalingLawPower': {},
                     'ScalingLawPower': {},
                     'SubnetworkN': {},
@@ -269,8 +269,8 @@ class MockSubtensor(Subtensor):
             subtensor_state['MaxAllowedValidators'][netuid][0] = 128
             subtensor_state['MinAllowedWeights'][netuid] = {}
             subtensor_state['MinAllowedWeights'][netuid][0] = 1024
-            subtensor_state['MaxWeightsLimit'][netuid] = {}
-            subtensor_state['MaxWeightsLimit'][netuid][0] = 1_000
+            subtensor_state['MaxWeightLimit'][netuid] = {}
+            subtensor_state['MaxWeightLimit'][netuid][0] = 1_000
             subtensor_state['SynergyScalingLawPower'][netuid] = {}
             subtensor_state['SynergyScalingLawPower'][netuid][0] = 50
             subtensor_state['ScalingLawPower'][netuid] = {}
