@@ -210,6 +210,7 @@ from bittensor._synapse.text_prompting.synapse import TextPromptingSynapse
 from bittensor._synapse.text_to_embedding.synapse import TextToEmbeddingSynapse
 from bittensor._synapse.speech_to_text.synapse import SpeechToTextSynapse
 from bittensor._synapse.text_to_speech.synapse import TextToSpeechSynapse
+from bittensor._synapse.text_to_music.synapse import TextToMusicSynapse
 
 # ---- Dendrites -----
 from bittensor._dendrite.dendrite import Dendrite
@@ -219,6 +220,7 @@ from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendri
 from bittensor._dendrite.text_to_embedding.dendrite import TextToEmbeddingDendrite as text_to_embedding
 from bittensor._dendrite.speech_to_text.dendrite import SpeechToTextDendrite as speech_to_text
 from bittensor._dendrite.text_to_speech.dendrite import TextToSpeechDendrite as text_to_speech
+from bittensor._dendrite.text_to_music.dendrite import TextToMusicDendrite as text_to_music
 
 # ---- Base Miners -----
 from bittensor._neuron.base_miner_neuron import BaseMinerNeuron
@@ -228,6 +230,7 @@ from bittensor._neuron.base_embedding_miner import BaseEmbeddingMiner
 from bittensor._neuron.base_huggingface_miner import HuggingFaceMiner
 from bittensor._neuron.base_speech_to_text_miner import BaseSpeechToTextMiner
 from bittensor._neuron.base_text_to_speech_miner import BaseTextToSpeechMiner
+from bittensor._neuron.base_text_to_music_miner import BaseTextToMusicMiner
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError

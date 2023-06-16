@@ -53,6 +53,30 @@ message BackwardTextPromptingResponse {
 
 
 /////////////////////////
+// Text-to-Music //
+/////////////////////////
+
+service TextToMusic { rpc Forward (ForwardTextToMusicRequest) returns (ForwardTextToMusicResponse) {} }
+
+message ForwardTextToMusicRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string text = 3;
+	string sample = 4;
+	int32 duration = 5;
+	float timeout = 6;
+}
+
+message ForwardTextToMusicResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string music = 3; //TODO: make into list of music
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+
+/////////////////////////
 //  Text-to-Embedding  //
 /////////////////////////
 
