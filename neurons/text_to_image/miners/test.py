@@ -10,10 +10,11 @@ import torch
 
 hotkey = 'asdasd'
 
-text = "(beautiful) (best quality) mdjrny-v4 style Pepe the frog enormous, surrounded by colorful sea creatures and plants, - surreal, Dreamlike, ethereal lighting, Highly detailed, Intricate, Digital painting, Artstation, Concept art, Smooth, Sharp focus, Fantasy, trending on art websites, art by magali villeneuve and jock and ashley wood and rachel lee and loish"
-negative_prompt = "(worst quality) (poorly drawn)"
 
+text = "(beautiful) (best quality) A gorgeous woman at the beach, Portrait Photograph, Highly detailed, Intricate, Digital painting, Artstation, Concept art, Smooth, Sharp focus, Realistic, art by magali villeneuve and jock and ashley wood and rachel lee and loish"
+negative_prompt = "(worst quality) (poorly drawn) "
 buffered = BytesIO()
+seed = torch.randint(1000000000, (1,)).item()
 
 
 data = { 
@@ -26,7 +27,7 @@ data = {
   "guidance_scale": 7.5,
   "strength": 0.75,
   "negative_prompt": negative_prompt,
-  "seed": 0
+  "seed": seed
 }
 
 # from bytes to PIL image
@@ -43,7 +44,6 @@ pil = Image.open(BytesIO(img_bytes))
 pil.save('test.png')
 print('saved image to test.png')
 
-seed = torch.randint(1000000000, (1,)).item()
 print("seed: ", seed)
 
 # high strength (less like input image)

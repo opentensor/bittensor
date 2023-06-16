@@ -15,6 +15,7 @@ benchmarks/results/*
 *.csv
 *.torch
 *.pt
+*.safetensors
 *.log
 
 # runs/data/models/logs/~

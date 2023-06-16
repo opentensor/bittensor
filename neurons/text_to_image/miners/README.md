@@ -1,6 +1,24 @@
 ## StableDiffusion Text to Image Miner
 Miner for serving a text to image miner.
 
+# LoRA models
+All LoRA models are saved in `neurons/text_to_image/loras`.
+
+Valid file endings are `.safetensor` and `.pt`.
+
+If your file name is `better_hands.safetensor` you can use it in a prompt like `a young man holding a camera <lora:better_hands:0.5>` which will initialize the LoRA model with a 50% weight. 
+
+# Textual Inversions
+Inversions are saved in `neurons/text_to_image/inversions`
+
+Valid file endings are `.safetensor` and `.pt`.
+
+TIP: Name your file the same as the trigger word. If the trigger word is `emb_params` name it `emb_params.safetensor`.
+
+If you're not sure what the trigger word, is create a duplicate file and when the miner is loaded, it will give you an error saying "trigger word is already loaded".
+
+Use your trigger word like `<trigger_word:0.8>` for a weight of 80%.
+
 # Example Usage
 ```
 python3 -m pip install -r neurons/text_to_image/miners/stablediffusion/requirements.txt 
