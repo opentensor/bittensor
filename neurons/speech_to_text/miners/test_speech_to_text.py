@@ -1,36 +1,3 @@
-# import json
-# import torch
-# import requests
-# from io import BytesIO
-# import bittensor as bt
-# import soundfile as sf
-# import base64
-# bt.trace()
-
-# hotkey = '5C86aJ2uQawR6P6veaJQXNK9HaWh6NMbUhTiLs65kq4ZW3NH'
-
-# pcm_audio, fs = sf.read('/home/jason/assets/urgency.wav')
-
-# # Convert audio to bytes and write to buffer
-# audio_buffer = BytesIO()
-# sf.write( audio_buffer, pcm_audio.numpy().squeeze(), 22050, format='WAV' )
-
-# # Convert buffer to base64 string
-# audio_base64 = base64.b64encode( audio_buffer.getvalue() ).decode('utf-8')
-
-# data = {
-#   "speech": audio_base64,
-#   "timeout": 12,
-# }
-
-# req = requests.post('http://127.0.0.1:8092/SpeechToText/Forward/?hotkey={}'.format(hotkey), json=data)
-# print(req)
-# print(req.text)
-
-# x = json.loads(req.text)
-# emb = torch.Tensor(x)
-# print("emb.shape: ", emb.shape)
-
 
 import requests
 import bittensor as bt

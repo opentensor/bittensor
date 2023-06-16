@@ -28,7 +28,10 @@ import soundfile as sf
 from datasets import load_dataset
 
 
-class SpeechT5SpeechToTextMiner( bittensor.BaseSpeechToTextMiner ):
+class SpeechT5TextToSpeechMiner( bittensor.BaseTextToSpeechMiner ):
+
+    samplerate: int = 22050
+    audio_format: str = 'WAV'
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -40,63 +43,37 @@ class SpeechT5SpeechToTextMiner( bittensor.BaseSpeechToTextMiner ):
         parser.add_argument( '--speecht5.vocoder_name', type=str, help='Name of vocoder model', default="microsoft/speecht5_hifigan" )
         parser.add_argument( '--speecht5.device', type=str, help='Device to load model', default="cuda:0" )
 
-    def config():       
-        parser = argparse.ArgumentParser( description = 'SpeechT5 Miner' )
-        parser.add_argument( '--device', type=str, help='Device to load model', default="cuda:0" )
-        bittensor.base_miner_neuron.add_args( parser )
-        return bittensor.config( parser )
-
     def __init__(self, config: "bittensor.Config" = None ):
-        bittensor.trace()
-        print ( config )
-        # --- Build the base miner
-        base_miner = bittensor.base_miner_neuron( netuid = 13, config = config )
+        super( SpeechT5TextToSpeechMiner, self ).__init__( config=config )
 
         # --- Build speech recognition pipeline ---
-        processor = SpeechT5Processor.from_pretrained("microsoft/speecht5_tts")
-        model = SpeechT5ForTextToSpeech.from_pretrained("microsoft/speecht5_tts")
-        vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan")
-        embeddings_dataset = load_dataset("Matthijs/cmu-arctic-xvectors", split="validation")
-        speaker_embeddings = torch.tensor(embeddings_dataset[7306]["xvector"]).unsqueeze(0)
+        self.processor = SpeechT5Processor.from_pretrained( "microsoft/speecht5_tts" )
+        self.model = SpeechT5ForTextToSpeech.from_pretrained( "microsoft/speecht5_tts" )
+        self.vocoder = SpeechT5HifiGan.from_pretrained( "microsoft/speecht5_hifigan" )
+        self.embeddings_dataset = load_dataset( "Matthijs/cmu-arctic-xvectors", split="validation" )
+        self.speaker_embeddings = torch.tensor( self.embeddings_dataset[ 7306 ][ "xvector"] ).unsqueeze( 0 )
 
+    def forward( self, text: str ) -> str:
+        # --- Generate audio from text
+        inputs = self.processor( text=text, return_tensors="pt", padding=True )
+        output = self.model.generate_speech( inputs["input_ids"], self.speaker_embeddings, vocoder=self.vocoder )
+    
+        # --- Convert tensor to audio buffer --- 
+        audio_buffer = BytesIO()
+        sf.write( audio_buffer, output.numpy(), self.samplerate, format=self.audio_format )
+        vibes = audio_buffer.getvalue()
 
-    # --- Build the synapse ---
-    class TextToSpeechSynapse( bittensor.TextToSpeechSynapse ):
+        # --- Convert buffer to base64 string ---
+        audio_base64 = base64.b64encode( vibes ).decode( 'utf-8' )
+        return audio_base64
 
-        def priority( self, forward_call: "bittensor.SynapseCall" ) -> float: 
-            return 0.0
-
-        def blacklist( self, forward_call: "bittensor.SynapseCall" ) -> Union[ Tuple[bool, str], bool ]:
-            return False
-        
-        def forward( self, text: str ) -> str:
-            inputs = processor(text=text, return_tensors="pt", padding=True)
-
-            output = model.generate_speech(inputs["input_ids"], speaker_embeddings, vocoder=vocoder)
-            
-
-            audio_buffer = BytesIO()
-
-            sf.write(audio_buffer, output.numpy(), 22050, format='WAV')
-            vibes = audio_buffer.getvalue()
-            print (vibes)
-            # Convert buffer to base64 string
-            audio_base64 = base64.b64encode(vibes).decode('utf-8')
-            return audio_base64
-        
-    # --- Attach the synapse to the base miner ---
-    text_to_speech_synapse = TextToSpeechSynapse()
-    base_miner.axon.attach( text_to_speech_synapse )
-
-    # --- Run miner continually until Keyboard break ---
-    with base_miner: 
-        while True: 
-            time.sleep( 1 )
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
-    main( config() )
-
-
+    # --- Run miner continually until Keyboard break ---
+    with SpeechT5TextToSpeechMiner(): 
+        while True: 
+            time.sleep( 1 )
+ 
 
 

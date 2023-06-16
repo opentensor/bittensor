@@ -60,7 +60,7 @@ class BaseTextToSpeechMiner( bittensor.BaseMinerNeuron, ABC ):
             def blacklist( _, forward_call: "bittensor.SpeechToTextForwardCall" ) -> Union[ Tuple[bool, str], bool ]:
                 return self.blacklist( forward_call )
             def backward( _, speech: bytes, text: str, rewards: torch.FloatTensor ) -> str: pass
-            def forward( _, speech: bytes ) -> str:
-                return self.forward( speech )
+            def forward( _, text: str ) -> bytes:
+                return self.forward( text )
             
         self.synapse = Synapse( axon = self.axon )
