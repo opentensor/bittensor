@@ -116,6 +116,8 @@ class BaseMinerNeuron:
         self.should_exit = False 
         self.background_thread = None
 
+        self.retries = 0
+
     def attach( self, synapse: "bittensor.Synapse" ):
         # pass through attach function.
         self.axon.attach( synapse )
@@ -156,7 +158,6 @@ class BaseMinerNeuron:
 
         # --- Run Forever.
         last_update = self.subtensor.get_current_block()
-        retries = 0
         while not self.should_exit:
 
             # --- Wait until next epoch.
@@ -173,7 +174,7 @@ class BaseMinerNeuron:
                 uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
             except:
                 # --- If we fail to sync the metagraph, wait and try again.
-                if(retries > 8):
+                if(self.retries > 8):
                     bittensor.logging.error( f'Failed to sync metagraph, exiting.')
                     self.stop()
                     break 
@@ -183,8 +184,8 @@ class BaseMinerNeuron:
                 retries += 1
                 continue
 
-            if(retries > 0):
-                retries = 0
+            if(self.retries > 0):
+                self.retries = 0
 
             # --- Log performance.
             print(
