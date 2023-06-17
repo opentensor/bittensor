@@ -122,7 +122,7 @@ class axon:
             self.thread_pool = futures.ThreadPoolExecutor(max_workers=self.config.axon.max_workers)
             self.server = grpc.server(
                 self.thread_pool,
-                interceptors=(self.auth_interceptor),
+                interceptors=(self.auth_interceptor,),
                 maximum_concurrent_rpcs=self.config.axon.maximum_concurrent_rpcs,
                 options=[("grpc.keepalive_time_ms", 100000), ("grpc.keepalive_timeout_ms", 500000)],
             )
