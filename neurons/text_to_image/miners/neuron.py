@@ -59,7 +59,7 @@ def get_project_root():
         index = indices[-1]
 
         # recombine the path
-        return "/".join(split[:-(len(split)-index)])+"/"
+        return "/".join(split[:-(len(split)-index)])+"/bittensor/"
 
 
         # Slice the path up to the index where the target string starts
