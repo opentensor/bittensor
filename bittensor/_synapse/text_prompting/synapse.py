@@ -34,7 +34,7 @@ class SynapseForwardMulti( bittensor.SynapseCall ):
             synapse: "bittensor.TextPromptingSynapseMulti",
             request_proto: bittensor.proto.MultiForwardTextPromptingRequest,
             multi_forward_callback: Callable,
-            context: grpc.ServicerContext = None
+            context: grpc.ServicerContext
         ):
         super().__init__( synapse = synapse, request_proto = request_proto, context = context )
         self.messages: List[ Dict[str, str] ] = request_proto.messages
@@ -68,7 +68,7 @@ class SynapseForward( bittensor.SynapseCall ):
             synapse: "TextPromptingSynapse",
             request_proto: bittensor.proto.ForwardTextPromptingRequest,
             forward_callback: Callable,
-            context: grpc.ServicerContext = None
+            context: grpc.ServicerContext
         ):
         super().__init__( synapse = synapse, request_proto = request_proto, context = context )
         self.messages = request_proto.messages
@@ -101,7 +101,7 @@ class SynapseBackward( bittensor.SynapseCall ):
             synapse: "TextPromptingSynapse",
             request_proto: bittensor.proto.BackwardTextPromptingRequest,
             backward_callback: Callable,
-            context: grpc.ServicerContext = None
+            context: grpc.ServicerContext
         ):
         super().__init__( synapse = synapse, request_proto = request_proto, context = context )
         self.formatted_messages = [ message for message in request_proto.messages ]
