@@ -36,15 +36,23 @@ class SynapseCall( ABC ):
         self,
         synapse: 'bittensor.Synapse',
         request_proto: object,
-        context: grpc.ServicerContext,
+        context: grpc.ServicerContext = None,
     ):
-        metadata = dict(context.invocation_metadata())
-        (
-            _,
-            sender_hotkey,
-            _,
-            _,
-        ) = synapse.axon.auth_interceptor.parse_signature(metadata)
+        # Optionally check context.
+        # If the context is not sent then this call does not check the signature.
+        # This allows spoofing attacks. 
+        if context:
+            metadata = dict(context.invocation_metadata())
+            (
+                _,
+                sender_hotkey,
+                _,
+                _,
+            ) = synapse.axon.auth_interceptor.parse_signature(metadata)
+        else:
+            # If no context is sent, then the call is not authenticated.
+            # we use the hotkey from the request instead.
+            sender_hotkey = request_proto.hotkey
 
         self.completed = False
         self.start_time = time.time()

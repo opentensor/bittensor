@@ -94,14 +94,19 @@ def test_text_prompting_synapse_backward():
 
 def test_text_prompting_synapse_blacklist():
     synapse = get_synapse()
-    request = bittensor.proto.ForwardTextPromptingRequest()
+    request = bittensor.proto.ForwardTextPromptingRequest(
+        hotkey = "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+    )
+    context = MagicMock()
     call = bittensor._synapse.text_prompting.synapse.SynapseForward( synapse, request, synapse.forward )
     blacklist = synapse.blacklist( call )
     assert blacklist == False
 
 def test_text_prompting_synapse_priority():
     synapse = get_synapse()
-    request = bittensor.proto.ForwardTextPromptingRequest()
+    request = bittensor.proto.ForwardTextPromptingRequest(
+        hotkey = "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+    )
     call = bittensor._synapse.text_prompting.synapse.SynapseForward( synapse, request, synapse.forward )
     priority = synapse.priority( call )
     assert priority == 0.0
