@@ -52,9 +52,18 @@ def get_project_root():
     # Traverse upwards until the "bittensor" folder is the last folder in the path
     if "bittensor" in current_path:
         # Get the index where the target string starts in the basename
-        index = current_path.index("bittensor")
+        # find all occurences of the target string in the basename "bittensor"
+        split = os.path.basename(current_path).split("/")
+        indices = [i for i, a in enumerate(split) if a == "bittensor"]
+        # Get the index of the last occurence of the target string
+        index = indices[-1]
+
+        # recombine the path
+        return "/".join(current_path.split("/")[:-(len(split)-index)])+"/"
+
+
         # Slice the path up to the index where the target string starts
-        return current_path[:index]+"bittensor/"
+        # return current_path[:index]+"bittensor/"
     else:
         raise Exception("Could not find project root directory")
         
