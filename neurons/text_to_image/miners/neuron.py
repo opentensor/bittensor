@@ -53,13 +53,13 @@ def get_project_root():
     if "bittensor" in current_path:
         # Get the index where the target string starts in the basename
         # find all occurences of the target string in the basename "bittensor"
-        split = os.path.basename(current_path).split("/")
+        split = current_path.split("/")
         indices = [i for i, a in enumerate(split) if a == "bittensor"]
         # Get the index of the last occurence of the target string
         index = indices[-1]
 
         # recombine the path
-        return "/".join(current_path.split("/")[:-(len(split)-index)])+"/"
+        return "/".join(split[:-(len(split)-index)])+"/"
 
 
         # Slice the path up to the index where the target string starts
