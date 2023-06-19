@@ -1358,3 +1358,12 @@ class MockSubtensor(Subtensor):
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
         return True, None
+    
+    def do_serve_axon(
+        self,
+        wallet: 'bittensor.wallet',
+        call_params: 'AxonServeCallParams',
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        return True, None
