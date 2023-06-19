@@ -129,8 +129,7 @@ class synapse_blacklist:
 
     def blacklist( 
             self, 
-            forward_call: "bittensor.SynapseCall",
-            metagraph: "bittensor.Metagraph" = None,
+            forward_call: "bittensor.SynapseCall"
         ) -> Union[ Tuple[bool, str], bool ]:
 
         # Check for blacklisted keys which take priority over all other checks.

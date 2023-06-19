@@ -119,9 +119,7 @@ class axon:
 
         # Build interceptor.
         self.receiver_hotkey = self.wallet.hotkey.ss58_address
-        self.auth_interceptor = AuthInterceptor(
-            receiver_hotkey=self.receiver_hotkey, metagraph=self.metagraph, blacklist=self.blacklist
-        )
+        self.auth_interceptor = AuthInterceptor(receiver_hotkey=self.receiver_hotkey, metagraph=self.metagraph)
 
         # Build grpc server
         if server is None:
@@ -281,7 +279,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self,
         receiver_hotkey: str,
         metagraph: "bittensor.metagraph",
-        blacklist: Callable = None,
     ):
         r"""Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
@@ -292,7 +289,8 @@ class AuthInterceptor(grpc.ServerInterceptor):
         """
         super().__init__()
         self.nonces = {}
-        self.blacklist = blacklist or bittensor.auth_blacklist
+        self.blacklister = bittensor.auth_blacklist()
+        self.blacklist = self.blacklister.blacklist
         self.receiver_hotkey = receiver_hotkey
         self.metagraph = metagraph
 
@@ -356,13 +354,13 @@ class AuthInterceptor(grpc.ServerInterceptor):
             return
 
         request_type = {
-            "/TextPrompting/Forward": bittensor.proto.RequestType.FORWARD,
-            "/TextPrompting/Backward": bittensor.proto.RequestType.BACKWARD,
+            "/TextPrompting/Forward": 0, 
+            "/TextPrompting/Backward": 1,
+            "/TextPrompting/MultiForward": 2,
         }.get(method)
         if request_type is None:
             raise Exception("Unknown request type")
 
-        import pdb; pdb.set_trace()
         failed, error_message =  self.blacklist(hotkey, metagraph=self.metagraph)
         if failed:
             raise Exception(str(error_message))
