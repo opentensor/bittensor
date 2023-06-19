@@ -19,15 +19,15 @@ import argparse
 import bittensor
 from typing import Union, Tuple
 
-class authinterceptor_blacklist:
+class auth_blacklist:
 
     def __init__( self, config: "bittensor.Config" = None ):
-        self.config = config or authinterceptor_blacklist.config()
+        self.config = config or auth_blacklist.config()
 
     @classmethod
     def config( cls ) -> "bittensor.Config":
         parser = argparse.ArgumentParser()
-        authinterceptor_blacklist.add_args(parser)
+        auth_blacklist.add_args(parser)
         return bittensor.config( parser )
 
     @classmethod

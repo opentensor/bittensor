@@ -91,7 +91,7 @@ class BaseMinerNeuron:
         bittensor.axon.add_args( parser, prefix = prefix )
         bittensor.subtensor.add_args( parser, prefix = prefix )
         bittensor.logging.add_args( parser, prefix = prefix )
-        bittensor.blacklist.add_args( parser, prefix = prefix_str + 'neuron' )
+        bittensor.synapse_blacklist.add_args( parser, prefix = prefix_str + 'neuron' )
         bittensor.priority.add_args( parser, prefix = prefix_str + 'neuron' )
 
     def __init__(self, netuid: int = None, config: "bittensor.Config" = None ):
