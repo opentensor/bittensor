@@ -111,7 +111,7 @@ class axon:
         self.external_ip = self.config.axon.external_ip if self.config.axon.external_ip != None else bittensor.utils.networking.get_external_ip()
         self.external_port = self.config.axon.external_port if self.config.axon.external_port != None else self.config.axon.port
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
-        self.blacklist = blacklist
+        self.blacklist = blacklist or bittensor.auth_blacklist
         self.started = False
 
         # Build priority thread pool
@@ -291,7 +291,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         """
         super().__init__()
         self.nonces = {}
-        self.blacklist = blacklist
+        self.blacklist = blacklist or bittensor.auth_blacklist
         self.receiver_hotkey = receiver_hotkey
 
 
