@@ -297,24 +297,16 @@ class TestSubtensor(unittest.TestCase):
         assert success == True
 
     def test_set_weights_failed( self ):
-        class failed():
-            def __init__(self):
-                self.is_success = False
-                self.error_message = 'Mock'
-            def process_events(self):
-                return True
-
         chain_weights = [0]
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed())
-        self.subtensor.substrate.compose_call = MagicMock()
-        self.subtensor.substrate.create_signed_extrinsic = MagicMock()
+        self.subtensor.do_set_weights = MagicMock(return_value = (False, 'Mock failure message'))
 
-        fail= self.subtensor.set_weights(wallet=self.wallet,
-                            netuid = 3,
-                            uids=[1],
-                            weights=chain_weights,
-                            wait_for_inclusion = True
-                            )
+        fail = self.subtensor.set_weights(
+            wallet=self.wallet,
+            netuid = 3,
+            uids=[1],
+            weights=chain_weights,
+            wait_for_inclusion = True
+        )
         assert fail == False
 
     def test_get_balance( self ):
