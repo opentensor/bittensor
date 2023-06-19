@@ -108,7 +108,7 @@ def prometheus_extrinsic(
         )
 
         if wait_for_inclusion or wait_for_finalization:
-            if success:
+            if success == True:
                 bittensor.__console__.print(':white_heavy_check_mark: [green]Served prometheus[/green]\n  [bold white]{}[/bold white]'.format(
                     json.dumps(call_params, indent=4, sort_keys=True)
                 ))

@@ -131,7 +131,7 @@ def register_extrinsic (
                     )
                     success, err_msg = result
 
-                    if not success:
+                    if success != True or success == False:
                         if 'key is already registered' in err_msg:
                             # Error meant that the key is already registered.
                             bittensor.__console__.print(f":white_heavy_check_mark: [green]Already Registered on [bold]subnet:{netuid}[/bold][/green]")
@@ -228,7 +228,7 @@ def burned_register_extrinsic (
             wait_for_finalization = wait_for_finalization,
         )
        
-        if not success:
+        if success != True or success == False:
             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(err_msg))
             time.sleep(0.5)
 

@@ -59,7 +59,7 @@ def nominate_extrinsic(
                 wait_for_finalization = wait_for_finalization
             )
             
-            if success:
+            if success == True:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 bittensor.logging.success(  prefix = 'Become Delegate', sufix = '<green>Finalized: </green>' + str(success) )
             
@@ -158,7 +158,7 @@ def delegate_extrinsic(
                 wait_for_finalization = wait_for_finalization,
             )
 
-        if staking_response: # If we successfully staked.
+        if staking_response == True: # If we successfully staked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
@@ -266,7 +266,7 @@ def undelegate_extrinsic(
                 wait_for_finalization = wait_for_finalization,
             )
 
-        if staking_response: # If we successfully staked.
+        if staking_response == True: # If we successfully staked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
