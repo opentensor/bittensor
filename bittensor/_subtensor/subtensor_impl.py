@@ -402,6 +402,32 @@ class Subtensor:
                     block_hash = None if block == None else substrate.get_block_hash(block)
                 )
         return make_substrate_call_with_retry()
+    
+    """ Queries any module storage with params and block. """
+    def query_module( self, module: str, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module=module,
+                    storage_function = name,
+                    params = params,
+                    block_hash = None if block == None else substrate.get_block_hash(block)
+                )
+        return make_substrate_call_with_retry()
+    
+    """ Queries any module map storage with params and block. """
+    def query_map( self, module: str, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query_map(
+                    module=module,
+                    storage_function = name,
+                    params = params,
+                    block_hash = None if block == None else substrate.get_block_hash(block)
+                )
+        return make_substrate_call_with_retry()
 
     #####################################
     #### Hyper parameter calls. ####
