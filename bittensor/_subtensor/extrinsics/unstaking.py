@@ -146,7 +146,7 @@ def unstake_extrinsic (
                 wait_for_finalization = wait_for_finalization,
             )
 
-        if staking_response: # If we successfully unstaked.
+        if staking_response == True: # If we successfully unstaked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
@@ -267,7 +267,7 @@ def unstake_multiple_extrinsic (
                     wait_for_finalization = wait_for_finalization,
                 )
 
-            if staking_response: # If we successfully unstaked.
+            if staking_response == True: # If we successfully unstaked.
                 # We only wait here if we expect finalization.
 
                 if idx < len(hotkey_ss58s) - 1:

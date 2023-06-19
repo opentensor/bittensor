@@ -88,18 +88,12 @@ class TestSubtensor(unittest.TestCase):
         assert (type(block) == int)
 
     def test_unstake( self ):
-        class success():
-            def __init__(self):
-                self.is_success = True
-            def process_events(self):
-                return True
+        self.subtensor.do_unstake = MagicMock(return_value = True)
 
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
-        self.subtensor.substrate.compose_call = MagicMock()
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value = { 'partialFee': 100 }
         )
-        self.subtensor.substrate.create_signed_extrinsic = MagicMock()
+
         self.subtensor.register = MagicMock(return_value = True)
         self.subtensor.get_balance = MagicMock(return_value = self.balance)
 
@@ -108,21 +102,15 @@ class TestSubtensor(unittest.TestCase):
             success= self.subtensor.unstake(self.wallet,
                                 amount = 200
                                 )
-            assert success == True
+            self.assertTrue(success, msg="Unstake should succeed")
 
     def test_unstake_inclusion( self ):
-        class success():
-            def __init__(self):
-                self.is_success = True
-            def process_events(self):
-                return True
-
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
-        self.subtensor.substrate.compose_call = MagicMock()
+        self.subtensor.do_unstake = MagicMock(return_value = True)
+        
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value = { 'partialFee': 100 }
         )
-        self.subtensor.substrate.create_signed_extrinsic = MagicMock()
+
         self.subtensor.register = MagicMock(return_value = True)
         self.subtensor.get_balance = MagicMock(return_value = self.balance)
 
@@ -132,46 +120,29 @@ class TestSubtensor(unittest.TestCase):
                                 amount = 200,
                                 wait_for_inclusion = True
                                 )
-            assert success == True
+            self.assertTrue(success, msg="Unstake should succeed")
 
     def test_unstake_failed( self ):
-        class failed():
-            def __init__(self):
-                self.is_success = False
-                self.error_message = 'Mock'
-            def process_events(self):
-                return True
-
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed())
-        self.subtensor.substrate.compose_call = MagicMock()
-        self.subtensor.substrate.get_payment_info = MagicMock(
-            return_value = { 'partialFee': 100 }
-        )
-        self.subtensor.substrate.create_signed_extrinsic = MagicMock()
+        self.subtensor.do_unstake = MagicMock(return_value = False)
+        
         self.subtensor.register = MagicMock(return_value = True)
         self.subtensor.get_balance = MagicMock(return_value = self.balance)
 
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(return_value = self.mock_neuron)
         with patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', return_value=Balance.from_tao(500)):
-            fail= self.subtensor.unstake(self.wallet,
+            fail = self.subtensor.unstake(self.wallet,
                                 amount = 200,
                                 wait_for_inclusion = True
                                 )
-            assert fail == False
+            self.assertFalse(fail, msg="Unstake should fail")
 
     def test_stake(self):
-        class success():
-            def __init__(self):
-                self.is_success = True
-            def process_events(self):
-                return True
+        self.subtensor.do_stake = MagicMock(return_value = True)
 
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
-        self.subtensor.substrate.compose_call = MagicMock()
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value = { 'partialFee': 100 }
         )
-        self.subtensor.substrate.create_signed_extrinsic = MagicMock()
+
         self.subtensor.register = MagicMock(return_value = True)
         self.subtensor.get_balance = MagicMock(return_value = self.balance)
 
@@ -181,21 +152,15 @@ class TestSubtensor(unittest.TestCase):
                 success= self.subtensor.add_stake(self.wallet,
                                     amount = 200
                                     )
-                assert success == True
+                self.assertTrue(success, msg="Stake should succeed")
 
     def test_stake_inclusion(self):
-        class success():
-            def __init__(self):
-                self.is_success = True
-            def process_events(self):
-                return True
+        self.subtensor.do_stake = MagicMock(return_value = True)
 
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
-        self.subtensor.substrate.compose_call = MagicMock()
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value = { 'partialFee': 100 }
         )
-        self.subtensor.substrate.create_signed_extrinsic = MagicMock()
+        
         self.subtensor.register = MagicMock(return_value = True)
         self.subtensor.get_balance = MagicMock(return_value = self.balance)
 
@@ -206,34 +171,27 @@ class TestSubtensor(unittest.TestCase):
                                     amount = 200,
                                     wait_for_inclusion = True
                                     )
-                assert success == True
+                self.assertTrue(success, msg="Stake should succeed")
 
     def test_stake_failed( self ):
-        class failed():
-            def __init__(self):
-                self.is_success = False
-                self.error_message = 'Mock'
-            def process_events(self):
-                return True
+        self.subtensor.do_stake = MagicMock(return_value = False)
 
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed())
-
-        self.subtensor.substrate.compose_call = MagicMock()
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value = { 'partialFee': 100 }
         )
-        self.subtensor.substrate.create_signed_extrinsic = MagicMock()
+
         self.subtensor.register = MagicMock(return_value = True)
         self.subtensor.get_balance = MagicMock(return_value = Balance.from_rao(0))
 
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(return_value = self.mock_neuron)
         with patch('bittensor.Subtensor.get_stake_for_coldkey_and_hotkey', return_value=Balance.from_tao(500)):
             with patch('bittensor.Subtensor.get_hotkey_owner', return_value=self.wallet.coldkeypub.ss58_address):
-                fail= self.subtensor.add_stake(self.wallet,
+                fail = self.subtensor.add_stake(self.wallet,
                                     amount = 200,
                                     wait_for_inclusion = True
                                     )
-                assert fail == False
+                self.assertFalse(fail, msg="Stake should fail")
+
     def test_transfer( self ):
         class success():
             def __init__(self):
