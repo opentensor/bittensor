@@ -19,11 +19,10 @@ import torch
 import argparse
 import bittensor
 
-from rich import print
-from typing import List, Dict, Union, Tuple
+from typing import List, Dict, Union, Tuple, Optional
 from abc import ABC, abstractmethod
 
-class BaseEmbeddingMiner( bittensor.BaseMinerNeuron, ABC ):
+class BaseTextToImageMiner( bittensor.BaseMinerNeuron, ABC ):
 
     @classmethod
     @abstractmethod
@@ -31,7 +30,18 @@ class BaseEmbeddingMiner( bittensor.BaseMinerNeuron, ABC ):
         ...
 
     @abstractmethod
-    def forward( self, text: List[str] ) -> str:
+    def forward(self,
+                text: str, 
+                image: Optional[str], 
+                height: Optional[int],
+                width: Optional[int],
+                num_images_per_prompt: Optional[int],
+                num_inference_steps: Optional[int],
+                guidance_scale: Optional[float],
+                strength: Optional[float],
+                negative_prompt: Optional[str],
+                seed: Optional[int]
+        ) -> bytes:
         ...
 
     @classmethod
@@ -49,18 +59,39 @@ class BaseEmbeddingMiner( bittensor.BaseMinerNeuron, ABC ):
     def add_super_args( cls, parser: argparse.ArgumentParser ):
         """ Add arguments specific to BasePromptingMiner to parser.
         """
-        cls.add_args(parser)
+        cls.add_args( parser )
 
     def __init__( self, config: "bittensor.Config" = None ):
-        super( BaseEmbeddingMiner, self ).__init__()
+        super( BaseTextToImageMiner, self ).__init__()
 
-        class Synapse( bittensor.TextToEmbeddingSynapse ):
-            def priority( _, forward_call: "bittensor.TextToEmbeddingForwardCall" ) -> float:
+        class Synapse( bittensor.TextToImageSynapse ):
+            def priority( _, forward_call: "bittensor.TextToImageForwardCall" ) -> float:
                 return self.priority( forward_call )
-            def blacklist( _, forward_call: "bittensor.TextToEmbeddingForwardCall" ) -> Union[ Tuple[bool, str], bool ]:
+            def blacklist( _, forward_call: "bittensor.TextToImageForwardCall" ) -> Union[ Tuple[bool, str], bool ]:
                 return self.blacklist( forward_call )
-            def backward( _, text: List[str], embedding: List[float], rewards: torch.FloatTensor ) -> str: pass
-            def forward( _, text: List[str] ) -> str:
-                return self.forward( text )
+            def backward( _, text: List[str], image: bytes, rewards: torch.FloatTensor ) -> str: pass
+            def forward( _, 
+                text: str, 
+                image: Optional[str], 
+                height: Optional[int],
+                width: Optional[int],
+                num_images_per_prompt: Optional[int],
+                num_inference_steps: Optional[int],
+                guidance_scale: Optional[float],
+                strength: Optional[float],
+                negative_prompt: Optional[str],
+                seed: Optional[int]
+            ) -> bytes: return self.forward( 
+                    text=text,
+                    image=image,
+                    height=height,
+                    width=width,
+                    num_images_per_prompt=num_images_per_prompt,
+                    num_inference_steps=num_inference_steps,
+                    guidance_scale=guidance_scale,
+                    strength=strength,
+                    negative_prompt=negative_prompt,
+                    seed=seed
+                )
             
         self.synapse = Synapse( axon = self.axon )

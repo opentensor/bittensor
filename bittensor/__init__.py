@@ -78,7 +78,7 @@ __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails'
 
 __nobunaga_entrypoint__ = "wss://stagingnode.opentensor.ai:443"
 
-__finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
+__finney_entrypoint__ = "wss://test.finney.opentensor.ai:443"
 
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
@@ -198,6 +198,10 @@ from bittensor._proto.bittensor_pb2 import ForwardSpeechToTextRequest
 from bittensor._proto.bittensor_pb2 import ForwardSpeechToTextResponse
 from bittensor._proto.bittensor_pb2 import ForwardTextToSpeechRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextToSpeechResponse
+from bittensor._proto.bittensor_pb2 import ForwardTextToMusicRequest
+from bittensor._proto.bittensor_pb2 import ForwardTextToMusicResponse
+from bittensor._proto.bittensor_pb2 import ForwardTextToImageRequest
+from bittensor._proto.bittensor_pb2 import ForwardTextToImageResponse
 from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingResponse
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingRequest
@@ -211,6 +215,7 @@ from bittensor._synapse.text_to_embedding.synapse import TextToEmbeddingSynapse
 from bittensor._synapse.speech_to_text.synapse import SpeechToTextSynapse
 from bittensor._synapse.text_to_speech.synapse import TextToSpeechSynapse
 from bittensor._synapse.text_to_music.synapse import TextToMusicSynapse
+from bittensor._synapse.text_to_image.synapse import TextToImageSynapse
 
 # ---- Dendrites -----
 from bittensor._dendrite.dendrite import Dendrite
@@ -221,6 +226,7 @@ from bittensor._dendrite.text_to_embedding.dendrite import TextToEmbeddingDendri
 from bittensor._dendrite.speech_to_text.dendrite import SpeechToTextDendrite as speech_to_text
 from bittensor._dendrite.text_to_speech.dendrite import TextToSpeechDendrite as text_to_speech
 from bittensor._dendrite.text_to_music.dendrite import TextToMusicDendrite as text_to_music
+from bittensor._dendrite.text_to_image.dendrite import TextToImageDendrite as text_to_image
 
 # ---- Base Miners -----
 from bittensor._neuron.base_miner_neuron import BaseMinerNeuron
@@ -231,6 +237,7 @@ from bittensor._neuron.base_huggingface_miner import HuggingFaceMiner
 from bittensor._neuron.base_speech_to_text_miner import BaseSpeechToTextMiner
 from bittensor._neuron.base_text_to_speech_miner import BaseTextToSpeechMiner
 from bittensor._neuron.base_text_to_music_miner import BaseTextToMusicMiner
+from bittensor._neuron.base_text_to_image_miner import BaseTextToImageMiner
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError

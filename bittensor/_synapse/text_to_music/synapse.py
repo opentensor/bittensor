@@ -77,7 +77,8 @@ class TextToMusic(BaseModel):
 class TextToMusicSynapse( bittensor.Synapse, bittensor.grpc.TextToMusicServicer ):
     name: str = "text_to_music"
 
-    def attach( self, axon: 'bittensor.axon.Axon' ):
+    def __init__( self, axon: 'bittensor.axon.Axon' ):
+        super().__init__( axon = axon )
         bittensor.grpc.add_TextToMusicServicer_to_server( self, self.axon.server )
         self.router = APIRouter()
         self.router.add_api_route("/TextToMusic/Forward/", self.fast_api_forward_text_to_music, methods=["POST"])

@@ -53,6 +53,37 @@ message BackwardTextPromptingResponse {
 
 
 /////////////////////////
+// Text-to-Image //
+/////////////////////////
+
+service TextToImage { rpc Forward (ForwardTextToImageRequest) returns (ForwardTextToImageResponse) {} }
+
+message ForwardTextToImageRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string text = 3;
+	string image = 4;
+	int32 height = 5;
+	int32 width = 6;
+	int32 num_images_per_prompt = 7;
+	int32 num_inference_steps = 8;
+	float guidance_scale = 9;
+	float strength = 10;
+	string negative_prompt = 11; //TODO: investigate if this is the right type see: https://github.com/huggingface/diffusers/blob/82e6fa56f0bfc219c26168a27a8ddb3a5488535e/src/diffusers/pipelines/stable_diffusion/pipeline_stable_diffusion.py#LL546C9-L546C46
+	int32 seed = 12;
+	float timeout = 13;
+}
+
+message ForwardTextToImageResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string image = 3; //TODO: make into list of images
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
+
+/////////////////////////
 // Text-to-Music //
 /////////////////////////
 

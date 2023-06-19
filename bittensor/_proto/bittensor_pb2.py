@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"a\n\x1b\x46orwardTextPromptingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08messages\x18\x03 \x03(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x8b\x01\n\x1c\x46orwardTextPromptingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"f\n MultiForwardTextPromptingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08messages\x18\x03 \x03(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x99\x01\n!MultiForwardTextPromptingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x19\n\x11multi_completions\x18\x03 \x03(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\x85\x01\n\x1c\x42\x61\x63kwardTextPromptingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0f\n\x07rewards\x18\x03 \x03(\x02\x12\x10\n\x08messages\x18\x04 \x03(\t\x12\x10\n\x08response\x18\x05 \x01(\t\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"z\n\x1d\x42\x61\x63kwardTextPromptingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"}\n\x19\x46orwardTextToMusicRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0c\n\x04text\x18\x03 \x01(\t\x12\x0e\n\x06sample\x18\x04 \x01(\t\x12\x10\n\x08\x64uration\x18\x05 \x01(\x05\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"\x86\x01\n\x1a\x46orwardTextToMusicResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\r\n\x05music\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"_\n\x1d\x46orwardTextToEmbeddingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0c\n\x04text\x18\x03 \x01(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x97\x01\n\x1e\x46orwardTextToEmbeddingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x1a\n\tembedding\x18\x03 \x01(\x0b\x32\x07.Tensor\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\\\n\x1a\x46orwardTextToSpeechRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0c\n\x04text\x18\x03 \x01(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x88\x01\n\x1b\x46orwardTextToSpeechResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06speech\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"^\n\x1a\x46orwardSpeechToTextRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06speech\x18\x03 \x01(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x86\x01\n\x1b\x46orwardSpeechToTextResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0c\n\x04text\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\xac\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08*\xda\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17\x12\x0f\n\x0b\x42\x61\x64\x45ndpoint\x10\x18\x12\x0f\n\x0b\x42lacklisted\x10\x19*&\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00\x12\x0b\n\x07\x43MPPACK\x10\x01*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*h\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05\x12\x0b\n\x07\x46LOAT16\x10\x06\x12\x08\n\x04\x42OOL\x10\x07\x32\xff\x01\n\rTextPrompting\x12H\n\x07\x46orward\x12\x1c.ForwardTextPromptingRequest\x1a\x1d.ForwardTextPromptingResponse\"\x00\x12W\n\x0cMultiForward\x12!.MultiForwardTextPromptingRequest\x1a\".MultiForwardTextPromptingResponse\"\x00\x12K\n\x08\x42\x61\x63kward\x12\x1d.BackwardTextPromptingRequest\x1a\x1e.BackwardTextPromptingResponse\"\x00\x32S\n\x0bTextToMusic\x12\x44\n\x07\x46orward\x12\x1a.ForwardTextToMusicRequest\x1a\x1b.ForwardTextToMusicResponse\"\x00\x32_\n\x0fTextToEmbedding\x12L\n\x07\x46orward\x12\x1e.ForwardTextToEmbeddingRequest\x1a\x1f.ForwardTextToEmbeddingResponse\"\x00\x32V\n\x0cTextToSpeech\x12\x46\n\x07\x46orward\x12\x1b.ForwardTextToSpeechRequest\x1a\x1c.ForwardTextToSpeechResponse\"\x00\x32V\n\x0cSpeechToText\x12\x46\n\x07\x46orward\x12\x1b.ForwardSpeechToTextRequest\x1a\x1c.ForwardSpeechToTextResponse\"\x00\x62\x06proto3'
+  serialized_pb=b'\n bittensor/_proto/bittensor.proto\"a\n\x1b\x46orwardTextPromptingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08messages\x18\x03 \x03(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x8b\x01\n\x1c\x46orwardTextPromptingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"f\n MultiForwardTextPromptingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x10\n\x08messages\x18\x03 \x03(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x99\x01\n!MultiForwardTextPromptingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x19\n\x11multi_completions\x18\x03 \x03(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\x85\x01\n\x1c\x42\x61\x63kwardTextPromptingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0f\n\x07rewards\x18\x03 \x03(\x02\x12\x10\n\x08messages\x18\x04 \x03(\t\x12\x10\n\x08response\x18\x05 \x01(\t\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"z\n\x1d\x42\x61\x63kwardTextPromptingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\x96\x02\n\x19\x46orwardTextToImageRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0c\n\x04text\x18\x03 \x01(\t\x12\r\n\x05image\x18\x04 \x01(\t\x12\x0e\n\x06height\x18\x05 \x01(\x05\x12\r\n\x05width\x18\x06 \x01(\x05\x12\x1d\n\x15num_images_per_prompt\x18\x07 \x01(\x05\x12\x1b\n\x13num_inference_steps\x18\x08 \x01(\x05\x12\x16\n\x0eguidance_scale\x18\t \x01(\x02\x12\x10\n\x08strength\x18\n \x01(\x02\x12\x17\n\x0fnegative_prompt\x18\x0b \x01(\t\x12\x0c\n\x04seed\x18\x0c \x01(\x05\x12\x0f\n\x07timeout\x18\r \x01(\x02\"\x86\x01\n\x1a\x46orwardTextToImageResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\r\n\x05image\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"}\n\x19\x46orwardTextToMusicRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0c\n\x04text\x18\x03 \x01(\t\x12\x0e\n\x06sample\x18\x04 \x01(\t\x12\x10\n\x08\x64uration\x18\x05 \x01(\x05\x12\x0f\n\x07timeout\x18\x06 \x01(\x02\"\x86\x01\n\x1a\x46orwardTextToMusicResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\r\n\x05music\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"_\n\x1d\x46orwardTextToEmbeddingRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0c\n\x04text\x18\x03 \x01(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x97\x01\n\x1e\x46orwardTextToEmbeddingResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x1a\n\tembedding\x18\x03 \x01(\x0b\x32\x07.Tensor\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\\\n\x1a\x46orwardTextToSpeechRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0c\n\x04text\x18\x03 \x01(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x88\x01\n\x1b\x46orwardTextToSpeechResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06speech\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"^\n\x1a\x46orwardSpeechToTextRequest\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0e\n\x06speech\x18\x03 \x01(\t\x12\x0f\n\x07timeout\x18\x04 \x01(\x02\"\x86\x01\n\x1b\x46orwardSpeechToTextResponse\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06hotkey\x18\x02 \x01(\t\x12\x0c\n\x04text\x18\x03 \x01(\t\x12\x16\n\x0ereturn_message\x18\x04 \x01(\t\x12 \n\x0breturn_code\x18\x05 \x01(\x0e\x32\x0b.ReturnCode\"\xac\x01\n\x06Tensor\x12\x0f\n\x07version\x18\x01 \x01(\x05\x12\x0e\n\x06\x62uffer\x18\x02 \x01(\x0c\x12\r\n\x05shape\x18\x03 \x03(\x03\x12\x1f\n\nserializer\x18\x04 \x01(\x0e\x32\x0b.Serializer\x12 \n\x0btensor_type\x18\x05 \x01(\x0e\x32\x0b.TensorType\x12\x18\n\x05\x64type\x18\x06 \x01(\x0e\x32\t.DataType\x12\x15\n\rrequires_grad\x18\x08 \x01(\x08*\xda\x04\n\nReturnCode\x12\x0c\n\x08NoReturn\x10\x00\x12\x0b\n\x07Success\x10\x01\x12\x0b\n\x07Timeout\x10\x02\x12\x0b\n\x07\x42\x61\x63koff\x10\x03\x12\x0f\n\x0bUnavailable\x10\x04\x12\x12\n\x0eNotImplemented\x10\x05\x12\x10\n\x0c\x45mptyRequest\x10\x06\x12\x11\n\rEmptyResponse\x10\x07\x12\x13\n\x0fInvalidResponse\x10\x08\x12\x12\n\x0eInvalidRequest\x10\t\x12\x19\n\x15RequestShapeException\x10\n\x12\x1a\n\x16ResponseShapeException\x10\x0b\x12!\n\x1dRequestSerializationException\x10\x0c\x12\"\n\x1eResponseSerializationException\x10\r\x12#\n\x1fRequestDeserializationException\x10\x0e\x12$\n ResponseDeserializationException\x10\x0f\x12\x15\n\x11NotServingNucleus\x10\x10\x12\x12\n\x0eNucleusTimeout\x10\x11\x12\x0f\n\x0bNucleusFull\x10\x12\x12\x1e\n\x1aRequestIncompatibleVersion\x10\x13\x12\x1f\n\x1bResponseIncompatibleVersion\x10\x14\x12\x11\n\rSenderUnknown\x10\x15\x12\x14\n\x10UnknownException\x10\x16\x12\x13\n\x0fUnauthenticated\x10\x17\x12\x0f\n\x0b\x42\x61\x64\x45ndpoint\x10\x18\x12\x0f\n\x0b\x42lacklisted\x10\x19*&\n\nSerializer\x12\x0b\n\x07MSGPACK\x10\x00\x12\x0b\n\x07\x43MPPACK\x10\x01*2\n\nTensorType\x12\t\n\x05TORCH\x10\x00\x12\x0e\n\nTENSORFLOW\x10\x01\x12\t\n\x05NUMPY\x10\x02*h\n\x08\x44\x61taType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0b\n\x07\x46LOAT32\x10\x01\x12\x0b\n\x07\x46LOAT64\x10\x02\x12\t\n\x05INT32\x10\x03\x12\t\n\x05INT64\x10\x04\x12\x08\n\x04UTF8\x10\x05\x12\x0b\n\x07\x46LOAT16\x10\x06\x12\x08\n\x04\x42OOL\x10\x07\x32\xff\x01\n\rTextPrompting\x12H\n\x07\x46orward\x12\x1c.ForwardTextPromptingRequest\x1a\x1d.ForwardTextPromptingResponse\"\x00\x12W\n\x0cMultiForward\x12!.MultiForwardTextPromptingRequest\x1a\".MultiForwardTextPromptingResponse\"\x00\x12K\n\x08\x42\x61\x63kward\x12\x1d.BackwardTextPromptingRequest\x1a\x1e.BackwardTextPromptingResponse\"\x00\x32S\n\x0bTextToImage\x12\x44\n\x07\x46orward\x12\x1a.ForwardTextToImageRequest\x1a\x1b.ForwardTextToImageResponse\"\x00\x32S\n\x0bTextToMusic\x12\x44\n\x07\x46orward\x12\x1a.ForwardTextToMusicRequest\x1a\x1b.ForwardTextToMusicResponse\"\x00\x32_\n\x0fTextToEmbedding\x12L\n\x07\x46orward\x12\x1e.ForwardTextToEmbeddingRequest\x1a\x1f.ForwardTextToEmbeddingResponse\"\x00\x32V\n\x0cTextToSpeech\x12\x46\n\x07\x46orward\x12\x1b.ForwardTextToSpeechRequest\x1a\x1c.ForwardTextToSpeechResponse\"\x00\x32V\n\x0cSpeechToText\x12\x46\n\x07\x46orward\x12\x1b.ForwardSpeechToTextRequest\x1a\x1c.ForwardSpeechToTextResponse\"\x00\x62\x06proto3'
 )
 
 _RETURNCODE = _descriptor.EnumDescriptor(
@@ -163,8 +163,8 @@ _RETURNCODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1954,
-  serialized_end=2556,
+  serialized_start=2372,
+  serialized_end=2974,
 )
 _sym_db.RegisterEnumDescriptor(_RETURNCODE)
 
@@ -189,8 +189,8 @@ _SERIALIZER = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2558,
-  serialized_end=2596,
+  serialized_start=2976,
+  serialized_end=3014,
 )
 _sym_db.RegisterEnumDescriptor(_SERIALIZER)
 
@@ -220,8 +220,8 @@ _TENSORTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2598,
-  serialized_end=2648,
+  serialized_start=3016,
+  serialized_end=3066,
 )
 _sym_db.RegisterEnumDescriptor(_TENSORTYPE)
 
@@ -276,8 +276,8 @@ _DATATYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2650,
-  serialized_end=2754,
+  serialized_start=3068,
+  serialized_end=3172,
 )
 _sym_db.RegisterEnumDescriptor(_DATATYPE)
 
@@ -670,6 +670,182 @@ _BACKWARDTEXTPROMPTINGRESPONSE = _descriptor.Descriptor(
 )
 
 
+_FORWARDTEXTTOIMAGEREQUEST = _descriptor.Descriptor(
+  name='ForwardTextToImageRequest',
+  full_name='ForwardTextToImageRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextToImageRequest.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardTextToImageRequest.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='text', full_name='ForwardTextToImageRequest.text', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='ForwardTextToImageRequest.image', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='height', full_name='ForwardTextToImageRequest.height', index=4,
+      number=5, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='width', full_name='ForwardTextToImageRequest.width', index=5,
+      number=6, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='num_images_per_prompt', full_name='ForwardTextToImageRequest.num_images_per_prompt', index=6,
+      number=7, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='num_inference_steps', full_name='ForwardTextToImageRequest.num_inference_steps', index=7,
+      number=8, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='guidance_scale', full_name='ForwardTextToImageRequest.guidance_scale', index=8,
+      number=9, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='strength', full_name='ForwardTextToImageRequest.strength', index=9,
+      number=10, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='negative_prompt', full_name='ForwardTextToImageRequest.negative_prompt', index=10,
+      number=11, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='seed', full_name='ForwardTextToImageRequest.seed', index=11,
+      number=12, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='timeout', full_name='ForwardTextToImageRequest.timeout', index=12,
+      number=13, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=798,
+  serialized_end=1076,
+)
+
+
+_FORWARDTEXTTOIMAGERESPONSE = _descriptor.Descriptor(
+  name='ForwardTextToImageResponse',
+  full_name='ForwardTextToImageResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='version', full_name='ForwardTextToImageResponse.version', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='hotkey', full_name='ForwardTextToImageResponse.hotkey', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='ForwardTextToImageResponse.image', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_message', full_name='ForwardTextToImageResponse.return_message', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='return_code', full_name='ForwardTextToImageResponse.return_code', index=4,
+      number=5, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1079,
+  serialized_end=1213,
+)
+
+
 _FORWARDTEXTTOMUSICREQUEST = _descriptor.Descriptor(
   name='ForwardTextToMusicRequest',
   full_name='ForwardTextToMusicRequest',
@@ -732,8 +908,8 @@ _FORWARDTEXTTOMUSICREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=797,
-  serialized_end=922,
+  serialized_start=1215,
+  serialized_end=1340,
 )
 
 
@@ -792,8 +968,8 @@ _FORWARDTEXTTOMUSICRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=925,
-  serialized_end=1059,
+  serialized_start=1343,
+  serialized_end=1477,
 )
 
 
@@ -845,8 +1021,8 @@ _FORWARDTEXTTOEMBEDDINGREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1061,
-  serialized_end=1156,
+  serialized_start=1479,
+  serialized_end=1574,
 )
 
 
@@ -905,8 +1081,8 @@ _FORWARDTEXTTOEMBEDDINGRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1159,
-  serialized_end=1310,
+  serialized_start=1577,
+  serialized_end=1728,
 )
 
 
@@ -958,8 +1134,8 @@ _FORWARDTEXTTOSPEECHREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1312,
-  serialized_end=1404,
+  serialized_start=1730,
+  serialized_end=1822,
 )
 
 
@@ -1018,8 +1194,8 @@ _FORWARDTEXTTOSPEECHRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1407,
-  serialized_end=1543,
+  serialized_start=1825,
+  serialized_end=1961,
 )
 
 
@@ -1071,8 +1247,8 @@ _FORWARDSPEECHTOTEXTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1545,
-  serialized_end=1639,
+  serialized_start=1963,
+  serialized_end=2057,
 )
 
 
@@ -1131,8 +1307,8 @@ _FORWARDSPEECHTOTEXTRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1642,
-  serialized_end=1776,
+  serialized_start=2060,
+  serialized_end=2194,
 )
 
 
@@ -1205,13 +1381,14 @@ _TENSOR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1779,
-  serialized_end=1951,
+  serialized_start=2197,
+  serialized_end=2369,
 )
 
 _FORWARDTEXTPROMPTINGRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
 _MULTIFORWARDTEXTPROMPTINGRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
 _BACKWARDTEXTPROMPTINGRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
+_FORWARDTEXTTOIMAGERESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
 _FORWARDTEXTTOMUSICRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
 _FORWARDTEXTTOEMBEDDINGRESPONSE.fields_by_name['embedding'].message_type = _TENSOR
 _FORWARDTEXTTOEMBEDDINGRESPONSE.fields_by_name['return_code'].enum_type = _RETURNCODE
@@ -1226,6 +1403,8 @@ DESCRIPTOR.message_types_by_name['MultiForwardTextPromptingRequest'] = _MULTIFOR
 DESCRIPTOR.message_types_by_name['MultiForwardTextPromptingResponse'] = _MULTIFORWARDTEXTPROMPTINGRESPONSE
 DESCRIPTOR.message_types_by_name['BackwardTextPromptingRequest'] = _BACKWARDTEXTPROMPTINGREQUEST
 DESCRIPTOR.message_types_by_name['BackwardTextPromptingResponse'] = _BACKWARDTEXTPROMPTINGRESPONSE
+DESCRIPTOR.message_types_by_name['ForwardTextToImageRequest'] = _FORWARDTEXTTOIMAGEREQUEST
+DESCRIPTOR.message_types_by_name['ForwardTextToImageResponse'] = _FORWARDTEXTTOIMAGERESPONSE
 DESCRIPTOR.message_types_by_name['ForwardTextToMusicRequest'] = _FORWARDTEXTTOMUSICREQUEST
 DESCRIPTOR.message_types_by_name['ForwardTextToMusicResponse'] = _FORWARDTEXTTOMUSICRESPONSE
 DESCRIPTOR.message_types_by_name['ForwardTextToEmbeddingRequest'] = _FORWARDTEXTTOEMBEDDINGREQUEST
@@ -1282,6 +1461,20 @@ BackwardTextPromptingResponse = _reflection.GeneratedProtocolMessageType('Backwa
   # @@protoc_insertion_point(class_scope:BackwardTextPromptingResponse)
   })
 _sym_db.RegisterMessage(BackwardTextPromptingResponse)
+
+ForwardTextToImageRequest = _reflection.GeneratedProtocolMessageType('ForwardTextToImageRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTTOIMAGEREQUEST,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardTextToImageRequest)
+  })
+_sym_db.RegisterMessage(ForwardTextToImageRequest)
+
+ForwardTextToImageResponse = _reflection.GeneratedProtocolMessageType('ForwardTextToImageResponse', (_message.Message,), {
+  'DESCRIPTOR' : _FORWARDTEXTTOIMAGERESPONSE,
+  '__module__' : 'bittensor._proto.bittensor_pb2'
+  # @@protoc_insertion_point(class_scope:ForwardTextToImageResponse)
+  })
+_sym_db.RegisterMessage(ForwardTextToImageResponse)
 
 ForwardTextToMusicRequest = _reflection.GeneratedProtocolMessageType('ForwardTextToMusicRequest', (_message.Message,), {
   'DESCRIPTOR' : _FORWARDTEXTTOMUSICREQUEST,
@@ -1355,8 +1548,8 @@ _TEXTPROMPTING = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=2757,
-  serialized_end=3012,
+  serialized_start=3175,
+  serialized_end=3430,
   methods=[
   _descriptor.MethodDescriptor(
     name='Forward',
@@ -1394,15 +1587,41 @@ _sym_db.RegisterServiceDescriptor(_TEXTPROMPTING)
 DESCRIPTOR.services_by_name['TextPrompting'] = _TEXTPROMPTING
 
 
-_TEXTTOMUSIC = _descriptor.ServiceDescriptor(
-  name='TextToMusic',
-  full_name='TextToMusic',
+_TEXTTOIMAGE = _descriptor.ServiceDescriptor(
+  name='TextToImage',
+  full_name='TextToImage',
   file=DESCRIPTOR,
   index=1,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=3014,
-  serialized_end=3097,
+  serialized_start=3432,
+  serialized_end=3515,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='Forward',
+    full_name='TextToImage.Forward',
+    index=0,
+    containing_service=None,
+    input_type=_FORWARDTEXTTOIMAGEREQUEST,
+    output_type=_FORWARDTEXTTOIMAGERESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_TEXTTOIMAGE)
+
+DESCRIPTOR.services_by_name['TextToImage'] = _TEXTTOIMAGE
+
+
+_TEXTTOMUSIC = _descriptor.ServiceDescriptor(
+  name='TextToMusic',
+  full_name='TextToMusic',
+  file=DESCRIPTOR,
+  index=2,
+  serialized_options=None,
+  create_key=_descriptor._internal_create_key,
+  serialized_start=3517,
+  serialized_end=3600,
   methods=[
   _descriptor.MethodDescriptor(
     name='Forward',
@@ -1424,11 +1643,11 @@ _TEXTTOEMBEDDING = _descriptor.ServiceDescriptor(
   name='TextToEmbedding',
   full_name='TextToEmbedding',
   file=DESCRIPTOR,
-  index=2,
+  index=3,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=3099,
-  serialized_end=3194,
+  serialized_start=3602,
+  serialized_end=3697,
   methods=[
   _descriptor.MethodDescriptor(
     name='Forward',
@@ -1450,11 +1669,11 @@ _TEXTTOSPEECH = _descriptor.ServiceDescriptor(
   name='TextToSpeech',
   full_name='TextToSpeech',
   file=DESCRIPTOR,
-  index=3,
+  index=4,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=3196,
-  serialized_end=3282,
+  serialized_start=3699,
+  serialized_end=3785,
   methods=[
   _descriptor.MethodDescriptor(
     name='Forward',
@@ -1476,11 +1695,11 @@ _SPEECHTOTEXT = _descriptor.ServiceDescriptor(
   name='SpeechToText',
   full_name='SpeechToText',
   file=DESCRIPTOR,
-  index=4,
+  index=5,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=3284,
-  serialized_end=3370,
+  serialized_start=3787,
+  serialized_end=3873,
   methods=[
   _descriptor.MethodDescriptor(
     name='Forward',
