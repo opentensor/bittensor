@@ -44,6 +44,16 @@ from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic,undele
 from loguru import logger
 logger = logger.opt(colors=True)
 
+class AxonServeCallParams(TypedDict):
+    """
+    Axon serve chain call parameters.
+    """
+    version: int
+    ip: int
+    port: int
+    ip_type: int
+    netuid: int
+
 class PrometheusServeCallParams(TypedDict):
     """
     Prometheus serve chain call parameters.
@@ -495,7 +505,7 @@ class Subtensor:
     def do_serve_axon(
         self,
         wallet: 'bittensor.wallet',
-        call_params: Dict[str, Union[int, str]],
+        call_params: AxonServeCallParams,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ):

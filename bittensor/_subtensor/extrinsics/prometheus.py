@@ -21,6 +21,7 @@ import json
 from rich.prompt import Confirm
 import bittensor.utils.networking as net
 from ..errors import *
+from ..subtensor_impl import PrometheusServeCallParams
 
 def prometheus_extrinsic(
     subtensor: 'bittensor.Subtensor',
@@ -66,7 +67,7 @@ def prometheus_extrinsic(
     else:
         external_ip = ip
 
-    call_params={
+    call_params: 'PrometheusServeCallParams' = {
         'version': bittensor.__version_as_int__,
         'ip': net.ip_to_int(external_ip),
         'port': port,

@@ -31,7 +31,7 @@ from hashlib import sha256
 from .chain_data import (NeuronInfo, NeuronInfoLite, PrometheusInfo, DelegateInfo,
                          SubnetInfo, axon_info)
 from .errors import *
-from .subtensor_impl import Subtensor, PrometheusServeCallParams
+from .subtensor_impl import Subtensor, AxonServeCallParams, PrometheusServeCallParams
 
 BlockNumber = int
 

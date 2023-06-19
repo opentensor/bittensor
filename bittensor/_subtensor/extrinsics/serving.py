@@ -21,6 +21,7 @@ import json
 from rich.prompt import Confirm
 import bittensor.utils.networking as net
 from ..errors import *
+from ..subtensor_impl import AxonServeCallParams
 
 def serve_extrinsic (
     subtensor: 'bittensor.Subtensor',
@@ -66,7 +67,7 @@ def serve_extrinsic (
     """
     # Decrypt hotkey
     wallet.hotkey
-    params = {
+    params: 'AxonServeCallParams' = {
         'version': bittensor.__version_as_int__,
         'ip': net.ip_to_int(ip),
         'port': port,
