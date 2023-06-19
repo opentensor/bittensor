@@ -193,15 +193,9 @@ class TestSubtensor(unittest.TestCase):
                 self.assertFalse(fail, msg="Stake should fail")
 
     def test_transfer( self ):
-        class success():
-            def __init__(self):
-                self.is_success = True
-            def process_events(self):
-                return True
-            block_hash: str = '0x'
-
         fake_coldkey = get_mock_coldkey(1)
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
+        
+        self.subtensor.do_transfer = MagicMock(return_value = (True, '0x', None))
         self.subtensor.register = MagicMock(return_value = True)
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(return_value = self.mock_neuron)
         self.subtensor.get_balance = MagicMock(return_value = self.balance)
@@ -209,46 +203,32 @@ class TestSubtensor(unittest.TestCase):
                             fake_coldkey,
                             amount = 200,
                             )
-        assert success == True
+        self.assertTrue(success, msg="Transfer should succeed")
 
     def test_transfer_inclusion( self ):
-        class success():
-            def __init__(self):
-                self.is_success = True
-            def process_events(self):
-                return True
-            block_hash: str = '0x'
-
         fake_coldkey = get_mock_coldkey(1)
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
+        self.subtensor.do_transfer = MagicMock(return_value = (True, '0x', None))
         self.subtensor.register = MagicMock(return_value = True)
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(return_value = self.mock_neuron)
         self.subtensor.get_balance = MagicMock(return_value = self.balance)
 
-        success= self.subtensor.transfer(self.wallet,
+        success = self.subtensor.transfer(self.wallet,
                             fake_coldkey,
                             amount = 200,
                             wait_for_inclusion = True
                             )
-        assert success == True
+        self.assertTrue(success, msg="Transfer should succeed")
 
     def test_transfer_failed(self ):
-        class failed():
-            def __init__(self):
-                self.is_success = False
-                self.error_message = 'Mock'
-            def process_events(self):
-                return True
-
         fake_coldkey = get_mock_coldkey(1)
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed())
+        self.subtensor.do_transfer = MagicMock(return_value = (False, None, 'Mock failure message'))
 
         fail= self.subtensor.transfer(self.wallet,
                             fake_coldkey,
                             amount = 200,
                             wait_for_inclusion = True
                             )
-        assert fail == False
+        self.assertFalse(fail, msg="Transfer should fail")
 
     def test_transfer_invalid_dest(self ):
         fake_coldkey = get_mock_coldkey(1)
@@ -258,18 +238,12 @@ class TestSubtensor(unittest.TestCase):
                             amount = 200,
                             wait_for_inclusion = True
                             )
-        assert fail == False
+        self.assertFalse(fail, msg="Transfer should fail because of invalid dest")
 
     def test_transfer_dest_as_bytes(self ):
-        class success():
-            def __init__(self):
-                self.is_success = True
-            def process_events(self):
-                return True
-            block_hash: str = '0x'
-
         fake_coldkey = get_mock_coldkey(1)
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
+        self.subtensor.do_transfer = MagicMock(return_value = (True, '0x', None))
+
         self.subtensor.register = MagicMock(return_value = True)
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(return_value = self.mock_neuron)
         self.subtensor.get_balance = MagicMock(return_value = self.balance)
@@ -280,7 +254,7 @@ class TestSubtensor(unittest.TestCase):
                             amount = 200,
                             wait_for_inclusion = True
                             )
-        assert success == True
+        self.assertTrue(success, msg="Transfer should succeed")
 
     def test_set_weights( self ):
         chain_weights = [0]
