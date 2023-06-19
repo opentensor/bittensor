@@ -91,7 +91,7 @@ def set_weights_extrinsic(
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                 return True
 
-            if success:
+            if success == True:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 bittensor.logging.success(  prefix = 'Set weights', sufix = '<green>Finalized: </green>' + str(success) )
                 return True
