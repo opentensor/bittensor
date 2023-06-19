@@ -129,7 +129,6 @@ class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServi
     def __init__(self, axon: "bittensor.axon" ):
         super().__init__( axon = axon )
         bittensor.grpc.add_TextPromptingServicer_to_server( self, self.axon.server )
-        self.axon.auth_interceptor.blacklist = self.blacklist
 
     @abstractmethod
     def forward( self, messages: List[Dict[str, str]] ) -> str: ...

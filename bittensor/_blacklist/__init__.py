@@ -61,12 +61,11 @@ class auth_blacklist:
 
     def blacklist( 
             self, 
-            forward_call: "bittensor.SynapseCall",
+            src_hotkey: str,
             metagraph: "bittensor.Metagraph" = None,
         ) -> Union[ Tuple[bool, str], bool ]:
 
         # Check if pubkey is registered.
-        src_hotkey = forward_call.src_hotkey
         is_registered = False
         if metagraph is not None:
             is_registered = src_hotkey in metagraph.hotkeys
