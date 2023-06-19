@@ -18,76 +18,83 @@
 import sys
 import argparse
 import bittensor
-from tqdm import tqdm
-from rich.prompt import Confirm
-from rich.prompt import Confirm, Prompt
-from bittensor.utils.balance import Balance
+from rich.prompt import Prompt
+from rich.table import Table
 from typing import List, Union, Optional, Dict, Tuple
-from .utils import get_hotkey_wallets_for_wallet
 console = bittensor.__console__
 
-class SenateCommand:
+class ProposalsCommand:
 
     @staticmethod
     def run( cli ):
-        r""" Participate in Bittensor's Senate with your senator hotkey.
+        r""" View Bittensor's governance protocol proposals
         """
         config = cli.config.copy()
-        wallet = bittensor.wallet( config = config )
         subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
 
-        # Get coldkey balance
-        wallet_balance: Balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
-        console.print( wallet_balance )
+        console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
+
+        proposals = dict()
+        proposal_hashes = subtensor.query_module("Triumvirate", "Proposals")
+
+        for hash in proposal_hashes:
+            proposals[hash] = [
+                subtensor.query_module("Triumvirate", "ProposalOf", None, [hash]), 
+                subtensor.query_module("Triumvirate", "Voting", None, [hash])
+            ]
+
+        table = Table(show_footer=False)
+        table.title = (
+            "[white]Proposals:"
+        )
+        table.add_column("[overline white]HASH", footer_style = "overline white", style='yellow', no_wrap=True)
+        table.add_column("[overline white]THRESHOLD", footer_style = "overline white", style='white')
+        table.add_column("[overline white]AYES", footer_style = "overline white", style='green')
+        table.add_column("[overline white]NAYS", footer_style = "overline white", style='red')
+        table.add_column("[overline white]END", footer_style = "overline white", style='blue')
+        table.add_column("[overline white]CALLDATA", footer_style = "overline white", style='white')
+        table.show_footer = True
+
+        for hash in proposals:
+            call_data = proposals[hash][0].serialize()
+            vote_data = proposals[hash][1].serialize()
+
+            table.add_row(
+                hash,
+                str(vote_data["threshold"]),
+                str(len(vote_data["ayes"])),
+                str(len(vote_data["nays"])),
+                str(vote_data["end"]),
+                "{}: {}".format(call_data["call_function"], str(call_data["call_args"]))
+            )
+
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        console.print(table)
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
-        if config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
-            config.wallet.name = str(wallet_name)
-
-        if config.wallet.get('hotkey') == bittensor.defaults.wallet.hotkey and not config.no_prompt and not config.get('all_hotkeys') and not config.get('hotkeys'):
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
-            config.wallet.hotkey = str(hotkey)
+        None
 
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
-        senate_parser = parser.add_parser(
-            'senate',
-            help='''Participate in senate motions with a senator hotkey'''
+        proposals_parser = parser.add_parser(
+            'proposals',
+            help='''View active triumvirate proposals and their status'''
         )
-        senate_parser.add_argument(
+        proposals_parser.add_argument(
             '--no_version_checking',
             action='store_true',
             help='''Set false to stop cli version checking''',
             default = False
         )
-        senate_parser.add_argument(
+        proposals_parser.add_argument(
             '--no_prompt',
             dest='no_prompt',
             action='store_true',
             help='''Set true to avoid prompting the user.''',
             default=False,
         )
-        senate_parser.add_argument(
-            '--hotkeys',
-            '--exclude_hotkeys',
-            '--wallet.hotkeys',
-            '--wallet.exclude_hotkeys',
-            required=False,
-            action='store',
-            default=[],
-            type=str,
-            nargs='*',
-            help='''Specify the hotkeys by name or ss58 address. (e.g. hk1 hk2 hk3)'''
-        )
-        senate_parser.add_argument(
-            '--all_hotkeys',
-            '--wallet.all_hotkeys',
-            required=False,
-            action='store_true',
-            default=False,
-            help='''To specify all hotkeys. Specifying hotkeys will exclude them from this all.'''
-        )
-        bittensor.wallet.add_args( senate_parser )
-        bittensor.subtensor.add_args( senate_parser )
+        bittensor.wallet.add_args( proposals_parser )
+        bittensor.subtensor.add_args( proposals_parser )
