@@ -26,12 +26,12 @@ class TestPrometheus(unittest.TestCase):
         self.wallet = bittensor.wallet.mock()
 
     def test_init_prometheus_success(self):
-        with patch.object(self.subtensor, 'do_serve_prometheus', return_value = (True, None)):
+        with patch.object(self.subtensor, '_do_serve_prometheus', return_value = (True, None)):
             with patch("prometheus_client.start_http_server"): 
                 self.assertTrue( bittensor.prometheus(wallet = self.wallet, subtensor = self.subtensor, netuid=3) )
 
     def test_init_prometheus_failed(self):
-        with patch.object(self.subtensor, 'do_serve_prometheus', return_value = (False, 'Mock failure')):
+        with patch.object(self.subtensor, '_do_serve_prometheus', return_value = (False, 'Mock failure')):
             with patch("prometheus_client.start_http_server"): 
                 with pytest.raises(Exception):
                     bittensor.prometheus(wallet = self.wallet, subtensor = self.subtensor, netuid=3)

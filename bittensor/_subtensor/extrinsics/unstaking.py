@@ -63,7 +63,7 @@ def __do_remove_stake_single(
     # Decrypt keys,
     wallet.coldkey
 
-    success = subtensor.do_unstake(
+    success = subtensor._do_unstake(
         wallet = wallet,
         hotkey_ss58 = hotkey_ss58,
         amount = amount,

@@ -527,7 +527,7 @@ class TestPOWCalled(unittest.TestCase):
 
         mock_subtensor = bittensor.subtensor(_mock=True)
         mock_subtensor.get_neuron_for_pubkey_and_subnet=MagicMock(is_null=True)
-        mock_subtensor.do_pow_register = mock_pow_register_call
+        mock_subtensor._do_pow_register = mock_pow_register_call
 
         mock_wallet = SimpleNamespace(
             hotkey=bittensor.Keypair.create_from_seed(

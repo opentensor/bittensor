@@ -122,7 +122,7 @@ def register_extrinsic (
             with bittensor.__console__.status(":satellite: Submitting POW..."):
                 # check if pow result is still valid
                 while not pow_result.is_stale(subtensor=subtensor):
-                    result: Tuple[bool, Optional[str]] = subtensor.do_pow_register(
+                    result: Tuple[bool, Optional[str]] = subtensor._do_pow_register(
                         netuid = netuid,
                         wallet = wallet,
                         pow_result = pow_result,
@@ -221,7 +221,7 @@ def burned_register_extrinsic (
             return False
 
     with bittensor.__console__.status(":satellite: Recycling TAO for Registration..."):
-        success, err_msg = subtensor.do_burned_register(
+        success, err_msg = subtensor._do_burned_register(
             netuid = netuid,
             wallet = wallet,
             wait_for_inclusion = wait_for_inclusion,

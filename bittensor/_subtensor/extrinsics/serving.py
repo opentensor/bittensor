@@ -120,7 +120,7 @@ def serve_extrinsic (
             return False
 
     with bittensor.__console__.status(":satellite: Serving axon on: [white]{}:{}[/white] ...".format(subtensor.network, netuid)):
-        success, error_message = subtensor.do_serve_axon(
+        success, error_message = subtensor._do_serve_axon(
             wallet = wallet,
             call_params = params,
             wait_for_finalization=wait_for_finalization,

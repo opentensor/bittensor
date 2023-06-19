@@ -101,7 +101,7 @@ def prometheus_extrinsic(
     call_params['netuid'] = netuid
 
     with bittensor.__console__.status(":satellite: Serving prometheus on: [white]{}:{}[/white] ...".format(subtensor.network, netuid)):
-        success, err = subtensor.do_serve_prometheus(
+        success, err = subtensor._do_serve_prometheus(
             wallet=wallet,
             call_params = call_params,
             wait_for_finalization=wait_for_finalization,

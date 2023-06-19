@@ -88,7 +88,7 @@ class TestSubtensor(unittest.TestCase):
         assert (type(block) == int)
 
     def test_unstake( self ):
-        self.subtensor.do_unstake = MagicMock(return_value = True)
+        self.subtensor._do_unstake = MagicMock(return_value = True)
 
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value = { 'partialFee': 100 }
@@ -105,7 +105,7 @@ class TestSubtensor(unittest.TestCase):
             self.assertTrue(success, msg="Unstake should succeed")
 
     def test_unstake_inclusion( self ):
-        self.subtensor.do_unstake = MagicMock(return_value = True)
+        self.subtensor._do_unstake = MagicMock(return_value = True)
         
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value = { 'partialFee': 100 }
@@ -123,7 +123,7 @@ class TestSubtensor(unittest.TestCase):
             self.assertTrue(success, msg="Unstake should succeed")
 
     def test_unstake_failed( self ):
-        self.subtensor.do_unstake = MagicMock(return_value = False)
+        self.subtensor._do_unstake = MagicMock(return_value = False)
         
         self.subtensor.register = MagicMock(return_value = True)
         self.subtensor.get_balance = MagicMock(return_value = self.balance)
@@ -137,7 +137,7 @@ class TestSubtensor(unittest.TestCase):
             self.assertFalse(fail, msg="Unstake should fail")
 
     def test_stake(self):
-        self.subtensor.do_stake = MagicMock(return_value = True)
+        self.subtensor._do_stake = MagicMock(return_value = True)
 
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value = { 'partialFee': 100 }
@@ -155,7 +155,7 @@ class TestSubtensor(unittest.TestCase):
                 self.assertTrue(success, msg="Stake should succeed")
 
     def test_stake_inclusion(self):
-        self.subtensor.do_stake = MagicMock(return_value = True)
+        self.subtensor._do_stake = MagicMock(return_value = True)
 
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value = { 'partialFee': 100 }
@@ -174,7 +174,7 @@ class TestSubtensor(unittest.TestCase):
                 self.assertTrue(success, msg="Stake should succeed")
 
     def test_stake_failed( self ):
-        self.subtensor.do_stake = MagicMock(return_value = False)
+        self.subtensor._do_stake = MagicMock(return_value = False)
 
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value = { 'partialFee': 100 }
@@ -195,7 +195,7 @@ class TestSubtensor(unittest.TestCase):
     def test_transfer( self ):
         fake_coldkey = get_mock_coldkey(1)
         
-        self.subtensor.do_transfer = MagicMock(return_value = (True, '0x', None))
+        self.subtensor._do_transfer = MagicMock(return_value = (True, '0x', None))
         self.subtensor.register = MagicMock(return_value = True)
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(return_value = self.mock_neuron)
         self.subtensor.get_balance = MagicMock(return_value = self.balance)
@@ -207,7 +207,7 @@ class TestSubtensor(unittest.TestCase):
 
     def test_transfer_inclusion( self ):
         fake_coldkey = get_mock_coldkey(1)
-        self.subtensor.do_transfer = MagicMock(return_value = (True, '0x', None))
+        self.subtensor._do_transfer = MagicMock(return_value = (True, '0x', None))
         self.subtensor.register = MagicMock(return_value = True)
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(return_value = self.mock_neuron)
         self.subtensor.get_balance = MagicMock(return_value = self.balance)
@@ -221,7 +221,7 @@ class TestSubtensor(unittest.TestCase):
 
     def test_transfer_failed(self ):
         fake_coldkey = get_mock_coldkey(1)
-        self.subtensor.do_transfer = MagicMock(return_value = (False, None, 'Mock failure message'))
+        self.subtensor._do_transfer = MagicMock(return_value = (False, None, 'Mock failure message'))
 
         fail= self.subtensor.transfer(self.wallet,
                             fake_coldkey,
@@ -242,7 +242,7 @@ class TestSubtensor(unittest.TestCase):
 
     def test_transfer_dest_as_bytes(self ):
         fake_coldkey = get_mock_coldkey(1)
-        self.subtensor.do_transfer = MagicMock(return_value = (True, '0x', None))
+        self.subtensor._do_transfer = MagicMock(return_value = (True, '0x', None))
 
         self.subtensor.register = MagicMock(return_value = True)
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(return_value = self.mock_neuron)
@@ -265,9 +265,7 @@ class TestSubtensor(unittest.TestCase):
                 return True
 
 
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
-        self.subtensor.substrate.compose_call = MagicMock()
-        self.subtensor.substrate.create_signed_extrinsic = MagicMock()
+        self.subtensor._do_set_weights = MagicMock(return_value = (True, None))
 
         success= self.subtensor.set_weights(wallet=self.wallet,
                             netuid = 3,
@@ -278,15 +276,7 @@ class TestSubtensor(unittest.TestCase):
 
     def test_set_weights_inclusion( self ):
         chain_weights = [0]
-        class success():
-            def __init__(self):
-                self.is_success = True
-            def process_events(self):
-                return True
-
-        self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
-        self.subtensor.substrate.compose_call = MagicMock()
-        self.subtensor.substrate.create_signed_extrinsic = MagicMock()
+        self.subtensor._do_set_weights = MagicMock(return_value = (True, None))
 
         success = self.subtensor.set_weights(wallet=self.wallet,
                             netuid = 1,
@@ -298,7 +288,7 @@ class TestSubtensor(unittest.TestCase):
 
     def test_set_weights_failed( self ):
         chain_weights = [0]
-        self.subtensor.do_set_weights = MagicMock(return_value = (False, 'Mock failure message'))
+        self.subtensor._do_set_weights = MagicMock(return_value = (False, 'Mock failure message'))
 
         fail = self.subtensor.set_weights(
             wallet=self.wallet,

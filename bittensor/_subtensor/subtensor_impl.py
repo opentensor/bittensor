@@ -186,7 +186,7 @@ class Subtensor:
             prompt=prompt,
         )
     
-    def do_set_weights(
+    def _do_set_weights(
         self,
         wallet: 'bittensor.wallet',
         uids: List[int],
@@ -275,7 +275,7 @@ class Subtensor:
             prompt = prompt
         )
     
-    def do_pow_register(
+    def _do_pow_register(
         self,
         netuid: int,
         wallet: 'bittensor.Wallet',
@@ -324,7 +324,7 @@ class Subtensor:
             else:
                 return True, None
             
-    def do_burned_register(
+    def _do_burned_register(
         self,
         netuid: int,
         wallet: 'bittensor.Wallet',
@@ -412,7 +412,7 @@ class Subtensor:
         fee = bittensor.Balance.from_rao( payment_info['partialFee'] )
         return fee
     
-    def do_transfer(
+    def _do_transfer(
         self,
         wallet: 'bittensor.wallet',
         dest: str,
@@ -502,7 +502,7 @@ class Subtensor:
     ) -> bool:
         return serve_axon_extrinsic( self, netuid, axon, use_upnpc, wait_for_inclusion, wait_for_finalization)
     
-    def do_serve_axon(
+    def _do_serve_axon(
         self,
         wallet: 'bittensor.wallet',
         call_params: AxonServeCallParams,
@@ -536,7 +536,7 @@ class Subtensor:
     ) -> bool:
         return prometheus_extrinsic( self, wallet = wallet, port = port, netuid = netuid, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization)
 
-    def do_serve_prometheus(
+    def _do_serve_prometheus(
         self,
         wallet: 'bittensor.wallet',
         call_params: PrometheusServeCallParams,
@@ -606,7 +606,7 @@ class Subtensor:
         """ Adds stake to each hotkey_ss58 in the list, using each amount, from a common coldkey."""
         return add_stake_multiple_extrinsic( self, wallet, hotkey_ss58s, amounts, wait_for_inclusion, wait_for_finalization, prompt)
     
-    def do_stake(
+    def _do_stake(
         self,
         wallet: 'bittensor.Wallet',
         hotkey_ss58: str,
@@ -676,7 +676,7 @@ class Subtensor:
         """ Removes stake into the wallet coldkey from the specified hotkey uid."""
         return unstake_extrinsic( self, wallet, hotkey_ss58, amount, wait_for_inclusion, wait_for_finalization, prompt )
     
-    def do_unstake(
+    def _do_unstake(
         self,
         wallet: 'bittensor.Wallet',
         hotkey_ss58: str,
@@ -1321,7 +1321,7 @@ class Subtensor:
     ## Extrinsics ##
     ################
 
-    def do_delegation(
+    def _do_delegation(
         self,
         wallet: 'bittensor.wallet',
         delegate_ss58: str,
@@ -1349,7 +1349,7 @@ class Subtensor:
             else:
                 raise StakeError(response.error_message)
 
-    def do_undelegation(
+    def _do_undelegation(
             self,
             wallet: 'bittensor.wallet',
             delegate_ss58: str,
@@ -1377,7 +1377,7 @@ class Subtensor:
             else:
                 raise StakeError(response.error_message)
     
-    def do_nominate(
+    def _do_nominate(
             self,
             wallet: 'bittensor.wallet',
             wait_for_inclusion: bool = True,

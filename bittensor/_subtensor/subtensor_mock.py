@@ -876,7 +876,7 @@ class MockSubtensor(Subtensor):
         return neurons
     
     # Extrinsics
-    def do_delegation(
+    def _do_delegation(
         self,
         wallet: 'bittensor.Wallet',
         delegate_ss58: str,
@@ -891,7 +891,7 @@ class MockSubtensor(Subtensor):
             raise Exception("Not a delegate")
         
         # do stake
-        success = self.do_stake(
+        success = self._do_stake(
             wallet = wallet,
             hotkey_ss58 = delegate_ss58,
             amount = amount,
@@ -902,7 +902,7 @@ class MockSubtensor(Subtensor):
         return success
     
 
-    def do_undelegation(
+    def _do_undelegation(
         self,
         wallet: 'bittensor.Wallet',
         delegate_ss58: str,
@@ -917,7 +917,7 @@ class MockSubtensor(Subtensor):
             raise Exception("Not a delegate")
         
         # do unstake
-        self.do_unstake(
+        self._do_unstake(
             wallet = wallet,
             hotkey_ss58 = delegate_ss58,
             amount = amount,
@@ -925,7 +925,7 @@ class MockSubtensor(Subtensor):
             wait_for_finalization = wait_for_finalization,
         )
     
-    def do_nominate(
+    def _do_nominate(
         self,
         wallet: 'bittensor.Wallet',
         wait_for_inclusion: bool = True,
@@ -954,7 +954,7 @@ class MockSubtensor(Subtensor):
     ) -> 'bittensor.Balance':    
         return bittensor.Balance( 700 )
     
-    def do_transfer(
+    def _do_transfer(
         self,
         wallet: 'bittensor.Wallet',
         dest: str,
@@ -986,7 +986,7 @@ class MockSubtensor(Subtensor):
 
         return True, None, None
 
-    def do_pow_register(
+    def _do_pow_register(
         self,
         netuid: int,
         wallet: 'bittensor.Wallet',
@@ -1008,7 +1008,7 @@ class MockSubtensor(Subtensor):
 
         return True, None
 
-    def do_burned_register(
+    def _do_burned_register(
         self,
         netuid: int,
         wallet: 'bittensor.Wallet',
@@ -1037,7 +1037,7 @@ class MockSubtensor(Subtensor):
 
         return True, None
 
-    def do_stake(
+    def _do_stake(
         self,
         wallet: 'bittensor.Wallet',
         hotkey_ss58: str,
@@ -1099,7 +1099,7 @@ class MockSubtensor(Subtensor):
 
         return True
 
-    def do_unstake(
+    def _do_unstake(
         self,
         wallet: 'bittensor.Wallet',
         hotkey_ss58: str,
@@ -1338,7 +1338,7 @@ class MockSubtensor(Subtensor):
 
         return info
 
-    def do_serve_prometheus(
+    def _do_serve_prometheus(
         self,
         wallet: 'bittensor.wallet',
         call_params: 'PrometheusServeCallParams',
@@ -1347,7 +1347,7 @@ class MockSubtensor(Subtensor):
     ) -> Tuple[bool, Optional[str]]:
         return True, None
     
-    def do_set_weights(
+    def _do_set_weights(
         self,
         wallet: 'bittensor.wallet',
         netuid: int,
@@ -1359,7 +1359,7 @@ class MockSubtensor(Subtensor):
     ) -> Tuple[bool, Optional[str]]:
         return True, None
     
-    def do_serve_axon(
+    def _do_serve_axon(
         self,
         wallet: 'bittensor.wallet',
         call_params: 'AxonServeCallParams',

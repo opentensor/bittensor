@@ -103,7 +103,7 @@ def transfer_extrinsic(
             return False
 
     with bittensor.__console__.status(":satellite: Transferring..."):
-        success, block_hash, err_msg = subtensor.do_transfer(
+        success, block_hash, err_msg = subtensor._do_transfer(
             wallet,
             dest,
             transfer_balance,

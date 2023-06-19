@@ -79,7 +79,7 @@ def set_weights_extrinsic(
 
     with bittensor.__console__.status(":satellite: Setting weights on [white]{}[/white] ...".format(subtensor.network)):
         try:
-            success, error_message = subtensor.do_set_weights(
+            success, error_message = subtensor._do_set_weights(
                 wallet = wallet,
                 netuid = netuid,
                 uids = weight_uids,

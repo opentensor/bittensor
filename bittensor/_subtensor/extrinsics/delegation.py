@@ -53,7 +53,7 @@ def nominate_extrinsic(
 
     with bittensor.__console__.status(":satellite: Sending nominate call on [white]{}[/white] ...".format(subtensor.network)):
         try:
-            success = subtensor.do_nominate(
+            success = subtensor._do_nominate(
                 wallet = wallet,
                 wait_for_inclusion = wait_for_inclusion,
                 wait_for_finalization = wait_for_finalization
@@ -150,7 +150,7 @@ def delegate_extrinsic(
 
     try:
         with bittensor.__console__.status(":satellite: Staking to: [bold white]{}[/bold white] ...".format(subtensor.network)):
-            staking_response: bool = subtensor.do_delegation(
+            staking_response: bool = subtensor._do_delegation(
                 wallet = wallet,
                 delegate_ss58 = delegate_ss58,
                 amount = staking_balance,
@@ -258,7 +258,7 @@ def undelegate_extrinsic(
 
     try:
         with bittensor.__console__.status(":satellite: Unstaking from: [bold white]{}[/bold white] ...".format(subtensor.network)):
-            staking_response: bool = subtensor.do_undelegation(
+            staking_response: bool = subtensor._do_undelegation(
                 wallet = wallet,
                 delegate_ss58 = delegate_ss58,
                 amount = unstaking_balance,

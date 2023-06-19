@@ -374,7 +374,7 @@ def __do_add_stake_single(
         if not subtensor.is_hotkey_delegate( hotkey_ss58 = hotkey_ss58 ):
             raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
 
-    success = subtensor.do_stake(
+    success = subtensor._do_stake(
         wallet = wallet,
         hotkey_ss58 = hotkey_ss58,
         amount = amount,
