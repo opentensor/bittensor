@@ -491,6 +491,30 @@ class Subtensor:
         prompt: bool = False,
     ) -> bool:
         return serve_axon_extrinsic( self, netuid, axon, use_upnpc, wait_for_inclusion, wait_for_finalization)
+    
+    def do_serve_axon(
+        self,
+        wallet: 'bittensor.wallet',
+        call_params: Dict[str, Union[int, str]],
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ):
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                call_module='SubtensorModule',
+                call_function='serve_axon',
+                call_params=call_params
+            )
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey)
+            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+            if wait_for_inclusion or wait_for_finalization:
+                response.process_events()
+                if response.is_success:
+                    return True, None
+                else:
+                    return False, response.error_message
+            else:
+                return True
 
     def serve_prometheus (
         self,
