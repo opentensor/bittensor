@@ -25,11 +25,17 @@ import pandas
 import bittensor
 from munch import Munch
 from prometheus_client import Info
+from pandas import json_normalize
+from typing import Dict
+import copy
+import bittensor
 
 class Config ( Munch ):
     """
     Implementation of the config class, which manages the config of different bittensor modules.
     """
+    __is_set: Dict[str, bool]
+
     def __init__(self, loaded_config = None ):
         super().__init__()
         if loaded_config:
@@ -52,10 +58,25 @@ class Config ( Munch ):
         for key,val in kwargs.items():
             self[key] = val
 
+    @classmethod
+    def _merge( cls, a, b ):
+        """Merge two configurations recursively.
+        If there is a conflict, the value from the second configuration will take precedence.
+        """
+        for key in b:
+            if key in a:
+                if isinstance( a[key], dict ) and isinstance( b[key], dict ):
+                    a[key] = cls._merge( a[key], b[key] )
+                else:
+                    a[key] = b[key]
+            else:
+                a[key] = b[key]
+        return a
+
     def merge(self, b):
         """ Merge two configs
         """
-        self = _merge(self, b)
+        self = self._merge( self, b )
 
     def to_prometheus(self):
         """
@@ -63,7 +84,12 @@ class Config ( Munch ):
         """
         try:
             prometheus_info = Info('config', 'Config Values')
-            config_info = pandas.json_normalize(json.loads(json.dumps(self)), sep='.').to_dict(orient='records')[0]
+            # Make copy, remove __is_set map
+            config_copy = copy.deepcopy(self)
+
+            del config_copy['__is_set']
+
+            config_info = json_normalize(json.loads(json.dumps(config_copy)), sep='.').to_dict(orient='records')[0]
             formatted_info = {}
             for key in config_info:
                 config_info[key] = str(config_info[key])
@@ -73,6 +99,42 @@ class Config ( Munch ):
             # The user called this function twice in the same session.
             # TODO(const): need a way of distinguishing the various config items.
             bittensor.__console__.print("The config has already been added to prometheus.", highlight=True)
+
+    def is_set(self, param_name: str) -> bool:
+        """
+        Returns a boolean indicating whether the parameter has been set or is still the default.
+        """
+        if param_name not in self.get('__is_set'):
+            return False
+        else:
+            return self.get('__is_set')[param_name]
+
+    def __fill_with_defaults__(self, is_set_map: Dict[str, bool], defaults: 'Config') -> None:
+        """
+        Recursively fills the config with the default values using is_set_map
+        """
+        defaults_filtered = {}
+        for key in self.keys():
+            if key in defaults.keys():
+                defaults_filtered[key] = getattr(defaults, key)
+        # Avoid erroring out if defaults aren't set for a submodule
+        if defaults_filtered == {}: return
+
+        flat_defaults = json_normalize(defaults_filtered, sep='.').to_dict('records')[0]
+        for key, val in flat_defaults.items():
+            if key not in is_set_map:
+                continue
+            elif not is_set_map[key]:
+                # If the key is not set, set it to the default value
+                # Loop through flattened key to get leaf
+                a = self
+                keys = key.split('.')
+                for key_ in keys[:-1]:
+                    if key_ not in a:
+                        a[key_] = {}
+                    a = a[key_]
+                # Set leaf to default value
+                a[keys[-1]] = val
 
     def to_defaults(self):
         try:

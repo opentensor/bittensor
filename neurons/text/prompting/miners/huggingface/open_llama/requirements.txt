@@ -1,0 +1,5 @@
+git+https://github.com/huggingface/transformers
+sentencepiece
+fschat
+tokenizers>=0.13.3
+accelerate

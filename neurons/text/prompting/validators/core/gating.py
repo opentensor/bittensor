@@ -81,7 +81,7 @@ class GatingModel( torch.nn.Module ):
         self.num_uids = config.gating.num_uids
         self.device = torch.device( self.config.neuron.device )
         self.tokenizer = AutoTokenizer.from_pretrained( self.config.gating.model_name )
-        self.model = AutoModel.from_config( AutoConfig.from_pretrained(self.config.gating.model_name) ) #TODO: add pretrained flag
+        self.model = AutoModel.from_pretrained( self.config.gating.model_name)
         self.linear = torch.nn.Linear( self.model.config.hidden_size, config.gating.num_uids  )
         self.optimizer = torch.optim.SGD(
             [ {"params": self.parameters()} ],
@@ -112,7 +112,7 @@ class GatingModel( torch.nn.Module ):
                 scores (:obj:`torch.FloatTensor` of shape :obj:`(network_size)`):
                     Scores for each uids as output by the gating model.
         """
-        inputs = self.tokenizer( message, return_tensors="pt" ).to( self.device )
+        inputs = self.tokenizer( message, return_tensors="pt" ,truncation=True, max_length=2048).to( self.device )
         with torch.no_grad():
             hidden_states = self.model( **inputs ).last_hidden_state[0, -1, :]
         return self.linear( hidden_states )

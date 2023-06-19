@@ -31,7 +31,7 @@ class SynapseForwardMulti( bittensor.SynapseCall ):
 
     def __init__(
             self,
-            synapse: "TextPromptingSynapseMulti",
+            synapse: "bittensor.TextPromptingSynapseMulti",
             request_proto: bittensor.proto.MultiForwardTextPromptingRequest,
             multi_forward_callback: Callable,
         ):

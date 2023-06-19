@@ -32,8 +32,9 @@ from types import SimpleNamespace
 from typing import List, Optional, Tuple, Dict
 from reward import RewardModel
 from gating import GatingModel
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from datasets import load_dataset
+from datetime import datetime
 
 __default_question_prompt__ = '''
 Ask me a random question about anything. Make the question very domain specific. Do not include the answer in the question.
@@ -115,6 +116,8 @@ class neuron:
         parser.add_argument( '--neuron.no_reward_model', action = 'store_true', help = 'If set, we dont load the reward model instead use just the scores.', default = False )
         parser.add_argument( '--neuron.question_random_sample_uids', action = 'store_true', help = 'If set, random sample uids to get question.', default = False )
         parser.add_argument( '--neuron.reward_shift', type = int, help = 'The value to shift rewards for calculation.', default = 3 )
+        parser.add_argument( '--neuron.no_nsfw_filter', action = 'store_true', help = 'If set, allow handling of not-safe-for-work messages.', default = False )
+        parser.add_argument( '--neuron.vpermit_tao_limit', type = int, help = 'The maximum number of TAO allowed to query a validator with a vpermit.', default = 1024 )
 
     @classmethod
     def config ( cls ):
@@ -178,6 +181,13 @@ class neuron:
         self.load()
         self.check_weights()
 
+        # set up filter model
+        filter_model_path = 'facebook/roberta-hate-speech-dynabench-r4-target'
+        self.filter_model = AutoModelForSequenceClassification.from_pretrained(filter_model_path).to(self.device)
+        self.filter_tokenizer = AutoTokenizer.from_pretrained(filter_model_path)
+        self.filter_tokenizer.pad_token = self.filter_tokenizer.eos_token
+        self.filter_message_count = 0
+
         # Axon set and served for inference requests, unless --neuron.axon_off flag is set.
         if not self.config.neuron.axon_off:
             # Build synapse entrypoint.
@@ -226,6 +236,49 @@ class neuron:
             self.synapse = Synapse( axon = self.axon )
             self.axon.start()
             self.subtensor.serve_axon( self.config.netuid, self.axon )
+
+    def filter_message(
+            self,
+            message 
+    ) -> bool:
+        """ Check if the message is related to any sexual content. 
+
+        Args: 
+            message (str):
+                The message that we check if we should filter out.
+        Returns: 
+            result (bool):
+                True indicates we should filter out the result, false indicates the result is safe.
+        """
+        # If no filter needed, then just return false withough checking.
+        if self.config.neuron.no_nsfw_filter: 
+            return False
+        
+        now = datetime.now()
+        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        tokenized = self.filter_tokenizer(message)
+        input_ids = tokenized['input_ids']
+        bound_score1 = 0.5
+        bound_score2 = 0.5
+        
+        while len(input_ids) > 0:
+            _input_ids = input_ids[:512]
+
+            with torch.no_grad():
+                output = self.filter_model(torch.tensor([_input_ids]).to(self.device))
+            
+            filter_out = output.logits[0, 0] < bound_score1 or output.logits[0, 1] > bound_score2
+
+            if filter_out:
+                bittensor.logging.debug( 'filtered message', message )
+                break
+            else:
+                bittensor.logging.debug( 'safe message', message )
+            
+            input_ids = input_ids[512:]
+
+        self.filter_message_count += 1
+        return filter_out
 
     def forward(
             self, 
@@ -276,12 +329,24 @@ class neuron:
         # Set `topk` to the number of items in `self.metagraph.n` if `topk` is not provided or is -1.
         # Find the available `uids` that are currently serving.
         # If `topk` is larger than the number of available `uids`, set `topk` to the number of available `uids`.
-        available_uids = torch.tensor( [ uid for uid, ax in enumerate( self.metagraph.axons ) if (ax.is_serving) and (not self.metagraph.validator_permit[uid]) ], dtype = torch.int64 ).to( self.device )
+        # Check if we have vpermit and if we do, ensure query only UIDs with less than vpermit_tao_limit.
+        def available( uid ) -> bool:
+            # Filter non serving axons.
+            if not self.metagraph.axons[uid].is_serving: 
+                return False
+            # Filter validator permit > 1024 stake.
+            if self.metagraph.validator_permit[uid]:
+                if self.metagraph.S[uid] > self.config.neuron.vpermit_tao_limit:
+                    return False
+            # Available otherwise.
+            return True
+        candidate_uids = [uid for uid, ax in enumerate(self.metagraph.axons) if available( uid )]
+        available_uids = torch.tensor( candidate_uids, dtype = torch.int64 ).to( self.device )
         if topk is None or topk == -1: topk = self.metagraph.n.item()
         if topk > len( available_uids ): topk = len( available_uids )
-        if len( available_uids ) == 0: bittensor.logging.error('no available uids'); return None
+        if len( available_uids ) == 0: bittensor.logging.error( 'no available uids' ); return None
         bittensor.logging.trace( 'available_uids', available_uids )
-        bittensor.logging.trace( 'topk', topk)
+        bittensor.logging.trace( 'topk', topk )
 
         # We run the gating network here to get the best uids
         # Use the gating model to generate scores for each `uid`.
@@ -312,8 +377,8 @@ class neuron:
 
         # Calculate the rewards for the successful `completions` using the reward model.
         # Print the rewards for all `uids`.`
+        flattened_message_for_reward = ''
         if not self.config.neuron.no_reward_model:
-            flattened_message_for_reward = ''
             for role_i, message_i in list(zip(roles, messages)):
                 if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n'
             full_completions_for_reward = [ 'Question: ' + flattened_message_for_reward + 'Answer: ' + comp.strip() for comp in successful_completions ]
@@ -389,15 +454,24 @@ class neuron:
         bittensor.logging.info( 'inference()')
 
         # Pre-process messages.
-        roles = []; contents = []; unravelled_message = ''
+        roles = []; contents = []; unravelled_message = ''; user_message = None
         for message_dict in messages:
             roles.append( message_dict['role'] )
             contents.append( message_dict['content'] )
             if message_dict['role'] == 'system': unravelled_message += 'system: ' + message_dict['content'] + '\n'
             if message_dict['role'] == 'assistant': unravelled_message += 'assistant: ' + message_dict['content'] + '\n'
-            if message_dict['role'] == 'user': unravelled_message += 'user: ' + message_dict['content'] + '\n'
+            if message_dict['role'] == 'user': 
+                unravelled_message += 'user: ' + message_dict['content'] + '\n'
+                user_message = message_dict['content']
+
         bittensor.logging.info( 'inference message', str(unravelled_message) )
-        
+
+        if user_message and self.filter_message(user_message):
+            if return_all:
+                return ['Received possible explicit content.']
+            else:
+                return 'Received possible explicit content.'
+
         # Get scores for query.
         scores = self.gating_model( unravelled_message ).to( self.device )
         bittensor.logging.info( 'inference scores', str(scores) )
@@ -426,18 +500,20 @@ class neuron:
             if return_all:
                 completions = []
                 for call in forward_calls:
-                    if len( call.completion ) > 0:
+                    if len( call.completion ) > 0 and not self.filter_message(call.completion):
                         completions.append(call.completion)
                 if len(completions) > 0:
                     return completions
+            
             else:
                 for call in forward_calls:
-                    if len( call.completion ) > 0:
+                    if len( call.completion ) > 0 and not self.filter_message(call.completion):
                         bittensor.logging.info( 'best completion', call.completion )
                         return call.completion
 
             if return_all:
                 return ['no valid completions']
+            
             else:
                 return 'no valid completions'
             
@@ -447,7 +523,7 @@ class neuron:
             flattened_message_for_reward = ''
             for role_i, message_i in list(zip(roles, messages)):
                 if role_i != 'system': flattened_message_for_reward += message_i.strip() + '\n\n'
-            completions = [ call.completion for call in forward_calls if len(call.completion) > 0 ] 
+            completions = [ call.completion for call in forward_calls if len(call.completion) > 0 and not self.filter_message(call.completion) ] 
             flattened_completions_for_reward = [ flattened_message_for_reward + comp.strip() for comp in completions ] 
 
             # Return best via reward model.
@@ -488,11 +564,12 @@ class neuron:
                 timeout = 12,
             )
             
-            successful_questions = [question.completion for question in questions if question is not None and question.completion is not None and len(question.completion) > 10]
-            full_completions_for_reward = [ bootstrap_prompt + comp.strip() for comp in successful_questions ]
-            completions_for_reward = [comp.strip() for comp in successful_questions] 
-            reward_diffs = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True, shift = self.config.neuron.reward_shift).to( self.device )
-            
+            successful_questions = [question.completion for question in questions if question is not None and question.completion is not None and len(question.completion) > 10 and not self.filter_message(question.completion) ]
+            full_completions_for_reward = [ 'Question: ' + bootstrap_prompt + 'Answer: ' + comp.strip() for comp in successful_questions ]
+            completions_for_reward = [comp.strip() for comp in successful_questions]
+            reward_diffs = torch.zeros(len(successful_questions))
+            if not self.config.neuron.no_reward_model:
+                reward_diffs = self.reward_model.reward( full_completions_for_reward, completions_for_reward, difference = True, shift = self.config.neuron.reward_shift ).to( self.device )
             for question, reward_diff in zip(successful_questions, reward_diffs.tolist()):
                 print(f"\n=== Question score: {reward_diff}===\n")
                 print(question)
@@ -551,10 +628,10 @@ class neuron:
                     question = False
                 )
                 
-                with open('prompt_history.txt', 'a') as file:
-                    file.write(f"{steps} | A score({round(forward_result.rewards.sort(descending = True)[0][0].item(), 4)}): {forward_result.best_completion}" + '\n')
-
                 if forward_result is not None:
+                    with open('prompt_history.txt', 'a') as file:
+                        file.write(f"{steps} | A score({round(forward_result.rewards.sort(descending = True)[0][0].item(), 4)}): {forward_result.best_completion}" + '\n')
+                    
                     idx_reward_sorted = forward_result.rewards.sort(descending = True)[1]
                     prompt, reward_diff = self.get_question(
                         uids = forward_result.uids[idx_reward_sorted],
@@ -712,6 +789,8 @@ class neuron:
         for uid, hotkey in enumerate( self.hotkeys ):
             if hotkey != self.metagraph.hotkeys[ uid ]:
                 self.moving_averaged_scores[ uid ] = 0 #hotkey has been replaced
+            if self.metagraph.validator_permit[ uid ] and self.metagraph.S[ uid ] > self.config.neuron.vpermit_tao_limit:
+                self.moving_averaged_scores[ uid ] = 0 # hotkey has validation rights and is below the tao limit
         if len(self.hotkeys) < len(self.metagraph.hotkeys):
             new_moving_average  = torch.zeros((self.metagraph.n)).to( self.device )
             new_moving_average[:len(self.hotkeys)] = self.moving_averaged_scores
