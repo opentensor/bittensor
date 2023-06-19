@@ -175,6 +175,40 @@ class Subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
+    
+    def do_set_weights(
+        self,
+        wallet: 'bittensor.wallet',
+        uids: List[int],
+        vals: List[int],
+        netuid: int,
+        version_key: int = bittensor.__version_as_int__,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]: # (success, error_message)
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                call_module='SubtensorModule',
+                call_function='set_weights',
+                call_params = {
+                    'dests': uids,
+                    'weights': vals,
+                    'netuid': netuid,
+                    'version_key': version_key,
+                }
+            )
+            # Period dictates how long the extrinsic will stay as part of waiting pool
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey, era={'period':100})
+            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, None
+
+            response.process_events()
+            if response.is_success:
+                return True, None
+            else:
+                return False, response.error_message
 
     ######################
     #### Registration ####
