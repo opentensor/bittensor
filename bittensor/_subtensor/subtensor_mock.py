@@ -1346,3 +1346,15 @@ class MockSubtensor(Subtensor):
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
         return True, None
+    
+    def do_set_weights(
+        self,
+        wallet: 'bittensor.wallet',
+        netuid: int,
+        uids: int,
+        vals: List[int],
+        version_key: int,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        return True, None
