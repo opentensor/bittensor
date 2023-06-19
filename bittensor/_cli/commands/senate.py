@@ -59,13 +59,17 @@ class ProposalsCommand:
             call_data = proposals[hash][0].serialize()
             vote_data = proposals[hash][1].serialize()
 
+            human_call_data = list()
+            for arg in call_data["call_args"]:
+                human_call_data.append("{}: {}".format(arg["name"], str(arg["value"])))
+
             table.add_row(
                 hash,
                 str(vote_data["threshold"]),
                 str(len(vote_data["ayes"])),
                 str(len(vote_data["nays"])),
                 str(vote_data["end"]),
-                "{}: {}".format(call_data["call_function"], str(call_data["call_args"]))
+                "{}({})".format(call_data["call_function"], ", ".join(human_call_data))
             )
 
         table.box = None
