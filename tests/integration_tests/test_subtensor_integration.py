@@ -361,12 +361,6 @@ class TestSubtensor(unittest.TestCase):
         self.assertFalse(registered, msg="Hotkey should not be registered")
 
     def test_registration_multiprocessed_already_registered( self ):
-        class success():
-            def __init__(self):
-                self.is_success = True
-            def process_events(self):
-                return True
-
         workblocks_before_is_registered = random.randint(5, 10)
         # return False each work block but return True after a random number of blocks
         is_registered_return_values = [False for _ in range(workblocks_before_is_registered)] + [True] + [True, False]
@@ -401,25 +395,11 @@ class TestSubtensor(unittest.TestCase):
                     assert wallet.is_registered.call_count == workblocks_before_is_registered + 2
 
     def test_registration_partly_failed( self ):
-
-        class failed():
-            def __init__(self):
-                self.is_success = False
-                self.error_message ='Failed'
-            def process_events(self):
-                return False
-
-        class success():
-            def __init__(self):
-                self.is_success = True
-            def process_events(self):
-                return True
-
-        submit_extrinsic_mock = MagicMock( side_effect = [failed(), failed(), success()])
+        do_pow_register_mock = MagicMock( side_effect = [(False, 'Failed'), (False, 'Failed'), (True, None)])
 
         def is_registered_side_effect(*args, **kwargs):
-            nonlocal submit_extrinsic_mock
-            return submit_extrinsic_mock.call_count < 3
+            nonlocal do_pow_register_mock
+            return do_pow_register_mock.call_count < 3
 
         current_block = [i for i in range(0,100)]
 
@@ -430,20 +410,12 @@ class TestSubtensor(unittest.TestCase):
 
                 self.subtensor.difficulty = MagicMock(return_value=1)
                 self.subtensor.get_current_block = MagicMock(side_effect=current_block)
-                self.subtensor.substrate.submit_extrinsic = submit_extrinsic_mock
+                self.subtensor._do_pow_register = do_pow_register_mock
 
                 # should return True
                 self.assertTrue( self.subtensor.register(wallet=wallet, netuid = 3, num_processes=3, update_interval=5), msg="Registration should succeed" )
 
     def test_registration_failed( self ):
-        class failed():
-            def __init__(self):
-                self.is_success = False
-                self.error_message ='Failed'
-            def process_events(self):
-                return False
-
-
         is_registered_return_values = [False for _ in range(100)]
         current_block = [i for i in range(0,100)]
         mock_neuron = MagicMock()
@@ -456,7 +428,7 @@ class TestSubtensor(unittest.TestCase):
             self.subtensor.get_current_block = MagicMock(side_effect=current_block)
             self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock( return_value=mock_neuron )
             self.subtensor.substrate.get_block_hash = MagicMock( return_value = '0x' + '0' * 64 )
-            self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = failed())
+            self.subtensor._do_pow_register = MagicMock(return_value = (False, 'Failed'))
 
             # should return True
             self.assertIsNot( self.subtensor.register(wallet=wallet, netuid = 3 ), True, msg="Registration should fail" )
@@ -472,14 +444,14 @@ class TestSubtensor(unittest.TestCase):
             side_effect = [True, False]
         )
 
-        mock_substrate_enter = MagicMock(
-            side_effect=ExitEarly()
+        mock_do_pow_register = MagicMock(
+            side_effect = ExitEarly()
         )
 
         mock_subtensor_self = MagicMock(
             neuron_for_pubkey = MagicMock( return_value = MagicMock(is_null = True) ), # not registered
+            _do_pow_register = mock_do_pow_register,
             substrate=MagicMock(
-                __enter__ = mock_substrate_enter,
                 get_block_hash = MagicMock( return_value = '0x' + '0'*64 ),
             )
         )
@@ -501,92 +473,13 @@ class TestSubtensor(unittest.TestCase):
                     bittensor.Subtensor.register( mock_subtensor_self, mock_wallet, netuid = 3 )
                 self.assertEqual( mock_create_pow.call_count, 2, msg="must try another pow after stale" )
                 self.assertEqual( mock_is_stale.call_count, 2 )
-                self.assertEqual( mock_substrate_enter.call_count, 1, msg="only tries to submit once, then exits" )
-
-#     def test_subtensor_mock_functions(self):
-#         with patch('substrateinterface.SubstrateInterface.query'):
-#             sub = bittensor.subtensor(_mock=True)
-#             sub.total_issuance
-#             sub.total_stake
-#             sub.immunity_period(netuid = 3)
-#             sub.rho(netuid = 3)
-#             sub.kappa(netuid = 3)
-#             sub.blocks_since_epoch(netuid = 3)
-#             sub.max_n(netuid = 3)
-#             sub.min_allowed_weights(netuid = 3)
-#             sub.validator_epoch_length(netuid = 3)
-#             sub.validator_epochs_per_reset(netuid = 3)
-#             sub.validator_sequence_length(netuid = 3)
-#             sub.validator_batch_size(netuid = 3)
-#             sub.difficulty(netuid = 3)
+                self.assertEqual( mock_do_pow_register.call_count, 1, msg="only tries to submit once, then exits" )
 
 # # This test was flaking, please check to_defaults before reactiving the test
 # def _test_defaults_to_finney():
 #     sub = bittensor.subtensor()
 #     assert sub.network == 'finney'
 #     assert sub.chain_endpoint == bittensor.__finney_entrypoint__
-
-# def test_subtensor_mock():
-#     mock_subtensor.kill_global_mock_process()
-#     sub = bittensor.subtensor(_mock=True)
-#     assert mock_subtensor.global_mock_process_is_running()
-#     assert sub._is_mocked == True
-#     assert sub._owned_mock_subtensor_process != None
-#     del(sub)
-#     assert not mock_subtensor.global_mock_process_is_running()
-
-# def test_create_mock_process():
-#     mock_subtensor.kill_global_mock_process()
-#     mock_subtensor.create_global_mock_process()
-#     assert mock_subtensor.global_mock_process_is_running()
-#     mock_subtensor.kill_global_mock_process()
-#     assert not mock_subtensor.global_mock_process_is_running()
-
-# def test_mock_from_mock_arg():
-#     sub = bittensor.subtensor(_mock=True)
-#     assert mock_subtensor.global_mock_process_is_running()
-#     assert sub._is_mocked == True
-#     assert sub._owned_mock_subtensor_process != None
-#     sub.optionally_kill_owned_mock_instance()
-#     assert not mock_subtensor.global_mock_process_is_running()
-#     del(sub)
-#     assert not mock_subtensor.global_mock_process_is_running()
-
-# def test_mock_from_network_arg():
-#     mock_subtensor.kill_global_mock_process()
-#     sub = bittensor.subtensor(network='mock')
-#     assert sub.network == 'mock'
-#     assert mock_subtensor.global_mock_process_is_running()
-#     assert sub._is_mocked == True
-#     assert sub._owned_mock_subtensor_process != None
-#     sub.__del__()
-#     assert not mock_subtensor.global_mock_process_is_running()
-
-# def test_create_from_config():
-#     mock_subtensor.kill_global_mock_process()
-#     config = bittensor.subtensor.config()
-#     config.subtensor.network = 'mock'
-#     sub = bittensor.subtensor(config=config)
-#     assert mock_subtensor.global_mock_process_is_running()
-#     assert sub._is_mocked == True
-#     assert sub._owned_mock_subtensor_process != None
-#     del(sub)
-#     assert not mock_subtensor.global_mock_process_is_running()
-
-# def test_two_subtensor_ownership():
-#     mock_subtensor.kill_global_mock_process()
-#     sub1 = bittensor.subtensor(_mock=True)
-#     sub2 = bittensor.subtensor(_mock=True)
-#     assert sub1._is_mocked == True
-#     assert sub2._is_mocked == True
-#     assert sub1._owned_mock_subtensor_process != None
-#     assert sub2._owned_mock_subtensor_process == None
-#     assert mock_subtensor.global_mock_process_is_running()
-#     del( sub2 )
-#     assert mock_subtensor.global_mock_process_is_running()
-#     del ( sub1 )
-#     time.sleep(2)
-#     assert not mock_subtensor.global_mock_process_is_running()
 
 if __name__ == "__main__":
     unittest.main()
