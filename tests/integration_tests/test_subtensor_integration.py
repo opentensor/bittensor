@@ -55,6 +55,8 @@ class TestSubtensor(unittest.TestCase):
 
     @classmethod
     def _do_setup_subnet(cls):
+        # reset the mock subtensor
+        cls._mock_subtensor.reset()
         # Setup the mock subnet 3
         cls._mock_subtensor.create_subnet(
             netuid = 3
