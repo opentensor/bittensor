@@ -79,8 +79,7 @@ def register_senate_extrinsic (
 
             # Successful registration, final check for membership
             else:
-                senate_members = subtensor.query_module("senateMembers", "Members").serialize()
-                is_registered = senate_members.count(wallet.hotkey.ss58_address)
+                is_registered = wallet.is_senate_member(subtensor)
 
                 if is_registered:
                     bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
