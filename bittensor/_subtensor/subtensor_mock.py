@@ -1174,7 +1174,7 @@ class MockSubtensor(Subtensor):
         if newest_state is None:
             return None
         
-        nom_result = {}
+        nom_result = []
         nominators = subtensor_state['Stake'][hotkey_ss58]
         for nominator in nominators:
             nom_amount = self.get_stake_for_coldkey_and_hotkey(
@@ -1183,7 +1183,7 @@ class MockSubtensor(Subtensor):
                 block=block,
             )
             if nom_amount is not None and nom_amount.rao > 0:
-                nom_result[nominator] = (nominator, nom_amount)
+                nom_result.append((nominator, nom_amount))
 
         registered_subnets = []
         for subnet in self.get_all_subnet_netuids(block=block):
