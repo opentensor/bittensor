@@ -75,7 +75,7 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], prev_delegates: O
     table.add_column("[overline white]Desc", style='rgb(50,163,219)')
     #table.add_column("[overline white]DESCRIPTION", style='white')
 
-    for i, delegate in enumerate( delegates):
+    for i, delegate in enumerate( delegates ):
         owner_stake = next(
             map(lambda x: x[1], # get stake
                 filter(lambda x: x[0] == delegate.owner_ss58, delegate.nominators) # filter for owner
