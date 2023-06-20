@@ -37,7 +37,7 @@ from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic,undelegate_extrinsic
-from .extrinsics.senate import register_senate_extrinsic
+from .extrinsics.senate import register_senate_extrinsic, leave_senate_extrinsic, vote_senate_extrinsic
 
 # Logging
 from loguru import logger
