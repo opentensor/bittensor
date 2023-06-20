@@ -171,6 +171,88 @@ class ProposalsCommand:
         bittensor.wallet.add_args( proposals_parser )
         bittensor.subtensor.add_args( proposals_parser )
 
+class ShowVotesCommand:
+
+    @staticmethod
+    def run( cli ):
+        r""" View Bittensor's governance protocol proposals active votes
+        """
+        config = cli.config.copy()
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+
+        console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
+
+        proposal_hash = cli.config.proposal_hash
+        if len(proposal_hash) == 0:
+            console.print('Aborting: Proposal hash not specified. View all proposals with the "proposals" command.')
+            return
+
+        proposal_vote_data = subtensor.get_vote_data( proposal_hash )
+        if proposal_vote_data == None:
+            console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
+            return
+
+        table = Table(show_footer=False)
+        table.title = (
+            "[white]Votes for Proposal {}".format(proposal_hash)
+        )
+        table.add_column("[overline white]ADDRESS", footer_style = "overline white", style='yellow', no_wrap=True)
+        table.add_column("[overline white]VOTE", footer_style = "overline white", style='white')
+        table.show_footer = True
+
+        for address in proposal_vote_data["ayes"]:
+            table.add_row(
+                address,
+                "Aye"
+            )
+
+        for address in proposal_vote_data["nays"]:
+            table.add_row(
+                address,
+                "Nay"
+            )
+
+        table.box = None
+        table.pad_edge = False
+        table.min_width = 64
+        console.print(table)
+
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        if config.proposal_hash == "" and not config.no_prompt:
+            proposal_hash = Prompt.ask("Enter proposal hash")
+            config.proposal_hash = str(proposal_hash)
+
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        show_votes_parser = parser.add_parser(
+            'proposal_votes',
+            help='''View an active proposal's votes by address.'''
+        )
+        show_votes_parser.add_argument(
+            '--no_version_checking',
+            action='store_true',
+            help='''Set false to stop cli version checking''',
+            default = False
+        )
+        show_votes_parser.add_argument(
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        show_votes_parser.add_argument(
+            '--proposal',
+            dest='proposal_hash',
+            type=str,
+            nargs='?',
+            help='''Set the proposal to show votes for.''',
+            default=""
+        )
+        bittensor.wallet.add_args( show_votes_parser )
+        bittensor.subtensor.add_args( show_votes_parser )
+
 class SenateRegisterCommand:
 
     @staticmethod
@@ -226,3 +308,139 @@ class SenateRegisterCommand:
         )
         bittensor.wallet.add_args( senate_register_parser )
         bittensor.subtensor.add_args( senate_register_parser )
+
+class SenateLeaveCommand:
+
+    @staticmethod
+    def run( cli ):
+        r""" Discard membership in Bittensor's governance protocol proposals
+        """
+        config = cli.config.copy()
+        wallet = bittensor.wallet( config = cli.config )
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+
+        # Unlock the wallet.
+        wallet.hotkey
+        wallet.coldkey
+        
+        if not wallet.is_senate_member(subtensor):
+            console.print('Aborting: Hotkey {} isn\'t a senate member.'.format(wallet.hotkey.ss58_address))
+            return
+        
+        subtensor.leave_senate(
+            wallet = wallet,
+            prompt = not cli.config.no_prompt
+        )
+
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        if not config.is_set('wallet.name') and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set('wallet.hotkey') and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        senate_leave_parser = parser.add_parser(
+            'senate_leave',
+            help='''Discard senate membership in the governance protocol'''
+        )
+        senate_leave_parser.add_argument(
+            '--no_version_checking',
+            action='store_true',
+            help='''Set false to stop cli version checking''',
+            default = False
+        )
+        senate_leave_parser.add_argument(
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        bittensor.wallet.add_args( senate_leave_parser )
+        bittensor.subtensor.add_args( senate_leave_parser )
+
+class VoteCommand:
+
+    @staticmethod
+    def run( cli ):
+        r""" Vote in Bittensor's governance protocol proposals
+        """
+        config = cli.config.copy()
+        wallet = bittensor.wallet( config = cli.config )
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+
+        proposal_hash = cli.config.proposal_hash
+        if len(proposal_hash) == 0:
+            console.print('Aborting: Proposal hash not specified. View all proposals with the "proposals" command.')
+            return
+        
+        if not wallet.is_senate_member(subtensor):
+            console.print('Aborting: Hotkey {} isn\'t a senate member.'.format(wallet.hotkey.ss58_address))
+            return
+
+        # Unlock the wallet.
+        wallet.hotkey
+        wallet.coldkey
+
+        vote_data = subtensor.get_vote_data( proposal_hash )
+        if vote_data == None:
+            console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
+            return
+
+        vote = Confirm.ask("Desired vote for proposal")
+        subtensor.vote_senate(
+            wallet = wallet,
+            proposal_hash = proposal_hash,
+            proposal_idx = vote_data["index"],
+            vote = vote,
+            prompt = not cli.config.no_prompt
+        )
+
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        if not config.is_set('wallet.name') and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set('wallet.hotkey') and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+        if config.proposal_hash == "" and not config.no_prompt:
+            proposal_hash = Prompt.ask("Enter proposal hash")
+            config.proposal_hash = str(proposal_hash)
+
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        vote_parser = parser.add_parser(
+            'senate_vote',
+            help='''Vote on an active proposal by hash.'''
+        )
+        vote_parser.add_argument(
+            '--no_version_checking',
+            action='store_true',
+            help='''Set false to stop cli version checking''',
+            default = False
+        )
+        vote_parser.add_argument(
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        vote_parser.add_argument(
+            '--proposal',
+            dest='proposal_hash',
+            type=str,
+            nargs='?',
+            help='''Set the proposal to show votes for.''',
+            default=""
+        )
+        bittensor.wallet.add_args( vote_parser )
+        bittensor.subtensor.add_args( vote_parser )
