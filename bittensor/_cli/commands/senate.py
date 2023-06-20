@@ -272,6 +272,10 @@ class SenateRegisterCommand:
             console.print('Aborting: Hotkey {} isn\'t a delegate.'.format(wallet.hotkey.ss58_address))
             return
         
+        if wallet.is_senate_member(subtensor):
+            console.print('Aborting: Hotkey {} is already a senate member.'.format(wallet.hotkey.ss58_address))
+            return
+        
         subtensor.register_senate(
             wallet = wallet,
             prompt = not cli.config.no_prompt
