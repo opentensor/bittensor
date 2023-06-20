@@ -21,7 +21,7 @@ import torch
 import bittensor
 import scalecodec
 from retry import retry
-from typing import List, Dict, Union, Optional, Tuple, TypedDict
+from typing import List, Dict, Union, Optional, Tuple
 from substrateinterface.base import QueryMapResult, SubstrateInterface
 
 from bittensor.utils.balance import Balance
@@ -39,30 +39,11 @@ from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic,undelegate_extrinsic
+from .types import AxonServeCallParams, PrometheusServeCallParams
 
 # Logging
 from loguru import logger
 logger = logger.opt(colors=True)
-
-class AxonServeCallParams(TypedDict):
-    """
-    Axon serve chain call parameters.
-    """
-    version: int
-    ip: int
-    port: int
-    ip_type: int
-    netuid: int
-
-class PrometheusServeCallParams(TypedDict):
-    """
-    Prometheus serve chain call parameters.
-    """
-    version: int
-    ip: int
-    port: int
-    ip_type: int
-    netuid: int
 
 class Subtensor:
     """

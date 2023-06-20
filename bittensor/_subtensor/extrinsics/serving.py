@@ -21,7 +21,7 @@ import json
 from rich.prompt import Confirm
 import bittensor.utils.networking as net
 from ..errors import *
-from ..subtensor_impl import AxonServeCallParams
+from ..types import AxonServeCallParams
 
 def serve_extrinsic (
     subtensor: 'bittensor.Subtensor',

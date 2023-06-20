@@ -21,7 +21,7 @@ import json
 from rich.prompt import Confirm
 import bittensor.utils.networking as net
 from ..errors import *
-from ..subtensor_impl import PrometheusServeCallParams
+from ..types import PrometheusServeCallParams
 
 def prometheus_extrinsic(
     subtensor: 'bittensor.Subtensor',
