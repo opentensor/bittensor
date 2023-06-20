@@ -324,21 +324,41 @@ class TestSubtensor(unittest.TestCase):
             assert type(balances[i]) == bittensor.utils.balance.Balance
 
     def test_get_uid_by_hotkey_on_subnet( self ):
-        fake_hotkey = get_mock_hotkey(0)
-        with patch('bittensor.Subtensor.query_subtensor', return_value=MagicMock( value=0 )):
-            uid = self.subtensor.get_uid_for_hotkey_on_subnet(fake_hotkey, netuid = 3)
-            assert isinstance(uid, int)
+        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_hotkey_kp = get_mock_keypair(100, self.id())
 
-    def test_hotkey_register( self ):
-        fake_hotkey = get_mock_hotkey(0)
-        self.subtensor.get_uid_for_hotkey_on_subnet = MagicMock(return_value = 0)
-        register= self.subtensor.is_hotkey_registered(fake_hotkey, netuid = 3)
-        assert register == True
+        # Register on subnet 3
+        mock_uid = self.subtensor.force_register_neuron(
+            netuid = 3,
+            hotkey = mock_hotkey_kp.ss58_address,
+            coldkey = mock_coldkey_kp.ss58_address,
+        )
 
-    def test_hotkey_register_failed( self ):
-        self.subtensor.get_uid_for_hotkey_on_subnet = MagicMock(return_value = None)
-        register= self.subtensor.is_hotkey_registered('mock', netuid = 3)
-        assert register == False
+        uid = self.subtensor.get_uid_for_hotkey_on_subnet(mock_hotkey_kp.ss58_address, netuid = 3)
+        self.assertIsInstance(uid, int, msg="get_uid_for_hotkey_on_subnet should return an int")
+        self.assertEqual(uid, mock_uid, msg="get_uid_for_hotkey_on_subnet should return the correct uid")
+
+    def test_is_hotkey_registered( self ):
+        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_hotkey_kp = get_mock_keypair(100, self.id())
+
+        # Register on subnet 3
+        _ = self.subtensor.force_register_neuron(
+            netuid = 3,
+            hotkey = mock_hotkey_kp.ss58_address,
+            coldkey = mock_coldkey_kp.ss58_address,
+        )
+        
+        registered = self.subtensor.is_hotkey_registered(mock_hotkey_kp.ss58_address, netuid = 3)
+        self.assertTrue(registered, msg="Hotkey should be registered")
+
+    def test_is_hotkey_registered_not_registered( self ):
+        mock_hotkey_kp = get_mock_keypair(100, self.id())
+
+        # Do not register on subnet 3
+
+        registered = self.subtensor.is_hotkey_registered(mock_hotkey_kp.ss58_address, netuid = 3)
+        self.assertFalse(registered, msg="Hotkey should not be registered")
 
     def test_registration_multiprocessed_already_registered( self ):
         class success():
@@ -366,7 +386,7 @@ class TestSubtensor(unittest.TestCase):
 
                     self.subtensor.difficulty= MagicMock(return_value=1)
                     self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock( side_effect=mock_neuron )
-                    self.subtensor.substrate.submit_extrinsic = MagicMock(return_value = success())
+                    self.subtensor._do_pow_register = MagicMock(return_value = (True, None))
 
                     with patch('bittensor.__console__.status') as mock_set_status:
                         # Need to patch the console status to avoid opening a parallel live display
