@@ -452,7 +452,7 @@ class MockSubtensor(Subtensor):
         if netuid not in subtensor_state['NetworksAdded']:
             raise Exception("Subnet does not exist")
 
-        self._register_neuron(
+        uid = self._register_neuron(
             netuid=netuid,
             hotkey=hotkey,
             coldkey=coldkey,
@@ -464,6 +464,8 @@ class MockSubtensor(Subtensor):
         if balance.rao > 0:
             self.force_set_balance(coldkey, balance)
         self.force_set_balance(coldkey, balance)
+
+        return uid
 
     def force_set_balance(
         self,
