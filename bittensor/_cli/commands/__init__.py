@@ -9,4 +9,4 @@ from .inspect import InspectCommand
 from .metagraph import MetagraphCommand
 from .list import ListCommand
 from .misc import UpdateCommand, ListSubnetsCommand
-from .senate import ProposalsCommand, SenateRegisterCommand
+from .senate import SenateCommand, ProposalsCommand, ShowVotesCommand, SenateRegisterCommand, SenateLeaveCommand, VoteCommand
