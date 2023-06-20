@@ -371,6 +371,41 @@ class Subtensor:
         prompt: bool = False,
     ) -> bool:
         return register_senate_extrinsic( self, wallet, wait_for_inclusion, wait_for_finalization, prompt )
+    
+    def leave_senate(
+        self,
+        wallet: 'bittensor.wallet',
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        return leave_senate_extrinsic( self, wallet, wait_for_inclusion, wait_for_finalization, prompt )
+    
+    def vote_senate(
+        self,
+        wallet: 'bittensor.wallet',
+        proposal_hash: str,
+        proposal_idx: int,
+        vote: bool,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        return vote_senate_extrinsic( self, wallet, proposal_hash, proposal_idx, vote, wait_for_inclusion, wait_for_finalization, prompt )
+    
+    def is_senate_member(
+        self,
+        hotkey_ss58: str
+    ) -> bool:
+        senate_members = self.query_module("Senate", "Members").serialize()
+        return senate_members.count( hotkey_ss58 ) > 0
+    
+    def get_vote_data(
+        self,
+        proposal_hash: str
+    ) -> Optional[dict]:
+        vote_data = self.query_module("Triumvirate", "Voting", None, [proposal_hash])
+        return vote_data.serialize() if vote_data != None else None
 
     ########################
     #### Standard Calls ####
