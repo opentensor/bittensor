@@ -95,14 +95,30 @@ def test_text_prompting_synapse_backward():
 def test_text_prompting_synapse_blacklist():
     synapse = get_synapse()
     request = bittensor.proto.ForwardTextPromptingRequest()
-    call = bittensor._synapse.text_prompting.synapse.SynapseForward( synapse, request, synapse.forward )
+
+    # Mock the signature checking of the context.
+    context = MagicMock()
+    context.invocation_metadata.return_value = {}
+    synapse.axon = MagicMock()
+    synapse.axon.auth_interceptor = MagicMock()
+    synapse.axon.auth_interceptor.parse_signature.return_value = (None, None, "5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg", None)
+
+    call = bittensor._synapse.text_prompting.synapse.SynapseForward( synapse, request, synapse.forward, context = context )
     blacklist = synapse.blacklist( call )
     assert blacklist == False
 
 def test_text_prompting_synapse_priority():
     synapse = get_synapse()
     request = bittensor.proto.ForwardTextPromptingRequest()
-    call = bittensor._synapse.text_prompting.synapse.SynapseForward( synapse, request, synapse.forward )
+
+    # Mock the signature checking of the context.
+    context = MagicMock()
+    context.invocation_metadata.return_value = {}
+    synapse.axon = MagicMock()
+    synapse.axon.auth_interceptor = MagicMock()
+    synapse.axon.auth_interceptor.parse_signature.return_value = (None, None, "5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg", None)
+
+    call = bittensor._synapse.text_prompting.synapse.SynapseForward( synapse, request, synapse.forward, context = context )
     priority = synapse.priority( call )
     assert priority == 0.0
 

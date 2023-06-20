@@ -29,7 +29,7 @@ from concurrent import futures
 from dataclasses import dataclass
 from substrateinterface import Keypair
 import bittensor.utils.networking as net
-from typing import Callable, Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple
 
 class axon:
     """ Axon object for serving synapse receptors. """
@@ -60,7 +60,6 @@ class axon:
         max_workers: Optional[int] = None,
         server: "grpc._server._Server" = None,
         maximum_concurrent_rpcs: Optional[int] = None,
-        blacklist: Optional[Callable] = None,
     ) -> "bittensor.Axon":
         r"""Creates a new bittensor.Axon object from passed arguments.
         Args:
@@ -80,8 +79,6 @@ class axon:
                 Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
             maximum_concurrent_rpcs (:type:`Optional[int]`, `optional`):
                 Maximum allowed concurrently processed RPCs.
-            blacklist (:obj:`Optional[callable]`, `optional`):
-                function to blacklist requests.
         """
         self.metagraph = metagraph
         self.wallet = wallet
@@ -111,7 +108,7 @@ class axon:
         self.external_ip = self.config.axon.external_ip if self.config.axon.external_ip != None else bittensor.utils.networking.get_external_ip()
         self.external_port = self.config.axon.external_port if self.config.axon.external_port != None else self.config.axon.port
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
-        self.blacklist = blacklist or bittensor.auth_blacklist
+        self.blacklist = bittensor.auth_blacklist
         self.started = False
 
         # Build priority thread pool
@@ -284,8 +281,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
         Args:
             receiver_hotkey(str):
                 the SS58 address of the hotkey which should be targeted by RPCs
-            black_list (Function, `optional`):
-                black list function that prevents certain pubkeys from sending messages
         """
         super().__init__()
         self.nonces = {}
@@ -367,7 +362,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
     def intercept_service(self, continuation, handler_call_details):
         r"""Authentication between bittensor nodes. Intercepts messages and checks them"""
-        method = handler_call_details.method
         metadata = dict(handler_call_details.invocation_metadata)
 
         try:
@@ -382,9 +376,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
             self.check_signature(
                 nonce, sender_hotkey, signature, receptor_uuid
             )
-
-            # blacklist checking
-            self.black_list_checking(sender_hotkey, method)
 
             return continuation(handler_call_details)
 
