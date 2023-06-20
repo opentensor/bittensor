@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2023 Opentensor Technologies Inc
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -20,16 +21,19 @@ import random
 import unittest
 from queue import Empty as QueueEmpty
 from unittest.mock import MagicMock, patch
+from types import SimpleNamespace
 
 import bittensor
 import pytest
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
-from tests.helpers import get_mock_hotkey, get_mock_coldkey, MockConsole
+from bittensor._subtensor.subtensor_mock import MockSubtensor
+from tests.helpers import get_mock_hotkey, get_mock_coldkey, MockConsole, get_mock_keypair
 
 class TestSubtensor(unittest.TestCase):
     _mock_console_patcher = None
-    _mock_subtensor: bittensor.Subtensor
+    _mock_subtensor: MockSubtensor
+    subtensor: MockSubtensor
 
     def setUp(self):
         self.wallet = bittensor.wallet(_mock=True)
@@ -46,6 +50,15 @@ class TestSubtensor(unittest.TestCase):
 
         # Keeps the same mock network for all tests. This stops the network from being re-setup for each test.
         cls._mock_subtensor = bittensor.subtensor( network = 'mock' )
+
+        cls._do_setup_subnet()
+
+    @classmethod
+    def _do_setup_subnet(cls):
+        # Setup the mock subnet 3
+        cls._mock_subtensor.create_subnet(
+            netuid = 3
+        )
 
     @classmethod
     def tearDownClass(cls) -> None:
