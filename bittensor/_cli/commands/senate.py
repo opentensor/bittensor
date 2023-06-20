@@ -18,10 +18,66 @@
 import sys
 import argparse
 import bittensor
-from rich.prompt import Prompt
+from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from typing import List, Union, Optional, Dict, Tuple
 console = bittensor.__console__
+
+class SenateCommand:
+
+    @staticmethod
+    def run( cli ):
+        r""" View Bittensor's governance protocol proposals
+        """
+        config = cli.config.copy()
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+
+        console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
+
+        senate_members = subtensor.query_module("Senate", "Members").serialize()
+
+        table = Table(show_footer=False)
+        table.title = (
+            "[white]Senate"
+        )
+        table.add_column("[overline white]ADDRESS", footer_style = "overline white", style='yellow', no_wrap=True)
+        table.show_footer = True
+
+        for ss58_address in senate_members:
+            table.add_row(
+                ss58_address
+            )
+
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        console.print(table)
+
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        None
+
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        senate_parser = parser.add_parser(
+            'senate',
+            help='''View senate and it's members'''
+        )
+        senate_parser.add_argument(
+            '--no_version_checking',
+            action='store_true',
+            help='''Set false to stop cli version checking''',
+            default = False
+        )
+        senate_parser.add_argument(
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        bittensor.wallet.add_args( senate_parser )
+        bittensor.subtensor.add_args( senate_parser )
 
 class ProposalsCommand:
 
