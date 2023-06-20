@@ -305,10 +305,10 @@ class TestSubtensor(unittest.TestCase):
         assert type(balance) == bittensor.utils.balance.Balance
 
     def test_get_balances( self ):
-        balance= self.subtensor.get_balances()
-        assert type(balance) == dict
-        for i in balance:
-            assert type(balance[i]) == bittensor.utils.balance.Balance
+        balances = self.subtensor.get_balances()
+        assert type(balances) == dict
+        for i in balances:
+            assert type(balances[i]) == bittensor.utils.balance.Balance
 
     def test_get_uid_by_hotkey_on_subnet( self ):
         fake_hotkey = get_mock_hotkey(0)

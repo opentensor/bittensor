@@ -666,6 +666,8 @@ class MockSubtensor(Subtensor):
         for address in self.chain_state['System']['Account']:
             balances[address] = self.get_balance(address, block)
 
+        return balances
+
     # ==== Neuron RPC methods ====
 
     def neuron_for_uid( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfo]:
