@@ -102,3 +102,59 @@ class ProposalsCommand:
         )
         bittensor.wallet.add_args( proposals_parser )
         bittensor.subtensor.add_args( proposals_parser )
+
+class SenateRegisterCommand:
+
+    @staticmethod
+    def run( cli ):
+        r""" Register to participate in Bittensor's governance protocol proposals
+        """
+        config = cli.config.copy()
+        wallet = bittensor.wallet( config = cli.config )
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+
+        # Unlock the wallet.
+        wallet.hotkey
+        wallet.coldkey
+
+        # Check if the hotkey is a delegate.
+        if not subtensor.is_hotkey_delegate( wallet.hotkey.ss58_address ):
+            console.print('Aborting: Hotkey {} isn\'t a delegate.'.format(wallet.hotkey.ss58_address))
+            return
+        
+        subtensor.register_senate(
+            wallet = wallet,
+            prompt = not cli.config.no_prompt
+        )
+
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        if not config.is_set('wallet.name') and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set('wallet.hotkey') and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        senate_register_parser = parser.add_parser(
+            'senate_register',
+            help='''Register as a senate member to participate in proposals'''
+        )
+        senate_register_parser.add_argument(
+            '--no_version_checking',
+            action='store_true',
+            help='''Set false to stop cli version checking''',
+            default = False
+        )
+        senate_register_parser.add_argument(
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        bittensor.wallet.add_args( senate_register_parser )
+        bittensor.subtensor.add_args( senate_register_parser )

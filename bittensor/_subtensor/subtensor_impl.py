@@ -37,6 +37,7 @@ from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic,undelegate_extrinsic
+from .extrinsics.senate import register_senate_extrinsic
 
 # Logging
 from loguru import logger
@@ -346,8 +347,6 @@ class Subtensor:
         """ Removes stake from each hotkey_ss58 in the list, using each amount, to a common coldkey. """
         return unstake_multiple_extrinsic( self, wallet, hotkey_ss58s, amounts, wait_for_inclusion, wait_for_finalization, prompt)
 
-
-
     def unstake (
         self,
         wallet: 'bittensor.wallet',
@@ -360,6 +359,18 @@ class Subtensor:
         """ Removes stake into the wallet coldkey from the specified hotkey uid."""
         return unstake_extrinsic( self, wallet, hotkey_ss58, amount, wait_for_inclusion, wait_for_finalization, prompt )
 
+    ################
+    #### Senate ####
+    ################
+
+    def register_senate(
+        self,
+        wallet: 'bittensor.wallet',
+        wait_for_inclusion:bool = True,
+        wait_for_finalization:bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        return register_senate_extrinsic( self, wallet, wait_for_inclusion, wait_for_finalization, prompt )
 
     ########################
     #### Standard Calls ####

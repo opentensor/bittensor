@@ -85,6 +85,7 @@ class cli:
         RegenColdkeypubCommand.add_args( cmd_parsers )
         RecycleRegisterCommand.add_args( cmd_parsers )
         ProposalsCommand.add_args( cmd_parsers )
+        SenateRegisterCommand.add_args( cmd_parsers )
 
         return parser
 
@@ -159,6 +160,8 @@ class cli:
             RecycleRegisterCommand.check_config( config )
         elif config.command == "proposals":
             ProposalsCommand.check_config( config )
+        elif config.command == "senate_register":
+            SenateRegisterCommand.check_config( config )
         else:
             console.print(":cross_mark:[red]Unknown command: {}[/red]".format(config.command))
             sys.exit()

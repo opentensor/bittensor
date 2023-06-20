@@ -84,4 +84,6 @@ class CLI:
             RecycleRegisterCommand.run( self )
         elif self.config.command == "proposals":
             ProposalsCommand.run( self )
+        elif self.config.command == "senate_register":
+            SenateRegisterCommand.run( self )
 
