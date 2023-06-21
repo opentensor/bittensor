@@ -1,0 +1,3 @@
+git+https://github.com/huggingface/diffusers
+opencv-python
+accelerate==0.17.0
