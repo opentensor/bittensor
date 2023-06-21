@@ -208,6 +208,8 @@ class ShowVotesCommand:
         if proposal_vote_data == None:
             console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
             return
+        
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(url = bittensor.__delegates_details_url__)
 
         table = Table(show_footer=False)
         table.title = (
@@ -217,16 +219,12 @@ class ShowVotesCommand:
         table.add_column("[overline white]VOTE", footer_style = "overline white", style='white')
         table.show_footer = True
 
-        for address in proposal_vote_data["ayes"]:
+        votes = display_votes(proposal_vote_data, registered_delegate_info).split("\n")
+        for vote in votes:
+            split_vote_data = vote.split(": ") # Nasty, but will work.
             table.add_row(
-                address,
-                "Aye"
-            )
-
-        for address in proposal_vote_data["nays"]:
-            table.add_row(
-                address,
-                "Nay"
+                split_vote_data[0],
+                split_vote_data[1]
             )
 
         table.box = None
