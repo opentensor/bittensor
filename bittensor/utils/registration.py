@@ -543,7 +543,7 @@ def _get_block_with_retry(subtensor: 'bittensor.Subtensor', netuid: int) -> Tupl
     """
     block_number = subtensor.get_current_block()
     difficulty = subtensor.difficulty(netuid = netuid)
-    block_hash = subtensor.substrate.get_block_hash( block_number )
+    block_hash = subtensor.get_block_hash( block_number )
     if block_hash is None:
         raise Exception("Network error. Could not connect to substrate to get block hash")
     if difficulty is None:

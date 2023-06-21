@@ -89,6 +89,9 @@ __tao_symbol__: str = chr(0x03C4)
 
 __rao_symbol__: str = chr(0x03C1)
 
+# Mock Testing Constant
+__GLOBAL_MOCK_STATE__ = {}
+
 # Block Explorers map network to explorer url
 ## Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
@@ -96,13 +99,6 @@ __network_explorer_map__ = {
     'endpoint': "https://explorer.finney.opentensor.ai/#/explorer",
     'finney': "https://explorer.finney.opentensor.ai/#/explorer"
 }
-
-# Avoid collisions with other processes
-from .utils.test_utils import get_random_unused_port
-mock_subtensor_port = get_random_unused_port()
-__mock_entrypoint__ = f"localhost:{mock_subtensor_port}"
-
-__mock_chain_db__ = './tmp/mock_chain_db'
 
 # --- Type Registry ---
 __type_registry__ = {
