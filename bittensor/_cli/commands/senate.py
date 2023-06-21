@@ -79,6 +79,34 @@ class SenateCommand:
         bittensor.wallet.add_args( senate_parser )
         bittensor.subtensor.add_args( senate_parser )
 
+from .utils import get_delegates_details, DelegatesDetails
+def format_call_data(call_data: List) -> str:
+    human_call_data = list()
+
+    for arg in call_data["call_args"]:
+        arg_value = arg["value"]
+
+        # If this argument is a nested call
+        func_args = format_call_data({
+            "call_function": arg_value["call_function"],
+            "call_args": arg_value["call_args"]
+        }) if isinstance(arg_value, dict) and "call_function" in arg_value else str(arg_value)
+
+        human_call_data.append("{}: {}".format(arg["name"], func_args))
+
+    return "{}({})".format(call_data["call_function"], ", ".join(human_call_data))
+
+def display_votes(vote_data, delegate_info) -> str:
+    vote_list = list()
+
+    for address in vote_data["ayes"]:
+        vote_list.append("{}: {}".format(delegate_info[address].name if address in delegate_info else address, "[bold green]Aye[/bold green]"))
+
+    for address in vote_data["nays"]:
+        vote_list.append("{}: {}".format(delegate_info[address].name if address in delegate_info else address, "[bold red]Nay[/bold red]"))
+
+    return "\n".join(vote_list)
+
 class ProposalsCommand:
 
     @staticmethod
