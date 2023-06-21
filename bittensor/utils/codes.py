@@ -77,6 +77,8 @@ def code_to_string( code: 'bittensor.proto.ReturnCode' ) -> str:
         return 'BadEndpoint'
     elif code == 25:
         return 'Blacklisted'
+    elif code == 26:
+        return 'InvalidRequestHotkey'
     else:
         return 'UnknownCode'
 

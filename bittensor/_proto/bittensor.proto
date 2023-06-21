@@ -80,6 +80,7 @@ enum ReturnCode {
 	Unauthenticated = 23; // Authentication failed.
 	BadEndpoint = 24; // Dummy endpoint
 	Blacklisted = 25; // Blacklisted
+	InvalidRequestHotkey = 26; // Invalid hotkey
 }
 
 /////////////////

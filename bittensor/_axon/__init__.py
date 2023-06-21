@@ -108,7 +108,6 @@ class axon:
         self.external_ip = self.config.axon.external_ip if self.config.axon.external_ip != None else bittensor.utils.networking.get_external_ip()
         self.external_port = self.config.axon.external_port if self.config.axon.external_port != None else self.config.axon.port
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
-        self.blacklist = bittensor.auth_blacklist
         self.started = False
 
         # Build priority thread pool
@@ -284,7 +283,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         """
         super().__init__()
         self.nonces = {}
-        self.blacklister = bittensor.auth_blacklist()
+        self.blacklister = bittensor.auth_blacklister()
         self.blacklist = self.blacklister.blacklist
         self.receiver_hotkey = receiver_hotkey
         self.metagraph = metagraph
@@ -355,7 +354,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         }.get(method)
         if request_type is None:
             raise Exception("Unknown request type")
-
+        print("Hi. in black_list_checking")
         failed, error_message =  self.blacklist(hotkey, metagraph=self.metagraph)
         if failed:
             raise Exception(str(error_message))
@@ -376,6 +375,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
             self.check_signature(
                 nonce, sender_hotkey, signature, receptor_uuid
             )
+
+            # blacklist checking
+            self.black_list_checking(sender_hotkey, handler_call_details.method)
 
             return continuation(handler_call_details)
 

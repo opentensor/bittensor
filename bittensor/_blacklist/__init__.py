@@ -19,15 +19,15 @@ import argparse
 import bittensor
 from typing import Union, Tuple
 
-class auth_blacklist:
+class auth_blacklister:
 
     def __init__( self, config: "bittensor.Config" = None ):
-        self.config = config or auth_blacklist.config()
+        self.config = config or auth_blacklister.config()
 
     @classmethod
     def config( cls ) -> "bittensor.Config":
         parser = argparse.ArgumentParser()
-        auth_blacklist.add_args(parser)
+        auth_blacklister.add_args(parser)
         return bittensor.config( parser )
 
     @classmethod
@@ -89,15 +89,15 @@ class auth_blacklist:
         return False, 'passed blacklist'
     
 
-class synapse_blacklist:
+class synapse_blacklister:
 
     def __init__( self, config: "bittensor.Config" = None ):
-        self.config = config or synapse_blacklist.config()
+        self.config = config or synapse_blacklister.config()
 
     @classmethod
     def config( cls ) -> "bittensor.Config":
         parser = argparse.ArgumentParser()
-        synapse_blacklist.add_args(parser)
+        synapse_blacklister.add_args(parser)
         return bittensor.config( parser )
 
     @classmethod
@@ -131,7 +131,7 @@ class synapse_blacklist:
             self, 
             forward_call: "bittensor.SynapseCall"
         ) -> Union[ Tuple[bool, str], bool ]:
-
+        print("Hi. in synapse_blacklist")
         # Check for blacklisted keys which take priority over all other checks.
         src_hotkey = forward_call.src_hotkey
         if src_hotkey in self.config.blacklist.blacklisted_keys:

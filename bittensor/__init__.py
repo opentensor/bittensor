@@ -168,8 +168,8 @@ from bittensor._tokenizer import tokenizer as tokenizer
 from bittensor._serializer import serializer as serializer
 from bittensor._dataset import dataset as dataset
 from bittensor._threadpool import prioritythreadpool as prioritythreadpool
-from bittensor._blacklist import auth_blacklist as auth_blacklist
-from bittensor._blacklist import synapse_blacklist as synapse_blacklist
+from bittensor._blacklist import auth_blacklister as auth_blacklister
+from bittensor._blacklist import synapse_blacklister as synapse_blacklister
 from bittensor._priority import priority as priority
 
 # ---- Classes -----

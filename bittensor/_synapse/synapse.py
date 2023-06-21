@@ -25,6 +25,10 @@ from typing import Union, Optional, Callable, List, Dict, Tuple
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+class InvalidRequestHotkeyError(Exception):
+    pass
+
+
 @dataclass
 class SynapseCall( ABC ):
     """ Base class for all synapse calls."""
@@ -45,12 +49,13 @@ class SynapseCall( ABC ):
             _,
             _,
         ) = synapse.axon.auth_interceptor.parse_signature(metadata)
-        
+
         self.completed = False
         self.start_time = time.time()
         self.timeout = request_proto.timeout
         self.src_version = request_proto.version
         self.src_hotkey = sender_hotkey
+        self.request_hotkey = request_proto.hotkey
         self.dest_hotkey = synapse.axon.wallet.hotkey.ss58_address
         self.dest_version = bittensor.__version_as_int__
         self.return_code: bittensor.proto.ReturnCode = bittensor.proto.ReturnCode.Success
@@ -143,6 +148,12 @@ class Synapse( ABC ):
         try:
             call.log_inbound()
 
+            # Check if the request proto containes a valid hotkey by comparing with signature hotkey.
+            if call.src_hotkey != call.request_hotkey:
+                call.return_code = bittensor.proto.ReturnCode.InvalidRequestHotkey
+                call.return_message = 'Invalid request hotkey'
+                raise InvalidRequestHotkeyError
+
             # Check blacklist.
             blacklist, reason = self._blacklist( call )
             if blacklist:
@@ -161,6 +172,10 @@ class Synapse( ABC ):
                 bittensor.logging.trace( 'Synapse: {} loaded future: {}'.format( self.name, future ) )
                 future.result( timeout = call.timeout )
                 bittensor.logging.trace( 'Synapse: {} completed call: {}'.format( self.name, call ) )
+
+        # Catch invalid request hotkey.
+        except InvalidRequestHotkeyError:
+            bittensor.logging.trace( 'Synapse: {} received call with invalid request hotkey: {} expected: {}'.format( self.name, self.request_hotkey, self.src_hotkey ) )
 
         # Catch timeouts
         except asyncio.TimeoutError:
