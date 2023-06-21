@@ -4,10 +4,11 @@ import base64
 
 hotkey = '5C86aJ2uQawR6P6veaJQXNK9HaWh6NMbUhTiLs65kq4ZW3NH'
 
-text = "Pepe the frog enormous, surrounded by colorful sea creatures and plants, - surreal, Dreamlike, ethereal lighting, Highly detailed, Intricate, Digital painting, Artstation, Concept art, Smooth, Sharp focus, Fantasy, trending on art websites, art by magali villeneuve and jock and ashley wood and rachel lee and loish"
+text = "Indian raga music - surreal, Dreamlike, ethereal, uplifting, detailed"
 
 data = { 
   "text": text,
+  "duration": 3
 }
 
 # from bytes to PIL image
@@ -17,3 +18,12 @@ music_base64 = req.text
 
 # Decode base64 string into bytes
 music_bytes = base64.b64decode(music_base64)
+
+def decode_base64_to_wav(audio_base64: str, output_filename: str):
+    audio_bytes = base64.b64decode(audio_base64)
+    with open(output_filename, 'wb') as f:
+        f.write(audio_bytes)
+    print(f"Wav file has been written to {output_filename}")
+
+# Now call the function
+decode_base64_to_wav(music_base64, "output.wav")

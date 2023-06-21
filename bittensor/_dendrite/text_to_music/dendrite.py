@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import torch
 import bittensor
-from typing import Callable, List, Dict, Union
+from typing import Callable, Union
 
 class TextToMusicForwardCall( bittensor.DendriteCall ):
 
@@ -28,15 +28,12 @@ class TextToMusicForwardCall( bittensor.DendriteCall ):
         self,
         dendrite: 'bittensor.TextToMusicDendrite',
         text: str,
-        sample: str,
         duration: int,
         timeout: float = bittensor.__blocktime__,
     ):
         super().__init__( dendrite = dendrite, timeout = timeout )
         self.text = text
-        self.sample = sample
         self.duration = duration
-
         
     def get_callable( self ) -> Callable:
         return bittensor.grpc.TextToMusicStub( self.dendrite.channel ).Forward
@@ -44,7 +41,6 @@ class TextToMusicForwardCall( bittensor.DendriteCall ):
     def get_request_proto( self ) -> bittensor.proto.ForwardTextToMusicRequest:
         return bittensor.proto.ForwardTextToMusicRequest( 
             text = self.text,
-            image = self.sample,
             duration = self.duration,
         )
     
@@ -62,7 +58,6 @@ class TextToMusicDendrite( bittensor.Dendrite ):
     def forward(
             self,
             text: str,
-            sample: str,
             duration: int,
             timeout: float = bittensor.__blocktime__,
             return_call:bool = True,
@@ -71,7 +66,6 @@ class TextToMusicDendrite( bittensor.Dendrite ):
             dendrite = self, 
             timeout = timeout,
             text = text,
-            sample = sample,
             duration = duration,
         )
         response_call = self.loop.run_until_complete( self.apply( dendrite_call = forward_call ) )
@@ -81,7 +75,6 @@ class TextToMusicDendrite( bittensor.Dendrite ):
     async def async_forward(
         self,
         text: str,
-        sample: str = '',
         duration: int = 12,
         timeout: float = bittensor.__blocktime__,
         return_call: bool = True,
@@ -90,7 +83,6 @@ class TextToMusicDendrite( bittensor.Dendrite ):
             dendrite = self, 
             timeout = timeout,
             text = text,
-            sample = sample,
             duration = duration,
         )
         forward_call = await self.apply( dendrite_call = forward_call )

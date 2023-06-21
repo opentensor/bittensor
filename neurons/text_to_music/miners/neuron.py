@@ -15,17 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import time
 import argparse
 import bittensor
 import base64
 from io import BytesIO
 
-from audiocraft.models import musicgen
 import soundfile as sf
+from audiocraft.models import musicgen
 from audiocraft.data.audio import audio_write
 
-from audiocraft.utils.notebook import display_audio
 from typing import List
 
 bittensor.trace()
@@ -39,29 +39,36 @@ class AudioCraftTextToMusicMiner( bittensor.BaseTextToMusicMiner ):
     @classmethod
     def add_args( cls, parser: argparse.ArgumentParser ):
         parser.add_argument( '--neuron.model_name', type=str, help='Name of the model to use.', default = "medium" )
+        parser.add_argument( '--tempfile', type=str, default='tempfile')
         parser.add_argument( '--device', type=str, help='Device to load model', default="cuda" )
 
     def __init__( self, config: "bittensor.Config" = None ):
         super( AudioCraftTextToMusicMiner, self ).__init__( config = config )
         self.model = musicgen.MusicGen.get_pretrained(self.config.neuron.model_name, device=self.config.device)
-
     
-    def forward( self, text: str, sample: str, duration: int, ) -> List[str]:
+    def forward( self, text: str, duration: int, ) -> List[str]:
+        # Perform the generation
         self.model.set_generation_params( duration=duration )
+        output = self.model.generate( [text], progress=True )
+        # Convert to audio using Audiocraft tool and save as a tempfile
+        audio_write( 
+            f'{self.config.tempfile}', 
+            output[0].cpu(), 
+            self.model.sample_rate, 
+            strategy="loudness", 
+            loudness_compressor=True 
+        )
 
-        output = self.model.generate( text, progress=True )
-        print( output )
-        for idx, one_wav in enumerate( output ):
-            audio_write( f'tmp_{idx}', one_wav.cpu(), self.model.sample_rate, strategy="loudness", loudness_compressor=True )
-            # strategy = clip, peak or rms
-        
+        # Convert generated wav to bytes in base64
         audio_buffer = BytesIO()
-        with open( f'tmp_20.wav', 'rb' ) as f:
-            content = f.read()
-            sf.write( audio_buffer, content, self.model.sample_rate, format='wav' )
-            vibes = audio_buffer.getvalue()
-            audio_base64 = base64.b64encode( vibes ).decode( 'utf-8' )
+        with open( f'{self.config.tempfile}.wav', 'rb' ) as f:
+            audio_array, _ = sf.read(f'{self.config.tempfile}.wav')
+            sf.write( audio_buffer, audio_array, self.model.sample_rate, format='WAV' )
+            audio_base64 = base64.b64encode( audio_buffer.getvalue() ).decode( 'utf-8' )
             f.close()
+
+        # Cleanup
+        os.system("rm -rf {tempfile}.wav")
 
         return audio_base64
 

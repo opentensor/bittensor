@@ -41,7 +41,6 @@ class TextToMusicForward( bittensor.SynapseCall ):
 
         #TODO: make these optional
         self.text = request_proto.text
-        self.sample = request_proto.sample
         self.duration = request_proto.duration
         self.forward_callback = forward_callback
 
@@ -49,9 +48,8 @@ class TextToMusicForward( bittensor.SynapseCall ):
         bittensor.logging.trace( "TextToMusicForward.apply()" )
         self.music = self.forward_callback( 
             text = self.text, 
-            sample = self.sample,
             duration = self.duration,
-            )
+        )
         bittensor.logging.trace( "TextToMusicForward.apply() = len(result)", len(self.music) )
 
     def get_response_proto( self ) -> bittensor.proto.ForwardTextToMusicResponse: 
@@ -69,7 +67,6 @@ class TextToMusicForward( bittensor.SynapseCall ):
 
 class TextToMusic(BaseModel):
     text: str
-    sample: str = ''
     duration: int = 12
     timeout: int = 60
     
@@ -94,7 +91,6 @@ class TextToMusicSynapse( bittensor.Synapse, bittensor.grpc.TextToMusicServicer 
             version = bittensor.__version_as_int__,
             timeout = item.timeout, 
             text = item.text,
-            sample = item.sample,
             duration = item.duration
         )
         call = TextToMusicForward( self, request_proto, self.forward )

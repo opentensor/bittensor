@@ -60,7 +60,7 @@ class BaseTextToMusicMiner( bittensor.BaseMinerNeuron, ABC ):
             def blacklist( _, forward_call: "bittensor.TextToMusicForwardCall" ) -> Union[ Tuple[bool, str], bool ]:
                 return self.blacklist( forward_call )
             def backward( _, music: bytes, text: str, rewards: torch.FloatTensor ) -> str: pass
-            def forward( _, text: str ) -> List[str]:
-                return self.forward( text )
+            def forward( _, text: str, duration: int ) -> List[str]:
+                return self.forward( text, duration )
             
         self.synapse = Synapse( axon = self.axon )
