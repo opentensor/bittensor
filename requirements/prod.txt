@@ -19,6 +19,7 @@ munch==2.5.0
 nest_asyncio==1.5.6
 netaddr==0.8.0
 numpy>=1.21.6,<=1.24.2
+openconfig==0.0.0
 pandas==1.5.2
 password_strength==0.0.3.post2
 prometheus_client==0.14.1

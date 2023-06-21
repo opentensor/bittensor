@@ -131,7 +131,7 @@ except ValueError:
 
 
 # ---- Config ----
-from bittensor._config import config as config
+from openconfig import config as config
 
 # ---- LOGGING ----
 # Duplicate import for ease of use.
@@ -169,7 +169,7 @@ from bittensor._priority import priority as priority
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
-from bittensor._config.config_impl import Config as Config
+from openconfig.config_impl import Config as Config
 from bittensor._subtensor.chain_data import DelegateInfo as DelegateInfo
 from bittensor._wallet.wallet_impl import Wallet as Wallet
 from bittensor._keyfile.keyfile_impl import Keyfile as Keyfile

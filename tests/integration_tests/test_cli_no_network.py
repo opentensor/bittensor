@@ -70,13 +70,6 @@ class TestCLINoNetwork(unittest.TestCase):
     def construct_config():
         defaults = bittensor.Config()
 
-        # Get defaults for this config
-        is_set_map = bittensor.config.__fill_is_set_list__(defaults, bittensor.defaults)
-
-        defaults['__is_set'] = is_set_map
-
-        defaults.__fill_with_defaults__(is_set_map, bittensor.defaults)
-
         defaults.netuid = 1
         bittensor.subtensor.add_defaults( defaults )
         defaults.subtensor.network = 'mock'
