@@ -354,7 +354,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         }.get(method)
         if request_type is None:
             raise Exception("Unknown request type")
-        print("Hi. in black_list_checking")
+
         failed, error_message =  self.blacklist(hotkey, metagraph=self.metagraph)
         if failed:
             raise Exception(str(error_message))
