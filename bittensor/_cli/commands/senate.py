@@ -118,6 +118,7 @@ class ProposalsCommand:
 
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
 
+        senate_members = subtensor.query_module("SenateMembers", "Members").serialize()
         proposals = dict()
         proposal_hashes = subtensor.query_module("Triumvirate", "Proposals")
 
@@ -127,33 +128,20 @@ class ProposalsCommand:
                 subtensor.get_vote_data( hash )
             ]
 
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(url = bittensor.__delegates_details_url__)
+
         table = Table(show_footer=False)
         table.title = (
-            "[white]Proposals"
+            "[white]Proposals\t\tActive Proposals: {}\t\tSenate Size: {}".format(len(proposals), len(senate_members))
         )
         table.add_column("[overline white]HASH", footer_style = "overline white", style='yellow', no_wrap=True)
         table.add_column("[overline white]THRESHOLD", footer_style = "overline white", style='white')
         table.add_column("[overline white]AYES", footer_style = "overline white", style='green')
         table.add_column("[overline white]NAYS", footer_style = "overline white", style='red')
+        table.add_column("[overline white]VOTES", footer_style = "overline white", style='rgb(50,163,219)')
         table.add_column("[overline white]END", footer_style = "overline white", style='blue')
         table.add_column("[overline white]CALLDATA", footer_style = "overline white", style='white')
         table.show_footer = True
-
-        def format_call_data(call_data: List) -> str:
-            human_call_data = list()
-
-            for arg in call_data["call_args"]:
-                arg_value = arg["value"]
-
-                # If this argument is a nested call
-                func_args = format_call_data({
-                    "call_function": arg_value["call_function"], 
-                    "call_args": arg_value["call_args"]
-                }) if isinstance(arg_value, dict) and "call_function" in arg_value else str(arg_value)
-
-                human_call_data.append("{}: {}".format(arg["name"], func_args))
-
-            return "{}({})".format(call_data["call_function"], ", ".join(human_call_data))
 
         for hash in proposals:
             call_data = proposals[hash][0].serialize()
@@ -164,6 +152,7 @@ class ProposalsCommand:
                 str(vote_data["threshold"]),
                 str(len(vote_data["ayes"])),
                 str(len(vote_data["nays"])),
+                display_votes(vote_data, registered_delegate_info),
                 str(vote_data["end"]),
                 format_call_data(call_data)
             )
