@@ -35,8 +35,9 @@ class SynapseForwardMulti( bittensor.SynapseCall ):
             synapse: "bittensor.TextPromptingSynapseMulti",
             request_proto: bittensor.proto.MultiForwardTextPromptingRequest,
             multi_forward_callback: Callable,
+            context: grpc.ServicerContext
         ):
-        super().__init__( synapse = synapse, request_proto = request_proto )
+        super().__init__( synapse = synapse, request_proto = request_proto, context=context )
         self.messages: List[ Dict[str, str] ] = request_proto.messages
         self.formatted_messages = [ json.loads(message) for message in self.messages ]
         self.multi_forward_callback = multi_forward_callback
@@ -68,8 +69,9 @@ class SynapseForward( bittensor.SynapseCall ):
             synapse: "TextPromptingSynapse",
             request_proto: bittensor.proto.ForwardTextPromptingRequest,
             forward_callback: Callable,
+            context: grpc.ServicerContext
         ):
-        super().__init__( synapse = synapse, request_proto = request_proto )
+        super().__init__( synapse = synapse, request_proto = request_proto, context=context )
         self.messages = request_proto.messages
         self.formatted_messages = [ json.loads(message) for message in self.messages ]
         self.forward_callback = forward_callback
@@ -151,7 +153,7 @@ class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServi
         bittensor.logging.trace( 'fast_api_forward_text_to_completion')
         packed_messages = [ json.dumps({"role": role, "content": message}) for role, message in zip( roles,  messages )]
         request = bittensor.ForwardTextPromptingRequest( hotkey = hotkey, timeout = timeout, messages = packed_messages, version = bittensor.__version_as_int__ )
-        call = SynapseForward( self, request, self.forward )
+        call = SynapseForward( self, request, self.forward, self.context )
         bittensor.logging.trace( 'FastTextToCompletionForward: {} '.format( call ) )
         return self.apply( call = call ).response
 
@@ -162,17 +164,17 @@ class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServi
         raise NotImplementedError('Not Implemented')
 
     def Forward( self, request: bittensor.proto.ForwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.ForwardTextPromptingResponse:
-        call = SynapseForward( self, request, self.forward )
+        call = SynapseForward( self, request, self.forward, context )
         bittensor.logging.trace( 'Forward: {} '.format( call ) )
         return self.apply( call = call )
 
     def MultiForward( self, request: bittensor.proto.MultiForwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.MultiForwardTextPromptingResponse:
-        call = SynapseForwardMulti( self, request, self.multi_forward )
+        call = SynapseForwardMulti( self, request, self.multi_forward, context )
         bittensor.logging.trace( 'MultiForward: {} '.format( call ) )
         return self.apply( call = call )
 
     def Backward( self, request: bittensor.proto.BackwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.BackwardTextPromptingResponse:
-        call = SynapseBackward( self, request, self.backward )
+        call = SynapseBackward( self, request, self.backward, context )
         bittensor.logging.trace( 'Backward: {}'.format( call ) )
         return self.apply( call = call )
 
