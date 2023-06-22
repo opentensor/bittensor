@@ -72,7 +72,8 @@ class TestSubtensor(unittest.TestCase):
         # Argument importance: chain_endpoint (arg) > network (arg) > config.subtensor.chain_endpoint > config.subtensor.network
         config0 = bittensor.subtensor.config()
         config0.subtensor.network = 'finney'
-        config0.subtensor.chain_endpoint = bittensor.__finney_entrypoint__ #'wss://finney.subtensor.io'
+        config0.subtensor.chain_endpoint = 'wss://finney.subtensor.io' # Should not match bittensor.__finney_entrypoint__
+        assert config0.subtensor.chain_endpoint != bittensor.__finney_entrypoint__
 
         config1 = bittensor.subtensor.config()
         config1.subtensor.network = 'local'
@@ -83,15 +84,15 @@ class TestSubtensor(unittest.TestCase):
             with patch('substrateinterface.SubstrateInterface.reload_type_registry'):
                 # Choose arg over config
                 sub0 = bittensor.subtensor( config = config0, chain_endpoint = 'wss://fin.subtensor.io' )
-                assert sub0.chain_endpoint == 'wss://fin.subtensor.io'
+                self.assertEqual(sub0.chain_endpoint, 'wss://fin.subtensor.io', msg='Explicit chain_endpoint arg should override config.chain_endpoint')
 
                 # Choose network arg over config
                 sub1 = bittensor.subtensor( config = config1, network = 'local' )
-                assert sub1.chain_endpoint == bittensor.__local_entrypoint__
+                self.assertEqual(sub1.chain_endpoint, bittensor.__local_entrypoint__, msg='Explicit network arg should override config.network')
 
                 # Choose chain_endpoint config over network config
                 sub2 = bittensor.subtensor( config = config0 )
-                assert sub2.chain_endpoint == bittensor.__finney_entrypoint__
+                self.assertEqual(sub2.chain_endpoint, config0.subtensor.chain_endpoint, msg='config.chain_endpoint should override choice derived from config.network')
 
                 sub3 = bittensor.subtensor( config = config1 )
                 # Should pick local instead of finney (default)
