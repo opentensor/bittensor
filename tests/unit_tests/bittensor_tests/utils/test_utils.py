@@ -24,6 +24,9 @@ from substrateinterface.base import Keypair
 
 import bittensor
 from bittensor.utils.registration import _CUDASolver, _SolverBase
+from bittensor._subtensor.subtensor_mock import MockSubtensor
+
+from tests.mocks.wallet_mock import Wallet_mock
 
 
 @fixture(scope="function")
@@ -67,7 +70,7 @@ def select_port():
     return port
 
 def generate_wallet(coldkey : 'Keypair' = None, hotkey: 'Keypair' = None):
-    wallet = bittensor.wallet(_mock=True)
+    wallet = Wallet_mock( _mock = True, name = 'mock', path = '/tmp/', hotkey = 'mock' )
 
     if not coldkey:
         coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
@@ -649,6 +652,188 @@ class TestExplorerURL(unittest.TestCase):
     @unpack
     def test_get_explorer_url_for_network_by_network_and_block_hash(self, network: str, block_hash: str, expected: str) -> str:
         self.assertEqual(bittensor.utils.get_explorer_url_for_network(network, block_hash, self.network_map), expected)
+
+
+class TestWalletReregister(unittest.TestCase):
+    _mock_subtensor: MockSubtensor
+
+    def setUp(self):
+        self.subtensor = bittensor.subtensor( network = 'mock' ) # own instance per test
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Keeps the same mock network for all tests. This stops the network from being re-setup for each test.
+        cls._mock_subtensor = bittensor.subtensor( network = 'mock' )
+
+        cls._do_setup_subnet()
+
+    @classmethod
+    def _do_setup_subnet(cls):
+        # reset the mock subtensor
+        cls._mock_subtensor.reset()
+        # Setup the mock subnet 3
+        cls._mock_subtensor.create_subnet(
+            netuid = 3
+        )
+
+    def test_wallet_reregister_reregister_false(self):
+        mock_wallet = generate_wallet()
+
+        class MockException(Exception):
+            pass
+        
+        with patch('bittensor.Subtensor.register', side_effect=MockException) as mock_register:
+            with pytest.raises(SystemExit): # should exit because it's not registered
+                bittensor.utils.reregister(
+                    wallet = mock_wallet,
+                    subtensor = self._mock_subtensor,
+                    netuid = 3,
+                    reregister = False,
+                )
+
+            mock_register.assert_not_called() # should not call register
+
+    def test_wallet_reregister_reregister_false_and_registered_already(self):
+        mock_wallet = generate_wallet()
+
+        class MockException(Exception):
+            pass
+
+        self._mock_subtensor.force_register_neuron(
+            netuid = 3,
+            hotkey = mock_wallet.hotkey.ss58_address,
+            coldkey = mock_wallet.coldkeypub.ss58_address,
+        )
+        self.assertTrue(self._mock_subtensor.is_hotkey_registered_on_subnet(
+            netuid = 3,
+            hotkey_ss58 = mock_wallet.hotkey.ss58_address,
+        ))
+        
+        with patch('bittensor.Subtensor.register', side_effect=MockException) as mock_register:
+            bittensor.utils.reregister(
+                wallet = mock_wallet,
+                subtensor = self._mock_subtensor,
+                netuid = 3,
+                reregister = False,
+            ) # Should not exit because it's registered
+
+            mock_register.assert_not_called() # should not call register
+
+    def test_wallet_reregister_reregister_true_and_registered_already(self):
+        mock_wallet = generate_wallet()
+
+        class MockException(Exception):
+            pass
+
+        self._mock_subtensor.force_register_neuron(
+            netuid = 3,
+            hotkey = mock_wallet.hotkey.ss58_address,
+            coldkey = mock_wallet.coldkeypub.ss58_address,
+        )
+        self.assertTrue(self._mock_subtensor.is_hotkey_registered_on_subnet(
+            netuid = 3,
+            hotkey_ss58 = mock_wallet.hotkey.ss58_address,
+        ))
+        
+        with patch('bittensor.Subtensor.register', side_effect=MockException) as mock_register:
+            bittensor.utils.reregister(
+                wallet = mock_wallet,
+                subtensor = self._mock_subtensor,
+                netuid = 3,
+                reregister = True,
+            ) # Should not exit because it's registered
+
+            mock_register.assert_not_called() # should not call register
+
+
+    def test_wallet_reregister_no_params(self):
+        mock_wallet = generate_wallet()
+
+        class MockException(Exception):
+            pass
+        
+        with patch('bittensor.Subtensor.register', side_effect=MockException) as mock_register:
+            # Should be able to set without argument
+            with pytest.raises(MockException):
+                bittensor.utils.reregister(
+                    wallet = mock_wallet,
+                    subtensor = self._mock_subtensor,
+                    netuid = 3,
+                    reregister = True,
+                    # didn't pass any register params
+                )
+
+            mock_register.assert_called_once() # should call register once
+
+    def test_wallet_reregister_use_cuda_flag_true(self):
+        mock_wallet = generate_wallet()
+
+        class MockException(Exception):
+            pass
+        
+        with patch('bittensor.Subtensor.register', side_effect=MockException) as mock_register:
+            # Should be able to set without argument
+            with pytest.raises(MockException):
+                bittensor.utils.reregister(
+                    wallet = mock_wallet,
+                    subtensor = self._mock_subtensor,
+                    netuid = 3,
+                    dev_id = 0,
+                    use_cuda = True,
+                    reregister = True,
+                )
+
+            call_args = mock_register.call_args
+            _, kwargs = call_args
+
+            mock_register.assert_called_once()
+            self.assertEqual(kwargs['cuda'], True) 
+
+    def test_wallet_reregister_use_cuda_flag_false(self):
+        mock_wallet = generate_wallet()
+
+        class MockException(Exception):
+            pass
+        
+        with patch('bittensor.Subtensor.register', side_effect=MockException) as mock_register:
+            # Should be able to set without argument
+            with pytest.raises(MockException):
+                bittensor.utils.reregister(
+                    wallet = mock_wallet,
+                    subtensor = self._mock_subtensor,
+                    netuid = 3,
+                    dev_id = 0,
+                    use_cuda = False,
+                    reregister = True,
+                )
+
+            call_args = mock_register.call_args
+            _, kwargs = call_args
+
+            mock_register.assert_called_once()
+            self.assertEqual(kwargs['cuda'], False)
+
+    def test_wallet_reregister_use_cuda_flag_not_specified_false(self):
+        mock_wallet = generate_wallet()
+
+        class MockException(Exception):
+            pass
+
+        with patch('bittensor.Subtensor.register', side_effect=MockException) as mock_register:
+            # Should be able to set without argument
+            with pytest.raises(MockException):
+                bittensor.utils.reregister(
+                    wallet = mock_wallet,
+                    subtensor = self._mock_subtensor,
+                    netuid = 3,
+                    dev_id = 0,
+                )
+
+            call_args = mock_register.call_args
+            _, kwargs = call_args
+
+            mock_register.assert_called_once()
+            self.assertEqual(kwargs['cuda'], False) # should be False by default
 
 
 if __name__ == "__main__":
