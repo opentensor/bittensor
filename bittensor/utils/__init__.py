@@ -243,8 +243,8 @@ def u8_key_to_ss58(u8_key: List[int]) -> str:
     # First byte is length, then 32 bytes of key.
     return scalecodec.ss58_encode( bytes(u8_key).hex(), bittensor.__ss58_format__)
 
-def type_or_suppress(type: Type) -> Callable[[Any], Union[Any, Literal['==SUPRESS==']]]:
-    def _type_or_suppress(value: Any) -> Union[Any, Literal['==SUPRESS==']]:
-        return value if value == argparse.SUPPRESS else type(value)
+def type_or_suppress(type_func: Callable[[str], Any]) -> Callable[[str], Union[Any, Literal['==SUPRESS==']]]:
+    def _type_or_suppress(value: str) -> Union[Any, Literal['==SUPRESS==']]:
+        return value if value == argparse.SUPPRESS else type_func(value)
     
     return _type_or_suppress
