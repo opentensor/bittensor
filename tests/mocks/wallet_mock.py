@@ -22,6 +22,8 @@ import os
 import bittensor
 import openwallet
 
+from .keyfile_mock import MockKeyfile
+
 class MockWallet(openwallet.Wallet):
     """
     Mocked Version of the bittensor wallet class, meant to be used for testing
@@ -48,7 +50,7 @@ class MockWallet(openwallet.Wallet):
     def hotkey_file(self) -> 'openwallet.Keyfile':
         if self._is_mock:
             if self._mocked_hotkey_keyfile == None:
-                self._mocked_hotkey_keyfile = bittensor.keyfile(path='MockedHotkey', _mock = True)
+                self._mocked_hotkey_keyfile = MockKeyfile(path='MockedHotkey')
             return self._mocked_hotkey_keyfile
         else:
             wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
@@ -59,7 +61,7 @@ class MockWallet(openwallet.Wallet):
     def coldkey_file(self) -> 'openwallet.Keyfile':
         if self._is_mock:
             if self._mocked_coldkey_keyfile == None:
-                self._mocked_coldkey_keyfile = bittensor.keyfile(path='MockedColdkey', _mock = True)
+                self._mocked_coldkey_keyfile = MockKeyfile(path='MockedColdkey')
             return self._mocked_coldkey_keyfile
         else:
             wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
@@ -70,7 +72,7 @@ class MockWallet(openwallet.Wallet):
     def coldkeypub_file(self) -> 'openwallet.Keyfile':
         if self._is_mock:
             if self._mocked_coldkey_keyfile == None:
-                self._mocked_coldkey_keyfile = bittensor.keyfile(path='MockedColdkeyPub', _mock = True)
+                self._mocked_coldkey_keyfile = MockKeyfile(path='MockedColdkeyPub')
             return self._mocked_coldkey_keyfile
         else:
             wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
