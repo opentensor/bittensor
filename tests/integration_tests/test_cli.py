@@ -2195,7 +2195,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         )
         delegate_wallet = generate_wallet(
             hotkey = get_mock_keypair(
-                100, self.id()
+                100 + 1, self.id()
             )
         )
 
@@ -2242,7 +2242,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         )
 
         with patch(
-            "tests.mocks.wallet_mock.MockWallet", return_value=mock_wallet
+            "bittensor.wallet", return_value=mock_wallet
         ):  # Mock wallet creation. SHOULD NOT BE REGISTERED
             cli = bittensor.cli(
                 args=[
