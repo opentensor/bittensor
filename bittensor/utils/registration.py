@@ -4,6 +4,7 @@ import math
 import multiprocessing
 import os
 import random
+import sys
 import time
 from dataclasses import dataclass
 from datetime import timedelta
@@ -869,3 +870,76 @@ def create_pow(
         )
 
     return solution
+
+
+def reregister_wallet(
+        netuid: int,
+        wallet: 'bittensor.Wallet',
+        subtensor: Optional['bittensor.Subtensor'] = None,
+        config: Optional['bittensor.Config'] = None,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False
+    ) -> Optional['bittensor.Wallet']:
+        """ Re-register this a Wallet on the chain, or exits.
+                Exits if the wallet is not registered on the chain AND
+                the config.subtensor.reregister flag is set to False.
+            Args:
+                netuid (int):
+                    The network uid of the subnet to register on.
+                wallet( 'bittensor.Wallet' ):
+                    Bittensor Wallet to re-register
+                subtensor (Optional['bittensor.Subtensor']):
+                    Bittensor subtensor to use for registration.
+                config (Optional['bittensor.Config']):
+                    Bittensor config to use for registration.
+                wait_for_inclusion (bool):
+                    if set, waits for the extrinsic to enter a block before returning true,
+                    or returns false if the extrinsic fails to enter the block within the timeout.
+                wait_for_finalization (bool):
+                    if set, waits for the extrinsic to be finalized on the chain before returning true,
+                    or returns false if the extrinsic fails to be finalized within the timeout.
+                prompt (bool):
+                    If true, the call waits for confirmation from the user before proceeding.
+
+            Return:
+                wallet (bittensor.Wallet):
+                    This wallet.
+
+            Raises:
+                SytemExit(0):
+                    If the wallet is not registered on the chain AND
+                    the config.subtensor.reregister flag is set to False.
+        """
+        wallet.hotkey
+
+        if config is None:
+            config = bittensor.config()
+
+        if subtensor is None:
+            subtensor = bittensor.subtensor( config = config )
+
+        if not subtensor.is_hotkey_registered_on_subnet(
+            hotkey_ss58=wallet.hotkey.ss58_address,
+            netuid=netuid
+        ):
+            # Check if the wallet should reregister
+            if not config.subtensor.get('reregister'):
+                sys.exit(0)
+
+            subtensor.register(
+                wallet = wallet,
+                netuid = netuid,
+                prompt = prompt,
+                TPB = config.subtensor.register.cuda.get('TPB', None),
+                update_interval = subtensor.register.cuda.get('update_interval', None),
+                num_processes = subtensor.register.get('num_processes', None),
+                cuda = subtensor.register.cuda.get('use_cuda', bittensor.defaults.subtensor.register.cuda.use_cuda),
+                dev_id = subtensor.register.cuda.get('dev_id', None),
+                wait_for_inclusion = wait_for_inclusion,
+                wait_for_finalization = wait_for_finalization,
+                output_in_place = subtensor.register.get('output_in_place', bittensor.defaults.subtensor.register.output_in_place),
+                log_verbose = subtensor.register.get('verbose', bittensor.defaults.subtensor.register.verbose),
+            )
+
+        return wallet
