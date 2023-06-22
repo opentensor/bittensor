@@ -30,24 +30,9 @@ from substrateinterface.base import Keypair
 
 import bittensor
 from bittensor.utils.balance import Balance
-from tests.helpers import MockConsole, get_mock_keypair
+from tests.helpers import MockConsole, get_mock_keypair, get_mock_wallet as generate_wallet
 from bittensor._subtensor.subtensor_mock import MockSubtensor
 
-
-def generate_wallet(coldkey: "Keypair" = None, hotkey: "Keypair" = None):
-    _config = TestCLIWithNetworkAndConfig.construct_config()
-    wallet = bittensor.wallet(_config, _mock=True).create()
-
-    if not coldkey:
-        coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-    if not hotkey:
-        hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-
-    wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)
-    wallet.set_coldkeypub(coldkey, encrypt=False, overwrite=True)
-    wallet.set_hotkey(hotkey, encrypt=False, overwrite=True)
-
-    return wallet
 
 _subtensor_mock: MockSubtensor = bittensor.subtensor( network = 'mock', _mock = True )
 
@@ -1958,7 +1943,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.subtensor.register.update_interval = 50_000
         config.no_prompt = True
 
-        mock_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
 
         class MockException(Exception):
             pass
@@ -1983,7 +1972,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "recycle_register"
         config.no_prompt = True
 
-        mock_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
 
         # Give the wallet some balance for burning
         success, err = _subtensor_mock.force_set_balance(
@@ -2019,7 +2012,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         subtensor = bittensor.subtensor(config)
 
-        mock_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
 
         # Register the hotkey and give it some balance
         _subtensor_mock.force_register_neuron(
@@ -2191,8 +2188,16 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         """
         Test delegate add command
         """
-        mock_wallet = generate_wallet()
-        delegate_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
+        delegate_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
 
        
         # register the wallet

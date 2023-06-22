@@ -27,6 +27,7 @@ from bittensor.utils.registration import _CUDASolver, _SolverBase
 from bittensor._subtensor.subtensor_mock import MockSubtensor
 
 from tests.mocks.wallet_mock import MockWallet
+from tests.helpers import get_mock_wallet as generate_wallet, get_mock_keypair
 
 
 @fixture(scope="function")
@@ -68,20 +69,6 @@ def initialize_tests():
 def select_port():
     port = random.randrange(1000, 65536, 5)
     return port
-
-def generate_wallet(coldkey : 'Keypair' = None, hotkey: 'Keypair' = None):
-    wallet = MockWallet( _mock = True, name = 'mock', path = '/tmp/', hotkey = 'mock' )
-
-    if not coldkey:
-        coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-    if not hotkey:
-        hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-
-    wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)
-    wallet.set_coldkeypub(coldkey, encrypt=False, overwrite=True)
-    wallet.set_hotkey(hotkey, encrypt=False, overwrite=True)
-
-    return wallet
 
 def setup_subtensor( port:int ):
     chain_endpoint = "localhost:{}".format(port)
@@ -677,7 +664,11 @@ class TestWalletReregister(unittest.TestCase):
         )
 
     def test_wallet_reregister_reregister_false(self):
-        mock_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
 
         class MockException(Exception):
             pass
@@ -694,7 +685,11 @@ class TestWalletReregister(unittest.TestCase):
             mock_register.assert_not_called() # should not call register
 
     def test_wallet_reregister_reregister_false_and_registered_already(self):
-        mock_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
 
         class MockException(Exception):
             pass
@@ -720,7 +715,11 @@ class TestWalletReregister(unittest.TestCase):
             mock_register.assert_not_called() # should not call register
 
     def test_wallet_reregister_reregister_true_and_registered_already(self):
-        mock_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
 
         class MockException(Exception):
             pass
@@ -747,7 +746,11 @@ class TestWalletReregister(unittest.TestCase):
 
 
     def test_wallet_reregister_no_params(self):
-        mock_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
 
         class MockException(Exception):
             pass
@@ -766,7 +769,11 @@ class TestWalletReregister(unittest.TestCase):
             mock_register.assert_called_once() # should call register once
 
     def test_wallet_reregister_use_cuda_flag_true(self):
-        mock_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
 
         class MockException(Exception):
             pass
@@ -791,7 +798,11 @@ class TestWalletReregister(unittest.TestCase):
             self.assertEqual(kwargs['cuda'], True) 
 
     def test_wallet_reregister_use_cuda_flag_false(self):
-        mock_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
 
         class MockException(Exception):
             pass
@@ -815,7 +826,11 @@ class TestWalletReregister(unittest.TestCase):
             self.assertEqual(kwargs['cuda'], False)
 
     def test_wallet_reregister_cuda_arg_not_specified_should_be_false(self):
-        mock_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
 
         class MockException(Exception):
             pass
