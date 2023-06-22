@@ -196,6 +196,8 @@ from bittensor._proto.bittensor_pb2 import ForwardTextToEmbeddingRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextToEmbeddingResponse
 from bittensor._proto.bittensor_pb2 import ForwardSpeechToTextRequest
 from bittensor._proto.bittensor_pb2 import ForwardSpeechToTextResponse
+from bittensor._proto.bittensor_pb2 import ForwardImageToTextRequest
+from bittensor._proto.bittensor_pb2 import ForwardImageToTextResponse
 from bittensor._proto.bittensor_pb2 import ForwardTextToSpeechRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextToSpeechResponse
 from bittensor._proto.bittensor_pb2 import ForwardTextToMusicRequest
@@ -219,6 +221,7 @@ from bittensor._synapse.text_to_speech.synapse import TextToSpeechSynapse
 from bittensor._synapse.text_to_music.synapse import TextToMusicSynapse
 from bittensor._synapse.text_to_image.synapse import TextToImageSynapse
 from bittensor._synapse.text_to_video.synapse import TextToVideoSynapse
+from bittensor._synapse.image_to_text.synapse import ImageToTextSynapse
 
 # ---- Dendrites -----
 from bittensor._dendrite.dendrite import Dendrite
@@ -231,6 +234,7 @@ from bittensor._dendrite.text_to_speech.dendrite import TextToSpeechDendrite as 
 from bittensor._dendrite.text_to_music.dendrite import TextToMusicDendrite as text_to_music
 from bittensor._dendrite.text_to_image.dendrite import TextToImageDendrite as text_to_image
 from bittensor._dendrite.text_to_video.dendrite import TextToVideoDendrite as text_to_video
+from bittensor._dendrite.image_to_text.dendrite import ImageToTextDendrite as image_to_text
 
 # ---- Base Miners -----
 from bittensor._neuron.base_miner_neuron import BaseMinerNeuron
@@ -243,6 +247,7 @@ from bittensor._neuron.base_text_to_speech_miner import BaseTextToSpeechMiner
 from bittensor._neuron.base_text_to_music_miner import BaseTextToMusicMiner
 from bittensor._neuron.base_text_to_image_miner import BaseTextToImageMiner
 from bittensor._neuron.base_text_to_video_miner import BaseTextToVideoMiner
+from bittensor._neuron.base_image_to_text_miner import BaseImageToTextMiner
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError

@@ -82,6 +82,27 @@ message ForwardTextToImageResponse {
 	ReturnCode return_code = 5;
 }
 
+/////////////////////////
+// Image to Text //
+/////////////////////////
+
+service ImageToText { rpc Forward (ForwardImageToTextRequest) returns (ForwardImageToTextResponse) {} }
+
+message ForwardImageToTextRequest {
+	int32 version = 1;
+	string hotkey = 2;
+	string image = 3;
+	float timeout = 4;
+}
+
+message ForwardImageToTextResponse {
+	int32 version = 1;
+	string hotkey = 2;
+	string text = 3;
+	string return_message = 4;
+	ReturnCode return_code = 5;
+}
+
 
 /////////////////////////
 // Text-to-Music //
