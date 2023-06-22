@@ -18,7 +18,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import os
-import json
 import grpc
 import copy
 import torch
@@ -115,7 +114,7 @@ class axon:
 
         # Build interceptor.
         self.receiver_hotkey = self.wallet.hotkey.ss58_address
-        self.auth_interceptor = AuthInterceptor(receiver_hotkey=self.receiver_hotkey, metagraph=self.metagraph)
+        self.auth_interceptor = AuthInterceptor(receiver_hotkey=self.receiver_hotkey, metagraph=self.metagraph, disable_blacklist=self.config.axon.disable_blacklist)
 
         # Build grpc server
         if server is None:
@@ -199,6 +198,12 @@ class axon:
                 help="""Maximum number of allowed active connections""",
                 default=bittensor.defaults.axon.maximum_concurrent_rpcs,
             )
+            parser.add_argument(
+                "--" + prefix_str + "axon.disable_blacklist",
+                action="store_true",
+                help="""Disable blacklist. This will allow any endpoint to connect to this axon.""",
+                default=bittensor.defaults.axon.disable_blacklist,
+            )
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
@@ -275,6 +280,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self,
         receiver_hotkey: str,
         metagraph: "bittensor.metagraph",
+        disable_blacklist: bool = False,
     ):
         r"""Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
@@ -283,11 +289,10 @@ class AuthInterceptor(grpc.ServerInterceptor):
         """
         super().__init__()
         self.nonces = {}
-        self.blacklister = bittensor.auth_blacklister()
-        self.blacklist = self.blacklister.blacklist
+        self.disable_blacklist = disable_blacklist
+        self.blacklist = bittensor.auth_blacklister().blacklist
         self.receiver_hotkey = receiver_hotkey
         self.metagraph = metagraph
-
 
     def parse_signature_v2(self, signature: str) -> Optional[Tuple[int, str, str, str]]:
         r"""Attempts to parse a signature using the v2 format"""
@@ -377,7 +382,8 @@ class AuthInterceptor(grpc.ServerInterceptor):
             )
 
             # blacklist checking
-            self.black_list_checking(sender_hotkey, handler_call_details.method)
+            if not self.disable_blacklist:
+                self.black_list_checking(sender_hotkey, handler_call_details.method)
 
             return continuation(handler_call_details)
 
