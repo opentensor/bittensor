@@ -30,7 +30,6 @@ class MockWallet(openwallet.Wallet):
     """
     def __init__(
         self,
-        _mock:bool,
         **kwargs,
     ):
         r""" Init bittensor wallet object containing a hot and coldkey.
@@ -40,7 +39,7 @@ class MockWallet(openwallet.Wallet):
         """
         super().__init__(**kwargs)
         # For mocking.
-        self._is_mock = _mock
+        self._is_mock = True
         self._mocked_coldkey_keyfile = None
         self._mocked_hotkey_keyfile = None
 
