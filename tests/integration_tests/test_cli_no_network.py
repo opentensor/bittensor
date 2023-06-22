@@ -341,6 +341,86 @@ class TestCLINoNetwork(unittest.TestCase):
 
                             assert cli.config.subtensor.register.cuda.use_cuda == False
 
+class MockException(Exception):
+    pass
+
+
+class TestEmptyArgs(unittest.TestCase):
+    """
+    Test that the CLI doesn't crash when no args are passed
+    """
+    _patched_subtensor = None
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        mock_delegate_info = {
+            "hotkey_ss58": "",
+            "total_stake": bittensor.Balance.from_rao(0),
+            "nominators": [],
+            "owner_ss58": "",
+            "take": 0.18,
+            "validator_permits": [],
+            "registrations": [],
+            "return_per_1000": bittensor.Balance.from_rao(0),
+            "total_daily_return": bittensor.Balance.from_rao(0)
+        }
+        cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.MockSubtensor.__new__', new=MagicMock(
+            return_value=MagicMock(
+                get_subnets=MagicMock(return_value=[1]), # Mock subnet 1 ONLY.
+                block=10_000,
+                get_delegates=MagicMock(return_value=[
+                    bittensor.DelegateInfo( **mock_delegate_info )
+                ]),
+            )
+        ))
+        cls._patched_subtensor.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._patched_subtensor.stop()
+
+    def setUp(self):
+        self._config = TestCLINoNetwork.construct_config()
+
+    @property
+    def config(self):
+        copy_ = deepcopy(self._config)
+        return copy_
+
+    @staticmethod
+    def construct_config():
+        defaults = bittensor.Config()
+
+        defaults.netuid = 1
+        bittensor.subtensor.add_defaults( defaults )
+        defaults.subtensor.network = 'mock'
+        defaults.no_version_checking = True
+        bittensor.axon.add_defaults( defaults )
+        bittensor.wallet.add_defaults( defaults )
+        bittensor.dataset.add_defaults( defaults )
+
+        return defaults
+    
+    @patch('rich.prompt.PromptBase.ask', side_effect=MockException)
+    def test_command_no_args(self, patched_prompt_ask):
+        # Get argparser
+        parser = bittensor.cli.__create_parser__()
+        # Get all commands from argparser
+        commands = [
+            command for command in parser._actions[1].choices
+        ]
+
+        # Test that each command can be run with no args
+        for command in commands:
+            try:
+                bittensor.cli(args=[
+                    command
+                ]).run()
+            except MockException:
+                pass # Expected exception
+
+            # Should not raise any other exceptions
+        
 
 class TestCLIDefaultsNoNetwork(unittest.TestCase):
     _patched_subtensor = None
