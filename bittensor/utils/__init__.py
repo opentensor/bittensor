@@ -1,11 +1,12 @@
 import numbers
-from typing import Callable, Union, List, Optional, Dict
+from typing import Callable, Union, List, Optional, Dict, Literal, Type, Any
 
 import bittensor
 import pandas
 import requests
 import torch
 import scalecodec
+import argparse
 from substrateinterface import Keypair
 from substrateinterface.utils import ss58
 from .registration import create_pow
@@ -148,7 +149,7 @@ def get_ss58_format( ss58_address: str ) -> int:
     """Returns the ss58 format of the given ss58 address."""
     return ss58.get_ss58_format( ss58_address )
 
-def strtobool_with_default( default: bool ) -> Callable[[str], bool]:
+def strtobool_with_default( default: bool ) -> Callable[[str], Union[bool, Literal['==SUPRESS==']]]:
     """
     Creates a strtobool function with a default value.
 
@@ -161,7 +162,7 @@ def strtobool_with_default( default: bool ) -> Callable[[str], bool]:
     return lambda x: strtobool(x) if x != "" else default
 
 
-def strtobool(val: str) -> bool:
+def strtobool(val: str) -> Union[bool, Literal['==SUPRESS==']]:
     """
     Converts a string to a boolean value.
 
@@ -241,3 +242,9 @@ def u8_key_to_ss58(u8_key: List[int]) -> str:
     """
     # First byte is length, then 32 bytes of key.
     return scalecodec.ss58_encode( bytes(u8_key).hex(), bittensor.__ss58_format__)
+
+def type_or_suppress(type: Type) -> Callable[[Any], Union[Any, Literal['==SUPRESS==']]]:
+    def _type_or_suppress(value: Any) -> Union[Any, Literal['==SUPRESS==']]:
+        return value if value == argparse.SUPPRESS else type(value)
+    
+    return _type_or_suppress
