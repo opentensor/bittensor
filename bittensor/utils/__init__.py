@@ -74,9 +74,6 @@ def version_checking():
     if latest_version_as_int > bittensor.__version_as_int__:
         print('\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience\u001b[0m'.format(bittensor.__version__,latest_version))
 
-def get_ss58_format( ss58_address: str ) -> int:
-    """Returns the ss58 format of the given ss58 address."""
-    return ss58.get_ss58_format( ss58_address )
 
 def strtobool_with_default( default: bool ) -> Callable[[str], Union[bool, Literal['==SUPRESS==']]]:
     """
