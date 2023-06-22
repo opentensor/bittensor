@@ -125,9 +125,9 @@ class TestRegistrationHelpers(unittest.TestCase):
         subtensor.difficulty = MagicMock( return_value=1 )
         subtensor.substrate = MagicMock()
         subtensor.get_block_hash = MagicMock( return_value=block_hash )
+        subtensor.is_hotkey_registered = MagicMock( return_value=False )
         wallet = MagicMock(
             hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
-            is_registered = MagicMock( return_value=False )
         )
         num_proc: int = 1
         limit = int(math.pow(2,256))- 1
@@ -141,6 +141,7 @@ class TestRegistrationHelpers(unittest.TestCase):
         solution = bittensor.utils.registration._solve_for_difficulty_fast( subtensor, wallet, netuid = -1, num_processes=num_proc )
         seal = solution.seal
         assert bittensor.utils.registration._seal_meets_difficulty(seal, 10, limit)
+
     def test_solve_for_difficulty_fast_registered_already(self):
         # tests if the registration stops after the first block of nonces
         for _ in range(10):
@@ -154,9 +155,9 @@ class TestRegistrationHelpers(unittest.TestCase):
             subtensor.difficulty = MagicMock( return_value=int(1e10)) # set high to make solving take a long time
             subtensor.substrate = MagicMock()
             subtensor.get_block_hash = MagicMock( return_value=block_hash )
+            subtensor.is_hotkey_registered = MagicMock( side_effect=is_registered_return_values )
             wallet = MagicMock(
                 hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
-                is_registered = MagicMock( side_effect=is_registered_return_values )
             )
 
             # all arugments should return None to indicate an early return
@@ -164,7 +165,7 @@ class TestRegistrationHelpers(unittest.TestCase):
 
             assert solution is None
             # called every time until True
-            assert wallet.is_registered.call_count == workblocks_before_is_registered + 1
+            assert subtensor.is_hotkey_registered.call_count == workblocks_before_is_registered + 1
 
     def test_solve_for_difficulty_fast_missing_hash(self):
         block_hash = '0xba7ea4eb0b16dee271dbef5911838c3f359fcf598c74da65a54b919b68b67279'
@@ -173,9 +174,9 @@ class TestRegistrationHelpers(unittest.TestCase):
         subtensor.difficulty = MagicMock( return_value=1 )
         subtensor.substrate = MagicMock()
         subtensor.get_block_hash = MagicMock( side_effect= [None, None] + [block_hash]*20)
+        subtensor.is_hotkey_registered = MagicMock( return_value=False )
         wallet = MagicMock(
             hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
-            is_registered = MagicMock( return_value=False )
         )
         num_proc: int = 1
         limit = int(math.pow(2,256))- 1
