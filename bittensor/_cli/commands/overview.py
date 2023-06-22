@@ -23,6 +23,7 @@ from rich.align import Align
 from rich.table import Table
 from rich.prompt import Prompt
 from typing import List, Optional, Dict
+from bittensor.utils import type_or_suppress
 from .utils import get_hotkey_wallets_for_wallet, get_coldkey_wallets_for_path, get_all_wallets_for_path
 console = bittensor.__console__
 
@@ -275,7 +276,7 @@ class OverviewCommand:
             '--width',
             dest='width',
             action='store',
-            type=int,
+            type=type_or_suppress(int),
             help='''Set the output width of the overview. Defaults to automatic width from terminal.''',
             default=None,
         )

@@ -17,11 +17,10 @@
 
 import argparse
 import copy
-from distutils.util import strtobool
 import os
 
 import bittensor
-from bittensor.utils import strtobool
+from bittensor.utils import strtobool, type_or_suppress
 from . import wallet_impl, wallet_mock
 
 class wallet:
@@ -117,7 +116,7 @@ class wallet:
             parser.add_argument('--' + prefix_str + 'wallet.path', required=False, default=bittensor.defaults.wallet.path, help='''The path to your bittensor wallets''')
             parser.add_argument('--' + prefix_str + 'wallet._mock', action='store_true', default=bittensor.defaults.wallet._mock, help='To turn on wallet mocking for testing purposes.')
 
-            parser.add_argument('--' + prefix_str + 'wallet.reregister', required=False, action='store', default=bittensor.defaults.wallet.reregister, type=strtobool, help='''Whether to reregister the wallet if it is not already registered.''')
+            parser.add_argument('--' + prefix_str + 'wallet.reregister', required=False, action='store', default=bittensor.defaults.wallet.reregister, type=type_or_suppress(strtobool), help='''Whether to reregister the wallet if it is not already registered.''')
 
         except argparse.ArgumentError as e:
             pass
