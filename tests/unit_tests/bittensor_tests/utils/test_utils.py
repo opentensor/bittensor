@@ -814,7 +814,7 @@ class TestWalletReregister(unittest.TestCase):
             mock_register.assert_called_once()
             self.assertEqual(kwargs['cuda'], False)
 
-    def test_wallet_reregister_use_cuda_flag_not_specified_false(self):
+    def test_wallet_reregister_cuda_arg_not_specified_should_be_false(self):
         mock_wallet = generate_wallet()
 
         class MockException(Exception):
@@ -828,6 +828,7 @@ class TestWalletReregister(unittest.TestCase):
                     subtensor = self._mock_subtensor,
                     netuid = 3,
                     dev_id = 0,
+                    reregister = True,
                 )
 
             call_args = mock_register.call_args
