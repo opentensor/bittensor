@@ -139,12 +139,7 @@ def construct_config():
 
     return defaults
 
-def test_to_defaults():
-    config = construct_config()
-    config.to_defaults()
-
 if __name__  == "__main__":
     # test_loaded_config()
     # test_strict()
-    # test_to_defaults()
     test_prefix()
