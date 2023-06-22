@@ -444,7 +444,10 @@ def _solve_for_difficulty_fast( subtensor, wallet: 'bittensor.Wallet', netuid: i
     hash_rates = [0] * n_samples # The last n true hash_rates
     weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
 
-    while not wallet.is_registered(netuid = netuid, subtensor = subtensor):
+    while not subtensor.is_hotkey_registered(
+                        netuid = netuid,
+                        hotkey_ss58 = wallet.hotkey.ss58_address,
+    ):
         # Wait until a solver finds a solution
         try:
             solution = solution_queue.get(block=True, timeout=0.25)
@@ -733,7 +736,10 @@ def _solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: '
         weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
 
         solution = None
-        while not wallet.is_registered(netuid = netuid, subtensor = subtensor):
+        while not subtensor.is_hotkey_registered(
+                            netuid = netuid,
+                            hotkey_ss58 = wallet.hotkey.ss58_address,
+        ):
             # Wait until a solver finds a solution
             try:
                 solution = solution_queue.get(block=True, timeout=0.15)
