@@ -142,7 +142,7 @@ class subtensor:
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
         prefix_str = '' if prefix == None else prefix + '.'
         if prefix is not None:
-            if not hasattr(bittensor.defaults, prefix):
+            if bittensor.defaults.get(prefix, d=None) == None:
                 setattr(bittensor.defaults, prefix, bittensor.Config())
             getattr(bittensor.defaults, prefix).subtensor = bittensor.defaults.subtensor
         try:
