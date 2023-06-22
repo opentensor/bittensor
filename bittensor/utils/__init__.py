@@ -10,7 +10,7 @@ import argparse
 from substrateinterface.utils import ss58
 from openwallet.utils import *
 
-from .registration import create_pow
+from .registration import create_pow, __reregister_wallet as reregister
 
 RAOPERTAO = 1e9
 U16_MAX = 65535

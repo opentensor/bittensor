@@ -872,7 +872,7 @@ def create_pow(
     return solution
 
 
-def reregister(
+def __reregister_wallet(
         netuid: int,
         wallet: 'bittensor.Wallet',
         subtensor: 'bittensor.Subtensor',
