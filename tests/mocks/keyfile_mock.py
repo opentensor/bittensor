@@ -18,7 +18,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from openwallet.keyfile_impl import serialized_keypair_to_keyfile_data, Keyfile
+from openwallet import serialized_keypair_to_keyfile_data, Keyfile
 from openwallet import Keypair
 
 class MockKeyfile( Keyfile ):
