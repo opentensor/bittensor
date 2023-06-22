@@ -15,5 +15,5 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from .wallet_mock import Wallet_mock as Wallet_mock
-from .keyfile_mock import Keyfile_mock as Keyfile_mock
+from .wallet_mock import MockWallet as MockWallet
+from .keyfile_mock import MockKeyfile as MockKeyfile

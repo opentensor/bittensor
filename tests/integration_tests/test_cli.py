@@ -2237,7 +2237,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         )
 
         with patch(
-            "bittensor._wallet.wallet_mock.Wallet_mock", return_value=mock_wallet
+            "tests.mocks.wallet_mock.MockWallet", return_value=mock_wallet
         ):  # Mock wallet creation. SHOULD NOT BE REGISTERED
             cli = bittensor.cli(
                 args=[

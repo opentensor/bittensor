@@ -22,7 +22,7 @@ import os
 import bittensor
 import openwallet
 
-class Wallet_mock(openwallet.Wallet):
+class MockWallet(openwallet.Wallet):
     """
     Mocked Version of the bittensor wallet class, meant to be used for testing
     """

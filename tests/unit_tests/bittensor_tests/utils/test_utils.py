@@ -26,7 +26,7 @@ import bittensor
 from bittensor.utils.registration import _CUDASolver, _SolverBase
 from bittensor._subtensor.subtensor_mock import MockSubtensor
 
-from tests.mocks.wallet_mock import Wallet_mock
+from tests.mocks.wallet_mock import MockWallet
 
 
 @fixture(scope="function")
@@ -70,7 +70,7 @@ def select_port():
     return port
 
 def generate_wallet(coldkey : 'Keypair' = None, hotkey: 'Keypair' = None):
-    wallet = Wallet_mock( _mock = True, name = 'mock', path = '/tmp/', hotkey = 'mock' )
+    wallet = MockWallet( _mock = True, name = 'mock', path = '/tmp/', hotkey = 'mock' )
 
     if not coldkey:
         coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
