@@ -779,7 +779,7 @@ class TestWalletReregister(unittest.TestCase):
                     subtensor = self._mock_subtensor,
                     netuid = 3,
                     dev_id = 0,
-                    use_cuda = True,
+                    cuda = True,
                     reregister = True,
                 )
 
@@ -804,7 +804,7 @@ class TestWalletReregister(unittest.TestCase):
                     subtensor = self._mock_subtensor,
                     netuid = 3,
                     dev_id = 0,
-                    use_cuda = False,
+                    cuda = False,
                     reregister = True,
                 )
 
