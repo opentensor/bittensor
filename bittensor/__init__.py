@@ -89,6 +89,9 @@ __tao_symbol__: str = chr(0x03C4)
 
 __rao_symbol__: str = chr(0x03C1)
 
+# Mock Testing Constant
+__GLOBAL_MOCK_STATE__ = {}
+
 # Block Explorers map network to explorer url
 ## Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
@@ -96,13 +99,6 @@ __network_explorer_map__ = {
     'endpoint': "https://explorer.finney.opentensor.ai/#/explorer",
     'finney': "https://explorer.finney.opentensor.ai/#/explorer"
 }
-
-# Avoid collisions with other processes
-from .utils.test_utils import get_random_unused_port
-mock_subtensor_port = get_random_unused_port()
-__mock_entrypoint__ = f"localhost:{mock_subtensor_port}"
-
-__mock_chain_db__ = './tmp/mock_chain_db'
 
 # --- Type Registry ---
 __type_registry__ = {
@@ -206,8 +202,6 @@ from bittensor._proto.bittensor_pb2 import ForwardTextToImageRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextToImageResponse
 from bittensor._proto.bittensor_pb2 import ForwardTextToVideoRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextToVideoResponse
-from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingRequest
-from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingResponse
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingResponse
 
@@ -235,22 +229,6 @@ from bittensor._dendrite.text_to_music.dendrite import TextToMusicDendrite as te
 from bittensor._dendrite.text_to_image.dendrite import TextToImageDendrite as text_to_image
 from bittensor._dendrite.text_to_video.dendrite import TextToVideoDendrite as text_to_video
 from bittensor._dendrite.image_to_text.dendrite import ImageToTextDendrite as image_to_text
-
-# ---- Base Miners -----
-from bittensor._neuron.base_miner_neuron import BaseMinerNeuron
-from bittensor._neuron.base_validator import BaseValidator
-from bittensor._neuron.base_prompting_miner import BasePromptingMiner
-from bittensor._neuron.base_embedding_miner import BaseEmbeddingMiner
-from bittensor._neuron.base_huggingface_miner import HuggingFaceMiner
-from bittensor._neuron.base_speech_to_text_miner import BaseSpeechToTextMiner
-from bittensor._neuron.base_text_to_speech_miner import BaseTextToSpeechMiner
-from bittensor._neuron.base_text_to_music_miner import BaseTextToMusicMiner
-from bittensor._neuron.base_text_to_image_miner import BaseTextToImageMiner
-from bittensor._neuron.base_text_to_video_miner import BaseTextToVideoMiner
-from bittensor._neuron.base_image_to_text_miner import BaseImageToTextMiner
-
-# ---- Errors and Exceptions -----
-from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
 
 # ---- Errors and Exceptions -----
 from bittensor._keyfile.keyfile_impl import KeyFileError as KeyFileError
@@ -357,19 +335,11 @@ class prompting ( torch.nn.Module ):
             return_all: bool = False,
         ) -> Union[str, List[str]]:
         roles, messages = self.format_content( content )
-        if not return_all:
-            return self._dendrite.forward(
-                roles = roles,
-                messages = messages,
-                timeout = timeout
-            ).completion
-        else:
-            return self._dendrite.multi_forward(
-                roles = roles,
-                messages = messages,
-                timeout = timeout
-            ).multi_completions
-
+        return self._dendrite.forward(
+            roles = roles,
+            messages = messages,
+            timeout = timeout
+        ).completion
 
     async def async_forward(
             self,
@@ -378,18 +348,11 @@ class prompting ( torch.nn.Module ):
             return_all: bool = False,
         ) -> Union[str, List[str]]:
         roles, messages = self.format_content( content )
-        if not return_all:
-            return await self._dendrite.async_forward(
-                    roles = roles,
-                    messages = messages,
-                    timeout = timeout
-                ).completion
-        else:
-            return self._dendrite.async_multi_forward(
+        return await self._dendrite.async_forward(
                 roles = roles,
                 messages = messages,
                 timeout = timeout
-            ).multi_completions
+            ).completion
 
 class BittensorLLM(LLM):
     """Wrapper around Bittensor Prompting Subnetwork.

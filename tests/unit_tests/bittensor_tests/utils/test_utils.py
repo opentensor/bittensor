@@ -134,7 +134,7 @@ class TestRegistrationHelpers(unittest.TestCase):
         subtensor.get_current_block = MagicMock( return_value=1 )
         subtensor.difficulty = MagicMock( return_value=1 )
         subtensor.substrate = MagicMock()
-        subtensor.substrate.get_block_hash = MagicMock( return_value=block_hash )
+        subtensor.get_block_hash = MagicMock( return_value=block_hash )
         wallet = MagicMock(
             hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
             is_registered = MagicMock( return_value=False )
@@ -163,7 +163,7 @@ class TestRegistrationHelpers(unittest.TestCase):
             subtensor.get_current_block = MagicMock( return_value=1 )
             subtensor.difficulty = MagicMock( return_value=int(1e10)) # set high to make solving take a long time
             subtensor.substrate = MagicMock()
-            subtensor.substrate.get_block_hash = MagicMock( return_value=block_hash )
+            subtensor.get_block_hash = MagicMock( return_value=block_hash )
             wallet = MagicMock(
                 hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
                 is_registered = MagicMock( side_effect=is_registered_return_values )
@@ -182,7 +182,7 @@ class TestRegistrationHelpers(unittest.TestCase):
         subtensor.get_current_block = MagicMock( return_value=1 )
         subtensor.difficulty = MagicMock( return_value=1 )
         subtensor.substrate = MagicMock()
-        subtensor.substrate.get_block_hash = MagicMock( side_effect= [None, None] + [block_hash]*20)
+        subtensor.get_block_hash = MagicMock( side_effect= [None, None] + [block_hash]*20)
         wallet = MagicMock(
             hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
             is_registered = MagicMock( return_value=False )
@@ -343,12 +343,11 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
         current_diff: int = 0
 
         mock_substrate = MagicMock(
+        )
+        subtensor = MagicMock(
             get_block_hash=MagicMock(
                 return_value=mock_block_hash
             ),
-
-        )
-        subtensor = MagicMock(
             substrate=mock_substrate,
             difficulty=MagicMock(return_value=current_diff + 1), # new diff
         )
@@ -408,9 +407,7 @@ class TestGetBlockWithRetry(unittest.TestCase):
         mock_subtensor = MagicMock(
             get_current_block=MagicMock(return_value=1),
             difficulty=MagicMock(return_value=1),
-            substrate=MagicMock(
-                get_block_hash=MagicMock(side_effect=self.MockException('network error'))
-            )
+            get_block_hash=MagicMock(side_effect=self.MockException('network error'))
         )
         with pytest.raises(self.MockException):
             # this should raise an exception because the network error is retried only 3 times
@@ -515,19 +512,22 @@ class TestPOWNotStale(unittest.TestCase):
         assert mock_solution.is_stale(mock_subtensor)
 
 class TestPOWCalled(unittest.TestCase):
+    def setUp(self) -> None: 
+        # Setup mock subnet
+        self._subtensor = bittensor.subtensor(_mock=True)
+
+        self._subtensor.create_subnet(
+            netuid = 99
+        )
+
     def test_pow_called_for_cuda(self):
         class MockException(Exception):
             pass
-        mock_compose_call = MagicMock(side_effect=MockException)
+        mock_pow_register_call = MagicMock(side_effect=MockException)
 
         mock_subtensor = bittensor.subtensor(_mock=True)
         mock_subtensor.get_neuron_for_pubkey_and_subnet=MagicMock(is_null=True)
-        mock_subtensor.substrate = MagicMock(
-            __enter__= MagicMock(return_value=MagicMock(
-                compose_call=mock_compose_call
-            )),
-            __exit__ = MagicMock(return_value=None),
-        )
+        mock_subtensor._do_pow_register = mock_pow_register_call
 
         mock_wallet = SimpleNamespace(
             hotkey=bittensor.Keypair.create_from_seed(
@@ -556,7 +556,7 @@ class TestPOWCalled(unittest.TestCase):
             ) as mock_create_pow:
                 # Should exit early
                 with pytest.raises(MockException):
-                    mock_subtensor.register(mock_wallet, netuid=-1, cuda=True, prompt=False)
+                    mock_subtensor.register(mock_wallet, netuid=99, cuda=True, prompt=False)
 
                 mock_pow_is_stale.assert_called_once()
                 mock_create_pow.assert_called_once()
@@ -566,11 +566,10 @@ class TestPOWCalled(unittest.TestCase):
                 _, kwargs = call0
                 assert kwargs['subtensor'] == mock_subtensor
 
-                mock_compose_call.assert_called_once()
-                call1 = mock_compose_call.call_args
-                assert call1[1]['call_function'] == 'register'
-                call_params = call1[1]['call_params']
-                assert call_params['nonce'] == mock_result.nonce
+                mock_pow_register_call.assert_called_once()
+                _, kwargs = mock_pow_register_call.call_args
+                kwargs['pow_result'].nonce == mock_result.nonce
+
 
 class TestCUDASolverRun(unittest.TestCase):
     def test_multi_cuda_run_updates_nonce_start(self):

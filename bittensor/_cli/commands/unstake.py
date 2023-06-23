@@ -28,7 +28,7 @@ class UnStakeCommand:
 
     @classmethod   
     def check_config( cls, config: 'bittensor.Config' ):        
-        if config.is_set('wallet.name') and not config.no_prompt:
+        if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 

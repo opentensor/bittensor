@@ -45,7 +45,9 @@ class Config ( Munch ):
         return self.__str__()
 
     def __str__(self) -> str:
-        return "\n" + yaml.dump(self.toDict())
+        config_dict = self.toDict()
+        config_dict.pop("__is_set")
+        return "\n" + yaml.dump(config_dict)
 
     def to_string(self, items) -> str:
         """ Get string from items
