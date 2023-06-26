@@ -61,9 +61,11 @@ def register_senate_extrinsic (
             call = substrate.compose_call(
                 call_module='SubtensorModule',
                 call_function='join_senate',
-                call_params={}
+                call_params={
+                    "hotkey": wallet.hotkey.ss58_address
+                }
             )
-            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
             response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
 
             # We only wait here if we expect finalization.
@@ -126,9 +128,11 @@ def leave_senate_extrinsic (
             call = substrate.compose_call(
                 call_module='SubtensorModule',
                 call_function='leave_senate',
-                call_params={}
+                call_params={
+                    "hotkey": wallet.hotkey.ss58_address
+                }
             )
-            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
             response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
 
             # We only wait here if we expect finalization.
@@ -192,15 +196,16 @@ def vote_senate_extrinsic (
        with subtensor.substrate as substrate:
             # create extrinsic call
             call = substrate.compose_call(
-                call_module='Triumvirate',
+                call_module='SubtensorModule',
                 call_function='vote',
                 call_params={
+                    "hotkey": wallet.hotkey.ss58_address,
                     "proposal": proposal_hash,
                     "index": proposal_idx,
                     "approve": vote
                 }
             )
-            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey )
+            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
             response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
 
             # We only wait here if we expect finalization.
