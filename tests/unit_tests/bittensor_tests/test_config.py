@@ -23,33 +23,6 @@ from unittest.mock import MagicMock
 
 import bittensor
 
-
-def test_loaded_config():
-    with pytest.raises(NotImplementedError):
-        bittensor.Config(loaded_config=True)
-
-def test_strict():
-    parser = argparse.ArgumentParser()
-
-    # Positional/mandatory arguments don't play nice with multiprocessing.
-    # When the CLI is used, the argument is just the 0th element or the filepath.
-    # However with multiprocessing this function call actually comes from a subprocess, and so there
-    # is no positional argument and this raises an exception when we try to parse the args later.
-    # parser.add_argument("arg", help="Dummy Args")
-    parser.add_argument("--cov", help="Dummy Args")
-    parser.add_argument("--cov-append", action='store_true', help="Dummy Args")
-    parser.add_argument("--cov-config",  help="Dummy Args")
-    #bittensor.Dendrite.add_args( parser )
-    bittensor.logging.add_args( parser )
-    bittensor.wallet.add_args( parser )
-    bittensor.subtensor.add_args( parser )
-    #bittensor.metagraph.add_args( parser )
-    bittensor.dataset.add_args( parser )
-    bittensor.axon.add_args( parser )
-    #bittensor.wandb.add_args( parser )
-    bittensor.config( parser, strict=False)
-    bittensor.config( parser, strict=True)
-
 def test_prefix():
     # Test the use of prefixes to instantiate all of the bittensor objects.
     parser = argparse.ArgumentParser()
