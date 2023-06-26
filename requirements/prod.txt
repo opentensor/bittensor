@@ -2,6 +2,7 @@ ansible_vault==2.1
 argparse==1.4.0
 base58==2.0.1
 backoff==2.1.0
+bittensor-config==0.0.0
 cryptography==39.0.0
 datasets==2.12.0
 fuzzywuzzy==0.18.0
@@ -19,7 +20,6 @@ munch==2.5.0
 nest_asyncio==1.5.6
 netaddr==0.8.0
 numpy>=1.21.6,<=1.24.2
-open-config==0.0.0
 pandas==1.5.2
 password_strength==0.0.3.post2
 prometheus_client==0.14.1
