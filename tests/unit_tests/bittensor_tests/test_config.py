@@ -63,8 +63,9 @@ def test_prefix():
     #bittensor.wandb.add_args( parser )
     #bittensor.wandb.add_args( parser, prefix = 'second' )
 
-    config_non_strict = bittensor.config( parser, strict=False)
-    config_strict = bittensor.config( parser, strict=True)
+    # Test with argv=[]
+    config_non_strict = bittensor.config( parser, strict=False, args=[] )
+    config_strict = bittensor.config( parser, strict=True, args=[] )
 
     #bittensor.dendrite( config_strict ).__del__()
     #bittensor.dendrite( config_non_strict ).__del__()
@@ -98,19 +99,6 @@ def test_prefix():
     #bittensor.wandb( config_non_strict )
     #bittensor.wandb( config_strict.second )
     #bittensor.wandb( config_non_strict.second )
-
-
-def construct_config():
-    defaults = bittensor.Config()
-    bittensor.subtensor.add_defaults( defaults )
-    #bittensor.dendrite.add_defaults( defaults )
-    bittensor.axon.add_defaults( defaults )
-    bittensor.wallet.add_defaults( defaults )
-    bittensor.dataset.add_defaults( defaults )
-    bittensor.logging.add_defaults( defaults )
-    #bittensor.wandb.add_defaults( defaults )
-
-    return defaults
 
 if __name__  == "__main__":
     # test_loaded_config()
