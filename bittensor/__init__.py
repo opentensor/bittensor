@@ -131,7 +131,7 @@ except ValueError:
 
 
 # ---- Config ----
-from openconfig import config as config
+from bittensor_config import config as config
 
 # ---- LOGGING ----
 # Duplicate import for ease of use.
@@ -155,8 +155,8 @@ from bittensor.utils.balance import Balance as Balance
 from bittensor._cli import cli as cli
 from bittensor._axon import axon as axon
 from bittensor._axon import axon_info as axon_info
-from openwallet import wallet as wallet
-from openwallet import keyfile as keyfile
+from bittensor_wallet import wallet as wallet
+from bittensor_wallet import keyfile as keyfile
 from bittensor._metagraph import metagraph as metagraph
 from bittensor._prometheus import prometheus as prometheus
 from bittensor._subtensor import subtensor as subtensor
@@ -169,11 +169,11 @@ from bittensor._priority import priority as priority
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
-from openconfig import Config as Config
+from bittensor_config import Config as Config
 from bittensor._subtensor.chain_data import DelegateInfo as DelegateInfo
-from openwallet import Wallet as Wallet
-from openwallet import Keyfile as Keyfile
-from openwallet import Keypair as Keypair
+from bittensor_wallet import Wallet as Wallet
+from bittensor_wallet import Keyfile as Keyfile
+from bittensor_wallet import Keypair as Keypair
 from bittensor._subtensor.chain_data import NeuronInfo as NeuronInfo
 from bittensor._subtensor.chain_data import NeuronInfoLite as NeuronInfoLite
 from bittensor._subtensor.chain_data import PrometheusInfo as PrometheusInfo
@@ -185,7 +185,7 @@ from bittensor._threadpool.priority_thread_pool_impl import PriorityThreadPoolEx
 from bittensor._ipfs.ipfs_impl import Ipfs as Ipfs
 
 # ---- Errors and Exceptions -----
-from openwallet import KeyFileError as KeyFileError
+from bittensor_wallet import KeyFileError as KeyFileError
 
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse

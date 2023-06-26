@@ -8,7 +8,7 @@ import torch
 import scalecodec
 import argparse
 from substrateinterface.utils import ss58
-from openwallet.utils import *
+from bittensor_wallet.utils import *
 
 from .registration import create_pow, __reregister_wallet as reregister
 

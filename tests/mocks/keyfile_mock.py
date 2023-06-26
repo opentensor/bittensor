@@ -18,8 +18,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from openwallet import serialized_keypair_to_keyfile_data, Keyfile
-from openwallet import Keypair
+from bittensor_wallet import serialized_keypair_to_keyfile_data, Keyfile
+from bittensor_wallet import Keypair
 
 class MockKeyfile( Keyfile ):
     """ Defines an interface to a mocked keyfile object (nothing is created on device) keypair is treated as non encrypted and the data is just the string version.
