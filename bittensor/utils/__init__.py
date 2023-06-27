@@ -1,5 +1,5 @@
 import numbers
-from typing import Callable, Union, List, Optional, Dict, Literal, Any
+from typing import Callable, Union, List, Optional, Dict, Literal, Type, Any
 
 import bittensor
 import pandas

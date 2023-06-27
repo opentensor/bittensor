@@ -169,7 +169,7 @@ from bittensor._priority import priority as priority
 
 # ---- Classes -----
 from bittensor._cli.cli_impl import CLI as CLI
-from bittensor_config import Config as Config
+from bittensor_config.config_impl import Config as Config
 from bittensor._subtensor.chain_data import DelegateInfo as DelegateInfo
 from bittensor_wallet import Wallet as Wallet
 from bittensor_wallet import Keyfile as Keyfile
