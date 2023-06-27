@@ -154,7 +154,7 @@ class axon:
         """Accept specific arguments from parser"""
         prefix_str = "" if prefix is None else prefix + "."
         if prefix is not None:
-            if not hasattr(bittensor.defaults, prefix):
+            if bittensor.defaults.get(prefix, d=None) == None:
                 setattr(bittensor.defaults, prefix, bittensor.Config())
             getattr(bittensor.defaults, prefix).axon = bittensor.defaults.axon
 

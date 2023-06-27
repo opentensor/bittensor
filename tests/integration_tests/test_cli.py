@@ -20,11 +20,8 @@
 import unittest
 from copy import deepcopy
 from types import SimpleNamespace
-from typing import Dict, Optional, Tuple
+from typing import Dict
 from unittest.mock import MagicMock, patch
-import time
-
-import os
 
 import random
 
@@ -38,7 +35,8 @@ from bittensor._subtensor.subtensor_mock import MockSubtensor
 
 
 def generate_wallet(coldkey: "Keypair" = None, hotkey: "Keypair" = None):
-    wallet = bittensor.wallet(_mock=True).create()
+    _config = TestCLIWithNetworkAndConfig.construct_config()
+    wallet = bittensor.wallet(_config, _mock=True).create()
 
     if not coldkey:
         coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
@@ -96,13 +94,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
     @staticmethod
     def construct_config():
         defaults = bittensor.Config()
-
-        # Get defaults for this config
-        is_set_map = bittensor.config.__fill_is_set_list__(defaults, bittensor.defaults)
-
-        defaults['__is_set'] = is_set_map
-
-        defaults.__fill_with_defaults__(is_set_map, bittensor.defaults)
 
         defaults.netuid = 1
         bittensor.subtensor.add_defaults(defaults)
