@@ -35,13 +35,22 @@ class SynapseCall( ABC ):
     def __init__(
         self,
         synapse: 'bittensor.Synapse',
-        request_proto: object
+        request_proto: object,
+        context: grpc.ServicerContext,
     ):
+        metadata = dict(context.invocation_metadata())
+        (
+            _,
+            sender_hotkey,
+            _,
+            _,
+        ) = synapse.axon.auth_interceptor.parse_signature(metadata)
+        
         self.completed = False
         self.start_time = time.time()
         self.timeout = request_proto.timeout
         self.src_version = request_proto.version
-        self.src_hotkey = request_proto.hotkey
+        self.src_hotkey = sender_hotkey
         self.dest_hotkey = synapse.axon.wallet.hotkey.ss58_address
         self.dest_version = bittensor.__version_as_int__
         self.return_code: bittensor.proto.ReturnCode = bittensor.proto.ReturnCode.Success
@@ -171,4 +180,3 @@ class Synapse( ABC ):
             call.end()
             call.log_outbound()
             return call._get_response_proto()
-

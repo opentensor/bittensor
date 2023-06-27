@@ -21,6 +21,7 @@ import json
 from rich.prompt import Confirm
 import bittensor.utils.networking as net
 from ..errors import *
+from ..types import AxonServeCallParams
 
 def serve_extrinsic (
     subtensor: 'bittensor.Subtensor',
@@ -66,7 +67,7 @@ def serve_extrinsic (
     """
     # Decrypt hotkey
     wallet.hotkey
-    params = {
+    params: 'AxonServeCallParams' = {
         'version': bittensor.__version_as_int__,
         'ip': net.ip_to_int(ip),
         'port': port,
@@ -119,26 +120,24 @@ def serve_extrinsic (
             return False
 
     with bittensor.__console__.status(":satellite: Serving axon on: [white]{}:{}[/white] ...".format(subtensor.network, netuid)):
-        with subtensor.substrate as substrate:
-            call = substrate.compose_call(
-                call_module='SubtensorModule',
-                call_function='serve_axon',
-                call_params=params
-            )
-            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey)
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-            if wait_for_inclusion or wait_for_finalization:
-                response.process_events()
-                if response.is_success:
-                    bittensor.__console__.print(':white_heavy_check_mark: [green]Served[/green]\n  [bold white]{}[/bold white]'.format(
-                        json.dumps(params, indent=4, sort_keys=True)
-                    ))
-                    return True
-                else:
-                    bittensor.__console__.print(':cross_mark: [green]Failed to Serve axon[/green] error: {}'.format(response.error_message))
-                    return False
-            else:
+        success, error_message = subtensor._do_serve_axon(
+            wallet = wallet,
+            call_params = params,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_inclusion=wait_for_inclusion,
+        )
+
+        if wait_for_inclusion or wait_for_finalization:
+            if success == True:
+                bittensor.__console__.print(':white_heavy_check_mark: [green]Served[/green]\n  [bold white]{}[/bold white]'.format(
+                    json.dumps(params, indent=4, sort_keys=True)
+                ))
                 return True
+            else:
+                bittensor.__console__.print(':cross_mark: [green]Failed to Serve axon[/green] error: {}'.format(error_message))
+                return False
+        else:
+            return True
 
 def serve_axon_extrinsic (
     subtensor: 'bittensor.Subtensor',

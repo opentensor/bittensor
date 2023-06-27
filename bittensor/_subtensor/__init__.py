@@ -68,7 +68,7 @@ class subtensor:
         config.subtensor._mock = _mock if _mock != None else config.subtensor._mock
         if config.subtensor._mock == True or network == 'mock' or config.subtensor.get('network', bittensor.defaults.subtensor.network) == 'mock':
             config.subtensor._mock = True
-            return subtensor_mock.mock_subtensor.mock()
+            return subtensor_mock.MockSubtensor()
 
         # Determine config.subtensor.chain_endpoint and config.subtensor.network config.
         # If chain_endpoint is set, we override the network flag, otherwise, the chain_endpoint is assigned by the network.

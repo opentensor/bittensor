@@ -79,34 +79,26 @@ def set_weights_extrinsic(
 
     with bittensor.__console__.status(":satellite: Setting weights on [white]{}[/white] ...".format(subtensor.network)):
         try:
-            with subtensor.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module='SubtensorModule',
-                    call_function='set_weights',
-                    call_params = {
-                        'dests': weight_uids,
-                        'weights': weight_vals,
-                        'netuid': netuid,
-                        'version_key': version_key,
-                    }
-                )
-                # Period dictates how long the extrinsic will stay as part of waiting pool
-                extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey, era={'period':100})
-                response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                    return True
+            success, error_message = subtensor._do_set_weights(
+                wallet = wallet,
+                netuid = netuid,
+                uids = weight_uids,
+                vals = weight_vals,
+                version_key = version_key,
+            )
 
-                response.process_events()
-                if response.is_success:
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
-                    bittensor.logging.success(  prefix = 'Set weights', sufix = '<green>Finalized: </green>' + str(response.is_success) )
-                    return True
-                else:
-                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
-                    bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(response.error_message) )
-                    return False
+            if not wait_for_finalization and not wait_for_inclusion:
+                bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
+                return True
+
+            if success == True:
+                bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
+                bittensor.logging.success(  prefix = 'Set weights', sufix = '<green>Finalized: </green>' + str(success) )
+                return True
+            else:
+                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(error_message))
+                bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(error_message) )
+                return False
 
         except Exception as e:
 
