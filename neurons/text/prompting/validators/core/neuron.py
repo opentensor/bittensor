@@ -139,7 +139,9 @@ class neuron:
         self.subtensor = bt.subtensor ( config = self.config )
         self.device = torch.device( self.config.neuron.device )
         self.wallet = bt.wallet ( config = self.config )
-        self.metagraph = bt.metagraph( netuid = self.config.netuid, network = self.subtensor.network )
+        self.metagraph = bt.metagraph( netuid = self.config.netuid, network = self.subtensor.network, sync=False )
+        self.metagraph.sync( subtensor=self.subtensor )
+
         self.wallet.create_if_non_existent()
         self.wallet.reregister( subtensor = self.subtensor, netuid = self.config.netuid )
         self.uid = self.wallet.get_uid( subtensor = self.subtensor, netuid = self.config.netuid )
@@ -642,7 +644,7 @@ class neuron:
 
                 # Resync metagraph before returning. (sync every 15 min or ~75 blocks)
                 if self.subtensor.block - self.last_sync > 100:
-                    self.metagraph.sync()
+                    self.metagraph.sync( subtensor=self.subtensor )
                     self.last_sync = self.subtensor.block
                     self.save()
                     delegates = self.subtensor.get_delegated( self.wallet.coldkeypub.ss58_address )
@@ -731,7 +733,7 @@ class neuron:
             while True:
                 time.sleep(12)
                 if self.subtensor.block -last_sync > 100:
-                    self.metagraph.sync()
+                    self.metagraph.sync( subtensor=self.subtensor )
                     self.last_sync = self.subtensor.block
                     self.load(inference_only = True)
 

@@ -106,7 +106,9 @@ class BaseMinerNeuron:
         bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
         self.subtensor = bittensor.subtensor( self.config )
         self.wallet = bittensor.wallet( self.config )
-        self.metagraph = self.subtensor.metagraph( self.config.netuid )
+        self.metagraph = self.subtensor.metagraph( self.config.netuid, sync=False )
+        self.metagraph.sync( lite = True, subtensor=self.subtensor )
+
         self.axon = bittensor.axon( wallet = self.wallet, config = self.config )
         self.blacklister = bittensor.blacklist( config = self.config.neuron )
         self.prioritizer = bittensor.priority( config = self.config.neuron )
@@ -169,7 +171,7 @@ class BaseMinerNeuron:
 
             # --- Update the metagraph with the latest network state.
             try:
-                self.metagraph.sync( lite = True )
+                self.metagraph.sync( lite = True, subtensor=self.subtensor )
                 uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
             except:
                 # --- If we fail to sync the metagraph, wait and try again.

@@ -94,7 +94,8 @@ class BaseValidator:
         bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
         self.subtensor = bittensor.subtensor( self.config )
         self.wallet = bittensor.wallet( self.config )
-        self.metagraph = self.subtensor.metagraph( self.config.netuid )
+        self.metagraph = self.subtensor.metagraph( self.config.netuid, sync=False )
+        self.metagraph.sync( lite = True, subtensor = self.subtensor )
 
         # Used for backgounr process.
         self.is_running = False
@@ -146,7 +147,7 @@ class BaseValidator:
             last_update = self.subtensor.get_current_block()
 
             # --- Update the metagraph with the latest network state.
-            self.metagraph.sync( lite = True )
+            self.metagraph.sync( lite = True, subtensor = self.subtensor )
             uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
 
             # --- Set weights.
