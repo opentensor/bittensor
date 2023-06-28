@@ -148,11 +148,7 @@ class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServi
         return self.apply( call = call )
 
     def MultiForward( self, request: bittensor.proto.MultiForwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.MultiForwardTextPromptingResponse:
-<<<<<<< HEAD
         call = SynapseForwardMulti( self, request, self.multi_forward, context )
-=======
-        call = SynapseForwardMulti( self, request, self.multi_forward )
->>>>>>> parent of d11e9923... remove neurons, take out multiforward Synapse
         bittensor.logging.trace( 'MultiForward: {} '.format( call ) )
         return self.apply( call = call )
 
