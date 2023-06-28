@@ -230,5 +230,7 @@ class subtensor:
             return bittensor.__local_entrypoint__
         elif network == 'mock':
             return bittensor.__mock_entrypoint__
+        elif network == 'test':
+            return bittensor.__finney_test_entrypoint__
         else:
             return bittensor.__local_entrypoint__
