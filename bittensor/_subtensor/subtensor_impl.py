@@ -40,6 +40,7 @@ from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic,undelegate_extrinsic
 from .types import AxonServeCallParams, PrometheusServeCallParams
+from .extrinsics.senate import register_senate_extrinsic, leave_senate_extrinsic, vote_senate_extrinsic
 
 # Logging
 from loguru import logger
@@ -643,8 +644,6 @@ class Subtensor:
         """ Removes stake from each hotkey_ss58 in the list, using each amount, to a common coldkey. """
         return unstake_multiple_extrinsic( self, wallet, hotkey_ss58s, amounts, wait_for_inclusion, wait_for_finalization, prompt)
 
-
-
     def unstake (
         self,
         wallet: 'bittensor.wallet',
@@ -698,6 +697,53 @@ class Subtensor:
             else:
                 raise StakeError(response.error_message)
 
+    ################
+    #### Senate ####
+    ################
+
+    def register_senate(
+        self,
+        wallet: 'bittensor.wallet',
+        wait_for_inclusion:bool = True,
+        wait_for_finalization:bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        return register_senate_extrinsic( self, wallet, wait_for_inclusion, wait_for_finalization, prompt )
+    
+    def leave_senate(
+        self,
+        wallet: 'bittensor.wallet',
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        return leave_senate_extrinsic( self, wallet, wait_for_inclusion, wait_for_finalization, prompt )
+    
+    def vote_senate(
+        self,
+        wallet: 'bittensor.wallet',
+        proposal_hash: str,
+        proposal_idx: int,
+        vote: bool,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        return vote_senate_extrinsic( self, wallet, proposal_hash, proposal_idx, vote, wait_for_inclusion, wait_for_finalization, prompt )
+    
+    def is_senate_member(
+        self,
+        hotkey_ss58: str
+    ) -> bool:
+        senate_members = self.query_module("Senate", "Members").serialize()
+        return senate_members.count( hotkey_ss58 ) > 0
+    
+    def get_vote_data(
+        self,
+        proposal_hash: str
+    ) -> Optional[dict]:
+        vote_data = self.query_module("Triumvirate", "Voting", None, [proposal_hash])
+        return vote_data.serialize() if vote_data != None else None
 
     ########################
     #### Standard Calls ####
@@ -737,6 +783,32 @@ class Subtensor:
                 return substrate.get_constant(
                     module_name=module_name,
                     constant_name=constant_name,
+                    block_hash = None if block == None else substrate.get_block_hash(block)
+                )
+        return make_substrate_call_with_retry()
+    
+    """ Queries any module storage with params and block. """
+    def query_module( self, module: str, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module=module,
+                    storage_function = name,
+                    params = params,
+                    block_hash = None if block == None else substrate.get_block_hash(block)
+                )
+        return make_substrate_call_with_retry()
+    
+    """ Queries any module map storage with params and block. """
+    def query_map( self, module: str, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[object]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query_map(
+                    module=module,
+                    storage_function = name,
+                    params = params,
                     block_hash = None if block == None else substrate.get_block_hash(block)
                 )
         return make_substrate_call_with_retry()

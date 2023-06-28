@@ -27,7 +27,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = '5.1.0'
+__version__ = '5.2.0'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 __new_signature_version__ = 360
@@ -76,9 +76,9 @@ __networks__ = [ 'local', 'finney']
 
 __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']
 
-__nobunaga_entrypoint__ = "wss://stagingnode.opentensor.ai:443"
-
 __finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
+
+__finney_test_entrypoint__ = "wss://test.finney.opentensor.ai:443/"
 
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
