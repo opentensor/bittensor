@@ -304,7 +304,7 @@ class TestCLINoNetwork(unittest.TestCase):
         # Verify there are no duplicate commands
         # Listed twice. Once in the positional arguments and once in the optional arguments
         for command in commands:
-            pat = re.compile(rf'\n\s+({command})\s+\w')
+            pat = re.compile(rf'\n\s+({command})[^\S\r\n]+\w')
             matches = pat.findall(help_out)
             self.assertEqual( len(matches), 1, f"Duplicate command {command} in help output")
 
