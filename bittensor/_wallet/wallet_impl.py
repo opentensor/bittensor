@@ -175,6 +175,21 @@ class Wallet():
             return subtensor.is_hotkey_registered_any( self.hotkey.ss58_address )
         else:
             return subtensor.is_hotkey_registered_on_subnet( self.hotkey.ss58_address, netuid = netuid )
+        
+    def is_senate_member( self, subtensor: Optional['bittensor.Subtensor'] = None ) -> bool:
+        """ Returns true if this wallet is registered as a senate member.
+            Args:
+                subtensor( Optional['bittensor.Subtensor'] ):
+                    Bittensor subtensor connection. Overrides with defaults if None.
+                    Determines which network we check for senate membership.
+            Return:
+                is_registered (bool):
+                    Is the wallet apart of the senate.
+        """
+        if subtensor == None: subtensor = bittensor.subtensor(self.config)
+
+        # default to finney
+        return subtensor.is_senate_member( self.hotkey.ss58_address )
 
 
     def get_neuron ( self, netuid: int, subtensor: Optional['bittensor.Subtensor'] = None ) -> Optional['bittensor.NeuronInfo'] :

@@ -82,4 +82,16 @@ class CLI:
             ListSubnetsCommand.run( self )
         elif self.config.command == 'recycle_register':
             RecycleRegisterCommand.run( self )
+        elif self.config.command == "senate":
+            SenateCommand.run( self )
+        elif self.config.command == "proposals":
+            ProposalsCommand.run( self )
+        elif self.config.command == "proposal_votes":
+            ShowVotesCommand.run( self )
+        elif self.config.command == "senate_register":
+            SenateRegisterCommand.run( self )
+        elif self.config.command == "senate_leave":
+            SenateLeaveCommand.run( self )
+        elif self.config.command == "senate_vote":
+            VoteCommand.run( self )
 
