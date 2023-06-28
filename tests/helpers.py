@@ -21,6 +21,8 @@ from scalecodec import ss58_encode
 from rich.console import Console
 from rich.text import Text
 
+from tests.mocks.wallet_mock import MockWallet
+
 from Crypto.Hash import keccak
 
 class CLOSE_IN_VALUE():
@@ -126,6 +128,24 @@ def get_mock_neuron_by_uid( uid: int, **kwargs ) -> NeuronInfo:
         coldkey = get_mock_coldkey(uid),
         **kwargs
     )
+
+def get_mock_wallet(coldkey: "Keypair" = None, hotkey: "Keypair" = None):
+    wallet = MockWallet(
+        name = 'mock_wallet',
+        hotkey = 'mock',
+        path = '/tmp/mock_wallet',
+    )
+
+    if not coldkey:
+        coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+    if not hotkey:
+        hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+
+    wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)
+    wallet.set_coldkeypub(coldkey, encrypt=False, overwrite=True)
+    wallet.set_hotkey(hotkey, encrypt=False, overwrite=True)
+
+    return wallet
 
 class MockStatus:
     def __enter__(self):

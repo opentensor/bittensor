@@ -16,14 +16,25 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
+import unittest
 
+_subtensor_mock = bittensor.subtensor( network = 'mock', _mock = True )
+    
+class TestMetagraph(unittest.TestCase):
+    def setUp(self) -> None:
+        global _subtensor_mock
+        _subtensor_mock.reset()
 
-def test_metagraph():
-    metagraph = bittensor.metagraph( netuid = 999, network = "mock" )
+        _subtensor_mock.create_subnet(
+            netuid = 999
+        )
 
-    assert metagraph.network == "mock"
-    assert metagraph.netuid == 999
-    assert metagraph.n == 0
-    assert len(metagraph.hotkeys) == 0
-    assert len(metagraph.coldkeys) == 0
-    assert len(metagraph.uids) == 0
+    def test_metagraph(self):
+        global _subtensor_mock
+        metagraph = _subtensor_mock.metagraph( netuid = 999 )
+
+        assert metagraph.netuid == 999
+        assert metagraph.n == 0
+        assert len(metagraph.hotkeys) == 0
+        assert len(metagraph.coldkeys) == 0
+        assert len(metagraph.uids) == 0

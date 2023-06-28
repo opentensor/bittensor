@@ -21,6 +21,7 @@ import json
 from rich.prompt import Confirm
 import bittensor.utils.networking as net
 from ..errors import *
+from ..types import PrometheusServeCallParams
 
 def prometheus_extrinsic(
     subtensor: 'bittensor.Subtensor',
@@ -66,7 +67,7 @@ def prometheus_extrinsic(
     else:
         external_ip = ip
 
-    call_params={
+    call_params: 'PrometheusServeCallParams' = {
         'version': bittensor.__version_as_int__,
         'ip': net.ip_to_int(external_ip),
         'port': port,
@@ -100,23 +101,21 @@ def prometheus_extrinsic(
     call_params['netuid'] = netuid
 
     with bittensor.__console__.status(":satellite: Serving prometheus on: [white]{}:{}[/white] ...".format(subtensor.network, netuid)):
-        with subtensor.substrate as substrate:
-            call = substrate.compose_call(
-                call_module='SubtensorModule',
-                call_function='serve_prometheus',
-                call_params = call_params
-            )
-            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.hotkey)
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-            if wait_for_inclusion or wait_for_finalization:
-                response.process_events()
-                if response.is_success:
-                    bittensor.__console__.print(':white_heavy_check_mark: [green]Served prometheus[/green]\n  [bold white]{}[/bold white]'.format(
-                        json.dumps(call_params, indent=4, sort_keys=True)
-                    ))
-                    return True
-                else:
-                    bittensor.__console__.print(':cross_mark: [green]Failed to serve prometheus[/green] error: {}'.format(response.error_message))
-                    return False
-            else:
+        success, err = subtensor._do_serve_prometheus(
+            wallet=wallet,
+            call_params = call_params,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_inclusion=wait_for_inclusion
+        )
+
+        if wait_for_inclusion or wait_for_finalization:
+            if success == True:
+                bittensor.__console__.print(':white_heavy_check_mark: [green]Served prometheus[/green]\n  [bold white]{}[/bold white]'.format(
+                    json.dumps(call_params, indent=4, sort_keys=True)
+                ))
                 return True
+            else:
+                bittensor.__console__.print(':cross_mark: [green]Failed to serve prometheus[/green] error: {}'.format(err))
+                return False
+        else:
+            return True

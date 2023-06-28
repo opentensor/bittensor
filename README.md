@@ -343,7 +343,7 @@ wallet.coldkey.sign( data )
 
 ```
 
-Subtensor: Interfaces with bittensor's blochain and can perform operations like extracting state information or sending transactions.
+Subtensor: Interfaces with bittensor's blockchain and can perform operations like extracting state information or sending transactions.
 ```python
 import bittensor as bt
 # Bittensor's chain interface.

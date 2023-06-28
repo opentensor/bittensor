@@ -43,7 +43,7 @@ class TestCLINoNetwork(unittest.TestCase):
             "return_per_1000": bittensor.Balance.from_rao(0),
             "total_daily_return": bittensor.Balance.from_rao(0)
         }
-        cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.mock_subtensor.mock', new=MagicMock(
+        cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.MockSubtensor.__new__', new=MagicMock(
             return_value=MagicMock(
                 get_subnets=MagicMock(return_value=[1]), # Mock subnet 1 ONLY.
                 block=10_000,
@@ -69,6 +69,7 @@ class TestCLINoNetwork(unittest.TestCase):
     @staticmethod
     def construct_config():
         defaults = bittensor.Config()
+
         defaults.netuid = 1
         bittensor.subtensor.add_defaults( defaults )
         defaults.subtensor.network = 'mock'
@@ -79,7 +80,6 @@ class TestCLINoNetwork(unittest.TestCase):
 
         return defaults
 
-    @unittest.skip("")
     def test_check_configs(self):
         config = self.config
         config.no_prompt = True
@@ -115,7 +115,6 @@ class TestCLINoNetwork(unittest.TestCase):
                 config.command = cmd
                 cli.check_config(config)
 
-    @unittest.skip("")
     def test_new_coldkey( self ):
         config = self.config
         config.wallet.name = "new_coldkey_testwallet"
@@ -132,7 +131,6 @@ class TestCLINoNetwork(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @unittest.skip("")
     def test_new_hotkey( self ):
         config = self.config
         config.wallet.name = "new_hotkey_testwallet"
@@ -149,7 +147,6 @@ class TestCLINoNetwork(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @unittest.skip("")
     def test_regen_coldkey( self ):
         config = self.config
         config.wallet.name = "regen_coldkey_testwallet"
@@ -168,7 +165,6 @@ class TestCLINoNetwork(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @unittest.skip("")
     def test_regen_coldkeypub( self ):
         config = self.config
         config.wallet.name = "regen_coldkeypub_testwallet"
@@ -183,7 +179,6 @@ class TestCLINoNetwork(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    @unittest.skip("")
     def test_regen_hotkey( self ):
         config = self.config
         config.wallet.name = "regen_hotkey_testwallet"
@@ -346,6 +341,46 @@ class TestCLINoNetwork(unittest.TestCase):
 
                             assert cli.config.subtensor.register.cuda.use_cuda == False
 
+class MockException(Exception):
+    pass
+
+
+class TestEmptyArgs(unittest.TestCase):
+    """
+    Test that the CLI doesn't crash when no args are passed
+    """
+    _patched_subtensor = None
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.MockSubtensor.__new__', new=MagicMock(
+        ))
+        cls._patched_subtensor.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._patched_subtensor.stop()
+    
+    @patch('rich.prompt.PromptBase.ask', side_effect=MockException)
+    def test_command_no_args(self, patched_prompt_ask):
+        # Get argparser
+        parser = bittensor.cli.__create_parser__()
+        # Get all commands from argparser
+        commands = [
+            command for command in parser._actions[1].choices
+        ]
+
+        # Test that each command can be run with no args
+        for command in commands:
+            try:
+                bittensor.cli(args=[
+                    command
+                ]).run()
+            except MockException:
+                pass # Expected exception
+
+            # Should not raise any other exceptions
+        
 
 class TestCLIDefaultsNoNetwork(unittest.TestCase):
     _patched_subtensor = None
@@ -363,7 +398,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             "return_per_1000": bittensor.Balance.from_rao(0), 
             "total_daily_return": bittensor.Balance.from_rao(0)
         }
-        cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.mock_subtensor.mock', new=MagicMock(
+        cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.MockSubtensor.__new__', new=MagicMock(
             return_value=MagicMock(
                 get_subnets=MagicMock(return_value=[1]), # Mock subnet 1 ONLY.
                 block=10_000,

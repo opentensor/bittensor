@@ -154,7 +154,7 @@ class axon:
         """Accept specific arguments from parser"""
         prefix_str = "" if prefix is None else prefix + "."
         if prefix is not None:
-            if not hasattr(bittensor.defaults, prefix):
+            if bittensor.defaults.get(prefix, d=None) == None:
                 setattr(bittensor.defaults, prefix, bittensor.Config())
             getattr(bittensor.defaults, prefix).axon = bittensor.defaults.axon
 
@@ -305,7 +305,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         version = metadata.get('bittensor-version')
         if signature is None:
             raise Exception("Request signature missing")
-        if int(version) < 370:
+        if int(version) < 510:
             raise Exception("Incorrect Version")
         parts = self.parse_signature_v2(signature)
         if parts is not None:

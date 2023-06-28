@@ -128,7 +128,7 @@ def add_stake_extrinsic(
                 wait_for_finalization = wait_for_finalization,
             )
 
-        if staking_response: # If we successfully staked.
+        if staking_response == True: # If we successfully staked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
@@ -273,7 +273,7 @@ def add_stake_multiple_extrinsic (
                 wait_for_finalization = wait_for_finalization,
             )
         
-            if staking_response: # If we successfully staked.
+            if staking_response == True: # If we successfully staked.
                 # We only wait here if we expect finalization.
 
                 if idx < len(hotkey_ss58s) - 1:
@@ -365,6 +365,7 @@ def __do_add_stake_single(
     """
     # Decrypt keys,
     wallet.coldkey
+    
     hotkey_owner = subtensor.get_hotkey_owner( hotkey_ss58 )
     own_hotkey = (wallet.coldkeypub.ss58_address == hotkey_owner)
     if not own_hotkey:
@@ -373,23 +374,13 @@ def __do_add_stake_single(
         if not subtensor.is_hotkey_delegate( hotkey_ss58 = hotkey_ss58 ):
             raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
 
-    with subtensor.substrate as substrate:
-        call = substrate.compose_call(
-        call_module='SubtensorModule',
-        call_function='add_stake',
-        call_params={
-            'hotkey': hotkey_ss58,
-            'amount_staked': amount.rao
-            }
-        )
-        extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
-        response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-        # We only wait here if we expect finalization.
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True
+    success = subtensor._do_stake(
+        wallet = wallet,
+        hotkey_ss58 = hotkey_ss58,
+        amount = amount,
+        wait_for_inclusion = wait_for_inclusion,
+        wait_for_finalization = wait_for_finalization,
+    )
 
-        response.process_events()
-        if response.is_success:
-            return True
-        else:
-            raise StakeError(response.error_message)
+    return success
+    
