@@ -3,7 +3,6 @@ syntax = "proto3";
 
 service TextPrompting  {
     rpc Forward (ForwardTextPromptingRequest) returns (ForwardTextPromptingResponse) {}
-    rpc MultiForward (MultiForwardTextPromptingRequest) returns (MultiForwardTextPromptingResponse) {}
     rpc Backward (BackwardTextPromptingRequest) returns (BackwardTextPromptingResponse) {}
 }
 
@@ -18,19 +17,6 @@ message ForwardTextPromptingRequest {
 message ForwardTextPromptingResponse {
     int32 version = 1;
     string response = 3;
-	string return_message = 4;
-	ReturnCode return_code = 5;
-}
-message MultiForwardTextPromptingRequest {
-    int32 version = 1;
-    string hotkey = 2;
-    repeated string messages = 3;
-    float timeout = 4;
-}
-message MultiForwardTextPromptingResponse {
-    int32 version = 1;
-    string hotkey = 2;
-    repeated string multi_completions = 3;
 	string return_message = 4;
 	ReturnCode return_code = 5;
 }

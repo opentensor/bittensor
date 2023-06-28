@@ -1,2 +1,0 @@
-aleph_alpha_client
-langchain
