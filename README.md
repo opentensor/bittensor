@@ -276,12 +276,54 @@ $ btcli --help
         list_delegates      List all delegates on the network.
         regen_coldkeypub    Regenerates a public coldkey from the public part of the coldkey.
         recycle_register    Register a wallet to a network.
+	senate              View senate and it's members
+    	proposals           View active triumvirate proposals and their status
+    	proposal_votes      View an active proposal's votes by address.
+    	senate_register     Register as a senate member to participate in proposals
+    	senate_leave        Discard senate membership in the governance protocol
+    	senate_vote         Vote on an active proposal by hash.
 
     optional arguments:
     -h, 
     --help                  Show this help message and exit
     --config CONFIG         If set, defaults are overridden by passed file.
     --strict                If flagged, config will check that only exact arguemnts have been set.
+```
+
+# Senate 
+List all active proposals for the Senate to vote on. Usage: btcli proposals
+```bash
+btcli proposals
+```
+
+View Senate
+View all delegates currently registered to Senate. Usage: btcli senate
+```bash
+btcli senate
+```
+
+Proposal Votes
+Inspect the votes for a single proposal. Usage: btcli proposal_votes [OPTIONS]
+```bash
+btcli proposal_votes --proposal=[PROPOSAL_HASH]
+```
+
+Senate Register
+Elect to join the Senate with your nominated hotkey. Usage: btcli senate_register [OPTIONS]
+```bash
+btcli senate_register
+```
+
+Senate Leave
+Disown your membership of a Senate seat with your nominated hotkey. Usage: btcli senate_leave [OPTIONS]
+```bash
+btcli senate_leave
+```
+
+Senate Vote
+Participate in a triumvirate proposal by voting with your senate hotkey. Usage: btcli senate_vote [OPTIONS]
+```bash
+btcli senate_vote --proposal=[PROPOSAL_HASH]
 ```
 
 # The Bittensor Package
