@@ -93,6 +93,7 @@ class TestCLINoNetwork(unittest.TestCase):
         config.no_version_checking = True
         config.ss58_address = bittensor.Keypair.create_from_seed( b'0' * 32 ).ss58_address
         config.public_key_hex = None
+        config.proposal_hash = ""
 
         cli = bittensor.cli
 
