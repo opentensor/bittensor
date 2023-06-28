@@ -31,6 +31,45 @@ from substrateinterface import Keypair
 import bittensor.utils.networking as net
 from typing import Dict, Optional, Tuple
 
+import uvicorn
+from fastapi import FastAPI, APIRouter
+
+class FastAPIThreadedServer(uvicorn.Server):
+    """ FastAPI server that runs in a thread."""
+    should_exit: bool = False
+    is_running: bool = False
+
+    def install_signal_handlers(self):
+        pass
+
+    @contextlib.contextmanager
+    def run_in_thread(self):
+        thread = threading.Thread(target=self.run, daemon=True)
+        thread.start()
+        try:
+            while not self.started:
+                time.sleep(1e-3)
+            yield
+        finally:
+            self.should_exit = True
+            thread.join()
+
+    def _wrapper_run(self):
+        with self.run_in_thread():
+            while not self.should_exit:
+                time.sleep(1e-3)
+
+    def start(self):
+        if not self.is_running:
+            self.should_exit = False
+            thread = threading.Thread(target=self._wrapper_run, daemon=True)
+            thread.start()
+            self.is_running = True
+
+    def stop(self):
+        if self.is_running:
+            self.should_exit = True
+
 class axon:
     """ Axon object for serving synapse receptors. """
 
@@ -48,6 +87,11 @@ class axon:
             placeholder2 = 0,
         )
 
+    def fast_info(self) -> dict:
+        fastinfo = self.info().__dict__
+        fastinfo.update({'external_fast_api_port': self.external_fast_api_port})
+        return fastinfo
+
     def __init__(
         self,
         wallet: "bittensor.Wallet",
@@ -60,6 +104,9 @@ class axon:
         max_workers: Optional[int] = None,
         server: "grpc._server._Server" = None,
         maximum_concurrent_rpcs: Optional[int] = None,
+        disable_fast_api: Optional[bool] = None,
+        fast_api_port: Optional[int] = None,
+        external_fast_api_port: Optional[int] = None,
     ) -> "bittensor.Axon":
         r"""Creates a new bittensor.Axon object from passed arguments.
         Args:
@@ -79,6 +126,12 @@ class axon:
                 Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
             maximum_concurrent_rpcs (:type:`Optional[int]`, `optional`):
                 Maximum allowed concurrently processed RPCs.
+            disable_fast_api (:obj:`Optional[bool]`, `optional`):
+                Specifies whether to disable the FastAPI server. If set to `True`, the Axon will not start the FastAPI server.
+            fast_api_port (:obj:`Optional[int]`, `optional`)
+                The port number on which the FastAPI server should bind. If specified, the FastAPI server will bind to this port.
+            external_fast_api_port (:obj:`Optional[int]`, `optional`):
+                The external port of the server to broadcast to the network for FastAPI requests.
         """
         self.metagraph = metagraph
         self.wallet = wallet
@@ -93,6 +146,8 @@ class axon:
         config.axon.external_port = (
             external_port if external_port is not None else config.axon.external_port
         )
+        config.axon.fast_api_port = fast_api_port or config.axon.fast_api_port
+        config.axon.external_fast_api_port = external_fast_api_port or config.axon.external_fast_api_port
         config.axon.max_workers = max_workers if max_workers is not None else config.axon.max_workers
         config.axon.maximum_concurrent_rpcs = (
             maximum_concurrent_rpcs
@@ -107,8 +162,22 @@ class axon:
         self.port = self.config.axon.port
         self.external_ip = self.config.axon.external_ip if self.config.axon.external_ip != None else bittensor.utils.networking.get_external_ip()
         self.external_port = self.config.axon.external_port if self.config.axon.external_port != None else self.config.axon.port
+        self.external_fast_api_port = (
+            self.config.axon.external_fast_api_port
+            if self.config.axon.external_fast_api_port != None
+            else self.config.axon.fast_api_port
+        )
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
         self.started = False
+
+        # Instantiate FastAPI
+        if not self.config.axon.disable_fast_api:
+            self.fastapi_app = FastAPI()
+            self.fast_config = uvicorn.Config( self.fastapi_app, host = '0.0.0.0', port = self.config.axon.fast_api_port, log_level="info")
+            self.fast_server = FastAPIThreadedServer( config = self.fast_config )
+            self.router = APIRouter()
+            self.router.add_api_route("/", self.fast_api_info, methods=["GET"])
+            self.fastapi_app.include_router( self.router )
 
         # Build priority thread pool
         self.priority_threadpool = bittensor.prioritythreadpool(config=self.config.axon)
