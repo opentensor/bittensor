@@ -189,8 +189,6 @@ from bittensor_wallet import KeyFileError as KeyFileError
 
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse
-from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingRequest
-from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingResponse
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingResponse
 
@@ -205,11 +203,6 @@ from bittensor._dendrite.dendrite import DendriteCall
 from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as text_prompting
 from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
 
-# ---- Base Miners -----
-from bittensor._neuron.base_miner_neuron import BaseMinerNeuron
-from bittensor._neuron.base_validator import BaseValidator
-from bittensor._neuron.base_prompting_miner import BasePromptingMiner
-from bittensor._neuron.base_huggingface_miner import HuggingFaceMiner
 
 # DEFAULTS
 defaults = Config()
@@ -311,19 +304,11 @@ class prompting ( torch.nn.Module ):
             return_all: bool = False,
         ) -> Union[str, List[str]]:
         roles, messages = self.format_content( content )
-        if not return_all:
-            return self._dendrite.forward(
-                roles = roles,
-                messages = messages,
-                timeout = timeout
-            ).completion
-        else:
-            return self._dendrite.multi_forward(
-                roles = roles,
-                messages = messages,
-                timeout = timeout
-            ).multi_completions
-
+        return self._dendrite.forward(
+            roles = roles,
+            messages = messages,
+            timeout = timeout
+        ).completion
 
     async def async_forward(
             self,
@@ -332,18 +317,11 @@ class prompting ( torch.nn.Module ):
             return_all: bool = False,
         ) -> Union[str, List[str]]:
         roles, messages = self.format_content( content )
-        if not return_all:
-            return await self._dendrite.async_forward(
-                    roles = roles,
-                    messages = messages,
-                    timeout = timeout
-                ).completion
-        else:
-            return self._dendrite.async_multi_forward(
+        return await self._dendrite.async_forward(
                 roles = roles,
                 messages = messages,
                 timeout = timeout
-            ).multi_completions
+            ).completion
 
 class BittensorLLM(LLM):
     """Wrapper around Bittensor Prompting Subnetwork.
