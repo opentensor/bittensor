@@ -24,6 +24,35 @@ import bittensor
 from typing import Union, Optional, Callable, List, Dict, Tuple
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from pydantic import BaseModel
+
+class SynapseContext:
+    """Base abstraction for synapse context. Can be gRPC or FastAPI context middleware"""
+
+    def __init__(self, context: Union[grpc.ServicerContext, None], synapse: 'bittensor.Synapse'):
+        self.context = context
+        self.synapse = synapse
+        self.sender_hotkey = self._parse_context()
+
+    def _parse_context(self):
+        if isinstance(self.context, grpc.ServicerContext):
+            return self._parse_grpc_context()
+        else:
+            return self._parse_fastapi_context()
+
+    def _parse_grpc_context(self):
+        metadata = dict(self.context.invocation_metadata())
+        (
+            _,
+            sender_hotkey,
+            _,
+            _,
+        ) = self.synapse.axon.auth_interceptor.parse_signature(metadata)
+        return sender_hotkey
+
+    def _parse_fastapi_context(self):
+        raise NotImplementedError("FastAPI context parsing not implemented yet.")
+
 
 @dataclass
 class SynapseCall( ABC ):
@@ -36,21 +65,16 @@ class SynapseCall( ABC ):
         self,
         synapse: 'bittensor.Synapse',
         request_proto: object,
-        context: grpc.ServicerContext,
+        context: Union[grpc.ServicerContext, None] = None,
     ):
-        metadata = dict(context.invocation_metadata())
-        (
-            _,
-            sender_hotkey,
-            _,
-            _,
-        ) = synapse.axon.auth_interceptor.parse_signature(metadata)
-        
+
+        # Parse sender hotkey from context abstraction.
+        synapse_context = SynapseContext( context = context, synapse = synapse )
+        self.src_hotkey = synapse_context.sender_hotkey
         self.completed = False
         self.start_time = time.time()
         self.timeout = request_proto.timeout
         self.src_version = request_proto.version
-        self.src_hotkey = sender_hotkey
         self.dest_hotkey = synapse.axon.wallet.hotkey.ss58_address
         self.dest_version = bittensor.__version_as_int__
         self.return_code: bittensor.proto.ReturnCode = bittensor.proto.ReturnCode.Success
