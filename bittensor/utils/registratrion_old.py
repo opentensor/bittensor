@@ -377,7 +377,7 @@ class RegistrationStatisticsLogger:
             self.console.log( self.get_status_message(stats, verbose=verbose), )
 
 
-def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None,  n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast( subtensor: 'bittensor.Subtensor', wallet, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None,  n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the POW for registration using multiprocessing.
     Args:
@@ -474,7 +474,9 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
     hash_rates = [0] * n_samples # The last n true hash_rates
     weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
 
-    while not wallet.is_registered(subtensor):
+    while not subtensor.is_hotkey_registered(
+        hotkey_ss58 = wallet.hotkey.ss58_address,
+    ):
         # Wait until a solver finds a solution
         try:
             solution = solution_queue.get(block=True, timeout=0.25)
@@ -732,7 +734,9 @@ def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'b
         weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
 
         solution = None
-        while not wallet.is_registered(subtensor):
+        while not subtensor.is_hotkey_registered(
+            hotkey_ss58 = wallet.hotkey.ss58_address,
+        ):
             # Wait until a solver finds a solution
             try:
                 solution = solution_queue.get(block=True, timeout=0.15)
