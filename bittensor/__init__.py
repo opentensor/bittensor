@@ -27,7 +27,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = '5.1.0'
+__version__ = '5.2.0'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 __new_signature_version__ = 360
@@ -76,9 +76,9 @@ __networks__ = [ 'local', 'finney']
 
 __datasets__ = ['ArXiv', 'BookCorpus2', 'Books3', 'DMMathematics', 'EnronEmails', 'EuroParl', 'Gutenberg_PG', 'HackerNews', 'NIHExPorter', 'OpenSubtitles', 'PhilPapers', 'UbuntuIRC', 'YoutubeSubtitles']
 
-__nobunaga_entrypoint__ = "wss://stagingnode.opentensor.ai:443"
-
 __finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
+
+__finney_test_entrypoint__ = "wss://test.finney.opentensor.ai:443/"
 
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
@@ -189,6 +189,8 @@ from bittensor_wallet import KeyFileError as KeyFileError
 
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse
+from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingRequest
+from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingResponse
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingResponse
 
@@ -203,6 +205,11 @@ from bittensor._dendrite.dendrite import DendriteCall
 from bittensor._dendrite.text_prompting.dendrite import TextPromptingDendrite as text_prompting
 from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendritePool as text_prompting_pool
 
+# ---- Base Miners -----
+from bittensor._neuron.base_miner_neuron import BaseMinerNeuron
+from bittensor._neuron.base_validator import BaseValidator
+from bittensor._neuron.base_prompting_miner import BasePromptingMiner
+from bittensor._neuron.base_huggingface_miner import HuggingFaceMiner
 
 # DEFAULTS
 defaults = Config()
@@ -304,11 +311,19 @@ class prompting ( torch.nn.Module ):
             return_all: bool = False,
         ) -> Union[str, List[str]]:
         roles, messages = self.format_content( content )
-        return self._dendrite.forward(
-            roles = roles,
-            messages = messages,
-            timeout = timeout
-        ).completion
+        if not return_all:
+            return self._dendrite.forward(
+                roles = roles,
+                messages = messages,
+                timeout = timeout
+            ).completion
+        else:
+            return self._dendrite.multi_forward(
+                roles = roles,
+                messages = messages,
+                timeout = timeout
+            ).multi_completions
+
 
     async def async_forward(
             self,
@@ -317,11 +332,18 @@ class prompting ( torch.nn.Module ):
             return_all: bool = False,
         ) -> Union[str, List[str]]:
         roles, messages = self.format_content( content )
-        return await self._dendrite.async_forward(
+        if not return_all:
+            return await self._dendrite.async_forward(
+                    roles = roles,
+                    messages = messages,
+                    timeout = timeout
+                ).completion
+        else:
+            return self._dendrite.async_multi_forward(
                 roles = roles,
                 messages = messages,
                 timeout = timeout
-            ).completion
+            ).multi_completions
 
 class BittensorLLM(LLM):
     """Wrapper around Bittensor Prompting Subnetwork.
