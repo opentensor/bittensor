@@ -9,6 +9,7 @@
 **/runs/*
 **/env/*
 **/venv/*
+**/tmp/*
 ./circleci/*
 ./github/*
 .ipynb
