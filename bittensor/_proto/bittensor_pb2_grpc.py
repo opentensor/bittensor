@@ -19,6 +19,11 @@ class TextPromptingStub(object):
                 request_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextPromptingRequest.SerializeToString,
                 response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextPromptingResponse.FromString,
                 )
+        self.MultiForward = channel.unary_unary(
+                '/TextPrompting/MultiForward',
+                request_serializer=bittensor_dot___proto_dot_bittensor__pb2.MultiForwardTextPromptingRequest.SerializeToString,
+                response_deserializer=bittensor_dot___proto_dot_bittensor__pb2.MultiForwardTextPromptingResponse.FromString,
+                )
         self.Backward = channel.unary_unary(
                 '/TextPrompting/Backward',
                 request_serializer=bittensor_dot___proto_dot_bittensor__pb2.BackwardTextPromptingRequest.SerializeToString,
@@ -30,6 +35,12 @@ class TextPromptingServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Forward(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def MultiForward(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -48,6 +59,11 @@ def add_TextPromptingServicer_to_server(servicer, server):
                     servicer.Forward,
                     request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextPromptingRequest.FromString,
                     response_serializer=bittensor_dot___proto_dot_bittensor__pb2.ForwardTextPromptingResponse.SerializeToString,
+            ),
+            'MultiForward': grpc.unary_unary_rpc_method_handler(
+                    servicer.MultiForward,
+                    request_deserializer=bittensor_dot___proto_dot_bittensor__pb2.MultiForwardTextPromptingRequest.FromString,
+                    response_serializer=bittensor_dot___proto_dot_bittensor__pb2.MultiForwardTextPromptingResponse.SerializeToString,
             ),
             'Backward': grpc.unary_unary_rpc_method_handler(
                     servicer.Backward,
@@ -78,6 +94,23 @@ class TextPrompting(object):
         return grpc.experimental.unary_unary(request, target, '/TextPrompting/Forward',
             bittensor_dot___proto_dot_bittensor__pb2.ForwardTextPromptingRequest.SerializeToString,
             bittensor_dot___proto_dot_bittensor__pb2.ForwardTextPromptingResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def MultiForward(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/TextPrompting/MultiForward',
+            bittensor_dot___proto_dot_bittensor__pb2.MultiForwardTextPromptingRequest.SerializeToString,
+            bittensor_dot___proto_dot_bittensor__pb2.MultiForwardTextPromptingResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
