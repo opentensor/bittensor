@@ -4,6 +4,7 @@ import pytest
 import unittest
 from unittest.mock import MagicMock, patch
 from bittensor._subtensor.subtensor_mock import MockSubtensor
+from tests.helpers import get_mock_wallet
 
 _subtensor_mock: MockSubtensor = bittensor.subtensor( network = 'mock', _mock = True )
 
@@ -23,7 +24,7 @@ class TestPrometheus(unittest.TestCase):
 
     def setUp(self):
         self.subtensor = bittensor.subtensor(network = 'mock')
-        self.wallet = bittensor.wallet.mock()
+        self.wallet = get_mock_wallet()
 
     def test_init_prometheus_success(self):
         with patch.object(self.subtensor, '_do_serve_prometheus', return_value = (True, None)):

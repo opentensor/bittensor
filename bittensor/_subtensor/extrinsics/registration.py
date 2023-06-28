@@ -113,7 +113,11 @@ def register_extrinsic (
         # pow failed
         if not pow_result:
             # might be registered already on this subnet
-            if (wallet.is_registered( subtensor = subtensor, netuid = netuid )):
+            is_registered = subtensor.is_hotkey_registered(
+                netuid = netuid,
+                hotkey_ss58 = wallet.hotkey.ss58_address,
+            )
+            if is_registered:
                 bittensor.__console__.print(f":white_heavy_check_mark: [green]Already registered on netuid:{netuid}[/green]")
                 return True
 
@@ -143,7 +147,10 @@ def register_extrinsic (
                     # Successful registration, final check for neuron and pubkey
                     else:
                         bittensor.__console__.print(":satellite: Checking Balance...")
-                        is_registered = wallet.is_registered( subtensor = subtensor, netuid = netuid )
+                        is_registered = subtensor.is_hotkey_registered(
+                            netuid = netuid,
+                            hotkey_ss58 = wallet.hotkey.ss58_address,
+                        )
                         if is_registered:
                             bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
                             return True
@@ -239,7 +246,10 @@ def burned_register_extrinsic (
             new_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address, block = block )
 
             bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_balance, new_balance ))
-            is_registered = wallet.is_registered( subtensor = subtensor, netuid = netuid )
+            is_registered = subtensor.is_hotkey_registered(
+                netuid = netuid,
+                hotkey_ss58 = wallet.hotkey.ss58_address,
+            )
             if is_registered:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
                 return True

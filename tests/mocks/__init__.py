@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
+# Copyright © 2023 Opentensor Technologies
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -15,29 +15,5 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-from . import keyfile_impl
-
-class keyfile (object):
-    """ Factory for a bittensor on device keypair
-    """
-    def __new__(
-        cls,
-        path: str = None,
-        _mock: bool = False
-    ) -> 'bittensor.Keyfile':
-        r""" Initialize a bittensor on device keypair interface.
-
-            Args:
-                path (required=False, default: ~/.bittensor/wallets/default/coldkey ):
-                    Path where this keypair is stored.
-        """
-        path = '~/.bittensor/wallets/default/coldkey' if path == None else path
-        if _mock:
-            return keyfile_impl.MockKeyfile( path = path )
-        else:
-            return keyfile_impl.Keyfile( path = path )
-
-    @classmethod
-    def mock(cls):
-        return keyfile(_mock=True)
+from .wallet_mock import MockWallet as MockWallet
+from .keyfile_mock import MockKeyfile as MockKeyfile

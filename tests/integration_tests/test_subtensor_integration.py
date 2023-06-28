@@ -28,7 +28,7 @@ import pytest
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
 from bittensor._subtensor.subtensor_mock import MockSubtensor
-from tests.helpers import get_mock_hotkey, get_mock_coldkey, MockConsole, get_mock_keypair
+from tests.helpers import get_mock_hotkey, get_mock_coldkey, MockConsole, get_mock_keypair, get_mock_wallet
 
 class TestSubtensor(unittest.TestCase):
     _mock_console_patcher = None
@@ -36,7 +36,10 @@ class TestSubtensor(unittest.TestCase):
     subtensor: MockSubtensor
 
     def setUp(self):
-        self.wallet = bittensor.wallet(_mock=True)
+        self.wallet = get_mock_wallet(
+            hotkey = get_mock_keypair(0, self.id()),
+            coldkey = get_mock_keypair(1, self.id())
+        )
         self.balance = Balance.from_tao(1000)
         self.mock_neuron = MagicMock() # NOTE: this might need more sophistication
         self.subtensor = bittensor.subtensor( network = 'mock' ) # own instance per test
@@ -378,8 +381,11 @@ class TestSubtensor(unittest.TestCase):
                 # patch time queue get to raise Empty exception
                 with patch('multiprocessing.queues.Queue.get_nowait', side_effect=QueueEmpty) as mock_queue_get_nowait:
 
-                    wallet = bittensor.wallet(_mock=True)
-                    wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
+                    wallet = get_mock_wallet(
+                        hotkey = get_mock_keypair(0, self.id()),
+                        coldkey = get_mock_keypair(1, self.id())
+                    )
+                    self.subtensor.is_hotkey_registered = MagicMock( side_effect=is_registered_return_values )
 
                     self.subtensor.difficulty= MagicMock(return_value=1)
                     self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock( side_effect=mock_neuron )
@@ -395,7 +401,7 @@ class TestSubtensor(unittest.TestCase):
 
                     # calls until True and once again before exiting subtensor class
                     # This assertion is currently broken when difficulty is too low
-                    assert wallet.is_registered.call_count == workblocks_before_is_registered + 2
+                    assert self.subtensor.is_hotkey_registered.call_count == workblocks_before_is_registered + 2
 
     def test_registration_partly_failed( self ):
         do_pow_register_mock = MagicMock( side_effect = [(False, 'Failed'), (False, 'Failed'), (True, None)])
@@ -408,8 +414,12 @@ class TestSubtensor(unittest.TestCase):
 
         with patch('bittensor.Subtensor.get_neuron_for_pubkey_and_subnet', return_value = bittensor.NeuronInfo._null_neuron()):
             with patch('bittensor.Subtensor.difficulty'):
-                wallet = bittensor.wallet(_mock=True)
-                wallet.is_registered = MagicMock(side_effect=is_registered_side_effect)
+                wallet = get_mock_wallet(
+                    hotkey = get_mock_keypair(0, self.id()),
+                    coldkey = get_mock_keypair(1, self.id())
+                )
+
+                self.subtensor.is_hotkey_registered = MagicMock(side_effect=is_registered_side_effect)
 
                 self.subtensor.difficulty = MagicMock(return_value=1)
                 self.subtensor.get_current_block = MagicMock(side_effect=current_block)
@@ -425,8 +435,12 @@ class TestSubtensor(unittest.TestCase):
         mock_neuron.is_null = True
 
         with patch('bittensor._subtensor.extrinsics.registration.create_pow', return_value=None) as mock_create_pow:
-            wallet = bittensor.wallet(_mock=True)
-            wallet.is_registered = MagicMock( side_effect=is_registered_return_values )
+            wallet = get_mock_wallet(
+                hotkey = get_mock_keypair(0, self.id()),
+                coldkey = get_mock_keypair(1, self.id())
+            )
+
+            self.subtensor.is_hotkey_registered = MagicMock(side_effect=is_registered_return_values)
 
             self.subtensor.get_current_block = MagicMock(side_effect=current_block)
             self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock( return_value=mock_neuron )

@@ -70,13 +70,6 @@ class TestCLINoNetwork(unittest.TestCase):
     def construct_config():
         defaults = bittensor.Config()
 
-        # Get defaults for this config
-        is_set_map = bittensor.config.__fill_is_set_list__(defaults, bittensor.defaults)
-
-        defaults['__is_set'] = is_set_map
-
-        defaults.__fill_with_defaults__(is_set_map, bittensor.defaults)
-
         defaults.netuid = 1
         bittensor.subtensor.add_defaults( defaults )
         defaults.subtensor.network = 'mock'
@@ -348,6 +341,46 @@ class TestCLINoNetwork(unittest.TestCase):
 
                             assert cli.config.subtensor.register.cuda.use_cuda == False
 
+class MockException(Exception):
+    pass
+
+
+class TestEmptyArgs(unittest.TestCase):
+    """
+    Test that the CLI doesn't crash when no args are passed
+    """
+    _patched_subtensor = None
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.MockSubtensor.__new__', new=MagicMock(
+        ))
+        cls._patched_subtensor.start()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._patched_subtensor.stop()
+    
+    @patch('rich.prompt.PromptBase.ask', side_effect=MockException)
+    def test_command_no_args(self, patched_prompt_ask):
+        # Get argparser
+        parser = bittensor.cli.__create_parser__()
+        # Get all commands from argparser
+        commands = [
+            command for command in parser._actions[1].choices
+        ]
+
+        # Test that each command can be run with no args
+        for command in commands:
+            try:
+                bittensor.cli(args=[
+                    command
+                ]).run()
+            except MockException:
+                pass # Expected exception
+
+            # Should not raise any other exceptions
+        
 
 class TestCLIDefaultsNoNetwork(unittest.TestCase):
     _patched_subtensor = None

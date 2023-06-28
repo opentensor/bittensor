@@ -20,11 +20,8 @@
 import unittest
 from copy import deepcopy
 from types import SimpleNamespace
-from typing import Dict, Optional, Tuple
+from typing import Dict
 from unittest.mock import MagicMock, patch
-import time
-
-import os
 
 import random
 
@@ -33,23 +30,9 @@ from substrateinterface.base import Keypair
 
 import bittensor
 from bittensor.utils.balance import Balance
-from tests.helpers import MockConsole, get_mock_keypair
+from tests.helpers import MockConsole, get_mock_keypair, get_mock_wallet as generate_wallet
 from bittensor._subtensor.subtensor_mock import MockSubtensor
 
-
-def generate_wallet(coldkey: "Keypair" = None, hotkey: "Keypair" = None):
-    wallet = bittensor.wallet(_mock=True).create()
-
-    if not coldkey:
-        coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-    if not hotkey:
-        hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-
-    wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)
-    wallet.set_coldkeypub(coldkey, encrypt=False, overwrite=True)
-    wallet.set_hotkey(hotkey, encrypt=False, overwrite=True)
-
-    return wallet
 
 _subtensor_mock: MockSubtensor = bittensor.subtensor( network = 'mock', _mock = True )
 
@@ -96,13 +79,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
     @staticmethod
     def construct_config():
         defaults = bittensor.Config()
-
-        # Get defaults for this config
-        is_set_map = bittensor.config.__fill_is_set_list__(defaults, bittensor.defaults)
-
-        defaults['__is_set'] = is_set_map
-
-        defaults.__fill_with_defaults__(is_set_map, bittensor.defaults)
 
         defaults.netuid = 1
         bittensor.subtensor.add_defaults(defaults)
@@ -1967,7 +1943,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.subtensor.register.update_interval = 50_000
         config.no_prompt = True
 
-        mock_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
 
         class MockException(Exception):
             pass
@@ -1992,7 +1972,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "recycle_register"
         config.no_prompt = True
 
-        mock_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
 
         # Give the wallet some balance for burning
         success, err = _subtensor_mock.force_set_balance(
@@ -2028,7 +2012,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         subtensor = bittensor.subtensor(config)
 
-        mock_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
 
         # Register the hotkey and give it some balance
         _subtensor_mock.force_register_neuron(
@@ -2200,8 +2188,16 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         """
         Test delegate add command
         """
-        mock_wallet = generate_wallet()
-        delegate_wallet = generate_wallet()
+        mock_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100, self.id()
+            )
+        )
+        delegate_wallet = generate_wallet(
+            hotkey = get_mock_keypair(
+                100 + 1, self.id()
+            )
+        )
 
        
         # register the wallet
@@ -2246,7 +2242,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         )
 
         with patch(
-            "bittensor._wallet.wallet_mock.Wallet_mock", return_value=mock_wallet
+            "bittensor.wallet", return_value=mock_wallet
         ):  # Mock wallet creation. SHOULD NOT BE REGISTERED
             cli = bittensor.cli(
                 args=[
