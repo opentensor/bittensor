@@ -701,6 +701,13 @@ class Subtensor:
     #### Senate ####
     ################
 
+<<<<<<< HEAD
+=======
+    ################
+    #### Senate ####
+    ################
+
+>>>>>>> master
     def register_senate(
         self,
         wallet: 'bittensor.wallet',
