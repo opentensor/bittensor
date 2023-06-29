@@ -766,6 +766,126 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
+    def test_delegate_prompt_hotkey(self):
+        # Tests when
+        # - wallet name IS passed, AND
+        # - delegate hotkey IS NOT passed
+        base_args = [
+            'delegate',
+            '--all',
+            '--wallet.name', 'mock', 
+        ]
+
+        delegate_ss58 = get_mock_coldkey(0)
+        with patch('bittensor._cli.commands.delegates.show_delegates'):
+            with patch('bittensor.Subtensor.get_delegates', return_value=[
+                bittensor.DelegateInfo(
+                    hotkey_ss58=delegate_ss58, # return delegate with mock coldkey
+                    total_stake=bittensor.Balance.from_float(0.1),
+                    nominators=[],
+                    owner_ss58='',
+                    take=0.18,
+                    validator_permits=[],
+                    registrations=[],
+                    return_per_1000=bittensor.Balance.from_float(0.1),
+                    total_daily_return=bittensor.Balance.from_float(0.1)
+                )
+            ]):
+                # Patch command to exit early
+                with patch('bittensor._cli.commands.delegates.DelegateStakeCommand.run', return_value=None):
+
+                    # Test prompt happens when 
+                    # - delegate hotkey IS NOT passed
+                    with patch('rich.prompt.Prompt.ask') as mock_ask_prompt:
+                        mock_ask_prompt.side_effect = ['0'] # select delegate with mock coldkey
+
+                        cli = bittensor.cli(args=base_args + [
+                                # '--delegate_ss58key', delegate_ss58,
+                            ])
+                        cli.run()
+
+                        # Prompt happened
+                        mock_ask_prompt.assert_called()
+                        self.assertEqual(mock_ask_prompt.call_count, 1, msg="Prompt should have been called ONCE")
+                        args0, kwargs0 = mock_ask_prompt.call_args_list[0]
+                        combined_args_kwargs0 = [arg for arg in args0] + [val for val in kwargs0.values()]
+                        # check that prompt was called for delegate hotkey 
+                        self.assertTrue(
+                            any(filter(lambda x: 'delegate' in x.lower(), combined_args_kwargs0)),
+                            msg=f"Prompt should have been called for delegate: {combined_args_kwargs0}"
+                        )
+
+                    # Test NO prompt happens when
+                    # - delegate hotkey IS passed
+                    with patch('rich.prompt.Prompt.ask') as mock_ask_prompt:
+                        cli = bittensor.cli(args=base_args + [
+                                '--delegate_ss58key', delegate_ss58,
+                            ])
+                        cli.run()
+
+                        # NO prompt happened
+                        mock_ask_prompt.assert_not_called()
+
+    def test_undelegate_prompt_hotkey(self):
+        # Tests when
+        # - wallet name IS passed, AND
+        # - delegate hotkey IS NOT passed
+        base_args = [
+            'undelegate',
+            '--all',
+            '--wallet.name', 'mock', 
+        ]
+
+        delegate_ss58 = get_mock_coldkey(0)
+        with patch('bittensor._cli.commands.delegates.show_delegates'):
+            with patch('bittensor.Subtensor.get_delegates', return_value=[
+                bittensor.DelegateInfo(
+                    hotkey_ss58=delegate_ss58, # return delegate with mock coldkey
+                    total_stake=bittensor.Balance.from_float(0.1),
+                    nominators=[],
+                    owner_ss58='',
+                    take=0.18,
+                    validator_permits=[],
+                    registrations=[],
+                    return_per_1000=bittensor.Balance.from_float(0.1),
+                    total_daily_return=bittensor.Balance.from_float(0.1)
+                )
+            ]):
+                # Patch command to exit early
+                with patch('bittensor._cli.commands.delegates.DelegateUnstakeCommand.run', return_value=None):
+
+                    # Test prompt happens when 
+                    # - delegate hotkey IS NOT passed
+                    with patch('rich.prompt.Prompt.ask') as mock_ask_prompt:
+                        mock_ask_prompt.side_effect = ['0'] # select delegate with mock coldkey
+
+                        cli = bittensor.cli(args=base_args + [
+                                # '--delegate_ss58key', delegate_ss58,
+                            ])
+                        cli.run()
+
+                        # Prompt happened
+                        mock_ask_prompt.assert_called()
+                        self.assertEqual(mock_ask_prompt.call_count, 1, msg="Prompt should have been called ONCE")
+                        args0, kwargs0 = mock_ask_prompt.call_args_list[0]
+                        combined_args_kwargs0 = [arg for arg in args0] + [val for val in kwargs0.values()]
+                        # check that prompt was called for delegate hotkey 
+                        self.assertTrue(
+                            any(filter(lambda x: 'delegate' in x.lower(), combined_args_kwargs0)),
+                            msg=f"Prompt should have been called for delegate: {combined_args_kwargs0}"
+                        )
+
+                    # Test NO prompt happens when
+                    # - delegate hotkey IS passed
+                    with patch('rich.prompt.Prompt.ask') as mock_ask_prompt:
+                        cli = bittensor.cli(args=base_args + [
+                                '--delegate_ss58key', delegate_ss58,
+                            ])
+                        cli.run()
+
+                        # NO prompt happened
+                        mock_ask_prompt.assert_not_called()
+
 
 
 if __name__ == "__main__":
