@@ -29,7 +29,7 @@ from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
 from bittensor.utils.registration import POWSolution
 
 # Local imports.
-from .chain_data import NeuronInfo, DelegateInfo, PrometheusInfo, SubnetInfo, NeuronInfoLite, axon_info
+from .chain_data import NeuronInfo, DelegateInfo, PrometheusInfo, SubnetInfo, NeuronInfoLite, axon_info, ProposalVoteData, ProposalCallData
 from .errors import *
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
@@ -733,17 +733,61 @@ class Subtensor:
     
     def is_senate_member(
         self,
-        hotkey_ss58: str
+        hotkey_ss58: str,
+        block: Optional[int] = None,
     ) -> bool:
-        senate_members = self.query_module("Senate", "Members").serialize()
+        senate_members = self.query_module(module="Senate", name="Members", block=block ).serialize()
         return senate_members.count( hotkey_ss58 ) > 0
     
     def get_vote_data(
         self,
-        proposal_hash: str
-    ) -> Optional[dict]:
-        vote_data = self.query_module("Triumvirate", "Voting", None, [proposal_hash])
+        proposal_hash: str,
+        block: Optional[int] = None,
+    ) -> Optional[ProposalVoteData]:
+        vote_data = self.query_module(module="Triumvirate", name="Voting", block=block, params=[proposal_hash])
         return vote_data.serialize() if vote_data != None else None
+    
+    get_proposal_vote_data = get_vote_data
+    
+    def get_senate_members(
+        self,
+        block: Optional[int] = None,
+    ) -> Optional[List[str]]:
+        senate_members = self.query_module("SenateMembers", "Members", block=block )
+        
+        return senate_members.serialize() if senate_members != None else None
+    
+    def get_proposal_call_data(
+        self,
+        proposal_hash: str,
+        block: Optional[int] = None,
+    ) -> Optional['bittensor.ProposalCallData']:
+        proposal_data = self.query_module(module="Triumvirate", name="ProposalOf", block=block, params=[proposal_hash])
+
+        return proposal_data.serialize() if proposal_data != None else None
+    
+    def get_proposal_hashes(
+        self,
+        block: Optional[int] = None,
+    ) -> Optional[List[str]]:
+        proposal_hashes = self.query_module(module="Triumvirate", name="Proposals", block=block)
+
+        return proposal_hashes.serialize() if proposal_hashes != None else None
+
+    def get_proposals(
+        self,
+        block: Optional[int] = None,
+    ) -> Optional[Dict[str, Tuple['bittensor.ProposalCallData', 'bittensor.ProposalVoteData']]]:
+        proposals = {}
+        proposal_hashes: List = self.get_proposal_hashes( block=block )
+        
+        for proposal_hash in proposal_hashes:
+            proposals[proposal_hash] = (
+                self.get_proposal_call_data( proposal_hash, block=block ),
+                self.get_proposal_vote_data( proposal_hash, block=block )
+            )
+
+        return proposals
 
     ########################
     #### Standard Calls ####

@@ -16,10 +16,11 @@
 # DEALINGS IN THE SOFTWARE.
 
 from dataclasses import dataclass
-from typing import List, Tuple, Dict, Optional, Any
+from typing import List, Tuple, Dict, Optional, Any, TypedDict
 import bittensor
 from bittensor import Balance, axon_info
 import torch
+from scalecodec.types import GenericCall
 from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
@@ -634,3 +635,15 @@ class SubnetInfo:
         r""" Returns a SubnetInfo object from a torch parameter_dict.
         """
         return cls( **dict(parameter_dict) )
+
+
+# Senate / Proposal data
+
+class ProposalVoteData(TypedDict):
+    index: int
+    threshold: int
+    ayes: List[str]
+    nays: List[str]
+    end: int
+
+ProposalCallData = GenericCall
