@@ -733,9 +733,10 @@ class Subtensor:
     
     def is_senate_member(
         self,
-        hotkey_ss58: str
+        hotkey_ss58: str,
+        block: Optional[int] = None,
     ) -> bool:
-        senate_members = self.query_module("Senate", "Members").serialize()
+        senate_members = self.query_module(module="Senate", name="Members", block=block ).serialize()
         return senate_members.count( hotkey_ss58 ) > 0
     
     def get_vote_data(
