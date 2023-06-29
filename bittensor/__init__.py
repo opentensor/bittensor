@@ -191,8 +191,6 @@ from bittensor_wallet import KeyFileError as KeyFileError
 
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse
-from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingRequest
-from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingResponse
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingResponse
 
