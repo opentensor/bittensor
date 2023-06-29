@@ -291,7 +291,7 @@ class SenateRegisterCommand:
             console.print('Aborting: Hotkey {} isn\'t a delegate.'.format(wallet.hotkey.ss58_address))
             return
         
-        if wallet.is_senate_member(subtensor):
+        if subtensor.is_senate_member( hotkey_ss58=wallet.hotkey.ss58_address ):
             console.print('Aborting: Hotkey {} is already a senate member.'.format(wallet.hotkey.ss58_address))
             return
         
@@ -346,7 +346,7 @@ class SenateLeaveCommand:
         wallet.hotkey
         wallet.coldkey
         
-        if not wallet.is_senate_member(subtensor):
+        if not subtensor.is_senate_member( hotkey_ss58=wallet.hotkey.ss58_address ):
             console.print('Aborting: Hotkey {} isn\'t a senate member.'.format(wallet.hotkey.ss58_address))
             return
         
@@ -402,7 +402,7 @@ class VoteCommand:
             console.print('Aborting: Proposal hash not specified. View all proposals with the "proposals" command.')
             return
         
-        if not wallet.is_senate_member(subtensor):
+        if not subtensor.is_senate_member( hotkey_ss58=wallet.hotkey.ss58_address ):
             console.print('Aborting: Hotkey {} isn\'t a senate member.'.format(wallet.hotkey.ss58_address))
             return
 
