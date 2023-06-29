@@ -1409,8 +1409,9 @@ class Subtensor:
             metagraph ( `bittensor.Metagraph` ):
                 The metagraph for the subnet at the block.
         """        
-        metagraph_ = bittensor.metagraph( network = self.network, netuid = netuid, lite = lite, sync = sync )
-        metagraph_.sync( block = block, lite = lite, subtensor = self )
+        metagraph_ = bittensor.metagraph( network = self.network, netuid = netuid, lite = lite, sync = False )
+        if sync:
+                metagraph_.sync( block = block, lite = lite, subtensor = self )
 
         return metagraph_
     
