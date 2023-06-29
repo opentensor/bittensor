@@ -19,7 +19,6 @@ import sys
 import argparse
 import bittensor
 from tqdm import tqdm
-from rich.prompt import Confirm
 from rich.prompt import Confirm, Prompt
 from bittensor.utils.balance import Balance
 from typing import List, Union, Optional, Dict, Tuple
