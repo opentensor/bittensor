@@ -36,7 +36,7 @@ class SenateCommand:
 
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
 
-        senate_members = subtensor.query_module("Senate", "Members").serialize()
+        senate_members = subtensor.get_senate_members()
         delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(url = bittensor.__delegates_details_url__)
 
         table = Table(show_footer=False)
@@ -84,7 +84,7 @@ class SenateCommand:
         bittensor.wallet.add_args( senate_parser )
         bittensor.subtensor.add_args( senate_parser )
 
-def format_call_data(call_data: List) -> str:
+def format_call_data(call_data: 'bittensor.ProposalCallData') -> str:
     human_call_data = list()
 
     for arg in call_data["call_args"]:
@@ -100,7 +100,7 @@ def format_call_data(call_data: List) -> str:
 
     return "{}({})".format(call_data["call_function"], ", ".join(human_call_data))
 
-def display_votes(vote_data, delegate_info) -> str:
+def display_votes(vote_data: 'bittensor.ProposalVoteData', delegate_info: 'bittensor.DelegateInfo') -> str:
     vote_list = list()
 
     for address in vote_data["ayes"]:
@@ -122,15 +122,8 @@ class ProposalsCommand:
 
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
 
-        senate_members = subtensor.query_module("SenateMembers", "Members").serialize()
-        proposals = dict()
-        proposal_hashes = subtensor.query_module("Triumvirate", "Proposals")
-
-        for hash in proposal_hashes:
-            proposals[hash] = [
-                subtensor.query_module("Triumvirate", "ProposalOf", None, [hash]), 
-                subtensor.get_vote_data( hash )
-            ]
+        senate_members = subtensor.get_senate_members()
+        proposals = subtensor.get_proposals()      
 
         registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(url = bittensor.__delegates_details_url__)
 
@@ -148,8 +141,7 @@ class ProposalsCommand:
         table.show_footer = True
 
         for hash in proposals:
-            call_data = proposals[hash][0].serialize()
-            vote_data = proposals[hash][1]
+            call_data, vote_data = proposals[hash]
 
             table.add_row(
                 hash,
