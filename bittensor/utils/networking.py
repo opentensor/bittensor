@@ -20,7 +20,6 @@
 import os
 import urllib
 import json
-import miniupnpc
 import netaddr
 import requests
 
