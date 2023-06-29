@@ -100,6 +100,7 @@ class TestCLINoNetwork(unittest.TestCase):
         config.no_version_checking = True
         config.ss58_address = bittensor.Keypair.create_from_seed( b'0' * 32 ).ss58_address
         config.public_key_hex = None
+        config.proposal_hash = ""
 
         cli = bittensor.cli
 
@@ -298,15 +299,14 @@ class TestCLINoNetwork(unittest.TestCase):
         commands = [
             command for command in parser._actions[1].choices
         ]
-        # Verify that all commands are listed in the help message
-        for command in commands:
-            assert command in help_out
+        # Verify that all commands are listed in the help message, AND
         # Verify there are no duplicate commands
-        # Listed twice. Once in the positional arguments and once in the optional arguments
+        ##  Listed twice. Once in the positional arguments and once in the optional arguments
         for command in commands:
-            pat = re.compile(rf'\n\s+({command})\s+\w')
+            pat = re.compile(rf'\n\s+({command})[^\S\r\n]+\w')
             matches = pat.findall(help_out)
-            self.assertEqual( len(matches), 1, f"Duplicate command {command} in help output")
+            self.assertGreaterEqual( len(matches), 1, f"Command {command} not found in help output")
+            self.assertLess( len(matches), 2, f"Duplicate command {command} in help output")
 
     def test_register_cuda_use_cuda_flag(self):
             class ExitEarlyException(Exception):

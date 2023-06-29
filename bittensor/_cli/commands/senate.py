@@ -21,6 +21,8 @@ import bittensor
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from typing import List, Union, Optional, Dict, Tuple
+from .utils import get_delegates_details, DelegatesDetails
+
 console = bittensor.__console__
 
 class SenateCommand:
@@ -35,16 +37,19 @@ class SenateCommand:
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
 
         senate_members = subtensor.query_module("Senate", "Members").serialize()
+        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(url = bittensor.__delegates_details_url__)
 
         table = Table(show_footer=False)
         table.title = (
             "[white]Senate"
         )
+        table.add_column("[overline white]NAME", footer_style = "overline white", style="rgb(50,163,219)", no_wrap=True)
         table.add_column("[overline white]ADDRESS", footer_style = "overline white", style='yellow', no_wrap=True)
         table.show_footer = True
 
         for ss58_address in senate_members:
             table.add_row(
+                delegate_info[ss58_address].name if ss58_address in delegate_info else "",
                 ss58_address
             )
 
@@ -79,7 +84,6 @@ class SenateCommand:
         bittensor.wallet.add_args( senate_parser )
         bittensor.subtensor.add_args( senate_parser )
 
-from .utils import get_delegates_details, DelegatesDetails
 def format_call_data(call_data: List) -> str:
     human_call_data = list()
 
