@@ -177,6 +177,8 @@ from bittensor_wallet import Keypair as Keypair
 from bittensor._subtensor.chain_data import NeuronInfo as NeuronInfo
 from bittensor._subtensor.chain_data import NeuronInfoLite as NeuronInfoLite
 from bittensor._subtensor.chain_data import PrometheusInfo as PrometheusInfo
+from bittensor._subtensor.chain_data import ProposalCallData as ProposalCallData
+from bittensor._subtensor.chain_data import ProposalVoteData as ProposalVoteData
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._subtensor.chain_data import SubnetInfo as SubnetInfo
