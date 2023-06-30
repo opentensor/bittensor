@@ -48,3 +48,7 @@ fastapi
 uvicorn
 datasets==2.12.0
 safetensors==0.3.1
+Pillow==9.5.0
+diffusers==0.17.1
+accelerate==0.20.3
+omegaconf

@@ -131,7 +131,10 @@ def main( config ):
 
     # --- Build diffusion pipeline ---
     # lpw_stable_diffusion is used to increase CLIP token length from 77 only works for text2img
-    text2img = StableDiffusionPipeline.from_pretrained( config.neuron.model_name, custom_pipeline="lpw_stable_diffusion", safety_checker=None, torch_dtype=torch.float16).to( config.device )
+    if not config.neuron.model_name.endswith(".safetensors"):
+      text2img = StableDiffusionPipeline.from_pretrained(config.neuron.model_name, custom_pipeline="lpw_stable_diffusion", torch_dtype=torch.float16).to( config.device )
+    else:
+      text2img = StableDiffusionPipeline.from_ckpt( config.neuron.model_name, custom_pipeline="lpw_stable_diffusion", use_safetensors=True, local_files_only=True, load_safety_checker=True, torch_dtype=torch.float16).to( config.device )
     img2img = StableDiffusionImg2ImgPipeline(**text2img.components)
     inpaint = StableDiffusionInpaintPipeline(**text2img.components)
 
@@ -273,9 +276,4 @@ def main( config ):
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
-    main( config() )
-
-
-
-
-
+    main( config() )    
