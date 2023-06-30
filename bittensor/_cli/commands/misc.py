@@ -28,13 +28,6 @@ class HelpCommand:
     @staticmethod
     def run (cli):
         sys.argv = [sys.argv[0], '--help']
-        # # Run miner.
-        # if cli.config.model == 'core_server':
-        #     bittensor.neurons.core_server.neuron().run()
-        # elif cli.config.model == 'core_validator':
-        #     bittensor.neurons.core_validator.neuron().run()
-        # elif cli.config.model == 'multitron_server':
-        #     bittensor.neurons.multitron_server.neuron().run()
 
     @staticmethod
     def check_config( config: 'bittensor.Config' ):

@@ -207,7 +207,6 @@ from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendri
 
 # ---- Base Miners -----
 from bittensor._neuron.base_miner_neuron import BaseMinerNeuron
-from bittensor._neuron.base_validator import BaseValidator
 from bittensor._neuron.base_prompting_miner import BasePromptingMiner
 from bittensor._neuron.base_huggingface_miner import HuggingFaceMiner
 
