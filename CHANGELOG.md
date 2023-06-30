@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.2.1 / 2023-06-30
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.2.0...v5.2.1
+
+
 ## 5.2.0 / 2023-06-28
 
 ## What's Changed
