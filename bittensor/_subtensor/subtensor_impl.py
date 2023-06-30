@@ -1399,8 +1399,8 @@ class Subtensor:
 
         return NeuronInfoLite.list_from_vec_u8( result )
 
-    def metagraph( self, netuid: int, lite: bool = True, block: Optional[int] = None, sync: bool = False ) -> 'bittensor.Metagraph':
-        r""" Returns the metagraph for the subnet.
+    def metagraph( self, netuid: int, lite: bool = True, block: Optional[int] = None ) -> 'bittensor.Metagraph':
+        r""" Returns a synced metagraph for the subnet.
         Args:
             netuid ( int ):
                 The network uid of the subnet to query.
@@ -1413,8 +1413,7 @@ class Subtensor:
                 The metagraph for the subnet at the block.
         """        
         metagraph_ = bittensor.metagraph( network = self.network, netuid = netuid, lite = lite, sync = False )
-        if sync:
-                metagraph_.sync( block = block, lite = lite, subtensor = self )
+        metagraph_.sync( block = block, lite = lite, subtensor = self )
 
         return metagraph_
     
