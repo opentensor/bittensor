@@ -147,10 +147,10 @@ class subtensor:
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
             # Connecting to chain endpoint without network known.
-            return "Subtensor({})".format( self.chain_endpoint )
+            return "subtensor({})".format( self.chain_endpoint )
         else:
             # Connecting to network with endpoint known.
-            return "Subtensor({}, {})".format( self.network, self.chain_endpoint )
+            return "subtensor({}, {})".format( self.network, self.chain_endpoint )
 
     def __repr__(self) -> str:
         return self.__str__()

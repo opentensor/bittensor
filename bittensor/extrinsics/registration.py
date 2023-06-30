@@ -25,7 +25,6 @@ from rich.prompt import Confirm
 from typing import List, Dict, Union, Optional
 import bittensor.utils.networking as net
 from bittensor.utils.registration import POWSolution, create_pow
-from ..errors import *
 
 def register_extrinsic (
     subtensor: 'bittensor.Subtensor',

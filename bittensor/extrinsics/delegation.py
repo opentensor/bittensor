@@ -19,7 +19,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
-from ..errors import *
 from rich.prompt import Confirm
 from typing import List, Dict, Union, Optional
 from bittensor.utils.balance import Balance
@@ -140,7 +139,7 @@ def do_undelegation(
         if response.is_success:
             return True
         else:
-            raise StakeError(response.error_message)
+            raise bittensor.errors.StakeError(response.error_message)
 
 
 def delegate_extrinsic(
@@ -249,10 +248,10 @@ def delegate_extrinsic(
             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
             return False
 
-    except NotRegisteredError as e:
+    except bittensor.errors.NotRegisteredError as e:
         bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
         return False
-    except StakeError as e:
+    except bittensor.errors.StakeError as e:
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
 
@@ -295,7 +294,7 @@ def undelegate_extrinsic(
     # Decrypt keys,
     wallet.coldkey
     if not subtensor.is_hotkey_delegate( delegate_ss58 ):
-        raise NotDelegateError("Hotkey: {} is not a delegate.".format( delegate_ss58 ))
+        raise bittensor.errors.NotDelegateError("Hotkey: {} is not a delegate.".format( delegate_ss58 ))
 
     # Get state.
     my_prev_coldkey_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
@@ -358,9 +357,9 @@ def undelegate_extrinsic(
             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
             return False
 
-    except NotRegisteredError as e:
+    except bittensor.errors.NotRegisteredError as e:
         bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
         return False
-    except StakeError as e:
+    except bittensor.errors.StakeError as e:
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False

@@ -76,7 +76,7 @@ class metagraph( torch.nn.Module ):
     @property
     def addresses( self ) -> List[str]: return [ axon.ip_str() for axon in self.axons ]
 
-    def __str__(self): return "Metagraph(netuid:{}, n:{}, block:{}, network:{})".format(self.netuid, self.n.item(), self.block.item(), self.network)
+    def __str__(self): return "metagraph(netuid:{}, n:{}, block:{}, network:{})".format(self.netuid, self.n.item(), self.block.item(), self.network)
 
     def __repr__(self): return self.__str__()
 

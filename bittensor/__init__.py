@@ -95,7 +95,13 @@ from .keyfile import keyfile as keyfile
 from .wallet import wallet as wallet
 from .utils.balance import Balance as Balance
 from .chain_data import *
+from .errors import *
 from .subtensor import subtensor as subtensor
 from .cli import cli as cli
 from .logging import logging as logging
 from .metagraph import metagraph as metagraph
+from .threadpool import PriorityThreadPoolExecutor
+
+from .protocol import * 
+from .axon import axon as axon
+from .dendrite import dendrite as dendrite

@@ -11,6 +11,7 @@ netaddr
 numpy
 pyyaml
 password_strength
+pydantic
 retry
 requests
 rich
@@ -19,4 +20,5 @@ substrate-interface
 termcolor
 torch
 tqdm
+uvicorn
 wheel

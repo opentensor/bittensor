@@ -22,7 +22,6 @@ from rich.prompt import Confirm
 from typing import List, Dict, Union
 from bittensor.utils.balance import Balance
 from bittensor.utils import is_valid_bittensor_address_or_public_key
-from ..errors import *
 
 def transfer_extrinsic(
         subtensor: 'bittensor.Subtensor',

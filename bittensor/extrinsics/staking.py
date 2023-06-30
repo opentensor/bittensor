@@ -16,13 +16,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-
+import bittensor 
 from rich.prompt import Confirm
 from time import sleep
 from typing import List, Dict, Union, Optional
 from bittensor.utils.balance import Balance
-from ..errors import *
 
 def add_stake_extrinsic(
         subtensor: 'bittensor.Subtensor',
@@ -79,7 +77,7 @@ def add_stake_extrinsic(
         if not own_hotkey:
             # This is not the wallet's own hotkey so we are delegating.
             if not subtensor.is_hotkey_delegate( hotkey_ss58 ):
-                raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
+                raise bittensor.errors.NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
 
             # Get hotkey take
             hotkey_take = subtensor.get_delegate_take( hotkey_ss58 )

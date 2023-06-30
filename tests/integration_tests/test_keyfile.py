@@ -93,7 +93,7 @@ class TestKeyFiles(unittest.TestCase):
         assert "0x" + keyfile.get_keypair().public_key.hex() == "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f"
 
     def test_validate_password(self):
-        from bittensor._keyfile.keyfile_impl import validate_password
+        from bittensor.keyfile import validate_password
         assert validate_password(None) == False
         assert validate_password('passw0rd') == False
         assert validate_password('123456789') == False
@@ -110,7 +110,7 @@ class TestKeyFiles(unittest.TestCase):
         from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-        from bittensor._keyfile.keyfile_impl import decrypt_keyfile_data
+        from bittensor.keyfile import decrypt_keyfile_data
 
         __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
 
@@ -129,13 +129,13 @@ class TestKeyFiles(unittest.TestCase):
         assert decrypted_data == data
 
     def test_user_interface(self):
-        from bittensor._keyfile.keyfile_impl import ask_password_to_encrypt
+        from bittensor.keyfile import ask_password_to_encrypt
 
         with mock.patch('getpass.getpass', side_effect = ['pass', 'password', 'asdury3294y', 'asdury3294y']):
             assert ask_password_to_encrypt() == 'asdury3294y'
 
     def test_overwriting(self):
-        from bittensor._keyfile.keyfile_impl import KeyFileError
+        from bittensor.keyfile import KeyFileError
 
         keyfile = bittensor.keyfile (path = os.path.join(self.root_path, "keyfile"))
         alice = bittensor.Keypair.create_from_uri ('/Alice')

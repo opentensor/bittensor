@@ -20,7 +20,6 @@ import bittensor
 import json
 from rich.prompt import Confirm
 import bittensor.utils.networking as net
-from ..errors import *
 
 def serve_extrinsic (
     subtensor: 'bittensor.Subtensor',
