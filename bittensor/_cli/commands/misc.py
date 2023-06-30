@@ -24,34 +24,6 @@ from rich.prompt import Prompt
 from rich.table import Table
 console = bittensor.__console__
 
-class HelpCommand:
-    @staticmethod
-    def run (cli):
-        sys.argv = [sys.argv[0], '--help']
-
-    @staticmethod
-    def check_config( config: 'bittensor.Config' ):
-        pass
-        # if config.model == 'None':
-        #     model = Prompt.ask('Enter miner name', choices = list(bittensor.neurons.__text_neurons__.keys()), default = 'core_server')
-        #     config.model = model
-
-    @staticmethod
-    def add_args( parser: argparse.ArgumentParser ):
-        pass
-        # help_parser = parser.add_parser(
-        #     'help',
-        #     add_help=False,
-        #     help='''Displays the help '''
-        # )
-        # help_parser.add_argument(
-        #     '--model',
-        #     type=str,
-        #     choices= list(bittensor.neurons.__text_neurons__.keys()),
-        #     default='None',
-        # )
-        # help_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
-        # bittensor.subtensor.add_args( help_parser )
 
 class UpdateCommand:
     @staticmethod
