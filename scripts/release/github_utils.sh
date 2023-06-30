@@ -63,7 +63,6 @@ EOF
 # Needs:
 #   - TAG_NAME
 #   - RELEASE_BRANCH
-#   - PREV_TAG_NAME
 #   - RELEASE_NAME
 #
 function generate_github_release_notes_for_changelog_post_data()
