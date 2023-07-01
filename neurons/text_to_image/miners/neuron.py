@@ -208,8 +208,11 @@ def main( config ):
 
                 # load lora weights
                 for model, weight in lora_models:
-                    i2i = load_lora_weights(i2i, model, weight)
-
+                    try:
+                        i2i = load_lora_weights(i2i, model, weight)
+                    except Exception as e:
+                        None
+                    
                 # load negative lora weights
                 for model, weight in negative_lora_models:
                     i2i = load_lora_weights(i2i, model, weight)
