@@ -1,5 +1,35 @@
 # Changelog
 
+## 5.2.1 / 2023-06-30
+
+## What's Changed
+* [BIT-351] Ask for wallet name on btcli unstake by @camfairchild in https://github.com/opentensor/bittensor/pull/1387
+* Fix tests using pure-Python MockSubtensor by @camfairchild in https://github.com/opentensor/bittensor/pull/1349
+* Update README.md by @mostimasblunderbuss in https://github.com/opentensor/bittensor/pull/1397
+* Update authint version by @ifrit98 in https://github.com/opentensor/bittensor/pull/1395
+* Fix subtensor factory integration test by @camfairchild in https://github.com/opentensor/bittensor/pull/1400
+* Remove neurons by @ifrit98 in https://github.com/opentensor/bittensor/pull/1389
+* Merge pull request #1394 from opentensor/fix_axon_requests by @ifrit98 in https://github.com/opentensor/bittensor/pull/1406
+* remove hotkey from proto and dendrite by @ifrit98 in https://github.com/opentensor/bittensor/pull/1407
+* Weight Utils fix by @mrseeker in https://github.com/opentensor/bittensor/pull/1372
+* BTCli integration with new governance protocol by @Rubberbandits in https://github.com/opentensor/bittensor/pull/1398
+* Reverting unnecessary commits for next release. by @camfairchild in https://github.com/opentensor/bittensor/pull/1415
+* Use delegate nice-names in senate view by @Rubberbandits in https://github.com/opentensor/bittensor/pull/1420
+* Extract governance info calls to subtensor API by @camfairchild in https://github.com/opentensor/bittensor/pull/1424
+* dont sync metagraph on neuron init by @camfairchild in https://github.com/opentensor/bittensor/pull/1423
+* remove multiforwad by @ifrit98 in https://github.com/opentensor/bittensor/pull/1425
+* fix error calling metagraph from subtensor without passing by @ifrit98 in https://github.com/opentensor/bittensor/pull/1426
+* Fix docker and pypi upload commands by @eduardogr in https://github.com/opentensor/bittensor/pull/1375
+* Fix cli ask for wallet hotkey name by @camfairchild in https://github.com/opentensor/bittensor/pull/1430
+* Always sync metagraph during subtensor.metagraph by @camfairchild in https://github.com/opentensor/bittensor/pull/1433
+* Remove unnecessary validator code by @ifrit98 in https://github.com/opentensor/bittensor/pull/1432
+
+## New Contributors
+* @mostimasblunderbuss made their first contribution in https://github.com/opentensor/bittensor/pull/1397
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.2.0...v5.2.1
+
+
 ## 5.2.0 / 2023-06-28
 
 ## What's Changed
