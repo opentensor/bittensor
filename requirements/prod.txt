@@ -3,6 +3,7 @@ argparse
 backoff
 cryptography
 fuzzywuzzy
+fastapi
 hypothesis
 loguru
 miniupnpc

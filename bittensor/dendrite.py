@@ -47,16 +47,16 @@ class dendrite( torch.nn.Module ):
         self.loop = asyncio.get_event_loop()
 
     def forward( self, request: bt.BaseRequest = None, timeout: float = 12 ) -> bt.BaseResponse:
-        request = request or bt.BaseRequest(name = 'ping', hotkey = self.keypair.ss58_address, timeout = timeout )
-        bt.logging.trace('request', request)
+        request = request or bt.BaseRequest(name = 'default', hotkey = self.keypair.ss58_address, timeout = timeout )
+        bt.logging.trace('dendrite request', request)
         url = f"http://{self.endpoint_str}/{request.name}"
-        bt.logging.trace('url', url)
+        bt.logging.trace('dendrite url', url)
         self.sign(request)
-        bt.logging.trace('request', request)
-        response = requests.get( url, json = request.json() ) 
-        bt.logging.trace('response', response.json() )
-        # response = bt.BaseResponse( **response.json() ) 
-        # bt.logging.trace('response', response)
+        bt.logging.trace('dendrite request', request)
+        response = requests.get( url, json = request.dict() ) 
+        bt.logging.trace('dendrite response', response.json() )
+        response = bt.BaseResponse( **response.json() ) 
+        bt.logging.trace('response', response)
         return response
 
     def __str__(self) -> str:
@@ -86,12 +86,12 @@ class dendrite( torch.nn.Module ):
         nonce = f"{self.nonce()}"
         sender_hotkey = self.keypair.ss58_address
         receiver_hotkey = self.axon_info.hotkey
-        
+
         message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{self.uuid}"
         signature = f"0x{self.keypair.sign(message).hex()}"
 
-        request.nonce = nonce
-        request.uuid = self.uuid
+        request.sender_nonce = nonce
+        request.sender_uuid = self.uuid
         request.sender_hotkey = sender_hotkey
         request.sender_signature = signature
         request.receiver_hotkey = receiver_hotkey

@@ -4,6 +4,9 @@
 *$py.class
 *.pyc
 
+# Remove notebooks.
+*.ipynb
+
 # weigths and biases
 wandb/
 

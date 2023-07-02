@@ -22,16 +22,12 @@ import os
 import uuid
 import copy
 import time
-import asyncio
 import uvicorn
 import argparse
 import threading
 import bittensor
 import contextlib
 
-from enum import Enum
-from pydantic import BaseModel
-from abc import ABC, abstractmethod
 from fastapi import FastAPI, APIRouter
 from substrateinterface import Keypair
 from typing import Dict, Optional, Tuple, Union, List, Callable
@@ -89,10 +85,7 @@ class axon:
             placeholder1 = 0, # placeholder1 = fast_api_port
             placeholder2 = 0,
         )
-    
-    def ping( self, request: bittensor.BaseRequest = None ) -> bittensor.BaseResponse: 
-        return bittensor.BaseResponse( name = request.name, hotkey = self.wallet.hotkey.ss58_address )
-    
+        
     def __init__(
         self,
         wallet: "bittensor.wallet" = None,
@@ -159,14 +152,32 @@ class axon:
         # Build priority thread pool
         self.thread_pool = bittensor.PriorityThreadPoolExecutor( max_workers = self.config.axon.max_workers )
 
-        # Attach default ping.
+        # Attach default forward.
         self.attach( 
-            synapse_name = 'ping',
-            synapse_forward = self.ping
+            name = 'default',
+            forward_fn = self.default_forward
         )
 
-        # Start server in background thread.
-        self.start()
+    def attach( 
+            self, 
+            name: str, 
+            forward_fn: Callable,
+            blacklist_fn: Callable = None,
+            priority_fn: Callable = None,
+            verify_fn: Callable = None,
+        ):
+        self.router.add_api_route(f"/{name}/", self.apply, methods=["GET", "POST"])
+        self.synapses[ name ] = {
+            'forward_fn': forward_fn,
+            'blacklist_fn': blacklist_fn or self.default_blacklist,
+            'priority_fn': priority_fn or self.default_priority,
+            'verify_fn': verify_fn or self.default_verify_request
+        }
+        self.fastapi_app.include_router( self.router )
+
+    def default_forward( self, request: bittensor.BaseRequest) -> bittensor.BaseResponse: 
+        time.sleep(30)
+        return bittensor.BaseResponse( name = request.name, hotkey = self.wallet.hotkey.ss58_address )
 
     def default_priority( self, request: bittensor.BaseRequest ) -> float:
         return 1.0
@@ -179,7 +190,9 @@ class axon:
         keypair = Keypair( ss58_address = self.wallet.hotkey.ss58_address )
 
         # Check reciever keys match.
-        if self.wallet.hotkey.ss58_address != request.reciever_hotkey: return False
+        if self.wallet.hotkey.ss58_address != request.receiver_hotkey: 
+            bittensor.logging.trace('RVerification failed: reciever keys dont match.')
+            return False
 
         # Build the expected message which was used to build the signature. 
         message = f"{request.sender_nonce}.{request.sender_hotkey}.{self.wallet.hotkey.ss58_address}.{request.sender_uuid}"
@@ -191,13 +204,17 @@ class axon:
             previous_nonce = self.nonces[endpoint_key]
 
             # Nonces must be strictly monotonic over time.
-            if request.nonce <= previous_nonce: return False # Nonce is too small
+            if request.sender_nonce <= previous_nonce: 
+                bittensor.logging.trace('Verification failed: nonce is too small')
+                return False
             
         # Check for potential Signature mismatch
-        if not keypair.verify(message, request.signature): return False 
+        if not keypair.verify(message, request.sender_signature): 
+            bittensor.logging.trace('Verification failed: signature mismatch.')
+            return False 
         
         # Save nonce.
-        self.nonces[endpoint_key] = request.nonce
+        self.nonces[endpoint_key] = request.sender_nonce
         
         # Successful verification.
         return True
@@ -227,84 +244,36 @@ class axon:
         response.reciever_nonce = nonce
         response.reciever_uuid = self.uuid
 
-    def attach( 
-            self, 
-            synapse_name:str, 
-            synapse_forward: Callable,
-            synapse_blacklist: Callable = None,
-            synapse_priority: Callable = None,
-            synapse_verify: Callable = None,
-        ):
-        self.router.add_api_route(f"/{synapse_name}/", self.apply, methods=["GET", "POST"])
-        self.synapses[ synapse_name ] = {
-            'function': synapse_forward,
-            'blacklist': synapse_blacklist or self.default_blacklist,
-            'priority': synapse_priority or self.default_priority,
-            'verify': synapse_verify or self.default_verify_request
-        }
-        self.fastapi_app.include_router( self.router )
 
     def apply( self, request: bittensor.BaseRequest ) -> bittensor.BaseResponse:
-        bittensor.logging.trace('request', request)
+        bittensor.logging.trace('axon request', request)
         response = bittensor.BaseResponse( name = request.name )
 
-        if not self.synapses[ request.name ]['verify']( request ):
-            return_code = bittensor.ReturnCode.NOTVERIFIED
-            return_message = 'Failed Signature verification'    
+        if not self.synapses[ request.name ]['verify_fn']( request ):
+            response.return_code = bittensor.ReturnCode.NOTVERIFIED.value
+            response.return_message = 'Failed Signature verification'    
 
-        elif self.synapses[ request.name ]['blacklist']( request ):
-            return_code = bittensor.ReturnCode.BLACKLIST
-            return_message = 'Blacklisted'
+        elif self.synapses[ request.name ]['blacklist_fn']( request ):
+            response.return_code = bittensor.ReturnCode.BLACKLIST.value
+            response.return_message = 'Blacklisted'
 
         else:
-            priority = self.synapses[ request.name ]['priority']( request )
-            future = self.thread_pool.submit( self.synapses[ request.name ]['function'], priority = priority )
-            response = future.result( timeout = request.timeout )
+            try:
+                priority = self.synapses[ request.name ]['priority_fn']( request )
+                future = self.thread_pool.submit( self.synapses[ request.name ]['forward_fn'], priority = priority, request = request )
+                response = future.result( timeout = request.timeout )
+
+            except TimeoutError as e:
+                response.return_code = bittensor.ReturnCode.TIMEOUT.value
+                response.return_message = f"Timeout after {request.timeout} seconds."
+                
+            except Exception as e:
+                 response.return_code = bittensor.ReturnCode.UNKNOWN.value
+                 response.return_message = str(e)
 
         self.sign_response( request, response )
-        response.return_code = return_code.value
-        response.return_message = return_message
-        bittensor.logging.trace('response', response)
+        bittensor.logging.trace('axon response', response)
         return response
-    
-
-        # try:
-        #     if not self.synapses[ request.name ]['verify']( request ):
-        #         return_code = bittensor.ReturnCode.NOTVERIFIED
-        #         return_message = 'Failed Signature verification'
-
-        #     elif self.synapses[ request.name ]['blacklist']( request ):
-        #         return_code = bittensor.ReturnCode.BLACKLIST
-        #         return_message = 'Blacklisted'
-
-        #     else:
-        #         priority = self.synapses[ request.name ]['priority']( request )
-        #         future = self.thread_pool.submit( self.synapses[ request.name ]['function'], priority = priority )
-        #         response = future.result( timeout = request.timeout )
-        #         return_code = bittensor.ReturnCode.SUCCESS
-        #         return_message = 'Success'
-
-        # # Catch timeouts
-        # except asyncio.TimeoutError:
-        #     return_code = bittensor.ReturnCode.TIMEOUT
-        #     return_message = 'GRPC request timeout after: {}s'.format( request.timeout )
-        #     response = bittensor.BaseResponse( name = request.name )
-        #     bittensor.logging.trace('timeout')
-
-        # # Catch unknown exceptions.
-        # except Exception as e:
-        #     return_code = bittensor.ReturnCode.UNKNOWN
-        #     return_message = str(e)
-        #     response = bittensor.BaseResponse( name = request.name )
-        #     bittensor.logging.trace('error', str(e))
-
-        # # Finally return the call.
-        # finally:
-        #     self.sign_response( request, response )
-        #     response.return_code = return_code.value
-        #     response.return_message = return_message
-        #     print (response)
-        #     return response
 
     @classmethod
     def config(cls) -> "bittensor.config":

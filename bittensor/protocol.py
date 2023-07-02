@@ -30,11 +30,11 @@ class ReturnCode(Enum):
     UNKNOWN = 4
 
 class BaseRequest( BaseModel ):
-    name: str
-    timeout: float
+    name: str = 'default'
+    timeout: float = 12
 
     # Reciever items
-    reciever_hotkey: Optional[ str ] = None
+    receiver_hotkey: Optional[ str ] = None
 
     # Sender Signature items.
     sender_nonce: Optional[ str ] = None
@@ -43,9 +43,9 @@ class BaseRequest( BaseModel ):
     sender_signature: Optional[ str ]  = None 
 
 class BaseResponse( BaseModel ):
-    name: str
+    name: str = 'default'
 
-    return_code: int = ReturnCode.SUCCESS
+    return_code: int = ReturnCode.SUCCESS.value
     return_message: str = "Success"
 
     # Sender Signature items.
