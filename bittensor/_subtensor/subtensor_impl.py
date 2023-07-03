@@ -1301,6 +1301,14 @@ class Subtensor:
 
         return NeuronInfo.from_vec_u8( result )
 
+    @staticmethod
+    def __combined_weights_bonds_and_neuron_lite( neuron_lite: NeuronInfoLite, weights_as_dict: Dict[int, List[Tuple[int, int]]], bonds_as_dict: Dict[int, List[Tuple[int, int]]] ) -> NeuronInfo:
+        n_dict = neuron_lite.__dict__
+        n_dict['weights'] = weights_as_dict.get(neuron_lite.uid, [])
+        n_dict['bonds'] = bonds_as_dict.get(neuron_lite.uid, [])
+        
+        return bittensor.NeuronInfo( **n_dict )
+
     def neurons(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]:
         r""" Returns a list of neuron from the chain.
         Args:
@@ -1312,25 +1320,23 @@ class Subtensor:
             neuron (List[NeuronInfo]):
                 List of neuron metadata objects.
         """
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash( block )
-                params = [netuid]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="neuronInfo_getNeurons", # custom rpc method
-                    params=params
-                )
+        neurons_lite = self.neurons_lite( netuid = netuid, block = block )
+        weights = self.weights( block = block, netuid = netuid )
+        bonds = self.bonds( block = block, netuid = netuid )
 
-        json_body = make_substrate_call_with_retry()
-        result = json_body['result']
+        weights_as_dict = {
+            uid: w for uid, w in weights
+        }
+        bonds_as_dict = {
+            uid: b for uid, b in bonds
+        }
 
-        if result in (None, []):
-            return []
+        neurons = [
+            self.__combined_weights_bonds_and_neuron_lite( neuron_lite, weights_as_dict, bonds_as_dict ) for neuron_lite in neurons_lite
+        ]
 
-        return NeuronInfo.list_from_vec_u8( result )
+        return neurons
+       
 
     def neuron_for_uid_lite( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfoLite]:
         r""" Returns a list of neuron lite from the chain.

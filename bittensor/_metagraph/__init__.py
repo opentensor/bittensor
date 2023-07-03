@@ -114,14 +114,7 @@ class metagraph( torch.nn.Module ):
         if lite:
             self.neurons = subtensor.neurons_lite( block = block, netuid = self.netuid )
         else:
-            self.neurons = subtensor.neurons_lite( block = block, netuid = self.netuid )
-            weights = subtensor.weights( block = block, netuid = self.netuid )
-            bonds = subtensor.bonds( block = block, netuid = self.netuid )
-            for i, neuron in enumerate(self.neurons):
-                n_dict = neuron.__dict__
-                n_dict['weights'] = weights[i]
-                n_dict['bonds'] = bonds[i]
-                self.neurons[i] = bittensor.NeuronInfo( **n_dict )
+            self.neurons = subtensor.neurons( block = block, netuid = self.netuid )
 
         self.lite = lite
         self.n = torch.nn.Parameter( torch.tensor( len(self.neurons), dtype=torch.int64 ), requires_grad=False )
