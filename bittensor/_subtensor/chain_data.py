@@ -288,6 +288,14 @@ class NeuronInfo:
             pruning_score = 0,
         )
         return neuron
+    
+    @classmethod
+    def from_weights_bonds_and_neuron_lite( cls, neuron_lite: 'NeuronInfoLite', weights_as_dict: Dict[int, List[Tuple[int, int]]], bonds_as_dict: Dict[int, List[Tuple[int, int]]] ) -> 'NeuronInfo':
+        n_dict = neuron_lite.__dict__
+        n_dict['weights'] = weights_as_dict.get(neuron_lite.uid, [])
+        n_dict['bonds'] = bonds_as_dict.get(neuron_lite.uid, [])
+        
+        return cls( **n_dict )
 
     @staticmethod
     def _neuron_dict_to_namespace(neuron_dict) -> 'NeuronInfo':
