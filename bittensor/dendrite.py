@@ -18,12 +18,17 @@
 import uuid
 import time
 import torch
-import requests
-import asyncio
+import httpx
 import bittensor as bt
 from typing import Union, Optional
 
 class dendrite( torch.nn.Module ):
+
+    def __str__(self) -> str:
+        return "dendrite({}, {})".format( self.keypair.ss58_address, self.endpoint_str )
+    
+    def __repr__(self) -> str: return self.__str__()
+
     def __init__(
             self,
             axon: Union[ 'bt.axon_info', 'bt.axon' ], 
@@ -38,60 +43,52 @@ class dendrite( torch.nn.Module ):
         """
         super(dendrite, self).__init__()
         self.uuid = str(uuid.uuid1())
+        self.client = httpx.AsyncClient()
         self.keypair = (wallet.hotkey if isinstance( wallet, bt.wallet ) else wallet) or bt.wallet().hotkey
         self.axon_info = axon.info() if isinstance( axon, bt.axon ) else axon
-        # if self.axon_info.ip == bt.utils.networking.get_external_ip(): 
         self.endpoint_str = "localhost:" + str(self.axon_info.port)
-        # else: 
-        #     self.endpoint_str = f"http://{self.axon_info.ip}:{str(self.axon_info.port)}"
-        self.loop = asyncio.get_event_loop()
 
-    def forward( self, request: bt.BaseRequest = None, timeout: float = 12 ) -> bt.BaseResponse:
-        request = request or bt.BaseRequest(name = 'default', hotkey = self.keypair.ss58_address, timeout = timeout )
+    async def forward( self, request: bt.BaseRequest = bt.BaseRequest(), timeout: float = 12 ) -> bt.BaseRequest:
+        
         bt.logging.trace('dendrite request', request)
-        url = f"http://{self.endpoint_str}/{request.name}"
+        request_name = request.__class__.__name__
+        url = f"http://{self.endpoint_str}/{request_name}"
         bt.logging.trace('dendrite url', url)
-        self.sign(request)
-        bt.logging.trace('dendrite request', request)
-        response = requests.get( url, json = request.dict() ) 
-        bt.logging.trace('dendrite response', response.json() )
-        response = bt.BaseResponse( **response.json() ) 
-        bt.logging.trace('response', response)
-        return response
-
-    def __str__(self) -> str:
-        return "dendrite({}, {})".format( self.keypair.ss58_address, self.endpoint_str )
     
-    def __repr__(self) -> str: return self.__str__()
-
-    def __exit__ ( self ): 
-        self.__del__()
-
-    def close ( self ): 
-        self.__exit__()
-
-    def __del__ ( self ):
-        try:
-            result = self.channel._channel.check_connectivity_state(True)
-            if self.state_dict[result] != self.state_dict[result].SHUTDOWN: 
-                self.loop.run_until_complete ( self.channel.close() )
-        except:
-            pass
-
-    def nonce ( self ): 
-        return time.monotonic_ns()
-
-    def sign(self, request: bt.BaseRequest):
-        """ Creates a signature for the dendrite and returns it as a string."""
-        nonce = f"{self.nonce()}"
+        # Build Metadata.
+        sender_nonce = f"{time.monotonic_ns()}"
         sender_hotkey = self.keypair.ss58_address
+        sender_uuid = self.uuid
+        sender_timeout = timeout
+        sender_version = bt.__version_as_int__
         receiver_hotkey = self.axon_info.hotkey
-
-        message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{self.uuid}"
-        signature = f"0x{self.keypair.sign(message).hex()}"
-
-        request.sender_nonce = nonce
-        request.sender_uuid = self.uuid
-        request.sender_hotkey = sender_hotkey
-        request.sender_signature = signature
+        message = f"{sender_nonce}.{sender_hotkey}.{receiver_hotkey}.{sender_uuid}"
+        sender_signature = f"0x{self.keypair.sign(message).hex()}"
+        metadata = {
+            "rpc-auth-header": "Bittensor",
+            "sender_timeout": str( sender_timeout ),
+            "sender_version": str( sender_version ),
+            "sender_nonce": str( sender_nonce ),
+            "sender_uuid": str( sender_uuid ),
+            "sender_hotkey": str( sender_hotkey ),
+            "sender_signature": str( sender_signature ),
+            "receiver_hotkey": str( receiver_hotkey ),
+            "request_name": request_name,
+        }
+        bt.logging.trace('dendrite metadata', metadata)
+        request.sender_version = sender_version
+        request.sender_nonce = sender_nonce
+        request.sender_uuid = str(sender_uuid)
+        request.sender_hotkey = str( sender_hotkey )
+        request.sender_signature = str( sender_signature )
+        request.sender_timeout = sender_timeout
         request.receiver_hotkey = receiver_hotkey
+        request.request_name = request_name
+
+        response = await self.client.post( url, headers = metadata, json = request.dict() )
+        print (response.json())
+        try:
+            return request.__class__( **response.json() )
+        except Exception as e:
+            print(e)
+            return response.text

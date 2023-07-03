@@ -26,39 +26,27 @@ class ReturnCode(Enum):
     SUCCESS = 0
     BLACKLIST = 1
     TIMEOUT = 2
-    NOTVERIFIED = 3
+    FAILEDVERIFICATION = 3
     UNKNOWN = 4
 
 class BaseRequest( BaseModel ):
-    name: str = 'default'
-    timeout: float = 12
+    # The call being made
+    request_name: Optional[str] = None
 
-    # Reciever items
-    receiver_hotkey: Optional[ str ] = None
+    # Process time
+    process_time: Optional[float] = None
 
     # Sender Signature items.
+    sender_timeout: float = 12
+    sender_version: Optional[ str ] = None
     sender_nonce: Optional[ str ] = None
     sender_uuid: Optional[ str ] = None
     sender_hotkey: Optional[ str ] = None
     sender_signature: Optional[ str ]  = None 
 
-class BaseResponse( BaseModel ):
-    name: str = 'default'
-
-    return_code: int = ReturnCode.SUCCESS.value
-    return_message: str = "Success"
-
-    # Sender Signature items.
-    sender_nonce: Optional[ str ] = None
-    sender_uuid: Optional[ str ] = None
-    sender_hotkey: Optional[ str ] = None
-    sender_signature: Optional[ str ] = None 
-
     # Reciever Signature items.
-    reciever_nonce: Optional[ str ] = None
-    reciever_uuid: Optional[ str ] = None
-    reciever_hotkey: Optional[ str ] = None
-    reciever_signature: Optional[ str ] = None 
+    receiver_hotkey: Optional[ str ] = None
 
-
-
+    # Return code and message.
+    return_message: Optional[str] = 'Success'
+    return_code: Optional[int] = ReturnCode.SUCCESS.value

@@ -5,6 +5,7 @@ cryptography
 fuzzywuzzy
 fastapi
 hypothesis
+httpx
 loguru
 miniupnpc
 munch

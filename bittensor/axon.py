@@ -28,9 +28,18 @@ import threading
 import bittensor
 import contextlib
 
+from threading import Lock
+from inspect import signature
 from fastapi import FastAPI, APIRouter
 from substrateinterface import Keypair
 from typing import Dict, Optional, Tuple, Union, List, Callable
+
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from substrateinterface import Keypair
+from typing import Dict, Optional, Tuple
+
 
 """ FastAPI server that runs in a thread. 
 """
@@ -136,11 +145,13 @@ class axon:
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
         self.started = False
 
-        # Synapse memory.
-        self.synapses = {}
+        # Build priority thread pool
+        self.thread_pool = bittensor.PriorityThreadPoolExecutor( max_workers = self.config.axon.max_workers )
 
-        # Verification
-        self.nonces = {}
+        # Blacklist functions
+        self.blacklist_fns = {}
+        self.priority_fns = {}
+        self.forward_fns = {}
 
         # Instantiate FastAPI
         self.fastapi_app = FastAPI()
@@ -148,132 +159,33 @@ class axon:
         self.fast_server = FastAPIThreadedServer( config = self.fast_config )
         self.router = APIRouter()
         self.fastapi_app.include_router( self.router )
-
-        # Build priority thread pool
-        self.thread_pool = bittensor.PriorityThreadPoolExecutor( max_workers = self.config.axon.max_workers )
+        self.fastapi_app.add_middleware( AxonMiddleware, axon = self)
 
         # Attach default forward.
-        self.attach( 
-            name = 'default',
-            forward_fn = self.default_forward
-        )
+        self.attach( forward_fn = self.default_forward )
 
     def attach( 
             self, 
-            name: str, 
             forward_fn: Callable,
             blacklist_fn: Callable = None,
             priority_fn: Callable = None,
-            verify_fn: Callable = None,
         ):
-        self.router.add_api_route(f"/{name}/", self.apply, methods=["GET", "POST"])
-        self.synapses[ name ] = {
-            'forward_fn': forward_fn,
-            'blacklist_fn': blacklist_fn or self.default_blacklist,
-            'priority_fn': priority_fn or self.default_priority,
-            'verify_fn': verify_fn or self.default_verify_request
-        }
+        sig = signature(forward_fn)
+        request_name = sig.parameters[list(sig.parameters)[0] ].annotation.__name__
+        self.router.add_api_route(f"/{request_name}", forward_fn, methods=["GET", "POST"])
         self.fastapi_app.include_router( self.router )
+        self.blacklist_fns[request_name] = blacklist_fn or self.default_blacklist
+        self.priority_fns[request_name] = priority_fn or self.default_priority
+        self.forward_fns[request_name] = forward_fn 
 
-    def default_forward( self, request: bittensor.BaseRequest) -> bittensor.BaseResponse: 
-        time.sleep(30)
-        return bittensor.BaseResponse( name = request.name, hotkey = self.wallet.hotkey.ss58_address )
-
-    def default_priority( self, request: bittensor.BaseRequest ) -> float:
-        return 1.0
-
-    def default_blacklist( self, request: bittensor.BaseRequest ) -> bool: 
+    def default_priority( self, sender_hotkey: str ) -> float:
+        return 1
+    
+    def default_blacklist( self, sender_hotkey: str ) -> bool:
         return False
 
-    def default_verify_request( self, request: bittensor.BaseRequest ) -> bool:
-        r"""verification of signature in metadata. Uses the pubkey and nonce"""
-        keypair = Keypair( ss58_address = self.wallet.hotkey.ss58_address )
-
-        # Check reciever keys match.
-        if self.wallet.hotkey.ss58_address != request.receiver_hotkey: 
-            bittensor.logging.trace('RVerification failed: reciever keys dont match.')
-            return False
-
-        # Build the expected message which was used to build the signature. 
-        message = f"{request.sender_nonce}.{request.sender_hotkey}.{self.wallet.hotkey.ss58_address}.{request.sender_uuid}"
-
-        # Build the key which uniquely identifies the endpoint that has signed
-        endpoint_key = f"{request.sender_hotkey}.{request.sender_uuid}"
-
-        if endpoint_key in self.nonces.keys():
-            previous_nonce = self.nonces[endpoint_key]
-
-            # Nonces must be strictly monotonic over time.
-            if request.sender_nonce <= previous_nonce: 
-                bittensor.logging.trace('Verification failed: nonce is too small')
-                return False
-            
-        # Check for potential Signature mismatch
-        if not keypair.verify(message, request.sender_signature): 
-            bittensor.logging.trace('Verification failed: signature mismatch.')
-            return False 
-        
-        # Save nonce.
-        self.nonces[endpoint_key] = request.sender_nonce
-        
-        # Successful verification.
-        return True
-    
-    def nonce ( self ): 
-        """ Returns a monotonically increasing nonce value per request"""
-        return time.monotonic_ns()
-    
-    def sign_response(self, request: bittensor.BaseRequest, response: bittensor.BaseResponse ):
-        """ Creates a signature for the response"""
-
-        # Create axon signature.
-        nonce = f"{self.nonce()}"
-        sender_hotkey = request.sender_hotkey
-        receiver_hotkey = self.wallet.hotkey.ss58_address
-        message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{self.uuid}"
-        
-        # Fill sender items.
-        response.sender_nonce = request.sender_nonce
-        response.sender_hotkey = request.sender_hotkey
-        response.sender_signature = request.sender_signature
-        response.sender_uuid = request.sender_uuid
-
-        # Fill reciever items.
-        response.reciever_hotkey = receiver_hotkey
-        response.reciever_signature = f"0x{self.wallet.hotkey.sign(message).hex()}"
-        response.reciever_nonce = nonce
-        response.reciever_uuid = self.uuid
-
-
-    def apply( self, request: bittensor.BaseRequest ) -> bittensor.BaseResponse:
-        bittensor.logging.trace('axon request', request)
-        response = bittensor.BaseResponse( name = request.name )
-
-        if not self.synapses[ request.name ]['verify_fn']( request ):
-            response.return_code = bittensor.ReturnCode.NOTVERIFIED.value
-            response.return_message = 'Failed Signature verification'    
-
-        elif self.synapses[ request.name ]['blacklist_fn']( request ):
-            response.return_code = bittensor.ReturnCode.BLACKLIST.value
-            response.return_message = 'Blacklisted'
-
-        else:
-            try:
-                priority = self.synapses[ request.name ]['priority_fn']( request )
-                future = self.thread_pool.submit( self.synapses[ request.name ]['forward_fn'], priority = priority, request = request )
-                response = future.result( timeout = request.timeout )
-
-            except TimeoutError as e:
-                response.return_code = bittensor.ReturnCode.TIMEOUT.value
-                response.return_message = f"Timeout after {request.timeout} seconds."
-                
-            except Exception as e:
-                 response.return_code = bittensor.ReturnCode.UNKNOWN.value
-                 response.return_message = str(e)
-
-        self.sign_response( request, response )
-        bittensor.logging.trace('axon response', response)
-        return response
+    def default_forward( self, request: bittensor.BaseRequest) -> bittensor.BaseRequest: 
+        return request
 
     @classmethod
     def config(cls) -> "bittensor.config":
@@ -351,12 +263,11 @@ class axon:
         ), "external port must be in range [1024, 65535]"
 
     def __str__(self) -> str:
-        return "axon({}, {}, {}, {}, {})".format(
+        return "axon({}, {}, {}, {})".format(
             self.ip,
             self.port,
             self.wallet.hotkey.ss58_address,
-            "started" if self.started else "stopped",
-            list(self.synapses.keys())
+            "started" if self.started else "stopped"
         )
 
     def __repr__(self) -> str:
@@ -377,4 +288,114 @@ class axon:
         self.fast_server.stop()
         self.started = False
         return self
-    
+
+class AxonMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, axon: axon):
+        super().__init__(app)
+        self.nonces = {}
+        self.axon = axon
+        self.lock = Lock()
+        self.receiver_hotkey = axon.wallet.hotkey.ss58_address
+
+    def check_signature( self, nonce: int, sender_hotkey: str, signature: str, sender_uuid: str, receiver_hotkey: str):
+        keypair = Keypair(ss58_address = sender_hotkey)
+
+        if receiver_hotkey != self.receiver_hotkey:
+            raise HTTPException(status_code=403, detail="receiver_hotkey does not match.")
+
+        message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{sender_uuid}"
+        endpoint_key = f"{sender_hotkey}:{sender_uuid}"
+
+        if endpoint_key in self.nonces.keys():
+            previous_nonce = self.nonces[endpoint_key]
+            if nonce <= previous_nonce:
+                raise HTTPException(status_code=403, detail="Nonce is too small")
+            
+        if not keypair.verify(message, signature):
+            raise HTTPException(status_code=403, detail="Signature mismatch")
+        
+        self.nonces[endpoint_key] = nonce
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
+        
+        # For process time.
+        start_time = time.time()
+
+        # Parse signature.
+        metadata = dict(request.headers)
+        try:
+            request_name = request.url.path.split("/")[1]
+            sender_timeout = metadata.get("sender_timeout")
+            sender_version = metadata.get("sender_version")
+            sender_nonce = metadata.get("sender_nonce")
+            sender_uuid = metadata.get("sender_uuid")
+            sender_hotkey = metadata.get("sender_hotkey")
+            sender_signature = metadata.get("sender_signature")
+            receiver_hotkey = metadata.get("receiver_hotkey")
+        except HTTPException as e:
+            bittensor.logging.trace("Error parsing signature")
+            return JSONResponse({"detail": str(e)}, status_code = 403)
+        
+        bittensor.logging.debug( f"{request_name} | {sender_hotkey} | 0 | Success ")
+        
+        # Build the base response (to be filled on error.)
+        default_response = bittensor.BaseRequest(
+            request_name = request_name,
+            sender_timeout = sender_timeout,
+            sender_version = sender_version,
+            sender_nonce = sender_nonce,
+            sender_hotkey = sender_hotkey,
+            sender_signature = sender_signature,
+            receiver_hotkey = receiver_hotkey,
+        )
+        print (default_response)
+                
+        # Unpack signature.
+        try:
+            self.check_signature( int(sender_nonce), sender_hotkey, sender_signature, sender_uuid, receiver_hotkey )
+        except Exception as e:
+            bittensor.logging.trace("Error checking signature")
+            default_response.return_code = bittensor.ReturnCode.FAILEDVERIFICATION.value
+            default_response.return_message = "Error checking signature"
+            bittensor.logging.debug( f"{request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
+            return default_response
+
+        # Check blacklist        
+        if self.axon.blacklist_fns[request_name]( sender_hotkey ):
+            bittensor.logging.trace("Blacklisted")
+            default_response.return_code = bittensor.ReturnCode.BLACKLISTED.value
+            default_response.return_message = "BLACKLISTED"
+            bittensor.logging.debug( f"{request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
+            return default_response
+
+        try:
+            # Force request priority.
+            def get_lock() -> bool:
+                return self.lock.acquire( timeout = float( sender_timeout ) )
+            # Create get lock future with priority.
+            priority = self.axon.priority_fns[request_name]( sender_hotkey )
+            future = self.axon.thread_pool.submit( get_lock, priority = priority )
+            future.result( timeout = float( sender_timeout ) )
+            response = await call_next( request )
+            self.lock.release()
+
+        except TimeoutError as e:
+            bittensor.logging.trace("TimeoutError")
+            default_response.return_code = bittensor.ReturnCode.TIMEOUT.value
+            default_response.return_message = "TIMEOUT"
+            bittensor.logging.debug( f"{request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
+            return default_response
+        
+        except Exception as e:
+            bittensor.logging.trace(f"Unknown exception{str(e)}")
+            default_response.return_code = bittensor.ReturnCode.UNKNOWN.value
+            default_response.return_message = f"Unknown exception{str(e)}"
+            bittensor.logging.debug( f"{request_name} | {sender_hotkey} | {default_response.return_code} |  {default_response.return_message}")
+            return default_response
+
+        response.process_time = (time.time() - start_time)
+        print ('set process time', response.process_time)
+        bittensor.logging.debug( f"{request_name} | {sender_hotkey} | 0 | Success ")
+        print( response )
+        return response
+
