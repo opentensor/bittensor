@@ -1414,6 +1414,15 @@ class Subtensor:
 
         return metagraph_
     
+    def weights(self, netuid: int, block: Optional[int] = None) -> List[List[int]]:
+        w_map = []
+        w_map_encoded = self.query_map_subtensor(name="Weights", block=block, params = [netuid])
+        if w_map_encoded.records:
+            for uid, w in w_map_encoded:
+                w_map.append((uid.serialize(), w.serialize()))
+
+        return w_map
+    
     ################
     ## Extrinsics ##
     ################
