@@ -114,7 +114,20 @@ class metagraph( torch.nn.Module ):
         if lite:
             self.neurons = subtensor.neurons_lite( block = block, netuid = self.netuid )
         else:
-            self.neurons = subtensor.neurons( block = block, netuid = self.netuid )
+            self.neurons = subtensor.neurons_lite( block = block, netuid = self.netuid )
+
+            weights = subtensor.weights( block = block, netuid = self.netuid )
+            weights_as_dict = { uid: w for uid, w in weights }
+            bonds = subtensor.bonds( block = block, netuid = self.netuid )
+            bonds_as_dict = { uid: b for uid, b in bonds }
+            # Combine weights and bonds into neuron objects.
+            self.neurons = [
+                bittensor.NeuronInfo.from_weights_bonds_and_neuron_lite(
+                    neuron = neuron,
+                    weights_as_dict = weights_as_dict,
+                    bonds_as_dict = bonds_as_dict
+                ) for neuron in self.neurons
+            ]
 
         self.lite = lite
         self.n = torch.nn.Parameter( torch.tensor( len(self.neurons), dtype=torch.int64 ), requires_grad=False )
@@ -134,25 +147,29 @@ class metagraph( torch.nn.Module ):
         self.total_stake = torch.nn.Parameter( torch.tensor( [ neuron.total_stake.tao for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
         self.stake = torch.nn.Parameter( torch.tensor( [ neuron.stake for neuron in self.neurons ], dtype=torch.float32 ), requires_grad=False )
         self.axons = [ n.axon_info for n in self.neurons ]
+
+        n = len( self.neurons )
         if not lite:
             weights_array = []
-            for n in self.neurons:
-                if len(n.weights) == 0:
-                    weights_array.append( torch.zeros( len( self.neurons ) ) )
+            for i in range( n ):
+                weights = weights_as_dict[i]
+                if len(weights) == 0:
+                    weights_array.append( torch.zeros( n ) )
                 else:
-                    w_uids, w_weights = zip(*n.weights)
-                    weights_array.append( bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( len(self.neurons), w_uids, w_weights ) )
+                    w_uids, w_weights = zip(*weights)
+                    weights_array.append( bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor( n, w_uids, w_weights ) )
             self.weights = torch.nn.Parameter( torch.stack( weights_array ), requires_grad=False ) if len( weights_array ) else torch.nn.Parameter()
             if len(weights_array) == 0:
                 bittensor.logging.warning("Empty weights_array on metagraph.sync(). The 'weights' tensor is empty.")
         if not lite:
             bonds_array = []
-            for n in self.neurons:
-                if len(n.bonds) == 0:
-                    bonds_array.append( torch.zeros( len( self.neurons ) ) )
+            for i in range( n ):
+                bonds = bonds_as_dict[i]
+                if len(bonds) == 0:
+                    bonds_array.append( torch.zeros( n ) )
                 else:
-                    b_uids, b_bonds = zip(*n.bonds)
-                    bonds_array.append( bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor( len(self.neurons), b_uids, b_bonds ) )
+                    b_uids, b_bonds = zip(*bonds)
+                    bonds_array.append( bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor( n, b_uids, b_bonds ) )
             self.bonds = torch.nn.Parameter( torch.stack( bonds_array ), requires_grad=False ) if len( bonds_array ) else torch.nn.Parameter()
             if len(bonds_array) == 0:
                 bittensor.logging.warning("Empty bonds_array on metagraph.sync(). The 'bonds' tensor is empty.")
