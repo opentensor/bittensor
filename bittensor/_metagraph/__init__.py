@@ -123,7 +123,7 @@ class metagraph( torch.nn.Module ):
             # Combine weights and bonds into neuron objects.
             self.neurons = [
                 bittensor.NeuronInfo.from_weights_bonds_and_neuron_lite(
-                    neuron = neuron,
+                    neuron_lite = neuron,
                     weights_as_dict = weights_as_dict,
                     bonds_as_dict = bonds_as_dict
                 ) for neuron in self.neurons
