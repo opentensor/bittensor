@@ -48,12 +48,15 @@ class dendrite( torch.nn.Module ):
         self.axon_info = axon.info() if isinstance( axon, bt.axon ) else axon
         self.endpoint_str = "localhost:" + str(self.axon_info.port)
 
-    async def forward( self, request: bt.BaseRequest = bt.BaseRequest(), timeout: float = 12 ) -> bt.BaseRequest:
-        
-        bt.logging.trace('dendrite request', request)
+    async def forward( 
+            self, 
+            request: bt.BaseRequest = bt.BaseRequest(), 
+            timeout: float = 12 
+        ) -> bt.BaseRequest:
+
+        # Get the request name from the request type.        
         request_name = request.__class__.__name__
         url = f"http://{self.endpoint_str}/{request_name}"
-        bt.logging.trace('dendrite url', url)
     
         # Build Metadata.
         sender_nonce = f"{time.monotonic_ns()}"
@@ -64,6 +67,8 @@ class dendrite( torch.nn.Module ):
         receiver_hotkey = self.axon_info.hotkey
         message = f"{sender_nonce}.{sender_hotkey}.{receiver_hotkey}.{sender_uuid}"
         sender_signature = f"0x{self.keypair.sign(message).hex()}"
+        
+        # Fill request metadata for middleware.
         metadata = {
             "rpc-auth-header": "Bittensor",
             "sender_timeout": str( sender_timeout ),
@@ -75,7 +80,8 @@ class dendrite( torch.nn.Module ):
             "receiver_hotkey": str( receiver_hotkey ),
             "request_name": request_name,
         }
-        bt.logging.trace('dendrite metadata', metadata)
+
+        # Fill data into request.
         request.sender_version = sender_version
         request.sender_nonce = sender_nonce
         request.sender_uuid = str(sender_uuid)
@@ -85,10 +91,13 @@ class dendrite( torch.nn.Module ):
         request.receiver_hotkey = receiver_hotkey
         request.request_name = request_name
 
-        response = await self.client.post( url, headers = metadata, json = request.dict() )
-        print (response.json())
         try:
+            response = await self.client.post( url, headers = metadata, json = request.dict() )
             return request.__class__( **response.json() )
+        
         except Exception as e:
-            print(e)
-            return response.text
+            # Unknown failure, set params.
+            failed_response = request.__class__( **request.dict() )
+            failed_response.return_code = bt.ReturnCode.UNKNOWN.value
+            failed_response.return_message = f"Failed to send request {str(e)}" 
+            return failed_response
