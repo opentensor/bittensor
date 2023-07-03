@@ -158,36 +158,62 @@ class axon:
 
         # Instantiate FastAPI
         self.fastapi_app = FastAPI()
-        self.fast_config = uvicorn.Config( self.fastapi_app, host = '0.0.0.0', port = self.config.axon.port, log_level="info")
+        self.fast_config = uvicorn.Config( self.fastapi_app, host = '0.0.0.0', port = self.config.axon.port, log_level="critical")
         self.fast_server = FastAPIThreadedServer( config = self.fast_config )
         self.router = APIRouter()
         self.fastapi_app.include_router( self.router )
-        self.fastapi_app.add_middleware( AxonMiddleware, axon = self)
+        self.fastapi_app.add_middleware( AxonMiddleware, axon = self )
 
         # Attach default forward.
         self.attach( forward_fn = self.default_forward )
 
-    def attach( 
+    def attach(
             self, 
             forward_fn: Callable,
             blacklist_fn: Callable = None,
             priority_fn: Callable = None,
         ):
+        """
+        This method is used to register an API endpoint in the FastAPI application router.
+        It uses the name of the first argument of the 'forward_fn' function as the endpoint name.
+        
+        Args:
+            forward_fn (Callable): The function that will be called when the API endpoint is accessed. 
+                                   It should have at least one argument.
+            blacklist_fn (Callable, optional): A function to filter out unwanted requests. This function should take the same arguments 
+                                               as 'forward_fn' and return a boolean value. If None, 'self.default_blacklist' will be used.
+            priority_fn (Callable, optional): A function to sort the requests based on their priority. This function should take the same arguments 
+                                              as 'forward_fn' and return a numerical value representing the request's priority. 
+                                              If None, 'self.default_priority' will be used.
+
+        After execution, the following associations are made:
+            - API endpoint to 'forward_fn' in self.router (available on both GET and POST methods)
+            - 'forward_fn' to 'blacklist_fn' in self.blacklist_fns
+            - 'forward_fn' to 'priority_fn' in self.priority_fns
+            - 'forward_fn' to itself in self.forward_fns
+
+        Note:
+            The default 'blacklist_fn' and 'priority_fn' should be defined in the instance (self) which calls this method.
+            The 'forward_fn', 'blacklist_fn', and 'priority_fn' should be designed to receive the same parameters.
+        """
         sig = signature(forward_fn)
-        request_name = sig.parameters[list(sig.parameters)[0] ].annotation.__name__
+        request_name = sig.parameters[list(sig.parameters)[0]].annotation.__name__
         self.router.add_api_route(f"/{request_name}", forward_fn, methods=["GET", "POST"])
-        self.fastapi_app.include_router( self.router )
+        self.fastapi_app.include_router(self.router)
         self.blacklist_fns[request_name] = blacklist_fn or self.default_blacklist
         self.priority_fns[request_name] = priority_fn or self.default_priority
-        self.forward_fns[request_name] = forward_fn 
+        self.forward_fns[request_name] = forward_fn
 
     def default_priority( self, sender_hotkey: str ) -> float:
+        # All calls have the same priority.
         return 1
     
     def default_blacklist( self, sender_hotkey: str ) -> bool:
+        # Does not blacklist
         return False
 
     def default_forward( self, request: bittensor.BaseRequest) -> bittensor.BaseRequest: 
+        # Returns as ping.
         return request
 
     @classmethod
@@ -300,33 +326,95 @@ class AxonMiddleware(BaseHTTPMiddleware):
         self.lock = Lock()
         self.receiver_hotkey = axon.wallet.hotkey.ss58_address
 
-    def check_signature( self, nonce: int, sender_hotkey: str, signature: str, sender_uuid: str, receiver_hotkey: str):
+    def check_signature( 
+        self, 
+        sender_version: str, 
+        nonce: int, 
+        sender_hotkey: str, 
+        signature: str, 
+        sender_uuid: str, 
+        receiver_hotkey: str
+    ):
+        """
+        This method is used to verify the authenticity of a received message using a digital signature.
+        It ensures that the message was not tampered with and was sent by the expected sender.
+
+        Args:
+            sender_version (str): The version of the sender system.
+            nonce (int): A number used once to prevent replay attacks. It should always increase.
+            sender_hotkey (str): The sender's public key in ss58_address format.
+            signature (str): The signature of the message. 
+            sender_uuid (str): The unique identifier of the sender.
+            receiver_hotkey (str): The receiver's public key.
+
+        Raises:
+            Exception: If the receiver_hotkey doesn't match with self.receiver_hotkey.
+            Exception: If the nonce is not larger than the previous nonce for the same endpoint key.
+            Exception: If the signature verification fails.
+
+        After successful verification, the nonce for the given endpoint key is updated.
+
+        Note:
+            The verification process assumes the use of an asymmetric encryption algorithm,
+            where the sender signs the message with their private key and the receiver verifies the signature using the sender's public key.
+        """
+        # Build the keypair from the sender_hotkey
         keypair = Keypair(ss58_address = sender_hotkey)
 
+        # Check that the receiver_hotkey's match.
         if receiver_hotkey != self.receiver_hotkey:
-            raise HTTPException(status_code=403, detail="receiver_hotkey does not match.")
+            raise Exception("receiver_hotkey does not match.")
 
+        # Build the signature messages.
         message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{sender_uuid}"
+
+        # Build the unique endpoint key.
         endpoint_key = f"{sender_hotkey}:{sender_uuid}"
 
+        # Check the nonce from the endpoint key.
         if endpoint_key in self.nonces.keys():
-            previous_nonce = self.nonces[endpoint_key]
-            if nonce <= previous_nonce:
-                raise HTTPException(status_code=403, detail="Nonce is too small")
+
+            # Ensure the nonce increases.
+            if nonce <= self.nonces[endpoint_key]:
+                raise Exception("Nonce is too small")
             
         if not keypair.verify(message, signature):
-            raise HTTPException(status_code=403, detail="Signature mismatch")
+            raise Exception("Signature mismatch")
         
+        # Success
         self.nonces[endpoint_key] = nonce
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Request:
+        """
+        This method handles incoming requests by performing several checks and operations, including
+        parsing metadata, verifying signature, checking blacklist, acquiring a lock based on priority, 
+        forwarding the request to the next endpoint and finally, returning the response.
+
+        Args:
+            request (Request): The incoming FastAPI request.
+            call_next (RequestResponseEndpoint): The next middleware operation in the stack.
+
+        Returns:
+            default_response (bittensor.BaseRequest): Default response object. It's updated based on the 
+                                                    result of various checks and returned in case of an error.
+            response: The response from the next middleware operation in case of successful checks.
+
+        Note:
+            This method assumes that the incoming request contains necessary headers or metadata
+            required for performing various checks such as 'sender_timeout', 'sender_version', 
+            'sender_nonce', 'sender_uuid', 'sender_hotkey', 'sender_signature', 'receiver_hotkey'.
+            
+            In case any of these checks fail, it logs the error and returns the default response 
+            with appropriate return code and message.
+        """
         
-        # For process time.
+        # Pull original timestamp.
         start_time = time.time()
 
         # Parse signature.
-        metadata = dict(request.headers)
         try:
+            # Parse the metadata.
+            metadata = dict(request.headers)
             request_name = request.url.path.split("/")[1]
             sender_timeout = metadata.get("sender_timeout")
             sender_version = metadata.get("sender_version")
@@ -335,11 +423,15 @@ class AxonMiddleware(BaseHTTPMiddleware):
             sender_hotkey = metadata.get("sender_hotkey")
             sender_signature = metadata.get("sender_signature")
             receiver_hotkey = metadata.get("receiver_hotkey")
-        except HTTPException as e:
-            bittensor.logging.trace("Error parsing signature")
-            return JSONResponse({"detail": str(e)}, status_code = 403)
-        
-        bittensor.logging.debug( f"{request_name} | {sender_hotkey} | 0 | Success ")
+
+        except Exception as e:
+            # Failed to parse metadata.
+            default_response.return_code = bittensor.ReturnCode.FAILEDVERIFICATION.value
+            default_response.return_message = f"Error checking signature {str(e)}"
+            return default_response
+
+        # Log successful incoming request.        
+        bittensor.logging.debug( f"axon | <-- | {request_name} | {sender_hotkey} | 0 | Success ")
         
         # Build the base response (to be filled on error.)
         default_response = bittensor.BaseRequest(
@@ -354,20 +446,26 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         # Unpack signature.
         try:
-            self.check_signature( int(sender_nonce), sender_hotkey, sender_signature, sender_uuid, receiver_hotkey )
+            # Runs signature check over the metadata.
+            self.check_signature( sender_version, int(sender_nonce), sender_hotkey, sender_signature, sender_uuid, receiver_hotkey )
+
         except Exception as e:
-            bittensor.logging.trace("Error checking signature")
+            # Signature failure.
             default_response.return_code = bittensor.ReturnCode.FAILEDVERIFICATION.value
-            default_response.return_message = "Error checking signature"
-            bittensor.logging.debug( f"{request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
+            default_response.return_message = f"Signature verification errro: {str(e)}"
+            bittensor.logging.debug( f"axon | --> | {request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
             return default_response
 
-        # Check blacklist        
-        if self.axon.blacklist_fns[request_name]( sender_hotkey ):
+        # Check blacklist    
+        try:    
+            if self.axon.blacklist_fns[request_name]( sender_hotkey ):
+                raise Exception("Blacklisted")
+        except Exception as e:
+            # Item was blacklisted.
             bittensor.logging.trace("Blacklisted")
             default_response.return_code = bittensor.ReturnCode.BLACKLISTED.value
             default_response.return_message = "BLACKLISTED"
-            bittensor.logging.debug( f"{request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
+            bittensor.logging.debug( f"axon | --> | {request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
             return default_response
 
         try:
@@ -382,25 +480,27 @@ class AxonMiddleware(BaseHTTPMiddleware):
             self.lock.release()
 
         except TimeoutError as e:
+            # Call timed out.
             bittensor.logging.trace("TimeoutError")
             default_response.return_code = bittensor.ReturnCode.TIMEOUT.value
             default_response.return_message = "TIMEOUT"
-            bittensor.logging.debug( f"{request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
+            bittensor.logging.debug( f"axon | --> | {request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
             return default_response
         
         except Exception as e:
+            # Unknown error on forward call. 
             bittensor.logging.trace(f"Unknown exception{str(e)}")
             default_response.return_code = bittensor.ReturnCode.UNKNOWN.value
             default_response.return_message = f"Unknown exception{str(e)}"
-            bittensor.logging.debug( f"{request_name} | {sender_hotkey} | {default_response.return_code} |  {default_response.return_message}")
+            bittensor.logging.debug( f"axon | --> | {request_name} | {sender_hotkey} | {default_response.return_code} |  {default_response.return_message}")
             return default_response
         
         # Unwrap message body.
         response_body = [ section async for section in response.body_iterator ]
         response_dict = json.loads( response_body[0] )
 
-        # Add process time to body dict.
-        response_dict['process_time'] = time.time() - start_time
+        # Fill response time.
+        response_dict['process_time'] = (time.time() - start_time)
 
         # Back to bytes
         data = json.dumps(response_dict)
@@ -409,5 +509,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Wrap in a new response object, specifying the Content-Length.
         response = Response( content=byte_data, headers={"Content-Length": str(len(byte_data))} )
         bittensor.logging.debug( f"{request_name} | {sender_hotkey} | 0 | Success " )
+
+        # Log outgoing response.
+        bittensor.logging.debug( f"axon | --> | {request_name} | {sender_hotkey} | 0 | Success ")
+
         return response
 
