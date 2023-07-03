@@ -1420,7 +1420,7 @@ class Subtensor:
 
         return metagraph_
     
-    def weights(self, netuid: int, block: Optional[int] = None) -> List[List[int]]:
+    def weights(self, netuid: int, block: Optional[int] = None) -> List[Tuple[int, List[Tuple[int, int]]]]:
         w_map = []
         w_map_encoded = self.query_map_subtensor(name="Weights", block=block, params = [netuid])
         if w_map_encoded.records:
@@ -1429,7 +1429,7 @@ class Subtensor:
 
         return w_map
     
-    def bonds(self, netuid: int, block: Optional[int] = None) -> List[List[int]]:
+    def bonds(self, netuid: int, block: Optional[int] = None) -> List[Tuple[int, List[Tuple[int, int]]]]:
         b_map = []
         b_map_encoded = self.query_map_subtensor(name="Bonds", block=block, params = [netuid])
         if b_map_encoded.records:
