@@ -155,7 +155,7 @@ class axon:
 
         # Instantiate FastAPI
         self.fastapi_app = FastAPI()
-        self.fast_config = uvicorn.Config( self.fastapi_app, host = '0.0.0.0', port = self.config.axon.port, log_level="info")
+        self.fast_config = uvicorn.Config( self.fastapi_app, host = '0.0.0.0', port = self.config.axon.port, log_level="critical")
         self.fast_server = FastAPIThreadedServer( config = self.fast_config )
         self.router = APIRouter()
         self.fastapi_app.include_router( self.router )
@@ -425,11 +425,10 @@ class AxonMiddleware(BaseHTTPMiddleware):
             # Failed to parse metadata.
             default_response.return_code = bittensor.ReturnCode.FAILEDVERIFICATION.value
             default_response.return_message = f"Error checking signature {str(e)}"
-            bittensor.logging.debug( f"{request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
             return default_response
 
         # Log successful incoming request.        
-        bittensor.logging.debug( f"{request_name} | {sender_hotkey} | 0 | Success ")
+        bittensor.logging.debug( f"axon | <-- | {request_name} | {sender_hotkey} | 0 | Success ")
         
         # Build the base response (to be filled on error.)
         default_response = bittensor.BaseRequest(
@@ -451,7 +450,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             # Signature failure.
             default_response.return_code = bittensor.ReturnCode.FAILEDVERIFICATION.value
             default_response.return_message = f"Signature verification errro: {str(e)}"
-            bittensor.logging.debug( f"{request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
+            bittensor.logging.debug( f"axon | --> | {request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
             return default_response
 
         # Check blacklist    
@@ -463,7 +462,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             bittensor.logging.trace("Blacklisted")
             default_response.return_code = bittensor.ReturnCode.BLACKLISTED.value
             default_response.return_message = "BLACKLISTED"
-            bittensor.logging.debug( f"{request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
+            bittensor.logging.debug( f"axon | --> | {request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
             return default_response
 
         try:
@@ -482,7 +481,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             bittensor.logging.trace("TimeoutError")
             default_response.return_code = bittensor.ReturnCode.TIMEOUT.value
             default_response.return_message = "TIMEOUT"
-            bittensor.logging.debug( f"{request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
+            bittensor.logging.debug( f"axon | --> | {request_name} | {sender_hotkey} | {default_response.return_code} | {default_response.return_message}")
             return default_response
         
         except Exception as e:
@@ -490,14 +489,14 @@ class AxonMiddleware(BaseHTTPMiddleware):
             bittensor.logging.trace(f"Unknown exception{str(e)}")
             default_response.return_code = bittensor.ReturnCode.UNKNOWN.value
             default_response.return_message = f"Unknown exception{str(e)}"
-            bittensor.logging.debug( f"{request_name} | {sender_hotkey} | {default_response.return_code} |  {default_response.return_message}")
+            bittensor.logging.debug( f"axon | --> | {request_name} | {sender_hotkey} | {default_response.return_code} |  {default_response.return_message}")
             return default_response
 
         # Fill response time.
         response.process_time = (time.time() - start_time)
 
         # Log outgoing response.
-        bittensor.logging.debug( f"{request_name} | {sender_hotkey} | 0 | Success ")
+        bittensor.logging.debug( f"axon | --> | {request_name} | {sender_hotkey} | 0 | Success ")
 
         return response
 

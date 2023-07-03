@@ -92,12 +92,19 @@ class dendrite( torch.nn.Module ):
         request.request_name = request_name
 
         try:
+            # Try request.
+            bt.logging.debug( f"dendrite | --> | {request_name} | {sender_hotkey} | 0 | Success")
             response = await self.client.post( url, headers = metadata, json = request.dict() )
-            return request.__class__( **response.json() )
+            response = request.__class__( **response.json() )
+            bt.logging.debug( f"dendrite | --> | {request_name} | {sender_hotkey} | {response.return_code} | {response.return_message}")
         
         except Exception as e:
             # Unknown failure, set params.
-            failed_response = request.__class__( **request.dict() )
-            failed_response.return_code = bt.ReturnCode.UNKNOWN.value
-            failed_response.return_message = f"Failed to send request {str(e)}" 
-            return failed_response
+            response = request.__class__( **request.dict() )
+            response.return_code = bt.ReturnCode.UNKNOWN.value
+            response.return_message = f"Failed to send request {str(e)}" 
+
+        finally:
+            # Finally log and exit.
+            bt.logging.debug( f"dendrite | <-- | {request_name} | {sender_hotkey} | {response.return_code} | {response.return_message}")
+            return response
