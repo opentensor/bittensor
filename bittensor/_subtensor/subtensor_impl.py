@@ -1301,14 +1301,6 @@ class Subtensor:
 
         return NeuronInfo.from_vec_u8( result )
 
-    @staticmethod
-    def __combined_weights_bonds_and_neuron_lite( neuron_lite: NeuronInfoLite, weights_as_dict: Dict[int, List[Tuple[int, int]]], bonds_as_dict: Dict[int, List[Tuple[int, int]]] ) -> NeuronInfo:
-        n_dict = neuron_lite.__dict__
-        n_dict['weights'] = weights_as_dict.get(neuron_lite.uid, [])
-        n_dict['bonds'] = bonds_as_dict.get(neuron_lite.uid, [])
-        
-        return bittensor.NeuronInfo( **n_dict )
-
     def neurons(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]:
         r""" Returns a list of neuron from the chain.
         Args:
@@ -1332,7 +1324,7 @@ class Subtensor:
         }
 
         neurons = [
-            self.__combined_weights_bonds_and_neuron_lite( neuron_lite, weights_as_dict, bonds_as_dict ) for neuron_lite in neurons_lite
+            NeuronInfo.from_weights_bonds_and_neuron_lite( neuron_lite, weights_as_dict, bonds_as_dict ) for neuron_lite in neurons_lite
         ]
 
         return neurons
