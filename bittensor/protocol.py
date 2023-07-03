@@ -22,7 +22,7 @@ from enum import Enum
 from pydantic import BaseModel
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
-class ReturnCode(Enum):
+class ReturnCode( Enum ):
     SUCCESS = 0
     BLACKLIST = 1
     TIMEOUT = 2

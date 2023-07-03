@@ -86,7 +86,6 @@ class dendrite( torch.nn.Module ):
         request.request_name = request_name
 
         response = await self.client.post( url, headers = metadata, json = request.dict() )
-        print (response.json())
         try:
             return request.__class__( **response.json() )
         except Exception as e:

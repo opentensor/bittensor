@@ -21,6 +21,7 @@
 import os
 import uuid
 import copy
+import json
 import time
 import uvicorn
 import argparse
@@ -37,6 +38,8 @@ from typing import Dict, Optional, Tuple, Union, List, Callable
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.concurrency import iterate_in_threadpool
+from starlette.responses import Response
 from substrateinterface import Keypair
 from typing import Dict, Optional, Tuple
 
@@ -316,7 +319,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         
         self.nonces[endpoint_key] = nonce
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Request:
         
         # For process time.
         start_time = time.time()
@@ -348,8 +351,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             sender_signature = sender_signature,
             receiver_hotkey = receiver_hotkey,
         )
-        print (default_response)
-                
+
         # Unpack signature.
         try:
             self.check_signature( int(sender_nonce), sender_hotkey, sender_signature, sender_uuid, receiver_hotkey )
@@ -392,10 +394,20 @@ class AxonMiddleware(BaseHTTPMiddleware):
             default_response.return_message = f"Unknown exception{str(e)}"
             bittensor.logging.debug( f"{request_name} | {sender_hotkey} | {default_response.return_code} |  {default_response.return_message}")
             return default_response
+        
+        # Unwrap message body.
+        response_body = [ section async for section in response.body_iterator ]
+        response_dict = json.loads( response_body[0] )
 
-        response.process_time = (time.time() - start_time)
-        print ('set process time', response.process_time)
-        bittensor.logging.debug( f"{request_name} | {sender_hotkey} | 0 | Success ")
-        print( response )
+        # Add process time to body dict.
+        response_dict['process_time'] = time.time() - start_time
+
+        # Back to bytes
+        data = json.dumps(response_dict)
+        byte_data = bytes(data, "utf-8")
+
+        # Wrap in a new response object, specifying the Content-Length.
+        response = Response( content=byte_data, headers={"Content-Length": str(len(byte_data))} )
+        bittensor.logging.debug( f"{request_name} | {sender_hotkey} | 0 | Success " )
         return response
 
