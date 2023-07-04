@@ -31,17 +31,11 @@ import contextlib
 
 from threading import Lock
 from inspect import signature
-from fastapi import FastAPI, APIRouter
 from substrateinterface import Keypair
-from typing import Dict, Optional, Tuple, Union, List, Callable
-
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.concurrency import iterate_in_threadpool
+from fastapi import FastAPI, APIRouter, Request
 from starlette.responses import Response
-from substrateinterface import Keypair
-from typing import Dict, Optional, Tuple
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from typing import Dict, Optional, Tuple, Union, List, Callable
 
 
 """ FastAPI server that runs in a thread. 
@@ -464,27 +458,24 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 raise Exception("Blacklisted")
         except Exception as e:
             # Item was blacklisted.
-            bittensor.logging.trace("Blacklisted")
             default_response.return_code = bittensor.ReturnCode.BLACKLISTED.value
             default_response.return_message = "BLACKLISTED"
             bittensor.logging.debug( f"axon     | --> | {request_name} | {sender_hotkey} | {sender_ip}:**** | {default_response.return_code} | {default_response.return_message}")
             return default_response
 
         try:
-            # TODO(const): this does not work.
-            # Force request priority.
-            def get_lock() -> bool:
-                return self.lock.acquire( timeout = float( sender_timeout ) )
-            # Create get lock future with priority.
+            # Creates a threading event which is set through a priority threadpool.
+            # Once the event is set the process continues and calls the asyncio request.
+            event = threading.Event()
+            def set_event() -> bool: event.set()
             priority = self.axon.priority_fns[request_name]( sender_hotkey )
-            future = self.axon.thread_pool.submit( get_lock, priority = priority )
+            future = self.axon.thread_pool.submit( set_event, priority = priority )
             future.result( timeout = float( sender_timeout ) )
+            event.wait()
             response = await call_next( request )
-            self.lock.release()
 
         except TimeoutError as e:
             # Call timed out.
-            bittensor.logging.trace("TimeoutError")
             default_response.return_code = bittensor.ReturnCode.TIMEOUT.value
             default_response.return_message = "TIMEOUT"
             bittensor.logging.debug( f"axon     | --> | {request_name} | {sender_hotkey} | {sender_ip}:**** | {default_response.return_code} | {default_response.return_message}")
@@ -492,7 +483,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
         
         except Exception as e:
             # Unknown error on forward call. 
-            bittensor.logging.trace(f"Unknown exception{str(e)}")
             default_response.return_code = bittensor.ReturnCode.UNKNOWN.value
             default_response.return_message = f"Unknown exception{str(e)}"
             bittensor.logging.debug( f"axon     | --> | {request_name} | {sender_hotkey} | {sender_ip}:**** | {default_response.return_code} |  {default_response.return_message}")
