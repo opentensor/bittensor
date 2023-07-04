@@ -490,7 +490,7 @@ class Subtensor:
         call_params: AxonServeCallParams,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ):
         with self.substrate as substrate:
             call = substrate.compose_call(
                 call_module='SubtensorModule',
@@ -506,7 +506,7 @@ class Subtensor:
                 else:
                     return False, response.error_message
             else:
-                return True, None
+                return True
 
     def serve_prometheus (
         self,
@@ -551,7 +551,7 @@ class Subtensor:
                 else:
                     return False, response.error_message
             else:
-                return True, None
+                return True
     
     #################
     #### Staking ####
@@ -1444,7 +1444,7 @@ class Subtensor:
         amount: 'bittensor.Balance',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> bool:
         with self.substrate as substrate:
             call = substrate.compose_call(
             call_module='SubtensorModule',
@@ -1458,12 +1458,12 @@ class Subtensor:
             response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                return True, None
+                return True
             response.process_events()
             if response.is_success:
-                return True, None
+                return True
             else:
-                return False, response.error_message
+                raise StakeError(response.error_message)
 
     def _do_undelegation(
             self,
@@ -1472,7 +1472,7 @@ class Subtensor:
             amount: 'bittensor.Balance',
             wait_for_inclusion: bool = True,
             wait_for_finalization: bool = False,
-        ) -> Tuple[bool, Optional[str]]::
+        ) -> bool:
         with self.substrate as substrate:
             call = substrate.compose_call(
             call_module='SubtensorModule',
@@ -1486,19 +1486,19 @@ class Subtensor:
             response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                return True, None
+                return True
             response.process_events()
             if response.is_success:
-                return True, None
+                return True
             else:
-                return False, response.error_message
-    
+                raise StakeError(response.error_message)
+
     def _do_nominate(
             self,
             wallet: 'bittensor.wallet',
             wait_for_inclusion: bool = True,
             wait_for_finalization: bool = False,
-        ) -> Tuple[bool, Optional[str]]:
+        ) -> bool:
         with self.substrate as substrate:
             call = substrate.compose_call(
                 call_module='SubtensorModule',
@@ -1511,12 +1511,12 @@ class Subtensor:
             response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                return True, None
+                return True
             response.process_events()
             if response.is_success:
-                return True, None
+                return True
             else:
-                return False, response.error_message
+                raise NominationError(response.error_message)
 
     ################
     #### Legacy ####

@@ -63,7 +63,7 @@ def __do_remove_stake_single(
     # Decrypt keys,
     wallet.coldkey
 
-    success, error_msg = subtensor._do_unstake(
+    success = subtensor._do_unstake(
         wallet = wallet,
         hotkey_ss58 = hotkey_ss58,
         amount = amount,
@@ -71,7 +71,7 @@ def __do_remove_stake_single(
         wait_for_finalization = wait_for_finalization,
     )
 
-    return success, error_msg
+    return success
 
 def unstake_extrinsic (
         subtensor: 'bittensor.Subtensor',
@@ -137,7 +137,7 @@ def unstake_extrinsic (
 
     try:
         with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(subtensor.network)):
-            staking_response, error_msg = __do_remove_stake_single(
+            staking_response: bool = __do_remove_stake_single(
                 subtensor = subtensor,
                 wallet = wallet,
                 hotkey_ss58 = hotkey_ss58,
@@ -160,7 +160,7 @@ def unstake_extrinsic (
                 bittensor.__console__.print("Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( old_stake, new_stake ))
                 return True
         else:
-            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: Error:\n {error_msg}.")
+            bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
             return False
 
     except NotRegisteredError as e:
@@ -258,7 +258,7 @@ def unstake_multiple_extrinsic (
 
         try:
             with bittensor.__console__.status(":satellite: Unstaking from chain: [white]{}[/white] ...".format(subtensor.network)):
-                staking_response, error_msg = __do_remove_stake_single(
+                staking_response: bool = __do_remove_stake_single(
                     subtensor = subtensor,
                     wallet = wallet,
                     hotkey_ss58 = hotkey_ss58,
@@ -289,7 +289,7 @@ def unstake_multiple_extrinsic (
                     bittensor.__console__.print("Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( hotkey_ss58, stake_on_uid, new_stake ))
                     successful_unstakes += 1
             else:
-                bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: Error:\n {error_msg}.")
+                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
                 continue
 
         except NotRegisteredError as e:
