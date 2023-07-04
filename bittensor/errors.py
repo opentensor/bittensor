@@ -56,6 +56,10 @@ class TransferError(ChainTransactionError):
     """
     pass
 
+class NominationError(ChainTransactionError):
+    r""" Error raised when a nomination transaction fails.
+    """
+    pass
 
 class RegistrationError(ChainTransactionError):
     r""" Error raised when a neuron registration transaction fails.

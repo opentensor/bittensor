@@ -1,6 +1,5 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
-# Copyright © 2023 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -16,216 +15,447 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-# Imports
+import sys
+import argparse
 import bittensor
+from rich.prompt import Prompt, Confirm
+from rich.table import Table
+from typing import List, Union, Optional, Dict, Tuple
+from .utils import get_delegates_details, DelegatesDetails
 
-import time
-from rich.prompt import Confirm
+console = bittensor.__console__
 
-def register_senate_extrinsic (
-    subtensor: 'bittensor.subtensor',
-    wallet: 'bittensor.wallet',
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
-    prompt: bool = False
-) -> bool:
-    r""" Registers the wallet to chain for senate voting.
-    Args:
-        wallet (bittensor.wallet):
-            bittensor wallet object.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true,
-            or returns false if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning true,
-            or returns false if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
-    Returns:
-        success (bool):
-            flag is true if extrinsic was finalized or included in the block.
-            If we did not wait for finalization / inclusion, the response is true.
-    """
-    wallet.coldkey # unlock coldkey
-    wallet.hotkey # unlock hotkey
+class SenateCommand:
 
-    if prompt:
-        # Prompt user for confirmation.
-        if not Confirm.ask( f"Register delegate hotkey to senate?" ):
-            return False
+    @staticmethod
+    def run( cli ):
+        r""" View Bittensor's governance protocol proposals
+        """
+        config = cli.config.copy()
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
 
-    with bittensor.__console__.status(":satellite: Registering with senate..."):
-       with subtensor.substrate as substrate:
-            # create extrinsic call
-            call = substrate.compose_call(
-                call_module='SubtensorModule',
-                call_function='join_senate',
-                call_params={
-                    "hotkey": wallet.hotkey.ss58_address
-                }
+        console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
+
+        senate_members = subtensor.get_senate_members()
+        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(url = bittensor.__delegates_details_url__)
+
+        table = Table(show_footer=False)
+        table.title = (
+            "[white]Senate"
+        )
+        table.add_column("[overline white]NAME", footer_style = "overline white", style="rgb(50,163,219)", no_wrap=True)
+        table.add_column("[overline white]ADDRESS", footer_style = "overline white", style='yellow', no_wrap=True)
+        table.show_footer = True
+
+        for ss58_address in senate_members:
+            table.add_row(
+                delegate_info[ss58_address].name if ss58_address in delegate_info else "",
+                ss58_address
             )
-            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
 
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                return True
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        console.print(table)
 
-            # process if registration successful
-            response.process_events()
-            if not response.is_success:
-                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
-                time.sleep(0.5)
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        None
 
-            # Successful registration, final check for membership
-            else:
-                is_registered = wallet.is_senate_member(subtensor)
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        senate_parser = parser.add_parser(
+            'senate',
+            help='''View senate and it's members'''
+        )
+        senate_parser.add_argument(
+            '--no_version_checking',
+            action='store_true',
+            help='''Set false to stop cli version checking''',
+            default = False
+        )
+        senate_parser.add_argument(
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        bittensor.wallet.add_args( senate_parser )
+        bittensor.subtensor.add_args( senate_parser )
 
-                if is_registered:
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Registered[/green]")
-                    return True
-                else:
-                    # neuron not found, try again
-                    bittensor.__console__.print(":cross_mark: [red]Unknown error. Senate membership not found.[/red]")
+def format_call_data(call_data: 'bittensor.ProposalCallData') -> str:
+    human_call_data = list()
 
-def leave_senate_extrinsic (
-    subtensor: 'bittensor.subtensor',
-    wallet: 'bittensor.wallet',
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
-    prompt: bool = False
-) -> bool:
-    r""" Removes the wallet from chain for senate voting.
-    Args:
-        wallet (bittensor.wallet):
-            bittensor wallet object.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true,
-            or returns false if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning true,
-            or returns false if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
-    Returns:
-        success (bool):
-            flag is true if extrinsic was finalized or included in the block.
-            If we did not wait for finalization / inclusion, the response is true.
-    """
-    wallet.coldkey # unlock coldkey
-    wallet.hotkey # unlock hotkey
+    for arg in call_data["call_args"]:
+        arg_value = arg["value"]
 
-    if prompt:
-        # Prompt user for confirmation.
-        if not Confirm.ask( f"Remove delegate hotkey from senate?" ):
-            return False
+        # If this argument is a nested call
+        func_args = format_call_data({
+            "call_function": arg_value["call_function"],
+            "call_args": arg_value["call_args"]
+        }) if isinstance(arg_value, dict) and "call_function" in arg_value else str(arg_value)
 
-    with bittensor.__console__.status(":satellite: Leaving senate..."):
-       with subtensor.substrate as substrate:
-            # create extrinsic call
-            call = substrate.compose_call(
-                call_module='SubtensorModule',
-                call_function='leave_senate',
-                call_params={
-                    "hotkey": wallet.hotkey.ss58_address
-                }
+        human_call_data.append("{}: {}".format(arg["name"], func_args))
+
+    return "{}({})".format(call_data["call_function"], ", ".join(human_call_data))
+
+def display_votes(vote_data: 'bittensor.ProposalVoteData', delegate_info: 'bittensor.DelegateInfo') -> str:
+    vote_list = list()
+
+    for address in vote_data["ayes"]:
+        vote_list.append("{}: {}".format(delegate_info[address].name if address in delegate_info else address, "[bold green]Aye[/bold green]"))
+
+    for address in vote_data["nays"]:
+        vote_list.append("{}: {}".format(delegate_info[address].name if address in delegate_info else address, "[bold red]Nay[/bold red]"))
+
+    return "\n".join(vote_list)
+
+class ProposalsCommand:
+
+    @staticmethod
+    def run( cli ):
+        r""" View Bittensor's governance protocol proposals
+        """
+        config = cli.config.copy()
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+
+        console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
+
+        senate_members = subtensor.get_senate_members()
+        proposals = subtensor.get_proposals()      
+
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(url = bittensor.__delegates_details_url__)
+
+        table = Table(show_footer=False)
+        table.title = (
+            "[white]Proposals\t\tActive Proposals: {}\t\tSenate Size: {}".format(len(proposals), len(senate_members))
+        )
+        table.add_column("[overline white]HASH", footer_style = "overline white", style='yellow', no_wrap=True)
+        table.add_column("[overline white]THRESHOLD", footer_style = "overline white", style='white')
+        table.add_column("[overline white]AYES", footer_style = "overline white", style='green')
+        table.add_column("[overline white]NAYS", footer_style = "overline white", style='red')
+        table.add_column("[overline white]VOTES", footer_style = "overline white", style='rgb(50,163,219)')
+        table.add_column("[overline white]END", footer_style = "overline white", style='blue')
+        table.add_column("[overline white]CALLDATA", footer_style = "overline white", style='white')
+        table.show_footer = True
+
+        for hash in proposals:
+            call_data, vote_data = proposals[hash]
+
+            table.add_row(
+                hash,
+                str(vote_data["threshold"]),
+                str(len(vote_data["ayes"])),
+                str(len(vote_data["nays"])),
+                display_votes(vote_data, registered_delegate_info),
+                str(vote_data["end"]),
+                format_call_data(call_data)
             )
-            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
 
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                return True
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        console.print(table)
 
-            # process if registration successful
-            response.process_events()
-            if not response.is_success:
-                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
-                time.sleep(0.5)
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        None
 
-            # Successful registration, final check for membership
-            else:
-                is_registered = wallet.is_senate_member(subtensor)
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        proposals_parser = parser.add_parser(
+            'proposals',
+            help='''View active triumvirate proposals and their status'''
+        )
+        proposals_parser.add_argument(
+            '--no_version_checking',
+            action='store_true',
+            help='''Set false to stop cli version checking''',
+            default = False
+        )
+        proposals_parser.add_argument(
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        bittensor.wallet.add_args( proposals_parser )
+        bittensor.subtensor.add_args( proposals_parser )
 
-                if not is_registered:
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Left senate[/green]")
-                    return True
-                else:
-                    # neuron not found, try again
-                    bittensor.__console__.print(":cross_mark: [red]Unknown error. Senate membership still found.[/red]")
+class ShowVotesCommand:
 
-def vote_senate_extrinsic (
-    subtensor: 'bittensor.subtensor',
-    wallet: 'bittensor.wallet',
-    proposal_hash: str,
-    proposal_idx: int,
-    vote: bool,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
-    prompt: bool = False
-) -> bool:
-    r""" Removes the wallet from chain for senate voting.
-    Args:
-        wallet (bittensor.wallet):
-            bittensor wallet object.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true,
-            or returns false if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning true,
-            or returns false if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
-    Returns:
-        success (bool):
-            flag is true if extrinsic was finalized or included in the block.
-            If we did not wait for finalization / inclusion, the response is true.
-    """
-    wallet.coldkey # unlock coldkey
-    wallet.hotkey # unlock hotkey
+    @staticmethod
+    def run( cli ):
+        r""" View Bittensor's governance protocol proposals active votes
+        """
+        config = cli.config.copy()
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
 
-    if prompt:
-        # Prompt user for confirmation.
-        if not Confirm.ask( "Cast a vote of {}?".format( vote ) ):
-            return False
+        console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
 
-    with bittensor.__console__.status( ":satellite: Casting vote.." ):
-       with subtensor.substrate as substrate:
-            # create extrinsic call
-            call = substrate.compose_call(
-                call_module='SubtensorModule',
-                call_function='vote',
-                call_params={
-                    "hotkey": wallet.hotkey.ss58_address,
-                    "proposal": proposal_hash,
-                    "index": proposal_idx,
-                    "approve": vote
-                }
+        proposal_hash = cli.config.proposal_hash
+        if len(proposal_hash) == 0:
+            console.print('Aborting: Proposal hash not specified. View all proposals with the "proposals" command.')
+            return
+
+        proposal_vote_data = subtensor.get_vote_data( proposal_hash )
+        if proposal_vote_data == None:
+            console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
+            return
+        
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(url = bittensor.__delegates_details_url__)
+
+        table = Table(show_footer=False)
+        table.title = (
+            "[white]Votes for Proposal {}".format(proposal_hash)
+        )
+        table.add_column("[overline white]ADDRESS", footer_style = "overline white", style='yellow', no_wrap=True)
+        table.add_column("[overline white]VOTE", footer_style = "overline white", style='white')
+        table.show_footer = True
+
+        votes = display_votes(proposal_vote_data, registered_delegate_info).split("\n")
+        for vote in votes:
+            split_vote_data = vote.split(": ") # Nasty, but will work.
+            table.add_row(
+                split_vote_data[0],
+                split_vote_data[1]
             )
-            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization )
 
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                return True
+        table.box = None
+        table.pad_edge = False
+        table.min_width = 64
+        console.print(table)
 
-            # process if vote successful
-            response.process_events()
-            if not response.is_success:
-                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
-                time.sleep(0.5)
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        if config.proposal_hash == "" and not config.no_prompt:
+            proposal_hash = Prompt.ask("Enter proposal hash")
+            config.proposal_hash = str(proposal_hash)
 
-            # Successful vote, final check for data
-            else:
-                vote_data = subtensor.get_vote_data( proposal_hash )
-                has_voted = vote_data["ayes"].count( wallet.hotkey.ss58_address ) > 0 or vote_data["nays"].count( wallet.hotkey.ss58_address ) > 0
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        show_votes_parser = parser.add_parser(
+            'proposal_votes',
+            help='''View an active proposal's votes by address.'''
+        )
+        show_votes_parser.add_argument(
+            '--no_version_checking',
+            action='store_true',
+            help='''Set false to stop cli version checking''',
+            default = False
+        )
+        show_votes_parser.add_argument(
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        show_votes_parser.add_argument(
+            '--proposal',
+            dest='proposal_hash',
+            type=str,
+            nargs='?',
+            help='''Set the proposal to show votes for.''',
+            default=""
+        )
+        bittensor.wallet.add_args( show_votes_parser )
+        bittensor.subtensor.add_args( show_votes_parser )
 
-                if has_voted:
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Vote cast.[/green]")
-                    return True
-                else:
-                    # hotkey not found in ayes/nays
-                    bittensor.__console__.print(":cross_mark: [red]Unknown error. Couldn't find vote.[/red]")
+class SenateRegisterCommand:
+
+    @staticmethod
+    def run( cli ):
+        r""" Register to participate in Bittensor's governance protocol proposals
+        """
+        config = cli.config.copy()
+        wallet = bittensor.wallet( config = cli.config )
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+
+        # Unlock the wallet.
+        wallet.hotkey
+        wallet.coldkey
+
+        # Check if the hotkey is a delegate.
+        if not subtensor.is_hotkey_delegate( wallet.hotkey.ss58_address ):
+            console.print('Aborting: Hotkey {} isn\'t a delegate.'.format(wallet.hotkey.ss58_address))
+            return
+        
+        if subtensor.is_senate_member( hotkey_ss58=wallet.hotkey.ss58_address ):
+            console.print('Aborting: Hotkey {} is already a senate member.'.format(wallet.hotkey.ss58_address))
+            return
+        
+        subtensor.register_senate(
+            wallet = wallet,
+            prompt = not cli.config.no_prompt
+        )
+
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        if not config.is_set('wallet.name') and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set('wallet.hotkey') and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        senate_register_parser = parser.add_parser(
+            'senate_register',
+            help='''Register as a senate member to participate in proposals'''
+        )
+        senate_register_parser.add_argument(
+            '--no_version_checking',
+            action='store_true',
+            help='''Set false to stop cli version checking''',
+            default = False
+        )
+        senate_register_parser.add_argument(
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        bittensor.wallet.add_args( senate_register_parser )
+        bittensor.subtensor.add_args( senate_register_parser )
+
+class SenateLeaveCommand:
+
+    @staticmethod
+    def run( cli ):
+        r""" Discard membership in Bittensor's governance protocol proposals
+        """
+        config = cli.config.copy()
+        wallet = bittensor.wallet( config = cli.config )
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+
+        # Unlock the wallet.
+        wallet.hotkey
+        wallet.coldkey
+        
+        if not subtensor.is_senate_member( hotkey_ss58=wallet.hotkey.ss58_address ):
+            console.print('Aborting: Hotkey {} isn\'t a senate member.'.format(wallet.hotkey.ss58_address))
+            return
+        
+        subtensor.leave_senate(
+            wallet = wallet,
+            prompt = not cli.config.no_prompt
+        )
+
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        if not config.is_set('wallet.name') and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set('wallet.hotkey') and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        senate_leave_parser = parser.add_parser(
+            'senate_leave',
+            help='''Discard senate membership in the governance protocol'''
+        )
+        senate_leave_parser.add_argument(
+            '--no_version_checking',
+            action='store_true',
+            help='''Set false to stop cli version checking''',
+            default = False
+        )
+        senate_leave_parser.add_argument(
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        bittensor.wallet.add_args( senate_leave_parser )
+        bittensor.subtensor.add_args( senate_leave_parser )
+
+class VoteCommand:
+
+    @staticmethod
+    def run( cli ):
+        r""" Vote in Bittensor's governance protocol proposals
+        """
+        config = cli.config.copy()
+        wallet = bittensor.wallet( config = cli.config )
+        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+
+        proposal_hash = cli.config.proposal_hash
+        if len(proposal_hash) == 0:
+            console.print('Aborting: Proposal hash not specified. View all proposals with the "proposals" command.')
+            return
+        
+        if not subtensor.is_senate_member( hotkey_ss58=wallet.hotkey.ss58_address ):
+            console.print('Aborting: Hotkey {} isn\'t a senate member.'.format(wallet.hotkey.ss58_address))
+            return
+
+        # Unlock the wallet.
+        wallet.hotkey
+        wallet.coldkey
+
+        vote_data = subtensor.get_vote_data( proposal_hash )
+        if vote_data == None:
+            console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
+            return
+
+        vote = Confirm.ask("Desired vote for proposal")
+        subtensor.vote_senate(
+            wallet = wallet,
+            proposal_hash = proposal_hash,
+            proposal_idx = vote_data["index"],
+            vote = vote,
+            prompt = not cli.config.no_prompt
+        )
+
+    @classmethod
+    def check_config( cls, config: 'bittensor.Config' ):
+        if not config.is_set('wallet.name') and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set('wallet.hotkey') and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+        if config.proposal_hash == "" and not config.no_prompt:
+            proposal_hash = Prompt.ask("Enter proposal hash")
+            config.proposal_hash = str(proposal_hash)
+
+    @classmethod
+    def add_args( cls, parser: argparse.ArgumentParser ):
+        vote_parser = parser.add_parser(
+            'senate_vote',
+            help='''Vote on an active proposal by hash.'''
+        )
+        vote_parser.add_argument(
+            '--no_version_checking',
+            action='store_true',
+            help='''Set false to stop cli version checking''',
+            default = False
+        )
+        vote_parser.add_argument(
+            '--no_prompt',
+            dest='no_prompt',
+            action='store_true',
+            help='''Set true to avoid prompting the user.''',
+            default=False,
+        )
+        vote_parser.add_argument(
+            '--proposal',
+            dest='proposal_hash',
+            type=str,
+            nargs='?',
+            help='''Set the proposal to show votes for.''',
+            default=""
+        )
+        bittensor.wallet.add_args( vote_parser )
+        bittensor.subtensor.add_args( vote_parser )
