@@ -264,7 +264,7 @@ def add_stake_multiple_extrinsic (
                 continue
 
         try:
-            staking_response: bool = __do_add_stake_single(
+            staking_response, error_msg = __do_add_stake_single(
                 subtensor = subtensor,
                 wallet = wallet,
                 hotkey_ss58 = hotkey_ss58,
@@ -306,7 +306,7 @@ def add_stake_multiple_extrinsic (
                     break
 
             else:
-                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
+                bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: Error:\n {error_msg}.")
                 continue
 
         except NotRegisteredError as e:
@@ -332,7 +332,7 @@ def __do_add_stake_single(
         amount: 'bittensor.Balance',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ) -> bool:
+    ) -> Tuple[bool, Optional[str]]:
     r"""
     Executes a stake call to the chain using the wallet and amount specified.
     Args:
@@ -354,6 +354,8 @@ def __do_add_stake_single(
         success (bool):
             flag is true if extrinsic was finalized or uncluded in the block.
             If we did not wait for finalization / inclusion, the response is true.
+        error_msg (Optional[str]):
+            If the extrinsic failed, the error message is returned.
     Raises:
         StakeError:
             If the extrinsic fails to be finalized or included in the block.
@@ -374,7 +376,7 @@ def __do_add_stake_single(
         if not subtensor.is_hotkey_delegate( hotkey_ss58 = hotkey_ss58 ):
             raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
 
-    success = subtensor._do_stake(
+    success, error_msg = subtensor._do_stake(
         wallet = wallet,
         hotkey_ss58 = hotkey_ss58,
         amount = amount,
@@ -382,5 +384,5 @@ def __do_add_stake_single(
         wait_for_finalization = wait_for_finalization,
     )
 
-    return success
+    return success, error_msg
     

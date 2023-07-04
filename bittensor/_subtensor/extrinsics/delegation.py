@@ -53,7 +53,7 @@ def nominate_extrinsic(
 
     with bittensor.__console__.status(":satellite: Sending nominate call on [white]{}[/white] ...".format(subtensor.network)):
         try:
-            success = subtensor._do_nominate(
+            success, error_msg = subtensor._do_nominate(
                 wallet = wallet,
                 wait_for_inclusion = wait_for_inclusion,
                 wait_for_finalization = wait_for_finalization
@@ -150,7 +150,7 @@ def delegate_extrinsic(
 
     try:
         with bittensor.__console__.status(":satellite: Staking to: [bold white]{}[/bold white] ...".format(subtensor.network)):
-            staking_response: bool = subtensor._do_delegation(
+            staking_response, error_msg = subtensor._do_delegation(
                 wallet = wallet,
                 delegate_ss58 = delegate_ss58,
                 amount = staking_balance,
@@ -178,7 +178,7 @@ def delegate_extrinsic(
                 bittensor.__console__.print("Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( my_prev_delegated_stake, new_delegate_stake ))
                 return True
         else:
-            bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: Error:\n {error_msg}.")
             return False
 
     except NotRegisteredError as e:
@@ -258,7 +258,7 @@ def undelegate_extrinsic(
 
     try:
         with bittensor.__console__.status(":satellite: Unstaking from: [bold white]{}[/bold white] ...".format(subtensor.network)):
-            staking_response: bool = subtensor._do_undelegation(
+            staking_response, err_msg = subtensor._do_undelegation(
                 wallet = wallet,
                 delegate_ss58 = delegate_ss58,
                 amount = unstaking_balance,
@@ -286,7 +286,7 @@ def undelegate_extrinsic(
                 bittensor.__console__.print("Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format( my_prev_delegated_stake, new_delegate_stake ))
                 return True
         else:
-            bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: Error:\n {error_msg}.")
             return False
 
     except NotRegisteredError as e:
