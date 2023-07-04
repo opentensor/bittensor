@@ -1,7 +1,8 @@
 **/data/
-*.log
-*.png
-*.pstats
+**/*.log
+**/*.png
+**/*.pstats
+**/*.ipynb
 **/bittensor.egg-info/*
 **/lib/*
 **/build/*
@@ -10,6 +11,11 @@
 **/env/*
 **/venv/*
 **/tmp/*
-./circleci/*
-./github/*
-.ipynb
+**/test_results/*
+**/__pycache__/*
+**/.circleci
+**/.git
+**/.github
+**/.hypothesis
+**/.vscode
+**/.gitignore
