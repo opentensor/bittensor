@@ -1463,7 +1463,7 @@ class Subtensor:
             if response.is_success:
                 return True, None
             else:
-                raise False, response.error_message
+                return False, response.error_message
 
     def _do_undelegation(
             self,
@@ -1491,7 +1491,7 @@ class Subtensor:
             if response.is_success:
                 return True, None
             else:
-                raise False, response.error_message
+                return False, response.error_message
     
     def _do_nominate(
             self,
@@ -1516,7 +1516,7 @@ class Subtensor:
             if response.is_success:
                 return True, None
             else:
-                raise False, response.error_message
+                return False, response.error_message
 
     ################
     #### Legacy ####
