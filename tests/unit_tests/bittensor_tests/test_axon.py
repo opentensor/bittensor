@@ -26,48 +26,10 @@ from unittest.mock import MagicMock
 import bittensor
 from bittensor.utils.test_utils import get_random_unused_port
 
-wallet = bittensor.wallet.mock()
-axon = bittensor.axon( wallet = wallet, metagraph = None )
-
-sender_wallet = bittensor.wallet.mock()
+from tests.helpers import get_mock_wallet, get_mock_keypair
 
 def gen_nonce():
     return f"{time.monotonic_ns()}"
-
-def test_axon_start():
-    mock_wallet = MagicMock(
-        spec=bittensor.Wallet,
-        coldkey=MagicMock(),
-        coldkeypub=MagicMock(
-            # mock ss58 address
-            ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
-        ),
-        hotkey=MagicMock(
-            ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
-        ),
-    )
-    axon = bittensor.axon( wallet = mock_wallet, metagraph = None )
-    axon.start()
-    assert axon.server._state.stage == grpc._server._ServerStage.STARTED
-
-def test_axon_stop():
-    mock_wallet = MagicMock(
-        spec=bittensor.Wallet,
-        coldkey=MagicMock(),
-        coldkeypub=MagicMock(
-            # mock ss58 address
-            ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
-        ),
-        hotkey=MagicMock(
-            ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
-        ),
-    )
-    axon = bittensor.axon( wallet = mock_wallet, metagraph = None )
-    axon.start()
-    time.sleep( 1 )
-    axon.stop()
-    time.sleep( 1 )
-    assert axon.server._state.stage == grpc._server._ServerStage.STOPPED
 
 def sign_v2(sender_wallet, receiver_wallet):
     nonce, receptor_uid = gen_nonce(), str(uuid.uuid1())
@@ -80,9 +42,6 @@ def sign_v2(sender_wallet, receiver_wallet):
 def sign(sender_wallet, receiver_wallet, receiver_version):
     return sign_v2(sender_wallet, receiver_wallet)
 
-def test_sign_v2():
-    sign_v2(sender_wallet, wallet)
-
 def is_port_in_use(port):
     import socket
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -92,54 +51,108 @@ def is_port_in_use(port):
         else:
             return False
 
-def test_axon_is_destroyed():
-    mock_wallet = MagicMock(
-        spec=bittensor.Wallet,
-        coldkey=MagicMock(),
-        coldkeypub=MagicMock(
-            # mock ss58 address
-            ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
-        ),
-        hotkey=MagicMock(
-            ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
-        ),
-    )
+class TestAxon(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.wallet = wallet = get_mock_wallet(
+            coldkey = get_mock_keypair(0, cls.__name__),
+            hotkey= get_mock_keypair(100 + 0, cls.__name__),
+        )
 
-    port = get_random_unused_port()
-    assert is_port_in_use( port ) == False
-    axon = bittensor.axon ( wallet = mock_wallet, metagraph = None, port = port )
-    assert is_port_in_use( port ) == True
-    axon.start()
-    assert is_port_in_use( port ) == True
-    axon.stop()
-    assert is_port_in_use( port ) == False
-    axon.__del__()
-    assert is_port_in_use( port ) == False
+        cls.axon = bittensor.axon( wallet = wallet, metagraph = None )
 
-    port = get_random_unused_port()
-    assert is_port_in_use( port ) == False
-    axon2 = bittensor.axon ( wallet = mock_wallet, metagraph = None, port = port )
-    assert is_port_in_use( port ) == True
-    axon2.start()
-    assert is_port_in_use( port ) == True
-    axon2.__del__()
-    assert is_port_in_use( port ) == False
+        cls.sender_wallet = get_mock_wallet(
+            coldkey = get_mock_keypair(1, cls.__name__),
+            hotkey= get_mock_keypair(100 + 1, cls.__name__),
+        )
 
-    port_3 = get_random_unused_port()
-    assert is_port_in_use( port_3 ) == False
-    axonA = bittensor.axon ( wallet = mock_wallet, metagraph = None, port = port_3 )
-    assert is_port_in_use( port_3 ) == True
-    axonB = bittensor.axon ( wallet = mock_wallet, metagraph = None, port = port_3 )
-    assert axonA.server != axonB.server
-    assert is_port_in_use( port_3 ) == True
-    axonA.start()
-    assert is_port_in_use( port_3 ) == True
-    axonB.start()
-    assert is_port_in_use( port_3 ) == True
-    axonA.__del__()
-    assert is_port_in_use( port ) == False
-    axonB.__del__()
-    assert is_port_in_use( port ) == False
+
+    def test_axon_start(self):
+        mock_wallet = MagicMock(
+            spec=bittensor.Wallet,
+            coldkey=MagicMock(),
+            coldkeypub=MagicMock(
+                # mock ss58 address
+                ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+            ),
+            hotkey=MagicMock(
+                ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
+            ),
+        )
+        axon = bittensor.axon( wallet = mock_wallet, metagraph = None )
+        axon.start()
+        assert axon.server._state.stage == grpc._server._ServerStage.STARTED
+
+    def test_axon_stop(self):
+        mock_wallet = MagicMock(
+            spec=bittensor.Wallet,
+            coldkey=MagicMock(),
+            coldkeypub=MagicMock(
+                # mock ss58 address
+                ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+            ),
+            hotkey=MagicMock(
+                ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
+            ),
+        )
+        axon = bittensor.axon( wallet = mock_wallet, metagraph = None )
+        axon.start()
+        time.sleep( 1 )
+        axon.stop()
+        time.sleep( 1 )
+        assert axon.server._state.stage == grpc._server._ServerStage.STOPPED
+
+    def test_sign_v2(self):
+        sign_v2(self.sender_wallet, self.wallet)
+
+    def test_axon_is_destroyed(self):
+        mock_wallet = MagicMock(
+            spec=bittensor.Wallet,
+            coldkey=MagicMock(),
+            coldkeypub=MagicMock(
+                # mock ss58 address
+                ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+            ),
+            hotkey=MagicMock(
+                ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
+            ),
+        )
+
+        port = get_random_unused_port()
+        assert is_port_in_use( port ) == False
+        axon = bittensor.axon ( wallet = mock_wallet, metagraph = None, port = port )
+        assert is_port_in_use( port ) == True
+        axon.start()
+        assert is_port_in_use( port ) == True
+        axon.stop()
+        assert is_port_in_use( port ) == False
+        axon.__del__()
+        assert is_port_in_use( port ) == False
+
+        port = get_random_unused_port()
+        assert is_port_in_use( port ) == False
+        axon2 = bittensor.axon ( wallet = mock_wallet, metagraph = None, port = port )
+        assert is_port_in_use( port ) == True
+        axon2.start()
+        assert is_port_in_use( port ) == True
+        axon2.__del__()
+        assert is_port_in_use( port ) == False
+
+        port_3 = get_random_unused_port()
+        assert is_port_in_use( port_3 ) == False
+        axonA = bittensor.axon ( wallet = mock_wallet, metagraph = None, port = port_3 )
+        assert is_port_in_use( port_3 ) == True
+        axonB = bittensor.axon ( wallet = mock_wallet, metagraph = None, port = port_3 )
+        assert axonA.server != axonB.server
+        assert is_port_in_use( port_3 ) == True
+        axonA.start()
+        assert is_port_in_use( port_3 ) == True
+        axonB.start()
+        assert is_port_in_use( port_3 ) == True
+        axonA.__del__()
+        assert is_port_in_use( port ) == False
+        axonB.__del__()
+        assert is_port_in_use( port ) == False
 
 # test external axon args
 class TestExternalAxon(unittest.TestCase):

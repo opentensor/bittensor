@@ -23,33 +23,6 @@ from unittest.mock import MagicMock
 
 import bittensor
 
-
-def test_loaded_config():
-    with pytest.raises(NotImplementedError):
-        bittensor.Config(loaded_config=True)
-
-def test_strict():
-    parser = argparse.ArgumentParser()
-
-    # Positional/mandatory arguments don't play nice with multiprocessing.
-    # When the CLI is used, the argument is just the 0th element or the filepath.
-    # However with multiprocessing this function call actually comes from a subprocess, and so there
-    # is no positional argument and this raises an exception when we try to parse the args later.
-    # parser.add_argument("arg", help="Dummy Args")
-    parser.add_argument("--cov", help="Dummy Args")
-    parser.add_argument("--cov-append", action='store_true', help="Dummy Args")
-    parser.add_argument("--cov-config",  help="Dummy Args")
-    #bittensor.Dendrite.add_args( parser )
-    bittensor.logging.add_args( parser )
-    bittensor.wallet.add_args( parser )
-    bittensor.subtensor.add_args( parser )
-    #bittensor.metagraph.add_args( parser )
-    bittensor.dataset.add_args( parser )
-    bittensor.axon.add_args( parser )
-    #bittensor.wandb.add_args( parser )
-    bittensor.config( parser, strict=False)
-    bittensor.config( parser, strict=True)
-
 def test_prefix():
     # Test the use of prefixes to instantiate all of the bittensor objects.
     parser = argparse.ArgumentParser()
@@ -90,8 +63,9 @@ def test_prefix():
     #bittensor.wandb.add_args( parser )
     #bittensor.wandb.add_args( parser, prefix = 'second' )
 
-    config_non_strict = bittensor.config( parser, strict=False)
-    config_strict = bittensor.config( parser, strict=True)
+    # Test with argv=[]
+    config_non_strict = bittensor.config( parser, strict=False, args=[] )
+    config_strict = bittensor.config( parser, strict=True, args=[] )
 
     #bittensor.dendrite( config_strict ).__del__()
     #bittensor.dendrite( config_non_strict ).__del__()
@@ -126,25 +100,7 @@ def test_prefix():
     #bittensor.wandb( config_strict.second )
     #bittensor.wandb( config_non_strict.second )
 
-
-def construct_config():
-    defaults = bittensor.Config()
-    bittensor.subtensor.add_defaults( defaults )
-    #bittensor.dendrite.add_defaults( defaults )
-    bittensor.axon.add_defaults( defaults )
-    bittensor.wallet.add_defaults( defaults )
-    bittensor.dataset.add_defaults( defaults )
-    bittensor.logging.add_defaults( defaults )
-    #bittensor.wandb.add_defaults( defaults )
-
-    return defaults
-
-def test_to_defaults():
-    config = construct_config()
-    config.to_defaults()
-
 if __name__  == "__main__":
     # test_loaded_config()
     # test_strict()
-    # test_to_defaults()
     test_prefix()

@@ -62,6 +62,26 @@ EOF
 #
 # Needs:
 #   - TAG_NAME
+#   - RELEASE_BRANCH
+#   - RELEASE_NAME
+#
+function generate_github_release_notes_for_changelog_post_data()
+{
+  cat <<EOF
+{
+  "tag_name":"$TAG_NAME",
+  "target_commitish":"$RELEASE_BRANCH",
+  "name":"$RELEASE_NAME",
+  "draft":false,
+  "prerelease":false,
+  "generate_release_notes":false
+}
+EOF
+}
+
+#
+# Needs:
+#   - TAG_NAME
 #   - PREV_TAG_NAME
 #   - RELEASE_NAME
 #
@@ -98,6 +118,27 @@ function generate_github_release_notes()
         -H "Authorization: Bearer $SECRET" \
         https://api.github.com/repos/opentensor/bittensor/releases/generate-notes \
         --data "$(generate_github_release_notes_post_data)"
+}
+
+#
+# Params:
+#   - First positional argument: github access token
+#
+function generate_github_release_notes_for_changelog()
+{
+    SECRET=$1
+
+    if [[ -z $SECRET ]]; then
+        echo_error "generate_github_release_notes_for_changelog needs SECRET"
+        exit 1
+    fi
+
+    curl --silent \
+        -X POST \
+        -H "Accept: application/vnd.github+json" \
+        -H "Authorization: Bearer $SECRET" \
+        https://api.github.com/repos/opentensor/bittensor/releases/generate-notes \
+        --data "$(generate_github_release_notes_for_changelog_post_data)"
 }
 
 #

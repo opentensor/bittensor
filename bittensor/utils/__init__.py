@@ -1,14 +1,16 @@
 import numbers
-from typing import Callable, Union, List, Optional, Dict
+from typing import Callable, Union, List, Optional, Dict, Literal, Type, Any
 
 import bittensor
 import pandas
 import requests
 import torch
 import scalecodec
-from substrateinterface import Keypair
+import argparse
 from substrateinterface.utils import ss58
-from .registration import create_pow
+from bittensor_wallet.utils import *
+
+from .registration import create_pow, __reregister_wallet as reregister
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
@@ -72,83 +74,8 @@ def version_checking():
     if latest_version_as_int > bittensor.__version_as_int__:
         print('\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience\u001b[0m'.format(bittensor.__version__,latest_version))
 
-def is_valid_ss58_address( address: str ) -> bool:
-    """
-    Checks if the given address is a valid ss58 address.
 
-    Args:
-        address(str): The address to check.
-
-    Returns:
-        True if the address is a valid ss58 address for Bittensor, False otherwise.
-    """
-    try:
-        return ss58.is_valid_ss58_address( address, valid_ss58_format=bittensor.__ss58_format__ ) or \
-                ss58.is_valid_ss58_address( address, valid_ss58_format=42 ) # Default substrate ss58 format (legacy)
-    except (IndexError):
-        return False
-
-def is_valid_ed25519_pubkey( public_key: Union[str, bytes] ) -> bool:
-    """
-    Checks if the given public_key is a valid ed25519 key.
-
-    Args:
-        public_key(Union[str, bytes]): The public_key to check.
-
-    Returns:
-        True if the public_key is a valid ed25519 key, False otherwise.
-
-    """
-    try:
-        if isinstance( public_key, str ):
-            if len(public_key) != 64 and len(public_key) != 66:
-                raise ValueError( "a public_key should be 64 or 66 characters" )
-        elif isinstance( public_key, bytes ):
-            if len(public_key) != 32:
-                raise ValueError( "a public_key should be 32 bytes" )
-        else:
-            raise ValueError( "public_key must be a string or bytes" )
-
-        keypair = Keypair(
-            public_key=public_key,
-            ss58_format=bittensor.__ss58_format__
-        )
-
-        ss58_addr = keypair.ss58_address
-        return ss58_addr is not None
-
-    except (ValueError, IndexError):
-        return False
-
-def is_valid_bittensor_address_or_public_key( address: Union[str, bytes] ) -> bool:
-    """
-    Checks if the given address is a valid destination address.
-
-    Args:
-        address(Union[str, bytes]): The address to check.
-
-    Returns:
-        True if the address is a valid destination address, False otherwise.
-    """
-    if isinstance( address, str ):
-        # Check if ed25519
-        if address.startswith('0x'):
-            return is_valid_ed25519_pubkey( address )
-        else:
-            # Assume ss58 address
-            return is_valid_ss58_address( address )
-    elif isinstance( address, bytes ):
-        # Check if ed25519
-        return is_valid_ed25519_pubkey( address )
-    else:
-        # Invalid address type
-        return False
-
-def get_ss58_format( ss58_address: str ) -> int:
-    """Returns the ss58 format of the given ss58 address."""
-    return ss58.get_ss58_format( ss58_address )
-
-def strtobool_with_default( default: bool ) -> Callable[[str], bool]:
+def strtobool_with_default( default: bool ) -> Callable[[str], Union[bool, Literal['==SUPRESS==']]]:
     """
     Creates a strtobool function with a default value.
 
@@ -161,7 +88,7 @@ def strtobool_with_default( default: bool ) -> Callable[[str], bool]:
     return lambda x: strtobool(x) if x != "" else default
 
 
-def strtobool(val: str) -> bool:
+def strtobool(val: str) -> Union[bool, Literal['==SUPRESS==']]:
     """
     Converts a string to a boolean value.
 
@@ -241,3 +168,9 @@ def u8_key_to_ss58(u8_key: List[int]) -> str:
     """
     # First byte is length, then 32 bytes of key.
     return scalecodec.ss58_encode( bytes(u8_key).hex(), bittensor.__ss58_format__)
+
+def type_or_suppress(type_func: Callable[[str], Any]) -> Callable[[str], Union[Any, Literal['==SUPRESS==']]]:
+    def _type_or_suppress(value: str) -> Union[Any, Literal['==SUPRESS==']]:
+        return value if value == argparse.SUPPRESS else type_func(value)
+    
+    return _type_or_suppress

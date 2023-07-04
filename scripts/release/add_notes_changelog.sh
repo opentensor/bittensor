@@ -33,6 +33,11 @@ while [[ $# -gt 0 ]]; do
       shift # past argument
       shift # past value
       ;;
+    -B|--release-branch)
+      RELEASE_BRANCH="$2"
+      shift # past argument
+      shift # past value
+      ;;
     -*|--*)
       echo "Unknown option $1"
       exit 1
@@ -59,6 +64,11 @@ if [[ -z $VERSION ]]; then
   exit 1
 fi
 
+if [[ -z $RELEASE_BRANCH ]]; then
+  echo_warning "Release branch not specified with (-B, --release-branch) assuming: release/$VERSION"
+  RELEASE_BRANCH=release/$VERSION
+fi
+
 DATE=$(date +"%Y-%m-%d")
 RELEASE_NAME="$VERSION / $DATE"
 TAG_NAME=v$VERSION
@@ -67,7 +77,7 @@ PREV_TAG_NAME=v$PREV_TAG_VERSION
 # 2.2. Generate release notes
 if [[ $APPLY == "true" ]]; then
   echo_info "Generating Github release notes"
-  RESPONSE=$(generate_github_release_notes $GITHUB_TOKEN)
+  RESPONSE=$(generate_github_release_notes_for_changelog $GITHUB_TOKEN)
   DESCRIPTION=$(echo $RESPONSE | jq '.body' | tail -1 | sed "s/\"//g")
 
   if [ $(echo $RESPONSE | jq '.body' | wc -l) -eq 1 ]; then
