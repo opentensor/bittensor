@@ -20,7 +20,7 @@ import bittensor
 import bittensor.utils.networking as net
 
 from enum import Enum
-from bittensor import Balance, axon_info
+from bittensor import Balance
 from dataclasses import dataclass
 from typing import List, Tuple, Dict, Optional, Any, TypedDict
 from scalecodec.types import GenericCall
@@ -343,8 +343,6 @@ class NeuronInfoLite:
     dividends: float
     last_update: int
     validator_permit: bool
-    #weights: List[List[int]]
-    #bonds: List[List[int]] No weights or bonds in lite version
     prometheus_info: 'PrometheusInfo'
     axon_info: 'axon_info'
     pruning_score: int
@@ -360,9 +358,6 @@ class NeuronInfoLite:
         neuron_info_decoded['stake_dict'] = stake_dict
         neuron_info_decoded['stake'] = sum(stake_dict.values())
         neuron_info_decoded['total_stake'] = neuron_info_decoded['stake']
-        # Don't need weights and bonds in lite version
-        #neuron_info_decoded['weights'] = [[int(weight[0]), int(weight[1])] for weight in neuron_info_decoded['weights']]
-        #neuron_info_decoded['bonds'] = [[int(bond[0]), int(bond[1])] for bond in neuron_info_decoded['bonds']]
         neuron_info_decoded['rank'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['rank'])
         neuron_info_decoded['emission'] = neuron_info_decoded['emission'] / RAOPERTAO
         neuron_info_decoded['incentive'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['incentive'])
@@ -420,8 +415,6 @@ class NeuronInfoLite:
             dividends = 0,
             last_update = 0,
             validator_permit = False,
-            #weights = [], // No weights or bonds in lite version
-            #bonds = [],
             prometheus_info = None,
             axon_info = None,
             is_null = True,
@@ -657,3 +650,63 @@ class ProposalVoteData(TypedDict):
     end: int
 
 ProposalCallData = GenericCall
+
+
+@dataclass
+class axon_info:
+
+    version: int
+    ip: str
+    port: int
+    ip_type: int
+    hotkey: str
+    coldkey: str
+    protocol:int = 4,
+    placeholder1:int = 0,
+    placeholder2:int = 0,
+
+    @property
+    def is_serving(self) -> bool:
+        """ True if the endpoint is serving. """
+        if self.ip == '0.0.0.0': return False
+        else:return True
+
+    def ip_str(self) -> str:
+        """ Return the whole ip as string """
+        return bittensor.utils.networking.ip__str__(self.ip_type, self.ip, self.port)
+
+    def __eq__ (self, other: 'axon_info'):
+        if other == None: return False
+        if self.version == other.version and self.ip == other.ip and self.port == other.port and self.ip_type == other.ip_type and self.coldkey == other.coldkey and self.hotkey == other.hotkey: return True
+        else: return False
+
+    def __str__(self):
+        return "axon_info( {}, {}, {}, {} )".format( str(self.ip_str()), str(self.hotkey), str(self.coldkey), self.version)
+
+    def __repr__(self):
+        return self.__str__()
+
+    @classmethod
+    def from_neuron_info(cls, neuron_info: dict ) -> 'axon_info':
+        """ Converts a dictionary to an axon_info object. """
+        return cls(
+            version = neuron_info['axon_info']['version'],
+            ip = bittensor.utils.networking.int_to_ip(int(neuron_info['axon_info']['ip'])),
+            port = neuron_info['axon_info']['port'],
+            ip_type = neuron_info['axon_info']['ip_type'],
+            hotkey = neuron_info['hotkey'],
+            coldkey = neuron_info['coldkey'],
+        )
+
+    def to_parameter_dict( self ) -> 'torch.nn.ParameterDict':
+        r""" Returns a torch tensor of the subnet info.
+        """
+        return torch.nn.ParameterDict(
+            self.__dict__
+        )
+
+    @classmethod
+    def from_parameter_dict( cls, parameter_dict: 'torch.nn.ParameterDict' ) -> 'axon_info':
+        r""" Returns an axon_info object from a torch parameter_dict.
+        """
+        return cls( **dict(parameter_dict) )

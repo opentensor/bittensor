@@ -21,7 +21,7 @@ import bittensor
 from tqdm import tqdm
 from rich.table import Table
 from rich.prompt import Prompt
-from .utils import check_netuid_set, get_delegates_details, DelegatesDetails
+from .utils import get_delegates_details, DelegatesDetails
 console = bittensor.__console__
 
 import os

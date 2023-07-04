@@ -80,7 +80,7 @@ class axon:
 
     def info(self) -> 'bittensor.AxonInfo':
         """Returns the axon info object associate with this axon.""" 
-        return bittensor.AxonInfo(
+        return bittensor.axon_info(
             version = bittensor.__version_as_int__,
             ip = self.external_ip,
             ip_type = 4,
