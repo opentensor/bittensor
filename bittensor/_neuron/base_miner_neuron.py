@@ -87,6 +87,12 @@ class BaseMinerNeuron:
             help = 'If True, the model does not set weights.',
             default = False
         )
+        parser.add_argument(
+            '--' + prefix_str + 'neuron.reregister',
+            action = 'store_true',
+            help = 'If True, the miner will reregister on chain.',
+            default = False
+        )
         bittensor.wallet.add_args( parser, prefix = prefix )
         bittensor.axon.add_args( parser, prefix = prefix )
         bittensor.subtensor.add_args( parser, prefix = prefix )
@@ -152,7 +158,7 @@ class BaseMinerNeuron:
 
         # --- Start the miner.
         self.is_running = True
-        bittensor.utils.reregister( wallet = self.wallet, subtensor = self.subtensor, netuid = self.config.netuid )
+        bittensor.utils.reregister( wallet = self.wallet, subtensor = self.subtensor, netuid = self.config.netuid, reregister = self.config.neuron.reregister )
         self.axon.start()
         self.subtensor.serve_axon( netuid = self.config.netuid, axon = self.axon, wait_for_finalization = False, wait_for_inclusion = False ) #TODO: fix finalization & inclusion
 
