@@ -181,22 +181,16 @@ class TestStakeMultiple(unittest.TestCase):
             is_null = False,
         )
 
-        mock_compose_call = MagicMock(
+        mock_do_stake = MagicMock(
             side_effect=ExitEarly
         )
 
         mock_subtensor = MagicMock(
             spec=bittensor.Subtensor,
-            network="mock",
+            network="mock_net",
             get_balance=MagicMock(return_value=bittensor.Balance.from_tao(mock_amount.tao + 20.0)), # enough balance to stake
             get_neuron_for_pubkey_and_subnet=MagicMock(return_value=mock_neuron),
-            substrate=MagicMock(
-                __enter__=MagicMock(
-                    return_value=MagicMock(
-                        compose_call=mock_compose_call,
-                    ),
-                ),
-            ),
+            _do_stake=mock_do_stake
         )
 
         with pytest.raises(ExitEarly):
@@ -207,12 +201,10 @@ class TestStakeMultiple(unittest.TestCase):
                 amounts=mock_amounts,
             )
 
-            mock_compose_call.assert_called_once()
+            mock_do_stake.assert_called_once()
             # args, kwargs
-            _, kwargs = mock_compose_call.call_args
-            self.assertEqual(kwargs['call_module'], 'SubtensorModule')
-            self.assertEqual(kwargs['call_function'], 'add_stake')
-            self.assertAlmostEqual(kwargs['call_params']['ammount_staked'], mock_amount.rao, delta=1.0 * 1e9) # delta of 1.0 TAO
+            _, kwargs = mock_do_stake.call_args
+            self.assertAlmostEqual(kwargs['ammount'], mock_amount.rao, delta=1.0 * 1e9) # delta of 1.0 TAO
 
 if __name__ == '__main__':
     unittest.main()

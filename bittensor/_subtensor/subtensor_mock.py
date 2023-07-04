@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2022 Opentensor Foundation
+# Copyright © 2022-2023 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -15,429 +15,1359 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from substrateinterface import SubstrateInterface, Keypair
-from scalecodec import GenericCall
-import psutil
-import subprocess
-from sys import platform
+from random import randint
+from types import SimpleNamespace
+from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
+from unittest.mock import MagicMock
+from dataclasses import dataclass
+from abc import ABC, abstractclassmethod
+from collections.abc import Mapping
+
 import bittensor
-import time
-import os
-from typing import Optional, Tuple, Dict, Union
-import requests
+from bittensor.utils import RAOPERTAO, U16_NORMALIZED_FLOAT
+from bittensor.utils.registration import POWSolution
+from hashlib import sha256
 
-from . import subtensor_impl
+from .chain_data import (NeuronInfo, NeuronInfoLite, PrometheusInfo, DelegateInfo,
+                         SubnetInfo, axon_info)
+from .errors import *
+from .subtensor_impl import Subtensor, AxonServeCallParams, PrometheusServeCallParams
 
-__type_registery__ = {
-    "runtime_id": 2,
-    "types": {
-        "Balance": "u64",
-        "NeuronMetadataOf": {
-            "type": "struct",
-            "type_mapping": [
-                ["version", "u32"],
-                ["ip", "u128"],
-                ["port", "u16"],
-                ["ip_type", "u8"],
-                ["uid", "u32"],
-                ["modality", "u8"],
-                ["hotkey", "AccountId"],
-                ["coldkey", "AccountId"],
-                ["active", "bool"],
-                ["last_update", "u64"],
-                ["validator_permit", "bool"],
-                ["stake", "u64"],
-                ["rank", "u16"],
-                ["trust", "u16"],
-                ["consensus", "u16"],
-                ["validator_trust", "u16"],
-                ["incentive", "u16"],
-                ["dividends", "u16"],
-                ["emission", "u64"],
-                ["bonds", "Vec<(u16, u16)>"],
-                ["weights", "Vec<(u16, u16)>"]
-            ]
-        }
-    }
-}
+BlockNumber = int
 
-GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = "node-subtensor"
+class InfoDict(Mapping):
+    @abstractclassmethod
+    def default(cls):
+        raise NotImplementedError
+    
+    def __getitem__(self, key):
+        return getattr(self, key)
+    
+    def __setitem__(self, key, value):
+        return setattr(self, key, value)
 
-class mock_subtensor():
-    r""" Returns a subtensor connection interface to a mocked subtensor process running in the background.
-        Optionall creates the background process if it does not exist.
-    """
+    def __iter__(self):
+        return iter(self.__dict__)
+    
+    def __len__(self):
+        return len(self.__dict__)
+
+@dataclass
+class AxonInfoDict(InfoDict):
+    block: int
+    version: int
+    ip: int # integer representation of ip address
+    port: int
+    ip_type: int
+    protocol: int
+    placeholder1: int # placeholder for future use
+    placeholder2: int
 
     @classmethod
-    def mock(cls):
-
-        if not cls.global_mock_process_is_running():
-            # Remove any old chain db
-            if os.path.exists(f'{bittensor.__mock_chain_db__}_{os.getpid()}'):
-                # Name mock chain db using pid to avoid conflicts while multiple processes are running.
-                os.system(f'rm -rf {bittensor.__mock_chain_db__}_{os.getpid()}')
-            _owned_mock_subtensor_process = cls.create_global_mock_process(os.getpid())
-        else:
-            _owned_mock_subtensor_process = None
-            print ('Mock subtensor already running.')
-
-        endpoint = bittensor.__mock_entrypoint__
-        port = int(endpoint.split(':')[1])
-        substrate = SubstrateInterface(
-            ss58_format = bittensor.__ss58_format__,
-            type_registry_preset='substrate-node-template',
-            type_registry = __type_registery__,
-            url = "ws://{}".format('localhost:{}'.format(port)),
-            use_remote_preset=True
+    def default(cls):
+        return cls(
+            block=0,
+            version=0,
+            ip=0,
+            port=0,
+            ip_type=0,
+            protocol=0,
+            placeholder1=0,
+            placeholder2=0,
         )
-        subtensor = Mock_Subtensor(
-            substrate = substrate,
-            network = 'mock',
-            chain_endpoint = 'localhost:{}'.format(port),
+    
+@dataclass
+class PrometheusInfoDict(InfoDict):
+    block: int
+    version: int
+    ip: int # integer representation of ip address
+    port: int
+    ip_type: int
 
-            # Is mocked, optionally has owned process for ref counting.
-            _is_mocked = True,
-            _owned_mock_subtensor_process = _owned_mock_subtensor_process
+    @classmethod
+    def default(cls):
+        return cls(
+            block=0,
+            version=0,
+            ip=0,
+            port=0,
+            ip_type=0,
         )
-        return subtensor
 
-    @classmethod
-    def global_mock_process_is_running(cls) -> bool:
-        r""" Check if the global mocked subtensor process is running under a process with the same name as this one.
-        """
-        this_process = psutil.Process(os.getpid())
-        for p in psutil.process_iter():
-            if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.status() != psutil.STATUS_ZOMBIE and p.status() != psutil.STATUS_DEAD:
-                if p.parent().name == this_process.name:
-                    print(f"Found process with name {p.name()}, parent {p.parent().pid} status {p.status()} and pid {p.pid}")
-                    return True
-        return False
+@dataclass
+class MockSubtensorValue:
+    value: Optional[Any]
 
-    @classmethod
-    def kill_global_mock_process(self):
-        r""" Kills the global mocked subtensor process even if not owned.
-        """
-        for p in psutil.process_iter():
-            if p.name() == GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME and p.parent().pid == os.getpid() :
-                p.terminate()
-                p.kill()
-        time.sleep(2) # Buffer to ensure the processes actually die
+class MockMapResult:
+    records: Optional[List[Tuple[MockSubtensorValue, MockSubtensorValue]]]
 
-    @classmethod
-    def create_global_mock_process(self, pid: int) -> 'subprocess.Popen[bytes]':
-        r""" Creates a global mocked subtensor process running in the backgroun with name GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME.
-        """
-        try:
-            operating_system = "OSX" if platform == "darwin" else "Linux"
-            path_root = "./tests/mock_subtensor"
-            path = "{}/bin/{}/{}".format(path_root, operating_system, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME)
-            path_to_spec = "{}/specs/local_raw.json".format(path_root)
+    def __init__(self, records: Optional[List[Tuple[Union[Any, MockSubtensorValue], Union[Any, MockSubtensorValue]]]] = None):
+        _records = [
+                (MockSubtensorValue( value=record[0] ), MockSubtensorValue( value=record[1] )) 
+                    # Make sure record is a tuple of MockSubtensorValue (dict with value attr)
+                    if not (isinstance(record, tuple) and all(isinstance(item, dict) and hasattr(item, 'value') for item in record))
+                else record 
+            for record in records 
+        ]
+        
+        self.records = _records
 
-            ws_port = int(bittensor.__mock_entrypoint__.split(':')[1])
-            print(f'MockSub ws_port: {ws_port}')
+    def __iter__(self):
+        return iter(self.records)
 
-            command_args = [ path ] + f'--chain {path_to_spec} --base-path {bittensor.__mock_chain_db__}_{pid} --execution native --ws-max-connections 1000 --no-mdns --rpc-cors all'.split(' ') + \
-                f'--port {int(bittensor.get_random_unused_port())} --rpc-port {int(bittensor.get_random_unused_port())} --ws-port {ws_port}'.split(' ') + \
-                '--validator --alice'.split(' ')
+class MockSystemState(TypedDict):
+    Account: Dict[str, Dict[int, int]] # address -> block -> balance
 
-            print ('Starting subtensor process with command: {}'.format(command_args))
+class MockSubtensorState(TypedDict):
+    Rho: Dict[int, Dict[BlockNumber, int]] # netuid -> block -> rho
+    Kappa: Dict[int, Dict[BlockNumber, int]] # netuid -> block -> kappa
+    Difficulty: Dict[int, Dict[BlockNumber, int]] # netuid -> block -> difficulty
+    ImmunityPeriod: Dict[int, Dict[BlockNumber, int]] # netuid -> block -> immunity_period
+    ValidatorBatchSize: Dict[int, Dict[BlockNumber, int]] # netuid -> block -> validator_batch_size
+    Active: Dict[int, Dict[BlockNumber, bool]] # (netuid, uid), block -> active
+    Stake:  Dict[str, Dict[str, Dict[int, int]]] # (hotkey, coldkey) -> block -> stake
 
-            _mock_subtensor_process = subprocess.Popen(
-                command_args,
-                close_fds=True, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
+    Delegates: Dict[str, Dict[int, float]] # address -> block -> delegate_take
 
-            # Wait for the process to start. Check for errors.
-            try:
-                # Timeout is okay.
-                error_code = _mock_subtensor_process.wait(timeout=12)
-            except subprocess.TimeoutExpired:
-                error_code = None
+    NetworksAdded: Dict[int, Dict[BlockNumber, bool]] # netuid -> block -> added
 
-            if error_code is not None:
-                # Get the error message.
-                error_message = _mock_subtensor_process.stderr.read().decode('utf-8')
-                raise RuntimeError( 'Failed to start mocked subtensor process: {}'.format(error_code), error_message )
-
-            print ('Starting subtensor process with pid {} and name {}'.format(_mock_subtensor_process.pid, GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME))
-
-            errored: bool = True
-            while errored:
-                errored = False
-                try:
-                    _ = requests.get('http://localhost:{}'.format(ws_port))
-                except requests.exceptions.ConnectionError as e:
-                    errored = True
-                    time.sleep(0.5) # Wait for the process to start.
-
-            return _mock_subtensor_process
-        except Exception as e:
-            raise RuntimeError( 'Failed to start mocked subtensor process: {}'.format(e) )
-
-
-class Mock_Subtensor(subtensor_impl.Subtensor):
+class MockChainState(TypedDict):
+    System: MockSystemState
+    SubtensorModule: MockSubtensorState
+    
+class MockSubtensor(Subtensor):
     """
-    Handles interactions with the subtensor chain.
+    A Mock Subtensor class for running tests. 
+    This should mock only methods that make queries to the chain.
+    e.g. We mock `Subtensor.query_subtensor` instead of all query methods.
+
+    This class will also store a local (mock) state of the chain.
     """
-    sudo_keypair: Keypair = Keypair.create_from_uri('//Alice') # Alice is the sudo keypair for the mock chain.
+    chain_state: MockChainState
+    block_number: int
 
-    def __init__(
-        self,
-        _is_mocked: bool,
-        _owned_mock_subtensor_process: object,
-        **kwargs,
-    ):
-        r""" Initializes a subtensor chain interface.
-            Args:
-                _owned_mock_subtensor_process (Used for testing):
-                    a subprocess where a mock chain is running.
-        """
-        super().__init__(**kwargs)
-        # Exclusively used to mock a connection to our chain.
-        self._owned_mock_subtensor_process = _owned_mock_subtensor_process
-        self._is_mocked = _is_mocked
+    @classmethod
+    def reset(cls) -> None:
+        bittensor.__GLOBAL_MOCK_STATE__.clear()
 
-        print("---- MOCKED SUBTENSOR INITIALIZED ----")
+        _ = cls()
 
-    def __str__(self) -> str:
-        if self._is_mocked == True and self._owned_mock_subtensor_process != None:
-            # Mocked and owns background process.
-            return "MockSubtensor({}, PID:{})".format( self.chain_endpoint, self._owned_mock_subtensor_process.pid)
-        else:
-            # Mocked but does not own process.
-            return "MockSubtensor({})".format( self.chain_endpoint)
+    def setup(self) -> None:
+        if not hasattr(self, 'chain_state') or getattr(self, 'chain_state') is None:
+            self.chain_state = {
+                'System': {
+                    'Account': {}
+                },
+                'Balances': {
+                    'ExistentialDeposit': {
+                        0: 500
+                    },
+                },
+                'SubtensorModule': {
+                    'NetworksAdded': {},
+                    'Rho': {},
+                    'Kappa': {},
+                    'Difficulty': {},
+                    'ImmunityPeriod': {},
+                    'ValidatorBatchSize': {},
+                    'ValidatorSequenceLength': {},
+                    'ValidatorEpochsPerReset': {},
+                    'ValidatorEpochLength': {},
+                    'MaxAllowedValidators': {},
+                    'MinAllowedWeights': {},
+                    'MaxWeightLimit': {},
+                    'SynergyScalingLawPower': {},
+                    'ScalingLawPower': {},
+                    'SubnetworkN': {},
+                    'MaxAllowedUids': {},
+                    'NetworkModality': {},
+                    'BlocksSinceLastStep': {},
+                    'Tempo': {},
+                    'NetworkConnect': {},
+                    'EmissionValues': {},
+                    'Burn': {},
 
-    def __del__(self):
-        self.optionally_kill_owned_mock_instance()
+                    'Active': {},
 
-    def __exit__(self):
-        pass
+                    'Uids': {},
+                    'Keys': {},
+                    'Owner': {},
+                    'IsNetworkMember': {},
+                    'LastUpdate': {},
+                    
+                    'Rank': {},
+                    'Emission': {},
+                    'Incentive': {},
+                    'Consensus': {},
+                    'Trust': {},
+                    'ValidatorTrust': {},
+                    'Dividends': {},
+                    'PruningScores': {},
+                    'ValidatorPermit': {},
 
-    def optionally_kill_owned_mock_instance(self):
-        r""" If this subtensor instance owns the mock process, it kills the process.
-        """
-        if self._owned_mock_subtensor_process != None:
-            try:
-                self._owned_mock_subtensor_process.terminate()
-                self._owned_mock_subtensor_process.kill()
-                os.system("kill %i" % self._owned_mock_subtensor_process.pid)
-                time.sleep(2) # Buffer to ensure the processes actually die
-            except Exception as e:
-                print(f"failed to kill owned mock instance: {e}")
-                # Occasionally
-                pass
+                    'Weights': {},
+                    'Bonds': {},
+                    
+                    'Stake': {},
+                    'TotalStake': {
+                        0: 0
+                    },
+                    'TotalIssuance': {
+                        0: 0
+                    },
+                    'TotalHotkeyStake': {},
+                    'TotalColdkeyStake': {},
+                    
+                    'TxRateLimit': {
+                        0: 0 # No limit
+                    },
 
-    def wrap_sudo(self, call: GenericCall) -> GenericCall:
-        r""" Wraps a call in a sudo call.
-        """
-        return self.substrate.compose_call(
-            call_module='Sudo',
-            call_function='sudo',
-            call_params = {
-                'call': call.value
+                    'Delegates': {},
+
+                    'Axons': {},
+                    'Prometheus': {},
+                },
             }
+
+            self.block_number = 0
+
+            self.network = 'mock'
+            self.chain_endpoint = 'mock_endpoint'
+            self.substrate = MagicMock()
+
+    def __init__(self) -> None:
+        self.__dict__ = bittensor.__GLOBAL_MOCK_STATE__
+        
+        if not hasattr(self, 'chain_state') or getattr(self, 'chain_state') is None:
+            self.setup()
+
+    def get_block_hash(self, block_id: int) -> str:
+        return '0x' + sha256(str(block_id).encode()).hexdigest()[:64]
+        
+
+    def create_subnet( self, netuid: int ) -> None:
+        subtensor_state = self.chain_state['SubtensorModule']
+        if netuid not in subtensor_state['NetworksAdded']:
+            # Per Subnet
+            subtensor_state['Rho'][netuid] = {}
+            subtensor_state['Rho'][netuid][0] = 10
+            subtensor_state['Kappa'][netuid] = {}
+            subtensor_state['Kappa'][netuid][0] = 32_767
+            subtensor_state['Difficulty'][netuid] = {}
+            subtensor_state['Difficulty'][netuid][0] = 10_000_000
+            subtensor_state['ImmunityPeriod'][netuid] = {}
+            subtensor_state['ImmunityPeriod'][netuid][0] = 4096
+            subtensor_state['ValidatorBatchSize'][netuid] = {}
+            subtensor_state['ValidatorBatchSize'][netuid][0] = 32
+            subtensor_state['ValidatorSequenceLength'][netuid] = {}
+            subtensor_state['ValidatorSequenceLength'][netuid][0] = 256
+            subtensor_state['ValidatorEpochsPerReset'][netuid] = {}
+            subtensor_state['ValidatorEpochsPerReset'][netuid][0] = 60
+            subtensor_state['ValidatorEpochLength'][netuid] = {}
+            subtensor_state['ValidatorEpochLength'][netuid][0] = 100
+            subtensor_state['MaxAllowedValidators'][netuid] = {}
+            subtensor_state['MaxAllowedValidators'][netuid][0] = 128
+            subtensor_state['MinAllowedWeights'][netuid] = {}
+            subtensor_state['MinAllowedWeights'][netuid][0] = 1024
+            subtensor_state['MaxWeightLimit'][netuid] = {}
+            subtensor_state['MaxWeightLimit'][netuid][0] = 1_000
+            subtensor_state['SynergyScalingLawPower'][netuid] = {}
+            subtensor_state['SynergyScalingLawPower'][netuid][0] = 50
+            subtensor_state['ScalingLawPower'][netuid] = {}
+            subtensor_state['ScalingLawPower'][netuid][0] = 50
+            subtensor_state['SubnetworkN'][netuid] = {}
+            subtensor_state['SubnetworkN'][netuid][0] = 0
+            subtensor_state['MaxAllowedUids'][netuid] = {}
+            subtensor_state['MaxAllowedUids'][netuid][0] = 4096
+            subtensor_state['NetworkModality'][netuid] = {}
+            subtensor_state['NetworkModality'][netuid][0] = 0
+            subtensor_state['BlocksSinceLastStep'][netuid] = {}
+            subtensor_state['BlocksSinceLastStep'][netuid][0] = 0
+            subtensor_state['Tempo'][netuid] = {}
+            subtensor_state['Tempo'][netuid][0] = 99
+            # subtensor_state['NetworkConnect'][netuid] = {}
+            # subtensor_state['NetworkConnect'][netuid][0] = {}
+            subtensor_state['EmissionValues'][netuid] = {}
+            subtensor_state['EmissionValues'][netuid][0] = 0
+            subtensor_state['Burn'][netuid] = {}
+            subtensor_state['Burn'][netuid][0] = 0
+            
+            # Per-UID/Hotkey
+
+            subtensor_state['Uids'][netuid] = {}
+            subtensor_state['Keys'][netuid] = {}
+            subtensor_state['Owner'][netuid] = {}
+            
+            subtensor_state['LastUpdate'][netuid] = {}
+            subtensor_state['Active'][netuid] = {}
+            subtensor_state['Rank'][netuid] = {}
+            subtensor_state['Emission'][netuid] = {}
+            subtensor_state['Incentive'][netuid] = {}
+            subtensor_state['Consensus'][netuid] = {}
+            subtensor_state['Trust'][netuid] = {}
+            subtensor_state['ValidatorTrust'][netuid] = {}
+            subtensor_state['Dividends'][netuid] = {}
+            subtensor_state['PruningScores'][netuid] = {}
+            subtensor_state['PruningScores'][netuid][0] = {}
+            subtensor_state['ValidatorPermit'][netuid] = {}
+
+            subtensor_state['Weights'][netuid] = {}
+            subtensor_state['Bonds'][netuid] = {}
+
+            subtensor_state['Axons'][netuid] = {}
+            subtensor_state['Prometheus'][netuid] = {}
+
+            subtensor_state['NetworksAdded'][netuid] = {}
+            subtensor_state['NetworksAdded'][netuid][0] = True
+
+        else:
+            raise Exception("Subnet already exists")
+
+    def set_difficulty( self, netuid: int, difficulty: int ) -> None:
+        subtensor_state = self.chain_state['SubtensorModule']
+        if netuid not in subtensor_state['NetworksAdded']:
+            raise Exception("Subnet does not exist")
+
+        subtensor_state['Difficulty'][netuid][self.block_number] = difficulty    
+
+    def _register_neuron(
+        self,
+        netuid: int,
+        hotkey: str, 
+        coldkey: str,
+    ) -> int:
+        subtensor_state = self.chain_state['SubtensorModule']
+        if netuid not in subtensor_state['NetworksAdded']:
+            raise Exception("Subnet does not exist")
+
+        subnetwork_n = self._get_most_recent_storage(subtensor_state['SubnetworkN'][netuid])
+        
+        if subnetwork_n > 0 and any(self._get_most_recent_storage(subtensor_state['Keys'][netuid][uid]) == hotkey for uid in range(subnetwork_n)):
+            # already_registered
+            raise Exception("Hotkey already registered")
+        else:
+            # Not found
+            if subnetwork_n >= self._get_most_recent_storage(subtensor_state['MaxAllowedUids'][netuid]):
+                # Subnet full, replace neuron randomly
+                uid = randint(0, subnetwork_n-1)
+            else:
+                # Subnet not full, add new neuron
+                # Append as next uid and increment subnetwork_n
+                uid = subnetwork_n
+                subtensor_state['SubnetworkN'][netuid][self.block_number] = subnetwork_n + 1
+
+            subtensor_state['Stake'][hotkey] = {}
+            subtensor_state['Stake'][hotkey][coldkey] = {}
+            subtensor_state['Stake'][hotkey][coldkey][self.block_number] = 0
+            
+            subtensor_state['Uids'][netuid][hotkey] = {}
+            subtensor_state['Uids'][netuid][hotkey][self.block_number] = uid
+
+            subtensor_state['Keys'][netuid][uid] = {}
+            subtensor_state['Keys'][netuid][uid][self.block_number] = hotkey
+
+            subtensor_state['Owner'][hotkey] = {}
+            subtensor_state['Owner'][hotkey][self.block_number] = coldkey
+
+            subtensor_state['Active'][netuid][uid] = {}
+            subtensor_state['Active'][netuid][uid][self.block_number] = True
+
+            subtensor_state['LastUpdate'][netuid][uid] = {}
+            subtensor_state['LastUpdate'][netuid][uid][self.block_number] = self.block_number
+            
+            subtensor_state['Rank'][netuid][uid] = {}
+            subtensor_state['Rank'][netuid][uid][self.block_number] = 0.0
+
+            subtensor_state['Emission'][netuid][uid] = {}
+            subtensor_state['Emission'][netuid][uid][self.block_number] = 0.0
+
+            subtensor_state['Incentive'][netuid][uid] = {}
+            subtensor_state['Incentive'][netuid][uid][self.block_number] = 0.0
+
+            subtensor_state['Consensus'][netuid][uid] = {}
+            subtensor_state['Consensus'][netuid][uid][self.block_number] = 0.0
+
+            subtensor_state['Trust'][netuid][uid] = {}
+            subtensor_state['Trust'][netuid][uid][self.block_number] = 0.0
+
+            subtensor_state['ValidatorTrust'][netuid][uid] = {}
+            subtensor_state['ValidatorTrust'][netuid][uid][self.block_number] = 0.0
+
+            subtensor_state['Dividends'][netuid][uid] = {}
+            subtensor_state['Dividends'][netuid][uid][self.block_number] = 0.0
+
+            subtensor_state['PruningScores'][netuid][uid] = {}
+            subtensor_state['PruningScores'][netuid][uid][self.block_number] = 0.0
+
+            subtensor_state['ValidatorPermit'][netuid][uid] = {}
+            subtensor_state['ValidatorPermit'][netuid][uid][self.block_number] = False
+
+            subtensor_state['Weights'][netuid][uid] = {}
+            subtensor_state['Weights'][netuid][uid][self.block_number] = []
+
+            subtensor_state['Bonds'][netuid][uid] = {}
+            subtensor_state['Bonds'][netuid][uid][self.block_number] = []
+
+            subtensor_state['Axons'][netuid][hotkey] = {}
+            subtensor_state['Axons'][netuid][hotkey][self.block_number] = {}
+
+            subtensor_state['Prometheus'][netuid][hotkey] = {}
+            subtensor_state['Prometheus'][netuid][hotkey][self.block_number] = {}
+
+            if hotkey not in subtensor_state['IsNetworkMember']:
+                subtensor_state['IsNetworkMember'][hotkey] = {}
+            subtensor_state['IsNetworkMember'][hotkey][netuid] = {}
+            subtensor_state['IsNetworkMember'][hotkey][netuid][self.block_number] = True
+            
+            return uid
+        
+    @staticmethod
+    def _convert_to_balance(
+        balance: Union['bittensor.Balance', float, int]
+    ) -> 'bittensor.Balance':
+        if isinstance(balance, float):
+            balance = bittensor.Balance.from_tao(balance)
+
+        if isinstance(balance, int):
+            balance = bittensor.Balance.from_rao(balance)
+
+        return balance
+    
+
+    def force_register_neuron(
+        self,
+        netuid: int,
+        hotkey: str, 
+        coldkey: str,
+        stake: Union['bittensor.Balance', float, int] = bittensor.Balance(0),
+        balance: Union['bittensor.Balance', float, int] = bittensor.Balance(0),
+    ) -> int:
+        """
+        Force register a neuron on the mock chain, returning the UID.
+        """
+        stake = self._convert_to_balance(stake)
+        balance = self._convert_to_balance(balance)
+
+        subtensor_state = self.chain_state['SubtensorModule']
+        if netuid not in subtensor_state['NetworksAdded']:
+            raise Exception("Subnet does not exist")
+
+        uid = self._register_neuron(
+            netuid=netuid,
+            hotkey=hotkey,
+            coldkey=coldkey,
         )
 
-    def sudo_force_set_balance(self, ss58_address: str, balance: Union['bittensor.Balance', int, float], ) -> Tuple[bool, Optional[str]]:
-        r""" Sets the balance of an account using the sudo key.
+        subtensor_state['TotalStake'][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalStake']) + stake.rao
+        subtensor_state['Stake'][hotkey][coldkey][self.block_number] = stake.rao
+
+        if balance.rao > 0:
+            self.force_set_balance(coldkey, balance)
+        self.force_set_balance(coldkey, balance)
+
+        return uid
+
+    def force_set_balance(
+        self,
+        ss58_address: str,
+        balance: Union['bittensor.Balance', float, int] = bittensor.Balance(0),
+    ) -> Tuple[bool, Optional[str]]:
         """
-        if isinstance(balance, bittensor.Balance):
-            balance = balance.rao
-        elif isinstance(balance, float):
-            balance = int(balance * bittensor.utils.RAOPERTAO)
-        elif isinstance(balance, int):
-            pass
+        Returns:
+            Tuple[bool, Optional[str]]: (success, err_msg)
+        """
+        balance = self._convert_to_balance(balance)
+
+        if ss58_address not in self.chain_state['System']['Account']:
+            self.chain_state['System']['Account'][ss58_address] = {
+                'data': {
+                    'free': {
+                        0: 0,
+                    },
+                },
+            }
+
+        old_balance = self.get_balance(ss58_address, self.block_number)
+        diff = balance.rao - old_balance.rao
+
+        # Update total issuance
+        self.chain_state['SubtensorModule']['TotalIssuance'][self.block_number] = self._get_most_recent_storage(self.chain_state['SubtensorModule']['TotalIssuance']) + diff
+
+        self.chain_state['System']['Account'][ss58_address] = {
+            'data': {
+                'free': {
+                    self.block_number: balance.rao
+                }
+            }
+        }
+
+        return True, None
+    
+    # Alias for force_set_balance
+    sudo_force_set_balance = force_set_balance
+        
+    def do_block_step( self ) -> None:
+        self.block_number += 1
+
+        # Doesn't do epoch
+        subtensor_state = self.chain_state['SubtensorModule']
+        for subnet in subtensor_state['NetworksAdded']:
+            subtensor_state['BlocksSinceLastStep'][subnet][self.block_number] = self._get_most_recent_storage(subtensor_state['BlocksSinceLastStep'][subnet]) + 1
+
+    def _handle_type_default( self, name: str, params: List[object] ) -> object:
+        defaults_mapping = {
+            'TotalStake': 0,
+            'TotalHotkeyStake': 0,
+            'TotalColdkeyStake': 0,
+            'Stake': 0,
+        }
+
+        return defaults_mapping.get(name, None)
+
+    def query_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> MockSubtensorValue:
+        if block:
+            if self.block_number < block:
+                raise Exception("Cannot query block in the future")
+            
         else:
-            raise ValueError('Invalid type for balance: {}'.format(type(balance)))
+            block = self.block_number
 
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                    call_module='Balances',
-                    call_function='set_balance',
-                    call_params = {
-                        'who': ss58_address,
-                        'new_free': balance,
-                        'new_reserved': 0
-                    }
+        state = self.chain_state['SubtensorModule'][name]
+        if state is not None:
+            # Use prefix
+            if len(params) > 0:
+                while state is not None and len(params) > 0:
+                    state = state.get(params.pop(0), None)
+                    if state is None:
+                        return SimpleNamespace(
+                            value = self._handle_type_default(name, params)
+                        )
+                    
+            # Use block
+            state_at_block = state.get(block, None)
+            while state_at_block is None and block > 0:
+                block -= 1
+                state_at_block = self.state.get(block, None)
+            if state_at_block is not None:
+                return SimpleNamespace(
+                    value=state_at_block
                 )
 
-            wrapped_call = self.wrap_sudo(call)
-
-            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = True, wait_for_finalization = True )
-
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
-    def sudo_set_tx_rate_limit(self, netuid: int, tx_rate_limit: int, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
-        r""" Sets the tx rate limit of the subnet in the mock chain using the sudo key.
-        """
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                    call_module='SubtensorModule',
-                    call_function='sudo_set_tx_rate_limit',
-                    call_params = {
-                        'netuid': netuid,
-                        'tx_rate_limit': tx_rate_limit
-                    }
-                )
-
-            wrapped_call = self.wrap_sudo(call)
-
-            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-
-            if not wait_for_finalization:
-                return True, None
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
-    def sudo_set_difficulty(self, netuid: int, difficulty: int, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
-        r""" Sets the difficulty of the mock chain using the sudo key.
-        """
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                    call_module='SubtensorModule',
-                    call_function='sudo_set_difficulty',
-                    call_params = {
-                        'netuid': netuid,
-                        'difficulty': difficulty
-                    }
-                )
-
-            wrapped_call = self.wrap_sudo(call)
-
-            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-
-            if not wait_for_finalization:
-                return True, None
-
-            if not wait_for_finalization:
-                return True, None
+            return SimpleNamespace(
+                value = self._handle_type_default(name, params)
+            )
+        else:
+            return SimpleNamespace(
+                value = self._handle_type_default(name, params)
+            )
             
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
-
-    def sudo_set_max_difficulty(self, netuid: int, max_difficulty: int, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
-        r""" Sets the max difficulty of the mock chain using the sudo key.
+    def query_map_subtensor( self, name: str, block: Optional[int] = None, params: Optional[List[object]] = [] ) -> Optional[MockMapResult]:
         """
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                    call_module='SubtensorModule',
-                    call_function='sudo_set_max_difficulty',
-                    call_params = {
-                        'netuid': netuid,
-                        'max_difficulty': max_difficulty
-                    }
-                )
-
-            wrapped_call = self.wrap_sudo(call)
-
-            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-
-            if not wait_for_finalization:
-                return True, None
-
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
-
-    def sudo_set_min_difficulty(self, netuid: int, min_difficulty: int, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
-        r""" Sets the min difficulty of the mock chain using the sudo key.
+        Note: Double map requires one param
         """
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                    call_module='SubtensorModule',
-                    call_function='sudo_set_min_difficulty',
-                    call_params = {
-                        'netuid': netuid,
-                        'min_difficulty': min_difficulty
-                    }
-                )
-
-            wrapped_call = self.wrap_sudo(call)
-
-            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-
-            if not wait_for_finalization:
-                return True, None
-
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
-
-    def sudo_add_network(self, netuid: int, tempo: int = 0, modality: int = 0, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
-        r""" Adds a network to the mock chain using the sudo key.
-        """
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                    call_module='SubtensorModule',
-                    call_function='sudo_add_network',
-                    call_params = {
-                        'netuid': netuid,
-                        'tempo': tempo,
-                        'modality': modality
-                    }
-                )
-
-            wrapped_call = self.wrap_sudo(call)
-
-            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-
-            if not wait_for_finalization:
-                return True, None
-
-            if not wait_for_finalization:
-                return True, None
+        if block:
+            if self.block_number < block:
+                raise Exception("Cannot query block in the future")
             
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
-    def sudo_register(self, netuid: int, hotkey: str, coldkey: str, stake: int = 0, balance: int = 0, wait_for_inclusion: bool = True, wait_for_finalization: bool = True ) -> Tuple[bool, Optional[str]]:
-        r""" Registers a neuron to the subnet using sudo.
-        """
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                    call_module='SubtensorModule',
-                    call_function='sudo_register',
-                    call_params = {
-                        'netuid': netuid,
-                        'hotkey': hotkey,
-                        'coldkey': coldkey,
-                        'stake': stake,
-                        'balance': balance
-                    }
-                )
+        else:
+            block = self.block_number
 
-            wrapped_call = self.wrap_sudo(call)
-
-            extrinsic = substrate.create_signed_extrinsic( call = wrapped_call, keypair = self.sudo_keypair )
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-
-            if not wait_for_finalization:
-                return True, None
-
-            if not wait_for_finalization:
-                return True, None
+        state = self.chain_state['SubtensorModule'][name]
+        if state is not None:
+            # Use prefix
+            if len(params) > 0:
+                while state is not None and len(params) > 0:
+                    state = state.get(params.pop(0), None)
+                    if state is None:
+                        return MockMapResult([])
             
-            response.process_events()
-            if response.is_success:
-                return True, None
+            # Check if single map or double map
+            if len(state.keys()) == 0:
+                return MockMapResult([])
+        
+            inner = list(state.values())[0]
+            # Should have at least one key
+            if len(inner.keys()) == 0:
+                raise Exception("Invalid state")
+            
+            # Check if double map
+            if isinstance(list(inner.values())[0], dict):
+                # is double map
+                raise ChainQueryError("Double map requires one param")
+            
+            # Iterate over each key and add value to list, max at block
+            records = []
+            for key in state:
+                result = self._get_most_recent_storage(state[key], block)
+                if result is None:
+                    continue # Skip if no result for this key at `block` or earlier
+
+                records.append((key, result))
+
+            return MockMapResult(records)
+        else:
+            return MockMapResult([])
+
+    def query_constant( self, module_name: str, constant_name: str, block: Optional[int] = None ) -> Optional[object]:
+        if block:
+            if self.block_number < block:
+                raise Exception("Cannot query block in the future")
+            
+        else:
+            block = self.block_number
+
+        state = self.chain_state.get(module_name, None)
+        if state is not None:
+            if constant_name in state:
+                state = state[constant_name]
             else:
-                return False, response.error_message
+                return None
+                    
+            # Use block
+            state_at_block = self._get_most_recent_storage(state, block)
+            if state_at_block is not None:
+                return SimpleNamespace(value=state_at_block)
+
+            return state_at_block # Can be None
+        else:
+            return None
+
+    def get_current_block( self ) -> int:
+        return self.block_number
+
+    # ==== Balance RPC methods ====
+
+    def get_balance(self, address: str, block: int = None) -> 'bittensor.Balance':
+        if block:
+            if self.block_number < block:
+                raise Exception("Cannot query block in the future")
+            
+        else:
+            block = self.block_number
+
+        state = self.chain_state['System']['Account']
+        if state is not None:
+            if address in state:
+                state = state[address]
+            else:
+                return bittensor.Balance(0)
+                    
+            # Use block
+            balance_state = state['data']['free']
+            state_at_block = self._get_most_recent_storage(balance_state, block) # Can be None
+            if state_at_block is not None:
+                bal_as_int = state_at_block
+                return bittensor.Balance.from_rao(bal_as_int)
+            else:
+                return bittensor.Balance(0)
+        else:
+            return bittensor.Balance(0)
+
+    def get_balances(self, block: int = None) -> Dict[str, 'bittensor.Balance']:
+        balances = {}
+        for address in self.chain_state['System']['Account']:
+            balances[address] = self.get_balance(address, block)
+
+        return balances
+
+    # ==== Neuron RPC methods ====
+
+    def neuron_for_uid( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfo]:
+        if uid is None:
+            return NeuronInfo._null_neuron()
+        
+        if block:
+            if self.block_number < block:
+                raise Exception("Cannot query block in the future")
+            
+        else:
+            block = self.block_number
+
+        if netuid not in self.chain_state['SubtensorModule']['NetworksAdded']:
+            return None
+        
+        neuron_info = self._neuron_subnet_exists( uid, netuid, block )
+        if neuron_info is None:
+            return None
+        
+        else:
+            return neuron_info
+
+    def neurons(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]:
+        if netuid not in self.chain_state['SubtensorModule']['NetworksAdded']:
+            raise Exception("Subnet does not exist")
+        
+        neurons = []
+        subnet_n = self._get_most_recent_storage( self.chain_state['SubtensorModule']['SubnetworkN'][netuid], block )
+        for uid in range( subnet_n ):
+            neuron_info = self.neuron_for_uid( uid, netuid, block )
+            if neuron_info is not None:
+                neurons.append(neuron_info)
+
+        return neurons
+
+    @staticmethod
+    def _get_most_recent_storage( storage: Dict[BlockNumber, Any], block_number: Optional[int] = None ) -> Any:
+        if block_number is None:
+            items = list(storage.items())
+            items.sort(key=lambda x: x[0], reverse=True)
+            if len(items) == 0:
+                return None
+            
+            return items[0][1]
+        
+        else:
+            while block_number >= 0:
+                if block_number in storage:
+                    return storage[block_number]
+                
+                block_number -= 1
+            
+            return None
+        
+    def _get_axon_info( self, netuid: int, hotkey: str, block: Optional[int] = None ) -> AxonInfoDict:
+        # Axons [netuid][hotkey][block_number]
+        subtensor_state = self.chain_state['SubtensorModule']
+        if netuid not in subtensor_state['Axons']:
+            return AxonInfoDict.default()
+        
+        if hotkey not in subtensor_state['Axons'][netuid]:
+            return AxonInfoDict.default()
+        
+        result = self._get_most_recent_storage(subtensor_state['Axons'][netuid][hotkey], block)
+        if not result:
+            return AxonInfoDict.default()
+        
+        return result
+
+    def _get_prometheus_info( self, netuid: int, hotkey: str, block: Optional[int] = None ) -> PrometheusInfoDict:
+        subtensor_state = self.chain_state['SubtensorModule']
+        if netuid not in subtensor_state['Prometheus']:
+            return PrometheusInfoDict.default()
+        
+        if hotkey not in subtensor_state['Prometheus'][netuid]:
+            return PrometheusInfoDict.default()
+        
+        result = self._get_most_recent_storage(subtensor_state['Prometheus'][netuid][hotkey], block)
+        if not result:
+            return PrometheusInfoDict.default()
+        
+        return result
+
+    def _neuron_subnet_exists( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfo]:
+        subtensor_state = self.chain_state['SubtensorModule']
+        if netuid not in subtensor_state['NetworksAdded']:
+            return None
+        
+        if self._get_most_recent_storage(subtensor_state['SubnetworkN'][netuid]) <= uid:
+            return None
+        
+        hotkey = self._get_most_recent_storage(subtensor_state['Keys'][netuid][uid])
+        if hotkey is None:
+            return None
+
+
+        axon_info_ = self._get_axon_info( netuid, hotkey, block )
+
+        prometheus_info = self._get_prometheus_info( netuid, hotkey, block )
+
+
+        coldkey = self._get_most_recent_storage(subtensor_state['Owner'][hotkey], block)
+        active = self._get_most_recent_storage(subtensor_state['Active'][netuid][uid], block)
+        rank = self._get_most_recent_storage(subtensor_state['Rank'][netuid][uid], block)
+        emission = self._get_most_recent_storage(subtensor_state['Emission'][netuid][uid], block)
+        incentive = self._get_most_recent_storage(subtensor_state['Incentive'][netuid][uid], block)
+        consensus = self._get_most_recent_storage(subtensor_state['Consensus'][netuid][uid], block)
+        trust = self._get_most_recent_storage(subtensor_state['Trust'][netuid][uid], block)
+        validator_trust = self._get_most_recent_storage(subtensor_state['ValidatorTrust'][netuid][uid], block)
+        dividends = self._get_most_recent_storage(subtensor_state['Dividends'][netuid][uid], block)
+        pruning_score = self._get_most_recent_storage(subtensor_state['PruningScores'][netuid][uid], block)
+        last_update = self._get_most_recent_storage(subtensor_state['LastUpdate'][netuid][uid], block)
+        validator_permit = self._get_most_recent_storage(subtensor_state['ValidatorPermit'][netuid][uid], block)
+        
+        weights = self._get_most_recent_storage(subtensor_state['Weights'][netuid][uid], block)
+        bonds = self._get_most_recent_storage(subtensor_state['Bonds'][netuid][uid], block)
+
+        stake_dict = {coldkey: bittensor.Balance.from_rao(self._get_most_recent_storage(
+            subtensor_state['Stake'][hotkey][coldkey], block
+        )) for coldkey in subtensor_state['Stake'][hotkey]}
+
+        stake = sum(stake_dict.values())
+
+
+        weights = [[int(weight[0]), int(weight[1])] for weight in weights]
+        bonds = [[int(bond[0]), int(bond[1])] for bond in bonds]
+        rank = U16_NORMALIZED_FLOAT(rank)
+        emission = emission / RAOPERTAO
+        incentive = U16_NORMALIZED_FLOAT(incentive)
+        consensus = U16_NORMALIZED_FLOAT(consensus)
+        trust = U16_NORMALIZED_FLOAT(trust)
+        validator_trust = U16_NORMALIZED_FLOAT(validator_trust)
+        dividends = U16_NORMALIZED_FLOAT(dividends)
+        prometheus_info = PrometheusInfo.fix_decoded_values(prometheus_info)
+        axon_info_ = axon_info.from_neuron_info( {
+            'hotkey': hotkey,
+            'coldkey': coldkey,
+            'axon_info': axon_info_,
+        })
+
+        neuron_info = NeuronInfo(
+            hotkey = hotkey,
+            coldkey = coldkey,
+            uid = uid,
+            netuid = netuid,
+            active = active,
+            rank = rank,
+            emission = emission,
+            incentive = incentive,
+            consensus = consensus,
+            trust = trust,
+            validator_trust = validator_trust,
+            dividends = dividends,
+            pruning_score = pruning_score,
+            last_update = last_update,
+            validator_permit = validator_permit,
+            stake = stake,
+            stake_dict = stake_dict,
+            total_stake=stake,
+            prometheus_info=prometheus_info,
+            axon_info=axon_info_,
+            weights = weights,
+            bonds = bonds,
+            is_null=False,
+        )
+
+        return neuron_info
+
+
+    def neuron_for_uid_lite( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfoLite]:
+        if block:
+            if self.block_number < block:
+                raise Exception("Cannot query block in the future")
+            
+        else:
+            block = self.block_number
+
+        if netuid not in self.chain_state['SubtensorModule']['NetworksAdded']:
+            raise Exception("Subnet does not exist")
+        
+        neuron_info = self._neuron_subnet_exists( uid, netuid, block )
+        if neuron_info is None:
+            return None
+        
+        else:
+            neuron_info_dict = neuron_info.__dict__
+            del neuron_info
+            del neuron_info_dict['weights']
+            del neuron_info_dict['bonds']
+
+            neuron_info_lite = NeuronInfoLite(
+                **neuron_info_dict
+            )
+            return neuron_info_lite
+
+    def neurons_lite(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfoLite]:
+        if netuid not in self.chain_state['SubtensorModule']['NetworksAdded']:
+            raise Exception("Subnet does not exist")
+        
+        neurons = []
+        subnet_n = self._get_most_recent_storage( self.chain_state['SubtensorModule']['SubnetworkN'][netuid] )
+        for uid in range(subnet_n):
+            neuron_info = self.neuron_for_uid_lite( uid, netuid, block )
+            if neuron_info is not None:
+                neurons.append(neuron_info)
+
+        return neurons
+    
+    # Extrinsics
+    def _do_delegation(
+        self,
+        wallet: 'bittensor.Wallet',
+        delegate_ss58: str,
+        amount: 'bittensor.Balance',
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        # Check if delegate
+        if not self.is_hotkey_delegate(
+            hotkey_ss58 = delegate_ss58
+        ):
+            raise StakeError("Not a delegate")
+        
+        # do stake
+        success = self._do_stake(
+            wallet = wallet,
+            hotkey_ss58 = delegate_ss58,
+            amount = amount,
+            wait_for_inclusion = wait_for_inclusion,
+            wait_for_finalization = wait_for_finalization,
+        )
+
+        return success
+    
+
+    def _do_undelegation(
+        self,
+        wallet: 'bittensor.Wallet',
+        delegate_ss58: str,
+        amount: 'bittensor.Balance',
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        # Check if delegate
+        if not self.is_hotkey_delegate(
+            hotkey_ss58 = delegate_ss58
+        ):
+            raise StakeError("Not a delegate")
+        
+        # do unstake
+        self._do_unstake(
+            wallet = wallet,
+            hotkey_ss58 = delegate_ss58,
+            amount = amount,
+            wait_for_inclusion = wait_for_inclusion,
+            wait_for_finalization = wait_for_finalization,
+        )
+    
+    def _do_nominate(
+        self,
+        wallet: 'bittensor.Wallet',
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        hotkey_ss58 = wallet.hotkey.ss58_address
+        coldkey_ss58 = wallet.coldkeypub.ss58_address
+
+        subtensor_state = self.chain_state['SubtensorModule']
+        if self.is_hotkey_delegate(
+            hotkey_ss58=hotkey_ss58
+        ):
+            return True
+        
+        else:
+            subtensor_state['Delegates'][hotkey_ss58] = {}
+            subtensor_state['Delegates'][hotkey_ss58][self.block_number] = 0.18 # Constant for now 
+
+            return True
+        
+    def get_transfer_fee(
+        self,
+        wallet: 'bittensor.Wallet',
+        dest: str,
+        value: Union['bittensor.Balance', float, int],
+    ) -> 'bittensor.Balance':    
+        return bittensor.Balance( 700 )
+    
+    def _do_transfer(
+        self,
+        wallet: 'bittensor.Wallet',
+        dest: str,
+        transfer_balance: 'bittensor.Balance',
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> Tuple[bool, Optional[str], Optional[str]]:
+        bal = self.get_balance(wallet.coldkeypub.ss58_address)
+        dest_bal = self.get_balance(dest)
+        transfer_fee = self.get_transfer_fee(wallet, dest, transfer_balance)
+
+        existential_deposit = self.get_existential_deposit()
+
+        if bal < transfer_balance + existential_deposit + transfer_fee:
+            raise TransferError("Insufficient balance")
+        
+        # Remove from the free balance
+        self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal - transfer_balance - transfer_fee).rao
+
+        # Add to the free balance
+        if dest not in self.chain_state['System']['Account']:
+            self.chain_state['System']['Account'][dest] = {
+                'data': {
+                    'free': {},
+                }
+            }
+
+        self.chain_state['System']['Account'][dest]['data']['free'][self.block_number] = (dest_bal + transfer_balance).rao
+
+        return True, None, None
+
+    def _do_pow_register(
+        self,
+        netuid: int,
+        wallet: 'bittensor.Wallet',
+        pow_result: 'POWSolution',
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        # Assume pow result is valid
+
+        subtensor_state = self.chain_state['SubtensorModule']
+        if netuid not in subtensor_state['NetworksAdded']:
+            raise RegistrationError("Subnet does not exist")
+
+        self._register_neuron(
+            netuid=netuid,
+            hotkey=wallet.hotkey.ss58_address,
+            coldkey=wallet.coldkeypub.ss58_address,
+        )
+
+        return True, None
+
+    def _do_burned_register(
+        self,
+        netuid: int,
+        wallet: 'bittensor.Wallet',
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        subtensor_state = self.chain_state['SubtensorModule']
+        if netuid not in subtensor_state['NetworksAdded']:
+            raise RegistrationError("Subnet does not exist")
+        
+        bal = self.get_balance( wallet.coldkeypub.ss58_address )
+        burn = self.burn( netuid=netuid )
+        existential_deposit = self.get_existential_deposit( )
+
+        if bal < burn + existential_deposit:
+            raise RegistrationError("Insufficient funds")
+
+        self._register_neuron(
+            netuid=netuid,
+            hotkey=wallet.hotkey.ss58_address,
+            coldkey=wallet.coldkeypub.ss58_address,
+        )
+
+        # Burn the funds
+        self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal - burn).rao
+
+        return True, None
+
+    def _do_stake(
+        self,
+        wallet: 'bittensor.Wallet',
+        hotkey_ss58: str,
+        amount: 'bittensor.Balance',
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        subtensor_state = self.chain_state['SubtensorModule']
+        
+        bal = self.get_balance( wallet.coldkeypub.ss58_address )
+        curr_stake = self.get_stake_for_coldkey_and_hotkey(
+            hotkey_ss58=hotkey_ss58,
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+        )
+        if curr_stake is None:
+            curr_stake = bittensor.Balance(0)
+        existential_deposit = self.get_existential_deposit( )
+
+        if bal < amount + existential_deposit:
+            raise StakeError("Insufficient funds")
+        
+        stake_state = subtensor_state['Stake']
+
+        # Stake the funds
+        if not hotkey_ss58 in stake_state:
+            stake_state[hotkey_ss58] = {}
+        if not wallet.coldkeypub.ss58_address in stake_state[hotkey_ss58]:
+            stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address] = {}
+        
+        stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][self.block_number] = amount.rao
+
+        # Add to total_stake storage
+        subtensor_state['TotalStake'][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalStake']) + amount.rao
+
+        total_hotkey_stake_state = subtensor_state['TotalHotkeyStake']
+        if not hotkey_ss58 in total_hotkey_stake_state:
+            total_hotkey_stake_state[hotkey_ss58] = {}
+
+        total_coldkey_stake_state = subtensor_state['TotalColdkeyStake']
+        if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
+            total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
+
+        curr_total_hotkey_stake = self.query_subtensor(
+            name='TotalHotkeyStake',
+            params=[hotkey_ss58],
+            block=min(self.block_number - 1, 0),
+        )
+        curr_total_coldkey_stake = self.query_subtensor(
+            name='TotalColdkeyStake',
+            params=[wallet.coldkeypub.ss58_address],
+            block=min(self.block_number - 1, 0),
+        )
+
+        total_hotkey_stake_state[hotkey_ss58][self.block_number] = curr_total_hotkey_stake.value + amount.rao
+        total_coldkey_stake_state[wallet.coldkeypub.ss58_address][self.block_number] = curr_total_coldkey_stake.value + amount.rao
+        
+        # Remove from free balance
+        self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal - amount).rao
+
+        return True
+
+    def _do_unstake(
+        self,
+        wallet: 'bittensor.Wallet',
+        hotkey_ss58: str,
+        amount: 'bittensor.Balance',
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        subtensor_state = self.chain_state['SubtensorModule']
+        
+        bal = self.get_balance( wallet.coldkeypub.ss58_address )
+        curr_stake = self.get_stake_for_coldkey_and_hotkey(
+            hotkey_ss58=hotkey_ss58,
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+        )
+        if curr_stake is None:
+            curr_stake = bittensor.Balance(0)
+
+        if curr_stake < amount:
+            raise StakeError("Insufficient funds")
+        
+        stake_state = subtensor_state['Stake']
+
+        if curr_stake.rao == 0:
+            return True
+        
+        # Unstake the funds
+        # We know that the hotkey has stake, so we can just remove it
+        stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][self.block_number] = (curr_stake - amount).rao
+        # Add to the free balance
+        if wallet.coldkeypub.ss58_address not in self.chain_state['System']['Account']:
+            self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address] = {
+                'data': {
+                    'free': {},
+                }
+            }
+
+        # Remove from total stake storage
+        subtensor_state['TotalStake'][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalStake']) - amount.rao
+
+        total_hotkey_stake_state = subtensor_state['TotalHotkeyStake']
+        if not hotkey_ss58 in total_hotkey_stake_state:
+            total_hotkey_stake_state[hotkey_ss58] = {}
+            total_hotkey_stake_state[hotkey_ss58][self.block_number] = 0 # Shouldn't happen
+
+        total_coldkey_stake_state = subtensor_state['TotalColdkeyStake']
+        if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
+            total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
+            total_coldkey_stake_state[wallet.coldkeypub.ss58_address][self.block_number] = amount.rao # Shouldn't happen
+
+        total_hotkey_stake_state[hotkey_ss58][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalHotkeyStake'][hotkey_ss58]) - amount.rao
+        total_coldkey_stake_state[wallet.coldkeypub.ss58_address][self.block_number] = self._get_most_recent_storage(subtensor_state['TotalColdkeyStake'][wallet.coldkeypub.ss58_address]) - amount.rao
+
+        self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal + amount).rao
+
+        return True
+
+
+    def get_delegate_by_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional['bittensor.DelegateInfo']:
+        subtensor_state = self.chain_state['SubtensorModule']
+
+        if hotkey_ss58 not in subtensor_state['Delegates']:
+            return None
+        
+        newest_state = self._get_most_recent_storage(
+            subtensor_state['Delegates'][hotkey_ss58],
+            block
+        )
+        if newest_state is None:
+            return None
+        
+        nom_result = []
+        nominators = subtensor_state['Stake'][hotkey_ss58]
+        for nominator in nominators:
+            nom_amount = self.get_stake_for_coldkey_and_hotkey(
+                hotkey_ss58=hotkey_ss58,
+                coldkey_ss58=nominator,
+                block=block,
+            )
+            if nom_amount is not None and nom_amount.rao > 0:
+                nom_result.append((nominator, nom_amount))
+
+        registered_subnets = []
+        for subnet in self.get_all_subnet_netuids(block=block):
+            uid = self.get_uid_for_hotkey_on_subnet(
+                hotkey_ss58=hotkey_ss58,
+                netuid=subnet,
+                block=block,
+            )
+
+            if uid is not None:
+                registered_subnets.append((subnet, uid))
+
+        info = DelegateInfo(
+            hotkey_ss58=hotkey_ss58,
+            total_stake=self.get_total_stake_for_hotkey(
+                ss58_address=hotkey_ss58,
+            ) or bittensor.Balance(0),
+            nominators=nom_result,
+            owner_ss58=self.get_hotkey_owner(
+                hotkey_ss58=hotkey_ss58,
+                block=block,
+            ),
+            take=0.18,
+            validator_permits=[subnet for subnet, uid in registered_subnets if self.neuron_has_validator_permit( uid = uid, netuid = subnet, block=block )],
+            registrations=[subnet for subnet, _ in registered_subnets],
+            return_per_1000=bittensor.Balance.from_tao(1234567), # Doesn't matter for mock?
+            total_daily_return=bittensor.Balance.from_tao(1234567), # Doesn't matter for mock?
+        )
+
+        return info
+
+
+    def get_delegates( self, block: Optional[int] = None ) -> List['bittensor.DelegateInfo']:
+        subtensor_state = self.chain_state['SubtensorModule']
+        delegates_info = []
+        for hotkey in subtensor_state['Delegates']:
+            info = self.get_delegate_by_hotkey(
+                hotkey_ss58=hotkey,
+                block=block,
+            )
+            if info is not None:
+                delegates_info.append(info)
+
+        return delegates_info
+
+    def get_delegated( self, coldkey_ss58: str, block: Optional[int] = None ) -> List[Tuple['bittensor.DelegateInfo', 'bittensor.Balance']]:
+        """ Returns the list of delegates that a given coldkey is staked to.
+        """
+        delegates = self.get_delegates(block=block)
+
+        result = []
+        for delegate in delegates:
+            if coldkey_ss58 in delegate.nominators:
+                result.append((delegate, delegate.nominators[coldkey_ss58]))
+
+        return result
+    
+
+    def get_all_subnets_info( self, block: Optional[int] = None ) -> List[SubnetInfo]:
+        subtensor_state = self.chain_state['SubtensorModule']
+        result = []
+        for subnet in subtensor_state['NetworksAdded']:
+            info = self.get_subnet_info(
+                netuid=subnet,
+                block=block,
+            )
+            if info is not None:
+                result.append(info)
+
+        return result
+
+    def get_subnet_info( self, netuid: int, block: Optional[int] = None ) -> Optional[SubnetInfo]:
+        if not self.subnet_exists(
+            netuid=netuid,
+            block=block,
+        ):
+            return None
+        
+        def query_subnet_info( name: str ) -> Optional[object]:
+            return self.query_subtensor(
+                name=name,
+                block=block,
+                params=[netuid]
+            ).value
+        
+        info = SubnetInfo(
+            netuid=netuid,
+            rho = query_subnet_info(
+                name = 'Rho',
+            ),
+            kappa=query_subnet_info(
+                name = 'Kappa',
+            ),
+            difficulty=query_subnet_info(
+                name = 'Difficulty',
+            ),
+            immunity_period=query_subnet_info(
+                name = 'ImmunityPeriod',
+            ),
+            validator_batch_size=query_subnet_info(
+                name = 'ValidatorBatchSize',
+            ),
+            validator_sequence_length=query_subnet_info(
+                name = 'ValidatorSequenceLength',
+            ),
+            validator_epochs_per_reset=query_subnet_info(
+                name = 'ValidatorEpochsPerReset',
+            ),
+            validator_epoch_length=query_subnet_info(
+                name = 'ValidatorEpochLength',
+            ),
+            max_allowed_validators=query_subnet_info(
+                name = 'MaxAllowedValidators',
+            ),
+            min_allowed_weights=query_subnet_info(
+                name = 'MinAllowedWeights',
+            ),
+            max_weight_limit=query_subnet_info(
+                name = 'MaxWeightLimit',
+            ),
+            scaling_law_power=query_subnet_info(
+                name = 'ScalingLawPower',
+            ),
+            synergy_scaling_law_power=query_subnet_info(
+                name = 'SynergyScalingLawPower',
+            ),
+            subnetwork_n=query_subnet_info(
+                name = 'SubnetworkN',
+            ),
+            max_n=query_subnet_info(
+                name = 'MaxAllowedUids',
+            ),
+            blocks_since_epoch=query_subnet_info(
+                name = 'BlocksSinceLastStep',
+            ),
+            tempo=query_subnet_info(
+                name = 'Tempo',
+            ),
+            modality=query_subnet_info(
+                name = 'NetworkModality',
+            ),
+            connection_requirements={
+                str(netuid_.value): percentile.value for netuid_, percentile in self.query_map_subtensor(
+                    name = 'NetworkConnect',
+                    block = block,
+                    params = [netuid]
+                ).records
+            },
+            emission_value=query_subnet_info(
+                name = 'EmissionValues',
+            ),
+            burn=query_subnet_info(
+                name = 'Burn',
+            ),
+        )
+
+        return info
+
+    def _do_serve_prometheus(
+        self,
+        wallet: 'bittensor.wallet',
+        call_params: 'PrometheusServeCallParams',
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        return True, None
+    
+    def _do_set_weights(
+        self,
+        wallet: 'bittensor.wallet',
+        netuid: int,
+        uids: int,
+        vals: List[int],
+        version_key: int,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        return True, None
+    
+    def _do_serve_axon(
+        self,
+        wallet: 'bittensor.wallet',
+        call_params: 'AxonServeCallParams',
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        return True, None
