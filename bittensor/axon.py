@@ -21,6 +21,7 @@
 import os
 import uuid
 import copy
+import json
 import time
 import uvicorn
 import argparse
@@ -37,6 +38,8 @@ from typing import Dict, Optional, Tuple, Union, List, Callable
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.concurrency import iterate_in_threadpool
+from starlette.responses import Response
 from substrateinterface import Keypair
 from typing import Dict, Optional, Tuple
 
@@ -382,7 +385,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Success
         self.nonces[endpoint_key] = nonce
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Request:
         """
         This method handles incoming requests by performing several checks and operations, including
         parsing metadata, verifying signature, checking blacklist, acquiring a lock based on priority, 
@@ -442,7 +445,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             sender_signature = sender_signature,
             receiver_hotkey = receiver_hotkey,
         )
-                
+
         # Unpack signature.
         try:
             # Runs signature check over the metadata.
@@ -468,6 +471,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             return default_response
 
         try:
+            # TODO(const): this does not work.
             # Force request priority.
             def get_lock() -> bool:
                 return self.lock.acquire( timeout = float( sender_timeout ) )
@@ -493,9 +497,20 @@ class AxonMiddleware(BaseHTTPMiddleware):
             default_response.return_message = f"Unknown exception{str(e)}"
             bittensor.logging.debug( f"axon     | --> | {request_name} | {sender_hotkey} | {sender_ip}:**** | {default_response.return_code} |  {default_response.return_message}")
             return default_response
+        
+        # Unwrap message body.
+        response_body = [ section async for section in response.body_iterator ]
+        response_dict = json.loads( response_body[0] )
 
         # Fill response time.
-        response.process_time = (time.time() - start_time)
+        response_dict['process_time'] = (time.time() - start_time)
+
+        # Back to bytes
+        data = json.dumps(response_dict)
+        byte_data = bytes(data, "utf-8")
+
+        # Wrap in a new response object, specifying the Content-Length.
+        response = Response( content=byte_data, headers={"Content-Length": str(len(byte_data))} )
 
         # Log outgoing response.
         bittensor.logging.debug( f"axon     | --> | {request_name} | {sender_hotkey} | {sender_ip}:**** | 0 | Success ")

@@ -3,9 +3,9 @@ argparse
 backoff
 cryptography
 fuzzywuzzy
-fastapi
+fastapi==0.99.1
 hypothesis
-httpx
+httpx==0.24.1
 loguru
 miniupnpc
 munch
@@ -13,7 +13,7 @@ netaddr
 numpy
 pyyaml
 password_strength
-pydantic
+pydantic!=1.8,!=1.8.1,<2.0.0,>=1.7.4
 python-Levenshtein
 retry
 requests
@@ -23,5 +23,5 @@ substrate-interface
 termcolor
 torch
 tqdm
-uvicorn
+uvicorn==0.22.0
 wheel
