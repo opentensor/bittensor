@@ -37,6 +37,7 @@ class BaseRequest( BaseModel ):
     process_time: Optional[float] = None
 
     # Sender Signature items.
+    sender_ip: Optional[ str ] = None
     sender_timeout: float = 12
     sender_version: Optional[ str ] = None
     sender_nonce: Optional[ str ] = None
