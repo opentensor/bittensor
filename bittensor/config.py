@@ -179,7 +179,7 @@ class config ( Munch ):
         """
         Returns a boolean indicating whether the parameter has been set or is still the default.
         """
-        if param_name not in self.get('__is_set'):
+        if param_name not in self.get('__is_set', {}):
             return False
         else:
-            return self.get('__is_set')[param_name]
+            return self.get('__is_set', {})[param_name]
