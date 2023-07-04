@@ -887,7 +887,7 @@ class MockSubtensor(Subtensor):
         amount: 'bittensor.Balance',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> bool:
         # Check if delegate
         if not self.is_hotkey_delegate(
             hotkey_ss58 = delegate_ss58
@@ -895,7 +895,7 @@ class MockSubtensor(Subtensor):
             raise Exception("Not a delegate")
         
         # do stake
-        success, error_msg = self._do_stake(
+        success = self._do_stake(
             wallet = wallet,
             hotkey_ss58 = delegate_ss58,
             amount = amount,
@@ -903,7 +903,7 @@ class MockSubtensor(Subtensor):
             wait_for_finalization = wait_for_finalization,
         )
 
-        return success, error_msg
+        return success
     
 
     def _do_undelegation(
@@ -913,7 +913,7 @@ class MockSubtensor(Subtensor):
         amount: 'bittensor.Balance',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> bool:
         # Check if delegate
         if not self.is_hotkey_delegate(
             hotkey_ss58 = delegate_ss58
@@ -921,22 +921,20 @@ class MockSubtensor(Subtensor):
             raise Exception("Not a delegate")
         
         # do unstake
-        response = self._do_unstake(
+        self._do_unstake(
             wallet = wallet,
             hotkey_ss58 = delegate_ss58,
             amount = amount,
             wait_for_inclusion = wait_for_inclusion,
             wait_for_finalization = wait_for_finalization,
         )
-
-        return response
     
     def _do_nominate(
         self,
         wallet: 'bittensor.Wallet',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> bool:
         hotkey_ss58 = wallet.hotkey.ss58_address
         coldkey_ss58 = wallet.coldkeypub.ss58_address
 
@@ -944,13 +942,13 @@ class MockSubtensor(Subtensor):
         if self.is_hotkey_delegate(
             hotkey_ss58=hotkey_ss58
         ):
-            return True, None
+            return True
         
         else:
             subtensor_state['Delegates'][hotkey_ss58] = {}
             subtensor_state['Delegates'][hotkey_ss58][self.block_number] = 0.18 # Constant for now 
 
-            return True, None
+            return True
         
     def get_transfer_fee(
         self,
@@ -1050,7 +1048,7 @@ class MockSubtensor(Subtensor):
         amount: 'bittensor.Balance',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> bool:
         subtensor_state = self.chain_state['SubtensorModule']
         
         bal = self.get_balance( wallet.coldkeypub.ss58_address )
@@ -1103,7 +1101,7 @@ class MockSubtensor(Subtensor):
         # Remove from free balance
         self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal - amount).rao
 
-        return True, None
+        return True
 
     def _do_unstake(
         self,
@@ -1112,7 +1110,7 @@ class MockSubtensor(Subtensor):
         amount: 'bittensor.Balance',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> bool:
         subtensor_state = self.chain_state['SubtensorModule']
         
         bal = self.get_balance( wallet.coldkeypub.ss58_address )
@@ -1129,7 +1127,7 @@ class MockSubtensor(Subtensor):
         stake_state = subtensor_state['Stake']
 
         if curr_stake.rao == 0:
-            return True, None
+            return True
         
         # Unstake the funds
         # We know that the hotkey has stake, so we can just remove it
@@ -1160,7 +1158,7 @@ class MockSubtensor(Subtensor):
 
         self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal + amount).rao
 
-        return True, None
+        return True
 
 
     def get_delegate_by_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional['bittensor.DelegateInfo']:
