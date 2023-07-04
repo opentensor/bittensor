@@ -490,7 +490,7 @@ class Subtensor:
         call_params: AxonServeCallParams,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ):
+    ) -> Tuple[bool, Optional[str]]:
         with self.substrate as substrate:
             call = substrate.compose_call(
                 call_module='SubtensorModule',
@@ -506,7 +506,7 @@ class Subtensor:
                 else:
                     return False, response.error_message
             else:
-                return True
+                return True, None
 
     def serve_prometheus (
         self,
@@ -551,7 +551,7 @@ class Subtensor:
                 else:
                     return False, response.error_message
             else:
-                return True
+                return True, None
     
     #################
     #### Staking ####
