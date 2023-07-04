@@ -21,8 +21,6 @@ import bittensor
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from typing import List, Union, Optional, Dict, Tuple
-from .utils import get_delegates_details, DelegatesDetails
-
 console = bittensor.__console__
 
 class SenateCommand:
@@ -36,20 +34,17 @@ class SenateCommand:
 
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
 
-        senate_members = subtensor.get_senate_members()
-        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(url = bittensor.__delegates_details_url__)
+        senate_members = subtensor.query_module("Senate", "Members").serialize()
 
         table = Table(show_footer=False)
         table.title = (
             "[white]Senate"
         )
-        table.add_column("[overline white]NAME", footer_style = "overline white", style="rgb(50,163,219)", no_wrap=True)
         table.add_column("[overline white]ADDRESS", footer_style = "overline white", style='yellow', no_wrap=True)
         table.show_footer = True
 
         for ss58_address in senate_members:
             table.add_row(
-                delegate_info[ss58_address].name if ss58_address in delegate_info else "",
                 ss58_address
             )
 
@@ -84,7 +79,8 @@ class SenateCommand:
         bittensor.wallet.add_args( senate_parser )
         bittensor.subtensor.add_args( senate_parser )
 
-def format_call_data(call_data: 'bittensor.ProposalCallData') -> str:
+from .utils import get_delegates_details, DelegatesDetails
+def format_call_data(call_data: List) -> str:
     human_call_data = list()
 
     for arg in call_data["call_args"]:
@@ -100,7 +96,7 @@ def format_call_data(call_data: 'bittensor.ProposalCallData') -> str:
 
     return "{}({})".format(call_data["call_function"], ", ".join(human_call_data))
 
-def display_votes(vote_data: 'bittensor.ProposalVoteData', delegate_info: 'bittensor.DelegateInfo') -> str:
+def display_votes(vote_data, delegate_info) -> str:
     vote_list = list()
 
     for address in vote_data["ayes"]:
@@ -122,8 +118,15 @@ class ProposalsCommand:
 
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
 
-        senate_members = subtensor.get_senate_members()
-        proposals = subtensor.get_proposals()      
+        senate_members = subtensor.query_module("SenateMembers", "Members").serialize()
+        proposals = dict()
+        proposal_hashes = subtensor.query_module("Triumvirate", "Proposals")
+
+        for hash in proposal_hashes:
+            proposals[hash] = [
+                subtensor.query_module("Triumvirate", "ProposalOf", None, [hash]), 
+                subtensor.get_vote_data( hash )
+            ]
 
         registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(url = bittensor.__delegates_details_url__)
 
@@ -141,7 +144,8 @@ class ProposalsCommand:
         table.show_footer = True
 
         for hash in proposals:
-            call_data, vote_data = proposals[hash]
+            call_data = proposals[hash][0].serialize()
+            vote_data = proposals[hash][1]
 
             table.add_row(
                 hash,
@@ -283,7 +287,7 @@ class SenateRegisterCommand:
             console.print('Aborting: Hotkey {} isn\'t a delegate.'.format(wallet.hotkey.ss58_address))
             return
         
-        if subtensor.is_senate_member( hotkey_ss58=wallet.hotkey.ss58_address ):
+        if wallet.is_senate_member(subtensor):
             console.print('Aborting: Hotkey {} is already a senate member.'.format(wallet.hotkey.ss58_address))
             return
         
@@ -338,7 +342,7 @@ class SenateLeaveCommand:
         wallet.hotkey
         wallet.coldkey
         
-        if not subtensor.is_senate_member( hotkey_ss58=wallet.hotkey.ss58_address ):
+        if not wallet.is_senate_member(subtensor):
             console.print('Aborting: Hotkey {} isn\'t a senate member.'.format(wallet.hotkey.ss58_address))
             return
         
@@ -394,7 +398,7 @@ class VoteCommand:
             console.print('Aborting: Proposal hash not specified. View all proposals with the "proposals" command.')
             return
         
-        if not subtensor.is_senate_member( hotkey_ss58=wallet.hotkey.ss58_address ):
+        if not wallet.is_senate_member(subtensor):
             console.print('Aborting: Hotkey {} isn\'t a senate member.'.format(wallet.hotkey.ss58_address))
             return
 

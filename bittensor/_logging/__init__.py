@@ -144,7 +144,7 @@ class logging:
         """
         prefix_str = '' if prefix == None else prefix + '.'
         if prefix is not None:
-            if bittensor.defaults.get(prefix, d=None) == None:
+            if not hasattr(bittensor.defaults, prefix):
                 setattr(bittensor.defaults, prefix, bittensor.Config())
             getattr(bittensor.defaults, prefix).logging = bittensor.defaults.logging
         try:

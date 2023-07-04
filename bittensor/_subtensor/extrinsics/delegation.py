@@ -53,27 +53,94 @@ def nominate_extrinsic(
 
     with bittensor.__console__.status(":satellite: Sending nominate call on [white]{}[/white] ...".format(subtensor.network)):
         try:
-            success = subtensor._do_nominate(
-                wallet = wallet,
-                wait_for_inclusion = wait_for_inclusion,
-                wait_for_finalization = wait_for_finalization
-            )
-            
-            if success == True:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
-                bittensor.logging.success(  prefix = 'Become Delegate', sufix = '<green>Finalized: </green>' + str(success) )
-            
-            # Raises NominationError if False
-            return success
+            with subtensor.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module='SubtensorModule',
+                    call_function='become_delegate',
+                    call_params = {
+                        'hotkey': wallet.hotkey.ss58_address
+                    }
+                )
+                extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey ) # sign with coldkey
+                response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
+                    return True
+
+                response.process_events()
+                if response.is_success:
+                    bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
+                    bittensor.logging.success(  prefix = 'Become Delegate', sufix = '<green>Finalized: </green>' + str(response.is_success) )
+                else:
+                    bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
+                    bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(response.error_message) )
 
         except Exception as e:
             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(e))
             bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(e) )
-        except NominationError as e:
-            bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(e))
-            bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(e) )
+            return False
+
+    if response.is_success:
+        return True
 
     return False
+
+def do_delegation(
+        subtensor: 'bittensor.Subtensor',
+        wallet: 'bittensor.wallet',
+        delegate_ss58: str,
+        amount: 'bittensor.Balance',
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+    with subtensor.substrate as substrate:
+        call = substrate.compose_call(
+        call_module='SubtensorModule',
+        call_function='add_stake',
+        call_params={
+            'hotkey': delegate_ss58,
+            'amount_staked': amount.rao
+            }
+        )
+        extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
+        response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
+        response.process_events()
+        if response.is_success:
+            return True
+        else:
+            raise StakeError(response.error_message)
+
+def do_undelegation(
+        subtensor: 'bittensor.Subtensor',
+        wallet: 'bittensor.wallet',
+        delegate_ss58: str,
+        amount: 'bittensor.Balance',
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+    with subtensor.substrate as substrate:
+        call = substrate.compose_call(
+        call_module='SubtensorModule',
+        call_function='remove_stake',
+        call_params={
+            'hotkey': delegate_ss58,
+            'amount_unstaked': amount.rao
+            }
+        )
+        extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
+        response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
+        response.process_events()
+        if response.is_success:
+            return True
+        else:
+            raise StakeError(response.error_message)
 
 
 def delegate_extrinsic(
@@ -150,7 +217,8 @@ def delegate_extrinsic(
 
     try:
         with bittensor.__console__.status(":satellite: Staking to: [bold white]{}[/bold white] ...".format(subtensor.network)):
-            staking_response: bool = subtensor._do_delegation(
+            staking_response: bool = do_delegation(
+                subtensor = subtensor,
                 wallet = wallet,
                 delegate_ss58 = delegate_ss58,
                 amount = staking_balance,
@@ -158,7 +226,7 @@ def delegate_extrinsic(
                 wait_for_finalization = wait_for_finalization,
             )
 
-        if staking_response == True: # If we successfully staked.
+        if staking_response: # If we successfully staked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
@@ -258,7 +326,8 @@ def undelegate_extrinsic(
 
     try:
         with bittensor.__console__.status(":satellite: Unstaking from: [bold white]{}[/bold white] ...".format(subtensor.network)):
-            staking_response: bool = subtensor._do_undelegation(
+            staking_response: bool = do_undelegation(
+                subtensor = subtensor,
                 wallet = wallet,
                 delegate_ss58 = delegate_ss58,
                 amount = unstaking_balance,
@@ -266,7 +335,7 @@ def undelegate_extrinsic(
                 wait_for_finalization = wait_for_finalization,
             )
 
-        if staking_response == True: # If we successfully staked.
+        if staking_response: # If we successfully staked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")

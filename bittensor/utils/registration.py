@@ -4,7 +4,6 @@ import math
 import multiprocessing
 import os
 import random
-import sys
 import time
 from dataclasses import dataclass
 from datetime import timedelta
@@ -444,10 +443,7 @@ def _solve_for_difficulty_fast( subtensor, wallet: 'bittensor.Wallet', netuid: i
     hash_rates = [0] * n_samples # The last n true hash_rates
     weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
 
-    while not subtensor.is_hotkey_registered(
-                        netuid = netuid,
-                        hotkey_ss58 = wallet.hotkey.ss58_address,
-    ):
+    while not wallet.is_registered(netuid = netuid, subtensor = subtensor):
         # Wait until a solver finds a solution
         try:
             solution = solution_queue.get(block=True, timeout=0.25)
@@ -547,7 +543,7 @@ def _get_block_with_retry(subtensor: 'bittensor.Subtensor', netuid: int) -> Tupl
     """
     block_number = subtensor.get_current_block()
     difficulty = subtensor.difficulty(netuid = netuid)
-    block_hash = subtensor.get_block_hash( block_number )
+    block_hash = subtensor.substrate.get_block_hash( block_number )
     if block_hash is None:
         raise Exception("Network error. Could not connect to substrate to get block hash")
     if difficulty is None:
@@ -736,10 +732,7 @@ def _solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: '
         weights = [alpha_ ** i for i in range(n_samples)] # weights decay by alpha
 
         solution = None
-        while not subtensor.is_hotkey_registered(
-                            netuid = netuid,
-                            hotkey_ss58 = wallet.hotkey.ss58_address,
-        ):
+        while not wallet.is_registered(netuid = netuid, subtensor = subtensor):
             # Wait until a solver finds a solution
             try:
                 solution = solution_queue.get(block=True, timeout=0.15)
@@ -876,55 +869,3 @@ def create_pow(
         )
 
     return solution
-
-
-def __reregister_wallet(
-        netuid: int,
-        wallet: 'bittensor.Wallet',
-        subtensor: 'bittensor.Subtensor',
-        reregister: bool = False,
-        prompt: bool = False,
-        **registration_args: Any
-    ) -> Optional['bittensor.Wallet']:
-        """ Re-register this a Wallet on the chain, or exits.
-                Exits if the wallet is not registered on the chain AND
-                reregister is set to False.
-            Args:
-                netuid (int):
-                    The network uid of the subnet to register on.
-                wallet( 'bittensor.Wallet' ):
-                    Bittensor Wallet to re-register
-                reregister (bool, default=False):
-                    If true, re-registers the wallet on the chain.
-                    Exits if False and the wallet is not registered on the chain.
-                prompt (bool):
-                    If true, the call waits for confirmation from the user before proceeding.
-                **registration_args (Any):
-                    The registration arguments to pass to the subtensor register function.
-            Return:
-                wallet (bittensor.Wallet):
-                    The wallet
-
-            Raises:
-                SytemExit(0):
-                    If the wallet is not registered on the chain AND
-                    the config.subtensor.reregister flag is set to False.
-        """
-        wallet.hotkey
-
-        if not subtensor.is_hotkey_registered_on_subnet(
-            hotkey_ss58=wallet.hotkey.ss58_address,
-            netuid=netuid
-        ):
-            # Check if the wallet should reregister
-            if not reregister:
-                sys.exit(0)
-
-            subtensor.register(
-                wallet = wallet,
-                netuid = netuid,
-                prompt = prompt,
-                **registration_args,
-            )
-
-        return wallet
