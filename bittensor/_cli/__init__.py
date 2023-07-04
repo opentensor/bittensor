@@ -101,15 +101,6 @@ class cli:
         """
         parser = cli.__create_parser__()
 
-        return parser
-
-    @staticmethod
-    def config(args: List[str]) -> 'bittensor.config':
-        """ From the argument parser, add config to bittensor.executor and local config
-            Return: bittensor.config object
-        """
-        parser = cli.__create_parser__()
-
         # If no arguments are passed, print help text.
         if len(args) == 0:
             parser.print_help()

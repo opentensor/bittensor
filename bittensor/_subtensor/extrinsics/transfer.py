@@ -82,25 +82,11 @@ def transfer_extrinsic(
         existential_deposit = subtensor.get_existential_deposit()
 
     with bittensor.__console__.status(":satellite: Transferring..."):
-        with subtensor.substrate as substrate:
-            call = substrate.compose_call(
-                call_module='Balances',
-                call_function='transfer',
-                call_params={
-                    'dest': dest,
-                    'value': transfer_balance.rao
-                }
-            )
-
-            try:
-                payment_info = substrate.get_payment_info( call = call, keypair = wallet.coldkey )
-            except Exception as e:
-                bittensor.__console__.print(":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {}[/bold white]".format(e))
-                payment_info = {
-                    'partialFee': 2e7, # assume  0.02 Tao
-                }
-
-            fee = bittensor.Balance.from_rao( payment_info['partialFee'] )
+        fee = subtensor.get_transfer_fee(
+            wallet=wallet,
+            dest = dest,
+            value = transfer_balance.rao
+        )
 
     if not keep_alive:
         # Check if the transfer should keep_alive the account
@@ -117,37 +103,25 @@ def transfer_extrinsic(
             return False
 
     with bittensor.__console__.status(":satellite: Transferring..."):
-        with subtensor.substrate as substrate:
-            call = substrate.compose_call(
-                call_module='Balances',
-                call_function='transfer',
-                call_params={
-                    'dest': dest,
-                    'value': transfer_balance.rao
-                }
-            )
-            extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
-            response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                return True
+        success, block_hash, err_msg = subtensor._do_transfer(
+            wallet,
+            dest,
+            transfer_balance,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_inclusion=wait_for_inclusion,
+        )
 
-            # Otherwise continue with finalization.
-            response.process_events()
-            if response.is_success:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
-                block_hash = response.block_hash
-                bittensor.__console__.print("[green]Block Hash: {}[/green]".format( block_hash ))
+        if success:
+            bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
+            bittensor.__console__.print("[green]Block Hash: {}[/green]".format( block_hash ))
 
-                explorer_url = bittensor.utils.get_explorer_url_for_network( subtensor.network, block_hash, bittensor.__network_explorer_map__ )
-                if explorer_url is not None:
-                    bittensor.__console__.print("[green]Explorer Link: {}[/green]".format( explorer_url ))
+            explorer_url = bittensor.utils.get_explorer_url_for_network( subtensor.network, block_hash, bittensor.__network_explorer_map__ )
+            if explorer_url is not None:
+                bittensor.__console__.print("[green]Explorer Link: {}[/green]".format( explorer_url ))
+        else:
+            bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(err_msg))
 
-            else:
-                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(response.error_message))
-
-    if response.is_success:
+    if success:
         with bittensor.__console__.status(":satellite: Checking Balance..."):
             new_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
             bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(account_balance, new_balance))

@@ -104,7 +104,7 @@ def main():
     wallet.register(netuid=config.netuid, subtensor=subtensor)
 
     # --- Create our network state cache
-    metagraph = bittensor.metagraph(config=config, netuid=config.netuid, )
+    metagraph = bittensor.metagraph(config=config, netuid=config.netuid, sync=False )
     metagraph.sync(netuid=config.netuid, subtensor=subtensor).save()
     uid = metagraph.hotkeys.index(wallet.hotkey.ss58_address)
 

@@ -87,6 +87,12 @@ class BaseMinerNeuron:
             help = 'If True, the model does not set weights.',
             default = False
         )
+        parser.add_argument(
+            '--' + prefix_str + 'neuron.reregister',
+            action = 'store_true',
+            help = 'If True, the miner will reregister on chain.',
+            default = False
+        )
         bittensor.wallet.add_args( parser, prefix = prefix )
         bittensor.axon.add_args( parser, prefix = prefix )
         bittensor.subtensor.add_args( parser, prefix = prefix )
@@ -106,7 +112,9 @@ class BaseMinerNeuron:
         bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
         self.subtensor = bittensor.subtensor( self.config )
         self.wallet = bittensor.wallet( self.config )
-        self.metagraph = self.subtensor.metagraph( self.config.netuid )
+        self.metagraph = self.subtensor.metagraph( netuid = self.config.netuid )
+        self.metagraph.sync( lite = True, subtensor=self.subtensor )
+
         self.axon = bittensor.axon( wallet = self.wallet, config = self.config )
         self.blacklister = bittensor.blacklist( config = self.config.neuron )
         self.prioritizer = bittensor.priority( config = self.config.neuron )
@@ -150,7 +158,7 @@ class BaseMinerNeuron:
 
         # --- Start the miner.
         self.is_running = True
-        self.wallet.reregister( netuid = self.config.netuid, subtensor = self.subtensor )
+        bittensor.utils.reregister( wallet = self.wallet, subtensor = self.subtensor, netuid = self.config.netuid, reregister = self.config.neuron.reregister )
         self.axon.start()
         self.subtensor.serve_axon( netuid = self.config.netuid, axon = self.axon, wait_for_finalization = False, wait_for_inclusion = False ) #TODO: fix finalization & inclusion
 
@@ -169,7 +177,7 @@ class BaseMinerNeuron:
 
             # --- Update the metagraph with the latest network state.
             try:
-                self.metagraph.sync( lite = True )
+                self.metagraph.sync( lite = True, subtensor=self.subtensor )
                 uid = self.metagraph.hotkeys.index( self.wallet.hotkey.ss58_address )
             except:
                 # --- If we fail to sync the metagraph, wait and try again.
