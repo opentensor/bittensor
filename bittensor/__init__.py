@@ -105,18 +105,3 @@ from .threadpool import PriorityThreadPoolExecutor
 from .protocol import * 
 from .axon import axon as axon
 from .dendrite import dendrite as dendrite
-
-
-class B:
-
-    def __init__( self, config: config ):
-        self.wallet = wallet(config=config)
-        self.axon = axon(config=config)
-        self.subtensor = subtensor( config=config)
-        self.metagraph = self.subtensor.metagraph( 1 )
-        self.dendrite
-
-
-    @property
-    def _wallet(self) -> wallet:
-        return wallet( config = self.config )

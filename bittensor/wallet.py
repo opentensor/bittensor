@@ -86,8 +86,8 @@ class wallet:
     def __init__(
             self,
             name:str = None,
-            path:str = None,
             hotkey:str = None,
+            path:str = None,
             config: 'bittensor.Config' = None,
         ):
         r""" Init bittensor wallet object containing a hot and coldkey.

@@ -429,7 +429,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Log successful incoming request.
         bittensor.logging.debug( f"axon     | <-- | {request_name} | {sender_hotkey} | {sender_ip}:**** | 0 | Success ")
         
-        # Build the base response (to be filled on error.)
+        # Build the base response (response on error)
         default_response = bittensor.BaseRequest(
             request_name = request_name,
             sender_timeout = sender_timeout,

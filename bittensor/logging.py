@@ -23,7 +23,6 @@ import copy
 import torch
 import argparse
 import bittensor
-import bittensor.utils.codes as codes
 
 from loguru import logger
 logger = logger.opt(colors=True)
@@ -202,96 +201,14 @@ class logging:
     def log_formatter(cls, record):
         """ Log with different format according to record['extra']
         """
-        extra = record['extra']
-        if 'rpc' in extra:
-            return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[uid_str]} | {extra[inputs]} | {extra[call_time]} | {extra[key_str]} | {extra[rpc_message]} | {extra[synapse]} \n"
-        else:
-            return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | <level>{level: ^16}</level> | {message}\n"
+        return "<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue> | <level>{level: ^16}</level> | {message}\n"
 
     @classmethod
     def log_save_formatter(cls, record):
-        extra = record['extra']
-        if 'rpc' in extra:
-            return "{time:YYYY-MM-DD HH:mm:ss.SSS} | " + extra['code_str'] + " | {extra[prefix]} | {extra[direction]} | {extra[arrow]} | {extra[uid_str]} | {extra[inputs]} | {extra[call_time]} | {extra[key_str]} | {extra[rpc_message]} \n"
+        if cls.__trace_on__:
+            return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | {message}\n"
         else:
-            if cls.__trace_on__:
-                return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | {message}\n"
-            else:
-                return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | {message}\n"
-
-
-    @classmethod
-    def rpc_log(
-                 cls,
-                 axon: bool,
-                 forward: bool,
-                 is_response: bool,
-                 code:int,
-                 call_time: float,
-                 pubkey: str,
-                 uid: int = None,
-                 inputs:list = None,
-                 outputs:list = None,
-                 message:str = '',
-                 synapse:'bittensor.Synapse' = None
-        ):
-        """ Debug logging for the communication between endpoints with axon/dendrite
-        """
-
-        if axon:
-            prefix = "Synapse"
-        else:
-            prefix = "Dendrite"
-        prefix = prefix.center(len('Dendrite'))
-
-        if forward:
-            direction = "Forward"
-        else:
-            direction = "Backward"
-        direction = direction.center(len('Backward'))
-
-        if is_response:
-            arrow = "<---"
-        else:
-            arrow = "--->"
-
-        key_str = "{}".format( pubkey )
-        call_time_str = "{:.2f}s".format(call_time).center(6)
-
-        if uid != None:
-            uid_str = str(uid).center(5)
-        else:
-            uid_str = "-".center(5)
-
-        code_color = codes.code_to_loguru_color( code )
-        code_string = codes.code_to_string( code )
-        code_string = code_string.center(16)
-        code_str = "<" + code_color + ">" + code_string + "</" + code_color + ">"
-
-        if is_response:
-            inputs = str(list(outputs)) if outputs != None else '[x]'
-        else:
-            inputs = str(list(inputs)) if inputs != None else '[x]'
-        inputs = inputs.center(15)
-
-        if synapse != None:
-            synapse = codes.code_to_synapse(synapse)
-
-        rpc_message = message if message != None else 'None'
-        logger.debug(
-                    'rpc',
-                    rpc=True,
-                    prefix=prefix,
-                    direction=direction,
-                    arrow=arrow,
-                    call_time = call_time_str,
-                    uid_str=uid_str,
-                    key_str=key_str,
-                    code_str=code_str,
-                    inputs = inputs,
-                    rpc_message = rpc_message,
-                    synapse = synapse
-        )
+            return "{time:YYYY-MM-DD HH:mm:ss.SSS} | <level>{level: ^16}</level> | {message}\n"
 
     @classmethod
     def _format( cls, prefix:object, sufix:object = None ):
