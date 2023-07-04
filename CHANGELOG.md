@@ -1,6 +1,6 @@
 # Changelog
 
-## 5.2.1 / 2023-07-04
+## 5.3.0 / 2023-07-04
 
 ## What's Changed
 * [BIT-351] Ask for wallet name on btcli unstake by @camfairchild in https://github.com/opentensor/bittensor/pull/1387
@@ -21,7 +21,7 @@
 ## New Contributors
 * @mostimasblunderbuss made their first contribution in https://github.com/opentensor/bittensor/pull/1397
 
-**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.2.0...v5.2.1
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.2.0...v5.3.0
 
 
 ## 5.2.0 / 2023-06-28
