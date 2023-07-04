@@ -145,15 +145,3 @@ class TestKeyFiles(unittest.TestCase):
         with pytest.raises(KeyFileError) as pytest_wrapped_e:
             with mock.patch('builtins.input', return_value = 'n'):
                 keyfile.set_keypair(bob, encrypt=True, overwrite=False, password = 'thisisafakepassword')
-
-    def test_keyfile_mock(self):
-        file = bittensor.keyfile( _mock = True )
-        assert file.exists_on_device()
-        assert not file.is_encrypted()
-        assert file.is_readable()
-        assert file.data
-        assert file.keypair
-        file.set_keypair( keypair = bittensor.Keypair.create_from_mnemonic( mnemonic = bittensor.Keypair.generate_mnemonic() ))
-
-    def test_keyfile_mock_func(self):
-        file = bittensor.keyfile.mock()
