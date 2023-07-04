@@ -106,7 +106,7 @@ class BaseMinerNeuron:
         bittensor.logging( config = self.config, logging_dir = self.config.neuron.full_path )
         self.subtensor = bittensor.subtensor( self.config )
         self.wallet = bittensor.wallet( self.config )
-        self.metagraph = self.subtensor.metagraph( self.config.netuid, sync=False )
+        self.metagraph = self.subtensor.metagraph( netuid = self.config.netuid )
         self.metagraph.sync( lite = True, subtensor=self.subtensor )
 
         self.axon = bittensor.axon( wallet = self.wallet, config = self.config )
@@ -152,7 +152,7 @@ class BaseMinerNeuron:
 
         # --- Start the miner.
         self.is_running = True
-        self.wallet.reregister( netuid = self.config.netuid, subtensor = self.subtensor )
+        bittensor.utils.reregister( wallet = self.wallet, subtensor = self.subtensor, netuid = self.config.netuid )
         self.axon.start()
         self.subtensor.serve_axon( netuid = self.config.netuid, axon = self.axon, wait_for_finalization = False, wait_for_inclusion = False ) #TODO: fix finalization & inclusion
 
