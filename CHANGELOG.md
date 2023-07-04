@@ -1,6 +1,6 @@
 # Changelog
 
-## 5.2.1 / 2023-06-30
+## 5.2.1 / 2023-07-04
 
 ## What's Changed
 * [BIT-351] Ask for wallet name on btcli unstake by @camfairchild in https://github.com/opentensor/bittensor/pull/1387
@@ -23,6 +23,9 @@
 * Fix cli ask for wallet hotkey name by @camfairchild in https://github.com/opentensor/bittensor/pull/1430
 * Always sync metagraph during subtensor.metagraph by @camfairchild in https://github.com/opentensor/bittensor/pull/1433
 * Remove unnecessary validator code by @ifrit98 in https://github.com/opentensor/bittensor/pull/1432
+* update changelog from running add_notes_changelog.sh by @ifrit98 in https://github.com/opentensor/bittensor/pull/1434
+* add weights call to subtensor by @camfairchild in https://github.com/opentensor/bittensor/pull/1436
+* update dockerignore file by @camfairchild in https://github.com/opentensor/bittensor/pull/1428
 
 ## New Contributors
 * @mostimasblunderbuss made their first contribution in https://github.com/opentensor/bittensor/pull/1397
