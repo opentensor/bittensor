@@ -22,7 +22,7 @@ from rich.prompt import Confirm
 import bittensor.utils.networking as net
 
 def prometheus_extrinsic(
-    subtensor: 'bittensor.Subtensor',
+    subtensor: 'bittensor.subtensor',
     wallet: 'bittensor.wallet',
     port: int,
     netuid: int,

@@ -23,8 +23,8 @@ import time
 from rich.prompt import Confirm
 
 def register_senate_extrinsic (
-    subtensor: 'bittensor.Subtensor',
-    wallet: 'bittensor.Wallet',
+    subtensor: 'bittensor.subtensor',
+    wallet: 'bittensor.wallet',
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     prompt: bool = False
@@ -90,8 +90,8 @@ def register_senate_extrinsic (
                     bittensor.__console__.print(":cross_mark: [red]Unknown error. Senate membership not found.[/red]")
 
 def leave_senate_extrinsic (
-    subtensor: 'bittensor.Subtensor',
-    wallet: 'bittensor.Wallet',
+    subtensor: 'bittensor.subtensor',
+    wallet: 'bittensor.wallet',
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     prompt: bool = False
@@ -157,8 +157,8 @@ def leave_senate_extrinsic (
                     bittensor.__console__.print(":cross_mark: [red]Unknown error. Senate membership still found.[/red]")
 
 def vote_senate_extrinsic (
-    subtensor: 'bittensor.Subtensor',
-    wallet: 'bittensor.Wallet',
+    subtensor: 'bittensor.subtensor',
+    wallet: 'bittensor.wallet',
     proposal_hash: str,
     proposal_idx: int,
     vote: bool,

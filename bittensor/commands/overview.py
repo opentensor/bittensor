@@ -35,7 +35,7 @@ class OverviewCommand:
         """
         console = bittensor.__console__
         wallet = bittensor.wallet( config = cli.config )
-        subtensor: 'bittensor.Subtensor' = bittensor.subtensor( config = cli.config )
+        subtensor: 'bittensor.subtensor' = bittensor.subtensor( config = cli.config )
 
         all_hotkeys = []
         total_balance = bittensor.Balance(0)
@@ -73,7 +73,7 @@ class OverviewCommand:
             return
 
         # Pull neuron info for all keys.
-        neurons: Dict[str, List[bittensor.NeuronInfoLite, bittensor.Wallet]] = {}
+        neurons: Dict[str, List[bittensor.NeuronInfoLite, bittensor.wallet]] = {}
         block = subtensor.block
 
         netuids = subtensor.get_all_subnet_netuids()

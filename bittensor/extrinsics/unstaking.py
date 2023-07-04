@@ -23,7 +23,7 @@ from typing import List, Dict, Union, Optional
 from bittensor.utils.balance import Balance
 
 def __do_remove_stake_single(
-    subtensor: 'bittensor.Subtensor',
+    subtensor: 'bittensor.subtensor',
     wallet: 'bittensor.wallet',
     hotkey_ss58: str,
     amount: 'bittensor.Balance',
@@ -52,9 +52,9 @@ def __do_remove_stake_single(
             flag is true if extrinsic was finalized or uncluded in the block.
             If we did not wait for finalization / inclusion, the response is true.
     Raises:
-        StakeError:
+        bittensor.errors.StakeError:
             If the extrinsic fails to be finalized or included in the block.
-        NotRegisteredError:
+        bittensor.errors.NotRegisteredError:
             If the hotkey is not registered in any subnets.
 
     """
@@ -80,10 +80,10 @@ def __do_remove_stake_single(
         if response.is_success:
             return True
         else:
-            raise bittensor.errors.StakeError(response.error_message)
+            raise bittensor.errors.bittensor.errors.StakeError(response.error_message)
 
 def unstake_extrinsic (
-        subtensor: 'bittensor.Subtensor',
+        subtensor: 'bittensor.subtensor',
         wallet: 'bittensor.wallet',
         hotkey_ss58: Optional[str] = None,
         amount: Union[Balance, float] = None,
@@ -172,15 +172,15 @@ def unstake_extrinsic (
             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except bittensor.errors.bittensor.errors.NotRegisteredError as e:
         bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
         return False
-    except bittensor.errors.StakeError as e:
+    except bittensor.errors.bittensor.errors.StakeError as e:
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
 
 def unstake_multiple_extrinsic (
-        subtensor: 'bittensor.Subtensor',
+        subtensor: 'bittensor.subtensor',
         wallet: 'bittensor.wallet',
         hotkey_ss58s: List[str],
         amounts: List[Union[Balance, float]] = None,
@@ -301,10 +301,10 @@ def unstake_multiple_extrinsic (
                 bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
                 continue
 
-        except bittensor.errors.NotRegisteredError as e:
+        except bittensor.errors.bittensor.errors.NotRegisteredError as e:
             bittensor.__console__.print(":cross_mark: [red]{} is not registered.[/red]".format(hotkey_ss58))
             continue
-        except bittensor.errors.StakeError as e:
+        except bittensor.errors.bittensor.errors.StakeError as e:
             bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
             continue
 

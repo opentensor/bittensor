@@ -332,7 +332,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
     def test_overview_no_wallet( self ):
         # Mock IO for wallet
-        with patch('bittensor.Wallet.coldkeypub_file', MagicMock(
+        with patch('bittensor.wallet.coldkeypub_file', MagicMock(
             exists_on_device=MagicMock(
                 return_value=False
             )
@@ -2117,7 +2117,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         ), "Wallet should not be registered before test")
 
         with patch('bittensor.wallet', return_value=mock_wallet) as mock_create_wallet:
-            with patch('bittensor.Subtensor.register', MagicMock(side_effect=Exception("shouldn't register during test"))):
+            with patch('bittensor.subtensor.register', MagicMock(side_effect=Exception("shouldn't register during test"))):
                 with pytest.raises(SystemExit):
                     cli = bittensor.cli(args=[
                         'run',
@@ -2141,7 +2141,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
             pass
 
         with patch('bittensor.neurons.core_server.neuron', MagicMock(side_effect=MockException("should exit early"))) as mock_neuron:
-            with patch('bittensor.Wallet.is_registered', MagicMock(return_value=True)): # mock registered
+            with patch('bittensor.wallet.is_registered', MagicMock(return_value=True)): # mock registered
                 with patch('bittensor.Config.to_defaults', MagicMock(return_value=True)):
                     with pytest.raises(MockException):
                         cli = bittensor.cli(args=[

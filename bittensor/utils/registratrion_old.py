@@ -86,7 +86,7 @@ def millify(n: int):
     return '{:.2f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
 
 
-def POWNotStale(subtensor: 'bittensor.Subtensor', pow_result: Dict) -> bool:
+def POWNotStale(subtensor: 'bittensor.subtensor', pow_result: Dict) -> bool:
     """Returns True if the POW is not stale.
     This means the block the POW is solved for is within 3 blocks of the current block.
     """
@@ -545,7 +545,7 @@ def solve_for_difficulty_fast( subtensor, wallet, output_in_place: bool = True, 
                             Exception,
                             interval=1,
                             max_tries=3)
-def get_block_with_retry(subtensor: 'bittensor.Subtensor') -> Tuple[int, int, bytes]:
+def get_block_with_retry(subtensor: 'bittensor.subtensor') -> Tuple[int, int, bytes]:
     block_number = subtensor.get_current_block()
     difficulty = subtensor.difficulty
     block_hash = subtensor.substrate.get_block_hash( block_number )
@@ -572,7 +572,7 @@ class UsingSpawnStartMethod():
 
 
 def check_for_newest_block_and_update(
-    subtensor: 'bittensor.Subtensor',
+    subtensor: 'bittensor.subtensor',
     old_block_number: int,
     curr_diff: multiprocessing.Array,
     curr_block: multiprocessing.Array,
@@ -585,7 +585,7 @@ def check_for_newest_block_and_update(
     """
     Checks for a new block and updates the current block information if a new block is found.
     Args:
-        subtensor (:obj:`bittensor.Subtensor`, `required`):
+        subtensor (:obj:`bittensor.subtensor`, `required`):
             The subtensor object to use for getting the current block.
         old_block_number (:obj:`int`, `required`):
             The old block number to check against.
@@ -630,13 +630,13 @@ def check_for_newest_block_and_update(
     return old_block_number
 
 
-def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
+def solve_for_difficulty_fast_cuda( subtensor: 'bittensor.subtensor', wallet: 'bittensor.wallet', output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the registration fast using CUDA
     Args:
-        subtensor: bittensor.Subtensor
+        subtensor: bittensor.subtensor
             The subtensor node to grab blocks
-        wallet: bittensor.Wallet
+        wallet: bittensor.wallet
             The wallet to register
         output_in_place: bool
             If true, prints the output in place, otherwise prints to new lines

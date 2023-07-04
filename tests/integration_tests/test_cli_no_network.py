@@ -251,7 +251,7 @@ class TestCLINoNetwork(unittest.TestCase):
 
     def test_list_no_wallet( self ):
         # Mock IO for wallet
-        with patch('bittensor.Wallet.coldkeypub_file', MagicMock(
+        with patch('bittensor.wallet.coldkeypub_file', MagicMock(
             exists_on_device=MagicMock(
                 return_value=False # Wallet doesn't exist
             )
@@ -322,9 +322,9 @@ class TestCLINoNetwork(unittest.TestCase):
             ]
             bittensor.subtensor.check_config = MagicMock(return_value = True)
             with patch('torch.cuda.is_available', return_value=True):
-                with patch('bittensor.Subtensor.get_subnets', return_value = [1]):
-                    with patch('bittensor.Subtensor.subnet_exists', side_effect=lambda netuid: netuid == 1):
-                        with patch('bittensor.Subtensor.register', side_effect=ExitEarlyException):
+                with patch('bittensor.subtensor.get_subnets', return_value = [1]):
+                    with patch('bittensor.subtensor.subnet_exists', side_effect=lambda netuid: netuid == 1):
+                        with patch('bittensor.subtensor.register', side_effect=ExitEarlyException):
                             # Should be able to set true without argument
                             args = base_args + [
                                 "--subtensor.register.cuda.use_cuda", # should be True without any arugment

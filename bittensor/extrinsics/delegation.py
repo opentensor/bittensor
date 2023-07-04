@@ -28,14 +28,14 @@ from loguru import logger
 logger = logger.opt(colors=True)
 
 def nominate_extrinsic(
-    subtensor: 'bittensor.Subtensor',
-    wallet: 'bittensor.Wallet',
+    subtensor: 'bittensor.subtensor',
+    wallet: 'bittensor.wallet',
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True
 ) -> bool:
     r""" Becomes a delegate for the hotkey.
     Args:
-        wallet ( bittensor.Wallet ):
+        wallet ( bittensor.wallet ):
             The wallet to become a delegate for.
     Returns:
         success (bool):
@@ -86,7 +86,7 @@ def nominate_extrinsic(
     return False
 
 def do_delegation(
-        subtensor: 'bittensor.Subtensor',
+        subtensor: 'bittensor.subtensor',
         wallet: 'bittensor.wallet',
         delegate_ss58: str,
         amount: 'bittensor.Balance',
@@ -111,10 +111,10 @@ def do_delegation(
         if response.is_success:
             return True
         else:
-            raise StakeError(response.error_message)
+            raise bittensor.errors.StakeError(response.error_message)
 
 def do_undelegation(
-        subtensor: 'bittensor.Subtensor',
+        subtensor: 'bittensor.subtensor',
         wallet: 'bittensor.wallet',
         delegate_ss58: str,
         amount: 'bittensor.Balance',
@@ -139,11 +139,11 @@ def do_undelegation(
         if response.is_success:
             return True
         else:
-            raise bittensor.errors.StakeError(response.error_message)
+            raise bittensor.errors.bittensor.errors.StakeError(response.error_message)
 
 
 def delegate_extrinsic(
-        subtensor: 'bittensor.Subtensor',
+        subtensor: 'bittensor.subtensor',
         wallet: 'bittensor.wallet',
         delegate_ss58: Optional[str] = None,
         amount: Union[Balance, float] = None,
@@ -173,15 +173,15 @@ def delegate_extrinsic(
             If we did not wait for finalization / inclusion, the response is true.
 
     Raises:
-        NotRegisteredError:
+        bittensor.errors.NotRegisteredError:
             If the wallet is not registered on the chain.
-        NotDelegateError:
+        bittensor.errors.NotDelegateError:
             If the hotkey is not a delegate on the chain.
     """
     # Decrypt keys,
     wallet.coldkey
     if not subtensor.is_hotkey_delegate( delegate_ss58 ):
-        raise NotDelegateError("Hotkey: {} is not a delegate.".format( delegate_ss58 ))
+        raise bittensor.errors.NotDelegateError("Hotkey: {} is not a delegate.".format( delegate_ss58 ))
 
     # Get state.
     my_prev_coldkey_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
@@ -248,15 +248,15 @@ def delegate_extrinsic(
             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except bittensor.errors.bittensor.errors.NotRegisteredError as e:
         bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
         return False
-    except bittensor.errors.StakeError as e:
+    except bittensor.errors.bittensor.errors.StakeError as e:
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
 
 def undelegate_extrinsic(
-        subtensor: 'bittensor.Subtensor',
+        subtensor: 'bittensor.subtensor',
         wallet: 'bittensor.wallet',
         delegate_ss58: Optional[str] = None,
         amount: Union[Balance, float] = None,
@@ -286,15 +286,15 @@ def undelegate_extrinsic(
             If we did not wait for finalization / inclusion, the response is true.
 
     Raises:
-        NotRegisteredError:
+        bittensor.errors.NotRegisteredError:
             If the wallet is not registered on the chain.
-        NotDelegateError:
+        bittensor.errors.NotDelegateError:
             If the hotkey is not a delegate on the chain.
     """
     # Decrypt keys,
     wallet.coldkey
     if not subtensor.is_hotkey_delegate( delegate_ss58 ):
-        raise bittensor.errors.NotDelegateError("Hotkey: {} is not a delegate.".format( delegate_ss58 ))
+        raise bittensor.errors.bittensor.errors.NotDelegateError("Hotkey: {} is not a delegate.".format( delegate_ss58 ))
 
     # Get state.
     my_prev_coldkey_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
@@ -357,9 +357,9 @@ def undelegate_extrinsic(
             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except bittensor.errors.bittensor.errors.NotRegisteredError as e:
         bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
         return False
-    except bittensor.errors.StakeError as e:
+    except bittensor.errors.bittensor.errors.StakeError as e:
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False

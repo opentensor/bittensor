@@ -30,7 +30,7 @@ class SenateCommand:
         r""" View Bittensor's governance protocol proposals
         """
         config = cli.config.copy()
-        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+        subtensor: bittensor.subtensor = bittensor.subtensor( config = config )
 
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
 
@@ -114,7 +114,7 @@ class ProposalsCommand:
         r""" View Bittensor's governance protocol proposals
         """
         config = cli.config.copy()
-        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+        subtensor: bittensor.subtensor = bittensor.subtensor( config = config )
 
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
 
@@ -195,7 +195,7 @@ class ShowVotesCommand:
         r""" View Bittensor's governance protocol proposals active votes
         """
         config = cli.config.copy()
-        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+        subtensor: bittensor.subtensor = bittensor.subtensor( config = config )
 
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
 
@@ -276,7 +276,7 @@ class SenateRegisterCommand:
         """
         config = cli.config.copy()
         wallet = bittensor.wallet( config = cli.config )
-        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+        subtensor: bittensor.subtensor = bittensor.subtensor( config = config )
 
         # Unlock the wallet.
         wallet.hotkey
@@ -336,7 +336,7 @@ class SenateLeaveCommand:
         """
         config = cli.config.copy()
         wallet = bittensor.wallet( config = cli.config )
-        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+        subtensor: bittensor.subtensor = bittensor.subtensor( config = config )
 
         # Unlock the wallet.
         wallet.hotkey
@@ -391,7 +391,7 @@ class VoteCommand:
         """
         config = cli.config.copy()
         wallet = bittensor.wallet( config = cli.config )
-        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+        subtensor: bittensor.subtensor = bittensor.subtensor( config = config )
 
         proposal_hash = cli.config.proposal_hash
         if len(proposal_hash) == 0:

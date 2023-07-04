@@ -27,7 +27,7 @@ from loguru import logger
 logger = logger.opt(colors=True)
 
 def set_weights_extrinsic(
-        subtensor: 'bittensor.Subtensor',
+        subtensor: 'bittensor.subtensor',
         wallet: 'bittensor.wallet',
         netuid: int,
         uids: Union[torch.LongTensor, list],

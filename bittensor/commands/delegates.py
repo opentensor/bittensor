@@ -131,7 +131,7 @@ class DelegateStakeCommand:
         '''Delegates stake to a chain delegate.'''
         config = cli.config.copy()
         wallet = bittensor.wallet( config = config )
-        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+        subtensor: bittensor.subtensor = bittensor.subtensor( config = config )
         subtensor.delegate(
             wallet = wallet,
             delegate_ss58 = config.get('delegate_ss58key'),
@@ -229,7 +229,7 @@ class DelegateUnstakeCommand:
         '''Undelegates stake from a chain delegate.'''
         config = cli.config.copy()
         wallet = bittensor.wallet( config = config )
-        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+        subtensor: bittensor.subtensor = bittensor.subtensor( config = config )
         subtensor.undelegate(
             wallet = wallet,
             delegate_ss58 = config.get('delegate_ss58key'),
@@ -426,7 +426,7 @@ class MyDelegatesCommand:
             wallets = _get_coldkey_wallets_for_path( config.wallet.path )
         else:
             wallets = [bittensor.wallet( config = config )]
-        subtensor: bittensor.Subtensor = bittensor.subtensor( config = config )
+        subtensor: bittensor.subtensor = bittensor.subtensor( config = config )
 
         table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
         table.add_column("[overline white]Wallet", footer_style = "overline white", style='bold white')

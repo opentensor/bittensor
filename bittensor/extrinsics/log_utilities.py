@@ -347,7 +347,7 @@ class ValidatorLogger:
     def print_console_validator_identifier(
         self,
         uid: int,
-        wallet: 'bittensor.Wallet',
+        wallet: 'bittensor.wallet',
         external_ip: str,
     ):
         r""" Console print for validator identifier.
@@ -452,7 +452,7 @@ class ValidatorPrometheus:
         parameters: torch.nn.parameter.Parameter,
         uid: int,
         network: str,
-        wallet: 'bittensor.Wallet'
+        wallet: 'bittensor.wallet'
     ):
         r""" Set up prometheus running info.
         """

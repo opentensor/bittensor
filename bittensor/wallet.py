@@ -237,7 +237,7 @@ class wallet:
                 overwrite (bool, optional):
                     Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
             Returns:
-                wallet (bittensor.Wallet):
+                wallet (bittensor.wallet):
                     this object with newly created coldkey.
         """
         keypair = Keypair.create_from_uri( uri )
@@ -256,7 +256,7 @@ class wallet:
                 overwrite (bool, optional):
                     Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
             Returns:
-                wallet (bittensor.Wallet):
+                wallet (bittensor.wallet):
                     this object with newly created hotkey.
         """
         keypair = Keypair.create_from_uri( uri )
@@ -274,7 +274,7 @@ class wallet:
                 overwrite (bool, optional):
                     Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
             Returns:
-                wallet (bittensor.Wallet):
+                wallet (bittensor.wallet):
                     this object with newly created coldkey.
         """
         self.create_new_coldkey( n_words, use_password, overwrite )
@@ -289,7 +289,7 @@ class wallet:
                 overwrite (bool, optional):
                     Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
             Returns:
-                wallet (bittensor.Wallet):
+                wallet (bittensor.wallet):
                     this object with newly created coldkey.
         """
         mnemonic = Keypair.generate_mnemonic( n_words)
@@ -309,7 +309,7 @@ class wallet:
                 overwrite (bool, optional):
                     Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
             Returns:
-                wallet (bittensor.Wallet):
+                wallet (bittensor.wallet):
                     this object with newly created hotkey.
         """
         self.create_new_hotkey( n_words, use_password, overwrite )
@@ -324,7 +324,7 @@ class wallet:
                 overwrite (bool, optional):
                     Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
             Returns:
-                wallet (bittensor.Wallet):
+                wallet (bittensor.wallet):
                     this object with newly created hotkey.
         """
         mnemonic = Keypair.generate_mnemonic( n_words)
@@ -344,7 +344,7 @@ class wallet:
                 overwrite (bool, optional) (default: False):
                     Will this operation overwrite the coldkeypub (if exists) under the same path <wallet path>/<wallet name>/coldkeypub
             Returns:
-                wallet (bittensor.Wallet):
+                wallet (bittensor.wallet):
                     newly re-generated Wallet with coldkeypub.
 
         """
@@ -415,7 +415,7 @@ class wallet:
                 overwrite (bool, optional):
                     Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
             Returns:
-                wallet (bittensor.Wallet):
+                wallet (bittensor.wallet):
                     this object with newly created coldkey.
 
             Note: uses priority order: mnemonic > seed > json
@@ -499,7 +499,7 @@ class wallet:
                 overwrite (bool, optional):
                     Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
             Returns:
-                wallet (bittensor.Wallet):
+                wallet (bittensor.wallet):
                     this object with newly created hotkey.
         """
         if len(kwargs) == 0:

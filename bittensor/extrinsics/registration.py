@@ -27,8 +27,8 @@ import bittensor.utils.networking as net
 from bittensor.utils.registration import POWSolution, create_pow
 
 def register_extrinsic (
-    subtensor: 'bittensor.Subtensor',
-    wallet: 'bittensor.Wallet',
+    subtensor: 'bittensor.subtensor',
+    wallet: 'bittensor.wallet',
     netuid: int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
@@ -182,8 +182,8 @@ def register_extrinsic (
 
 
 def burned_register_extrinsic (
-    subtensor: 'bittensor.Subtensor',
-    wallet: 'bittensor.Wallet',
+    subtensor: 'bittensor.subtensor',
+    wallet: 'bittensor.wallet',
     netuid: int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,

@@ -106,7 +106,7 @@ class subtensor:
             network: str = None,
             chain_endpoint: str = None,
             config: 'bittensor.config' = None,
-        ) -> 'bittensor.Subtensor':
+        ) -> 'bittensor.subtensor':
         r""" Initializes a subtensor chain interface.
             Args:
                 config (:obj:`bittensor.Config`, `optional`):
@@ -160,7 +160,7 @@ class subtensor:
     #####################
     def nominate(
         self,
-        wallet: 'bittensor.Wallet',
+        wallet: 'bittensor.wallet',
         wait_for_finalization: bool = False,
         wait_for_inclusion: bool = True
     ) -> bool:
@@ -243,7 +243,7 @@ class subtensor:
     ######################
     def register (
         self,
-        wallet: 'bittensor.Wallet',
+        wallet: 'bittensor.wallet',
         netuid: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
@@ -277,7 +277,7 @@ class subtensor:
 
     def burned_register (
         self,
-        wallet: 'bittensor.Wallet',
+        wallet: 'bittensor.wallet',
         netuid: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
@@ -959,7 +959,7 @@ class subtensor:
     def neuron_has_validator_permit( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[bool]:
         return self.query_subtensor( 'ValidatorPermit', block, [ netuid, uid ] ).value
 
-    def neuron_for_wallet( self, wallet: 'bittensor.Wallet', netuid = int, block: Optional[int] = None ) -> Optional[NeuronInfo]:
+    def neuron_for_wallet( self, wallet: 'bittensor.wallet', netuid = int, block: Optional[int] = None ) -> Optional[NeuronInfo]:
         return self.get_neuron_for_pubkey_and_subnet ( wallet.hotkey.ss58_address, netuid = netuid, block = block )
 
     def neuron_for_uid( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfo]:

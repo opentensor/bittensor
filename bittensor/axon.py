@@ -106,7 +106,7 @@ class axon:
         Args:
             config (:obj:`Optional[bittensor.Config]`, `optional`):
                 bittensor.axon.config()
-            wallet (:obj:`Optional[bittensor.Wallet]`, `optional`):
+            wallet (:obj:`Optional[bittensor.wallet]`, `optional`):
                 bittensor wallet with hotkey and coldkeypub.
             port (:type:`Optional[int]`, `optional`):
                 Binding port.

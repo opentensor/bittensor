@@ -50,7 +50,7 @@ class POWSolution:
     difficulty: int
     seal: bytes
 
-    def is_stale(self, subtensor: 'bittensor.Subtensor') -> bool:
+    def is_stale(self, subtensor: 'bittensor.subtensor') -> bool:
         """Returns True if the POW is stale.
         This means the block the POW is solved for is within 3 blocks of the current block.
         """
@@ -348,7 +348,7 @@ class RegistrationStatisticsLogger:
             self.console.log( self.get_status_message(stats, verbose=verbose), )
 
 
-def _solve_for_difficulty_fast( subtensor, wallet: 'bittensor.Wallet', netuid: int, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None,  n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
+def _solve_for_difficulty_fast( subtensor, wallet: 'bittensor.wallet', netuid: int, output_in_place: bool = True, num_processes: Optional[int] = None, update_interval: Optional[int] = None,  n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the POW for registration using multiprocessing.
     Args:
@@ -516,12 +516,12 @@ def _solve_for_difficulty_fast( subtensor, wallet: 'bittensor.Wallet', netuid: i
                             Exception,
                             interval=1,
                             max_tries=3)
-def _get_block_with_retry(subtensor: 'bittensor.Subtensor', netuid: int) -> Tuple[int, int, bytes]:
+def _get_block_with_retry(subtensor: 'bittensor.subtensor', netuid: int) -> Tuple[int, int, bytes]:
     """
     Gets the current block number, difficulty, and block hash from the substrate node.
 
     Args:
-        subtensor (:obj:`bittensor.Subtensor`, `required`):
+        subtensor (:obj:`bittensor.subtensor`, `required`):
             The subtensor object to use to get the block number, difficulty, and block hash.
 
         netuid (:obj:`int`, `required`):
@@ -569,7 +569,7 @@ class _UsingSpawnStartMethod():
 
 
 def _check_for_newest_block_and_update(
-        subtensor: 'bittensor.Subtensor',
+        subtensor: 'bittensor.subtensor',
         netuid: int,
         old_block_number: int,
         hotkey_bytes: bytes,
@@ -585,7 +585,7 @@ def _check_for_newest_block_and_update(
     Checks for a new block and updates the current block information if a new block is found.
 
     Args:
-        subtensor (:obj:`bittensor.Subtensor`, `required`):
+        subtensor (:obj:`bittensor.subtensor`, `required`):
             The subtensor object to use for getting the current block.
         netuid (:obj:`int`, `required`):
             The netuid to use for retrieving the difficulty.
@@ -632,13 +632,13 @@ def _check_for_newest_block_and_update(
     return old_block_number
 
 
-def _solve_for_difficulty_fast_cuda( subtensor: 'bittensor.Subtensor', wallet: 'bittensor.Wallet', netuid: int, output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
+def _solve_for_difficulty_fast_cuda( subtensor: 'bittensor.subtensor', wallet: 'bittensor.wallet', netuid: int, output_in_place: bool = True, update_interval: int = 50_000, TPB: int = 512, dev_id: Union[List[int], int] = 0, n_samples: int = 10, alpha_: float = 0.80, log_verbose: bool = False ) -> Optional[POWSolution]:
     """
     Solves the registration fast using CUDA
     Args:
-        subtensor: bittensor.Subtensor
+        subtensor: bittensor.subtensor
             The subtensor node to grab blocks
-        wallet: bittensor.Wallet
+        wallet: bittensor.wallet
             The wallet to register
         netuid: int
             The netuid of the subnet to register to.

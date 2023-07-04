@@ -36,7 +36,7 @@ def gen_nonce():
 
 def test_axon_start():
     mock_wallet = MagicMock(
-        spec=bittensor.Wallet,
+        spec=bittensor.wallet,
         coldkey=MagicMock(),
         coldkeypub=MagicMock(
             # mock ss58 address
@@ -52,7 +52,7 @@ def test_axon_start():
 
 def test_axon_stop():
     mock_wallet = MagicMock(
-        spec=bittensor.Wallet,
+        spec=bittensor.wallet,
         coldkey=MagicMock(),
         coldkeypub=MagicMock(
             # mock ss58 address
@@ -94,7 +94,7 @@ def is_port_in_use(port):
 
 def test_axon_is_destroyed():
     mock_wallet = MagicMock(
-        spec=bittensor.Wallet,
+        spec=bittensor.wallet,
         coldkey=MagicMock(),
         coldkeypub=MagicMock(
             # mock ss58 address
@@ -162,7 +162,7 @@ class TestExternalAxon(unittest.TestCase):
 
         mock_config = bittensor.axon.config()
         mock_wallet = MagicMock(
-            spec=bittensor.Wallet,
+            spec=bittensor.wallet,
             coldkey=MagicMock(),
             coldkeypub=MagicMock(
                 # mock ss58 address
@@ -185,7 +185,7 @@ class TestExternalAxon(unittest.TestCase):
                 ss58_address = 'fake_hotkey_address',
                 spec = bittensor.Keypair
             ),
-            spec = bittensor.Wallet
+            spec = bittensor.wallet
         )
 
         with mock.patch('bittensor.wallet') as mock_create_wallet:
@@ -201,7 +201,7 @@ class TestExternalAxon(unittest.TestCase):
                 ss58_address = 'fake_hotkey_address',
                 spec = bittensor.Keypair
             ),
-            spec = bittensor.Wallet
+            spec = bittensor.wallet
         )
         mock_add_insecure_port = mock.MagicMock(return_value=None)
         mock_server = mock.MagicMock(
@@ -244,7 +244,7 @@ class TestExternalAxon(unittest.TestCase):
                 ss58_address = 'fake_hotkey_address',
                 spec = bittensor.Keypair
             ),
-            spec = bittensor.Wallet
+            spec = bittensor.wallet
         )
 
         mock_add_insecure_port = mock.MagicMock(return_value=None)
@@ -289,7 +289,7 @@ class TestExternalAxon(unittest.TestCase):
                 ss58_address = 'fake_hotkey_address',
                 spec = bittensor.Keypair
             ),
-            spec = bittensor.Wallet
+            spec = bittensor.wallet
         )
 
         mock_add_insecure_port = mock.MagicMock(return_value=None)

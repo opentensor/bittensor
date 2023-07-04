@@ -37,7 +37,7 @@ class IntListPrompt(PromptBase):
             all( val.strip() in self.choices for val in value.replace(',', ' ').split( ))
 
 
-def check_netuid_set( config: 'bittensor.Config', subtensor: 'bittensor.Subtensor', allow_none: bool = False ):
+def check_netuid_set( config: 'bittensor.Config', subtensor: 'bittensor.subtensor', allow_none: bool = False ):
     if subtensor.network != 'nakamoto':
         all_netuids = [str(netuid) for netuid in subtensor.get_subnets()]
         if len(all_netuids) == 0:

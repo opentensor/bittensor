@@ -23,7 +23,7 @@ from typing import List, Dict, Union, Optional
 from bittensor.utils.balance import Balance
 
 def add_stake_extrinsic(
-        subtensor: 'bittensor.Subtensor',
+        subtensor: 'bittensor.subtensor',
         wallet: 'bittensor.wallet',
         hotkey_ss58: Optional[str] = None,
         amount: Union[Balance, float] = None,
@@ -54,9 +54,9 @@ def add_stake_extrinsic(
             If we did not wait for finalization / inclusion, the response is true.
 
     Raises:
-        NotRegisteredError:
+        bittensor.errors.NotRegisteredError:
             If the wallet is not registered on the chain.
-        NotDelegateError:
+        bittensor.errors.NotDelegateError:
             If the hotkey is not a delegate on the chain.
     """
     # Decrypt keys,
@@ -77,7 +77,7 @@ def add_stake_extrinsic(
         if not own_hotkey:
             # This is not the wallet's own hotkey so we are delegating.
             if not subtensor.is_hotkey_delegate( hotkey_ss58 ):
-                raise bittensor.errors.NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
+                raise bittensor.errors.bittensor.errors.NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
 
             # Get hotkey take
             hotkey_take = subtensor.get_delegate_take( hotkey_ss58 )
@@ -149,16 +149,16 @@ def add_stake_extrinsic(
             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
             return False
 
-    except NotRegisteredError as e:
+    except bittensor.errors.NotRegisteredError as e:
         bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
         return False
-    except StakeError as e:
+    except bittensor.errors.StakeError as e:
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
 
 
 def add_stake_multiple_extrinsic (
-        subtensor: 'bittensor.Subtensor',
+        subtensor: 'bittensor.subtensor',
         wallet: 'bittensor.wallet',
         hotkey_ss58s: List[str],
         amounts: List[Union[Balance, float]] = None,
@@ -307,10 +307,10 @@ def add_stake_multiple_extrinsic (
                 bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
                 continue
 
-        except NotRegisteredError as e:
+        except bittensor.errors.NotRegisteredError as e:
             bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(hotkey_ss58))
             continue
-        except StakeError as e:
+        except bittensor.errors.StakeError as e:
             bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
             continue
 
@@ -324,7 +324,7 @@ def add_stake_multiple_extrinsic (
     return False
 
 def __do_add_stake_single(
-        subtensor: 'bittensor.Subtensor',
+        subtensor: 'bittensor.subtensor',
         wallet: 'bittensor.wallet',
         hotkey_ss58: str,
         amount: 'bittensor.Balance',
@@ -353,11 +353,11 @@ def __do_add_stake_single(
             flag is true if extrinsic was finalized or uncluded in the block.
             If we did not wait for finalization / inclusion, the response is true.
     Raises:
-        StakeError:
+        bittensor.errors.StakeError:
             If the extrinsic fails to be finalized or included in the block.
-        NotDelegateError:
+        bittensor.errors.NotDelegateError:
             If the hotkey is not a delegate.
-        NotRegisteredError:
+        bittensor.errors.NotRegisteredError:
             If the hotkey is not registered in any subnets.
 
     """
@@ -369,7 +369,7 @@ def __do_add_stake_single(
         # We are delegating.
         # Verify that the hotkey is a delegate.
         if not subtensor.is_hotkey_delegate( hotkey_ss58 = hotkey_ss58 ):
-            raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
+            raise bittensor.errors.NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
 
     with subtensor.substrate as substrate:
         call = substrate.compose_call(
@@ -390,4 +390,4 @@ def __do_add_stake_single(
         if response.is_success:
             return True
         else:
-            raise StakeError(response.error_message)
+            raise bittensor.errors.StakeError(response.error_message)
