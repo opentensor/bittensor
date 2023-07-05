@@ -26,8 +26,7 @@ import bittensor
 from bittensor.utils.registration import _CUDASolver, _SolverBase
 from bittensor._subtensor.subtensor_mock import MockSubtensor
 
-from tests.mocks.wallet_mock import MockWallet
-from tests.helpers import get_mock_wallet as generate_wallet, get_mock_keypair
+from tests.helpers import get_mock_wallet as generate_wallet, get_mock_keypair, MockWallet
 
 
 @fixture(scope="function")
