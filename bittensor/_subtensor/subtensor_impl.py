@@ -29,7 +29,7 @@ from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
 from bittensor.utils.registration import POWSolution
 
 # Local imports.
-from .chain_data import NeuronInfo, DelegateInfo, PrometheusInfo, SubnetInfo, NeuronInfoLite, axon_info
+from .chain_data import NeuronInfo, DelegateInfo, PrometheusInfo, SubnetInfo, NeuronInfoLite, axon_info, ProposalVoteData, ProposalCallData
 from .errors import *
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
@@ -490,7 +490,7 @@ class Subtensor:
         call_params: AxonServeCallParams,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ):
+    ) -> Tuple[bool, Optional[str]]:
         with self.substrate as substrate:
             call = substrate.compose_call(
                 call_module='SubtensorModule',
@@ -506,7 +506,7 @@ class Subtensor:
                 else:
                     return False, response.error_message
             else:
-                return True
+                return True, None
 
     def serve_prometheus (
         self,
@@ -551,7 +551,7 @@ class Subtensor:
                 else:
                     return False, response.error_message
             else:
-                return True
+                return True, None
     
     #################
     #### Staking ####
@@ -701,13 +701,6 @@ class Subtensor:
     #### Senate ####
     ################
 
-<<<<<<< HEAD
-=======
-    ################
-    #### Senate ####
-    ################
-
->>>>>>> master
     def register_senate(
         self,
         wallet: 'bittensor.wallet',
@@ -740,17 +733,61 @@ class Subtensor:
     
     def is_senate_member(
         self,
-        hotkey_ss58: str
+        hotkey_ss58: str,
+        block: Optional[int] = None,
     ) -> bool:
-        senate_members = self.query_module("Senate", "Members").serialize()
+        senate_members = self.query_module(module="Senate", name="Members", block=block ).serialize()
         return senate_members.count( hotkey_ss58 ) > 0
     
     def get_vote_data(
         self,
-        proposal_hash: str
-    ) -> Optional[dict]:
-        vote_data = self.query_module("Triumvirate", "Voting", None, [proposal_hash])
+        proposal_hash: str,
+        block: Optional[int] = None,
+    ) -> Optional[ProposalVoteData]:
+        vote_data = self.query_module(module="Triumvirate", name="Voting", block=block, params=[proposal_hash])
         return vote_data.serialize() if vote_data != None else None
+    
+    get_proposal_vote_data = get_vote_data
+    
+    def get_senate_members(
+        self,
+        block: Optional[int] = None,
+    ) -> Optional[List[str]]:
+        senate_members = self.query_module("SenateMembers", "Members", block=block )
+        
+        return senate_members.serialize() if senate_members != None else None
+    
+    def get_proposal_call_data(
+        self,
+        proposal_hash: str,
+        block: Optional[int] = None,
+    ) -> Optional['bittensor.ProposalCallData']:
+        proposal_data = self.query_module(module="Triumvirate", name="ProposalOf", block=block, params=[proposal_hash])
+
+        return proposal_data.serialize() if proposal_data != None else None
+    
+    def get_proposal_hashes(
+        self,
+        block: Optional[int] = None,
+    ) -> Optional[List[str]]:
+        proposal_hashes = self.query_module(module="Triumvirate", name="Proposals", block=block)
+
+        return proposal_hashes.serialize() if proposal_hashes != None else None
+
+    def get_proposals(
+        self,
+        block: Optional[int] = None,
+    ) -> Optional[Dict[str, Tuple['bittensor.ProposalCallData', 'bittensor.ProposalVoteData']]]:
+        proposals = {}
+        proposal_hashes: List = self.get_proposal_hashes( block=block )
+        
+        for proposal_hash in proposal_hashes:
+            proposals[proposal_hash] = (
+                self.get_proposal_call_data( proposal_hash, block=block ),
+                self.get_proposal_vote_data( proposal_hash, block=block )
+            )
+
+        return proposals
 
     ########################
     #### Standard Calls ####
@@ -1278,25 +1315,23 @@ class Subtensor:
             neuron (List[NeuronInfo]):
                 List of neuron metadata objects.
         """
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash( block )
-                params = [netuid]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="neuronInfo_getNeurons", # custom rpc method
-                    params=params
-                )
+        neurons_lite = self.neurons_lite( netuid = netuid, block = block )
+        weights = self.weights( block = block, netuid = netuid )
+        bonds = self.bonds( block = block, netuid = netuid )
 
-        json_body = make_substrate_call_with_retry()
-        result = json_body['result']
+        weights_as_dict = {
+            uid: w for uid, w in weights
+        }
+        bonds_as_dict = {
+            uid: b for uid, b in bonds
+        }
 
-        if result in (None, []):
-            return []
+        neurons = [
+            NeuronInfo.from_weights_bonds_and_neuron_lite( neuron_lite, weights_as_dict, bonds_as_dict ) for neuron_lite in neurons_lite
+        ]
 
-        return NeuronInfo.list_from_vec_u8( result )
+        return neurons
+       
 
     def neuron_for_uid_lite( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfoLite]:
         r""" Returns a list of neuron lite from the chain.
@@ -1363,7 +1398,7 @@ class Subtensor:
         return NeuronInfoLite.list_from_vec_u8( result )
 
     def metagraph( self, netuid: int, lite: bool = True, block: Optional[int] = None ) -> 'bittensor.Metagraph':
-        r""" Returns the metagraph for the subnet.
+        r""" Returns a synced metagraph for the subnet.
         Args:
             netuid ( int ):
                 The network uid of the subnet to query.
@@ -1376,9 +1411,27 @@ class Subtensor:
                 The metagraph for the subnet at the block.
         """        
         metagraph_ = bittensor.metagraph( network = self.network, netuid = netuid, lite = lite, sync = False )
-        metagraph_.sync( block = block, lite = lite, subtensor = self)
+        metagraph_.sync( block = block, lite = lite, subtensor = self )
 
         return metagraph_
+    
+    def weights(self, netuid: int, block: Optional[int] = None) -> List[Tuple[int, List[Tuple[int, int]]]]:
+        w_map = []
+        w_map_encoded = self.query_map_subtensor(name="Weights", block=block, params = [netuid])
+        if w_map_encoded.records:
+            for uid, w in w_map_encoded:
+                w_map.append((uid.serialize(), w.serialize()))
+
+        return w_map
+    
+    def bonds(self, netuid: int, block: Optional[int] = None) -> List[Tuple[int, List[Tuple[int, int]]]]:
+        b_map = []
+        b_map_encoded = self.query_map_subtensor(name="Bonds", block=block, params = [netuid])
+        if b_map_encoded.records:
+            for uid, b in b_map_encoded:
+                b_map.append((uid.serialize(), b.serialize()))
+
+        return b_map
     
     ################
     ## Extrinsics ##
@@ -1439,7 +1492,7 @@ class Subtensor:
                 return True
             else:
                 raise StakeError(response.error_message)
-    
+
     def _do_nominate(
             self,
             wallet: 'bittensor.wallet',

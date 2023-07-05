@@ -27,7 +27,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = '5.2.0'
+__version__ = '5.3.0'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 __new_signature_version__ = 360
@@ -177,6 +177,8 @@ from bittensor_wallet import Keypair as Keypair
 from bittensor._subtensor.chain_data import NeuronInfo as NeuronInfo
 from bittensor._subtensor.chain_data import NeuronInfoLite as NeuronInfoLite
 from bittensor._subtensor.chain_data import PrometheusInfo as PrometheusInfo
+from bittensor._subtensor.chain_data import ProposalCallData as ProposalCallData
+from bittensor._subtensor.chain_data import ProposalVoteData as ProposalVoteData
 from bittensor._subtensor.subtensor_impl import Subtensor as Subtensor
 from bittensor._serializer.serializer_impl import Serializer as Serializer
 from bittensor._subtensor.chain_data import SubnetInfo as SubnetInfo
@@ -189,8 +191,6 @@ from bittensor_wallet import KeyFileError as KeyFileError
 
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import ForwardTextPromptingResponse
-from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingRequest
-from bittensor._proto.bittensor_pb2 import MultiForwardTextPromptingResponse
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingRequest
 from bittensor._proto.bittensor_pb2 import BackwardTextPromptingResponse
 
@@ -207,7 +207,6 @@ from bittensor._dendrite.text_prompting.dendrite_pool import TextPromptingDendri
 
 # ---- Base Miners -----
 from bittensor._neuron.base_miner_neuron import BaseMinerNeuron
-from bittensor._neuron.base_validator import BaseValidator
 from bittensor._neuron.base_prompting_miner import BasePromptingMiner
 from bittensor._neuron.base_huggingface_miner import HuggingFaceMiner
 

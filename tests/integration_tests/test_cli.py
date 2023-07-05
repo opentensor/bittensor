@@ -2077,16 +2077,13 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             return uid
 
        
-        for i in range(4):
+        for i in range(5):
             _ = register_mock_neuron(
                 i
             )
+
+        _subtensor_mock.neurons_lite(netuid=config.netuid)
             
-        # Only wait for finalization on the last neuron
-        _ = register_mock_neuron(
-            i = 4
-        )
-        
         cli = bittensor.cli(config)
 
         mock_console = MockConsole()

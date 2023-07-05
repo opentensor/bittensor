@@ -892,7 +892,7 @@ class MockSubtensor(Subtensor):
         if not self.is_hotkey_delegate(
             hotkey_ss58 = delegate_ss58
         ):
-            raise Exception("Not a delegate")
+            raise StakeError("Not a delegate")
         
         # do stake
         success = self._do_stake(
@@ -918,7 +918,7 @@ class MockSubtensor(Subtensor):
         if not self.is_hotkey_delegate(
             hotkey_ss58 = delegate_ss58
         ):
-            raise Exception("Not a delegate")
+            raise StakeError("Not a delegate")
         
         # do unstake
         self._do_unstake(
@@ -973,7 +973,7 @@ class MockSubtensor(Subtensor):
         existential_deposit = self.get_existential_deposit()
 
         if bal < transfer_balance + existential_deposit + transfer_fee:
-            raise Exception("Insufficient balance")
+            raise TransferError("Insufficient balance")
         
         # Remove from the free balance
         self.chain_state['System']['Account'][wallet.coldkeypub.ss58_address]['data']['free'][self.block_number] = (bal - transfer_balance - transfer_fee).rao
@@ -1002,7 +1002,7 @@ class MockSubtensor(Subtensor):
 
         subtensor_state = self.chain_state['SubtensorModule']
         if netuid not in subtensor_state['NetworksAdded']:
-            raise Exception("Subnet does not exist")
+            raise RegistrationError("Subnet does not exist")
 
         self._register_neuron(
             netuid=netuid,
@@ -1021,14 +1021,14 @@ class MockSubtensor(Subtensor):
     ) -> Tuple[bool, Optional[str]]:
         subtensor_state = self.chain_state['SubtensorModule']
         if netuid not in subtensor_state['NetworksAdded']:
-            raise Exception("Subnet does not exist")
+            raise RegistrationError("Subnet does not exist")
         
         bal = self.get_balance( wallet.coldkeypub.ss58_address )
         burn = self.burn( netuid=netuid )
         existential_deposit = self.get_existential_deposit( )
 
         if bal < burn + existential_deposit:
-            raise Exception("Insufficient funds")
+            raise RegistrationError("Insufficient funds")
 
         self._register_neuron(
             netuid=netuid,
@@ -1061,7 +1061,7 @@ class MockSubtensor(Subtensor):
         existential_deposit = self.get_existential_deposit( )
 
         if bal < amount + existential_deposit:
-            raise Exception("Insufficient funds")
+            raise StakeError("Insufficient funds")
         
         stake_state = subtensor_state['Stake']
 
@@ -1122,7 +1122,7 @@ class MockSubtensor(Subtensor):
             curr_stake = bittensor.Balance(0)
 
         if curr_stake < amount:
-            raise Exception("Insufficient funds")
+            raise StakeError("Insufficient funds")
         
         stake_state = subtensor_state['Stake']
 
