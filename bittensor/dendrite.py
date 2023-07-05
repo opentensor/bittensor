@@ -72,61 +72,33 @@ class dendrite( torch.nn.Module ):
         self,
         axon: Union[ 'bt.AxonInfo', 'bt.axon' ],
         request: bt.BaseRequest = bt.BaseRequest(), 
-        timeout: float = 12 
+        timeout: float = 12.0 
     ) -> bt.BaseRequest:
         
         # Build the endpoint str + url
         info = axon.info() if isinstance( axon, bt.axon ) else axon
         request_name = request.__class__.__name__
-        if info.ip == str(self.external_ip):
-            endpoint = f"localhost:{str(info.port)}"
-        else:
-            endpoint = f"{info.ip}:{str(info.port)}"
+        endpoint = f"localhost:{str(info.port)}" if info.ip == str(self.external_ip) else f"{info.ip}:{str(info.port)}"
         url = f"http://{endpoint}/{request_name}"
 
         # Build Metadata.
-        sender_ip = str(self.external_ip)
-        sender_nonce = f"{time.monotonic_ns()}"
-        sender_hotkey = self.keypair.ss58_address
-        sender_uuid = self.uuid
-        sender_timeout = timeout
-        sender_version = bt.__version_as_int__
-        receiver_hotkey = info.hotkey
-        message = f"{sender_nonce}.{sender_hotkey}.{receiver_hotkey}.{sender_uuid}"
-        sender_signature = f"0x{self.keypair.sign(message).hex()}"
-        
-        # Fill request metadata for middleware.
-        metadata = {
-            "rpc-auth-header": "Bittensor",
-            "sender_ip": str(sender_ip),
-            "sender_timeout": str( sender_timeout ),
-            "sender_version": str( sender_version ),
-            "sender_nonce": str( sender_nonce ),
-            "sender_uuid": str( sender_uuid ),
-            "sender_hotkey": str( sender_hotkey ),
-            "sender_signature": str( sender_signature ),
-            "receiver_hotkey": str( receiver_hotkey ),
-            "request_name": request_name,
-        }
-
-        # Fill data into request.
-        request.sender_ip = sender_ip
-        request.sender_version = sender_version
-        request.sender_nonce = sender_nonce
-        request.sender_uuid = str(sender_uuid)
-        request.sender_hotkey = str( sender_hotkey )
-        request.sender_signature = str( sender_signature )
-        request.sender_timeout = sender_timeout
-        request.receiver_hotkey = receiver_hotkey
+        request.sender_ip = str(self.external_ip)
+        request.sender_nonce = f"{time.monotonic_ns()}"
+        request.sender_hotkey = self.keypair.ss58_address
+        request.sender_uuid = str(self.uuid)
+        request.sender_timeout = timeout
+        request.sender_version = bt.__version_as_int__
+        request.receiver_hotkey = info.hotkey
         request.request_name = request_name
+        message = f"{request.sender_nonce}.{request.sender_hotkey}.{request.receiver_hotkey}.{request.sender_uuid}"
+        request.sender_signature = f"0x{self.keypair.sign(message).hex()}"
+        print(request)
 
         try:
-            # Try request.
-            bt.logging.debug( f"dendrite | --> | {request_name} | {receiver_hotkey} | {info.ip}:{str(info.port)} | 0 | Success")
-            response = await self.client.post( url, headers = metadata, json = request.dict() )
+            request.log_dendrite_outbound( info )
+            response = await self.client.post( url, headers = request.headers(), json = request.dict() )
             response = request.__class__( **response.json() )
-            bt.logging.debug( f"dendrite | --> | {request_name} | {receiver_hotkey} | {info.ip}:{str(info.port)} | {response.return_code} | {response.return_message}")
-        
+
         except Exception as e:
             # Unknown failure, set params.
             response = request.__class__( **request.dict() )
@@ -135,5 +107,5 @@ class dendrite( torch.nn.Module ):
 
         finally:
             # Finally log and exit.
-            bt.logging.debug( f"dendrite | <-- | {request_name} | {receiver_hotkey} | {info.ip}:{str(info.port)} | {response.return_code} | {response.return_message}")
+            response.log_dendrite_inbound( info )
             return response

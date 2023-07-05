@@ -93,6 +93,7 @@ from substrateinterface import Keypair as Keypair
 from .config import config as config
 from .keyfile import keyfile as keyfile
 from .wallet import wallet as wallet
+from .utils import *
 from .utils.balance import Balance as Balance
 from .chain_data import *
 from .errors import *
