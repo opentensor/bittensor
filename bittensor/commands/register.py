@@ -43,10 +43,10 @@ class RegisterCommand:
             TPB = cli.config.subtensor.register.cuda.get('TPB', None),
             update_interval = cli.config.subtensor.register.get('update_interval', None),
             num_processes = cli.config.subtensor.register.get('num_processes', None),
-            cuda = cli.config.subtensor.register.cuda.get('use_cuda', bittensor.defaults.subtensor.register.cuda.use_cuda),
+            cuda = cli.config.subtensor.register.cuda.get('use_cuda', False),
             dev_id = cli.config.subtensor.register.cuda.get('dev_id', None),
-            output_in_place = cli.config.subtensor.register.get('output_in_place', bittensor.defaults.subtensor.register.output_in_place),
-            log_verbose = cli.config.subtensor.register.get('verbose', bittensor.defaults.subtensor.register.verbose),
+            output_in_place = cli.config.subtensor.register.get('output_in_place', False),
+            log_verbose = cli.config.subtensor.register.get('verbose', False),
         )
 
 
@@ -84,11 +84,11 @@ class RegisterCommand:
         check_netuid_set( config, subtensor = bittensor.subtensor( config = config ) )
 
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = "default")
             config.wallet.name = str(wallet_name)
 
         if not config.is_set('wallet.hotkey') and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            hotkey = Prompt.ask("Enter hotkey name", default = "default")
             config.wallet.hotkey = str(hotkey)
 
         if not config.no_prompt:
@@ -159,14 +159,14 @@ class RecycleRegisterCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.is_set('subtensor.network') and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = 1)
 
         check_netuid_set( config, subtensor = bittensor.subtensor( config = config ) )
 
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = "default")
             config.wallet.name = str(wallet_name)
 
         if not config.is_set('wallet.hotkey') and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            hotkey = Prompt.ask("Enter hotkey name", default = "default")
             config.wallet.hotkey = str(hotkey)

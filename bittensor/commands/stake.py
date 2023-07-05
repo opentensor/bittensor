@@ -138,16 +138,16 @@ class StakeCommand:
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = "default")
             config.wallet.name = str(wallet_name)
 
         if not config.is_set('wallet.hotkey') and not config.no_prompt and not config.wallet.get('all_hotkeys') and not config.wallet.get('hotkeys'):
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            hotkey = Prompt.ask("Enter hotkey name", default = "default")
             config.wallet.hotkey = str(hotkey)
 
         # Get amount.
         if not config.get('amount') and not config.get('stake_all') and not config.get('max_stake'):
-            if not Confirm.ask("Stake all Tao from account: [bold]'{}'[/bold]?".format(config.wallet.get('name', bittensor.defaults.wallet.name))):
+            if not Confirm.ask("Stake all Tao from account: [bold]'{}'[/bold]?".format(config.wallet.get('name', "default"))):
                 amount = Prompt.ask("Enter Tao amount to stake")
                 try:
                     config.amount = float(amount)

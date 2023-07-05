@@ -34,7 +34,7 @@ class TransferCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = "default")
             config.wallet.name = str(wallet_name)
 
         # Get destination.

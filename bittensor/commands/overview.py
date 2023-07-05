@@ -83,7 +83,7 @@ class OverviewCommand:
             neurons[str(netuid)] = []
         netuids_copy = netuids.copy()
 
-        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
+        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.get('network', "finney"))):
             for netuid in tqdm(netuids_copy, desc="Checking each subnet"):
                 all_neurons: List[bittensor.NeuronInfoLite] = subtensor.neurons_lite( netuid = netuid )
                 # Map the hotkeys to uids
@@ -334,7 +334,7 @@ class OverviewCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt and not config.get( 'all', d=None ):
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = "default")
             config.wallet.name = str(wallet_name)
 
         if config.netuid != []:

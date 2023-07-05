@@ -49,7 +49,7 @@ def check_netuid_set( config: 'bittensor.Config', subtensor: 'bittensor.subtenso
             if not config.no_prompt:
                 netuid = IntListPrompt.ask("Enter netuid", choices=all_netuids, default=str(all_netuids[0]))
             else:
-                netuid = str(bittensor.defaults.netuid) if not allow_none else 'None'
+                netuid = str(1) if not allow_none else 'None'
         else:
             netuid = config.netuid
 
@@ -95,7 +95,7 @@ def check_for_cuda_reg_config( config: 'bittensor.Config' ) -> None:
         else:
             # flag was not set, use default value.
             if config.subtensor.register.cuda.get('use_cuda') is None:
-                config.subtensor.register.cuda.use_cuda = bittensor.defaults.subtensor.register.cuda.use_cuda
+                config.subtensor.register.cuda.use_cuda = False
 
 def get_hotkey_wallets_for_wallet( wallet ) -> List['bittensor.wallet']:
     hotkey_wallets = []

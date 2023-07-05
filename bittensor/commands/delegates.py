@@ -207,12 +207,12 @@ class DelegateStakeCommand:
             console.print("Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key))
 
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = "default")
             config.wallet.name = str(wallet_name)
 
         # Get amount.
         if not config.get('amount') and not config.get('stake_all'):
-            if not Confirm.ask("Stake all Tao from account: [bold]'{}'[/bold]?".format(config.wallet.get('name', bittensor.defaults.wallet.name))):
+            if not Confirm.ask("Stake all Tao from account: [bold]'{}'[/bold]?".format(config.wallet.get('name', "default"))):
                 amount = Prompt.ask("Enter Tao amount to stake")
                 try:
                     config.amount = float(amount)
@@ -282,7 +282,7 @@ class DelegateUnstakeCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = "default")
             config.wallet.name = str(wallet_name)
 
         if not config.get('delegate_ss58key'):
@@ -310,7 +310,7 @@ class DelegateUnstakeCommand:
 
         # Get amount.
         if not config.get('amount') and not config.get('unstake_all'):
-            if not Confirm.ask("Unstake all Tao to account: [bold]'{}'[/bold]?".format(config.wallet.get('name', bittensor.defaults.wallet.name))):
+            if not Confirm.ask("Unstake all Tao to account: [bold]'{}'[/bold]?".format(config.wallet.get('name', "default"))):
                 amount = Prompt.ask("Enter Tao amount to unstake")
                 try:
                     config.amount = float(amount)
@@ -408,11 +408,11 @@ class NominateCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = "default")
             config.wallet.name = str(wallet_name)
 
         if not config.is_set('wallet.hotkey') and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            hotkey = Prompt.ask("Enter hotkey name", default = "default")
             config.wallet.hotkey = str(hotkey)
 
 
@@ -525,7 +525,7 @@ class MyDelegatesCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.get( 'all', d=None ) and not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = "default")
             config.wallet.name = str(wallet_name)
 
 
