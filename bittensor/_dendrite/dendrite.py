@@ -179,7 +179,7 @@ class Dendrite( ABC, torch.nn.Module ):
                 timeout = dendrite_call.timeout,
                 metadata = (
                     ('rpc-auth-header','Bittensor'),
-                    ('bittensor-signature', self.sign() ),
+                    ('bittensor-signature', self.sign( str( dendrite_call._get_request_proto() ) ) ),
                     ('bittensor-version',str(bittensor.__version_as_int__)),
                 )
             )
@@ -230,35 +230,22 @@ class Dendrite( ABC, torch.nn.Module ):
         return time.monotonic_ns()
 
 
-    def sign(self) -> str:
+    def sign(self, message_body) -> str:
         """Creates a signature for the dendrite and returns it as a string."""
         nonce = f"{self.nonce()}"
-        timestamp = time.time()
+        timestamp = str(time.time())
         sender_hotkey = self.keypair.ss58_address
         receiver_hotkey = self.axon_info.hotkey
-
         # Create a new digest object
         digest = hashes.Hash(hashes.SHA256())
-
         # Update the digest object with the bytes of the message
-        digest.update(self.message_body.encode())
-
+        digest.update(message_body.encode())
         # Finalize the digest (this can only be done once)
         message_body_hash = digest.finalize().hex()
-
         # Construct the message
         message = f"{nonce}.{timestamp}.{sender_hotkey}.{receiver_hotkey}.{message_body_hash}.{self.uuid}"
-
         # Sign the message
-        signature = self.keypair.sign(
-            message.encode(),
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256()
-        ).hex()
-
+        signature = self.keypair.sign(message).hex()
         return ".".join([nonce, timestamp, sender_hotkey, f"0x{signature}", message_body_hash, self.uuid])
 
     def state ( self ):

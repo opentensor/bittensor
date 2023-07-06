@@ -335,8 +335,8 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
     def intercept_service(self, continuation, handler_call_details):
         r"""Authentication between bittensor nodes. Intercepts messages and checks them"""
+        print("hi. in intercept.")
         metadata = dict(handler_call_details.invocation_metadata)
-
         try:
             (
                 nonce,
