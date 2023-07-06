@@ -1039,35 +1039,32 @@ class subtensor:
         return NeuronInfo.from_vec_u8( result )
 
     def neurons(self, netuid: int, block: Optional[int] = None ) -> List[NeuronInfo]:
-        r""" Returns a list of neuron from the chain.
-        Args:
-            netuid ( int ):
-                The netuid of the subnet to pull neurons from.
-            block ( Optional[int] ):
-                block to sync from.
-        Returns:
-            neuron (List[NeuronInfo]):
-                List of neuron metadata objects.
-        """
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash( block )
-                params = [netuid]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="neuronInfo_getNeurons", # custom rpc method
-                    params=params
-                )
+            r""" Returns a list of neuron from the chain.
+            Args:
+                netuid ( int ):
+                    The netuid of the subnet to pull neurons from.
+                block ( Optional[int] ):
+                    block to sync from.
+            Returns:
+                neuron (List[NeuronInfo]):
+                    List of neuron metadata objects.
+            """
+            neurons_lite = self.neurons_lite( netuid = netuid, block = block )
+            weights = self.weights( block = block, netuid = netuid )
+            bonds = self.bonds( block = block, netuid = netuid )
 
-        json_body = make_substrate_call_with_retry()
-        result = json_body['result']
+            weights_as_dict = {
+                uid: w for uid, w in weights
+            }
+            bonds_as_dict = {
+                uid: b for uid, b in bonds
+            }
 
-        if result in (None, []):
-            return []
+            neurons = [
+                NeuronInfo.from_weights_bonds_and_neuron_lite( neuron_lite, weights_as_dict, bonds_as_dict ) for neuron_lite in neurons_lite
+            ]
 
-        return NeuronInfo.list_from_vec_u8( result )
+            return neurons
 
     def neuron_for_uid_lite( self, uid: int, netuid: int, block: Optional[int] = None ) -> Optional[NeuronInfoLite]:
         r""" Returns a list of neuron lite from the chain.
@@ -1150,6 +1147,24 @@ class subtensor:
         metagraph_.sync( block = block, lite = lite, subtensor = self)
 
         return metagraph_
+
+    def weights(self, netuid: int, block: Optional[int] = None) -> List[Tuple[int, List[Tuple[int, int]]]]:
+        w_map = []
+        w_map_encoded = self.query_map_subtensor(name="Weights", block=block, params = [netuid])
+        if w_map_encoded.records:
+            for uid, w in w_map_encoded:
+                w_map.append((uid.serialize(), w.serialize()))
+
+        return w_map
+
+    def bonds(self, netuid: int, block: Optional[int] = None) -> List[Tuple[int, List[Tuple[int, int]]]]:
+        b_map = []
+        b_map_encoded = self.query_map_subtensor(name="Bonds", block=block, params = [netuid])
+        if b_map_encoded.records:
+            for uid, b in b_map_encoded:
+                b_map.append((uid.serialize(), b.serialize()))
+
+        return b_map
 
     ################
     #### Legacy ####
