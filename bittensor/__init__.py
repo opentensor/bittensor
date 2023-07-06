@@ -73,6 +73,9 @@ __tao_symbol__: str = chr(0x03C4)
 
 __rao_symbol__: str = chr(0x03C1)
 
+# Mock Testing Constant
+__GLOBAL_MOCK_STATE__ = {}
+
 # Block Explorers map network to explorer url
 ## Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
@@ -97,6 +100,7 @@ from .utils.balance import Balance as Balance
 from .chain_data import *
 from .errors import *
 from .subtensor import subtensor as subtensor
+from .subtensor_mock import MockSubtensor as mock_subtensor
 from .cli import cli as cli
 from .logging import logging as logging
 from .metagraph import metagraph as metagraph
