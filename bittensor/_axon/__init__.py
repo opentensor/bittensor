@@ -284,23 +284,24 @@ class AuthInterceptor(grpc.ServerInterceptor):
         self.nonces = {}
         self.receiver_hotkey = receiver_hotkey
 
-
-    def parse_signature_v2(self, signature: str) -> Optional[Tuple[int, str, str, str]]:
-        r"""Attempts to parse a signature using the v2 format"""
+    def parse_signature_v2(self, signature: str) -> Optional[Tuple[int, str, str, str, str, str]]:
+        """Attempts to parse a signature using the v2 format"""
         parts = signature.split(".")
-        if len(parts) != 4:
+        if len(parts) != 6:
             return None
         try:
             nonce = int(parts[0])
+            timestamp = parts[1]
         except ValueError:
             return None
-        sender_hotkey = parts[1]
-        signature = parts[2]
-        receptor_uuid = parts[3]
-        return (nonce, sender_hotkey, signature, receptor_uuid)
+        sender_hotkey = parts[2]
+        signature = parts[3]
+        message_body_hash = parts[4]
+        receptor_uuid = parts[5]
+        return (nonce, timestamp, sender_hotkey, signature, message_body_hash, receptor_uuid)
 
-    def parse_signature(self, metadata: Dict[str, str]) -> Tuple[int, str, str, str]:
-        r"""Attempts to parse a signature from the metadata"""
+    def parse_signature(self, metadata: Dict[str, str]) -> Tuple[int, str, str, str, str, str]:
+        """Attempts to parse a signature from the metadata"""
         signature = metadata.get("bittensor-signature")
         version = metadata.get('bittensor-version')
         if signature is None:
@@ -312,17 +313,11 @@ class AuthInterceptor(grpc.ServerInterceptor):
             return parts
         raise Exception("Unknown signature format")
 
-    def check_signature(
-        self,
-        nonce: int,
-        sender_hotkey: str,
-        signature: str,
-        receptor_uuid: str,
-    ):
-        r"""verification of signature in metadata. Uses the pubkey and nonce"""
+    def check_signature(self, nonce: int, timestamp: str, sender_hotkey: str, signature: str, message_body_hash: str, receptor_uuid: str):
+        """Verification of signature in metadata. Uses the pubkey and nonce"""
         keypair = Keypair(ss58_address=sender_hotkey)
         # Build the expected message which was used to build the signature.
-        message = f"{nonce}.{sender_hotkey}.{self.receiver_hotkey}.{receptor_uuid}"
+        message = f"{nonce}.{timestamp}.{sender_hotkey}.{self.receiver_hotkey}.{message_body_hash}.{receptor_uuid}"
 
         # Build the key which uniquely identifies the endpoint that has signed
         # the message.

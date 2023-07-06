@@ -23,9 +23,11 @@ import asyncio
 import bittensor
 
 from grpc import _common
-from typing import Union, Optional, Callable, List, Tuple
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from typing import Union, Optional, Callable, List, Tuple
 
 @dataclass
 class DendriteCall( ABC ):
@@ -227,14 +229,37 @@ class Dendrite( ABC, torch.nn.Module ):
     def nonce ( self ):
         return time.monotonic_ns()
 
+
     def sign(self) -> str:
-        """ Creates a signature for the dendrite and returns it as a string."""
+        """Creates a signature for the dendrite and returns it as a string."""
         nonce = f"{self.nonce()}"
+        timestamp = time.time()
         sender_hotkey = self.keypair.ss58_address
         receiver_hotkey = self.axon_info.hotkey
-        message = f"{nonce}.{sender_hotkey}.{receiver_hotkey}.{self.uuid}"
-        signature = f"0x{self.keypair.sign(message).hex()}"
-        return ".".join([nonce, sender_hotkey, signature, self.uuid])
+
+        # Create a new digest object
+        digest = hashes.Hash(hashes.SHA256())
+
+        # Update the digest object with the bytes of the message
+        digest.update(self.message_body.encode())
+
+        # Finalize the digest (this can only be done once)
+        message_body_hash = digest.finalize().hex()
+
+        # Construct the message
+        message = f"{nonce}.{timestamp}.{sender_hotkey}.{receiver_hotkey}.{message_body_hash}.{self.uuid}"
+
+        # Sign the message
+        signature = self.keypair.sign(
+            message.encode(),
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        ).hex()
+
+        return ".".join([nonce, timestamp, sender_hotkey, f"0x{signature}", message_body_hash, self.uuid])
 
     def state ( self ):
         """ Returns the state of the dendrite channel."""
