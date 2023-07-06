@@ -68,7 +68,7 @@ class BaseRequest( BaseModel ):
         print ('log_axon_outbound')
         bittensor.logging.debug( f"axon     | --> | {self.request_name} | {self.sender_hotkey} | {self.sender_ip}:**** | {self.return_code} | {self.return_message}")
 
-    def from_headers( request: Request ) -> 'BaseRequest':
+    def from_request( request: Request ) -> 'BaseRequest':
         metadata = dict(request.headers)
         request_name = request.url.path.split("/")[1]
         base_request = BaseRequest(

@@ -94,18 +94,23 @@ class dendrite( torch.nn.Module ):
         request.sender_signature = f"0x{self.keypair.sign(message).hex()}"
         print(request)
 
-        try:
-            request.log_dendrite_outbound( info )
-            response = await self.client.post( url, headers = request.headers(), json = request.dict() )
-            response = request.__class__( **response.json() )
+        return await self.client.post( url, headers = request.headers(), json = request.dict() )
+        # print (response)
+        # return response.json()
+    
+        # try:
+        #     request.log_dendrite_outbound( info )
+        #     response = await self.client.post( url, headers = request.headers(), json = request.dict() )
+        #     print (response.json())
+        #     # response = request.__class__( **response.json() )
 
-        except Exception as e:
-            # Unknown failure, set params.
-            response = request.__class__( **request.dict() )
-            response.return_code = bt.ReturnCode.UNKNOWN.value
-            response.return_message = f"Failed to send request {str(e)}" 
+        # except Exception as e:
+        #     # Unknown failure, set params.
+        #     response = request.__class__( **request.dict() )
+        #     response.return_code = bt.ReturnCode.UNKNOWN.value
+        #     response.return_message = f"Failed to send request {str(e)}" 
 
-        finally:
-            # Finally log and exit.
-            response.log_dendrite_inbound( info )
-            return response
+        # finally:
+        #     # Finally log and exit.
+        #     response.log_dendrite_inbound( info )
+        #     return response
