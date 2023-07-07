@@ -48,9 +48,9 @@ class dendrite( torch.nn.Module ):
     async def forward( 
             self, 
             axons: Union[ List[ Union[ 'bt.axon_info', 'bt.axon' ] ], Union[ 'bt.axon_info', 'bt.axon' ] ],
-            request: bt.BaseRequest = bt.BaseRequest(), 
+            request: bt.Request = bt.Request(), 
             timeout: float = 12 
-        ) -> bt.BaseRequest:
+        ) -> bt.Request:
 
         # Wrap axons to list for gather op.
         if not isinstance( axons, list ): axons = [axons]
@@ -71,60 +71,67 @@ class dendrite( torch.nn.Module ):
     async def call( 
         self,
         axon: Union[ 'bt.AxonInfo', 'bt.axon' ],
-        request: bt.BaseRequest = bt.BaseRequest(), 
+        request: bt.Request = bt.Request(), 
         timeout: float = 12.0 
-    ) -> bt.BaseRequest:
+    ) -> bt.Request:
         
+        start_time = time.time()
+
         # Build the endpoint str + url
-        info = axon.info() if isinstance( axon, bt.axon ) else axon
+        axon = axon.info() if isinstance( axon, bt.axon ) else axon
+        request_name = request.__class__.__name__
+        endpoint = f"localhost:{str(axon.port)}" if axon.ip == str(self.external_ip) else f"{axon.ip}:{str(axon.port)}"
+        url = f"http://{endpoint}/{request_name}"
 
-        # Set dendrite side parameters.
-        request.axon_ip = info.ip
-        request.axon_port = info.port
-        request.dendrite_ip = self.external_ip
-        request.request_name = request.__class__.__name__
-        request.dendrite_hotkey = self.keypair.ss58_address
-        request.dendrite_nonce = time.monotonic_ns()
-        request.dendrite_uuid = self.uuid
-        request.dendrite_version = bt.__version_as_int__
-        request.axon_hotkey = self.info.hotkey
-        request.dendrite_sign()
+        # Build Axon headers.
+        dendrite_ip = str(self.external_ip)
+        dendrite_nonce = f"{time.monotonic_ns()}"
+        dendrite_hotkey = self.keypair.ss58_address
+        dendrite_uuid = str(self.uuid)
+        dendrite_timeout = timeout
+        dendrite_version = bt.__version_as_int__
+        axon_hotkey = axon.hotkey
+        request_name = request_name
+        message = f"{dendrite_nonce}.{dendrite_hotkey}.{axon_hotkey}.{dendrite_uuid}"
+        dendrite_signature = f"0x{self.keypair.sign(message).hex()}"
+        headers = {
+            "rpc-auth-header": "Bittensor",
+            "dendrite_ip": str( dendrite_ip ),
+            "dendrite_timeout": str( dendrite_timeout ),
+            "dendrite_version": str( dendrite_version ),
+            "dendrite_nonce": str( dendrite_nonce ),
+            "dendrite_uuid": str( dendrite_uuid ),
+            "dendrite_hotkey": str( dendrite_hotkey ),
+            "dendrite_signature": str( dendrite_signature ),
+            "axon_hotkey": str( axon_hotkey ),
+            "axon_ip": str( axon.ip ),
+            "axon_port": str( axon.port ),
+            "request_name": str(request_name)
+        }
+        bt.logging.debug( f"dendrite | --> | {request_name} | {axon_hotkey} | {axon.ip}:{str(axon.port)} | 0 | Success")
+        response = await self.client.post( url, headers = headers, json = request.dict() )
+        # Parse response on success.
+        if response.status_code == 200:
+            try:
+                response_obj = request.__class__( **response.json() )
+                # Parse the changes from the response into the request.
+                # We skip items which are immutable.
+                for key in request.dict().keys(): 
+                    try: setattr(request, key, getattr(response_obj, key) ) ; 
+                    except: pass
+                bt.logging.debug( f"dendrite | <-- | {request_name} | {axon_hotkey} | {axon.ip}:{str(axon.port)} | {response.status_code} | {response.headers['axon_status_message']}")
 
-        # Build endpoint from request.
-        if request.axon_ip == request.dendrite_ip:
-            endpoint = f"localhost:{str(request.axon_port)}"
-        else:
-            endpoint = f"{request.axon_ip}:{str(request.axon_port)}"
-        url = f"http://{endpoint}/{request.request_name}"
+            # Exception handling.
+            except Exception as e:
+                bt.logging.debug( f"dendrite | <-- | {request_name} | {axon_hotkey} | {axon.ip}:{str(axon.port)} | 406 | Failed to parse response object with error: {str(e)}")
 
-        request.log_dendrite_outbound()
-        response = await self.client.post( url, headers = request.to_dendrite_headers(), json = request.dict() )
-        return response
 
-        # # Parse response on success.
-        # if response.status_code == 200:
-        #     try:
-        #         response_obj = request.__class__( **response.json() )
-        #         # Parse the changes from the response into the request.
-        #         # We skip items which are immutable.
-        #         for key in request.dict().keys(): 
-        #             try: setattr(request, key, getattr(response_obj, key) ) ; 
-        #             except: pass
-        #                         request.log_dendrite_inbound()
+        bt.logging.debug( f"dendrite | <-- | {request_name} | {axon_hotkey} | {axon.ip}:{str(axon.port)} | {response.status_code} | {response.headers['axon_status_message']}")
 
-        #         bt.logging.debug( f"dendrite | <-- | {request_name} | {receiver_hotkey} | {info.ip}:{str(info.port)} | {response.status_code} | {response.headers['message']}")
-
-        #     # Exception handling.
-        #     except Exception as e:
-        #         request.log_dendrite_inbound()
-
-        #     finally:
-        #         # Finally return request with variables fixed.
-        #         request.log_dendrite_inbound()
-        #         return request
-            
-        # request.status_code = response.status_code
-        # request.axon_proccess_time = response.headers['axon_proccess_time']
-        # request.message = response.headers['message']
-        # return response
+        request.headers = bt.Headers()
+        request.headers.__dict__.update( dict( response.headers ) )
+        request.headers.__dict__.update( dict( headers ) )
+        request.headers.dendrite_process_time = str(time.time() - start_time)
+        request.headers.axon_status_code = response.status_code
+        return request
 

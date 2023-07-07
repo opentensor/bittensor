@@ -24,18 +24,13 @@ from fastapi.responses import Response
 from fastapi import Request
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
-
-class BaseRequest( pydantic.BaseModel ):
-
-    class Config:
-        validate_assignment = True
-
+class Headers( pydantic.BaseModel ):
     # Defines the http route name which is set on axon.attach( callable( request: RequestName ))
     request_name: Optional[str] = pydantic.Field(
         title = 'request_name',
         description = 'Defines the http route name which is set on axon.attach( callable( request: RequestName ))',
         examples = 'Forward for message type ',
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # The HTTP status code from: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
@@ -48,7 +43,7 @@ class BaseRequest( pydantic.BaseModel ):
     )
 
     # The HTTP status code from: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-    axon_status_message: Optional[int] = pydantic.Field(
+    axon_status_message: Optional[str] = pydantic.Field(
         title = 'axon_status_message',
         description = 'The axon_status_message associated with the axon_status_code',
         examples = 'Success',
@@ -62,7 +57,7 @@ class BaseRequest( pydantic.BaseModel ):
         description = 'Defines the the maximum amount of time the dendrite will wait before throwing a timeout error.',
         examples = '12.0',
         default = 12.0,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # Process time on axon terminal side of call. Set by the dendrite using the header axon_process_time field.
@@ -71,7 +66,7 @@ class BaseRequest( pydantic.BaseModel ):
         description = 'Process time on axon terminal side of call. Set by the dendrite using the header axon_process_time field.',
         examples = '0.1',
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # Process time on dendrite terminal side of call. Set by the dendrite after the request has been processed.
@@ -80,7 +75,7 @@ class BaseRequest( pydantic.BaseModel ):
         description = 'Process time on dendrite terminal side of call. Set by the dendrite after the request has been processed.',
         examples = '0.1',
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # The ip of the dendrite making the request.
@@ -89,7 +84,7 @@ class BaseRequest( pydantic.BaseModel ):
         description = 'The ip of the dendrite making the request.',
         examples = '198.123.23.1',
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # The axon recieving the request.
@@ -98,61 +93,61 @@ class BaseRequest( pydantic.BaseModel ):
         description = 'The axon recieving the request.',
         examples = '198.123.23.1',
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # The port sending dendrite client set on the axon side using request.client.port.
-    dendrite_port: Optional[ int ] = pydantic.Field(
+    dendrite_port: Optional[ str ] = pydantic.Field(
         title = 'dendrite_port',
         description = 'The port sending dendrite client set on the axon side using request.client.port',
         examples = '198.123.23.1',
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # The host port of the sender.
-    axon_port: Optional[ int ] = pydantic.Field(
+    axon_port: Optional[ str ] = pydantic.Field(
         title = 'axon_port',
         description = 'The bittensor version of the sender.',
         examples = '198.123.23.1',
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # The bittensor version on the dendrite as an int.
-    dendrite_version: Optional[ int ] = pydantic.Field(
+    dendrite_version: Optional[ str ] = pydantic.Field(
         title = 'dendrite_version',
         description = 'The bittensor version on the dendrite as int',
         examples = 111,
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # The bittensor version on the axon as an int.
-    axon_version: Optional[ int ] = pydantic.Field(
+    axon_version: Optional[ str ] = pydantic.Field(
         title = 'axon_version',
         description = 'The bittensor version on the axon as int',
         examples = 111,
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # A unique monotonically increasing integer nonce associate with the dendrite
-    dendrite_nonce: Optional[ int ] = pydantic.Field(
+    dendrite_nonce: Optional[ str ] = pydantic.Field(
         title = 'dendrite_nonce',
         description = 'A unique monotonically increasing integer nonce associate with the dendrite generated from time.monotonic_ns()',
         examples = 111111,
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # A unique monotonically increasing integer nonce associate with the axon
-    axon_nonce: Optional[ int ] = pydantic.Field(
+    axon_nonce: Optional[ str ] = pydantic.Field(
         title = 'axon_nonce',
         description = 'A unique monotonically increasing integer nonce associate with the axon generated from time.monotonic_ns()',
         examples = 111111,
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # A unique identifier associated with the dendrite.
@@ -161,7 +156,7 @@ class BaseRequest( pydantic.BaseModel ):
         description = 'A unique identifier associated with the dendrite.',
         examples = "5ecbd69c-1cec-11ee-b0dc-e29ce36fec1a",
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # A unique identifier associated with the axon, set on the axon side.
@@ -170,7 +165,7 @@ class BaseRequest( pydantic.BaseModel ):
         description = 'A unique identifier associated with the axon, set on the axon side.',
         examples = "5ecbd69c-1cec-11ee-b0dc-e29ce36fec1a",
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # The ss58 encoded hotkey string of the dendrite wallet.
@@ -179,7 +174,7 @@ class BaseRequest( pydantic.BaseModel ):
         description = 'The ss58 encoded hotkey string of the dendrites wallet.',
         examples = "5EnjDGNqqWnuL2HCAdxeEtN2oqtXZw6BMBe936Kfy2PFz1J1",
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # The bittensor version on the dendrite as an int.
@@ -188,7 +183,7 @@ class BaseRequest( pydantic.BaseModel ):
         description = 'The ss58 encoded hotkey string of the axon wallet.',
         examples = "5EnjDGNqqWnuL2HCAdxeEtN2oqtXZw6BMBe936Kfy2PFz1J1",
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
 
     # A signature verifying the tuple (dendrite_nonce, axon_hotkey, dendrite_hotkey, dendrite_uuid)
@@ -197,13 +192,12 @@ class BaseRequest( pydantic.BaseModel ):
         description = 'A signature verifying the tuple (nonce, axon_hotkey, dendrite_hotkey, dendrite_uuid)',
         examples = "0x0813029319030129u4120u10841824y0182u091u230912u",
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
     def dendrite_sign(self):
         keypair = bittensor.Keypair( ss58_address = self.dendrite_hotkey )
         message = f"{self.dendrite_nonce}.{self.dendrite_hotkey}.{self.axon_hotkey}.{self.dendrite_uuid}"
         self.dendrite_signature = f"0x{keypair.sign(message).hex()}"
-
 
     # A signature verifying the tuple (axon_nonce, axon_hotkey, dendrite_hotkey, axon_uuid)
     axon_signature: Optional[ str ] = pydantic.Field(
@@ -211,62 +205,84 @@ class BaseRequest( pydantic.BaseModel ):
         description = 'A signature verifying the tuple (axon_nonce, axon_hotkey, dendrite_hotkey, axon_uuid)',
         examples = "0x0813029319030129u4120u10841824y0182u091u230912u",
         default = None,
-        allow_mutation = False
+        allow_mutation = True
     )
     def axon_sign(self):
         keypair = bittensor.Keypair( ss58_address = self.axon_hotkey )
         message = f"{self.axon_nonce}.{self.axon_hotkey}.{self.dendrite_hotkey}.{self.axon_uuid}"
         self.axon_signature = f"0x{keypair.sign(message).hex()}"
 
+class Request( pydantic.BaseModel ):
 
-    def to_dendrite_headers( self ):
-        return {
-            'dendrite_signature': self.dendrite_signature,
-            'dendrite_hotkey': self.dendrite_hotkey,
-            'dendrite_uuid': self.dendrite_uuid,
-            'dendrite_nonce': self.dendrite_nonce,
-            'dendrite_version': self.dendrite_version,
-            'dendrite_timeout': self.dendrite_timeout,
-        }
-    
-    def from_dendrite_headers( self, request ) -> 'BaseRequest':
-        headers = dict( request.headers )
-        return BaseRequest(
-            request_name = request.url.path.split("/")[1],
-            dendrite_ip = request.client.ip,
-            dendrite_port = request.client.port,
-            dendrite_signature = headers['dendrite_signature'],
-            dendrite_hotkey = headers['dendrite_hotkey'],
-            dendrite_uuid = headers['dendrite_uuid'],
-            dendrite_nonce = headers['dendrite_nonce'],
-            dendrite_version = headers['dendrite_version'],
-            dendrite_timeout = headers['dendrite_timeout'],
-        )
-    
-    def to_axon_headers( self ):
-        return {
-            'dendrite_signature': self.dendrite_signature,
-            'dendrite_hotkey': self.dendrite_hotkey,
-            'dendrite_uuid': self.dendrite_uuid,
-            'dendrite_nonce': self.dendrite_nonce,
-            'dendrite_version': self.dendrite_version,
-            'dendrite_timeout': self.dendrite_timeout,
-        }
-    
-    def to_axon_response(self, response: Response = None ) -> Response:
-        return JSONResponse(status_code = self.axon_status_code, headers=self.to_axon_headers(), content={})
+    class Config:
+        validate_assignment = True
 
-    def log_dendrite_outbound( self ):
-        bittensor.logging.debug( f"dendrite | --> | {self.request_name or 'unknown'} | {self.axon_hotkey or 'unknown'} | {self.axon_ip or 'unknown'}:{str(self.axon_port) or 'unknown'} | {self.status_code or 'unknown'} | {self.status_message or 'unknown'}")
+    # A signature verifying the tuple (axon_nonce, axon_hotkey, dendrite_hotkey, axon_uuid)
+    headers: Optional[ Headers ] = pydantic.Field(
+        title = 'headers',
+        description = 'headers associated with the request.',
+        examples = "bt.Headers",
+        default = None,
+        allow_mutation = True,
+        repr=False
+    )
 
-    def log_dendrite_inbound( self ):
-        bittensor.logging.debug( f"dendrite | <-- | {self.request_name or 'unknown'} | {self.axon_hotke or 'unknown'} | {self.axon_ip or 'unknown'}:{str(self.axon_port) or 'unknown'} | {self.status_code or 'unknown'} | {self.status_messageor or 'unknown'}" )
-
-    def log_axon_outbound(self):
-        bittensor.logging.debug( f"axon     | <-- | {self.request_name or 'unknown'} | {self.dendrite_hotkey or 'unknown'} | {self.dendrite_ip or 'unknown'}:{self.dendrite_port or 'unknown'}  | {self.axon_status_code or 'unknown'} | {self.axon_status_message or 'unknown'}")
     
-    def log_axon_inbound(self):
-        bittensor.logging.debug( f"axon     | --> | {self.request_name or 'unknown'} | {self.dendrite_hotkey or 'unknown'} | {self.dendrite_ip or 'unknown'}:{self.dendrite_port or 'unknown'}  | {self.axon_status_code or 'unknown'} | {self.axon_status_message or 'unknown'}")
+
+    
+
+
+    # def to_dendrite_headers( self ):
+    #     return {
+    #         'dendrite_signature': self.dendrite_signature,
+    #         'dendrite_hotkey': self.dendrite_hotkey,
+    #         'dendrite_uuid': self.dendrite_uuid,
+    #         'dendrite_nonce': self.dendrite_nonce,
+    #         'dendrite_version': self.dendrite_version,
+    #         'dendrite_timeout': self.dendrite_timeout,
+    #     }
+    
+    # def from_dendrite_headers( self, request ) -> 'BaseRequest':
+    #     headers = dict( request.headers )
+    #     return BaseRequest(
+    #         request_name = request.url.path.split("/")[1],
+    #         dendrite_ip = request.client.ip,
+    #         dendrite_port = request.client.port,
+    #         dendrite_signature = headers['dendrite_signature'],
+    #         dendrite_hotkey = headers['dendrite_hotkey'],
+    #         dendrite_uuid = headers['dendrite_uuid'],
+    #         dendrite_nonce = headers['dendrite_nonce'],
+    #         dendrite_version = headers['dendrite_version'],
+    #         dendrite_timeout = headers['dendrite_timeout'],
+    #     )
+    
+    # def to_axon_headers( self ):
+    #     return {
+    #         'dendrite_signature': self.dendrite_signature,
+    #         'dendrite_hotkey': self.dendrite_hotkey,
+    #         'dendrite_uuid': self.dendrite_uuid,
+    #         'dendrite_nonce': self.dendrite_nonce,
+    #         'dendrite_version': self.dendrite_version,
+    #         'dendrite_timeout': self.dendrite_timeout,
+    #     }
+    
+    # def to_axon_response(self, response: Response = None ) -> Response:
+    #     if response == None:
+    #         return JSONResponse(status_code = self.axon_status_code, headers=self.to_axon_headers(), content={})
+    #     else:
+    #         return 
+
+    # def log_dendrite_outbound( self ):
+    #     bittensor.logging.debug( f"dendrite | --> | {self.request_name or 'unknown'} | {self.axon_hotkey or 'unknown'} | {self.axon_ip or 'unknown'}:{str(self.axon_port) or 'unknown'} | {self.status_code or 'unknown'} | {self.status_message or 'unknown'}")
+
+    # def log_dendrite_inbound( self ):
+    #     bittensor.logging.debug( f"dendrite | <-- | {self.request_name or 'unknown'} | {self.axon_hotke or 'unknown'} | {self.axon_ip or 'unknown'}:{str(self.axon_port) or 'unknown'} | {self.status_code or 'unknown'} | {self.status_messageor or 'unknown'}" )
+
+    # def log_axon_outbound(self):
+    #     bittensor.logging.debug( f"axon     | <-- | {self.request_name or 'unknown'} | {self.dendrite_hotkey or 'unknown'} | {self.dendrite_ip or 'unknown'}:{self.dendrite_port or 'unknown'}  | {self.axon_status_code or 'unknown'} | {self.axon_status_message or 'unknown'}")
+    
+    # def log_axon_inbound(self):
+    #     bittensor.logging.debug( f"axon     | --> | {self.request_name or 'unknown'} | {self.dendrite_hotkey or 'unknown'} | {self.dendrite_ip or 'unknown'}:{self.dendrite_port or 'unknown'}  | {self.axon_status_code or 'unknown'} | {self.axon_status_message or 'unknown'}")
 
 
 
