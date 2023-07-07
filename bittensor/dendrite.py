@@ -77,40 +77,54 @@ class dendrite( torch.nn.Module ):
         
         # Build the endpoint str + url
         info = axon.info() if isinstance( axon, bt.axon ) else axon
-        request_name = request.__class__.__name__
-        endpoint = f"localhost:{str(info.port)}" if info.ip == str(self.external_ip) else f"{info.ip}:{str(info.port)}"
-        url = f"http://{endpoint}/{request_name}"
 
-        # Build Metadata.
-        request.sender_ip = str(self.external_ip)
-        request.sender_nonce = f"{time.monotonic_ns()}"
-        request.sender_hotkey = self.keypair.ss58_address
-        request.sender_uuid = str(self.uuid)
-        request.sender_timeout = timeout
-        request.sender_version = bt.__version_as_int__
-        request.receiver_hotkey = info.hotkey
-        request.request_name = request_name
-        message = f"{request.sender_nonce}.{request.sender_hotkey}.{request.receiver_hotkey}.{request.sender_uuid}"
-        request.sender_signature = f"0x{self.keypair.sign(message).hex()}"
-        print(request)
+        # Set dendrite side parameters.
+        request.axon_ip = info.ip
+        request.axon_port = info.port
+        request.dendrite_ip = self.external_ip
+        request.request_name = request.__class__.__name__
+        request.dendrite_hotkey = self.keypair.ss58_address
+        request.dendrite_nonce = time.monotonic_ns()
+        request.dendrite_uuid = self.uuid
+        request.dendrite_version = bt.__version_as_int__
+        request.axon_hotkey = self.info.hotkey
+        request.dendrite_sign()
 
-        return await self.client.post( url, headers = request.headers(), json = request.dict() )
-        # print (response)
-        # return response.json()
-    
-        # try:
-        #     request.log_dendrite_outbound( info )
-        #     response = await self.client.post( url, headers = request.headers(), json = request.dict() )
-        #     print (response.json())
-        #     # response = request.__class__( **response.json() )
+        # Build endpoint from request.
+        if request.axon_ip == request.dendrite_ip:
+            endpoint = f"localhost:{str(request.axon_port)}"
+        else:
+            endpoint = f"{request.axon_ip}:{str(request.axon_port)}"
+        url = f"http://{endpoint}/{request.request_name}"
 
-        # except Exception as e:
-        #     # Unknown failure, set params.
-        #     response = request.__class__( **request.dict() )
-        #     response.return_code = bt.ReturnCode.UNKNOWN.value
-        #     response.return_message = f"Failed to send request {str(e)}" 
+        request.log_dendrite_outbound()
+        response = await self.client.post( url, headers = request.to_dendrite_headers(), json = request.dict() )
+        return response
 
-        # finally:
-        #     # Finally log and exit.
-        #     response.log_dendrite_inbound( info )
-        #     return response
+        # # Parse response on success.
+        # if response.status_code == 200:
+        #     try:
+        #         response_obj = request.__class__( **response.json() )
+        #         # Parse the changes from the response into the request.
+        #         # We skip items which are immutable.
+        #         for key in request.dict().keys(): 
+        #             try: setattr(request, key, getattr(response_obj, key) ) ; 
+        #             except: pass
+        #                         request.log_dendrite_inbound()
+
+        #         bt.logging.debug( f"dendrite | <-- | {request_name} | {receiver_hotkey} | {info.ip}:{str(info.port)} | {response.status_code} | {response.headers['message']}")
+
+        #     # Exception handling.
+        #     except Exception as e:
+        #         request.log_dendrite_inbound()
+
+        #     finally:
+        #         # Finally return request with variables fixed.
+        #         request.log_dendrite_inbound()
+        #         return request
+            
+        # request.status_code = response.status_code
+        # request.axon_proccess_time = response.headers['axon_proccess_time']
+        # request.message = response.headers['message']
+        # return response
+

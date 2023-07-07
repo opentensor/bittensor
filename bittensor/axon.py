@@ -31,9 +31,9 @@ import contextlib
 
 from threading import Lock
 from inspect import signature
-from fastapi.responses import JSONResponse
 from types import SimpleNamespace
 from substrateinterface import Keypair
+from fastapi.responses import JSONResponse
 from fastapi import FastAPI, APIRouter, Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from typing import Dict, Optional, Tuple, Union, List, Callable
@@ -376,77 +376,204 @@ class AxonMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Request:
 
         start_time = time.time()
+
+        # Check header decoding.
         try:
-            # Check route.
-            request_name = request.url.path.split("/")[1]
-            if request_name not in self.axon.forward_fns:
-                message = "Non-existent route."
-                bittensor.logging.debug( f"axon     | --> | unknown | unknown | {request.client.host}:{request.client.port} | 406 | {message} ")
-                bittensor.logging.debug( f"axon     | <-- | unknown | unknown | {request.client.host}:{request.client.port} | 406 | {message} ")
-                return JSONResponse(status_code = 406, headers={"axon_proccess_time": str(time.time() - start_time), "message": message}, content={})
-
-            # Check headers.
-            try:            
-                # Check each of the required Axon Headers.
-                header = dict(request.headers)
-                header['sender_version']
-                header['sender_nonce']
-                header['sender_uuid']
-                header['sender_hotkey']
-                header['sender_signature']
-                header['sender_timeout']
-            except KeyError as e:
-                message = f"Incorrect bittensor header with error: {str(e)}"
-                bittensor.logging.debug( f"axon     | --> | {request_name} | unknown | {request.client.host}:{request.client.port} | 400 | {message} ")
-                return JSONResponse(status_code = 400, headers={"axon_proccess_time": str(time.time() - start_time), "message": message}, content={})
-            bittensor.logging.debug( f"axon     | --> | {request_name} | {header['sender_hotkey']} | {request.client.host}:{request.client.port} | 0 | Success ")
-
-            # Check verification          
-            verify_fn = self.axon.verify_fns[request_name]
-            if verify_fn:
-                try: verify_fn( request )
-                except Exception as e:
-                    message = f"Not Verified with error: {str(e)}"
-                    bittensor.logging.debug( f"axon     | <-- | {request_name} | {header['sender_hotkey']} | {request.client.host}:{request.client.port} | 401 | {message} ")
-                    return JSONResponse(status_code = 401, headers={"axon_proccess_time": str(time.time() - start_time), "message": message}, content={})
-
-            # Check Blacklist
-            blacklist_fn = self.axon.blacklist_fns[ request_name ]
-            if blacklist_fn and blacklist_fn( request ):
-                message = "Forbidden. Key is blacklisted."
-                bittensor.logging.debug( f"axon     | <-- | {request_name} | {header['sender_hotkey']} | {request.client.host}:{request.client.port} | 403 | {message}")
-                return HTTPException( status_code = 403, headers={"axon_proccess_time": str(time.time() - start_time), "message": message}, content={})
-            
-            # Run priority
-            priority_fn = self.axon.priority_fns[ request_name ]
-            if priority_fn:
-                try:
-                    event = threading.Event()
-                    def set_event() -> bool: event.set()
-                    future = self.axon.thread_pool.submit( set_event, priority = priority_fn( request ) )
-                    future.result( timeout = float( request.headers['sender_timeout'] ) )
-                    event.wait()
-                except TimeoutError as e:
-                    message = f"Response timeout after: { request.headers['sender_timeout'] }s"
-                    bittensor.logging.debug( f"axon     | <-- | {request_name} | {header['sender_hotkey']} | {request.client.host}:{request.client.port} | 403 | {message}")
-                    return HTTPException( status_code = 408, headers={"axon_proccess_time": str(time.time() - start_time), "message": message}, content={} )
-
-            # Run function
-            try:
-                response = await call_next( request )
-            except Exception as e:
-                message = f"Internal server error with error: { str(e) }"
-                bittensor.logging.debug( f"axon     | <-- | {request_name} | {header['sender_hotkey']} | {request.client.host}:{request.client.port} | 500 | {message}")
-                return JSONResponse(status_code = 500, headers={"axon_proccess_time": str(time.time() - start_time), "message": message}, content={})
-
-            # Return with process time.
-            response.headers["axon_proccess_time"] = str(time.time() - start_time)
-            response.headers["status_code"] = str(200)
-            response.headers["message"] = "Success"
-
+            base_request = bittensor.BaseRequest( **dict(request.headers) )
         except Exception as e:
-            message = f"Internal server error with error: { str(e) }"
-            bittensor.logging.debug( f"axon     | <-- | {request_name} | {header['sender_hotkey']} | {request.client.host}:{request.client.port} | 500 | {message}")
-            return JSONResponse(status_code = 500, headers={"axon_proccess_time": str(time.time() - start_time), "message": message}, content={})
+            base_request = bittensor.BaseRequest()
+            base_request.axon_status_code = 400
+            base_request.axon_status_message = f"Incorrect bittensor header with error: {str(e)}"
+            base_request.axon_process_time = time.time() - start_time
+            base_request.log_axon_inbound()
+            base_request.log_axon_outbound()
+            return JSONResponse(status_code = base_request.axon_status_code, content = base_request.dict() )
+        finally:
+            base_request.log_axon_inbound()
 
-        return response
+        # Check verification          
+        verify_fn = self.axon.verify_fns[base_request.request_name]
+        if verify_fn:
+            try: verify_fn( base_request )
+            except Exception as e:
+                base_request.axon_status_code = 401
+                base_request.axon_status_message = f"Not Verified with error: {str(e)}"
+                base_request.axon_process_time = time.time() - start_time
+                base_request.log_axon_outbound()
+            return JSONResponse(status_code = base_request.axon_status_code, content = base_request.dict() )
+            
+        # Check Blacklist
+        blacklist_fn = self.axon.blacklist_fns[ base_request.request_name ]
+        if blacklist_fn and blacklist_fn( request ):
+            base_request.axon_status_code = 403
+            base_request.axon_status_message = "Forbidden. Key is blacklisted."
+            base_request.axon_process_time = time.time() - start_time
+            base_request.log_axon_outbound()
+            return JSONResponse(status_code = base_request.axon_status_code, content = base_request.dict() )
+        
+        # Run Priority
+        priority_fn = self.axon.priority_fns[ base_request.request_name ]
+        if priority_fn:
+            try:
+                event = threading.Event()
+                def set_event() -> bool: event.set()
+                future = self.axon.thread_pool.submit( set_event, priority = priority_fn( request ) )
+                future.result( timeout = float( request.headers['dendrite_timeout'] ) )
+                event.wait()
+            except TimeoutError as e:
+                base_request.axon_status_code = 408
+                base_request.axon_status_message = f"Response timeout after: { request.headers['dendrite_timeout'] }s"
+                base_request.axon_process_time = time.time() - start_time
+                base_request.log_axon_outbound()
+            return JSONResponse(status_code = base_request.axon_status_code, content = base_request.dict() )
+            
+        # Run function
+        try:
+            response = await call_next( request )
+        except Exception as e:
+            base_request.axon_status_code = 500
+            base_request.axon_status_message = f"Internal server error with error: { str(e) }"
+            base_request.axon_process_time = time.time() - start_time
+            base_request.log_axon_outbound()
+            return JSONResponse(status_code = base_request.axon_status_code, content = base_request.dict() )
+        
+        # Return with process time.
+        base_request.axon_status_code = 200
+        base_request.axon_status_message = "Success"
+        base_request.axon_process_time = time.time() - start_time
+        base_request.log_axon_outbound()
+        return base_request.to_axon_response( response )
+
+        # response.headers["axon_proccess_time"] = str(time.time() - start_time)
+        # response.headers["axon_status_message"] = "Success"
+        # response.headers["axon_status_code"] = str(200)
+
+        # message = f"Success"
+        # bittensor.logging.debug( f"axon     | <-- | {request_name} | {base_request.dendrite_hotkey} | {base_request.dendrite_ip}:{base_request.dendrite_port}  | 200 | {message}")
+        # return response
+
+
+        # except Exception as e:
+        #     base_request.axon_status_code = 500
+        #     base_request.axon_status_message = f"Internal server error with error: { str(e) }"
+        #     base_request.axon_process_time = time.time() - start_time
+        #     base_request.log_axon_outboung()
+
+        #     # message = f"Internal server error with error: { str(e) }"
+        #     # bittensor.logging.debug( f"axon     | <-- | {request_name} | {base_request.dendrite_hotkey} | {base_request.dendrite_ip}:{base_request.dendrite_port}  | 500 | {message}")
+        #     # return JSONResponse(status_code = 500, headers={"axon_proccess_time": str(time.time() - start_time), "message": message}, content={})
+
+        # message = f"Success"
+        # bittensor.logging.debug( f"axon     | <-- | {request_name} | {base_request.dendrite_hotkey} | {base_request.dendrite_ip}:{base_request.dendrite_port}  | 200 | {message}")
+        # return response
+
+        
+
+        # # try:
+        
+        #     # Check route.
+        #     # request_name = request.url.path.split("/")[1]
+        #     # if request_name not in self.axon.forward_fns:
+        #     #     base_request = bittensor.BaseRequest()
+        #     #     base_request.axon_status_code = 401
+
+        #     #     message = "Non-existent route."
+        #     #     bittensor.logging.debug( f"axon     | --> | unknown | unknown | {request.client.host}:{request.client.port} | 200 | {message} ")
+        #     #     bittensor.logging.debug( f"axon     | <-- | unknown | unknown | {request.client.host}:{request.client.port} | 406 | {message} ")
+        #     #     return JSONResponse(status_code = 406, headers={"axon_proccess_time": str(time.time() - start_time), "message": message}, content={})
+
+        #     # Check header decoding.
+        #     try:
+        #         base_request = bittensor.BaseRequest( **dict(request.headers) )
+        #     except Exception as e:
+        #         base_request = bittensor.BaseRequest()
+        #         base_request.axon_status_code = 400
+        #         base_request.axon_status_message = f"Incorrect bittensor header with error: {str(e)}"
+        #         base_request.axon_process_time = time.time() - start_time
+        #         return base_request.to_axon_response()
+
+        #         # message = f"Incorrect bittensor header with error: {str(e)}"
+        #         # bittensor.logging.debug( f"axon     | --> | {request_name} | unknown | {request.client.host}:{request.client.port} | 200 | {message} ")
+        #         # bittensor.logging.debug( f"axon     | <-- | {request_name} | unknown | {request.client.host}:{request.client.port} | 400 | {message} ")
+        #         # return JSONResponse(status_code = 400, headers={"axon_proccess_time": str(time.time() - start_time), "message": message}, content={})
+
+        #     # Log incoming.
+        #     bittensor.logging.debug( f"axon     | --> | {base_request.request_name} | {base_request.dendrite_hotkey} | {base_request.dendrite_ip}:{base_request.dendrite_port} | 200 | Success ")
+
+        #     # Check verification          
+        #     verify_fn = self.axon.verify_fns[base_request.request_name]
+        #     if verify_fn:
+        #         try: verify_fn( base_request )
+        #         except Exception as e:
+        #             base_request.axon_status_code = 401
+        #             base_request.axon_status_message = f"Not Verified with error: {str(e)}"
+        #             base_request.axon_process_time = time.time() - start_time
+        #             base_request.log_axon_outboung()
+        #             return base_request.to_json_response()
+
+        #     # Check Blacklist
+        #     blacklist_fn = self.axon.blacklist_fns[ base_request.request_name ]
+        #     if blacklist_fn and blacklist_fn( request ):
+        #         base_request.axon_status_code = 403
+        #         base_request.axon_status_message = "Forbidden. Key is blacklisted."
+        #         base_request.axon_process_time = time.time() - start_time
+        #         base_request.log_axon_outboung()
+        #         return base_request.to_json_response()
+        #         # message = "Forbidden. Key is blacklisted."
+        #         # bittensor.logging.debug( f"axon     | <-- | {request_name} | {base_request.dendrite_hotkey} | {base_request.dendrite_ip}:{base_request.dendrite_port}  | 403 | {message}")
+        #         # return JSONResponse( status_code = 403, headers={"axon_proccess_time": str(time.time() - start_time), "message": message}, content={})
+            
+        #     # Run priority
+        #     priority_fn = self.axon.priority_fns[ request_name ]
+        #     if priority_fn:
+        #         try:
+        #             event = threading.Event()
+        #             def set_event() -> bool: event.set()
+        #             future = self.axon.thread_pool.submit( set_event, priority = priority_fn( request ) )
+        #             future.result( timeout = float( request.headers['dendrite_timeout'] ) )
+        #             event.wait()
+        #         except TimeoutError as e:
+        #             base_request.axon_status_code = 408
+        #             base_request.axon_status_message = f"Response timeout after: { request.headers['dendrite_timeout'] }s"
+        #             base_request.axon_process_time = time.time() - start_time
+        #             base_request.log_axon_outboung()
+        #             return base_request.to_json_response()
+
+        #             # message = f"Response timeout after: { request.headers['dendrite_timeout'] }s"
+        #             # bittensor.logging.debug( f"axon     | <-- | {request_name} | {base_request.dendrite_hotkey} | {base_request.dendrite_ip}:{base_request.dendrite_port} | 403 | {message}")
+        #             # return JSONResponse( status_code = 408, headers={"axon_proccess_time": str(time.time() - start_time), "message": message}, content={} )
+
+        #     # Run function
+        #     try:
+        #         response = await call_next( request )
+        #     except Exception as e:
+        #         base_request.axon_status_code = 500
+        #         base_request.axon_status_message = f"Internal server error with error: { str(e) }"
+        #         base_request.axon_process_time = time.time() - start_time
+        #         base_request.log_axon_outboung()
+        #         return base_request.to_json_response()
+
+
+        #         # message = f"Internal server error with error: { str(e) }"
+        #         # bittensor.logging.debug( f"axon     | <-- | {request_name} | {base_request.dendrite_hotkey} | {base_request.dendrite_ip}:{base_request.dendrite_port}  | 500 | {message}")
+        #         # return JSONResponse(status_code = 500, headers={"axon_proccess_time": str(time.time() - start_time), "message": message}, content={})
+
+        #     # Return with process time.
+        #     response.headers["axon_proccess_time"] = str(time.time() - start_time)
+        #     response.headers["status_code"] = str(200)
+        #     response.headers["message"] = "Success"
+
+        # except Exception as e:
+        #     base_request.axon_status_code = 500
+        #     base_request.axon_status_message = f"Internal server error with error: { str(e) }"
+        #     base_request.axon_process_time = time.time() - start_time
+        #     base_request.log_axon_outboung()
+
+        #     # message = f"Internal server error with error: { str(e) }"
+        #     # bittensor.logging.debug( f"axon     | <-- | {request_name} | {base_request.dendrite_hotkey} | {base_request.dendrite_ip}:{base_request.dendrite_port}  | 500 | {message}")
+        #     # return JSONResponse(status_code = 500, headers={"axon_proccess_time": str(time.time() - start_time), "message": message}, content={})
+
+        # message = f"Success"
+        # bittensor.logging.debug( f"axon     | <-- | {request_name} | {base_request.dendrite_hotkey} | {base_request.dendrite_ip}:{base_request.dendrite_port}  | 200 | {message}")
+        # return response
+        
