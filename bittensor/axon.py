@@ -318,14 +318,14 @@ class axon:
         self.started = False
         return self
             
-    def default_verify( self, request: Request ) -> Request:
+    def default_verify( self, headers: bittensor.Headers) -> Request:
         """
         This method is used to verify the authenticity of a received message using a digital signature.
         It ensures that the message was not tampered with and was sent by the expected sender.
 
         Args:
-            request: dict
-                base_request built from request headers.
+            headers: bittensor.Headers
+                bittensor request headers.
 
         Raises:
             Exception: If the receiver_hotkey doesn't match with self.receiver_hotkey.
@@ -338,30 +338,27 @@ class axon:
             The verification process assumes the use of an asymmetric encryption algorithm,
             where the sender signs the message with their private key and the receiver verifies the signature using the sender's public key.
         """
-        # Get call header
-        header = SimpleNamespace( dict(request.headers) )
-
         # Build the keypair from the dendrite_hotkey
-        keypair = Keypair(ss58_address = header.dendrite_hotkey)
+        keypair = Keypair(ss58_address = headers.dendrite_hotkey)
 
         # Build the signature messages.
-        message = f"{header.dendrite_nonce}.{header.dendrite_hotkey}.{self.wallet.hotkey.ss58_address}.{header.dendrite_uuid}"
+        message = f"{headers.dendrite_nonce}.{headers.dendrite_hotkey}.{self.wallet.hotkey.ss58_address}.{headers.dendrite_uuid}"
 
         # Build the unique endpoint key.
-        endpoint_key = f"{header.dendrite_hotkey}:{header.dendrite_uuid}"
+        endpoint_key = f"{headers.dendrite_hotkey}:{headers.dendrite_uuid}"
 
         # Check the nonce from the endpoint key.
         if endpoint_key in self.nonces.keys():
 
             # Ensure the nonce increases.
-            if header.dendrite_nonce <= self.nonces[endpoint_key]:
+            if headers.dendrite_nonce <= self.nonces[endpoint_key]:
                 raise Exception("Nonce is too small")
             
-        if not keypair.verify(message, header.dendrite_signature):
+        if not keypair.verify(message, headers.dendrite_signature):
             raise Exception("Signature mismatch")
         
         # Success
-        self.nonces[endpoint_key] = header.dendrite_nonce
+        self.nonces[endpoint_key] = headers.dendrite_nonce
     
 
 class AxonMiddleware(BaseHTTPMiddleware):
@@ -371,8 +368,11 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Request:
 
+        bittensor.logging.trace('enter dispatch')
         start_time = time.time()
-        headers = bittensor.Headers({
+        headers = bittensor.Headers( **dict(request.headers) )
+        headers.__dict__.update({
+            'request_name': str(request.url.path.split("/")[1]),
             'axon_version': str(bittensor.__version_as_int__),
             'axon_uuid': str(self.axon.uuid),
             'axon_nonce': f"{time.monotonic_ns()}",
@@ -381,100 +381,72 @@ class AxonMiddleware(BaseHTTPMiddleware):
             'axon_process_time': "0",
             'axon_signature': "",
             'dendrite_port': str(request.client.port),
+            'dendrite_ip': str(request.client.host),
         })
         try:
-           
-            # Check route.
-            request_name = request.url.path.split("/")[1]
-            if request_name not in self.axon.forward_fns:
-                headers.axon_status_message = "Non-existent route."
-                axon_headers['axon_status_code'] = "406"
-                axon_headers['axon_process_time'] = str(time.time() - start_time)
-                bittensor.logging.debug( f"axon     | --> | unknown | unknown | {request.client.host}:{request.client.port} | 200 | {headers.axon_status_message} ")
-                bittensor.logging.debug( f"axon     | <-- | unknown | unknown | {request.client.host}:{request.client.port} | 406 | {headers.axon_status_message} ")
-                return JSONResponse( status_code = 406, headers = axon_headers, content = {} )
-           
-            # Check headers.
-            try:            
-                # Check each of the required Axon Headers.
-                header = dict(request.headers)
-                header['dendrite_version']
-                header['dendrite_nonce']
-                header['dendrite_uuid']
-                header['dendrite_hotkey']
-                header['dendrite_signature']
-                header['dendrite_timeout']
-            except KeyError as e:
-                headers.axon_status_message = f"Incorrect bittensor header with error: {str(e)}"
-                axon_headers['axon_status_code'] = "400"
-                axon_headers['axon_process_time'] = str(time.time() - start_time)
-                bittensor.logging.debug( f"axon     | --> | {request_name} | unknown | {request.client.host}:{request.client.port} | 200 | {headers.axon_status_message} ")
-                bittensor.logging.debug( f"axon     | <-- | {request_name} | unknown | {request.client.host}:{request.client.port} | 400 | {headers.axon_status_message} ")
-                return JSONResponse( status_code = 400, headers = axon_headers, content = {} )
-            
             # Log success
-            bittensor.logging.debug( f"axon     | --> | {request_name} | {header['dendrite_hotkey']} | {request.client.host}:{request.client.port} | 200 | Success ")
+            bittensor.logging.debug( f"axon     | --> | {headers.request_name} | {headers.dendrite_hotkey} | {headers.dendrite_ip}:{headers.dendrite_port} | 200 | Success ")
 
             # Check verification     
-            verify_fn = self.axon.verify_fns[request_name]
+            bittensor.logging.trace('Check verification')
+            verify_fn = self.axon.verify_fns[ headers.request_name ]
             if verify_fn:
-                try: verify_fn( request )
+                try: verify_fn( headers )
                 except Exception as e:
-                    headers.axon_status_message = f"Not Verified with error: {str(e)}"
-                    axon_headers['axon_status_code'] = "401"
-                    axon_headers['axon_process_time'] = str(time.time() - start_time)
-                    bittensor.logging.debug( f"axon     | <-- | {request_name} | {header['dendrite_hotkey']} | {request.client.host}:{request.client.port} | 401 | {headers.axon_status_message} ")
-                    return JSONResponse( status_code = 401, headers = axon_headers, content = {} )
-
+                    bittensor.logging.trace(f'Verify exception')
+                    headers.axon_status_code = "401"
+                    raise Exception( f"Not Verified with error: {str(e)}" )
 
             # Check Blacklist
-            blacklist_fn = self.axon.blacklist_fns[ request_name ]
-            if blacklist_fn and blacklist_fn( request ):
-                headers.axon_status_message = "Forbidden. Key is blacklisted."
-                axon_headers['axon_status_code'] = "403"
-                axon_headers['axon_process_time'] = str(time.time() - start_time)
-                bittensor.logging.debug( f"axon     | <-- | {request_name} | {header['dendrite_hotkey']} | {request.client.host}:{request.client.port} | 403 | {headers.axon_status_message}")
-                return JSONResponse( status_code = 403, headers = axon_headers, content={} )
-    
+            bittensor.logging.trace('Check Blacklist')
+            blacklist_fn = self.axon.blacklist_fns[ headers.request_name ]
+            if blacklist_fn and blacklist_fn( headers ):
+                bittensor.logging.trace(f'Blacklisted')
+                headers.axon_status_code = "403"
+                raise Exception( "Forbidden. Key is blacklisted." )
+
+
             # Run priority
-            priority_fn = self.axon.priority_fns[ request_name ]
+            bittensor.logging.trace('Run priority')
+            priority_fn = self.axon.priority_fns[ headers.request_name ]
             if priority_fn:
                 try:
                     event = threading.Event()
                     def set_event() -> bool: event.set()
-                    future = self.axon.thread_pool.submit( set_event, priority = priority_fn( request ) )
-                    future.result( timeout = float( request.headers['dendrite_timeout'] ) )
+                    future = self.axon.thread_pool.submit( set_event, priority = priority_fn( headers ) )
+                    future.result( timeout = float( headers.dendrite_timeout ) )
                     event.wait()
                 except TimeoutError as e:
-                    headers.axon_status_message = f"Response timeout after: { request.headers['dendrite_timeout'] }s"
-                    axon_headers['axon_status_code'] = "408"
-                    axon_headers['axon_process_time'] = str(time.time() - start_time)
-                    bittensor.logging.debug( f"axon     | <-- | {request_name} | {header['dendrite_hotkey']} | {request.client.host}:{request.client.port} | 403 | {headers.axon_status_message}")
-                    return JSONResponse( status_code = 408, headers = axon_headers, content={} )
+                    bittensor.logging.trace(f'TimeoutError: {str(e)}')
+                    headers.axon_status_code = "408"
+                    raise Exception( f"Response timeout after: { headers.dendrite_timeout }s" )
 
             # Run function
+            bittensor.logging.trace('Run forward')
             try:
                 response = await call_next( request )
             except Exception as e:
-                headers.axon_status_message = f"Internal server error with error: { str(e) }"
-                axon_headers['axon_status_code'] = "500"
-                axon_headers['axon_process_time'] = str(time.time() - start_time)
-                bittensor.logging.debug( f"axon     | <-- | {request_name} | {header['dendrite_hotkey']} | {request.client.host}:{request.client.port} | 500 | {headers.axon_status_message}")
-                return JSONResponse( status_code = 500, headers = axon_headers, content={} )
+                bittensor.logging.trace(f'Run exception: {str(e)}')
+                headers.axon_status_code = "500"
+                raise Exception( f"Internal server error with error: { str(e) }" )
+            
+            # Fill response headers on success.
+            bittensor.logging.trace('Fill successful response')
+            headers.axon_status_code = "200"
+            headers.axon_status_message = "Success"
+            headers.axon_process_time = str(time.time() - start_time)
+            response.headers.update( headers.dict() )
 
-            # Return with process time.
-            axon_headers["axon_process_time"] = str(time.time() - start_time)
-            axon_headers["axon_status_code"] = "200"
-            axon_headers["axon_status_message"] = "Success"
-            response.headers.update( axon_headers )
-
+        # Catch all exceptions.
         except Exception as e:
-            headers.axon_status_message = f"Internal server error with error: { str(e) }"
-            axon_headers['axon_status_code'] = "500"
-            axon_headers['axon_process_time'] = str(time.time() - start_time)
-            bittensor.logging.debug( f"axon     | <-- | {request_name} | {header['dendrite_hotkey']} | {request.client.host}:{request.client.port} | 500 | {headers.axon_status_message}")
-            return JSONResponse( status_code = 500, headers = axon_headers, content = {} )
-
-        bittensor.logging.debug( f"axon     | <-- | {request_name} | {header['dendrite_hotkey']} | {request.client.host}:{request.client.port} | 200 | Success")
-        return response
+            bittensor.logging.trace(f'Forward exception: {str(e)}')
+            headers.axon_status_message = f"{str(e)}"
+            headers.axon_process_time = str(time.time() - start_time)
+            response = JSONResponse( status_code = 500, headers = headers.dict(), content = {} )
         
+        # On Success
+        finally:
+            bittensor.logging.trace('Finally')
+            bittensor.logging.debug( f"axon     | <-- | { headers.request_name } | {headers.dendrite_hotkey} | {headers.dendrite_ip}:{headers.dendrite_port}  | {headers.axon_status_code} | {headers.axon_status_message}")
+            return response
+            

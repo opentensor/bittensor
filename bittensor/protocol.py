@@ -29,16 +29,17 @@ class Headers( pydantic.BaseModel ):
     request_name: Optional[str] = pydantic.Field(
         title = 'request_name',
         description = 'Defines the http route name which is set on axon.attach( callable( request: RequestName ))',
-        examples = 'Forward for message type ',
-        allow_mutation = True
+        examples = 'Forward',
+        allow_mutation = True,
+        default = "",
     )
 
     # The HTTP status code from: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-    axon_status_code: Optional[int] = pydantic.Field(
+    axon_status_code: Optional[str] = pydantic.Field(
         title = 'axon_status_code',
         description = 'The HTTP status code from: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status',
-        examples = 200,
-        default = 100,
+        examples = "200",
+        default = "",
         allow_mutation = True
     )
 
@@ -47,34 +48,34 @@ class Headers( pydantic.BaseModel ):
         title = 'axon_status_message',
         description = 'The axon_status_message associated with the axon_status_code',
         examples = 'Success',
-        default = 'Continue',
+        default = "",
         allow_mutation = True
     )
         
     # Defines the the maximum amount of time the dendrite will wait before throwing a timeout error.
-    dendrite_timeout: Optional[float] = pydantic.Field(
+    dendrite_timeout: Optional[str] = pydantic.Field(
         title = 'dendrite_timeout',
         description = 'Defines the the maximum amount of time the dendrite will wait before throwing a timeout error.',
         examples = '12.0',
-        default = 12.0,
+        default = "",
         allow_mutation = True
     )
 
     # Process time on axon terminal side of call. Set by the dendrite using the header axon_process_time field.
-    axon_process_time: Optional[float] = pydantic.Field(
+    axon_process_time: Optional[str] = pydantic.Field(
         title = 'axon_process_time',
         description = 'Process time on axon terminal side of call. Set by the dendrite using the header axon_process_time field.',
         examples = '0.1',
-        default = None,
+        default = "",
         allow_mutation = True
     )
 
     # Process time on dendrite terminal side of call. Set by the dendrite after the request has been processed.
-    dendrite_process_time: Optional[float] = pydantic.Field(
+    dendrite_process_time: Optional[str] = pydantic.Field(
         title = 'dendrite_process_time',
         description = 'Process time on dendrite terminal side of call. Set by the dendrite after the request has been processed.',
         examples = '0.1',
-        default = None,
+        default = "",
         allow_mutation = True
     )
 
@@ -83,7 +84,7 @@ class Headers( pydantic.BaseModel ):
         title = 'dendrite_ip',
         description = 'The ip of the dendrite making the request.',
         examples = '198.123.23.1',
-        default = None,
+        default = "",
         allow_mutation = True
     )
 
@@ -92,7 +93,7 @@ class Headers( pydantic.BaseModel ):
         title = 'axon_ip',
         description = 'The axon recieving the request.',
         examples = '198.123.23.1',
-        default = None,
+        default = "",
         allow_mutation = True
     )
 
@@ -101,7 +102,7 @@ class Headers( pydantic.BaseModel ):
         title = 'dendrite_port',
         description = 'The port sending dendrite client set on the axon side using request.client.port',
         examples = '198.123.23.1',
-        default = None,
+        default = "",
         allow_mutation = True
     )
 
@@ -110,7 +111,7 @@ class Headers( pydantic.BaseModel ):
         title = 'axon_port',
         description = 'The bittensor version of the sender.',
         examples = '198.123.23.1',
-        default = None,
+        default = "",
         allow_mutation = True
     )
 
@@ -119,7 +120,7 @@ class Headers( pydantic.BaseModel ):
         title = 'dendrite_version',
         description = 'The bittensor version on the dendrite as int',
         examples = 111,
-        default = None,
+        default = "",
         allow_mutation = True
     )
 
@@ -128,7 +129,7 @@ class Headers( pydantic.BaseModel ):
         title = 'axon_version',
         description = 'The bittensor version on the axon as int',
         examples = 111,
-        default = None,
+        default = "",
         allow_mutation = True
     )
 
@@ -137,7 +138,7 @@ class Headers( pydantic.BaseModel ):
         title = 'dendrite_nonce',
         description = 'A unique monotonically increasing integer nonce associate with the dendrite generated from time.monotonic_ns()',
         examples = 111111,
-        default = None,
+        default = "",
         allow_mutation = True
     )
 
@@ -146,7 +147,7 @@ class Headers( pydantic.BaseModel ):
         title = 'axon_nonce',
         description = 'A unique monotonically increasing integer nonce associate with the axon generated from time.monotonic_ns()',
         examples = 111111,
-        default = None,
+        default = "",
         allow_mutation = True
     )
 
@@ -155,7 +156,7 @@ class Headers( pydantic.BaseModel ):
         title = 'dendrite_uuid',
         description = 'A unique identifier associated with the dendrite.',
         examples = "5ecbd69c-1cec-11ee-b0dc-e29ce36fec1a",
-        default = None,
+        default = "",
         allow_mutation = True
     )
 
@@ -164,7 +165,7 @@ class Headers( pydantic.BaseModel ):
         title = 'axon_uuid',
         description = 'A unique identifier associated with the axon, set on the axon side.',
         examples = "5ecbd69c-1cec-11ee-b0dc-e29ce36fec1a",
-        default = None,
+        default = "",
         allow_mutation = True
     )
 
@@ -173,7 +174,7 @@ class Headers( pydantic.BaseModel ):
         title = 'dendrite_hotkey',
         description = 'The ss58 encoded hotkey string of the dendrites wallet.',
         examples = "5EnjDGNqqWnuL2HCAdxeEtN2oqtXZw6BMBe936Kfy2PFz1J1",
-        default = None,
+        default = "",
         allow_mutation = True
     )
 
@@ -182,7 +183,7 @@ class Headers( pydantic.BaseModel ):
         title = 'axon_hotkey',
         description = 'The ss58 encoded hotkey string of the axon wallet.',
         examples = "5EnjDGNqqWnuL2HCAdxeEtN2oqtXZw6BMBe936Kfy2PFz1J1",
-        default = None,
+        default = "",
         allow_mutation = True
     )
 
@@ -191,11 +192,10 @@ class Headers( pydantic.BaseModel ):
         title = 'dendrite_signature',
         description = 'A signature verifying the tuple (nonce, axon_hotkey, dendrite_hotkey, dendrite_uuid)',
         examples = "0x0813029319030129u4120u10841824y0182u091u230912u",
-        default = None,
+        default = "",
         allow_mutation = True
     )
-    def dendrite_sign(self):
-        keypair = bittensor.Keypair( ss58_address = self.dendrite_hotkey )
+    def dendrite_sign(self, keypair):
         message = f"{self.dendrite_nonce}.{self.dendrite_hotkey}.{self.axon_hotkey}.{self.dendrite_uuid}"
         self.dendrite_signature = f"0x{keypair.sign(message).hex()}"
 
@@ -204,10 +204,10 @@ class Headers( pydantic.BaseModel ):
         title = 'axon_signature',
         description = 'A signature verifying the tuple (axon_nonce, axon_hotkey, dendrite_hotkey, axon_uuid)',
         examples = "0x0813029319030129u4120u10841824y0182u091u230912u",
-        default = None,
+        default = "",
         allow_mutation = True
     )
-    def axon_sign(self):
+    def axon_sign(self, keypair):
         keypair = bittensor.Keypair( ss58_address = self.axon_hotkey )
         message = f"{self.axon_nonce}.{self.axon_hotkey}.{self.dendrite_hotkey}.{self.axon_uuid}"
         self.axon_signature = f"0x{keypair.sign(message).hex()}"

@@ -83,55 +83,54 @@ class dendrite( torch.nn.Module ):
         endpoint = f"localhost:{str(axon.port)}" if axon.ip == str(self.external_ip) else f"{axon.ip}:{str(axon.port)}"
         url = f"http://{endpoint}/{request_name}"
 
-        # Build Axon headers.
-        dendrite_ip = str(self.external_ip)
-        dendrite_nonce = f"{time.monotonic_ns()}"
-        dendrite_hotkey = self.keypair.ss58_address
-        dendrite_uuid = str(self.uuid)
-        dendrite_timeout = timeout
-        dendrite_version = bt.__version_as_int__
-        axon_hotkey = axon.hotkey
-        request_name = request_name
-        message = f"{dendrite_nonce}.{dendrite_hotkey}.{axon_hotkey}.{dendrite_uuid}"
-        dendrite_signature = f"0x{self.keypair.sign(message).hex()}"
-        headers = {
+        # Build Dendrite headers.
+        headers = bt.Headers( **{
             "rpc-auth-header": "Bittensor",
-            "dendrite_ip": str( dendrite_ip ),
-            "dendrite_timeout": str( dendrite_timeout ),
-            "dendrite_version": str( dendrite_version ),
-            "dendrite_nonce": str( dendrite_nonce ),
-            "dendrite_uuid": str( dendrite_uuid ),
-            "dendrite_hotkey": str( dendrite_hotkey ),
-            "dendrite_signature": str( dendrite_signature ),
-            "axon_hotkey": str( axon_hotkey ),
+            "dendrite_ip": str(self.external_ip),
+            "dendrite_timeout": str( timeout ),
+            "dendrite_version": str( bt.__version_as_int__ ),
+            "dendrite_nonce": f"{time.monotonic_ns()}",
+            "dendrite_uuid": str(self.uuid),
+            "dendrite_hotkey": str( self.keypair.ss58_address ),
+            "axon_hotkey": str( axon.hotkey ),
             "axon_ip": str( axon.ip ),
             "axon_port": str( axon.port ),
             "request_name": str(request_name)
-        }
-        bt.logging.debug( f"dendrite | --> | {request_name} | {axon_hotkey} | {axon.ip}:{str(axon.port)} | 0 | Success")
-        response = await self.client.post( url, headers = headers, json = request.dict() )
-        # Parse response on success.
-        if response.status_code == 200:
-            try:
-                response_obj = request.__class__( **response.json() )
+        })
+        headers.dendrite_sign( keypair = self.keypair )
+        request.headers = headers
+
+        # Make the forward call.
+        bt.logging.debug( f"dendrite | --> | {headers.request_name} | {headers.axon_hotkey} | {headers.axon_ip}:{str(headers.axon_port)} | 0 | Success")
+        response = await self.client.post( url, headers = headers.dict(), json = request.dict() )
+
+
+        try:
+            # Parse response on success.
+            if response.status_code == 200:
+
                 # Parse the changes from the response into the request.
                 # We skip items which are immutable.
+                response_obj = request.__class__( **response.json() )
                 for key in request.dict().keys(): 
                     try: setattr(request, key, getattr(response_obj, key) ) ; 
                     except: pass
-                bt.logging.debug( f"dendrite | <-- | {request_name} | {axon_hotkey} | {axon.ip}:{str(axon.port)} | {response.status_code} | {response.headers['axon_status_message']}")
 
-            # Exception handling.
-            except Exception as e:
-                bt.logging.debug( f"dendrite | <-- | {request_name} | {axon_hotkey} | {axon.ip}:{str(axon.port)} | 406 | Failed to parse response object with error: {str(e)}")
+            # Now fill the dendrite and axon header values.
+            # This copys the remote header values from the axon then overwrites locals.
+            request.headers = bt.Headers()
+            request.headers.__dict__.update( dict( response.headers ) )
+            request.headers.__dict__.update( dict( headers ) )
+            request.headers.dendrite_process_time = str(time.time() - start_time)
 
+            # Log the response.
+            bt.logging.debug( f"dendrite | <-- | {headers.request_name} | {headers.axon_hotkey} | {headers.axon_ip}:{str(headers.axon_port)} | {response.status_code} | {response.headers['axon_status_message']}")
 
-        bt.logging.debug( f"dendrite | <-- | {request_name} | {axon_hotkey} | {axon.ip}:{str(axon.port)} | {response.status_code} | {response.headers['axon_status_message']}")
+        # Failed to parse response.
+        except Exception as e:
+            bt.logging.debug( f"dendrite | <-- | {headers.request_name} | {headers.axon_hotkey} | {headers.axon_ip}:{str(headers.axon_port)} | 406 | Failed to parse response object with error: {str(e)}")
 
-        request.headers = bt.Headers()
-        request.headers.__dict__.update( dict( response.headers ) )
-        request.headers.__dict__.update( dict( headers ) )
-        request.headers.dendrite_process_time = str(time.time() - start_time)
-        request.headers.axon_status_code = response.status_code
-        return request
+        # Return the request.
+        finally:
+            return request
 
