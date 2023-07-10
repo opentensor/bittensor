@@ -281,6 +281,31 @@ class axon:
             pass
 
     @classmethod
+    def add_defaults(cls, defaults):
+        """Adds parser defaults to object from enviroment variables."""
+        defaults.axon = bittensor.config()
+        defaults.axon.port = (
+            os.getenv("BT_AXON_PORT") if os.getenv("BT_AXON_PORT") is not None else 8091
+        )
+        defaults.axon.ip = os.getenv("BT_AXON_IP") if os.getenv("BT_AXON_IP") is not None else "[::]"
+        defaults.axon.external_port = (
+            os.getenv("BT_AXON_EXTERNAL_PORT")
+            if os.getenv("BT_AXON_EXTERNAL_PORT") is not None
+            else None
+        )
+        defaults.axon.external_ip = (
+            os.getenv("BT_AXON_EXTERNAL_IP") if os.getenv("BT_AXON_EXTERNAL_IP") is not None else None
+        )
+        defaults.axon.max_workers = (
+            os.getenv("BT_AXON_MAX_WORERS") if os.getenv("BT_AXON_MAX_WORERS") is not None else 10
+        )
+        defaults.axon.maximum_concurrent_rpcs = (
+            os.getenv("BT_AXON_MAXIMUM_CONCURRENT_RPCS")
+            if os.getenv("BT_AXON_MAXIMUM_CONCURRENT_RPCS") is not None
+            else 400
+        )
+
+    @classmethod
     def check_config(cls, config: "bittensor.Config"):
         """Check config for axon port and wallet"""
         assert (
