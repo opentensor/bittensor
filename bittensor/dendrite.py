@@ -121,15 +121,19 @@ class dendrite( torch.nn.Module ):
             # Now fill the dendrite and axon header values.
             # This copys the remote header values from the axon then overwrites locals.
             headers = bt.Synapse.from_headers( response.headers )
-            synapse.__dict__.update( **headers.dict() )
+            synapse.dendrite.__dict__.update( **headers.dendrite.dict() )
+            synapse.axon.__dict__.update( **headers.axon.dict() )
             synapse.dendrite.process_time = str(time.time() - start_time)
+            synapse.dendrite.status_code = synapse.axon.status_code
 
             # Log the response.
             bt.logging.debug( f"dendrite | <-- | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.axon.status_code} | {synapse.axon.status_message}")
 
         # Failed to parse response.
         except Exception as e:
-            bt.logging.debug( f"dendrite | <-- | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 406 | Failed to parse response object with error: {str(e)}")
+            synapse.dendrite.status_code = '406'
+            synapse.dendrite.status_message = f"Failed to parse response object with error: {str(e)}"
+            bt.logging.debug( f"dendrite | <-- | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}")
 
         # Return the request.
         finally:

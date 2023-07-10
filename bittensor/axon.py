@@ -435,9 +435,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
             synapse.axon.status_code = "200"
             synapse.axon.status_message = "Success"
             synapse.axon.process_time = str(time.time() - start_time)
-            bittensor.logging.debug( synapse.to_headers() )
+            bittensor.logging.trace( synapse.to_headers() )
             response.headers.update( synapse.to_headers() )
-            bittensor.logging.debug( response.headers )
+            bittensor.logging.trace( response.headers )
 
         # Catch all exceptions.
         except Exception as e:

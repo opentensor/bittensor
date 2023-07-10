@@ -167,7 +167,6 @@ class Synapse( pydantic.BaseModel ):
 
     def to_headers(self) -> dict:
         base_class = Synapse(**self.dict())
-        print( base_class )
         headers = {
             'name': base_class.name,
             'timeout': base_class.timeout,
