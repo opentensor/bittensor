@@ -165,7 +165,7 @@ class axon:
         self.app.add_middleware( AxonMiddleware, axon = self )
 
         # Attach default forward.
-        def ping( r: bittensor.Request ) -> bittensor.Request: return r 
+        def ping( r: bittensor.Synapse ) -> bittensor.Synapse: return r 
         self.attach( forward_fn = ping, verify_fn = None, blacklist_fn = None, priority_fn = None )
     
     def attach(
@@ -318,14 +318,14 @@ class axon:
         self.started = False
         return self
             
-    def default_verify( self, headers: bittensor.Headers) -> Request:
+    def default_verify( self, synapse: bittensor.Synapse) -> Request:
         """
         This method is used to verify the authenticity of a received message using a digital signature.
         It ensures that the message was not tampered with and was sent by the expected sender.
 
         Args:
-            headers: bittensor.Headers
-                bittensor request headers.
+            synapse: bittensor.Synapse
+                bittensor request synapse.
 
         Raises:
             Exception: If the receiver_hotkey doesn't match with self.receiver_hotkey.
@@ -339,26 +339,26 @@ class axon:
             where the sender signs the message with their private key and the receiver verifies the signature using the sender's public key.
         """
         # Build the keypair from the dendrite_hotkey
-        keypair = Keypair(ss58_address = headers.dendrite_hotkey)
+        keypair = Keypair(ss58_address = synapse.dendrite.hotkey)
 
         # Build the signature messages.
-        message = f"{headers.dendrite_nonce}.{headers.dendrite_hotkey}.{self.wallet.hotkey.ss58_address}.{headers.dendrite_uuid}"
+        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}"
 
         # Build the unique endpoint key.
-        endpoint_key = f"{headers.dendrite_hotkey}:{headers.dendrite_uuid}"
+        endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
 
         # Check the nonce from the endpoint key.
         if endpoint_key in self.nonces.keys():
 
             # Ensure the nonce increases.
-            if headers.dendrite_nonce <= self.nonces[endpoint_key]:
+            if synapse.dendrite.nonce <= self.nonces[endpoint_key]:
                 raise Exception("Nonce is too small")
             
-        if not keypair.verify(message, headers.dendrite_signature):
+        if not keypair.verify(message, synapse.dendrite.signature):
             raise Exception("Signature mismatch")
         
         # Success
-        self.nonces[endpoint_key] = headers.dendrite_nonce
+        self.nonces[endpoint_key] = synapse.dendrite.nonce
     
 
 class AxonMiddleware(BaseHTTPMiddleware):
@@ -370,56 +370,56 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         bittensor.logging.trace('enter dispatch')
         start_time = time.time()
-        headers = bittensor.Headers( **dict(request.headers) )
-        headers.__dict__.update({
-            'request_name': str(request.url.path.split("/")[1]),
-            'axon_version': str(bittensor.__version_as_int__),
-            'axon_uuid': str(self.axon.uuid),
-            'axon_nonce': f"{time.monotonic_ns()}",
-            'axon_status_message': "Success",
-            'axon_status_code': "100",
-            'axon_process_time': "0",
-            'axon_signature': "",
-            'dendrite_port': str(request.client.port),
-            'dendrite_ip': str(request.client.host),
+        synapse = bittensor.Synapse.from_headers( request.headers )
+        synapse.axon.__dict__.update({
+            'version': str(bittensor.__version_as_int__),
+            'uuid': str(self.axon.uuid),
+            'nonce': f"{time.monotonic_ns()}",
+            'status_message': "Success",
+            'status_code': "100",
         })
+        synapse.dendrite.__dict__.update({
+            'port': str(request.client.port),
+            'ip': str(request.client.host),
+        })
+       
         try:
             # Log success
-            bittensor.logging.debug( f"axon     | --> | {headers.request_name} | {headers.dendrite_hotkey} | {headers.dendrite_ip}:{headers.dendrite_port} | 200 | Success ")
+            bittensor.logging.debug( f"axon     | --> | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success ")
 
             # Check verification     
             bittensor.logging.trace('Check verification')
-            verify_fn = self.axon.verify_fns[ headers.request_name ]
+            verify_fn = self.axon.verify_fns[ synapse.name ]
             if verify_fn:
-                try: verify_fn( headers )
+                try: verify_fn( synapse )
                 except Exception as e:
                     bittensor.logging.trace(f'Verify exception')
-                    headers.axon_status_code = "401"
+                    synapse.axon.status_code = "401"
                     raise Exception( f"Not Verified with error: {str(e)}" )
 
             # Check Blacklist
             bittensor.logging.trace('Check Blacklist')
-            blacklist_fn = self.axon.blacklist_fns[ headers.request_name ]
-            if blacklist_fn and blacklist_fn( headers ):
+            blacklist_fn = self.axon.blacklist_fns[ synapse.name ]
+            if blacklist_fn and blacklist_fn( synapse ):
                 bittensor.logging.trace(f'Blacklisted')
-                headers.axon_status_code = "403"
+                synapse.axon.status_code = "403"
                 raise Exception( "Forbidden. Key is blacklisted." )
 
 
             # Run priority
             bittensor.logging.trace('Run priority')
-            priority_fn = self.axon.priority_fns[ headers.request_name ]
+            priority_fn = self.axon.priority_fns[ synapse.name ]
             if priority_fn:
                 try:
                     event = threading.Event()
                     def set_event() -> bool: event.set()
-                    future = self.axon.thread_pool.submit( set_event, priority = priority_fn( headers ) )
-                    future.result( timeout = float( headers.dendrite_timeout ) )
+                    future = self.axon.thread_pool.submit( set_event, priority = priority_fn( synapse ) )
+                    future.result( timeout = float( synapse.timeout ) )
                     event.wait()
                 except TimeoutError as e:
                     bittensor.logging.trace(f'TimeoutError: {str(e)}')
-                    headers.axon_status_code = "408"
-                    raise Exception( f"Response timeout after: { headers.dendrite_timeout }s" )
+                    synapse.axon.status_code = "408"
+                    raise Exception( f"Response timeout after: { synapse.timeout }s" )
 
             # Run function
             bittensor.logging.trace('Run forward')
@@ -427,26 +427,28 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 response = await call_next( request )
             except Exception as e:
                 bittensor.logging.trace(f'Run exception: {str(e)}')
-                headers.axon_status_code = "500"
+                synapse.axon.status_code = "500"
                 raise Exception( f"Internal server error with error: { str(e) }" )
             
             # Fill response headers on success.
             bittensor.logging.trace('Fill successful response')
-            headers.axon_status_code = "200"
-            headers.axon_status_message = "Success"
-            headers.axon_process_time = str(time.time() - start_time)
-            response.headers.update( headers.dict() )
+            synapse.axon.status_code = "200"
+            synapse.axon.status_message = "Success"
+            synapse.axon.process_time = str(time.time() - start_time)
+            bittensor.logging.debug( synapse.to_headers() )
+            response.headers.update( synapse.to_headers() )
+            bittensor.logging.debug( response.headers )
 
         # Catch all exceptions.
         except Exception as e:
             bittensor.logging.trace(f'Forward exception: {str(e)}')
-            headers.axon_status_message = f"{str(e)}"
-            headers.axon_process_time = str(time.time() - start_time)
-            response = JSONResponse( status_code = 500, headers = headers.dict(), content = {} )
+            synapse.axon.status_message = f"{str(e)}"
+            synapse.axon.process_time = str(time.time() - start_time)
+            response = JSONResponse( status_code = 500, headers = synapse.dict(), content = {} )
         
         # On Success
         finally:
             bittensor.logging.trace('Finally')
-            bittensor.logging.debug( f"axon     | <-- | { headers.request_name } | {headers.dendrite_hotkey} | {headers.dendrite_ip}:{headers.dendrite_port}  | {headers.axon_status_code} | {headers.axon_status_message}")
+            bittensor.logging.debug( f"axon     | <-- | { synapse.name } | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}")
             return response
             
