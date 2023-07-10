@@ -602,6 +602,7 @@ class TestSubtensor(unittest.TestCase):
 #             sub.validator_epochs_per_reset(netuid = 3)
 #             sub.validator_sequence_length(netuid = 3)
 #             sub.validator_batch_size(netuid = 3)
+#             sub.validator_timeout(netuid = 3)
 #             sub.difficulty(netuid = 3)
 
 # # This test was flaking, please check to_defaults before reactiving the test

@@ -36,6 +36,7 @@ custom_rpc_type_registry = {
                 ["kappa", "Compact<u16>"],
                 ["difficulty", "Compact<u64>"],
                 ["immunity_period", "Compact<u16>"],
+                ["validator_timeout", "Compact<u16>"],
                 ["validator_batch_size", "Compact<u16>"],
                 ["validator_sequence_length", "Compact<u16>"],
                 ["validator_epochs_per_reset", "Compact<u16>"],
@@ -569,6 +570,7 @@ class SubnetInfo:
     kappa: int
     difficulty: int
     immunity_period: int
+    validator_timeout: int
     validator_batch_size: int
     validator_sequence_length: int
     validator_epochs_per_reset: int
@@ -625,6 +627,7 @@ class SubnetInfo:
             kappa = decoded['kappa'],
             difficulty = decoded['difficulty'],
             immunity_period = decoded['immunity_period'],
+            validator_timeout = decoded['validator_timeout'],
             validator_batch_size = decoded['validator_batch_size'],
             validator_sequence_length = decoded['validator_sequence_length'],
             validator_epochs_per_reset = decoded['validator_epochs_per_reset'],

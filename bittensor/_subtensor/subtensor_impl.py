@@ -431,6 +431,11 @@ class Subtensor:
         if not self.subnet_exists( netuid, block ): return None
         return self.query_subtensor("ImmunityPeriod", block, [netuid] ).value
 
+    """ Returns network ValidatorTimeout hyper parameter """
+    def validator_timeout (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
+        if not self.subnet_exists( netuid, block ): return None
+        return self.query_subtensor("ValidatorTimeout", block, [netuid] ).value
+
     """ Returns network ValidatorBatchSize hyper parameter """
     def validator_batch_size (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
         if not self.subnet_exists( netuid, block ): return None
