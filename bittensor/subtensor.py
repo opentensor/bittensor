@@ -89,6 +89,15 @@ class subtensor:
             # re-parsing arguments.
             pass
 
+    @classmethod
+    def add_defaults( cls, defaults ):
+        """ Adds parser defaults to object from enviroment variables.
+        """
+        defaults.subtensor = bittensor.config()
+        defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'finney'
+        defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else bittensor.__finney_entrypoint__
+        defaults.subtensor._mock = os.getenv('BT_SUBTENSOR_MOCK') if os.getenv('BT_SUBTENSOR_MOCK') != None else False
+
     @staticmethod
     def determine_chain_endpoint(network: str):
         if network == "finney":

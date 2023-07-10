@@ -170,16 +170,37 @@ class config ( Munch ):
                 a[key] = b[key]
         return a
 
-    def merge(self, b):
+    def merge( self, b ):
         """ Merge two configs
         """
         self = self._merge( self, b )
+
+    @classmethod
+    def merge_all( cls, configs: List['config'] ) -> 'config':
+        """Merge all configs in the list into one config.
+        If there is a conflict, the value from the last configuration in the list will take precedence.
+        Args:
+            configs (list of config):
+                List of configs to be merged.
+        Returns:
+            config:
+                Merged config object.
+        """
+        result = cls()
+        for cfg in configs:
+            result.merge(cfg)
+        return result
 
     def is_set(self, param_name: str) -> bool:
         """
         Returns a boolean indicating whether the parameter has been set or is still the default.
         """
-        if param_name not in self.get('__is_set'):
-            return False
+        keys = param_name.split('.')
+        if len(keys) == 1:
+            return keys[0] in self
         else:
-            return self.get('__is_set')[param_name]
+            next_config = self.get(keys[0])
+            if isinstance(next_config, config):
+                return next_config.is_set('.'.join(keys[1:]))
+            else:
+                return False

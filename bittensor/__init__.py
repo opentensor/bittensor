@@ -107,3 +107,13 @@ from .protocol import *
 from .tensor import *
 from .axon import axon as axon
 from .dendrite import dendrite as dendrite
+
+# DEFAULTS
+configs = [
+    axon.config(),
+    subtensor.config(),
+    PriorityThreadPoolExecutor.config(),
+    wallet.config(),
+    logging.config(),
+]
+defaults = config.merge_all( configs )

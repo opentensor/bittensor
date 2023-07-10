@@ -8,15 +8,17 @@ __author__ = 'Brian Quinlan (brian@sweetapp.com)'
 
 import os
 import sys
-import bittensor
-from concurrent.futures import _base
-import itertools
+import time
 import queue
 import random
-import threading
 import weakref
-import time
+import argparse
+import bittensor
+import itertools
+import threading
+
 from loguru import logger
+from concurrent.futures import _base
 
 # Workers are created as daemon threads. This is done to allow the interpreter
 # to exit when there are still idle threads in a ThreadPoolExecutor's thread
@@ -147,6 +149,33 @@ class PriorityThreadPoolExecutor(_base.Executor):
                                     ("ThreadPoolExecutor-%d" % self._counter()))
         self._initializer = initializer
         self._initargs = initargs
+
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
+        """ Accept specific arguments from parser
+        """
+        prefix_str = '' if prefix == None else prefix + '.'
+        if prefix is not None:
+            if not hasattr(bittensor.defaults, prefix):
+                setattr(bittensor.defaults, prefix, bittensor.Config())
+            getattr(bittensor.defaults, prefix).priority = bittensor.defaults.priority
+        try:
+            default_max_workers = os.getenv('BT_PRIORITY_MAX_WORKERS') if os.getenv('BT_PRIORITY_MAX_WORKERS') != None else 5
+            default_maxsize = os.getenv('BT_PRIORITY_MAXSIZE') if os.getenv('BT_PRIORITY_MAXSIZE') != None else 10
+            parser.add_argument('--' + prefix_str + 'priority.max_workers', type = int, help='''maximum number of threads in thread pool''', default = default_max_workers)
+            parser.add_argument('--' + prefix_str + 'priority.maxsize', type=int, help='''maximum size of tasks in priority queue''', default = default_maxsize)
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
+
+    @classmethod
+    def config(cls) -> 'bittensor.Config':
+        """ Get config from the argument parser
+            Return: bittensor.config object
+        """
+        parser = argparse.ArgumentParser()
+        PriorityThreadPoolExecutor.add_args( parser )
+        return bittensor.config( parser )
 
     @property
     def is_empty(self):
