@@ -26,7 +26,7 @@ from unittest.mock import MagicMock
 import bittensor
 from bittensor.utils.test_utils import get_random_unused_port
 
-from tests.helpers import get_mock_wallet, get_mock_keypair
+from tests.helpers import _get_mock_wallet, _get_mock_keypair
 
 def gen_nonce():
     return f"{time.monotonic_ns()}"
@@ -54,16 +54,16 @@ def is_port_in_use(port):
 class TestAxon(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.wallet = wallet = get_mock_wallet(
-            coldkey = get_mock_keypair(0, cls.__name__),
-            hotkey= get_mock_keypair(100 + 0, cls.__name__),
+        cls.wallet = wallet = _get_mock_wallet(
+            coldkey = _get_mock_keypair(0, cls.__name__),
+            hotkey= _get_mock_keypair(100 + 0, cls.__name__),
         )
 
         cls.axon = bittensor.axon( wallet = wallet, metagraph = None )
 
-        cls.sender_wallet = get_mock_wallet(
-            coldkey = get_mock_keypair(1, cls.__name__),
-            hotkey= get_mock_keypair(100 + 1, cls.__name__),
+        cls.sender_wallet = _get_mock_wallet(
+            coldkey = _get_mock_keypair(1, cls.__name__),
+            hotkey= _get_mock_keypair(100 + 1, cls.__name__),
         )
 
 

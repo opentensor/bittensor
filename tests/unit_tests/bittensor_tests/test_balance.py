@@ -20,9 +20,10 @@ from typing import Union
 
 import pytest
 from bittensor import Balance
-from tests.helpers import CLOSE_IN_VALUE
 from hypothesis import given
 from hypothesis import strategies as st
+
+from tests.helpers import CLOSE_IN_VALUE
 
 """
 Test the Balance class
