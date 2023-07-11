@@ -59,8 +59,8 @@ class blacklist:
         parser.add_argument(
             '--' + prefix_str + 'blacklist.allow_non_registered',
             action = 'store_true',
-            help = 'If True, the miner will allow non-registered hotkeys to mine.',
-            default = True
+            help = 'If True, the miner will allow non-registered hotkeys to pass blacklist.',
+            default = False
         )
         parser.add_argument(
             '--' + prefix_str + 'blacklist.min_allowed_stake',
