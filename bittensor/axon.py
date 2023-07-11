@@ -370,6 +370,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         start_time = time.time()
         synapse = bittensor.Synapse.from_headers( request.headers )
+        synapse.name = request.url.path.split('/')[1]
         # Fill the local axon information in the request.
         synapse.axon.__dict__.update({
             'version': str(bittensor.__version_as_int__),

@@ -11,6 +11,8 @@ miniupnpc
 munch
 netaddr
 numpy
+msgpack
+msgpack_numpy
 pyyaml
 password_strength
 pydantic!=1.8,!=1.8.1,<2.0.0,>=1.7.4

@@ -20,6 +20,7 @@
 
 import pydantic
 import bittensor
+from abc import abstractmethod
 from fastapi.responses import Response
 from fastapi import Request
 from typing import Dict, Optional, Tuple, Union, List, Callable
@@ -134,6 +135,9 @@ class Synapse( pydantic.BaseModel ):
     class Config:
         validate_assignment = True
 
+    def deserialize(self) -> 'Synapse':
+        return self
+
     @pydantic.root_validator(pre=True)
     def set_name_type(cls, values):
         values['name'] = cls.__name__
@@ -203,30 +207,3 @@ class Synapse( pydantic.BaseModel ):
                 setattr( synapse.dendrite, k, v )
             except: pass
         return synapse
-
-
-
-class Tensor( pydantic.BaseModel ):
-
-    class Config:
-        validate_assignment = True
-
-    # Defines the http route name which is set on axon.attach( callable( request: RequestName ))
-    data: Optional[ bytes ] = pydantic.Field(
-        title = 'data',
-        description = 'Tensor bytes data',
-        examples = 'Tensor',
-        allow_mutation = True,
-        default = None,
-        repr = True
-    )
-
-    # Defines the http route name which is set on axon.attach( callable( request: RequestName ))
-    serializer: Optional[ bytes ] = pydantic.Field(
-        title = 'data',
-        description = 'Tensor bytes data',
-        examples = 'Tensor',
-        allow_mutation = True,
-        default = None,
-        repr = True
-    )

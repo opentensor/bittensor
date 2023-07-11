@@ -72,7 +72,8 @@ class dendrite( torch.nn.Module ):
         self,
         axon: Union[ 'bt.AxonInfo', 'bt.axon' ],
         synapse: bt.Synapse = bt.Synapse(), 
-        timeout: float = 12.0 
+        timeout: float = 12.0,
+        deserialize: bool = True,
     ) -> bt.Request:
         
         start_time = time.time()
@@ -106,10 +107,10 @@ class dendrite( torch.nn.Module ):
         synapse.dendrite.signature = f"0x{self.keypair.sign(message).hex()}"
 
         # Make the call.
-        bt.logging.debug( f"dendrite | --> | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success")
-        json_response = await self.client.post( url, headers = synapse.to_headers(), json = synapse.dict() )
-    
         try:
+            bt.logging.debug( f"dendrite | --> | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success")
+            json_response = await self.client.post( url, headers = synapse.to_headers(), json = synapse.dict() )
+    
             # Parse response on success.
             if json_response.status_code == 200:
 
@@ -141,4 +142,7 @@ class dendrite( torch.nn.Module ):
 
         # Return the synapse.
         finally:
-            return synapse
+            if deserialize:
+                return synapse.deserialize()
+            else:
+                return synapse
