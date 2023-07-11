@@ -6,6 +6,7 @@
 * bump bittensor-wallet req, update cryptography security req by @@ifrit98 in [91d13b0](https://github.com/opentensor/bittensor/commit/91d13b0fa711621cbf823708d4368b1b387e42c4)
 * Fixes Discord Link Issue #1442  by @camfairchild in [54d6248](https://github.com/opentensor/bittensor/commit/54d62487d4cb59e0b5edcd53acdca013108d155b)
 * move mocks to bittensor_wallet package by @camfairchild in https://github.com/opentensor/bittensor/pull/1441
+* Bump bittensor-wallet version to 0.0.3
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.3.0...v5.3.1
 
