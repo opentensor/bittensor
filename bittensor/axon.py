@@ -318,7 +318,7 @@ class axon:
         self.started = False
         return self
             
-    def default_verify( self, synapse: bittensor.Synapse) -> Request:
+    def default_verify( self, synapse: bittensor.Synapse ) -> Request:
         """
         This method is used to verify the authenticity of a received message using a digital signature.
         It ensures that the message was not tampered with and was sent by the expected sender.
@@ -368,9 +368,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Request:
 
-        bittensor.logging.trace('enter dispatch')
         start_time = time.time()
         synapse = bittensor.Synapse.from_headers( request.headers )
+        # Fill the local axon information in the request.
         synapse.axon.__dict__.update({
             'version': str(bittensor.__version_as_int__),
             'uuid': str(self.axon.uuid),
@@ -378,14 +378,18 @@ class AxonMiddleware(BaseHTTPMiddleware):
             'status_message': "Success",
             'status_code': "100",
         })
+        # Fill the dendrite information.
         synapse.dendrite.__dict__.update({
             'port': str(request.client.port),
             'ip': str(request.client.host),
         })
+        # Sign the response synapse.
+        message = f"{synapse.axon.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.axon.uuid}"
+        synapse.axon.signature = f"0x{self.axon.wallet.hotkey.sign(message).hex()}"
        
         try:
             # Log success
-            bittensor.logging.debug( f"axon     | --> | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success ")
+            bittensor.logging.debug( f"axon     | <-- | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success ")
 
             # Check verification     
             bittensor.logging.trace('Check verification')
@@ -404,7 +408,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 bittensor.logging.trace(f'Blacklisted')
                 synapse.axon.status_code = "403"
                 raise Exception( "Forbidden. Key is blacklisted." )
-
 
             # Run priority
             bittensor.logging.trace('Run priority')
@@ -444,11 +447,11 @@ class AxonMiddleware(BaseHTTPMiddleware):
             bittensor.logging.trace(f'Forward exception: {str(e)}')
             synapse.axon.status_message = f"{str(e)}"
             synapse.axon.process_time = str(time.time() - start_time)
-            response = JSONResponse( status_code = 500, headers = synapse.dict(), content = {} )
+            response = JSONResponse( status_code = 500, headers = synapse.to_headers(), content = {} )
         
         # On Success
         finally:
             bittensor.logging.trace('Finally')
-            bittensor.logging.debug( f"axon     | <-- | { synapse.name } | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}")
+            bittensor.logging.debug( f"axon     | --> | { synapse.name } | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}")
             return response
             

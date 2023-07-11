@@ -83,7 +83,7 @@ class dendrite( torch.nn.Module ):
         endpoint = f"localhost:{str(axon.port)}" if axon.ip == str(self.external_ip) else f"{axon.ip}:{str(axon.port)}"
         url = f"http://{endpoint}/{request_name}"
 
-        # Build Dendrite headers.
+        # Build Dendrite + Axon headers.
         synapse.timeout = str( timeout )
         synapse.dendrite = bt.TerminalInfo(
             **{
@@ -101,41 +101,44 @@ class dendrite( torch.nn.Module ):
                 "hotkey": str( axon.hotkey ),
             }
         )
+        # Sign the synapse request.
         message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.dendrite.uuid}"
         synapse.dendrite.signature = f"0x{self.keypair.sign(message).hex()}"
 
-        # Make the forward call.
+        # Make the call.
         bt.logging.debug( f"dendrite | --> | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success")
-        response = await self.client.post( url, headers = synapse.to_headers(), json = synapse.dict() )
+        json_response = await self.client.post( url, headers = synapse.to_headers(), json = synapse.dict() )
+    
         try:
             # Parse response on success.
-            if response.status_code == 200:
+            if json_response.status_code == 200:
 
-                # Parse the changes from the response into the request.
-                # We skip items which are immutable.
-                response_obj = synapse.__class__( **response.json() )
+                # Overwrite with remote axon state if allowed.
+                # The protocol must have field( allow_mutation = False) to stop overwrites of input.
+                response_synapse = synapse.__class__( **json_response.json() )
                 for key in synapse.dict().keys(): 
-                    try: setattr(synapse, key, getattr(response_obj, key) ) ; 
+                    try: setattr(synapse, key, getattr(response_synapse, key) ) ; 
                     except: pass
+      
+            # Overwrite None headers as set by remote.
+            axon_headers = bt.Synapse.from_headers( json_response.headers )
+            synapse.dendrite.__dict__.update( **(synapse.dendrite.dict(exclude_none=True) | axon_headers.dendrite.dict(exclude_none=True)) )
+            synapse.axon.__dict__.update( **(synapse.axon.dict(exclude_none=True) | axon_headers.axon.dict(exclude_none=True)) )
 
-            # Now fill the dendrite and axon header values.
-            # This copys the remote header values from the axon then overwrites locals.
-            headers = bt.Synapse.from_headers( response.headers )
-            synapse.dendrite.__dict__.update( **headers.dendrite.dict() )
-            synapse.axon.__dict__.update( **headers.axon.dict() )
+            # Set process time and status code.
             synapse.dendrite.process_time = str(time.time() - start_time)
             synapse.dendrite.status_code = synapse.axon.status_code
+            synapse.dendrite.status_message = synapse.axon.status_message
 
             # Log the response.
             bt.logging.debug( f"dendrite | <-- | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.axon.status_code} | {synapse.axon.status_message}")
 
-        # Failed to parse response.
-        except Exception as e:
+        except Exception as e:    
+            # Failed to parse response.
             synapse.dendrite.status_code = '406'
             synapse.dendrite.status_message = f"Failed to parse response object with error: {str(e)}"
             bt.logging.debug( f"dendrite | <-- | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}")
 
-        # Return the request.
+        # Return the synapse.
         finally:
             return synapse
-
