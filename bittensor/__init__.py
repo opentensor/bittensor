@@ -103,7 +103,7 @@ from .logging import logging as logging
 from .metagraph import metagraph as metagraph
 from .threadpool import PriorityThreadPoolExecutor
 
-from .protocol import * 
+from .synapse import * 
 from .tensor import *
 from .axon import axon as axon
 from .dendrite import dendrite as dendrite

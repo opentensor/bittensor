@@ -17,13 +17,36 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
+import sys
+import pickle
+import base64
+import typing
 import pydantic
 import bittensor
 from abc import abstractmethod
 from fastapi.responses import Response
 from fastapi import Request
 from typing import Dict, Optional, Tuple, Union, List, Callable
+
+def get_size(obj, seen=None):
+    """Recursively finds size of objects"""
+    size = sys.getsizeof(obj)
+    if seen is None:
+        seen = set()
+    obj_id = id(obj)
+    if obj_id in seen:
+        return 0
+    # Important mark as seen *before* entering recursion to gracefully handle
+    # self-referential objects
+    seen.add(obj_id)
+    if isinstance(obj, dict):
+        size += sum([get_size(v, seen) for v in obj.values()])
+        size += sum([get_size(k, seen) for k in obj.keys()])
+    elif hasattr(obj, '__dict__'):
+        size += get_size(obj.__dict__, seen)
+    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+        size += sum([get_size(i, seen) for i in obj])
+    return size
 
 def cast_int(raw: str) -> int:
     return int( raw ) if raw != None else raw
@@ -162,6 +185,29 @@ class Synapse( pydantic.BaseModel ):
         allow_mutation = True,
         repr = False
     )
+    _extract_timeout = pydantic.validator('timeout', pre=True, allow_reuse=True)(cast_float)
+
+    # The call timeout, set by the dendrite terminal.
+    total_size: Optional[ int ] = pydantic.Field(
+        title = 'total_size',
+        description = 'Total size of request body in bytes.',
+        examples = 1000,
+        default = 0,
+        allow_mutation = True,
+        repr = True
+    )
+    _extract_total_size = pydantic.validator('total_size', pre=True, allow_reuse=True)(cast_int)
+
+    # The call timeout, set by the dendrite terminal.
+    header_size: Optional[ int ] = pydantic.Field(
+        title = 'header_size',
+        description = 'Size of request header in bytes.',
+        examples = 1000,
+        default = 0,
+        allow_mutation = True,
+        repr = True
+    )
+    _extract_header_size = pydantic.validator('header_size', pre=True, allow_reuse=True)(cast_int)
 
     # The dendrite Terminal Information.
     dendrite: Optional[ TerminalInfo ] = pydantic.Field(
@@ -183,27 +229,97 @@ class Synapse( pydantic.BaseModel ):
         repr = False
     )
 
-    def to_headers(self) -> dict:
-        base_class = Synapse(**self.dict())
-        headers = {
-            'name': base_class.name,
-            'timeout': str(base_class.timeout),
-        }
-        headers.update( { str('axon_'+k):str(v) for k, v in base_class.axon.dict().items() if v != None} )
-        headers.update( { str('dendrite_'+k):str(v) for k, v in base_class.dendrite.dict().items() if v != None})
-        return headers
+    def get_total_size(self) -> int: 
+        self.total_size = get_size( self ); 
+        return self.total_size
+    
+    @property
+    def is_success(self) -> bool:
+        return self.dendrite.status_code == 200
+    
+    @property
+    def is_failure(self) -> bool:
+        return self.dendrite.status_code != 200
+    
+    @property
+    def is_timeout(self) -> bool:
+        return self.dendrite.status_code == 408
+    
+    @property
+    def is_blacklist(self) -> bool:
+        return self.dendrite.status_code == 403
+    
+    @property
+    def failed_verification(self) -> bool:
+        return self.dendrite.status_code == 401
 
-    def from_headers( headers: dict ) -> 'Synapse':
-        synapse = bittensor.Synapse()
-        synapse.timeout = float(headers.get('timeout', None))
-        synapse.name = headers.get('name', None)
+    def to_headers(self) -> dict:
+        headers = {
+            'name': self.name,
+            'timeout': str(self.timeout),
+        }
+        # Fill axon and dendrite headers.
+        headers.update( { str('bt_header_axon_'+k):str(v) for k, v in self.axon.dict().items() if v != None} )
+        headers.update( { str('bt_header_dendrite_'+k):str(v) for k, v in self.dendrite.dict().items() if v != None})
+
+        # Iterate over fields, if an object is a tensor
+        # add the tensor shape to the headers. 
+        metadata = typing.get_type_hints(self)
+        fields = self.__dict__
+        for field, value in fields.items():
+            if field in headers: continue
+            if not value: continue 
+            if isinstance( value, bittensor.Tensor ):
+                headers[ 'bt_header_tensor_' + str(field) ] = str(value.shape) + '-' + str(value.dtype)
+            else:
+                # If the object is not optional we must add it to the headers.
+                if field in metadata:
+                    if 'typing.Optional' not in str(metadata[field]):
+                        headers[ 'bt_header_input_obj_' + str(field) ] = base64.b64encode( pickle.dumps(value) ).decode('utf-8')
+
+        headers['header_size'] = str( sys.getsizeof( headers ) )
+        headers['total_size'] = str( self.get_total_size() )
+        return headers
+    
+    @classmethod
+    def _headers_to_inputs_dict( cls, headers: dict ) -> 'Synapse':
+        inputs_dict = {}
+        inputs_dict['axon'] = {}
+        inputs_dict['dendrite'] = {}
         for k, v in headers.items():
-            try:
-                k = k.split('axon_')[1]
-                setattr( synapse.axon, k, v )
-            except: pass
-            try:
-                k = k.split('dendrite_')[1]
-                setattr( synapse.dendrite, k, v )
-            except: pass
+            if 'bt_header_axon_' in k:
+                try:
+                    k = k.split('bt_header_axon_')[1]
+                    inputs_dict['axon'][k] = v
+                except: continue
+            elif 'bt_header_dendrite_' in k:
+                try:
+                    k = k.split('bt_header_dendrite_')[1]
+                    inputs_dict['dendrite'][k] = v
+                except: continue
+            elif 'bt_header_tensor_' in k:
+                try:
+                    k = k.split('bt_header_tensor_')[1]
+                    shape = v.split('-')[0]
+                    dtype = v.split('-')[1]
+                    inputs_dict[k] = bittensor.Tensor( shape = shape, dtype = dtype ) 
+                except: continue
+            elif 'bt_header_input_obj' in k:
+                try:
+                    k = k.split('bt_header_input_obj_')[1]
+                    if k in inputs_dict: continue
+                    inputs_dict[k] = pickle.loads( base64.b64decode( v.encode('utf-8')  ) )
+                except: continue
+            else:
+                continue
+        inputs_dict['timeout'] = headers.get('timeout', None)
+        inputs_dict['name'] = headers.get('name', None)
+        inputs_dict['header_size'] = headers.get('header_size', None)
+        inputs_dict['total_size'] = headers.get('total_size', None)
+        return inputs_dict
+
+    @classmethod
+    def from_headers( cls, headers: dict ) -> 'Synapse':
+        input_dict = cls._headers_to_inputs_dict( headers )
+        synapse = cls( **input_dict )
         return synapse

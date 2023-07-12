@@ -12,6 +12,35 @@ TORCH_DTYPES = {
     'torch.int64': torch.int64,
 }
 
+def cast_dtype( raw: Union[None, torch.dtype, str ]) -> str:
+    if not raw:
+        return None
+    if isinstance(raw, torch.dtype ):
+        return TORCH_DTYPES[raw]
+    elif isinstance( raw, str ):
+        assert raw in TORCH_DTYPES, f"{str} not a valid torch type in dict {TORCH_DTYPES}"
+        return raw
+    else:
+        raise Exception( f"{raw} of type {type(raw)} does not have valid type in Union[None, torch.dtype, str ]")
+    
+
+def cast_shape( raw: Union[None, List[int], str ]) -> str:
+    if not raw:
+        return None
+    elif isinstance( raw, list ):
+        if len( raw ) == 0:
+            return raw
+        elif isinstance( raw[0], int ):
+            return raw
+        else:
+            raise Exception( f"{raw} list elements are not of type int")
+    elif isinstance( raw, str ):
+        shape = list(map(int,raw.split('[')[1].split(']')[0].split(',')))
+        return shape
+    else:
+        raise Exception( f"{raw} of type {type(raw)} does not have valid type in Union[None, List[int], str ]")
+
+
 class Tensor( pydantic.BaseModel ):
 
     class Config:
@@ -33,10 +62,10 @@ class Tensor( pydantic.BaseModel ):
             buffer = data_buffer,
             shape = shape,
             dtype = dtype,
-        )
+        )        
 
     # Placeholder for tensor data.
-    buffer: str = pydantic.Field(
+    buffer: Optional[str] = pydantic.Field(
         title = 'buffer',
         description = 'Tensor buffer data',
         examples = '0x321e13edqwds231231231232131',
@@ -52,6 +81,7 @@ class Tensor( pydantic.BaseModel ):
         allow_mutation = False,
         repr = True
     )
+    _extract_dtype = pydantic.validator('dtype', pre=True, allow_reuse=True)(cast_dtype)
 
     # Defines the shape of the tensor.
     shape: List[int] = pydantic.Field(
@@ -61,3 +91,4 @@ class Tensor( pydantic.BaseModel ):
         allow_mutation = False,
         repr = True
     )
+    _extract_shape = pydantic.validator('shape', pre=True, allow_reuse=True)(cast_shape)

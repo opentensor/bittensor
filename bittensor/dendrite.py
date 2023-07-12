@@ -23,126 +23,274 @@ import httpx
 import bittensor as bt
 from typing import Union, Optional, List
 
-class dendrite( torch.nn.Module ):
+class dendrite(torch.nn.Module):
+    """
+    The Dendrite class, inheriting from PyTorch's Module class, represents the abstracted 
+    implementation of a network client module. In the brain analogy, dendrites receive signals
+    from other neurons (in this case, network servers or axons), and the Dendrite class here is designed 
+    to send requests to those endpoint to recieve inputs.
 
-    def __str__(self) -> str:
-        return "dendrite({})".format( self.keypair.ss58_address )
-    
-    def __repr__(self) -> str: return self.__str__()
+    This class includes a wallet or keypair used for signing messages, and methods for making 
+    HTTP requests to the network servers. It also provides functionalities such as logging 
+    network requests and processing server responses. 
 
-    def __init__( 
+    Attributes:
+        keypair: The wallet or keypair used for signing messages.
+
+    Methods:
+        __str__(): Returns a string representation of the Dendrite object.
+        __repr__(): Returns a string representation of the Dendrite object, acting as a fallback 
+                    for __str__().
+
+    Example:
+        >>> dendrite_obj = dendrite(wallet = bt.wallet() )
+        >>> print(dendrite_obj)
+        >>> d( <axon> ) # ping axon
+        >>> d( [<axons>] ) # ping multiple
+        >>> d( bt.axon(), bt.Synapse )
+    """
+
+    def __init__(
             self, 
-            wallet: Optional[Union[ 'bt.wallet', 'bt.keypair']] = None
+            wallet: Optional[Union['bt.wallet', 'bt.keypair']] = None
         ):
-        """ Dendrite abstract class
-            Args:
-                wallet (:obj:`Union[ 'bt.wallet', 'bt.keypair']`, `required`):
-                    bt wallet or keypair used for signing messages, defaults to bt.wallet()
         """
+        Initializes the Dendrite object, setting up essential properties.
+
+        Args:
+            wallet (Optional[Union['bt.wallet', 'bt.keypair']], optional): 
+                The user's wallet or keypair used for signing messages. Defaults to None, 
+                in which case a new bt.wallet().hotkey is generated and used.
+        """
+        # Initialize the parent class
         super(dendrite, self).__init__()
+
+        # Unique identifier for the instance
         self.uuid = str(uuid.uuid1())
+
+        # HTTP client for making requests
         self.client = httpx.AsyncClient()
+
+        # Get the external IP
         self.external_ip = bt.utils.networking.get_external_ip()
-        self.keypair = (wallet.hotkey if isinstance( wallet, bt.wallet ) else wallet) or bt.wallet().hotkey
 
-    async def forward( 
+        # If a wallet or keypair is provided, use its hotkey. If not, generate a new one.
+        self.keypair = (wallet.hotkey if isinstance(wallet, bt.wallet) else wallet) or bt.wallet().hotkey
+
+    async def forward(
             self, 
-            axons: Union[ List[ Union[ 'bt.axon_info', 'bt.axon' ] ], Union[ 'bt.axon_info', 'bt.axon' ] ],
+            axons: Union[List[Union['bt.axon_info', 'bt.axon']], Union['bt.axon_info', 'bt.axon']],
             synapse: bt.Synapse = bt.Synapse(), 
-            timeout: float = 12 
+            timeout: float = 12,
+            deserialize: bool = True,
         ) -> bt.Synapse:
+        """
+        Makes asynchronous requests to multiple target Axons and returns the server responses.
 
-        # Wrap axons to list for gather op.
-        if not isinstance( axons, list ): axons = [axons]
+        Args:
+            axons (Union[List[Union['bt.axon_info', 'bt.axon']], Union['bt.axon_info', 'bt.axon']]):
+                The list of target Axon information.
+            synapse (bt.Synapse, optional): The Synapse object. Defaults to bt.Synapse().
+            timeout (float, optional): The request timeout duration in seconds. 
+                Defaults to 12.0 seconds.
 
-        # Build multi call.
-        async def query():
-            coroutines = [ self.call( axon = axon, synapse = synapse, timeout = timeout) for axon in axons ]
+        Returns:
+            Union[bt.Synapse, List[bt.Synapse]]: If a single target axon is provided, 
+                returns the response from that axon. If multiple target axons are provided, 
+                returns a list of responses from all target axons.
+        """
+        
+        # If a single axon is provided, wrap it in a list for uniform processing
+        if not isinstance(axons, list):
+            axons = [axons]
+
+        # Build coroutines for all axons
+        async def query_all_axons():
+            coroutines = [ self.call( target_axon = target_axon, synapse = synapse, timeout = timeout, deserialize = deserialize ) for target_axon in axons]
             all_responses = await asyncio.gather(*coroutines)
             return all_responses
         
-        # Run all calls.
-        responses = await query()
+        # Run all requests concurrently and get the responses
+        responses = await query_all_axons()
 
-        # Optionally return single if only a single axon has been sent.
-        if len(responses) == 1: return responses[0]
-        else: return responses
+        # Return the single response if only one axon was targeted, else return all responses
+        if len(responses) == 1:
+            return responses[0]
+        else:
+            return responses
 
-    async def call( 
+    async def call(
         self,
-        axon: Union[ 'bt.AxonInfo', 'bt.axon' ],
-        synapse: bt.Synapse = bt.Synapse(), 
+        target_axon: Union['bt.AxonInfo', 'bt.axon'],
+        synapse: bt.Synapse = bt.Synapse(),
         timeout: float = 12.0,
         deserialize: bool = True,
-    ) -> bt.Request:
-        
-        start_time = time.time()
+    ) -> bt.Synapse:
+        """
+        Makes an asynchronous request to the target Axon, processes the server 
+        response and returns the updated Synapse.
 
-        # Build the endpoint str + url
-        axon = axon.info() if isinstance( axon, bt.axon ) else axon
+        Args:
+            target_axon (Union['bt.AxonInfo', 'bt.axon']): The target Axon information.
+            synapse (bt.Synapse, optional): The Synapse object. Defaults to bt.Synapse().
+            timeout (float, optional): The request timeout duration in seconds. 
+                Defaults to 12.0 seconds.
+            deserialize (bool, optional): Whether to deserialize the returned Synapse.
+                Defaults to True.
+
+        Returns:
+            bt.Synapse: The updated Synapse object after processing server response.
+        """
+        
+        # Record start time
+        start_time = time.time()
+        target_axon = target_axon.info() if isinstance(target_axon, bt.axon) else target_axon
+
+        # Build request endpoint from the synapse class
         request_name = synapse.__class__.__name__
-        endpoint = f"localhost:{str(axon.port)}" if axon.ip == str(self.external_ip) else f"{axon.ip}:{str(axon.port)}"
+        endpoint = f"localhost:{str(target_axon.port)}" if target_axon.ip == str(self.external_ip) else f"{target_axon.ip}:{str(target_axon.port)}"
         url = f"http://{endpoint}/{request_name}"
 
-        # Build Dendrite + Axon headers.
-        synapse.timeout = str( timeout )
-        synapse.dendrite = bt.TerminalInfo(
-            **{
-                "ip": str(self.external_ip),
-                "version": str( bt.__version_as_int__ ),
-                "nonce": f"{time.monotonic_ns()}",
-                "uuid": str(self.uuid),
-                "hotkey": str( self.keypair.ss58_address )
-            }
-        )
-        synapse.axon = bt.TerminalInfo(
-            **{
-                "ip": str( axon.ip ),
-                "port": str( axon.port ),
-                "hotkey": str( axon.hotkey ),
-            }
-        )
-        # Sign the synapse request.
-        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.dendrite.uuid}"
-        synapse.dendrite.signature = f"0x{self.keypair.sign(message).hex()}"
+        # Preprocess synapse for making a request
+        synapse = self.preprocess_synapse_for_request(target_axon, synapse, timeout)
 
-        # Make the call.
         try:
-            bt.logging.debug( f"dendrite | --> | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success")
-            json_response = await self.client.post( url, headers = synapse.to_headers(), json = synapse.dict() )
-    
-            # Parse response on success.
-            if json_response.status_code == 200:
+            # Log outgoing request
+            bt.logging.debug(f"dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success")
+            
+            # Make the HTTP POST request
+            json_response = await self.client.post(url, headers=synapse.to_headers(), json=synapse.dict())
+            
+            # Process the server response
+            self.process_server_response(json_response, synapse)
 
-                # Overwrite with remote axon state if allowed.
-                # The protocol must have field( allow_mutation = False) to stop overwrites of input.
-                response_synapse = synapse.__class__( **json_response.json() )
-                for key in synapse.dict().keys(): 
-                    try: setattr(synapse, key, getattr(response_synapse, key) ) ; 
-                    except: pass
-      
-            # Overwrite None headers as set by remote.
-            axon_headers = bt.Synapse.from_headers( json_response.headers )
-            synapse.dendrite.__dict__.update( **(synapse.dendrite.dict(exclude_none=True) | axon_headers.dendrite.dict(exclude_none=True)) )
-            synapse.axon.__dict__.update( **(synapse.axon.dict(exclude_none=True) | axon_headers.axon.dict(exclude_none=True)) )
-
-            # Set process time and status code.
+            # Set process time and log the response
             synapse.dendrite.process_time = str(time.time() - start_time)
-            synapse.dendrite.status_code = synapse.axon.status_code
-            synapse.dendrite.status_message = synapse.axon.status_message
-
-            # Log the response.
-            bt.logging.debug( f"dendrite | <-- | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.axon.status_code} | {synapse.axon.status_message}")
+            bt.logging.debug(f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.axon.status_code} | {synapse.axon.status_message}")
 
         except Exception as e:    
-            # Failed to parse response.
+            # Handle failure to parse response and log the error
             synapse.dendrite.status_code = '406'
             synapse.dendrite.status_message = f"Failed to parse response object with error: {str(e)}"
-            bt.logging.debug( f"dendrite | <-- | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}")
+            bt.logging.debug(f"dendrite | <-- | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}")
 
-        # Return the synapse.
         finally:
+            # Return the updated synapse object after deserializing if requested
             if deserialize:
                 return synapse.deserialize()
             else:
                 return synapse
+
+
+    def preprocess_synapse_for_request(
+        self,
+        target_axon_info: 'bt.AxonInfo',
+        synapse: bt.Synapse, 
+        timeout: float = 12.0,    
+    ) -> bt.Synapse: 
+        """
+        Preprocesses the synapse for making a request. This includes building 
+        headers for Dendrite and Axon and signing the request.
+
+        Args:
+            target_axon_info (bt.AxonInfo): The target axon information.
+            synapse (bt.Synapse): The synapse object to be preprocessed.
+            timeout (float, optional): The request timeout duration in seconds. 
+                Defaults to 12.0 seconds.
+
+        Returns:
+            bt.Synapse: The preprocessed synapse.
+        """
+
+        # Set the timeout for the synapse
+        synapse.timeout = str(timeout)
+
+        # Build the Dendrite headers using the local system's details
+        synapse.dendrite = bt.TerminalInfo(
+            **{
+                "ip": str(self.external_ip),
+                "version": str(bt.__version_as_int__),
+                "nonce": f"{time.monotonic_ns()}",
+                "uuid": str(self.uuid),
+                "hotkey": str(self.keypair.ss58_address)
+            }
+        )
+
+        # Build the Axon headers using the target axon's details
+        synapse.axon = bt.TerminalInfo(
+            **{
+                "ip": str(target_axon_info.ip),
+                "port": str(target_axon_info.port),
+                "hotkey": str(target_axon_info.hotkey),
+            }
+        )
+
+        # Sign the request using the dendrite and axon information
+        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.dendrite.uuid}"
+        synapse.dendrite.signature = f"0x{self.keypair.sign(message).hex()}"
+
+        return synapse
+    
+    def process_server_response(
+        self,
+        server_response,
+        local_synapse: bt.Synapse,
+    ):
+        """
+        Processes the server response, updates the local synapse state with the 
+        server's state and merges headers set by the server.
+
+        Args:
+            server_response (object): The response object from the server.
+            local_synapse (bt.Synapse): The local synapse object to be updated.
+
+        Raises:
+            None, but errors in attribute setting are silently ignored.
+        """
+        # Check if the server responded with a successful status code
+        if server_response.status_code == 200:
+
+            # If the response is successful, overwrite local synapse state with 
+            # server's state only if the protocol allows mutation. To prevent overwrites, 
+            # the protocol must set allow_mutation = False
+            server_synapse = local_synapse.__class__(**server_response.json())
+            for key in local_synapse.dict().keys(): 
+                try: 
+                    # Set the attribute in the local synapse from the corresponding 
+                    # attribute in the server synapse
+                    setattr(local_synapse, key, getattr(server_synapse, key)) 
+                except: 
+                    # Ignore errors during attribute setting
+                    pass
+    
+        # Extract server headers and overwrite None values in local synapse headers
+        server_headers = bt.Synapse.from_headers(server_response.headers)
+
+        # Merge dendrite headers
+        local_synapse.dendrite.__dict__.update(**(local_synapse.dendrite.dict(exclude_none=True) | server_headers.dendrite.dict(exclude_none=True)))
+        
+        # Merge axon headers
+        local_synapse.axon.__dict__.update(**(local_synapse.axon.dict(exclude_none=True) | server_headers.axon.dict(exclude_none=True)))
+
+        # Update the status code and status message of the dendrite to match the axon
+        local_synapse.dendrite.status_code = local_synapse.axon.status_code
+        local_synapse.dendrite.status_message = local_synapse.axon.status_message
+
+
+    def __str__(self) -> str:
+        """
+        Returns a string representation of the Dendrite object.
+        
+        Returns:
+            str: The string representation of the Dendrite object in the format "dendrite(<user_wallet_address>)".
+        """
+        return "dendrite({})".format(self.keypair.ss58_address)
+
+    def __repr__(self) -> str: 
+        """
+        Returns a string representation of the Dendrite object, acting as a fallback for __str__().
+        
+        Returns:
+            str: The string representation of the Dendrite object in the format "dendrite(<user_wallet_address>)".
+        """
+        return self.__str__()

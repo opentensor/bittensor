@@ -77,7 +77,7 @@ class FastAPIThreadedServer(uvicorn.Server):
             self.should_exit = True
 
 class axon:
-    """ Axon object for serving synapse receptors. """
+    """ Axon object for serving synapse . """
 
     def info(self) -> 'bittensor.AxonInfo':
         """Returns the axon info object associate with this axon.""" 
@@ -89,7 +89,7 @@ class axon:
             hotkey = self.wallet.hotkey.ss58_address,
             coldkey = self.wallet.coldkeypub.ss58_address,
             protocol = 4,
-            placeholder1 = 0, # placeholder1 = fast_api_port
+            placeholder1 = 0, 
             placeholder2 = 0,
         )
         
@@ -148,6 +148,7 @@ class axon:
         self.nonces = {}
 
         # Request default functions.
+        self.forward_class_types = {}
         self.blacklist_fns = {}
         self.priority_fns = {}
         self.forward_fns = {}
@@ -169,83 +170,104 @@ class axon:
         self.attach( forward_fn = ping, verify_fn = None, blacklist_fn = None, priority_fn = None )
     
     def attach(
-            self, 
-            forward_fn: Callable,
-            blacklist_fn: Callable = None,
-            priority_fn: Callable = None,
-            verify_fn: Callable = None,
-        ):
+        self, 
+        forward_fn: Callable,
+        blacklist_fn: Callable = None,
+        priority_fn: Callable = None,
+        verify_fn: Callable = None,
+    ):
         """
-        This method is used to register an API endpoint in the FastAPI application router.
+        Registers an API endpoint to the FastAPI application router. 
         It uses the name of the first argument of the 'forward_fn' function as the endpoint name.
-        
+
         Args:
-            forward_fn (Callable): The function that will be called when the API endpoint is accessed. 
+            forward_fn (Callable): Function to be called when the API endpoint is accessed. 
                                    It should have at least one argument.
-            blacklist_fn (Callable, optional): A function to filter out unwanted requests. This function should take the same arguments 
-                                               as 'forward_fn' and return a boolean value. If None, 'self.default_blacklist' will be used.
-            priority_fn (Callable, optional): A function to sort the requests based on their priority. This function should take the same arguments 
+            blacklist_fn (Callable, optional): Function to filter out undesired requests. It should take the same arguments 
+                                               as 'forward_fn' and return a boolean value. Defaults to None, meaning no blacklist filter will be used.
+            priority_fn (Callable, optional): Function to rank requests based on their priority. It should take the same arguments 
                                               as 'forward_fn' and return a numerical value representing the request's priority. 
-                                              If None, 'self.default_priority' will be used.
+                                              Defaults to None, meaning no priority sorting will be applied.
+            verify_fn (Callable, optional): Function to verify requests. It should take the same arguments as 'forward_fn' and return
+                                            a boolean value. If None, 'self.default_verify' function will be used.
 
-        After execution, the following associations are made:
-            - API endpoint to 'forward_fn' in self.router (available on both GET and POST methods)
-            - 'forward_fn' to 'blacklist_fn' in self.blacklist_fns
-            - 'forward_fn' to 'priority_fn' in self.priority_fns
-            - 'forward_fn' to itself in self.forward_fns
+        Note: 'forward_fn', 'blacklist_fn', 'priority_fn', and 'verify_fn' should be designed to receive the same parameters.
 
-        Note:
-            The default 'blacklist_fn' and 'priority_fn' should be defined in the instance (self) which calls this method.
-            The 'forward_fn', 'blacklist_fn', and 'priority_fn' should be designed to receive the same parameters.
+        Raises:
+            AssertionError: If 'forward_fn' does not have exactly one argument.
+
+        Returns:
+            self: Returns the instance of the AxonServer class for potential method chaining.
         """
 
-        # Attains the http route by getting the class name of the first parameter to the passed function/
+        # Assert 'forward_fn' has exactly one argument
         sig = signature(forward_fn)
-        assert len( list(sig.parameters) ) == 1, "The passed function must have exactly one argument"
+        assert len(list(sig.parameters)) == 1, "The passed function must have exactly one argument"
         
+        # Obtain the class name of the first argument of 'forward_fn'
         request_name = sig.parameters[list(sig.parameters)[0]].annotation.__name__
+        
+        # Add the endpoint to the router, making it available on both GET and POST methods
         self.router.add_api_route(f"/{request_name}", forward_fn, methods=["GET", "POST"])
         self.app.include_router(self.router)
 
-        # Attach functions.
-        self.blacklist_fns[request_name] = blacklist_fn or None # Uses no blacklist if not set.
-        self.priority_fns[request_name] = priority_fn or None # No request priority if not set.
-        self.verify_fns[request_name] = verify_fn or self.default_verify # Default verify check signature. 
-        self.forward_fns[request_name] = forward_fn # Attaches the forward function (simply placeholder)
+        # Store functions in appropriate attribute dictionaries
+        self.forward_class_types[request_name] = sig.parameters[list(sig.parameters)[0]].annotation
+        self.blacklist_fns[request_name] = blacklist_fn
+        self.priority_fns[request_name] = priority_fn
+        self.verify_fns[request_name] = verify_fn or self.default_verify # Use 'default_verify' if 'verify_fn' is None
+        self.forward_fns[request_name] = forward_fn 
 
         return self
-
+    
     @classmethod
     def config(cls) -> "bittensor.config":
-        """Get config from the argument parser
-        Return: bittensor.config object
+        """
+        Parses command-line arguments to form a bittensor configuration object.
+        
+        Returns:
+            bittensor.config: Configuration object with settings from command-line arguments.
         """
         parser = argparse.ArgumentParser()
-        axon.add_args(parser)
+        axon.add_args(parser)  # Add specific axon-related arguments
         return bittensor.config(parser)
 
     @classmethod
     def help(cls):
-        """Print help to stdout"""
+        """
+        Prints the help text (list of command-line arguments and their descriptions) to stdout.
+        """
         parser = argparse.ArgumentParser()
-        cls.add_args(parser)
-        print(cls.__new__.__doc__)
-        parser.print_help()
+        axon.add_args(parser)  # Add specific axon-related arguments
+        print(cls.__new__.__doc__)  # Print docstring of the class
+        parser.print_help()  # Print parser's help text
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
-        """Accept specific arguments from parser"""
+        """
+        Adds AxonServer-specific command-line arguments to the argument parser.
+
+        Args:
+            parser (argparse.ArgumentParser): Argument parser to which the arguments will be added.
+            prefix (str, optional): Prefix to add to the argument names. Defaults to None.
+
+        Note:
+            Environment variables are used to define default values for the arguments.
+        """
         prefix_str = "" if prefix is None else prefix + "."
         try:
+            # Get default values from environment variables or use default values
             default_axon_port = os.getenv("BT_AXON_PORT") or 8091
             default_axon_ip = os.getenv("BT_AXON_IP") or "[::]"
             default_axon_external_port = os.getenv("BT_AXON_EXTERNAL_PORT") or None
             default_axon_external_ip = os.getenv("BT_AXON_EXTERNAL_IP") or None
             default_axon_max_workers = os.getenv("BT_AXON_MAX_WORERS") or 10
+            
+            # Add command-line arguments to the parser
             parser.add_argument(
                 "--" + prefix_str + "axon.port",
                 type =int,
-                help = """The local port this axon endpoint is bound to. i.e. 8091""",
+                help = "The local port this axon endpoint is bound to. i.e. 8091",
                 default = default_axon_port,
             )
             parser.add_argument(
@@ -277,21 +299,33 @@ class axon:
             )
         
         except argparse.ArgumentError:
-            # re-parsing arguments.
+            # Exception handling for re-parsing arguments
             pass
-
+    
     @classmethod
-    def check_config(cls, config: "bittensor.Config"):
-        """Check config for axon port and wallet"""
+    def check_config(cls, config: "bittensor.config"):
+        """
+        This method checks the configuration for the axon's port and wallet.
+        
+        Args:
+            config (bittensor.config): The config object holding axon settings.
+            
+        Raises:
+            AssertionError: If the axon or external ports are not in range [1024, 65535]
+        """
         assert (
             config.axon.port > 1024 and config.axon.port < 65535
-        ), "port must be in range [1024, 65535]"
+        ), "Axon port must be in range [1024, 65535]"
+        
         assert config.axon.external_port is None or (
             config.axon.external_port > 1024 and config.axon.external_port < 65535
-        ), "external port must be in range [1024, 65535]"
+        ), "External port must be in range [1024, 65535]"
 
-    def __str__(self) -> str:
-        return "axon({}, {}, {}, {}, {})".format(
+    def __str__( self ) -> str:
+        """
+        Provides a human-readable representation of the Axon instance.
+        """
+        return "Axon({}, {}, {}, {}, {})".format(
             self.ip,
             self.port,
             self.wallet.hotkey.ss58_address,
@@ -299,21 +333,38 @@ class axon:
             list(self.forward_fns.keys())
         )
 
-    def __repr__(self) -> str:
+    def __repr__( self ) -> str:
+        """
+        Provides a machine-readable (unambiguous) representation of the Axon instance.
+        It is made identical to __str__ in this case.
+        """
         return self.__str__()
 
-    def __del__(self):
-        r"""Called when this axon is deleted, ensures background threads shut down properly."""
-        self.stop()
+    def __del__( self ):
+        """
+        This magic method is called when the Axon object is about to be destroyed.
+        It ensures that the Axon server shuts down properly.
+        """
+        self.shutdown()
 
-    def start(self) -> "bittensor.axon":
-        r"""Starts the standalone axon GRPC server thread."""
+    def start( self ) -> "bittensor.axon":
+        """
+        Starts the Axon server's GRPC server thread and marks the Axon as started.
+        
+        Returns:
+            bittensor.axon: The started Axon instance.
+        """
         self.fast_server.start()
         self.started = True
         return self
 
-    def stop(self) -> "bittensor.axon":
-        r"""Stop the axon grpc server."""
+    def stop( self ) -> "bittensor.axon":
+        """
+        Stops the Axon server's GRPC server thread and marks the Axon as stopped.
+        
+        Returns:
+            bittensor.axon: The stopped Axon instance.
+        """
         self.fast_server.stop()
         self.started = False
         return self
@@ -359,19 +410,212 @@ class axon:
         
         # Success
         self.nonces[endpoint_key] = synapse.dendrite.nonce
-    
+       
 
 class AxonMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, axon ):
+    """
+    Class AxonMiddleware handles the entire process of the request to the Axon.
+    It fills the necessary information into the synapse and manages the logging of messages and errors.
+    It handles the verification, blacklist checking and running priority functions.
+    This class also runs the requested function and updates the headers of the response.
+    """
+
+    def __init__(self, app, axon):
+        """
+        Initialize the AxonMiddleware class.
+
+        Args:
+        app (object): An instance of the application where the middleware processor is used.
+        axon (object): The axon instance used to process the requests.
+        """
         super().__init__(app)
-        self.axon = axon        
+        self.axon = axon   
+
+    # async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Request:
+    #     """
+    #     Processes incoming requests.
+
+    #     Args:
+    #         request(starlet Request): The incoming request.
+    #         call_next(starlet RequestResponseEndpoint): The function to call after processing the request.
+
+    #     Returns:
+    #         response (starlet Response): The processed request.
+    #     """
+
+    #     # Records the start time of the request processing.
+    #     start_time = time.time()
+
+    #     # Extracts the request name from the URL path.
+    #     request_name = request.url.path.split('/')[1]
+
+    #     # Creates a synapse instance from the headers using the appropriate forward class type
+    #     # based on the request name obtained from the URL path.
+    #     synapse = self.axon.forward_class_types[request_name].from_headers(request.headers)
+
+    #     # Sets the name of the synapse to the request name.
+    #     synapse.name = request_name
+
+    #     # Fills the local axon information into the synapse.
+    #     synapse.axon.__dict__.update({
+    #         'version': str(bittensor.__version_as_int__),
+    #         'uuid': str(self.axon.uuid),
+    #         'nonce': f"{time.monotonic_ns()}",
+    #         'status_message': "Success",
+    #         'status_code': "100",
+    #     })
+
+    #     # Fills the dendrite information into the synapse.
+    #     synapse.dendrite.__dict__.update({
+    #         'port': str(request.client.port),
+    #         'ip': str(request.client.host),
+    #     })
+
+    #     # Signs the synapse from the axon side using the wallet hotkey.
+    #     message = f"{synapse.axon.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.axon.uuid}"
+    #     synapse.axon.signature = f"0x{self.axon.wallet.hotkey.sign(message).hex()}"
+
+
+    #     try:
+    #         # Logs the start of the request processing
+    #         bittensor.logging.debug(f"axon | <-- | {synapse.total_size} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success ")
+
+           
+
+        
+    
+
+
+    #         # Start of filling the response headers on success.
+    #         bittensor.logging.trace('Fill successful response')
+
+    #         # Set the status code of the synapse to "200" which indicates a successful response.
+    #         synapse.axon.status_code = "200"
+
+    #         # Set the status message of the synapse to "Success".
+    #         synapse.axon.status_message = "Success"
+
+    #         # Calculate the processing time by subtracting the start time from the current time.
+    #         synapse.axon.process_time = str(time.time() - start_time)
+
+    #         # Log the headers of the synapse for debugging purposes.
+    #         bittensor.logging.trace(synapse.to_headers())
+
+    #         # Update the response headers with the headers from the synapse.
+    #         response.headers.update(synapse.to_headers())
+
+    #         # Log the updated response headers for debugging purposes.
+    #         bittensor.logging.trace(response.headers)
+
+    #     # Start of catching all exceptions, updating the status message, and processing time.
+    #     except Exception as e:
+    #         # Log the exception for debugging purposes.
+    #         bittensor.logging.trace(f'Forward exception: {str(e)}')
+
+    #         # Set the status message of the synapse to the string representation of the exception.
+    #         synapse.axon.status_message = f"{str(e)}"
+
+    #         # Calculate the processing time by subtracting the start time from the current time.
+    #         synapse.axon.process_time = str(time.time() - start_time)
+
+    #         # Create a JSON response with a status code of 500 (internal server error),
+    #         # synapse headers, and an empty content.
+    #         response = JSONResponse(status_code=500, headers=synapse.to_headers(), content={})
+
+    #     # Logs the end of request processing and returns the response
+    #     finally:
+    #         # Log that we have reached the end of the processing.
+    #         bittensor.logging.trace('Finally')
+
+    #         # Log the details of the processed synapse, including total size, name, hotkey, IP, port,
+    #         # status code, and status message, using the debug level of the logger.
+    #         bittensor.logging.debug(f"axon | --> | {synapse.total_size} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}")
+
+    #         # Return the response to the requester.
+    #         return response
+        
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Request:
+        """
+        Processes incoming requests.
 
+        Args:
+            request(starlet Request): The incoming request.
+            call_next(starlet RequestResponseEndpoint): The function to call after processing the request.
+
+        Returns:
+            response (starlet Response): The processed request.
+        """
+        # Records the start time of the request processing.
         start_time = time.time()
-        synapse = bittensor.Synapse.from_headers( request.headers )
-        synapse.name = request.url.path.split('/')[1]
-        # Fill the local axon information in the request.
+        
+        try:
+            # Set up the synapse from its headers.
+            synapse: bittensor.Synapse = await self.setup( request )
+
+            # Logs the start of the request processing
+            bittensor.logging.debug(f"axon     | <-- | {synapse.total_size} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success ")
+
+            # Call the verify function
+            await self.verify( synapse )
+
+            # Call the blacklist function
+            await self.blacklist( synapse )
+
+            # Call the priority function
+            await self.priority( synapse )
+
+            # Call the run function
+            response = await self.run( synapse, call_next, request )
+
+            # Call the postprocess function
+            response = await self.postprocess( synapse, response, start_time )
+
+        # Start of catching all exceptions, updating the status message, and processing time.
+        except Exception as e:
+            # Log the exception for debugging purposes.
+            bittensor.logging.trace(f'Forward exception: {str(e)}')
+
+            # Set the status message of the synapse to the string representation of the exception.
+            synapse.axon.status_message = f"{str(e)}"
+
+            # Calculate the processing time by subtracting the start time from the current time.
+            synapse.axon.process_time = str(time.time() - start_time)
+
+            # Create a JSON response with a status code of 500 (internal server error),
+            # synapse headers, and an empty content.
+            response = JSONResponse(status_code=500, headers=synapse.to_headers(), content={})
+
+        # Logs the end of request processing and returns the response
+        finally:
+            # Log that we have reached the end of the processing.
+            bittensor.logging.trace('Finally')
+
+            # Log the details of the processed synapse, including total size, name, hotkey, IP, port,
+            # status code, and status message, using the debug level of the logger.
+            bittensor.logging.debug(f"axon     | --> | {synapse.total_size} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}")
+
+            # Return the response to the requester.
+            return response
+
+        return response
+
+    async def setup(self, request) -> bittensor.Synapse:
+        """
+        Perform setup operations for the request and generate the synapse state object.
+
+        Args:
+            synapse (Synapse): The synapse instance representing the request.
+        """
+        # Extracts the request name from the URL path.
+        request_name = request.url.path.split('/')[1]
+
+        # Creates a synapse instance from the headers using the appropriate forward class type
+        # based on the request name obtained from the URL path.
+        synapse = self.axon.forward_class_types[request_name].from_headers(request.headers)
+        synapse.name = request_name
+
+        # Fills the local axon information into the synapse.
         synapse.axon.__dict__.update({
             'version': str(bittensor.__version_as_int__),
             'uuid': str(self.axon.uuid),
@@ -379,80 +623,201 @@ class AxonMiddleware(BaseHTTPMiddleware):
             'status_message': "Success",
             'status_code': "100",
         })
-        # Fill the dendrite information.
+
+        # Fills the dendrite information into the synapse.
         synapse.dendrite.__dict__.update({
             'port': str(request.client.port),
             'ip': str(request.client.host),
         })
-        # Sign the response synapse.
+
+        # Signs the synapse from the axon side using the wallet hotkey.
         message = f"{synapse.axon.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.axon.uuid}"
         synapse.axon.signature = f"0x{self.axon.wallet.hotkey.sign(message).hex()}"
-       
-        try:
-            # Log success
-            bittensor.logging.debug( f"axon     | <-- | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success ")
 
-            # Check verification     
-            bittensor.logging.trace('Check verification')
-            verify_fn = self.axon.verify_fns[ synapse.name ]
-            if verify_fn:
-                try: verify_fn( synapse )
-                except Exception as e:
-                    bittensor.logging.trace(f'Verify exception')
-                    synapse.axon.status_code = "401"
-                    raise Exception( f"Not Verified with error: {str(e)}" )
+        # Return the setup synapse.
+        return synapse
 
-            # Check Blacklist
-            bittensor.logging.trace('Check Blacklist')
-            blacklist_fn = self.axon.blacklist_fns[ synapse.name ]
-            if blacklist_fn and blacklist_fn( synapse ):
-                bittensor.logging.trace(f'Blacklisted')
-                synapse.axon.status_code = "403"
-                raise Exception( "Forbidden. Key is blacklisted." )
 
-            # Run priority
-            bittensor.logging.trace('Run priority')
-            priority_fn = self.axon.priority_fns[ synapse.name ]
-            if priority_fn:
-                try:
-                    event = threading.Event()
-                    def set_event() -> bool: event.set()
-                    future = self.axon.thread_pool.submit( set_event, priority = priority_fn( synapse ) )
-                    future.result( timeout = float( synapse.timeout ) )
-                    event.wait()
-                except TimeoutError as e:
-                    bittensor.logging.trace(f'TimeoutError: {str(e)}')
-                    synapse.axon.status_code = "408"
-                    raise Exception( f"Response timeout after: { synapse.timeout }s" )
+    async def verify(self, synapse: bittensor.Synapse ):
+        """
+        Verify the request.
 
-            # Run function
-            bittensor.logging.trace('Run forward')
+        Args:
+            synapse ( bittensor.Synapse ): The synapse instance representing the request.
+
+        Raises:
+            Exception: If verification fails.
+        """
+        # Start of the verification process. Verification is the process where we ensure that 
+        # the incoming request is from a trusted source or fulfills certain requirements. 
+        bittensor.logging.trace('Check verification')
+
+        # We get a specific verification function from 'verify_fns' dictionary that corresponds 
+        # to our request's name. Each request name (synapse name) has its unique verification function.
+        verify_fn = self.axon.verify_fns[synapse.name]
+
+        # If a verification function exists for the request's name
+        if verify_fn:
             try:
-                response = await call_next( request )
+                # We attempt to run the verification function using the synapse instance 
+                # created from the request. If this function runs without throwing an exception,
+                # it means that the verification was successful.
+                verify_fn(synapse)
             except Exception as e:
-                bittensor.logging.trace(f'Run exception: {str(e)}')
-                synapse.axon.status_code = "500"
-                raise Exception( f"Internal server error with error: { str(e) }" )
-            
-            # Fill response headers on success.
-            bittensor.logging.trace('Fill successful response')
-            synapse.axon.status_code = "200"
-            synapse.axon.status_message = "Success"
-            synapse.axon.process_time = str(time.time() - start_time)
-            bittensor.logging.trace( synapse.to_headers() )
-            response.headers.update( synapse.to_headers() )
-            bittensor.logging.trace( response.headers )
+                # If there was an exception during the verification process, we log that 
+                # there was a verification exception.
+                bittensor.logging.trace(f'Verify exception')
 
-        # Catch all exceptions.
-        except Exception as e:
-            bittensor.logging.trace(f'Forward exception: {str(e)}')
-            synapse.axon.status_message = f"{str(e)}"
-            synapse.axon.process_time = str(time.time() - start_time)
-            response = JSONResponse( status_code = 500, headers = synapse.to_headers(), content = {} )
+                # We set the status code of the synapse to "401" which denotes an unauthorized access.
+                synapse.axon.status_code = "401"
+
+                # We raise an exception to stop the process and return the error to the requester. 
+                # The error message includes the original exception message.
+                raise Exception(f"Not Verified with error: {str(e)}")
+
+    async def blacklist( self, synapse: bittensor.Synapse ):
+        """
+        Check if the request is blacklisted.
+
+        Args:
+            synapse (Synapse): The synapse instance representing the request.
+
+        Raises:
+            Exception: If the request is blacklisted.
+        """
+        # Start of the blacklist check process. A blacklist is a list of keys or identifiers
+        # that are prohibited from accessing certain resources.
+        bittensor.logging.trace('Check Blacklist')
+
+        # We retrieve the blacklist checking function from the 'blacklist_fns' dictionary 
+        # that corresponds to the request's name (synapse name).
+        blacklist_fn = self.axon.blacklist_fns[synapse.name]
+
+        # If a blacklist checking function exists for the request's name
+        if blacklist_fn and blacklist_fn(synapse):
+            # We execute the blacklist checking function using the synapse instance as input.
+            # If the function returns True, it means that the key or identifier is blacklisted.
+            if blacklist_fn(synapse):
+                # We log that the key or identifier is blacklisted.
+                bittensor.logging.trace(f'Blacklisted')
+
+                # We set the status code of the synapse to "403" which indicates a forbidden access.
+                synapse.axon.status_code = "403"
+
+                # We raise an exception to halt the process and return the error message to the requester.
+                raise Exception("Forbidden. Key is blacklisted.")
+
+
+    async def priority( self, synapse: bittensor.Synapse ):
+        """
+        Execute the priority function for the request.
+
+        Args:
+            synapse (bittensor.Synapse): The synapse instance representing the request.
+
+        Raises:
+            Exception: If the priority function times out.
+        """
+        # Start of the priority function execution. A priority function is a function that determines
+        # the priority or urgency of processing the request compared to other requests.
+        bittensor.logging.trace('Run priority')
+
+        # Retrieve the priority function from the 'priority_fns' dictionary that corresponds
+        # to the request's name (synapse name).
+        priority_fn = self.axon.priority_fns[synapse.name]
+
+        # If a priority function exists for the request's name
+        if priority_fn:
+            try:
+                # We create a threading Event object to synchronize the execution of the priority function.
+                event = threading.Event()
+
+                # Define a helper function that sets the event when called.
+                def set_event() -> bool:
+                    event.set()
+
+                # Submit the priority function to the thread pool for execution.
+                # The result is not used, but it allows us to set a timeout on the function execution.
+                future = self.axon.thread_pool.submit(set_event, priority=priority_fn(synapse))
+
+                # Wait for the event to be set with a specified timeout.
+                future.result(timeout=float(synapse.timeout))
+                event.wait()
+
+            except TimeoutError as e:
+                # If the execution of the priority function exceeds the timeout,
+                # it raises an exception to handle the timeout error.
+                bittensor.logging.trace(f'TimeoutError: {str(e)}')
+
+                # Set the status code of the synapse to "408" which indicates a timeout error.
+                synapse.axon.status_code = "408"
+
+                # Raise an exception to stop the process and return an appropriate error message to the requester.
+                raise Exception(f"Response timeout after: {synapse.timeout}s")
+
+    async def run( self, synapse: bittensor.Synapse, call_next, request ):
+        """
+        Execute the requested function.
+
+        Args:
+            synapse: ( bittensor.Synapse ): call state.
+            call_next: ( starlet RequestResponseEndpoint ): The function to call after processing the request.
+            request: ( starlet Request ): The incoming request.
+
+        Returns:
+            response (starlet Response): The processed request.
+        """
         
-        # On Success
-        finally:
-            bittensor.logging.trace('Finally')
-            bittensor.logging.debug( f"axon     | --> | { synapse.name } | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}")
-            return response
-            
+        # Start of the execution of the requested function.
+        bittensor.logging.trace('Run forward')
+
+        try:
+            # The requested function is executed by calling the 'call_next' function,
+            # passing the original request as an argument. This function processes the request
+            # and returns the response.
+            response = await call_next(request)
+
+        except Exception as e:
+            # If an exception occurs during the execution of the requested function,
+            # it is caught and handled here.
+
+            # Log the exception for debugging purposes.
+            bittensor.logging.trace(f'Run exception: {str(e)}')
+
+            # Set the status code of the synapse to "500" which indicates an internal server error.
+            synapse.axon.status_code = "500"
+
+            # Raise an exception to stop the process and return an appropriate error message to the requester.
+            raise Exception(f"Internal server error with error: {str(e)}")
+        
+        # Return the starlet response
+        return response
+
+    async def postprocess(self, synapse: bittensor.Synapse, response, start_time: float ):
+        """
+        Perform post-processing operations on the request.
+
+        Args:
+            synapse (bittensor.Synapse): The synapse instance representing the request.
+            response (starlet Response): The response from the requested function.
+            start_time (float): The start time of request processing.
+
+        Returns:
+            response (starlet Response): The processed request with updated headers.
+        """
+        # Start of filling the response headers on success.
+        bittensor.logging.trace('Fill successful response')
+
+        # Set the status code of the synapse to "200" which indicates a successful response.
+        synapse.axon.status_code = "200"
+
+        # Set the status message of the synapse to "Success".
+        synapse.axon.status_message = "Success"
+
+        # Calculate the processing time by subtracting the start time from the current time.
+        synapse.axon.process_time = str(time.time() - start_time)
+
+        # Update the response headers with the headers from the synapse.
+        response.headers.update(synapse.to_headers())
+
+        return response
