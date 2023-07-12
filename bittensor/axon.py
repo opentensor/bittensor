@@ -431,110 +431,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.axon = axon   
 
-    # async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Request:
-    #     """
-    #     Processes incoming requests.
-
-    #     Args:
-    #         request(starlet Request): The incoming request.
-    #         call_next(starlet RequestResponseEndpoint): The function to call after processing the request.
-
-    #     Returns:
-    #         response (starlet Response): The processed request.
-    #     """
-
-    #     # Records the start time of the request processing.
-    #     start_time = time.time()
-
-    #     # Extracts the request name from the URL path.
-    #     request_name = request.url.path.split('/')[1]
-
-    #     # Creates a synapse instance from the headers using the appropriate forward class type
-    #     # based on the request name obtained from the URL path.
-    #     synapse = self.axon.forward_class_types[request_name].from_headers(request.headers)
-
-    #     # Sets the name of the synapse to the request name.
-    #     synapse.name = request_name
-
-    #     # Fills the local axon information into the synapse.
-    #     synapse.axon.__dict__.update({
-    #         'version': str(bittensor.__version_as_int__),
-    #         'uuid': str(self.axon.uuid),
-    #         'nonce': f"{time.monotonic_ns()}",
-    #         'status_message': "Success",
-    #         'status_code': "100",
-    #     })
-
-    #     # Fills the dendrite information into the synapse.
-    #     synapse.dendrite.__dict__.update({
-    #         'port': str(request.client.port),
-    #         'ip': str(request.client.host),
-    #     })
-
-    #     # Signs the synapse from the axon side using the wallet hotkey.
-    #     message = f"{synapse.axon.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.axon.uuid}"
-    #     synapse.axon.signature = f"0x{self.axon.wallet.hotkey.sign(message).hex()}"
-
-
-    #     try:
-    #         # Logs the start of the request processing
-    #         bittensor.logging.debug(f"axon | <-- | {synapse.total_size} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success ")
-
-           
-
-        
-    
-
-
-    #         # Start of filling the response headers on success.
-    #         bittensor.logging.trace('Fill successful response')
-
-    #         # Set the status code of the synapse to "200" which indicates a successful response.
-    #         synapse.axon.status_code = "200"
-
-    #         # Set the status message of the synapse to "Success".
-    #         synapse.axon.status_message = "Success"
-
-    #         # Calculate the processing time by subtracting the start time from the current time.
-    #         synapse.axon.process_time = str(time.time() - start_time)
-
-    #         # Log the headers of the synapse for debugging purposes.
-    #         bittensor.logging.trace(synapse.to_headers())
-
-    #         # Update the response headers with the headers from the synapse.
-    #         response.headers.update(synapse.to_headers())
-
-    #         # Log the updated response headers for debugging purposes.
-    #         bittensor.logging.trace(response.headers)
-
-    #     # Start of catching all exceptions, updating the status message, and processing time.
-    #     except Exception as e:
-    #         # Log the exception for debugging purposes.
-    #         bittensor.logging.trace(f'Forward exception: {str(e)}')
-
-    #         # Set the status message of the synapse to the string representation of the exception.
-    #         synapse.axon.status_message = f"{str(e)}"
-
-    #         # Calculate the processing time by subtracting the start time from the current time.
-    #         synapse.axon.process_time = str(time.time() - start_time)
-
-    #         # Create a JSON response with a status code of 500 (internal server error),
-    #         # synapse headers, and an empty content.
-    #         response = JSONResponse(status_code=500, headers=synapse.to_headers(), content={})
-
-    #     # Logs the end of request processing and returns the response
-    #     finally:
-    #         # Log that we have reached the end of the processing.
-    #         bittensor.logging.trace('Finally')
-
-    #         # Log the details of the processed synapse, including total size, name, hotkey, IP, port,
-    #         # status code, and status message, using the debug level of the logger.
-    #         bittensor.logging.debug(f"axon | --> | {synapse.total_size} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}")
-
-    #         # Return the response to the requester.
-    #         return response
-        
-
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Request:
         """
         Processes incoming requests.
@@ -551,7 +447,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         
         try:
             # Set up the synapse from its headers.
-            synapse: bittensor.Synapse = await self.setup( request )
+            synapse: bittensor.Synapse = await self.preprocess( request )
 
             # Logs the start of the request processing
             bittensor.logging.debug(f"axon     | <-- | {synapse.total_size} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success ")
@@ -600,9 +496,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         return response
 
-    async def setup(self, request) -> bittensor.Synapse:
+    async def preprocess( self, request ) -> bittensor.Synapse:
         """
-        Perform setup operations for the request and generate the synapse state object.
+        Perform preprocess operations for the request and generate the synapse state object.
 
         Args:
             synapse (Synapse): The synapse instance representing the request.

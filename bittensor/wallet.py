@@ -21,25 +21,29 @@ import os
 import copy
 import argparse
 import bittensor
-
-
 from termcolor import colored
-from distutils.util import strtobool
 from substrateinterface import Keypair
 from typing import Optional, Union, List, Tuple, Dict, overload
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 
-def display_mnemonic_msg( keypair : Keypair, key_type : str ):
-    """ Displaying the mnemonic and warning message to keep mnemonic safe
+
+def display_mnemonic_msg(keypair: Keypair, key_type: str):
+    """
+    Display the mnemonic and a warning message to keep the mnemonic safe.
+    
+    Args:
+        keypair (Keypair): Keypair object.
+        key_type (str): Type of the key (coldkey or hotkey).
     """
     mnemonic = keypair.mnemonic
     mnemonic_green = colored(mnemonic, 'green')
-    print (colored("\nIMPORTANT: Store this mnemonic in a secure (preferable offline place), as anyone " \
-                "who has possesion of this mnemonic can use it to regenerate the key and access your tokens. \n", "red"))
-    print ("The mnemonic to the new {} is:\n\n{}\n".format(key_type, mnemonic_green))
-    print ("You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:")
+    print(colored("\nIMPORTANT: Store this mnemonic in a secure (preferable offline place), as anyone "
+                  "who has possession of this mnemonic can use it to regenerate the key and access your tokens. \n", "red"))
+    print("The mnemonic to the new {} is:\n\n{}\n".format(key_type, mnemonic_green))
+    print("You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:")
     print("btcli regen_{} --mnemonic {}".format(key_type, mnemonic))
     print('')
+
 
 class wallet:
     """
@@ -47,63 +51,75 @@ class wallet:
     The coldkey is the user's primary key for holding stake in their wallet
     and is the only way that users can access Tao. Coldkeys can hold tokens and should be encrypted on your device.
     The coldkey must be used to stake and unstake funds from a running node. The hotkey, on the other hand, is only used
-    for suscribing and setting weights from running code. Hotkeys are linked to coldkeys through the metagraph.
+    for subscribing and setting weights from running code. Hotkeys are linked to coldkeys through the metagraph.
     """
-     
+
     @classmethod
     def config(cls) -> 'bittensor.Config':
-        """ Get config from the argument parser
-        Return: bittensor.config object
+        """
+        Get config from the argument parser.
+        
+        Returns:
+            bittensor.config: Config object.
         """
         parser = argparse.ArgumentParser()
-        wallet.add_args( parser )
-        return bittensor.config( parser )
+        cls.add_args(parser)
+        return bittensor.config(parser)
 
     @classmethod
     def help(cls):
-        """ Print help to stdout
+        """
+        Print help to stdout.
         """
         parser = argparse.ArgumentParser()
-        cls.add_args( parser )
-        print (cls.__new__.__doc__)
+        cls.add_args(parser)
+        print(cls.__new__.__doc__)
         parser.print_help()
 
     @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
-        """ Accept specific arguments from parser
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
+        """
+        Accept specific arguments from parser.
+        
+        Args:
+            parser (argparse.ArgumentParser): Argument parser object.
+            prefix (str): Argument prefix.
         """
         prefix_str = '' if prefix == None else prefix + '.'
         try:
             default_name = os.getenv('BT_WALLET_NAME') or 'default'
             default_hotkey = os.getenv('BT_WALLET_NAME') or 'default'
             default_path = os.getenv('BT_WALLET_PATH') or '~/.bittensor/wallets/'
-            parser.add_argument('--' + prefix_str + 'wallet.name', required=False, default = default_name, help='''The name of the wallet to unlock for running bittensor (name mock is reserved for mocking this wallet)''')
-            parser.add_argument('--' + prefix_str + 'wallet.hotkey', required=False, default = default_hotkey, help='''The name of wallet's hotkey.''')
-            parser.add_argument('--' + prefix_str + 'wallet.path', required=False, default = default_path, help='''The path to your bittensor wallets''')
+            parser.add_argument('--' + prefix_str + 'wallet.name', required=False, default=default_name,
+                                help='The name of the wallet to unlock for running bittensor '
+                                     '(name mock is reserved for mocking this wallet)')
+            parser.add_argument('--' + prefix_str + 'wallet.hotkey', required=False, default=default_hotkey,
+                                help="The name of the wallet's hotkey.")
+            parser.add_argument('--' + prefix_str + 'wallet.path', required=False, default=default_path,
+                                help='The path to your bittensor wallets')
         except argparse.ArgumentError as e:
             pass
 
     def __init__(
             self,
-            name:str = None,
-            hotkey:str = None,
-            path:str = None,
-            config: 'bittensor.Config' = None,
-        ):
-        r""" Init bittensor wallet object containing a hot and coldkey.
-            Args:
-                name (required=True, default='default):
-                    The name of the wallet to unlock for running bittensor
-                hotkey (required=True, default='default):
-                    The name of hotkey used to running the miner.
-                path (required=True, default='~/.bittensor/wallets/'):
-                    The path to your bittensor wallets
-                config (:obj:`bittensor.Config`, `optional`):
-                    bittensor.wallet.config()
+            name: str = None,
+            hotkey: str = None,
+            path: str = None,
+            config: 'bittensor.config' = None,
+    ):
+        r"""
+        Initialize the bittensor wallet object containing a hot and coldkey.
+        
+        Args:
+            name (str, optional): The name of the wallet to unlock for running bittensor. Defaults to 'default'.
+            hotkey (str, optional): The name of hotkey used to running the miner. Defaults to 'default'.
+            path (str, optional): The path to your bittensor wallets. Defaults to '~/.bittensor/wallets/'.
+            config (bittensor.Config, optional): bittensor.wallet.config(). Defaults to None.
         """
         # Fill config from passed args using command line defaults.
-        if config == None: config = wallet.config()
-        self.config = copy.deepcopy( config )
+        if config is None:
+            config = wallet.config()
+        self.config = copy.deepcopy(config)
         self.config.wallet.name = name or self.config.wallet.name
         self.config.wallet.hotkey = hotkey or self.config.wallet.hotkey
         self.config.wallet.path = path or self.config.wallet.path
@@ -116,74 +132,188 @@ class wallet:
         self._coldkey = None
         self._coldkeypub = None
 
+
     def __str__(self):
+        """
+        Returns the string representation of the Wallet object.
+
+        Returns:
+            str: The string representation.
+        """
         return "wallet({}, {}, {})".format(self.name, self.hotkey_str, self.path)
 
     def __repr__(self):
+        """
+        Returns the string representation of the Wallet object.
+
+        Returns:
+            str: The string representation.
+        """
         return self.__str__()
 
-    def create_if_non_existent( self, coldkey_use_password:bool = True, hotkey_use_password:bool = False) -> 'wallet':
-        """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+    def create_if_non_existent(self, coldkey_use_password: bool = True, hotkey_use_password: bool = False) -> 'wallet':
+        """
+        Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+
+        Args:
+            coldkey_use_password (bool, optional): Whether to use a password for coldkey. Defaults to True.
+            hotkey_use_password (bool, optional): Whether to use a password for hotkey. Defaults to False.
+
+        Returns:
+            wallet: The Wallet object.
         """
         return self.create(coldkey_use_password, hotkey_use_password)
 
-    def create (self, coldkey_use_password:bool = True, hotkey_use_password:bool = False ) -> 'wallet':
-        """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+    def create(self, coldkey_use_password: bool = True, hotkey_use_password: bool = False) -> 'wallet':
+        """
+        Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+
+        Args:
+            coldkey_use_password (bool, optional): Whether to use a password for coldkey. Defaults to True.
+            hotkey_use_password (bool, optional): Whether to use a password for hotkey. Defaults to False.
+
+        Returns:
+            wallet: The Wallet object.
         """
         # ---- Setup Wallet. ----
         if not self.coldkey_file.exists_on_device() and not self.coldkeypub_file.exists_on_device():
-            self.create_new_coldkey( n_words = 12, use_password = coldkey_use_password )
+            self.create_new_coldkey(n_words=12, use_password=coldkey_use_password)
         if not self.hotkey_file.exists_on_device():
-            self.create_new_hotkey( n_words = 12, use_password = hotkey_use_password )
+            self.create_new_hotkey(n_words=12, use_password=hotkey_use_password)
         return self
 
-    def recreate (self, coldkey_use_password:bool = True, hotkey_use_password:bool = False ) -> 'wallet':
-        """ Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+    def recreate(self, coldkey_use_password: bool = True, hotkey_use_password: bool = False) -> 'wallet':
+        """
+        Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+
+        Args:
+            coldkey_use_password (bool, optional): Whether to use a password for coldkey. Defaults to True.
+            hotkey_use_password (bool, optional): Whether to use a password for hotkey. Defaults to False.
+
+        Returns:
+            wallet: The Wallet object.
         """
         # ---- Setup Wallet. ----
-        self.create_new_coldkey( n_words = 12, use_password = coldkey_use_password )
-        self.create_new_hotkey( n_words = 12, use_password = hotkey_use_password )
+        self.create_new_coldkey(n_words=12, use_password=coldkey_use_password)
+        self.create_new_hotkey(n_words=12, use_password=hotkey_use_password)
         return self
 
     @property
     def hotkey_file(self) -> 'bittensor.keyfile':
+        """
+        Property that returns the hotkey file.
 
+        Returns:
+            bittensor.keyfile: The hotkey file.
+        """
         wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
         hotkey_path = os.path.join(wallet_path, "hotkeys", self.hotkey_str)
-        return bittensor.keyfile( path = hotkey_path )
+        return bittensor.keyfile(path=hotkey_path)
 
     @property
     def coldkey_file(self) -> 'bittensor.keyfile':
+        """
+        Property that returns the coldkey file.
+
+        Returns:
+            bittensor.keyfile: The coldkey file.
+        """
         wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
         coldkey_path = os.path.join(wallet_path, "coldkey")
-        return bittensor.keyfile( path = coldkey_path )
+        return bittensor.keyfile(path=coldkey_path)
 
     @property
     def coldkeypub_file(self) -> 'bittensor.keyfile':
+        """
+        Property that returns the coldkeypub file.
+
+        Returns:
+            bittensor.keyfile: The coldkeypub file.
+        """
         wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
         coldkeypub_path = os.path.join(wallet_path, "coldkeypub.txt")
-        return bittensor.keyfile( path = coldkeypub_path )
+        return bittensor.keyfile(path=coldkeypub_path)
 
     def set_hotkey(self, keypair: 'bittensor.Keypair', encrypt: bool = False, overwrite: bool = False) -> 'bittensor.keyfile':
+        """
+        Sets the hotkey for the wallet.
+
+        Args:
+            keypair (bittensor.Keypair): The hotkey keypair.
+            encrypt (bool, optional): Whether to encrypt the hotkey. Defaults to False.
+            overwrite (bool, optional): Whether to overwrite an existing hotkey. Defaults to False.
+
+        Returns:
+            bittensor.keyfile: The hotkey file.
+        """
         self._hotkey = keypair
-        self.hotkey_file.set_keypair( keypair, encrypt = encrypt, overwrite = overwrite )
+        self.hotkey_file.set_keypair(keypair, encrypt=encrypt, overwrite=overwrite)
 
     def set_coldkeypub(self, keypair: 'bittensor.Keypair', encrypt: bool = False, overwrite: bool = False) -> 'bittensor.keyfile':
-        self._coldkeypub = Keypair(ss58_address=keypair.ss58_address)
-        self.coldkeypub_file.set_keypair( self._coldkeypub, encrypt = encrypt, overwrite = overwrite  )
+        """
+        Sets the coldkeypub for the wallet.
+
+        Args:
+            keypair (bittensor.Keypair): The coldkeypub keypair.
+            encrypt (bool, optional): Whether to encrypt the coldkeypub. Defaults to False.
+            overwrite (bool, optional): Whether to overwrite an existing coldkeypub. Defaults to False.
+
+        Returns:
+            bittensor.keyfile: The coldkeypub file.
+        """
+        self._coldkeypub = bittensor.Keypair(ss58_address=keypair.ss58_address)
+        self.coldkeypub_file.set_keypair(self._coldkeypub, encrypt=encrypt, overwrite=overwrite)
 
     def set_coldkey(self, keypair: 'bittensor.Keypair', encrypt: bool = True, overwrite: bool = False) -> 'bittensor.keyfile':
+        """
+        Sets the coldkey for the wallet.
+
+        Args:
+            keypair (bittensor.Keypair): The coldkey keypair.
+            encrypt (bool, optional): Whether to encrypt the coldkey. Defaults to True.
+            overwrite (bool, optional): Whether to overwrite an existing coldkey. Defaults to False.
+
+        Returns:
+            bittensor.keyfile: The coldkey file.
+        """
         self._coldkey = keypair
-        self.coldkey_file.set_keypair( self._coldkey, encrypt = encrypt, overwrite = overwrite )
+        self.coldkey_file.set_keypair(self._coldkey, encrypt=encrypt, overwrite=overwrite)
 
-    def get_coldkey(self, password: str = None ) -> 'bittensor.Keypair':
-        self.coldkey_file.get_keypair( password = password )
+    def get_coldkey(self, password: str = None) -> 'bittensor.Keypair':
+        """
+        Gets the coldkey from the wallet.
 
-    def get_hotkey(self, password: str = None ) -> 'bittensor.Keypair':
-        self.hotkey_file.get_keypair( password = password )
+        Args:
+            password (str, optional): The password to decrypt the coldkey. Defaults to None.
 
-    def get_coldkeypub(self, password: str = None ) -> 'bittensor.Keypair':
-        self.coldkeypub_file.get_keypair( password = password )
+        Returns:
+            bittensor.Keypair: The coldkey keypair.
+        """
+        return self.coldkey_file.get_keypair(password=password)
+
+    def get_hotkey(self, password: str = None) -> 'bittensor.Keypair':
+        """
+        Gets the hotkey from the wallet.
+
+        Args:
+            password (str, optional): The password to decrypt the hotkey. Defaults to None.
+
+        Returns:
+            bittensor.Keypair: The hotkey keypair.
+        """
+        return self.hotkey_file.get_keypair(password=password)
+
+    def get_coldkeypub(self, password: str = None) -> 'bittensor.Keypair':
+        """
+        Gets the coldkeypub from the wallet.
+
+        Args:
+            password (str, optional): The password to decrypt the coldkeypub. Defaults to None.
+
+        Returns:
+            bittensor.Keypair: The coldkeypub keypair.
+        """
+        return self.coldkeypub_file.get_keypair(password=password)
 
     @property
     def hotkey(self) -> 'bittensor.Keypair':
