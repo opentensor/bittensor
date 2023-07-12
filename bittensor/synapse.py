@@ -1,5 +1,3 @@
-""" Create and init Axon, whcih services Forward and Backward requests from other neurons.
-"""
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2022 Opentensor Foundation
@@ -50,6 +48,7 @@ def get_size(obj, seen=None):
 
 def cast_int(raw: str) -> int:
     return int( raw ) if raw != None else raw
+
 def cast_float( raw: str ) -> float:
     return float( raw ) if raw != None else raw
 

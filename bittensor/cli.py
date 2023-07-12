@@ -20,6 +20,7 @@ import argparse
 import bittensor
 from typing import List, Optional
 from .commands import *
+console = bittensor.__console__
 
 class cli:
     """
