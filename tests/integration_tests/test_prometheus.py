@@ -1,12 +1,12 @@
 import bittensor
+from bittensor.mock import MockSubtensor
 
 import pytest
 import unittest
 from unittest.mock import MagicMock, patch
-from bittensor._subtensor.subtensor_mock import MockSubtensor
 from tests.helpers import _get_mock_wallet
 
-_subtensor_mock: MockSubtensor = bittensor.subtensor( network = 'mock', _mock = True )
+_subtensor_mock: MockSubtensor = MockSubtensor( )
 
 def setUpModule():
     _subtensor_mock.reset()

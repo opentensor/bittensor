@@ -24,10 +24,10 @@ from unittest.mock import MagicMock, patch
 from types import SimpleNamespace
 
 import bittensor
+from bittensor.mock import MockSubtensor
 import pytest
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
-from bittensor._subtensor.subtensor_mock import MockSubtensor
 from tests.helpers import _get_mock_hotkey, _get_mock_coldkey, MockConsole, _get_mock_keypair, _get_mock_wallet
 
 class TestSubtensor(unittest.TestCase):

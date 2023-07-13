@@ -17,16 +17,17 @@
 
 import torch
 import bittensor
-import bittensor.utils.networking as net
 
 from enum import Enum
-from bittensor import Balance
 from dataclasses import dataclass
 from scalecodec.types import GenericCall
 from typing import List, Tuple, Dict, Optional, Any, TypedDict
 from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
+
+from .utils import networking as net, U16_MAX, U16_NORMALIZED_FLOAT
+from .utils.balance import Balance
 
 custom_rpc_type_registry = {
     "types": {
@@ -184,7 +185,7 @@ class AxonInfo:
         """ Converts a dictionary to an axon_info object. """
         return cls(
             version = neuron_info['axon_info']['version'],
-            ip = bittensor.utils.networking.int_to_ip(int(neuron_info['axon_info']['ip'])),
+            ip = net.int_to_ip(int(neuron_info['axon_info']['ip'])),
             port = neuron_info['axon_info']['port'],
             ip_type = neuron_info['axon_info']['ip_type'],
             hotkey = neuron_info['hotkey'],
@@ -274,21 +275,21 @@ class NeuronInfo:
     def fix_decoded_values(cls, neuron_info_decoded: Any) -> 'NeuronInfo':
         r""" Fixes the values of the NeuronInfo object.
         """
-        neuron_info_decoded['hotkey'] = ss58_encode(neuron_info_decoded['hotkey'], bittensor.__ss58_format__)
-        neuron_info_decoded['coldkey'] = ss58_encode(neuron_info_decoded['coldkey'], bittensor.__ss58_format__)
-        stake_dict =  { ss58_encode( coldkey, bittensor.__ss58_format__): bittensor.Balance.from_rao(int(stake)) for coldkey, stake in neuron_info_decoded['stake'] }
+        neuron_info_decoded['hotkey'] = ss58_encode(neuron_info_decoded['hotkey'], __ss58_format__)
+        neuron_info_decoded['coldkey'] = ss58_encode(neuron_info_decoded['coldkey'], __ss58_format__)
+        stake_dict =  { ss58_encode( coldkey, bittensor.__ss58_format__): Balance.from_rao(int(stake)) for coldkey, stake in neuron_info_decoded['stake'] }
         neuron_info_decoded['stake_dict'] = stake_dict
         neuron_info_decoded['stake'] = sum(stake_dict.values())
         neuron_info_decoded['total_stake'] = neuron_info_decoded['stake']
         neuron_info_decoded['weights'] = [[int(weight[0]), int(weight[1])] for weight in neuron_info_decoded['weights']]
         neuron_info_decoded['bonds'] = [[int(bond[0]), int(bond[1])] for bond in neuron_info_decoded['bonds']]
-        neuron_info_decoded['rank'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['rank'])
+        neuron_info_decoded['rank'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['rank'])
         neuron_info_decoded['emission'] = neuron_info_decoded['emission'] / RAOPERTAO
-        neuron_info_decoded['incentive'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['incentive'])
-        neuron_info_decoded['consensus'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['consensus'])
-        neuron_info_decoded['trust'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['trust'])
-        neuron_info_decoded['validator_trust'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['validator_trust'])
-        neuron_info_decoded['dividends'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['dividends'])
+        neuron_info_decoded['incentive'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['incentive'])
+        neuron_info_decoded['consensus'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['consensus'])
+        neuron_info_decoded['trust'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['trust'])
+        neuron_info_decoded['validator_trust'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['validator_trust'])
+        neuron_info_decoded['dividends'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['dividends'])
         neuron_info_decoded['prometheus_info'] = PrometheusInfo.fix_decoded_values(neuron_info_decoded['prometheus_info'])
         neuron_info_decoded['axon_info'] = AxonInfo.from_neuron_info( neuron_info_decoded )
 
@@ -415,20 +416,20 @@ class NeuronInfoLite:
         """
         neuron_info_decoded['hotkey'] = ss58_encode(neuron_info_decoded['hotkey'], bittensor.__ss58_format__)
         neuron_info_decoded['coldkey'] = ss58_encode(neuron_info_decoded['coldkey'], bittensor.__ss58_format__)
-        stake_dict =  { ss58_encode( coldkey, bittensor.__ss58_format__): bittensor.Balance.from_rao(int(stake)) for coldkey, stake in neuron_info_decoded['stake'] }
+        stake_dict =  { ss58_encode( coldkey, bittensor.__ss58_format__): Balance.from_rao(int(stake)) for coldkey, stake in neuron_info_decoded['stake'] }
         neuron_info_decoded['stake_dict'] = stake_dict
         neuron_info_decoded['stake'] = sum(stake_dict.values())
         neuron_info_decoded['total_stake'] = neuron_info_decoded['stake']
         # Don't need weights and bonds in lite version
         #neuron_info_decoded['weights'] = [[int(weight[0]), int(weight[1])] for weight in neuron_info_decoded['weights']]
         #neuron_info_decoded['bonds'] = [[int(bond[0]), int(bond[1])] for bond in neuron_info_decoded['bonds']]
-        neuron_info_decoded['rank'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['rank'])
+        neuron_info_decoded['rank'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['rank'])
         neuron_info_decoded['emission'] = neuron_info_decoded['emission'] / RAOPERTAO
-        neuron_info_decoded['incentive'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['incentive'])
-        neuron_info_decoded['consensus'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['consensus'])
-        neuron_info_decoded['trust'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['trust'])
-        neuron_info_decoded['validator_trust'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['validator_trust'])
-        neuron_info_decoded['dividends'] = bittensor.utils.U16_NORMALIZED_FLOAT(neuron_info_decoded['dividends'])
+        neuron_info_decoded['incentive'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['incentive'])
+        neuron_info_decoded['consensus'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['consensus'])
+        neuron_info_decoded['trust'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['trust'])
+        neuron_info_decoded['validator_trust'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['validator_trust'])
+        neuron_info_decoded['dividends'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['dividends'])
         neuron_info_decoded['prometheus_info'] = PrometheusInfo.fix_decoded_values(neuron_info_decoded['prometheus_info'])
         neuron_info_decoded['axon_info'] = AxonInfo.from_neuron_info(neuron_info_decoded)
         return cls(**neuron_info_decoded)
@@ -525,7 +526,7 @@ class PrometheusInfo:
     def fix_decoded_values(cls, prometheus_info_decoded: Dict) -> 'PrometheusInfo':
         r""" Returns a PrometheusInfo object from a prometheus_info_decoded dictionary.
         """
-        prometheus_info_decoded['ip'] = bittensor.utils.networking.int_to_ip(int(prometheus_info_decoded['ip']))
+        prometheus_info_decoded['ip'] = net.int_to_ip(int(prometheus_info_decoded['ip']))
 
         return cls(**prometheus_info_decoded)
 @dataclass
@@ -540,8 +541,8 @@ class DelegateInfo:
     take: float # Take of the delegate as a percentage
     validator_permits: List[int] # List of subnets that the delegate is allowed to validate on
     registrations: List[int] # List of subnets that the delegate is registered on
-    return_per_1000: bittensor.Balance # Return per 1000 tao of the delegate over a day
-    total_daily_return: bittensor.Balance # Total daily return of the delegate
+    return_per_1000: Balance # Return per 1000 tao of the delegate over a day
+    total_daily_return: Balance # Total daily return of the delegate
 
     @classmethod
     def fix_decoded_values(cls, decoded: Any) -> 'DelegateInfo':
@@ -551,7 +552,7 @@ class DelegateInfo:
         return cls(
             hotkey_ss58 = ss58_encode(decoded['delegate_ss58'], bittensor.__ss58_format__),
             owner_ss58 = ss58_encode(decoded['owner_ss58'], bittensor.__ss58_format__),
-            take = bittensor.utils.U16_NORMALIZED_FLOAT(decoded['take']),
+            take = U16_NORMALIZED_FLOAT(decoded['take']),
             nominators = [
                 (ss58_encode(nom[0], bittensor.__ss58_format__), Balance.from_rao(nom[1]))
                 for nom in decoded['nominators']
@@ -559,8 +560,8 @@ class DelegateInfo:
             total_stake = Balance.from_rao(sum([nom[1] for nom in decoded['nominators']])),
             validator_permits = decoded['validator_permits'],
             registrations = decoded['registrations'],
-            return_per_1000 = bittensor.Balance.from_rao(decoded['return_per_1000']),
-            total_daily_return = bittensor.Balance.from_rao(decoded['total_daily_return']),
+            return_per_1000 = Balance.from_rao(decoded['return_per_1000']),
+            total_daily_return = Balance.from_rao(decoded['total_daily_return']),
         )
 
     @classmethod
@@ -687,7 +688,7 @@ class SubnetInfo:
             tempo = decoded['tempo'],
             modality = decoded['network_modality'],
             connection_requirements = {
-                str(int(netuid)): bittensor.utils.U16_NORMALIZED_FLOAT(int(req)) for netuid, req in decoded['network_connect']
+                str(int(netuid)): U16_NORMALIZED_FLOAT(int(req)) for netuid, req in decoded['network_connect']
             },
             emission_value= decoded['emission_values'],
             burn = Balance.from_rao(decoded['burn'])

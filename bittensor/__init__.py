@@ -1,5 +1,7 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+# Copyright © 2022-2023 Opentensor Foundation
+# Copyright © 2023 Opentensor Technologies Inc
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -72,9 +74,6 @@ __local_entrypoint__ = "ws://127.0.0.1:9944"
 __tao_symbol__: str = chr(0x03C4)
 
 __rao_symbol__: str = chr(0x03C1)
-
-# Mock Testing Constant
-__GLOBAL_MOCK_STATE__ = {}
 
 # Block Explorers map network to explorer url
 ## Must all be polkadotjs explorer urls

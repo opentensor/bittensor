@@ -20,22 +20,25 @@ from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
 from unittest.mock import MagicMock
 from dataclasses import dataclass
-from abc import ABC, abstractclassmethod
+from abc import abstractclassmethod
 from collections.abc import Mapping
 
-import bittensor
-from bittensor import Balance
-from bittensor.utils import RAOPERTAO, U16_NORMALIZED_FLOAT
-from bittensor.utils.registration import POWSolution
 from hashlib import sha256
+from bittensor_wallet import Wallet, wallet
 
-from ...bittensor.chain_data import (NeuronInfo, NeuronInfoLite, PrometheusInfo, DelegateInfo,
-                         SubnetInfo, AxonInfo)
-from ...bittensor.errors import *
-from ...bittensor.subtensor import subtensor
+from ..chain_data import (NeuronInfo, NeuronInfoLite, PrometheusInfo, DelegateInfo,
+                         SubnetInfo)
+from ..errors import *
+from ..subtensor import subtensor
+from ..utils import RAOPERTAO, U16_NORMALIZED_FLOAT
+from ..utils.balance import Balance
+from ..utils.registration import POWSolution
 
 from typing import TypedDict
 
+
+# Mock Testing Constant
+__GLOBAL_MOCK_STATE__ = {}
 
 class AxonServeCallParams(TypedDict):
     """
@@ -172,7 +175,7 @@ class MockSubtensor(subtensor):
 
     @classmethod
     def reset(cls) -> None:
-        bittensor.__GLOBAL_MOCK_STATE__.clear()
+        __GLOBAL_MOCK_STATE__.clear()
 
         _ = cls()
 
@@ -260,7 +263,7 @@ class MockSubtensor(subtensor):
             self.substrate = MagicMock()
 
     def __init__(self) -> None:
-        self.__dict__ = bittensor.__GLOBAL_MOCK_STATE__
+        self.__dict__ = __GLOBAL_MOCK_STATE__
         
         if not hasattr(self, 'chain_state') or getattr(self, 'chain_state') is None:
             self.setup()
@@ -906,7 +909,7 @@ class MockSubtensor(subtensor):
     # Extrinsics
     def _do_delegation(
         self,
-        wallet: 'bittensor.Wallet',
+        wallet: 'Wallet',
         delegate_ss58: str,
         amount: 'Balance',
         wait_for_inclusion: bool = True,
@@ -932,7 +935,7 @@ class MockSubtensor(subtensor):
 
     def _do_undelegation(
         self,
-        wallet: 'bittensor.Wallet',
+        wallet: 'Wallet',
         delegate_ss58: str,
         amount: 'Balance',
         wait_for_inclusion: bool = True,
@@ -955,7 +958,7 @@ class MockSubtensor(subtensor):
     
     def _do_nominate(
         self,
-        wallet: 'bittensor.Wallet',
+        wallet: 'Wallet',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -976,7 +979,7 @@ class MockSubtensor(subtensor):
         
     def get_transfer_fee(
         self,
-        wallet: 'bittensor.Wallet',
+        wallet: 'Wallet',
         dest: str,
         value: Union['Balance', float, int],
     ) -> 'Balance':    
@@ -984,7 +987,7 @@ class MockSubtensor(subtensor):
     
     def _do_transfer(
         self,
-        wallet: 'bittensor.Wallet',
+        wallet: 'Wallet',
         dest: str,
         transfer_balance: 'Balance',
         wait_for_inclusion: bool = True,
@@ -1017,7 +1020,7 @@ class MockSubtensor(subtensor):
     def _do_pow_register(
         self,
         netuid: int,
-        wallet: 'bittensor.Wallet',
+        wallet: 'Wallet',
         pow_result: 'POWSolution',
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
@@ -1039,7 +1042,7 @@ class MockSubtensor(subtensor):
     def _do_burned_register(
         self,
         netuid: int,
-        wallet: 'bittensor.Wallet',
+        wallet: 'Wallet',
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
@@ -1067,7 +1070,7 @@ class MockSubtensor(subtensor):
 
     def _do_stake(
         self,
-        wallet: 'bittensor.Wallet',
+        wallet: 'Wallet',
         hotkey_ss58: str,
         amount: 'Balance',
         wait_for_inclusion: bool = True,
@@ -1129,7 +1132,7 @@ class MockSubtensor(subtensor):
 
     def _do_unstake(
         self,
-        wallet: 'bittensor.Wallet',
+        wallet: 'Wallet',
         hotkey_ss58: str,
         amount: 'Balance',
         wait_for_inclusion: bool = True,
@@ -1185,7 +1188,7 @@ class MockSubtensor(subtensor):
         return True
 
 
-    def get_delegate_by_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional['bittensor.DelegateInfo']:
+    def get_delegate_by_hotkey( self, hotkey_ss58: str, block: Optional[int] = None ) -> Optional['DelegateInfo']:
         subtensor_state = self.chain_state['SubtensorModule']
 
         if hotkey_ss58 not in subtensor_state['Delegates']:
@@ -1240,7 +1243,7 @@ class MockSubtensor(subtensor):
         return info
 
 
-    def get_delegates( self, block: Optional[int] = None ) -> List['bittensor.DelegateInfo']:
+    def get_delegates( self, block: Optional[int] = None ) -> List['DelegateInfo']:
         subtensor_state = self.chain_state['SubtensorModule']
         delegates_info = []
         for hotkey in subtensor_state['Delegates']:
@@ -1253,7 +1256,7 @@ class MockSubtensor(subtensor):
 
         return delegates_info
 
-    def get_delegated( self, coldkey_ss58: str, block: Optional[int] = None ) -> List[Tuple['bittensor.DelegateInfo', 'Balance']]:
+    def get_delegated( self, coldkey_ss58: str, block: Optional[int] = None ) -> List[Tuple['DelegateInfo', 'Balance']]:
         """ Returns the list of delegates that a given coldkey is staked to.
         """
         delegates = self.get_delegates(block=block)
@@ -1368,7 +1371,7 @@ class MockSubtensor(subtensor):
 
     def _do_serve_prometheus(
         self,
-        wallet: 'bittensor.wallet',
+        wallet: 'wallet',
         call_params: 'PrometheusServeCallParams',
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
@@ -1377,7 +1380,7 @@ class MockSubtensor(subtensor):
     
     def _do_set_weights(
         self,
-        wallet: 'bittensor.wallet',
+        wallet: 'wallet',
         netuid: int,
         uids: int,
         vals: List[int],
@@ -1389,7 +1392,7 @@ class MockSubtensor(subtensor):
     
     def _do_serve_axon(
         self,
-        wallet: 'bittensor.wallet',
+        wallet: 'wallet',
         call_params: 'AxonServeCallParams',
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,

@@ -1,4 +1,21 @@
-import binascii
+# The MIT License (MIT)
+# Copyright © 2022 Opentensor Foundation
+# Copyright © 2023 Opentensor Technologies Inc
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
 import hashlib
 import math
 import multiprocessing
@@ -23,8 +40,8 @@ from loguru import logger
 from substrateinterface.base import Keypair
 
 import bittensor
+from bittensor.mock import MockSubtensor
 from bittensor.utils.registration import _CUDASolver, _SolverBase
-from bittensor._subtensor.subtensor_mock import MockSubtensor
 
 from tests.helpers import _get_mock_wallet as _generate_wallet, _get_mock_keypair
 
@@ -504,7 +521,7 @@ class TestPOWNotStale(unittest.TestCase):
 class TestPOWCalled(unittest.TestCase):
     def setUp(self) -> None: 
         # Setup mock subnet
-        self._subtensor = bittensor.subtensor(_mock=True)
+        self._subtensor = MockSubtensor( )
 
         self._subtensor.create_subnet(
             netuid = 99
@@ -515,7 +532,7 @@ class TestPOWCalled(unittest.TestCase):
             pass
         mock_pow_register_call = MagicMock(side_effect=MockException)
 
-        mock_subtensor = bittensor.subtensor(_mock=True)
+        mock_subtensor = MockSubtensor( )
         mock_subtensor.get_neuron_for_pubkey_and_subnet=MagicMock(is_null=True)
         mock_subtensor._do_pow_register = mock_pow_register_call
 

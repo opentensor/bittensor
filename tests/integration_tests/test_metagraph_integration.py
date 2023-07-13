@@ -17,11 +17,11 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
+from bittensor.mock import MockSubtensor
 import torch
 import pytest
-from bittensor._subtensor.subtensor_mock import MockSubtensor
 
-_subtensor_mock: MockSubtensor = bittensor.subtensor( network = 'mock', _mock = True )
+_subtensor_mock: MockSubtensor = MockSubtensor( )
 
 def setUpModule():
     _subtensor_mock.reset()
@@ -39,7 +39,7 @@ def setUpModule():
 
 class TestMetagraph:
     def setup_method(self):
-        self.sub = bittensor.subtensor(_mock=True)
+        self.sub = MockSubtensor( )
         self.metagraph = bittensor.metagraph(netuid=3, network="mock")
 
     def test_print_empty(self):

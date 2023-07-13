@@ -1,6 +1,7 @@
 # The MIT License (MIT)
 # Copyright © 2022 Yuma Rao
 # Copyright © 2022-2023 Opentensor Foundation
+# Copyright © 2023 Opentensor Technologies Inc
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -29,11 +30,12 @@ import pytest
 from substrateinterface.base import Keypair
 
 import bittensor
-from bittensor import MockSubtensor, Balance
+from bittensor.mock import MockSubtensor
+from bittensor import Balance
 from tests.helpers import MockConsole, _get_mock_keypair, _get_mock_wallet as generate_wallet
 
 
-_subtensor_mock: MockSubtensor = bittensor.subtensor( network = 'mock', _mock = True )
+_subtensor_mock: MockSubtensor = MockSubtensor( )
 
 def setUpModule():
     _subtensor_mock.reset()
@@ -83,7 +85,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         bittensor.subtensor.add_defaults(defaults)
         # Always use mock subtensor.
         defaults.subtensor.network = "finney"
-        defaults.subtensor._mock = True
         # Skip version checking.
         defaults.no_version_checking = True
         bittensor.axon.add_defaults(defaults)
@@ -2004,7 +2005,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "stake"
         config.amount = amount_to_stake.tao
         config.stake_all = False
-        config.wallet._mock = True
         config.use_password = False
         config.model = "core_server"
         config.hotkey = "hk0"
@@ -2247,8 +2247,6 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
                     "mock",  # Mock network
                     "--wallet.name",
                     "mock",
-                    "--wallet._mock",
-                    "True",
                     "--delegate_ss58key",
                     delegate_wallet.hotkey.ss58_address,
                     "--amount",

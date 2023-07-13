@@ -21,17 +21,12 @@ import copy
 import torch
 import argparse
 import bittensor
-import bittensor
 import scalecodec
 
 from retry import retry
 from loguru import logger
 from typing import List, Dict, Union, Optional, Tuple
 from substrateinterface.base import QueryMapResult, SubstrateInterface
-
-from bittensor.utils.balance import Balance
-from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
-from bittensor.utils.registration import POWSolution
 
 # Local imports.
 from .chain_data import NeuronInfo, DelegateInfo, PrometheusInfo, SubnetInfo, NeuronInfoLite, AxonInfo, ProposalVoteData, ProposalCallData
@@ -46,6 +41,9 @@ from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import delegate_extrinsic, nominate_extrinsic,undelegate_extrinsic
 from .extrinsics.senate import register_senate_extrinsic, leave_senate_extrinsic, vote_senate_extrinsic
 from .types import AxonServeCallParams, PrometheusServeCallParams
+from .utils import U16_NORMALIZED_FLOAT
+from .utils.balance import Balance
+from .utils.registration import POWSolution
 
 logger = logger.opt(colors=True)
 
@@ -91,15 +89,6 @@ class subtensor:
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
-
-    @classmethod
-    def add_defaults( cls, defaults ):
-        """ Adds parser defaults to object from enviroment variables.
-        """
-        defaults.subtensor = bittensor.config()
-        defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'finney'
-        defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else bittensor.__finney_entrypoint__
-        defaults.subtensor._mock = os.getenv('BT_SUBTENSOR_MOCK') if os.getenv('BT_SUBTENSOR_MOCK') != None else False
 
     @staticmethod
     def determine_chain_endpoint(network: str):
@@ -451,9 +440,9 @@ class subtensor:
         value: Union[Balance, float, int],
     ) -> Balance:
         if isinstance(value, float):
-            transfer_balance = bittensor.Balance.from_tao(value)
+            transfer_balance = Balance.from_tao(value)
         elif isinstance(value, int):
-            transfer_balance = bittensor.Balance.from_rao(value)
+            transfer_balance = Balance.from_rao(value)
 
         with self.substrate as substrate:
             call = substrate.compose_call(
@@ -473,7 +462,7 @@ class subtensor:
                     'partialFee': 2e7, # assume  0.02 Tao
                 }
 
-        fee = bittensor.Balance.from_rao( payment_info['partialFee'] )
+        fee = Balance.from_rao( payment_info['partialFee'] )
         return fee
     
     def _do_transfer(
@@ -488,7 +477,7 @@ class subtensor:
             Args:
                 wallet (:obj:`bittensor.wallet`): Wallet object.
                 dest (:obj:`str`): Destination public key address.
-                transfer_balance (:obj:`bittensor.Balance`): Amount to transfer.
+                transfer_balance (:obj:`Balance`): Amount to transfer.
                 wait_for_inclusion (:obj:`bool`): If true, waits for inclusion.
                 wait_for_finalization (:obj:`bool`): If true, waits for finalization.
             Returns:
@@ -682,7 +671,7 @@ class subtensor:
             Args:
                 wallet (:obj:`bittensor.Wallet`): Wallet object that can sign the extrinsic.
                 hotkey_ss58 (:obj:`str`): Hotkey ss58 address to stake to.
-                amount (:obj:`bittensor.Balance`): Amount to stake.
+                amount (:obj:`Balance`): Amount to stake.
                 wait_for_inclusion (:obj:`bool`): If true, waits for inclusion before returning.
                 wait_for_finalization (:obj:`bool`): If true, waits for finalization before returning.
             Returns:
@@ -750,7 +739,7 @@ class subtensor:
             Args:
                 wallet (:obj:`bittensor.Wallet`): Wallet object that can sign the extrinsic.
                 hotkey_ss58 (:obj:`str`): Hotkey ss58 address to unstake from.
-                amount (:obj:`bittensor.Balance`): Amount to unstake.
+                amount (:obj:`Balance`): Amount to unstake.
                 wait_for_inclusion (:obj:`bool`): If true, waits for inclusion before returning.
                 wait_for_finalization (:obj:`bool`): If true, waits for finalization before returning.
             Returns:
@@ -959,9 +948,9 @@ class subtensor:
         return self.query_subtensor( "Difficulty", block, [netuid] ).value
 
     """ Returns network Burn hyper parameter """
-    def burn (self, netuid: int, block: Optional[int] = None ) -> Optional[bittensor.Balance]:
+    def burn (self, netuid: int, block: Optional[int] = None ) -> Optional[Balance]:
         if not self.subnet_exists( netuid, block ): return None
-        return bittensor.Balance.from_rao( self.query_subtensor( "Burn", block, [netuid] ).value )
+        return Balance.from_rao( self.query_subtensor( "Burn", block, [netuid] ).value )
 
     """ Returns network ImmunityPeriod hyper parameter """
     def immunity_period (self, netuid: int, block: Optional[int] = None ) -> Optional[int]:
@@ -1053,20 +1042,20 @@ class subtensor:
     ##########################
 
     """ Returns the total stake held on a hotkey including delegative """
-    def get_total_stake_for_hotkey( self, ss58_address: str, block: Optional[int] = None ) -> Optional['bittensor.Balance']:
-        return bittensor.Balance.from_rao( self.query_subtensor( 'TotalHotkeyStake', block, [ss58_address] ).value )
+    def get_total_stake_for_hotkey( self, ss58_address: str, block: Optional[int] = None ) -> Optional['Balance']:
+        return Balance.from_rao( self.query_subtensor( 'TotalHotkeyStake', block, [ss58_address] ).value )
 
     """ Returns the total stake held on a coldkey across all hotkeys including delegates"""
-    def get_total_stake_for_coldkey( self, ss58_address: str, block: Optional[int] = None ) -> Optional['bittensor.Balance']:
-        return bittensor.Balance.from_rao( self.query_subtensor( 'TotalColdkeyStake', block, [ss58_address] ).value )
+    def get_total_stake_for_coldkey( self, ss58_address: str, block: Optional[int] = None ) -> Optional['Balance']:
+        return Balance.from_rao( self.query_subtensor( 'TotalColdkeyStake', block, [ss58_address] ).value )
 
     """ Returns the stake under a coldkey - hotkey pairing """
-    def get_stake_for_coldkey_and_hotkey( self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None ) -> Optional['bittensor.Balance']:
-        return bittensor.Balance.from_rao( self.query_subtensor( 'Stake', block, [hotkey_ss58, coldkey_ss58] ).value )
+    def get_stake_for_coldkey_and_hotkey( self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None ) -> Optional['Balance']:
+        return Balance.from_rao( self.query_subtensor( 'Stake', block, [hotkey_ss58, coldkey_ss58] ).value )
 
     """ Returns a list of stake tuples (coldkey, balance) for each delegating coldkey including the owner"""
-    def get_stake( self, hotkey_ss58: str, block: Optional[int] = None ) -> List[Tuple[str,'bittensor.Balance']]:
-        return [ (r[0].value, bittensor.Balance.from_rao( r[1].value ))  for r in self.query_map_subtensor( 'Stake', block, [hotkey_ss58] ) ]
+    def get_stake( self, hotkey_ss58: str, block: Optional[int] = None ) -> List[Tuple[str,'Balance']]:
+        return [ (r[0].value, Balance.from_rao( r[1].value ))  for r in self.query_map_subtensor( 'Stake', block, [hotkey_ss58] ) ]
 
     """ Returns true if the hotkey is known by the chain and there are accounts. """
     def does_hotkey_exist( self, hotkey_ss58: str, block: Optional[int] = None ) -> bool:
@@ -1122,11 +1111,11 @@ class subtensor:
         """
         return self.get_current_block()
 
-    def total_issuance (self, block: Optional[int] = None ) -> 'bittensor.Balance':
-        return bittensor.Balance.from_rao( self.query_subtensor( 'TotalIssuance', block ).value )
+    def total_issuance (self, block: Optional[int] = None ) -> 'Balance':
+        return Balance.from_rao( self.query_subtensor( 'TotalIssuance', block ).value )
 
-    def total_stake (self,block: Optional[int] = None ) -> 'bittensor.Balance':
-        return bittensor.Balance.from_rao( self.query_subtensor( "TotalStake", block ).value )
+    def total_stake (self,block: Optional[int] = None ) -> 'Balance':
+        return Balance.from_rao( self.query_subtensor( "TotalStake", block ).value )
 
     def serving_rate_limit (self, block: Optional[int] = None ) -> Optional[int]:
         return self.query_subtensor( "ServingRateLimit", block ).value
@@ -1161,7 +1150,7 @@ class subtensor:
         return self.query_subtensor( 'NetworkConnect', block, [netuid_0, netuid_1] ).value
 
     def get_emission_value_by_subnet( self, netuid: int, block: Optional[int] = None ) -> Optional[float]:
-        return bittensor.Balance.from_rao( self.query_subtensor( 'EmissionValues', block, [ netuid ] ).value )
+        return Balance.from_rao( self.query_subtensor( 'EmissionValues', block, [ netuid ] ).value )
 
     def get_subnet_connection_requirements( self, netuid: int, block: Optional[int] = None) -> Dict[str, int]:
         result = self.query_map_subtensor( 'NetworkConnect', block, [netuid] )
@@ -1523,7 +1512,7 @@ class subtensor:
         self,
         wallet: 'bittensor.wallet',
         delegate_ss58: str,
-        amount: 'bittensor.Balance',
+        amount: 'Balance',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -1551,7 +1540,7 @@ class subtensor:
             self,
             wallet: 'bittensor.wallet',
             delegate_ss58: str,
-            amount: 'bittensor.Balance',
+            amount: 'Balance',
             wait_for_inclusion: bool = True,
             wait_for_finalization: bool = False,
         ) -> bool:
@@ -1671,7 +1660,7 @@ class subtensor:
         result = make_substrate_call_with_retry()
         return_dict = {}
         for r in result:
-            bal = bittensor.Balance( int( r[1]['data']['free'].value ) )
+            bal = Balance( int( r[1]['data']['free'].value ) )
             return_dict[r[0].value] = bal
         return return_dict
 
