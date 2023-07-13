@@ -364,7 +364,7 @@ class Synapse( pydantic.BaseModel ):
                     bittensor.logging.error(f"Error while parsing 'input_obj' header {key}: {e}")
                     continue
             else:
-                bittensor.logging.warning(f"Unexpected key in headers: {key}")  # log unexpected keys
+                bittensor.logging.trace(f"Unexpected key in headers: {key}")  # log unexpected keys
 
         # Assign the remaining known headers directly
         inputs_dict['timeout'] = headers.get('timeout', None)
@@ -399,14 +399,13 @@ class Synapse( pydantic.BaseModel ):
 def test_parse_headers_to_inputs():
     # Define a mock headers dictionary to use for testing
     headers = {
-        'bt_header_axon_key1': 'axon_value1',
-        'bt_header_dendrite_key2': 'dendrite_value2',
-        'bt_header_tensor_key3': '3-1',
+        'bt_header_axon_nonce': '111',
+        'bt_header_dendrite_ip': '12.1.1.2',
         'bt_header_input_obj_key4': base64.b64encode(pickle.dumps('input_obj_value4')).decode('utf-8'),
-        'timeout': 'timeout_value',
+        'timeout': '12',
         'name': 'name_value',
-        'header_size': 'header_size_value',
-        'total_size': 'total_size_value',
+        'header_size': '111',
+        'total_size': '111',
     }
 
     # Run the function to test
@@ -414,14 +413,14 @@ def test_parse_headers_to_inputs():
 
     # Check the resulting dictionary
     assert inputs_dict == {
-        'axon': {'key1': 'axon_value1'},
-        'dendrite': {'key2': 'dendrite_value2'},
+        'axon': {'nonce': '111'},
+        'dendrite': {'ip': '12.1.1.2'},
         'key3': bittensor.Tensor(shape=3, dtype=1),
         'key4': 'input_obj_value4',
-        'timeout': 'timeout_value',
+        'timeout': '12',
         'name': 'name_value',
-        'header_size': 'header_size_value',
-        'total_size': 'total_size_value',
+        'header_size': '111',
+        'total_size': '111',
     }
 
 def test_from_headers():
