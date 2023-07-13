@@ -357,7 +357,7 @@ class wallet:
             self._coldkeypub = self.coldkeypub_file.keypair
         return self._coldkeypub
 
-    def create_coldkey_from_uri(self, uri:str, use_password: bool = True, overwrite:bool = False) -> 'wallet':
+    def create_coldkey_from_uri(self, uri:str, use_password: bool = True, overwrite:bool = False, suppress: bool = False) -> 'wallet':
         """ Creates coldkey from suri string, optionally encrypts it with the user's inputed password.
             Args:
                 uri: (str, required):
@@ -371,12 +371,12 @@ class wallet:
                     this object with newly created coldkey.
         """
         keypair = Keypair.create_from_uri( uri )
-        display_mnemonic_msg( keypair, "coldkey" )
+        if not suppress: display_mnemonic_msg( keypair, "coldkey" )
         self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self
 
-    def create_hotkey_from_uri( self, uri:str, use_password: bool = False, overwrite:bool = False) -> 'wallet':
+    def create_hotkey_from_uri( self, uri:str, use_password: bool = False, overwrite:bool = False, suppress: bool = False ) -> 'wallet':
         """ Creates hotkey from suri string, optionally encrypts it with the user's inputed password.
             Args:
                 uri: (str, required):
@@ -390,11 +390,11 @@ class wallet:
                     this object with newly created hotkey.
         """
         keypair = Keypair.create_from_uri( uri )
-        display_mnemonic_msg( keypair, "hotkey" )
+        if not suppress: display_mnemonic_msg( keypair, "hotkey" )
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self
 
-    def new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'wallet':
+    def new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False, suppress: bool = False ) -> 'wallet':
         """ Creates a new coldkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
@@ -407,9 +407,9 @@ class wallet:
                 wallet (bittensor.wallet):
                     this object with newly created coldkey.
         """
-        self.create_new_coldkey( n_words, use_password, overwrite )
+        self.create_new_coldkey( n_words, use_password, overwrite, suppress)
 
-    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False) -> 'wallet':
+    def create_new_coldkey( self, n_words:int = 12, use_password: bool = True, overwrite:bool = False, suppress: bool = False ) -> 'wallet':
         """ Creates a new coldkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
@@ -424,12 +424,12 @@ class wallet:
         """
         mnemonic = Keypair.generate_mnemonic( n_words)
         keypair = Keypair.create_from_mnemonic(mnemonic)
-        display_mnemonic_msg( keypair, "coldkey" )
+        if not suppress: display_mnemonic_msg( keypair, "coldkey" )
         self.set_coldkey( keypair, encrypt = use_password, overwrite = overwrite)
         self.set_coldkeypub( keypair, overwrite = overwrite)
         return self
 
-    def new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False) -> 'wallet':
+    def new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False, suppress: bool = False) -> 'wallet':
         """ Creates a new hotkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
@@ -442,9 +442,9 @@ class wallet:
                 wallet (bittensor.wallet):
                     this object with newly created hotkey.
         """
-        self.create_new_hotkey( n_words, use_password, overwrite )
+        self.create_new_hotkey( n_words, use_password, overwrite, suppress )
 
-    def create_new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False) -> 'wallet':
+    def create_new_hotkey( self, n_words:int = 12, use_password: bool = False, overwrite:bool = False, suppress: bool = False ) -> 'wallet':
         """ Creates a new hotkey, optionally encrypts it with the user's inputed password and saves to disk.
             Args:
                 n_words: (int, optional):
@@ -459,11 +459,11 @@ class wallet:
         """
         mnemonic = Keypair.generate_mnemonic( n_words)
         keypair = Keypair.create_from_mnemonic(mnemonic)
-        display_mnemonic_msg( keypair, "hotkey" )
+        if not suppress: display_mnemonic_msg( keypair, "hotkey" )
         self.set_hotkey( keypair, encrypt=use_password, overwrite = overwrite)
         return self
 
-    def regenerate_coldkeypub( self, ss58_address: Optional[str] = None, public_key: Optional[Union[str, bytes]] = None, overwrite: bool = False ) -> 'wallet':
+    def regenerate_coldkeypub( self, ss58_address: Optional[str] = None, public_key: Optional[Union[str, bytes]] = None, overwrite: bool = False, suppress: bool = False ) -> 'wallet':
         """ Regenerates the coldkeypub from passed ss58_address or public_key and saves the file
                Requires either ss58_address or public_key to be passed.
             Args:
@@ -491,7 +491,7 @@ class wallet:
             keypair = Keypair(ss58_address=ss58_address, public_key=public_key, ss58_format=bittensor.__ss58_format__)
 
         # No need to encrypt the public key
-        self.set_coldkeypub( keypair, overwrite = overwrite)
+        self.set_coldkeypub( keypair, overwrite = overwrite )
 
         return self
 
@@ -503,7 +503,8 @@ class wallet:
             self,
             mnemonic: Optional[Union[list, str]] = None,
             use_password: bool = True,
-            overwrite: bool = False
+            overwrite: bool = False,
+            suppress: bool = False,
         ) -> 'wallet':
         ...
 
@@ -512,7 +513,8 @@ class wallet:
             self,
             seed: Optional[str] = None,
             use_password: bool = True,
-            overwrite: bool = False
+            overwrite: bool = False,
+            suppress: bool = False,
         ) -> 'wallet':
         ...
 
@@ -521,7 +523,8 @@ class wallet:
             self,
             json: Optional[Tuple[Union[str, Dict], str]] = None,
             use_password: bool = True,
-            overwrite: bool = False
+            overwrite: bool = False,
+            suppress: bool = False,
         ) -> 'wallet':
         ...
 
@@ -530,6 +533,7 @@ class wallet:
             self,
             use_password: bool = True,
             overwrite: bool = False,
+            suppress: bool = False,
             **kwargs
         ) -> 'wallet':
         """ Regenerates the coldkey from passed mnemonic, seed, or json encrypts it with the user's password and saves the file
@@ -565,7 +569,7 @@ class wallet:
             if len(mnemonic) not in [12,15,18,21,24]:
                 raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
             keypair = Keypair.create_from_mnemonic(" ".join(mnemonic), ss58_format=bittensor.__ss58_format__ )
-            display_mnemonic_msg( keypair, "coldkey" )
+            if not suppress: display_mnemonic_msg( keypair, "coldkey" )
         elif seed is not None:
             keypair = Keypair.create_from_seed(seed, ss58_format=bittensor.__ss58_format__ )
         else:
@@ -588,7 +592,8 @@ class wallet:
             self,
             mnemonic: Optional[Union[list, str]] = None,
             use_password: bool = True,
-            overwrite: bool = False
+            overwrite: bool = False,
+            suppress: bool = False,
         ) -> 'wallet':
         ...
 
@@ -597,7 +602,8 @@ class wallet:
             self,
             seed: Optional[str] = None,
             use_password: bool = True,
-            overwrite: bool = False
+            overwrite: bool = False,
+            suppress: bool = False,
         ) -> 'wallet':
         ...
 
@@ -606,7 +612,8 @@ class wallet:
             self,
             json: Optional[Tuple[Union[str, Dict], str]] = None,
             use_password: bool = True,
-            overwrite: bool = False
+            overwrite: bool = False,
+            suppress: bool = False,
         ) -> 'wallet':
         ...
 
@@ -614,6 +621,7 @@ class wallet:
             self,
             use_password: bool = True,
             overwrite: bool = False,
+            suppress: bool = False,
             **kwargs
         ) -> 'wallet':
         """ Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file
@@ -647,7 +655,7 @@ class wallet:
             if len(mnemonic) not in [12,15,18,21,24]:
                 raise ValueError("Mnemonic has invalid size. This should be 12,15,18,21 or 24 words")
             keypair = Keypair.create_from_mnemonic(" ".join(mnemonic), ss58_format=bittensor.__ss58_format__ )
-            display_mnemonic_msg( keypair, "hotkey" )
+            if not suppress: display_mnemonic_msg( keypair, "hotkey")
         elif seed is not None:
             keypair = Keypair.create_from_seed(seed, ss58_format=bittensor.__ss58_format__ )
         else:
@@ -680,8 +688,8 @@ from unittest.mock import patch, MagicMock
 class TestWallet(unittest.TestCase):
     def setUp(self):
         self.mock_wallet = bittensor.wallet( name = f'mock-{str(time.time())}', hotkey = f'mock-{str(time.time())}', path = '/tmp/tests_wallets/do_not_use' )
-        self.mock_wallet.create_new_coldkey( use_password = False, overwrite = True ) 
-        self.mock_wallet.create_new_hotkey( use_password = False, overwrite = True ) 
+        self.mock_wallet.create_new_coldkey( use_password = False, overwrite = True, suppress=True ) 
+        self.mock_wallet.create_new_hotkey( use_password = False, overwrite = True, suppress=True ) 
 
     def test_regen_coldkeypub_from_ss58_addr(self):
         """Test the `regenerate_coldkeypub` method of the wallet class, which regenerates the cold key pair from an SS58 address.
@@ -690,7 +698,7 @@ class TestWallet(unittest.TestCase):
         """
         ss58_address = "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
         with patch.object(self.mock_wallet, 'set_coldkeypub') as mock_set_coldkeypub:
-            self.mock_wallet.regenerate_coldkeypub( ss58_address=ss58_address, overwrite = True )
+            self.mock_wallet.regenerate_coldkeypub( ss58_address=ss58_address, overwrite = True, suppress=True )
 
             mock_set_coldkeypub.assert_called_once()
             keypair: bittensor.Keypair = mock_set_coldkeypub.call_args_list[0][0][0]
@@ -698,7 +706,7 @@ class TestWallet(unittest.TestCase):
 
         ss58_address_bad = "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zx" # 1 character short
         with pytest.raises(ValueError):
-            self.mock_wallet.regenerate_coldkeypub(ss58_address=ss58_address_bad, overwrite = True )
+            self.mock_wallet.regenerate_coldkeypub(ss58_address=ss58_address_bad, overwrite = True, suppress=True )
 
     def test_regen_coldkeypub_from_hex_pubkey_str(self):
         """Test the `regenerate_coldkeypub` method of the wallet class, which regenerates the cold key pair from a hex public key string.
@@ -707,7 +715,7 @@ class TestWallet(unittest.TestCase):
         """
         pubkey_str = "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f"
         with patch.object(self.mock_wallet, 'set_coldkeypub') as mock_set_coldkeypub:
-            self.mock_wallet.regenerate_coldkeypub(public_key=pubkey_str, overwrite = True )
+            self.mock_wallet.regenerate_coldkeypub(public_key=pubkey_str, overwrite = True, suppress=True )
 
             mock_set_coldkeypub.assert_called_once()
             keypair: bittensor.Keypair = mock_set_coldkeypub.call_args_list[0][0][0]
@@ -715,7 +723,7 @@ class TestWallet(unittest.TestCase):
 
         pubkey_str_bad = "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512" # 1 character short
         with pytest.raises(ValueError):
-            self.mock_wallet.regenerate_coldkeypub(ss58_address=pubkey_str_bad, overwrite = True )
+            self.mock_wallet.regenerate_coldkeypub(ss58_address=pubkey_str_bad, overwrite = True, suppress=True )
 
     def test_regen_coldkeypub_from_hex_pubkey_bytes(self):
         """Test the `regenerate_coldkeypub` method of the wallet class, which regenerates the cold key pair from a hex public key byte string.
@@ -724,7 +732,7 @@ class TestWallet(unittest.TestCase):
         pubkey_str = "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f"
         pubkey_bytes = bytes.fromhex(pubkey_str[2:]) # Remove 0x from beginning
         with patch.object(self.mock_wallet, 'set_coldkeypub') as mock_set_coldkeypub:
-            self.mock_wallet.regenerate_coldkeypub(public_key=pubkey_bytes, overwrite = True )
+            self.mock_wallet.regenerate_coldkeypub(public_key=pubkey_bytes, overwrite = True, suppress=True )
 
             mock_set_coldkeypub.assert_called_once()
             keypair: bittensor.Keypair = mock_set_coldkeypub.call_args_list[0][0][0]
@@ -736,7 +744,7 @@ class TestWallet(unittest.TestCase):
         """
         with pytest.raises(ValueError):
             # Must provide either public_key or ss58_address
-            self.mock_wallet.regenerate_coldkeypub(ss58_address=None, public_key=None, overwrite = True )
+            self.mock_wallet.regenerate_coldkeypub(ss58_address=None, public_key=None, overwrite = True, suppress=True )
 
     def test_regen_coldkey_from_hex_seed_str(self):
         """Test the `regenerate_coldkey` method of the wallet class, which regenerates the cold key pair from a hex seed string.
@@ -746,7 +754,7 @@ class TestWallet(unittest.TestCase):
         ss58_addr = "5D5cwd8DX6ij7nouVcoxDuWtJfiR1BnzCkiBVTt7DU8ft5Ta"
         seed_str = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f7636"
         with patch.object(self.mock_wallet, 'set_coldkey') as mock_set_coldkey:
-            self.mock_wallet.regenerate_coldkey(seed=seed_str, overwrite = True )
+            self.mock_wallet.regenerate_coldkey(seed=seed_str, overwrite = True, suppress=True)
 
             mock_set_coldkey.assert_called_once()
             keypair: bittensor.Keypair = mock_set_coldkey.call_args_list[0][0][0]
@@ -755,7 +763,7 @@ class TestWallet(unittest.TestCase):
 
         seed_str_bad = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763" # 1 character short
         with pytest.raises(ValueError):
-            self.mock_wallet.regenerate_coldkey(seed=seed_str_bad, overwrite = True )
+            self.mock_wallet.regenerate_coldkey(seed=seed_str_bad, overwrite = True, suppress=True )
 
     def test_regen_hotkey_from_hex_seed_str(self):
         """Test the `regenerate_coldkey` method of the wallet class, which regenerates the cold key pair from a hex seed string.
@@ -765,7 +773,7 @@ class TestWallet(unittest.TestCase):
         ss58_addr = "5D5cwd8DX6ij7nouVcoxDuWtJfiR1BnzCkiBVTt7DU8ft5Ta"
         seed_str = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f7636"
         with patch.object(self.mock_wallet, 'set_hotkey') as mock_set_hotkey:
-            self.mock_wallet.regenerate_hotkey(seed=seed_str, overwrite = True )
+            self.mock_wallet.regenerate_hotkey(seed=seed_str, overwrite = True, suppress=True )
 
             mock_set_hotkey.assert_called_once()
             keypair: bittensor.Keypair = mock_set_hotkey.call_args_list[0][0][0]
@@ -774,7 +782,7 @@ class TestWallet(unittest.TestCase):
 
         seed_str_bad = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763" # 1 character short
         with pytest.raises(ValueError):
-            self.mock_wallet.regenerate_hotkey(seed=seed_str_bad, overwrite = True )
+            self.mock_wallet.regenerate_hotkey(seed=seed_str_bad, overwrite = True, suppress=True )
 
 if __name__ == '__main__':
     unittest.main()

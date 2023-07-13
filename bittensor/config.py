@@ -345,8 +345,6 @@ class TestConfig(unittest.TestCase):
         # Merge the two configs
         cfg2.merge(cfg1)
 
-        print (cfg1)
-
         # Check if the values are correctly merged
         self.assertEqual(cfg1.name, 'Alice')
         self.assertEqual(cfg1.age, 25)

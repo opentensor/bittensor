@@ -35,7 +35,7 @@ from password_strength import PasswordPolicy
 from substrateinterface.utils.ss58 import ss58_encode
 from termcolor import colored
 
-class keyfileerror(Exception):
+class KeyFileError(Exception):
     """ Error thrown when the keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid.
     """
 
@@ -63,7 +63,7 @@ def deserialize_keypair_from_keyfile_data(keyfile_data: bytes) -> 'bittensor.Key
     Returns:
         keypair (bittensor.Keypair): The Keypair loaded from bytes.
     Raises:
-        keyfileerror: Raised if the passed bytes cannot construct a keypair object.
+        KeyFileError: Raised if the passed bytes cannot construct a keypair object.
     """
     keyfile_data = keyfile_data.decode()
     try:
@@ -80,7 +80,7 @@ def deserialize_keypair_from_keyfile_data(keyfile_data: bytes) -> 'bittensor.Key
                 'ss58Address': string_value
             }
         else:
-            raise keyfileerror('Keypair could not be created from keyfile data: {}'.format(string_value))
+            raise KeyFileError('Keypair could not be created from keyfile data: {}'.format(string_value))
 
     if "secretSeed" in keyfile_dict and keyfile_dict['secretSeed'] is not None:
         return bittensor.Keypair.create_from_seed(keyfile_dict['secretSeed'])
@@ -92,7 +92,7 @@ def deserialize_keypair_from_keyfile_data(keyfile_data: bytes) -> 'bittensor.Key
         return bittensor.Keypair(ss58_address=keyfile_dict['ss58Address'])
 
     else:
-        raise keyfileerror('Keypair could not be created from keyfile data: {}'.format(keyfile_dict))
+        raise KeyFileError('Keypair could not be created from keyfile data: {}'.format(keyfile_dict))
 
 def validate_password(password: str) -> bool:
     """ Validates the password against a password policy.
@@ -166,7 +166,7 @@ def encrypt_keyfile_data(keyfile_data: bytes, password: str = None) -> bytes:
         encrypted_data (bytes): The encrypted data.
     """
     password = ask_password_to_encrypt() if password is None else password
-    console = bittensor.__console__;
+    console = bittensor.__console__
     with console.status(":locked_with_key: Encrypting key..."):
         vault = Vault(password)
     return vault.vault.encrypt(keyfile_data)
@@ -198,7 +198,7 @@ def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name
     Returns:
         decrypted_data (bytes): The decrypted data.
     Raises:
-        keyfileerror: Raised if the file is corrupted or if the password is incorrect.
+        KeyFileError: Raised if the file is corrupted or if the password is incorrect.
     """
     if coldkey_name is not None and password is None:
         password = get_coldkey_password_from_environment(coldkey_name)
@@ -213,7 +213,7 @@ def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name
                 try:
                     decrypted_keyfile_data = vault.load(keyfile_data)
                 except AnsibleVaultError:
-                    raise keyfileerror('Invalid password')
+                    raise KeyFileError('Invalid password')
             # Legacy decrypt.
             elif keyfile_data_is_encrypted_legacy(keyfile_data):
                 __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
@@ -223,10 +223,10 @@ def decrypt_keyfile_data(keyfile_data: bytes, password: str = None, coldkey_name
                 decrypted_keyfile_data = cipher_suite.decrypt(keyfile_data)
             # Unknown.
             else:
-                raise keyfileerror("keyfile data: {} is corrupt".format(keyfile_data))
+                raise KeyFileError("keyfile data: {} is corrupt".format(keyfile_data))
 
     except (InvalidSignature, InvalidKey, InvalidToken):
-        raise keyfileerror('Invalid password')
+        raise KeyFileError('Invalid password')
 
     if not isinstance(decrypted_keyfile_data, bytes):
         decrypted_keyfile_data = json.dumps(decrypted_keyfile_data).encode()
@@ -257,7 +257,7 @@ class keyfile:
         Returns:
             keypair (bittensor.Keypair): The keypair stored under the path.
         Raises:
-            keyfileerror: Raised if the file does not exist, is not readable, writable, corrupted, or if the password is incorrect.
+            KeyFileError: Raised if the file does not exist, is not readable, writable, corrupted, or if the password is incorrect.
         """
         return self.get_keypair()
 
@@ -267,7 +267,7 @@ class keyfile:
         Returns:
             keyfile_data (bytes): The keyfile data stored under the path.
         Raises:
-            keyfileerror: Raised if the file does not exist, is not readable, or writable.
+            KeyFileError: Raised if the file does not exist, is not readable, or writable.
         """
         return self._read_keyfile_data_from_file()
 
@@ -277,7 +277,7 @@ class keyfile:
         Returns:
             keyfile_data (bytes): The keyfile data stored under the path.
         Raises:
-            keyfileerror: Raised if the file does not exist, is not readable, or writable.
+            KeyFileError: Raised if the file does not exist, is not readable, or writable.
         """
         return self._read_keyfile_data_from_file()
 
@@ -289,7 +289,7 @@ class keyfile:
             overwrite (bool, optional): If True, forces overwrite of the current file. Default is False.
             password (str, optional): The password used to encrypt the file. If None, asks for user input.
         Raises:
-            keyfileerror: Raised if the file does not exist, is not readable, writable, or if the password is incorrect.
+            KeyFileError: Raised if the file does not exist, is not readable, writable, or if the password is incorrect.
         """
         self.make_dirs()
         keyfile_data = serialized_keypair_to_keyfile_data(keypair)
@@ -304,7 +304,7 @@ class keyfile:
         Returns:
             keypair (bittensor.Keypair): The keypair stored under the path.
         Raises:
-            keyfileerror: Raised if the file does not exist, is not readable, writable, corrupted, or if the password is incorrect.
+            KeyFileError: Raised if the file does not exist, is not readable, writable, corrupted, or if the password is incorrect.
         """
         keyfile_data = self._read_keyfile_data_from_file()
         if keyfile_data_is_encrypted(keyfile_data):
@@ -371,14 +371,14 @@ class keyfile:
         Args:
             password (str, optional): The password for encryption. If None, asks for user input.
         Raises:
-            keyfileerror: Raised if the file does not exist, is not readable, or writable.
+            KeyFileError: Raised if the file does not exist, is not readable, or writable.
         """
         if not self.exists_on_device():
-            raise keyfileerror("Keyfile at: {} does not exist".format(self.path))
+            raise KeyFileError("Keyfile at: {} does not exist".format(self.path))
         if not self.is_readable():
-            raise keyfileerror("Keyfile at: {} is not readable".format(self.path))
+            raise KeyFileError("Keyfile at: {} is not readable".format(self.path))
         if not self.is_writable():
-            raise keyfileerror("Keyfile at: {} is not writable".format(self.path))
+            raise KeyFileError("Keyfile at: {} is not writable".format(self.path))
         keyfile_data = self._read_keyfile_data_from_file()
         if not keyfile_data_is_encrypted(keyfile_data):
             as_keypair = deserialize_keypair_from_keyfile_data(keyfile_data)
@@ -391,14 +391,14 @@ class keyfile:
         Args:
             password (str, optional): The password for decryption. If None, asks for user input.
         Raises:
-            keyfileerror: Raised if the file does not exist, is not readable, writable, corrupted, or if the password is incorrect.
+            KeyFileError: Raised if the file does not exist, is not readable, writable, corrupted, or if the password is incorrect.
         """
         if not self.exists_on_device():
-            raise keyfileerror("Keyfile at: {} does not exist".format(self.path))
+            raise KeyFileError("Keyfile at: {} does not exist".format(self.path))
         if not self.is_readable():
-            raise keyfileerror("Keyfile at: {} is not readable".format(self.path))
+            raise KeyFileError("Keyfile at: {} is not readable".format(self.path))
         if not self.is_writable():
-            raise keyfileerror("Keyfile at: {} is not writable".format(self.path))
+            raise KeyFileError("Keyfile at: {} is not writable".format(self.path))
         keyfile_data = self._read_keyfile_data_from_file()
         if keyfile_data_is_encrypted(keyfile_data):
             keyfile_data = decrypt_keyfile_data(keyfile_data, password, coldkey_name=self.name)
@@ -411,12 +411,12 @@ class keyfile:
         Returns:
             keyfile_data (bytes): The keyfile data stored under the path.
         Raises:
-            keyfileerror: Raised if the file does not exist or is not readable.
+            KeyFileError: Raised if the file does not exist or is not readable.
         """
         if not self.exists_on_device():
-            raise keyfileerror("Keyfile at: {} does not exist".format(self.path))
+            raise KeyFileError("Keyfile at: {} does not exist".format(self.path))
         if not self.is_readable():
-            raise keyfileerror("Keyfile at: {} is not readable".format(self.path))
+            raise KeyFileError("Keyfile at: {} is not readable".format(self.path))
         with open(self.path, 'rb') as file:
             data = file.read()
         return data
@@ -427,12 +427,12 @@ class keyfile:
             keyfile_data (bytes): The byte data to store under the path.
             overwrite (bool, optional): If True, overwrites the data without asking for permission from the user. Default is False.
         Raises:
-            keyfileerror: Raised if the file is not writable or the user responds No to the overwrite prompt.
+            KeyFileError: Raised if the file is not writable or the user responds No to the overwrite prompt.
         """
         # Check overwrite.
         if self.exists_on_device() and not overwrite:
             if not self._may_overwrite():
-                raise keyfileerror("Keyfile at: {} is not writable".format(self.path))
+                raise KeyFileError("Keyfile at: {} is not writable".format(self.path))
         with open(self.path, "wb") as keyfile:
             keyfile.write(keyfile_data)
         # Set file permissions.
@@ -594,8 +594,13 @@ class Mockkeyfile:
 # Tests #
 #########
 
+import os
+import time
+import pytest
+import shutil
 import unittest
-
+import bittensor
+import unittest.mock as mock
 from scalecodec import ScaleBytes
 from substrateinterface import Keypair, KeypairType
 from substrateinterface.constants import DEV_PHRASE
@@ -667,8 +672,8 @@ class KeyPairTestCase(unittest.TestCase):
         """
         mnemonic = Keypair.generate_mnemonic()
         keypair = Keypair.create_from_mnemonic(mnemonic)
-        signature = keypair.sign("Test123")
-        self.assertTrue(keypair.verify("Test123", signature))
+        signature = keypair.sign("Test1231223123123")
+        self.assertTrue(keypair.verify("Test1231223123123", signature))
 
     def test_sign_and_verify_hex_data(self):
         """
@@ -721,7 +726,7 @@ class KeyPairTestCase(unittest.TestCase):
         mnemonic = Keypair.generate_mnemonic()
         keypair = Keypair.create_from_mnemonic(mnemonic)
         signature = "0x4c291bfb0bb9c1274e86d4b666d13b2ac99a0bacc04a4846fb8ea50bda114677f83c1f164af58fc184451e5140cc8160c4de626163b11451d3bbb208a1889f8a"
-        self.assertFalse(keypair.verify("Test123", signature))
+        self.assertFalse(keypair.verify("Test1231223123123", signature))
 
     def test_sign_and_verify_invalid_signature(self):
         """
@@ -730,7 +735,7 @@ class KeyPairTestCase(unittest.TestCase):
         mnemonic = Keypair.generate_mnemonic()
         keypair = Keypair.create_from_mnemonic(mnemonic)
         signature = "Test"
-        self.assertRaises(TypeError, keypair.verify, "Test123", signature)
+        self.assertRaises(TypeError, keypair.verify, "Test1231223123123", signature)
 
     def test_sign_and_verify_invalid_message(self):
         """
@@ -738,7 +743,7 @@ class KeyPairTestCase(unittest.TestCase):
         """
         mnemonic = Keypair.generate_mnemonic()
         keypair = Keypair.create_from_mnemonic(mnemonic)
-        signature = keypair.sign("Test123")
+        signature = keypair.sign("Test1231223123123")
         self.assertFalse(keypair.verify("OtherMessage", signature))
 
     def test_create_ed25519_keypair(self):
@@ -755,8 +760,8 @@ class KeyPairTestCase(unittest.TestCase):
         """
         mnemonic = Keypair.generate_mnemonic()
         keypair = Keypair.create_from_mnemonic(mnemonic, crypto_type=KeypairType.ED25519)
-        signature = keypair.sign("Test123")
-        self.assertTrue(keypair.verify("Test123", signature))
+        signature = keypair.sign("Test1231223123123")
+        self.assertTrue(keypair.verify("Test1231223123123", signature))
 
     def test_sign_and_verify_invalid_signature_ed25519(self):
         """
@@ -765,7 +770,7 @@ class KeyPairTestCase(unittest.TestCase):
         mnemonic = Keypair.generate_mnemonic()
         keypair = Keypair.create_from_mnemonic(mnemonic, crypto_type=KeypairType.ED25519)
         signature = "0x4c291bfb0bb9c1274e86d4b666d13b2ac99a0bacc04a4846fb8ea50bda114677f83c1f164af58fc184451e5140cc8160c4de626163b11451d3bbb208a1889f8a"
-        self.assertFalse(keypair.verify("Test123", signature))
+        self.assertFalse(keypair.verify("Test1231223123123", signature))
 
     def test_unsupport_crypto_type(self):
         """
@@ -846,3 +851,124 @@ class KeyPairTestCase(unittest.TestCase):
         Test hierarchical deterministic key derivation with an unsupported password.
         """
         self.assertRaises(NotImplementedError, Keypair.create_from_uri, DEV_PHRASE + '///test')
+
+
+class TestKeyFiles(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.root_path = f"/tmp/pytest{time.time()}"
+        os.makedirs(self.root_path)
+
+        self.create_keyfile()
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.root_path)
+
+    def create_keyfile(self):
+        keyfile = bittensor.keyfile(path=os.path.join(self.root_path, "keyfile"))
+
+        mnemonic = bittensor.Keypair.generate_mnemonic(12)
+        alice = bittensor.Keypair.create_from_mnemonic(mnemonic)
+        keyfile.set_keypair(alice, encrypt=True, overwrite=True, password='thisisafakepassword')
+
+        bob = bittensor.Keypair.create_from_uri('/Bob')
+        keyfile.set_keypair(bob, encrypt=True, overwrite=True, password='thisisafakepassword')
+
+        return keyfile
+
+    def test_create(self):
+        keyfile = bittensor.keyfile(path=os.path.join(self.root_path, "keyfile"))
+
+        mnemonic = bittensor.Keypair.generate_mnemonic( 12 )
+        alice = bittensor.Keypair.create_from_mnemonic(mnemonic)
+        keyfile.set_keypair(alice, encrypt=True, overwrite=True, password = 'thisisafakepassword')
+        assert keyfile.is_readable()
+        assert keyfile.is_writable()
+        assert keyfile.is_encrypted()
+        keyfile.decrypt( password = 'thisisafakepassword' )
+        assert not keyfile.is_encrypted()
+        keyfile.encrypt( password = 'thisisafakepassword' )
+        assert keyfile.is_encrypted()
+        str(keyfile)
+        keyfile.decrypt( password = 'thisisafakepassword' )
+        assert not keyfile.is_encrypted()
+        str(keyfile)
+
+        assert keyfile.get_keypair( password = 'thisisafakepassword' ).ss58_address == alice.ss58_address
+        assert keyfile.get_keypair( password = 'thisisafakepassword' ).private_key == alice.private_key
+        assert keyfile.get_keypair( password = 'thisisafakepassword' ).public_key == alice.public_key
+
+        bob = bittensor.Keypair.create_from_uri ('/Bob')
+        keyfile.set_keypair(bob, encrypt=True, overwrite=True, password = 'thisisafakepassword')
+        assert keyfile.get_keypair( password = 'thisisafakepassword' ).ss58_address == bob.ss58_address
+        assert keyfile.get_keypair( password = 'thisisafakepassword' ).public_key == bob.public_key
+
+        repr(keyfile)
+
+    def test_legacy_coldkey(self):
+        legacy_filename = os.path.join(self.root_path, "coldlegacy_keyfile")
+        keyfile = bittensor.keyfile (path = legacy_filename)
+        keyfile.make_dirs()
+        keyfile_data = b'0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f'
+        with open(legacy_filename, "wb") as keyfile_obj:
+            keyfile_obj.write( keyfile_data )
+        assert keyfile.keyfile_data == keyfile_data
+        keyfile.encrypt( password = 'this is the fake password' )
+        keyfile.decrypt( password = 'this is the fake password' )
+        keypair_bytes = b'{"accountId": "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f", "publicKey": "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f", "secretPhrase": null, "secretSeed": null, "ss58Address": "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"}'
+        assert keyfile.keyfile_data == keypair_bytes
+        assert keyfile.get_keypair().ss58_address == "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+        assert "0x" + keyfile.get_keypair().public_key.hex() == "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f"
+
+    def test_validate_password(self):
+        from bittensor.keyfile import validate_password
+        assert validate_password(None) == False
+        assert validate_password('passw0rd') == False
+        assert validate_password('123456789') == False
+        with mock.patch('getpass.getpass',return_value='biTTensor'):
+            assert validate_password('biTTensor') == True
+        with mock.patch('getpass.getpass',return_value='biTTenso'):
+            assert validate_password('biTTensor') == False
+
+    def test_decrypt_keyfile_data_legacy(self):
+        import base64
+
+        from cryptography.fernet import Fernet
+        from cryptography.hazmat.backends import default_backend
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+        from bittensor.keyfile import decrypt_keyfile_data
+
+        __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
+
+        def __generate_key(password):
+            kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), salt=__SALT, length=32, iterations=10000000, backend=default_backend())
+            key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+            return key
+
+        pw = 'fakepasssword238947239'
+        data = b'encrypt me!'
+        key = __generate_key(pw)
+        cipher_suite = Fernet(key)
+        encrypted_data = cipher_suite.encrypt(data)
+
+        decrypted_data = decrypt_keyfile_data( encrypted_data, pw)
+        assert decrypted_data == data
+
+    def test_user_interface(self):
+        from bittensor.keyfile import ask_password_to_encrypt
+
+        with mock.patch('getpass.getpass', side_effect = ['pass', 'password', 'asdury3294y', 'asdury3294y']):
+            assert ask_password_to_encrypt() == 'asdury3294y'
+
+    def test_overwriting(self):
+
+        keyfile = bittensor.keyfile (path = os.path.join(self.root_path, "keyfile"))
+        alice = bittensor.Keypair.create_from_uri ('/Alice')
+        keyfile.set_keypair(alice, encrypt=True, overwrite=True, password = 'thisisafakepassword')
+        bob = bittensor.Keypair.create_from_uri ('/Bob')
+
+        with pytest.raises(KeyFileError) as pytest_wrapped_e:
+            with mock.patch('builtins.input', return_value = 'n'):
+                keyfile.set_keypair(bob, encrypt=True, overwrite=False, password = 'thisisafakepassword')

@@ -341,8 +341,6 @@ def test_dendrite_create_wallet():
     d = bt.dendrite( bt.wallet() )
     d = bt.dendrite( bt.wallet().hotkey )
     d = bt.dendrite( bt.wallet().coldkeypub )
-    print( d.__str__() )
-    print( d.__repr__() )
     assert d.__str__() == d.__repr__()
 
 @pytest.mark.asyncio
