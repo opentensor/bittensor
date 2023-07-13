@@ -24,6 +24,7 @@ import urllib
 import json
 import netaddr
 import requests
+import miniupnpc
 
 from loguru import logger
 
