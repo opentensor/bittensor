@@ -19,7 +19,7 @@ from rich.console import Console
 from rich.traceback import install
 
 # Bittensor code and protocol version.
-__version__ = '5.2.0'
+__version__ = '6.0.0'
 version_split = __version__.split(".")
 __version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
 __new_signature_version__ = 360
