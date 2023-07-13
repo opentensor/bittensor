@@ -38,15 +38,10 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
 
         mock_subtensor = MagicMock(
             spec=bittensor.subtensor,
-            # serve=mock_serve,
             serve_axon=mock_serve_axon
         )
 
         mock_add_insecure_port = mock.MagicMock(return_value=None)
-        mock_grpc_server = mock.MagicMock(
-            add_insecure_port=mock_add_insecure_port
-        )
-
         mock_wallet = MagicMock(
             spec=bittensor.Wallet,
             coldkey=MagicMock(),
@@ -62,10 +57,8 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
         mock_config = bittensor.axon.config()
         mock_axon_with_external_ip_set = bittensor.axon(
             wallet=mock_wallet,
-            metagraph=None,
             ip=internal_ip,
             external_ip=external_ip,
-            server=mock_grpc_server,
             config=mock_config
         )
 
@@ -115,18 +108,12 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
         )
 
         mock_add_insecure_port = mock.MagicMock(return_value=None)
-        mock_grpc_server = mock.MagicMock(
-            add_insecure_port=mock_add_insecure_port
-        )
-
         mock_config = bittensor.axon.config()
 
         mock_axon_with_external_port_set = bittensor.axon(
             wallet=mock_wallet,
-            metagraph=None,
             port=internal_port,
             external_port=external_port,
-            server=mock_grpc_server,
             config=mock_config
         )
 
