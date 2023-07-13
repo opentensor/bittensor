@@ -1,6 +1,8 @@
 ansible_vault
 argparse
 backoff
+bittensor-config==0.0.0
+bittensor-wallet==0.0.2
 ddt
 cryptography
 fuzzywuzzy

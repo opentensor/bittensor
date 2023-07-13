@@ -92,10 +92,17 @@ __type_registry__ = {
     },
 }
 
-from substrateinterface import Keypair as Keypair
-from .config import config as config
-from .keyfile import keyfile as keyfile
-from .wallet import wallet as wallet
+from bittensor_config import Config as Config
+from bittensor_config import config as config
+
+from bittensor_wallet import Wallet as Wallet
+from bittensor_wallet import wallet as wallet
+
+from bittensor_wallet import Keyfile as Keyfile
+from bittensor_wallet import keyfile as keyfile
+
+from bittensor_wallet import Keypair as Keypair
+
 from .utils import *
 from .utils.balance import Balance as Balance
 from .chain_data import *
@@ -111,13 +118,3 @@ from .synapse import *
 from .tensor import *
 from .axon import axon as axon
 from .dendrite import dendrite as dendrite
-
-# DEFAULTS
-configs = [
-    axon.config(),
-    subtensor.config(),
-    PriorityThreadPoolExecutor.config(),
-    wallet.config(),
-    logging.config(),
-]
-defaults = config.merge_all( configs )

@@ -75,7 +75,7 @@ class dendrite(torch.nn.Module):
         self.external_ip = bt.utils.networking.get_external_ip()
 
         # If a wallet or keypair is provided, use its hotkey. If not, generate a new one.
-        self.keypair = (wallet.hotkey if isinstance(wallet, bt.wallet) else wallet) or bt.wallet().hotkey
+        self.keypair = (wallet.hotkey if isinstance(wallet, bt.Wallet) else wallet) or bt.wallet().hotkey
 
     async def forward(
             self, 
