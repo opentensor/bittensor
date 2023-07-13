@@ -230,6 +230,81 @@ metagraph.save()
 metagraph.load()
 ```
 
+Synapse: Responsible for defining the protocol definition betwee axon servers and dendrite clients
+```python
+class Topk( bt.Synapse ):
+    topk: int = 2  # Number of "top" elements to select
+    input: bt.Tensor = pydantic.Field(..., allow_mutation=False)  # Ensure that input cannot be set on the server side. 
+    v: bt.Tensor = None
+    i: bt.Tensor = None
+
+def topk( synapse: Topk ) -> Topk:
+    v, i = torch.topk( synapse.input.deserialize(), k = synapse.topk ) 
+    synapse.v = bt.Tensor.serialize( v )
+    synapse.i = bt.Tensor.serialize( i )
+    return synapse
+
+# Attach the forward function to the axon and start.
+axon = bt.axon().attach( topk ).start()
+```
+
+Axon: Serves Synapse protocols with custom blacklist, priority and verify functions.
+
+```python
+import bittensor as bt
+
+class MySyanpse( bt.Synapse ):
+    input: int = 1
+    output: int = None
+
+# Define a custom request forwarding function
+def forward( synapse: MySyanpse ) -> MySyanpse:
+    # Apply custom logic to synapse and return it
+    synapse.output = 2
+    return synapse
+
+# Define a custom request verification function
+def verify_my_synapse( synapse: MySyanpse ):
+    # Apply custom verification logic to synapse
+    # Optionally raise Exception
+
+# Define a custom request blacklist fucntion
+def blacklist_my_synapse( synapse: MySyanpse ) -> bool:
+    # Apply custom blacklist 
+    # return False ( if non blacklisted ) or True ( if blacklisted )
+
+# Define a custom request priority fucntion
+def prioritize_my_synape( synapse: MySyanpse ) -> float:
+    # Apply custom priority
+    return 1.0 
+
+# Initialize Axon object with a custom configuration
+my_axon = bt.axon(config=my_config, wallet=my_wallet, port=9090, ip="192.0.2.0", external_ip="203.0.113.0", external_port=7070)
+
+# Attach the endpoint with the specified verification and forwarding functions  
+my_axon.attach(
+    forward_fn = forward_my_synapse, 
+    verify_fn=verify_my_synapse,
+    blacklist_fn = blacklist_my_synapse,
+    priority_fn = prioritize_my_synape
+).start()
+```     
+
+Dendrite: Inheriting from PyTorch's Module class, represents the abstracted implementation of a network client module designed 
+to send requests to those endpoint to recieve inputs.
+Example:
+```python
+dendrite_obj = dendrite( wallet = bt.wallet() )
+# pings the axon endpoint
+await d( <axon> )
+# ping multiple axon endpoints
+await d( [<axons>] ) 
+# Send custom synapse request to axon.
+await d( bt.axon(), bt.Synapse() ) 
+# Query all metagraph objects.
+await d( meta.axons, bt.Synapse() ) 
+```
+
 ## Release
 The release manager should follow the instructions of the [RELEASE_GUIDELINES.md](./RELEASE_GUIDELINES.md) document.
 

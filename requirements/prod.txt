@@ -1,6 +1,7 @@
 ansible_vault
 argparse
 backoff
+ddt
 cryptography
 fuzzywuzzy
 fastapi==0.99.1
