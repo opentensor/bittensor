@@ -29,7 +29,7 @@ from bittensor.utils.registration import POWSolution
 from hashlib import sha256
 
 from .chain_data import (NeuronInfo, NeuronInfoLite, PrometheusInfo, DelegateInfo,
-                         SubnetInfo, axon_info)
+                         SubnetInfo, AxonInfo)
 from .errors import *
 from .subtensor import subtensor
 

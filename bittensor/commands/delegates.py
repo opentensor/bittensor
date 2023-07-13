@@ -75,7 +75,7 @@ def show_delegates( delegates: List['bittensor.DelegateInfo'], prev_delegates: O
     table.add_column("[overline white]Desc", style='rgb(50,163,219)')
     #table.add_column("[overline white]DESCRIPTION", style='white')
 
-    for i, delegate in enumerate( delegates):
+    for i, delegate in enumerate( delegates ):
         owner_stake = next(
             map(lambda x: x[1], # get stake
                 filter(lambda x: x[0] == delegate.owner_ss58, delegate.nominators) # filter for owner
@@ -337,6 +337,7 @@ class ListDelegatesCommand:
 
         if prev_delegates is None:
             bittensor.__console__.print(":warning: [yellow]Could not fetch delegates history[/yellow]")
+        
         show_delegates( delegates, prev_delegates = prev_delegates, width = cli.config.get('width', None) )
 
     @staticmethod
@@ -453,6 +454,7 @@ class MyDelegatesCommand:
                         my_delegates[ delegate[0].hotkey_ss58 ] = staked
 
             delegates.sort(key=lambda delegate: delegate[0].total_stake, reverse=True)
+            
             registered_delegate_info: Optional[DelegatesDetails] = get_delegates_details(url = bittensor.__delegates_details_url__)
             if registered_delegate_info is None:
                 bittensor.__console__.print( ':warning:[yellow]Could not get delegate info from chain.[/yellow]')

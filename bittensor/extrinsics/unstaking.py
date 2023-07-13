@@ -61,26 +61,19 @@ def __do_remove_stake_single(
     # Decrypt keys,
     wallet.coldkey
 
-    with subtensor.substrate as substrate:
-        call = substrate.compose_call(
-        call_module='SubtensorModule',
-        call_function='remove_stake',
-        call_params={
-            'hotkey': hotkey_ss58,
-            'amount_unstaked': amount.rao
-            }
-        )
-        extrinsic = substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey )
-        response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
-        # We only wait here if we expect finalization.
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True
+    success = subtensor._do_unstake(
+        wallet = wallet,
+        hotkey_ss58 = hotkey_ss58,
+        amount = amount,
+        wait_for_inclusion = wait_for_inclusion,
+        wait_for_finalization = wait_for_finalization,
+    )
 
-        response.process_events()
-        if response.is_success:
-            return True
-        else:
-            raise bittensor.errors.bittensor.errors.StakeError(response.error_message)
+    response.process_events()
+    if response.is_success:
+        return True
+    else:
+        raise bittensor.errors.bittensor.errors.StakeError(response.error_message)
 
 def unstake_extrinsic (
         subtensor: 'bittensor.subtensor',
@@ -155,7 +148,7 @@ def unstake_extrinsic (
                 wait_for_finalization = wait_for_finalization,
             )
 
-        if staking_response: # If we successfully unstaked.
+        if staking_response == True: # If we successfully unstaked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
@@ -276,7 +269,7 @@ def unstake_multiple_extrinsic (
                     wait_for_finalization = wait_for_finalization,
                 )
 
-            if staking_response: # If we successfully unstaked.
+            if staking_response == True: # If we successfully unstaked.
                 # We only wait here if we expect finalization.
 
                 if idx < len(hotkey_ss58s) - 1:

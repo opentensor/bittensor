@@ -84,7 +84,6 @@ __network_explorer_map__ = {
     'finney': "https://explorer.finney.opentensor.ai/#/explorer"
 }
 
-
 # --- Type Registry ---
 __type_registry__ = {
     'types': {

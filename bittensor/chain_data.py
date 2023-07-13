@@ -22,11 +22,11 @@ import bittensor.utils.networking as net
 from enum import Enum
 from bittensor import Balance
 from dataclasses import dataclass
-from typing import List, Tuple, Dict, Optional, Any
+from scalecodec.types import GenericCall
+from typing import List, Tuple, Dict, Optional, Any, TypedDict
 from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
-
 
 custom_rpc_type_registry = {
     "types": {
@@ -168,19 +168,19 @@ class AxonInfo:
         """ Return the whole ip as string """
         return net.ip__str__(self.ip_type, self.ip, self.port)
 
-    def __eq__ (self, other: 'axon_info'):
+    def __eq__ (self, other: 'AxonInfo'):
         if other == None: return False
         if self.version == other.version and self.ip == other.ip and self.port == other.port and self.ip_type == other.ip_type and self.coldkey == other.coldkey and self.hotkey == other.hotkey: return True
         else: return False
 
     def __str__(self):
-        return "axon_info( {}, {}, {}, {} )".format( str(self.ip_str()), str(self.hotkey), str(self.coldkey), self.version)
+        return "AxonInfo( {}, {}, {}, {} )".format( str(self.ip_str()), str(self.hotkey), str(self.coldkey), self.version)
 
     def __repr__(self):
         return self.__str__()
 
     @classmethod
-    def from_neuron_info(cls, neuron_info: dict ) -> 'axon_info':
+    def from_neuron_info(cls, neuron_info: dict ) -> 'AxonInfo':
         """ Converts a dictionary to an axon_info object. """
         return cls(
             version = neuron_info['axon_info']['version'],
@@ -266,7 +266,7 @@ class NeuronInfo:
     weights: List[List[int]]
     bonds: List[List[int]]
     prometheus_info: 'PrometheusInfo'
-    axon_info: 'axon_info'
+    axon_info: 'AxonInfo'
     pruning_score: int
     is_null: bool = False
 
@@ -350,6 +350,14 @@ class NeuronInfo:
             pruning_score = 0,
         )
         return neuron
+    
+    @classmethod
+    def from_weights_bonds_and_neuron_lite( cls, neuron_lite: 'NeuronInfoLite', weights_as_dict: Dict[int, List[Tuple[int, int]]], bonds_as_dict: Dict[int, List[Tuple[int, int]]] ) -> 'NeuronInfo':
+        n_dict = neuron_lite.__dict__
+        n_dict['weights'] = weights_as_dict.get(neuron_lite.uid, [])
+        n_dict['bonds'] = bonds_as_dict.get(neuron_lite.uid, [])
+        
+        return cls( **n_dict )
 
     @staticmethod
     def _neuron_dict_to_namespace(neuron_dict) -> 'NeuronInfo':
@@ -501,28 +509,6 @@ class NeuronInfoLite:
             neuron.emission = neuron.emission / RAOPERTAO
 
             return neuron
-
-@dataclass
-class axon_info:
-    r"""
-    Dataclass for axon info.
-    """
-    block: int
-    version: int
-    ip: str
-    port: int
-    ip_type: int
-    protocol: int
-    placeholder1: int # placeholder for future use
-    placeholder2: int
-
-    @classmethod
-    def fix_decoded_values(cls, axon_info_decoded: Dict) -> 'axon_info':
-        r""" Returns an axon_info object from an axon_info_decoded dictionary.
-        """
-        axon_info_decoded['ip'] = bittensor.utils.networking.int_to_ip(int(axon_info_decoded['ip']))
-
-        return cls(**axon_info_decoded)
 
 @dataclass
 class PrometheusInfo:
@@ -719,3 +705,15 @@ class SubnetInfo:
         r""" Returns a SubnetInfo object from a torch parameter_dict.
         """
         return cls( **dict(parameter_dict) )
+
+
+# Senate / Proposal data
+
+class ProposalVoteData(TypedDict):
+    index: int
+    threshold: int
+    ayes: List[str]
+    nays: List[str]
+    end: int
+
+ProposalCallData = GenericCall

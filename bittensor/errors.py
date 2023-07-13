@@ -50,6 +50,11 @@ class UnstakeError(ChainTransactionError):
     """
     pass
 
+class NominationError(ChainTransactionError):
+    r""" Error raised when a nomination transaction fails.
+    """
+    pass
+
 
 class TransferError(ChainTransactionError):
     r""" Error raised when a transfer transaction fails.

@@ -79,7 +79,7 @@ class dendrite(torch.nn.Module):
 
     async def forward(
             self, 
-            axons: Union[List[Union['bt.axon_info', 'bt.axon']], Union['bt.axon_info', 'bt.axon']],
+            axons: Union[List[Union['bt.AxonInfo', 'bt.axon']], Union['bt.AxonInfo', 'bt.axon']],
             synapse: bt.Synapse = bt.Synapse(), 
             timeout: float = 12,
             deserialize: bool = True,
@@ -88,7 +88,7 @@ class dendrite(torch.nn.Module):
         Makes asynchronous requests to multiple target Axons and returns the server responses.
 
         Args:
-            axons (Union[List[Union['bt.axon_info', 'bt.axon']], Union['bt.axon_info', 'bt.axon']]):
+            axons (Union[List[Union['bt.AxonInfo', 'bt.axon']], Union['bt.AxonInfo', 'bt.axon']]):
                 The list of target Axon information.
             synapse (bt.Synapse, optional): The Synapse object. Defaults to bt.Synapse().
             timeout (float, optional): The request timeout duration in seconds. 

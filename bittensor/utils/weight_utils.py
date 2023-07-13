@@ -182,14 +182,14 @@ def process_weights_for_netuid(
     non_zero_weights = weights[ non_zero_weight_idx ]
     if non_zero_weights.numel() == 0 or metagraph.n < min_allowed_weights:
         bittensor.logging.warning( 'No non-zero weights returning all ones.' )
-        final_weights = torch.ones( ( metagraph.n ) ) / metagraph.n
+        final_weights = torch.ones( ( metagraph.n ) ).to( metagraph.n ) / metagraph.n
         bittensor.logging.debug( 'final_weights', final_weights )
         return torch.tensor( list( range( len( final_weights ) ) ) ), final_weights
 
     elif non_zero_weights.numel() < min_allowed_weights:
         bittensor.logging.warning( 'No non-zero weights less then min allowed weight, returning all ones.' )
         # ( const ): Should this be torch.zeros( ( metagraph.n ) ) to reset everyone to build up weight?
-        weights = torch.ones( ( metagraph.n ) ) * 1e-5 # creating minimum even non-zero weights
+        weights = torch.ones( ( metagraph.n ) ).to( metagraph.n ) * 1e-5 # creating minimum even non-zero weights
         weights[non_zero_weight_idx] += non_zero_weights
         bittensor.logging.debug( 'final_weights', weights )
         normalized_weights = bittensor.utils.weight_utils.normalize_max_weight(
