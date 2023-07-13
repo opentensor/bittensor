@@ -22,6 +22,7 @@ import os
 import sys
 from rich.prompt import Prompt
 from typing import Optional
+from . import defaults
 
 class RegenColdkeyCommand:
     def run ( cli ):
@@ -45,7 +46,7 @@ class RegenColdkeyCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
         if config.mnemonic == None and config.get( 'seed', d=None ) == None and config.get( 'json', d=None ) == None:
             prompt_answer = Prompt.ask("Enter mnemonic, seed, or json file location")
@@ -129,7 +130,7 @@ class RegenColdkeypubCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
         if config.ss58_address == None and config.public_key_hex == None:
             prompt_answer = Prompt.ask("Enter the ss58_address or the public key in hex")
@@ -205,11 +206,11 @@ class RegenHotkeyCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
         if not config.is_set('wallet.hotkey') and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            hotkey = Prompt.ask("Enter hotkey name", default = defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
         if config.mnemonic == None and config.get( 'seed', d=None ) == None and config.get( 'json', d=None ) == None:
             prompt_answer = Prompt.ask("Enter mnemonic, seed, or json file location")
@@ -296,11 +297,11 @@ class NewHotkeyCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
         if not config.is_set('wallet.hotkey') and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            hotkey = Prompt.ask("Enter hotkey name", default = defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
     @staticmethod
@@ -352,7 +353,7 @@ class NewColdkeyCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
     @staticmethod

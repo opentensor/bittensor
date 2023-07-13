@@ -21,6 +21,8 @@ import bittensor
 from rich.prompt import Prompt, Confirm
 from .utils import check_netuid_set, check_for_cuda_reg_config
 
+from . import defaults
+
 console = bittensor.__console__
 
 class RegisterCommand:
@@ -43,10 +45,10 @@ class RegisterCommand:
             TPB = cli.config.subtensor.register.cuda.get('TPB', None),
             update_interval = cli.config.subtensor.register.get('update_interval', None),
             num_processes = cli.config.subtensor.register.get('num_processes', None),
-            cuda = cli.config.subtensor.register.cuda.get('use_cuda', bittensor.defaults.subtensor.register.cuda.use_cuda),
+            cuda = cli.config.subtensor.register.cuda.get('use_cuda', defaults.subtensor.register.cuda.use_cuda),
             dev_id = cli.config.subtensor.register.cuda.get('dev_id', None),
-            output_in_place = cli.config.subtensor.register.get('output_in_place', bittensor.defaults.subtensor.register.output_in_place),
-            log_verbose = cli.config.subtensor.register.get('verbose', bittensor.defaults.subtensor.register.verbose),
+            output_in_place = cli.config.subtensor.register.get('output_in_place', defaults.subtensor.register.output_in_place),
+            log_verbose = cli.config.subtensor.register.get('verbose', defaults.subtensor.register.verbose),
         )
 
 
@@ -75,6 +77,17 @@ class RegisterCommand:
             help='netuid for subnet to serve this neuron on',
             default=argparse.SUPPRESS,
         )
+        register_parser.add_argument('--register.num_processes', '-n', dest='register.num_processes', help="Number of processors to use for POW registration", type=int, default=defaults.register.num_processes)
+        register_parser.add_argument('--register.update_interval', '--register.cuda.update_interval', '--cuda.update_interval', '-u', help="The number of nonces to process before checking for next block during registration", type=int, default=defaults.register.update_interval)
+        register_parser.add_argument('--register.no_output_in_place', '--no_output_in_place', dest="subtensor.register.output_in_place", help="Whether to not ouput the registration statistics in-place. Set flag to disable output in-place.", action='store_false', required=False, default=defaults.register.output_in_place)
+        register_parser.add_argument('--register.verbose', help="Whether to ouput the registration statistics verbosely.", action='store_true', required=False, default=defaults.register.verbose)
+
+        ## Registration args for CUDA registration.
+        register_parser.add_argument( '--register.cuda.use_cuda', '--cuda', '--cuda.use_cuda', default=defaults.register.cuda.use_cuda, help='''Set flag to use CUDA to register.''', action="store_true", required=False )
+        register_parser.add_argument( '--register.cuda.no_cuda', '--no_cuda', '--cuda.no_cuda', dest='register.cuda.use_cuda', default=not defaults.register.cuda.use_cuda, help='''Set flag to not use CUDA for registration''', action="store_false", required=False )
+
+        register_parser.add_argument( '--register.cuda.dev_id', '--cuda.dev_id',  type=int, nargs='+', default=defaults.register.cuda.dev_id, help='''Set the CUDA device id(s). Goes by the order of speed. (i.e. 0 is the fastest).''', required=False )
+        register_parser.add_argument( '--register.cuda.TPB', '--cuda.TPB', type=int, default=defaults.register.cuda.TPB, help='''Set the number of Threads Per Block for CUDA.''', required=False )
 
         bittensor.wallet.add_args( register_parser )
         bittensor.subtensor.add_args( register_parser )
@@ -84,11 +97,11 @@ class RegisterCommand:
         check_netuid_set( config, subtensor = bittensor.subtensor( config = config ) )
 
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
         if not config.is_set('wallet.hotkey') and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            hotkey = Prompt.ask("Enter hotkey name", default = defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
         if not config.no_prompt:
@@ -159,14 +172,14 @@ class RecycleRegisterCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.is_set('subtensor.network') and not config.no_prompt:
-            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = bittensor.defaults.subtensor.network)
+            config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = defaults.subtensor.network)
 
         check_netuid_set( config, subtensor = bittensor.subtensor( config = config ) )
 
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
         if not config.is_set('wallet.hotkey') and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            hotkey = Prompt.ask("Enter hotkey name", default = defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)

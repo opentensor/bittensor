@@ -24,6 +24,7 @@ from rich.table import Table
 from rich.prompt import Prompt
 from typing import List, Optional, Dict
 from .utils import get_hotkey_wallets_for_wallet, get_coldkey_wallets_for_path, get_all_wallets_for_path
+from . import defaults
 console = bittensor.__console__
 
 class OverviewCommand:
@@ -83,7 +84,7 @@ class OverviewCommand:
             neurons[str(netuid)] = []
         netuids_copy = netuids.copy()
 
-        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
+        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.get('network', defaults.subtensor.network))):
             for netuid in tqdm(netuids_copy, desc="Checking each subnet"):
                 all_neurons: List[bittensor.NeuronInfoLite] = subtensor.neurons_lite( netuid = netuid )
                 # Map the hotkeys to uids
@@ -334,7 +335,7 @@ class OverviewCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt and not config.get( 'all', d=None ):
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
         if config.netuid != []:

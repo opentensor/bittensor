@@ -22,6 +22,7 @@ from tqdm import tqdm
 from rich.table import Table
 from rich.prompt import Prompt
 from .utils import check_netuid_set, get_delegates_details, DelegatesDetails
+from . import defaults
 console = bittensor.__console__
 
 import os
@@ -150,7 +151,7 @@ class InspectCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.get( 'all', d=None ) and not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
     @staticmethod

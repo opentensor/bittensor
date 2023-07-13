@@ -22,6 +22,7 @@ from rich.prompt import Confirm, Prompt
 from bittensor.utils.balance import Balance
 from typing import List, Union, Optional, Tuple
 from .utils import get_hotkey_wallets_for_wallet
+from . import defaults
 console = bittensor.__console__
 
 class UnStakeCommand:
@@ -29,11 +30,11 @@ class UnStakeCommand:
     @classmethod   
     def check_config( cls, config: 'bittensor.Config' ):        
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
         if not config.get( 'hotkey_ss58address', d=None ) and not config.is_set('wallet.hotkey') and not config.no_prompt and not config.get('all_hotkeys') and not config.get('hotkeys'):
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            hotkey = Prompt.ask("Enter hotkey name", default = defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
         # Get amount.

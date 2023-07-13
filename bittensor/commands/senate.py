@@ -22,6 +22,7 @@ from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from typing import List, Union, Optional, Dict, Tuple
 from .utils import get_delegates_details, DelegatesDetails
+from . import defaults
 
 console = bittensor.__console__
 
@@ -295,11 +296,11 @@ class SenateRegisterCommand:
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
         if not config.is_set('wallet.hotkey') and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            hotkey = Prompt.ask("Enter hotkey name", default = defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
     @classmethod
@@ -350,11 +351,11 @@ class SenateLeaveCommand:
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
         if not config.is_set('wallet.hotkey') and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            hotkey = Prompt.ask("Enter hotkey name", default = defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
     @classmethod
@@ -419,11 +420,11 @@ class VoteCommand:
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
         if not config.is_set('wallet.hotkey') and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default = bittensor.defaults.wallet.hotkey)
+            hotkey = Prompt.ask("Enter hotkey name", default = defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
         if config.proposal_hash == "" and not config.no_prompt:

@@ -21,6 +21,7 @@ import sys
 import argparse
 import bittensor
 from rich.prompt import Prompt
+from . import defaults
 console = bittensor.__console__
 
 class TransferCommand:
@@ -34,7 +35,7 @@ class TransferCommand:
     @staticmethod
     def check_config( config: 'bittensor.Config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
         # Get destination.
