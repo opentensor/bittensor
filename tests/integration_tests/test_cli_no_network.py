@@ -45,7 +45,7 @@ class TestCLINoNetwork(unittest.TestCase):
             "return_per_1000": bittensor.Balance.from_rao(0),
             "total_daily_return": bittensor.Balance.from_rao(0)
         }
-        cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.MockSubtensor.__new__', new=MagicMock(
+        cls._patched_subtensor = patch('bittensor.mock.MockSubtensor.__new__', new=MagicMock(
             return_value=MagicMock(
                 get_subnets=MagicMock(return_value=[1]), # Mock subnet 1 ONLY.
                 block=10_000,
@@ -355,7 +355,7 @@ class TestEmptyArgs(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.MockSubtensor.__new__', new=MagicMock(
+        cls._patched_subtensor = patch('bittensor.mock.subtensor_mock.MockSubtensor.__new__', new=MagicMock(
         ))
         cls._patched_subtensor.start()
 
@@ -400,7 +400,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             "return_per_1000": bittensor.Balance.from_rao(0), 
             "total_daily_return": bittensor.Balance.from_rao(0)
         }
-        cls._patched_subtensor = patch('bittensor._subtensor.subtensor_mock.MockSubtensor.__new__', new=MagicMock(
+        cls._patched_subtensor = patch('bittensor.mock.subtensor_mock.MockSubtensor.__new__', new=MagicMock(
             return_value=MagicMock(
                 get_subnets=MagicMock(return_value=[1]), # Mock subnet 1 ONLY.
                 block=10_000,
