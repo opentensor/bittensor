@@ -741,9 +741,16 @@ class AxonMiddleware(BaseHTTPMiddleware):
 #########
 # Tests #
 #########
+import asyncio
 import pytest
+import unittest
 from typing import Type, Any
+from unittest import IsolatedAsyncioTestCase
 from inspect import Parameter, Signature
+from starlette.testclient import TestClient
+from starlette.requests import Request
+from unittest.mock import MagicMock
+
 
 def test_attach():
     # Create a mock AxonServer instance
@@ -820,3 +827,48 @@ def test_attach():
     # Test attaching with incorrect class inheritance
     with pytest.raises(AssertionError):
         server.attach( wrong_forward_fn )
+
+class TestAxonMiddleware(IsolatedAsyncioTestCase):
+
+    def setUp(self):
+        # Create a mock app
+        self.mock_app = MagicMock()
+        # Create a mock axon
+        self.mock_axon = MagicMock()
+        self.mock_axon.uuid = "1234"
+        self.mock_axon.forward_class_types = {
+            'request_name': bittensor.Synapse,
+        }
+        self.mock_axon.wallet.hotkey.sign.return_value = bytes.fromhex('aabbccdd')
+        # Create an instance of AxonMiddleware
+        self.axon_middleware = AxonMiddleware(self.mock_app, self.mock_axon)
+        return self.axon_middleware
+
+    @pytest.mark.asyncio
+    async def test_preprocess(self):
+        # Mock the request
+        request = MagicMock(spec=Request)
+        request.url.path = '/request_name'
+        request.client.port = '5000'
+        request.client.host = '192.168.0.1'
+        request.headers = {}
+
+        synapse = await self.axon_middleware.preprocess(request)
+
+        # Check if the preprocess function fills the axon information into the synapse
+        assert synapse.axon.version == str(bittensor.__version_as_int__)
+        assert synapse.axon.uuid == "1234"
+        assert synapse.axon.nonce is not None
+        assert synapse.axon.status_message == "Success"
+        assert synapse.axon.status_code == "100"
+        assert synapse.axon.signature == "0xaabbccdd"
+
+        # Check if the preprocess function fills the dendrite information into the synapse
+        assert synapse.dendrite.port == '5000'
+        assert synapse.dendrite.ip == '192.168.0.1'
+
+        # Check if the preprocess function sets the request name correctly
+        assert synapse.name == 'request_name'
+
+if __name__ == '__main__':
+    unittest.main()
