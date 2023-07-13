@@ -28,7 +28,7 @@ import threading
 import bittensor
 import contextlib
 
-from inspect import signature
+from inspect import signature, Signature, Parameter
 from fastapi.responses import JSONResponse
 from substrateinterface import Keypair
 from fastapi import FastAPI, APIRouter, Request
@@ -191,25 +191,41 @@ class axon:
         Note: 'forward_fn', 'blacklist_fn', 'priority_fn', and 'verify_fn' should be designed to receive the same parameters.
 
         Raises:
-            AssertionError: If 'forward_fn' does not have exactly one argument.
+            AssertionError: If 'forward_fn' does not have the signature: forward( synapse: YourSynapse ) -> synapse:
+            AssertionError: If 'blacklist_fn' does not have the signature: blacklist( synapse: YourSynapse ) -> bool
+            AssertionError: If 'priority_fn' does not have the signature: priority( synapse: YourSynapse ) -> float
+            AssertionError: If 'verify_fn' does not have the signature: verify( synapse: YourSynapse ) -> None
 
         Returns:
             self: Returns the instance of the AxonServer class for potential method chaining.
         """
 
         # Assert 'forward_fn' has exactly one argument
-        sig = signature(forward_fn)
-        assert len(list(sig.parameters)) == 1, "The passed function must have exactly one argument"
+        forward_sig = signature(forward_fn)
+        assert len(list(forward_sig.parameters)) == 1, "The passed function must have exactly one argument"
         
         # Obtain the class name of the first argument of 'forward_fn'
-        request_name = sig.parameters[list(sig.parameters)[0]].annotation.__name__
+        request_name = forward_sig.parameters[list(forward_sig.parameters)[0]].annotation.__name__
         
         # Add the endpoint to the router, making it available on both GET and POST methods
         self.router.add_api_route(f"/{request_name}", forward_fn, methods=["GET", "POST"])
         self.app.include_router(self.router)
 
+        # Expected signatures for 'blacklist_fn', 'priority_fn' and 'verify_fn'
+        blacklist_sig = Signature([Parameter('synapse', Parameter.POSITIONAL_OR_KEYWORD, annotation=forward_sig.parameters[list(forward_sig.parameters)[0]].annotation)])
+        priority_sig = Signature([Parameter('synapse', Parameter.POSITIONAL_OR_KEYWORD, annotation=forward_sig.parameters[list(forward_sig.parameters)[0]].annotation)])
+        verify_sig = Signature([Parameter('synapse', Parameter.POSITIONAL_OR_KEYWORD, annotation=forward_sig.parameters[list(forward_sig.parameters)[0]].annotation)])
+
+        # Check the signature of blacklist_fn, priority_fn and verify_fn if they are provided
+        if blacklist_fn:
+            assert signature(blacklist_fn) == blacklist_sig, "The blacklist_fn function must have the signature: blacklist( synapse: {} ) -> bool".format(request_name)
+        if priority_fn:
+            assert signature(priority_fn) == priority_sig, "The priority_fn function must have the signature: priority( synapse: {} ) -> float".format(request_name)
+        if verify_fn:
+            assert signature(verify_fn) == verify_sig, "The verify_fn function must have the signature: verify( synapse: {} ) -> None".format(request_name)
+
         # Store functions in appropriate attribute dictionaries
-        self.forward_class_types[request_name] = sig.parameters[list(sig.parameters)[0]].annotation
+        self.forward_class_types[request_name] = forward_sig.parameters[list(forward_sig.parameters)[0]].annotation
         self.blacklist_fns[request_name] = blacklist_fn
         self.priority_fns[request_name] = priority_fn
         self.verify_fns[request_name] = verify_fn or self.default_verify # Use 'default_verify' if 'verify_fn' is None
@@ -342,7 +358,7 @@ class axon:
         This magic method is called when the Axon object is about to be destroyed.
         It ensures that the Axon server shuts down properly.
         """
-        self.shutdown()
+        self.stop()
 
     def start( self ) -> "bittensor.axon":
         """

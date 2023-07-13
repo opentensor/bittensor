@@ -589,6 +589,9 @@ class metagraph(torch.nn.Module):
         return self
 
 
+#########
+# Tests #
+#########
 import unittest
 from unittest.mock import Mock
 

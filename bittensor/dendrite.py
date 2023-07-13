@@ -294,3 +294,91 @@ class dendrite(torch.nn.Module):
             str: The string representation of the Dendrite object in the format "dendrite(<user_wallet_address>)".
         """
         return self.__str__()
+
+
+#########
+# Tests #
+#########
+import pytest
+import typing
+import asyncio
+import bittensor as bt
+from unittest.mock import MagicMock,Mock
+
+@pytest.fixture
+def setup_dendrite():
+    user_wallet = bt.wallet()  # assuming bt.wallet() returns a wallet object
+    dendrite_obj = bt.dendrite(user_wallet)
+    return dendrite_obj
+
+def test_init(setup_dendrite):
+    dendrite_obj = setup_dendrite
+    assert isinstance(dendrite_obj, bt.dendrite)
+    assert dendrite_obj.keypair == setup_dendrite.keypair
+
+def test_str(setup_dendrite):
+    dendrite_obj = setup_dendrite
+    expected_string = "dendrite({})".format(setup_dendrite.keypair.ss58_address)
+    assert str(dendrite_obj) == expected_string
+
+def test_repr(setup_dendrite):
+    dendrite_obj = setup_dendrite
+    expected_string = "dendrite({})".format(setup_dendrite.keypair.ss58_address)
+    assert repr(dendrite_obj) == expected_string
+
+class AsyncMock(Mock):
+    def __call__(self, *args, **kwargs):
+        sup = super(AsyncMock, self)
+        async def coro():
+            return sup.__call__(*args, **kwargs)
+        return coro()
+
+    def __await__(self):
+        return self().__await__()
+
+def test_dendrite_create_wallet():
+    d = bt.dendrite( )
+    d = bt.dendrite( bt.wallet() )
+    d = bt.dendrite( bt.wallet().hotkey )
+    d = bt.dendrite( bt.wallet().coldkeypub )
+    print( d.__str__() )
+    print( d.__repr__() )
+    assert d.__str__() == d.__repr__()
+
+@pytest.mark.asyncio
+async def test_forward_many():
+    n = 10
+    d = bt.dendrite( )
+    d.call = AsyncMock()
+    axons = [ MagicMock() for _ in range(n) ]
+
+    resps = await d( axons )
+    assert len(resps) == n
+    resp = await d( axons[0] )
+    assert len([resp]) == 1
+
+    resps = await d.forward( axons )
+    assert len(resps) == n
+    resp = await d.forward( axons[0] )
+    assert len([resp]) == 1
+
+def test_pre_process_synapse():
+    d = bt.dendrite( )
+    s = bt.Synapse()
+    synapse = d.preprocess_synapse_for_request( 
+        target_axon_info = bt.axon().info(),
+        synapse = s,
+        timeout = 12
+    )
+    assert synapse.timeout == 12
+    assert synapse.dendrite
+    assert synapse.axon
+    assert synapse.dendrite.ip
+    assert synapse.dendrite.version
+    assert synapse.dendrite.nonce
+    assert synapse.dendrite.uuid
+    assert synapse.dendrite.hotkey
+    assert synapse.axon.ip
+    assert synapse.axon.port
+    assert synapse.axon.hotkey
+    assert synapse.dendrite.signature
