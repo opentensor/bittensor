@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from typing import Union
-from bittensor import Balance, NeuronInfo, axon_info, PrometheusInfo, __ss58_format__
+from bittensor import Balance, NeuronInfo, AxonInfo, PrometheusInfo, __ss58_format__
 from rich.console import Console
 from rich.text import Text
 
@@ -60,7 +60,7 @@ def get_mock_neuron(**kwargs) -> NeuronInfo:
 
     mock_neuron_d = dict({
                 "netuid": -1, # mock netuid
-                "axon_info": axon_info(
+                "axon_info": AxonInfo(
                     block = 0,
                     version = 1,
                     ip = 0,
