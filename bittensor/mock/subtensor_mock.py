@@ -24,14 +24,15 @@ from abc import ABC, abstractclassmethod
 from collections.abc import Mapping
 
 import bittensor
+from bittensor import Balance
 from bittensor.utils import RAOPERTAO, U16_NORMALIZED_FLOAT
 from bittensor.utils.registration import POWSolution
 from hashlib import sha256
 
-from .chain_data import (NeuronInfo, NeuronInfoLite, PrometheusInfo, DelegateInfo,
+from ...bittensor.chain_data import (NeuronInfo, NeuronInfoLite, PrometheusInfo, DelegateInfo,
                          SubnetInfo, AxonInfo)
-from .errors import *
-from .subtensor import subtensor
+from ...bittensor.errors import *
+from ...bittensor.subtensor import subtensor
 
 from typing import TypedDict
 
@@ -446,13 +447,13 @@ class MockSubtensor(subtensor):
         
     @staticmethod
     def _convert_to_balance(
-        balance: Union['bittensor.Balance', float, int]
-    ) -> 'bittensor.Balance':
+        balance: Union['Balance', float, int]
+    ) -> 'Balance':
         if isinstance(balance, float):
-            balance = bittensor.Balance.from_tao(balance)
+            balance = Balance.from_tao(balance)
 
         if isinstance(balance, int):
-            balance = bittensor.Balance.from_rao(balance)
+            balance = Balance.from_rao(balance)
 
         return balance
     
@@ -462,8 +463,8 @@ class MockSubtensor(subtensor):
         netuid: int,
         hotkey: str, 
         coldkey: str,
-        stake: Union['bittensor.Balance', float, int] = bittensor.Balance(0),
-        balance: Union['bittensor.Balance', float, int] = bittensor.Balance(0),
+        stake: Union['Balance', float, int] = Balance(0),
+        balance: Union['Balance', float, int] = Balance(0),
     ) -> int:
         """
         Force register a neuron on the mock chain, returning the UID.
@@ -493,7 +494,7 @@ class MockSubtensor(subtensor):
     def force_set_balance(
         self,
         ss58_address: str,
-        balance: Union['bittensor.Balance', float, int] = bittensor.Balance(0),
+        balance: Union['Balance', float, int] = Balance(0),
     ) -> Tuple[bool, Optional[str]]:
         """
         Returns:
@@ -660,7 +661,7 @@ class MockSubtensor(subtensor):
 
     # ==== Balance RPC methods ====
 
-    def get_balance(self, address: str, block: int = None) -> 'bittensor.Balance':
+    def get_balance(self, address: str, block: int = None) -> 'Balance':
         if block:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
@@ -673,20 +674,20 @@ class MockSubtensor(subtensor):
             if address in state:
                 state = state[address]
             else:
-                return bittensor.Balance(0)
+                return Balance(0)
                     
             # Use block
             balance_state = state['data']['free']
             state_at_block = self._get_most_recent_storage(balance_state, block) # Can be None
             if state_at_block is not None:
                 bal_as_int = state_at_block
-                return bittensor.Balance.from_rao(bal_as_int)
+                return Balance.from_rao(bal_as_int)
             else:
-                return bittensor.Balance(0)
+                return Balance(0)
         else:
-            return bittensor.Balance(0)
+            return Balance(0)
 
-    def get_balances(self, block: int = None) -> Dict[str, 'bittensor.Balance']:
+    def get_balances(self, block: int = None) -> Dict[str, 'Balance']:
         balances = {}
         for address in self.chain_state['System']['Account']:
             balances[address] = self.get_balance(address, block)
@@ -811,7 +812,7 @@ class MockSubtensor(subtensor):
         weights = self._get_most_recent_storage(subtensor_state['Weights'][netuid][uid], block)
         bonds = self._get_most_recent_storage(subtensor_state['Bonds'][netuid][uid], block)
 
-        stake_dict = {coldkey: bittensor.Balance.from_rao(self._get_most_recent_storage(
+        stake_dict = {coldkey: Balance.from_rao(self._get_most_recent_storage(
             subtensor_state['Stake'][hotkey][coldkey], block
         )) for coldkey in subtensor_state['Stake'][hotkey]}
 
@@ -907,7 +908,7 @@ class MockSubtensor(subtensor):
         self,
         wallet: 'bittensor.Wallet',
         delegate_ss58: str,
-        amount: 'bittensor.Balance',
+        amount: 'Balance',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -933,7 +934,7 @@ class MockSubtensor(subtensor):
         self,
         wallet: 'bittensor.Wallet',
         delegate_ss58: str,
-        amount: 'bittensor.Balance',
+        amount: 'Balance',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -977,15 +978,15 @@ class MockSubtensor(subtensor):
         self,
         wallet: 'bittensor.Wallet',
         dest: str,
-        value: Union['bittensor.Balance', float, int],
-    ) -> 'bittensor.Balance':    
-        return bittensor.Balance( 700 )
+        value: Union['Balance', float, int],
+    ) -> 'Balance':    
+        return Balance( 700 )
     
     def _do_transfer(
         self,
         wallet: 'bittensor.Wallet',
         dest: str,
-        transfer_balance: 'bittensor.Balance',
+        transfer_balance: 'Balance',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> Tuple[bool, Optional[str], Optional[str]]:
@@ -1068,7 +1069,7 @@ class MockSubtensor(subtensor):
         self,
         wallet: 'bittensor.Wallet',
         hotkey_ss58: str,
-        amount: 'bittensor.Balance',
+        amount: 'Balance',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -1080,7 +1081,7 @@ class MockSubtensor(subtensor):
             coldkey_ss58=wallet.coldkeypub.ss58_address,
         )
         if curr_stake is None:
-            curr_stake = bittensor.Balance(0)
+            curr_stake = Balance(0)
         existential_deposit = self.get_existential_deposit( )
 
         if bal < amount + existential_deposit:
@@ -1130,7 +1131,7 @@ class MockSubtensor(subtensor):
         self,
         wallet: 'bittensor.Wallet',
         hotkey_ss58: str,
-        amount: 'bittensor.Balance',
+        amount: 'Balance',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -1142,7 +1143,7 @@ class MockSubtensor(subtensor):
             coldkey_ss58=wallet.coldkeypub.ss58_address,
         )
         if curr_stake is None:
-            curr_stake = bittensor.Balance(0)
+            curr_stake = Balance(0)
 
         if curr_stake < amount:
             raise Exception("Insufficient funds")
@@ -1223,7 +1224,7 @@ class MockSubtensor(subtensor):
             hotkey_ss58=hotkey_ss58,
             total_stake=self.get_total_stake_for_hotkey(
                 ss58_address=hotkey_ss58,
-            ) or bittensor.Balance(0),
+            ) or Balance(0),
             nominators=nom_result,
             owner_ss58=self.get_hotkey_owner(
                 hotkey_ss58=hotkey_ss58,
@@ -1232,8 +1233,8 @@ class MockSubtensor(subtensor):
             take=0.18,
             validator_permits=[subnet for subnet, uid in registered_subnets if self.neuron_has_validator_permit( uid = uid, netuid = subnet, block=block )],
             registrations=[subnet for subnet, _ in registered_subnets],
-            return_per_1000=bittensor.Balance.from_tao(1234567), # Doesn't matter for mock?
-            total_daily_return=bittensor.Balance.from_tao(1234567), # Doesn't matter for mock?
+            return_per_1000=Balance.from_tao(1234567), # Doesn't matter for mock?
+            total_daily_return=Balance.from_tao(1234567), # Doesn't matter for mock?
         )
 
         return info
@@ -1252,7 +1253,7 @@ class MockSubtensor(subtensor):
 
         return delegates_info
 
-    def get_delegated( self, coldkey_ss58: str, block: Optional[int] = None ) -> List[Tuple['bittensor.DelegateInfo', 'bittensor.Balance']]:
+    def get_delegated( self, coldkey_ss58: str, block: Optional[int] = None ) -> List[Tuple['bittensor.DelegateInfo', 'Balance']]:
         """ Returns the list of delegates that a given coldkey is staked to.
         """
         delegates = self.get_delegates(block=block)
