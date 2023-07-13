@@ -417,7 +417,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
     def test_inspect_prompt_wallet_name(self):
         # Patch command to exit early
-        with patch('bittensor._cli.commands.inspect.InspectCommand.run', return_value=None):
+        with patch('bittensor.commands.inspect.InspectCommand.run', return_value=None):
 
             # Test prompt happens when no wallet name is passed
             with patch('rich.prompt.Prompt.ask') as mock_ask_prompt:
@@ -454,7 +454,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
     def test_overview_prompt_wallet_name(self):
         # Patch command to exit early
-        with patch('bittensor._cli.commands.overview.OverviewCommand.run', return_value=None):
+        with patch('bittensor.commands.overview.OverviewCommand.run', return_value=None):
 
             # Test prompt happens when no wallet name is passed
             with patch('rich.prompt.Prompt.ask') as mock_ask_prompt:
@@ -498,7 +498,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             '--all',
         ]
         # Patch command to exit early
-        with patch('bittensor._cli.commands.stake.StakeCommand.run', return_value=None):
+        with patch('bittensor.commands.stake.StakeCommand.run', return_value=None):
 
             # Test prompt happens when 
             # - wallet name IS NOT passed, AND
@@ -611,7 +611,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             '--all',
         ]
         # Patch command to exit early
-        with patch('bittensor._cli.commands.unstake.UnStakeCommand.run', return_value=None):
+        with patch('bittensor.commands.unstake.UnStakeCommand.run', return_value=None):
 
             # Test prompt happens when 
             # - wallet name IS NOT passed, AND
@@ -724,7 +724,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             '--delegate_ss58key', _get_mock_coldkey(0)
         ]
         # Patch command to exit early
-        with patch('bittensor._cli.commands.delegates.DelegateStakeCommand.run', return_value=None):
+        with patch('bittensor.commands.delegates.DelegateStakeCommand.run', return_value=None):
 
             # Test prompt happens when 
             # - wallet name IS NOT passed
@@ -765,7 +765,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             '--delegate_ss58key', _get_mock_coldkey(0)
         ]
         # Patch command to exit early
-        with patch('bittensor._cli.commands.delegates.DelegateUnstakeCommand.run', return_value=None):
+        with patch('bittensor.commands.delegates.DelegateUnstakeCommand.run', return_value=None):
 
             # Test prompt happens when 
             # - wallet name IS NOT passed
@@ -810,7 +810,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         ]
 
         delegate_ss58 = _get_mock_coldkey(0)
-        with patch('bittensor._cli.commands.delegates.show_delegates'):
+        with patch('bittensor.commands.delegates.show_delegates'):
             with patch('bittensor.subtensor.get_delegates', return_value=[
                 bittensor.DelegateInfo(
                     hotkey_ss58=delegate_ss58, # return delegate with mock coldkey
@@ -825,7 +825,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 )
             ]):
                 # Patch command to exit early
-                with patch('bittensor._cli.commands.delegates.DelegateStakeCommand.run', return_value=None):
+                with patch('bittensor.commands.delegates.DelegateStakeCommand.run', return_value=None):
 
                     # Test prompt happens when 
                     # - delegate hotkey IS NOT passed
@@ -870,7 +870,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         ]
 
         delegate_ss58 = _get_mock_coldkey(0)
-        with patch('bittensor._cli.commands.delegates.show_delegates'):
+        with patch('bittensor.commands.delegates.show_delegates'):
             with patch('bittensor.subtensor.get_delegates', return_value=[
                 bittensor.DelegateInfo(
                     hotkey_ss58=delegate_ss58, # return delegate with mock coldkey
@@ -885,7 +885,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 )
             ]):
                 # Patch command to exit early
-                with patch('bittensor._cli.commands.delegates.DelegateUnstakeCommand.run', return_value=None):
+                with patch('bittensor.commands.delegates.DelegateUnstakeCommand.run', return_value=None):
 
                     # Test prompt happens when 
                     # - delegate hotkey IS NOT passed
