@@ -74,7 +74,62 @@ class FastAPIThreadedServer(uvicorn.Server):
             self.should_exit = True
 
 class axon:
-    """ Axon object for serving synapse . """
+    """
+        The `axon` class is an object that forms the core part of bittensor's serving synapses. 
+        The class relies heavily on an underlying FastAPI router, which is utilized to create endpoints for different message types. 
+        Methods in this class are equipped to deal with incoming requests from other scenarios in the network and serve as the server face for a neuron. 
+
+        It accepts multiple arguments, like wallet, configuration parameters, ip address, server binding port, external ip, external port and max workers. 
+        Key methods involve managing and operating the FastAPI application router, including the attachment and operation of endpoints.
+        The `axon` class offers flexibility to specify custom rules to forward, blacklist, prioritize and verify incoming requests against custom functions.
+
+        The class also encapsulates methods to add command-line arguments for user-friendly interaction with the program, and supports the handling of these arguments, 
+        to define the behavior of the axon object.
+
+        Internal mechanisms manage a thread pool to support concurrent requests handling, using defined priority levels.
+
+        ### Example usage:
+
+        ```python
+        import bittensor as bt
+
+        class MySyanpse( bt.Synapse ):
+            input: int = 1
+            output: int = None
+
+        # Define a custom request forwarding function
+        def forward( synapse: MySyanpse ) -> MySyanpse:
+            # Apply custom logic to synapse and return it
+            synapse.output = 2
+            return synapse
+
+        # Define a custom request verification function
+        def verify_my_synapse( synapse: MySyanpse ):
+            # Apply custom verification logic to synapse
+            # Optionally raise Exception
+
+        # Define a custom request blacklist fucntion
+        def blacklist_my_synapse( synapse: MySyanpse ) -> bool:
+            # Apply custom blacklist 
+            # return False ( if non blacklisted ) or True ( if blacklisted )
+
+        # Define a custom request priority fucntion
+        def prioritize_my_synape( synapse: MySyanpse ) -> float:
+            # Apply custom priority
+            return 1.0 
+
+        # Initialize Axon object with a custom configuration
+        my_axon = bt.axon(config=my_config, wallet=my_wallet, port=9090, ip="192.0.2.0", external_ip="203.0.113.0", external_port=7070)
+
+        # Attach the endpoint with the specified verification and forwarding functions  
+        my_axon.attach(
+            forward_fn = forward_my_synapse, 
+            verify_fn=verify_my_synapse,
+            blacklist_fn = blacklist_my_synapse,
+            priority_fn = prioritize_my_synape
+        ).start()
+        ```
+    """     
 
     def info(self) -> 'bittensor.AxonInfo':
         """Returns the axon info object associate with this axon.""" 
