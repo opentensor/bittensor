@@ -252,73 +252,205 @@ class Synapse( pydantic.BaseModel ):
     def failed_verification(self) -> bool:
         return self.dendrite.status_code == 401
 
-    def to_headers(self) -> dict:
+    def to_headers( self ) -> dict:
+        """
+        This function constructs a dictionary of headers from the properties of the instance.
+        
+        Headers for 'name' and 'timeout' are directly taken from the instance.
+        Further headers are constructed from the properties 'axon' and 'dendrite'.
+        
+        If the object is a tensor, its shape and data type are added to the headers.
+        For non-optional objects, these are serialized and encoded before adding to the headers.
+        
+        Finally, the function adds the sizes of the headers and the total size to the headers.
+
+        Returns:
+            dict: A dictionary of headers constructed from the properties of the instance.
+        """
+        # Initializing headers with 'name' and 'timeout'
         headers = {
             'name': self.name,
             'timeout': str(self.timeout),
         }
-        # Fill axon and dendrite headers.
-        headers.update( { str('bt_header_axon_'+k):str(v) for k, v in self.axon.dict().items() if v != None} )
-        headers.update( { str('bt_header_dendrite_'+k):str(v) for k, v in self.dendrite.dict().items() if v != None})
 
-        # Iterate over fields, if an object is a tensor
-        # add the tensor shape to the headers. 
-        metadata = typing.get_type_hints(self)
-        fields = self.__dict__
-        for field, value in fields.items():
-            if field in headers: continue
-            if not value: continue 
-            if isinstance( value, bittensor.Tensor ):
-                headers[ 'bt_header_tensor_' + str(field) ] = str(value.shape) + '-' + str(value.dtype)
-            else:
-                # If the object is not optional we must add it to the headers.
-                if field in metadata:
-                    if 'typing.Optional' not in str(metadata[field]):
-                        headers[ 'bt_header_input_obj_' + str(field) ] = base64.b64encode( pickle.dumps(value) ).decode('utf-8')
+        # Adding headers for 'axon' and 'dendrite' if they are not None
+        headers.update({f'bt_header_axon_{k}': str(v) for k, v in self.axon.dict().items() if v is not None})
+        headers.update({f'bt_header_dendrite_{k}': str(v) for k, v in self.dendrite.dict().items() if v is not None})
 
-        headers['header_size'] = str( sys.getsizeof( headers ) )
-        headers['total_size'] = str( self.get_total_size() )
+        # Getting the type hints for the properties of the instance
+        property_type_hints = typing.get_type_hints(self)
+
+        # Getting the fields of the instance
+        instance_fields = self.__dict__
+
+        # Iterating over the fields of the instance
+        for field, value in instance_fields.items():
+            # Skipping the field if it's already in the headers or its value is None
+            if field in headers or value is None: 
+                continue 
+
+            # Adding the tensor shape and data type to the headers if the object is a tensor
+            if isinstance(value, bittensor.Tensor):
+                headers[f'bt_header_tensor_{field}'] = f'{value.shape}-{value.dtype}'
+
+            # If the object is not optional, serializing it, encoding it, and adding it to the headers
+            elif field in property_type_hints and 'typing.Optional' not in str(property_type_hints[field]):
+                serialized_value = pickle.dumps(value)
+                encoded_value = base64.b64encode(serialized_value).decode('utf-8')
+                headers[f'bt_header_input_obj_{field}'] = encoded_value
+
+        # Adding the size of the headers and the total size to the headers
+        headers['header_size'] = str(sys.getsizeof(headers))
+        headers['total_size'] = str(self.get_total_size())
+
         return headers
     
     @classmethod
-    def _headers_to_inputs_dict( cls, headers: dict ) -> 'Synapse':
-        inputs_dict = {}
-        inputs_dict['axon'] = {}
-        inputs_dict['dendrite'] = {}
-        for k, v in headers.items():
-            if 'bt_header_axon_' in k:
+    def parse_headers_to_inputs(cls, headers: dict) -> dict:
+        """
+        This class method parses a given headers dictionary to construct an inputs dictionary.
+        Different types of fields ('axon', 'dendrite', 'tensor', and 'input_obj') are identified 
+        by their prefixes, extracted, and transformed appropriately.
+        Remaining fields are directly assigned.
+
+        Args:
+            headers (dict): The dictionary of headers to parse
+
+        Returns:
+            dict: The parsed inputs dictionary constructed from the headers
+        """
+
+        # Initialize the input dictionary with empty sub-dictionaries for 'axon' and 'dendrite'
+        inputs_dict = {'axon': {}, 'dendrite': {}}
+
+        # Iterate over each item in the headers
+        for key, value in headers.items():
+            # Handle 'axon' headers
+            if 'bt_header_axon_' in key:
                 try:
-                    k = k.split('bt_header_axon_')[1]
-                    inputs_dict['axon'][k] = v
-                except: continue
-            elif 'bt_header_dendrite_' in k:
+                    new_key = key.split('bt_header_axon_')[1]
+                    inputs_dict['axon'][new_key] = value
+                except Exception as e:
+                    bittensor.logging.error(f"Error while parsing 'axon' header {key}: {e}")
+                    continue
+            # Handle 'dendrite' headers
+            elif 'bt_header_dendrite_' in key:
                 try:
-                    k = k.split('bt_header_dendrite_')[1]
-                    inputs_dict['dendrite'][k] = v
-                except: continue
-            elif 'bt_header_tensor_' in k:
+                    new_key = key.split('bt_header_dendrite_')[1]
+                    inputs_dict['dendrite'][new_key] = value
+                except Exception as e:
+                    bittensor.logging.error(f"Error while parsing 'dendrite' header {key}: {e}")
+                    continue
+            # Handle 'tensor' headers
+            elif 'bt_header_tensor_' in key:
                 try:
-                    k = k.split('bt_header_tensor_')[1]
-                    shape = v.split('-')[0]
-                    dtype = v.split('-')[1]
-                    inputs_dict[k] = bittensor.Tensor( shape = shape, dtype = dtype ) 
-                except: continue
-            elif 'bt_header_input_obj' in k:
+                    new_key = key.split('bt_header_tensor_')[1]
+                    shape, dtype = value.split('-')
+                    # TODO: Verify if the shape and dtype values need to be converted before being used
+                    inputs_dict[new_key] = bittensor.Tensor(shape=shape, dtype=dtype)
+                except Exception as e:
+                    bittensor.logging.error(f"Error while parsing 'tensor' header {key}: {e}")
+                    continue
+            # Handle 'input_obj' headers
+            elif 'bt_header_input_obj' in key:
                 try:
-                    k = k.split('bt_header_input_obj_')[1]
-                    if k in inputs_dict: continue
-                    inputs_dict[k] = pickle.loads( base64.b64decode( v.encode('utf-8')  ) )
-                except: continue
+                    new_key = key.split('bt_header_input_obj_')[1]
+                    # Skip if the key already exists in the dictionary
+                    if new_key in inputs_dict:
+                        continue
+                    # Decode and load the serialized object
+                    inputs_dict[new_key] = pickle.loads(base64.b64decode(value.encode('utf-8')))
+                except Exception as e:
+                    bittensor.logging.error(f"Error while parsing 'input_obj' header {key}: {e}")
+                    continue
             else:
-                continue
+                bittensor.logging.warning(f"Unexpected key in headers: {key}")  # log unexpected keys
+
+        # Assign the remaining known headers directly
         inputs_dict['timeout'] = headers.get('timeout', None)
         inputs_dict['name'] = headers.get('name', None)
         inputs_dict['header_size'] = headers.get('header_size', None)
         inputs_dict['total_size'] = headers.get('total_size', None)
+
         return inputs_dict
 
+
     @classmethod
-    def from_headers( cls, headers: dict ) -> 'Synapse':
-        input_dict = cls._headers_to_inputs_dict( headers )
-        synapse = cls( **input_dict )
+    def from_headers(cls, headers: dict) -> 'Synapse':
+        """
+        This class method creates an instance of the class from a given headers dictionary.
+
+        Args:
+            headers (dict): The dictionary of headers to parse
+
+        Returns:
+            Synapse: A new Synapse instance created from the parsed inputs
+        """
+        
+        # Get the inputs dictionary from the headers
+        input_dict = cls.parse_headers_to_inputs(headers)
+        
+        # Use the dictionary unpacking operator to pass the inputs to the class constructor
+        synapse = cls(**input_dict)
+
         return synapse
+    
+
+def test_parse_headers_to_inputs():
+    # Define a mock headers dictionary to use for testing
+    headers = {
+        'bt_header_axon_key1': 'axon_value1',
+        'bt_header_dendrite_key2': 'dendrite_value2',
+        'bt_header_tensor_key3': '3-1',
+        'bt_header_input_obj_key4': base64.b64encode(pickle.dumps('input_obj_value4')).decode('utf-8'),
+        'timeout': 'timeout_value',
+        'name': 'name_value',
+        'header_size': 'header_size_value',
+        'total_size': 'total_size_value',
+    }
+
+    # Run the function to test
+    inputs_dict = Synapse.parse_headers_to_inputs(headers)
+
+    # Check the resulting dictionary
+    assert inputs_dict == {
+        'axon': {'key1': 'axon_value1'},
+        'dendrite': {'key2': 'dendrite_value2'},
+        'key3': bittensor.Tensor(shape=3, dtype=1),
+        'key4': 'input_obj_value4',
+        'timeout': 'timeout_value',
+        'name': 'name_value',
+        'header_size': 'header_size_value',
+        'total_size': 'total_size_value',
+    }
+
+def test_from_headers():
+    # Define a mock headers dictionary to use for testing
+    headers = {
+        'bt_header_axon_key1': 'axon_value1',
+        'bt_header_dendrite_key2': 'dendrite_value2',
+        'bt_header_tensor_key3': '3-1',
+        'bt_header_input_obj_key4': base64.b64encode(pickle.dumps('input_obj_value4')).decode('utf-8'),
+        'timeout': 'timeout_value',
+        'name': 'name_value',
+        'header_size': 'header_size_value',
+        'total_size': 'total_size_value',
+    }
+
+    # Run the function to test
+    synapse = Synapse.from_headers(headers)
+
+    # Check that the resulting object is an instance of YourClass
+    assert isinstance(synapse, Synapse)
+
+    # Check the properties of the resulting object
+    # Replace with actual checks based on the structure of your class
+    assert synapse.axon == {'key1': 'axon_value1'}
+    assert synapse.dendrite == {'key2': 'dendrite_value2'}
+    assert synapse.key3.shape == 3
+    assert synapse.key3.dtype == 1
+    assert synapse.key4 == 'input_obj_value4'
+    assert synapse.timeout == 'timeout_value'
+    assert synapse.name == 'name_value'
+    assert synapse.header_size == 'header_size_value'
+    assert synapse.total_size == 'total_size_value'
