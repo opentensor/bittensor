@@ -29,7 +29,19 @@ from fastapi import Request
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
 def get_size(obj, seen=None):
-    """Recursively finds size of objects"""
+    """
+    Recursively finds size of objects.
+
+    This function traverses every item of a given object and sums their sizes to compute the total size.
+
+    Args:
+        obj (any type): The object to get the size of.
+        seen (set): Set of object ids that have been calculated.
+
+    Returns:
+        int: The total size of the object.
+
+    """
     size = sys.getsizeof(obj)
     if seen is None:
         seen = set()
@@ -49,9 +61,35 @@ def get_size(obj, seen=None):
     return size
 
 def cast_int(raw: str) -> int:
+    """
+    Converts a string to an integer, if the string is not None.
+
+    This function attempts to convert a string to an integer. If the string is None,
+    it simply returns None.
+
+    Args:
+        raw (str): The string to convert.
+
+    Returns:
+        int or None: The converted integer, or None if the input was None.
+
+    """
     return int( raw ) if raw != None else raw
 
 def cast_float( raw: str ) -> float:
+    """
+    Converts a string to a float, if the string is not None.
+
+    This function attempts to convert a string to a float. If the string is None,
+    it simply returns None.
+
+    Args:
+        raw (str): The string to convert.
+
+    Returns:
+        float or None: The converted float, or None if the input was None.
+
+    """
     return float( raw ) if raw != None else raw
 
 class TerminalInfo( pydantic.BaseModel ):
@@ -231,27 +269,81 @@ class Synapse( pydantic.BaseModel ):
     )
 
     def get_total_size(self) -> int: 
+        """
+        Get the total size of the current object. 
+        
+        This method first calculates the size of the current object, then assigns it 
+        to the instance variable self.total_size and finally returns this value.
+
+        Returns:
+            int: The total size of the current object.
+        """
         self.total_size = get_size( self ); 
         return self.total_size
-    
+        
     @property
     def is_success(self) -> bool:
+        """
+        Checks if the dendrite's status code indicates success.
+
+        This method returns True if the status code of the dendrite is 200,
+        which typically represents a successful HTTP request. 
+
+        Returns:
+            bool: True if dendrite's status code is 200, False otherwise.
+        """
         return self.dendrite.status_code == 200
-    
+
     @property
     def is_failure(self) -> bool:
+        """
+        Checks if the dendrite's status code indicates failure.
+
+        This method returns True if the status code of the dendrite is not 200,
+        which would mean the HTTP request was not successful.
+
+        Returns:
+            bool: True if dendrite's status code is not 200, False otherwise.
+        """
         return self.dendrite.status_code != 200
-    
+
     @property
     def is_timeout(self) -> bool:
+        """
+        Checks if the dendrite's status code indicates a timeout.
+
+        This method returns True if the status code of the dendrite is 408,
+        which is the HTTP status code for a request timeout.
+
+        Returns:
+            bool: True if dendrite's status code is 408, False otherwise.
+        """
         return self.dendrite.status_code == 408
-    
+
     @property
     def is_blacklist(self) -> bool:
+        """
+        Checks if the dendrite's status code indicates a blacklisted request.
+
+        This method returns True if the status code of the dendrite is 403,
+        which is the HTTP status code for a forbidden request.
+
+        Returns:
+            bool: True if dendrite's status code is 403, False otherwise.
+        """
         return self.dendrite.status_code == 403
-    
+
     @property
     def failed_verification(self) -> bool:
+        """
+        Checks if the dendrite's status code indicates failed verification.
+
+        This method returns True if the status code of the dendrite is 401,
+        which is the HTTP status code for unauthorized access.
+
+        Returns:
+            bool: True if dendrite's status code is 401, False otherwise.
+        """
         return self.dendrite.status_code == 401
 
     def to_headers( self ) -> dict:
