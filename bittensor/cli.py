@@ -74,7 +74,9 @@ class cli:
         """
         # If no config is provided, create a new one from args.
         if config == None:
-            self.config = cli.config(args)
+            config = cli.create_config(args)
+        
+        self.config = config
         
         # Check if the config is valid.
         cli.check_config(self.config)
@@ -108,7 +110,7 @@ class cli:
         return parser
 
     @staticmethod
-    def config( args: List[str] ) -> 'bittensor.config':
+    def create_config( args: List[str] ) -> 'bittensor.config':
         """
         From the argument parser, add config to bittensor.executor and local config
 
