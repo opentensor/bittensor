@@ -513,7 +513,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
             # Return the response to the requester.
             return response
 
-        return response
 
     async def preprocess( self, request ) -> bittensor.Synapse:
         """
@@ -828,6 +827,82 @@ def test_attach():
     with pytest.raises(AssertionError):
         server.attach( wrong_forward_fn )
 
+# Mock synapse class for testing
+
+class AxonMock:
+    def __init__(self):
+        self.status_code = None
+        self.forward_class_types = {}
+        self.blacklist_fns = {}
+        self.priority_fns = {}
+        self.forward_fns = {}
+        self.verify_fns = {}
+        self.thread_pool = bittensor.PriorityThreadPoolExecutor( max_workers = 1 )
+
+class SynapseMock(bittensor.Synapse):
+    pass
+
+def verify_fn_pass(synapse):
+    pass
+
+def verify_fn_fail(synapse):
+    raise Exception("Verification failed")
+
+def blacklist_fn_pass(synapse):
+    return False
+
+def blacklist_fn_fail(synapse):
+    return True
+
+def priority_fn_pass(synapse) -> float:
+    return 0.0
+
+def priority_fn_timeout(synapse) -> float:
+    return 2.0
+
+@pytest.fixture
+def middleware():
+    # Mock AxonMiddleware instance with empty axon object
+    axon = AxonMock()
+    return AxonMiddleware(None, axon)
+
+@pytest.mark.asyncio
+async def test_verify_pass(middleware):
+    synapse = SynapseMock()
+    middleware.axon.verify_fns = {"SynapseMock": verify_fn_pass}
+    await middleware.verify(synapse)
+    assert synapse.axon.status_code != 401
+
+@pytest.mark.asyncio
+async def test_verify_fail(middleware):
+    synapse = SynapseMock()
+    middleware.axon.verify_fns = {"SynapseMock": verify_fn_fail}
+    with pytest.raises(Exception):
+        await middleware.verify(synapse)
+    assert synapse.axon.status_code == 401
+
+@pytest.mark.asyncio
+async def test_blacklist_pass(middleware):
+    synapse = SynapseMock()
+    middleware.axon.blacklist_fns = {"SynapseMock": blacklist_fn_pass}
+    await middleware.blacklist(synapse)
+    assert synapse.axon.status_code != 403
+
+@pytest.mark.asyncio
+async def test_blacklist_fail(middleware):
+    synapse = SynapseMock()
+    middleware.axon.blacklist_fns = {"SynapseMock": blacklist_fn_fail}
+    with pytest.raises(Exception):
+        await middleware.blacklist(synapse)
+    assert synapse.axon.status_code == 403
+
+@pytest.mark.asyncio
+async def test_priority_pass(middleware):
+    synapse = SynapseMock()
+    middleware.axon.priority_fns = {"SynapseMock": priority_fn_pass}
+    await middleware.priority(synapse)
+    assert synapse.axon.status_code != 408
+
 class TestAxonMiddleware(IsolatedAsyncioTestCase):
 
     def setUp(self):
@@ -869,6 +944,7 @@ class TestAxonMiddleware(IsolatedAsyncioTestCase):
 
         # Check if the preprocess function sets the request name correctly
         assert synapse.name == 'request_name'
+
 
 if __name__ == '__main__':
     unittest.main()
