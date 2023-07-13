@@ -740,13 +740,11 @@ class AxonMiddleware(BaseHTTPMiddleware):
 #########
 # Tests #
 #########
-import asyncio
 import pytest
 import unittest
 from typing import Type, Any
 from unittest import IsolatedAsyncioTestCase
 from inspect import Parameter, Signature
-from starlette.testclient import TestClient
 from starlette.requests import Request
 from unittest.mock import MagicMock
 
