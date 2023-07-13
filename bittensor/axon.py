@@ -21,7 +21,6 @@
 import os
 import uuid
 import copy
-import json
 import time
 import uvicorn
 import argparse
@@ -29,12 +28,10 @@ import threading
 import bittensor
 import contextlib
 
-from threading import Lock
 from inspect import signature
 from fastapi.responses import JSONResponse
-from types import SimpleNamespace
 from substrateinterface import Keypair
-from fastapi import FastAPI, APIRouter, Request, HTTPException
+from fastapi import FastAPI, APIRouter, Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
