@@ -203,6 +203,12 @@ class axon:
         # Assert 'forward_fn' has exactly one argument
         forward_sig = signature(forward_fn)
         assert len(list(forward_sig.parameters)) == 1, "The passed function must have exactly one argument"
+
+        # Obtain the class of the first argument of 'forward_fn'
+        request_class = forward_sig.parameters[list(forward_sig.parameters)[0]].annotation
+
+        # Assert that the first argument of 'forward_fn' is a subclass of 'bittensor.Synapse'
+        assert issubclass(request_class, bittensor.Synapse), "The argument of forward_fn must inherit from bittensor.Synapse"
         
         # Obtain the class name of the first argument of 'forward_fn'
         request_name = forward_sig.parameters[list(forward_sig.parameters)[0]].annotation.__name__
@@ -212,9 +218,9 @@ class axon:
         self.app.include_router(self.router)
 
         # Expected signatures for 'blacklist_fn', 'priority_fn' and 'verify_fn'
-        blacklist_sig = Signature([Parameter('synapse', Parameter.POSITIONAL_OR_KEYWORD, annotation=forward_sig.parameters[list(forward_sig.parameters)[0]].annotation)])
-        priority_sig = Signature([Parameter('synapse', Parameter.POSITIONAL_OR_KEYWORD, annotation=forward_sig.parameters[list(forward_sig.parameters)[0]].annotation)])
-        verify_sig = Signature([Parameter('synapse', Parameter.POSITIONAL_OR_KEYWORD, annotation=forward_sig.parameters[list(forward_sig.parameters)[0]].annotation)])
+        blacklist_sig = Signature([Parameter('synapse', Parameter.POSITIONAL_OR_KEYWORD, annotation=forward_sig.parameters[list(forward_sig.parameters)[0]].annotation)], return_annotation=bool)
+        priority_sig = Signature([Parameter('synapse', Parameter.POSITIONAL_OR_KEYWORD, annotation=forward_sig.parameters[list(forward_sig.parameters)[0]].annotation)], return_annotation=float)
+        verify_sig = Signature([Parameter('synapse', Parameter.POSITIONAL_OR_KEYWORD, annotation=forward_sig.parameters[list(forward_sig.parameters)[0]].annotation)], return_annotation=None)
 
         # Check the signature of blacklist_fn, priority_fn and verify_fn if they are provided
         if blacklist_fn:
@@ -730,3 +736,87 @@ class AxonMiddleware(BaseHTTPMiddleware):
         response.headers.update(synapse.to_headers())
 
         return response
+    
+
+#########
+# Tests #
+#########
+import pytest
+from typing import Type, Any
+from inspect import Parameter, Signature
+
+def test_attach():
+    # Create a mock AxonServer instance
+    server = bittensor.axon()
+
+    # Define the Synapse type
+    class Synapse( bittensor.Synapse ):
+        pass
+
+    # Define the functions with the correct signatures
+    def forward_fn( synapse: Synapse ) -> Any:
+        pass
+
+    def blacklist_fn( synapse: Synapse ) -> bool:
+        return True
+
+    def priority_fn( synapse: Synapse ) -> float:
+        return 1.0
+
+    def verify_fn( synapse: Synapse ) -> None:
+        pass
+
+    # Test attaching with correct signatures
+    server.attach(forward_fn, blacklist_fn, priority_fn, verify_fn)
+
+    # Define functions with incorrect signatures
+    def wrong_blacklist_fn( synapse: Synapse ) -> int:
+        return 1
+
+    def wrong_priority_fn( synapse: Synapse ) -> int:
+        return 1
+
+    def wrong_verify_fn( synapse: Synapse ) -> bool:
+        return True
+
+    # Test attaching with incorrect signatures
+    with pytest.raises(AssertionError):
+        server.attach(forward_fn, wrong_blacklist_fn, priority_fn, verify_fn)
+
+    with pytest.raises(AssertionError):
+        server.attach(forward_fn, blacklist_fn, wrong_priority_fn, verify_fn)
+
+    with pytest.raises(AssertionError):
+        server.attach(forward_fn, blacklist_fn, priority_fn, wrong_verify_fn)
+
+
+def test_attach():
+    # Create a mock AxonServer instance
+    server = bittensor.axon()
+
+    # Define the Synapse type
+    class Synapse:
+        pass
+
+    # Define a class that inherits from Synapse
+    class InheritedSynapse(bittensor.Synapse):
+        pass
+
+    # Define a function with the correct signature
+    def forward_fn(synapse: InheritedSynapse) -> Any:
+        pass
+
+    # Test attaching with correct signature and inherited class
+    server.attach( forward_fn )
+
+    # Define a class that does not inherit from Synapse
+    class NonInheritedSynapse:
+        pass
+
+    # Define a function with an argument of a class not inheriting from Synapse
+    def wrong_forward_fn(synapse: NonInheritedSynapse) -> Any:
+        pass
+
+    # Test attaching with incorrect class inheritance
+    with pytest.raises(AssertionError):
+        server.attach( wrong_forward_fn )
