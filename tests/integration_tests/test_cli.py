@@ -29,9 +29,8 @@ import pytest
 from substrateinterface.base import Keypair
 
 import bittensor
-from bittensor.utils.balance import Balance
+from bittensor import MockSubtensor, Balance
 from tests.helpers import MockConsole, _get_mock_keypair, _get_mock_wallet as generate_wallet
-from bittensor._subtensor.subtensor_mock import MockSubtensor
 
 
 _subtensor_mock: MockSubtensor = bittensor.subtensor( network = 'mock', _mock = True )
@@ -463,11 +462,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all_hotkeys = False
         # Notice no max_stake specified
 
-        mock_stakes: Dict[str, bittensor.Balance] = {
+        mock_stakes: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "hk0": bittensor.Balance.from_float(10.0),
-            "hk1": bittensor.Balance.from_float(11.1),
-            "hk2": bittensor.Balance.from_float(12.2),
+            "hk0": Balance.from_float(10.0),
+            "hk1": Balance.from_float(11.1),
+            "hk2": Balance.from_float(12.2),
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -540,11 +539,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all_hotkeys = True
         # Notice no max_stake specified
 
-        mock_stakes: Dict[str, bittensor.Balance] = {
+        mock_stakes: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "hk0": bittensor.Balance.from_float(10.0),
-            "hk1": bittensor.Balance.from_float(11.1),
-            "hk2": bittensor.Balance.from_float(12.2),
+            "hk0": Balance.from_float(10.0),
+            "hk1": Balance.from_float(11.1),
+            "hk2": Balance.from_float(12.2),
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -618,11 +617,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk1"]  # Exclude hk1
         config.all_hotkeys = True
 
-        mock_stakes: Dict[str, bittensor.Balance] = {
+        mock_stakes: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "hk0": bittensor.Balance.from_float(10.0),
-            "hk1": bittensor.Balance.from_float(11.1),
-            "hk2": bittensor.Balance.from_float(12.2),
+            "hk0": Balance.from_float(10.0),
+            "hk1": Balance.from_float(11.1),
+            "hk2": Balance.from_float(12.2),
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -703,11 +702,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0", "hk1", "hk2"]
         config.all_hotkeys = False
 
-        mock_stakes: Dict[str, bittensor.Balance] = {
+        mock_stakes: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "hk0": bittensor.Balance.from_float(10.0),
-            "hk1": bittensor.Balance.from_float(4.9),
-            "hk2": bittensor.Balance.from_float(12.2),
+            "hk0": Balance.from_float(10.0),
+            "hk1": Balance.from_float(4.9),
+            "hk2": Balance.from_float(12.2),
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -790,7 +789,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all_hotkeys = False
         # Notice no max_stake specified
 
-        mock_balance = bittensor.Balance.from_float(22.2)
+        mock_balance = Balance.from_float(22.2)
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -865,7 +864,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_hotkeys = ["hk0", "hk1", "hk2"]
 
-        mock_balance = bittensor.Balance.from_float(22.0)
+        mock_balance = Balance.from_float(22.0)
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -963,7 +962,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_hotkeys = ["hk0", "hk1", "hk2"]
 
-        mock_balance = bittensor.Balance.from_float(25.0)
+        mock_balance = Balance.from_float(25.0)
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -1063,12 +1062,12 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0", "hk1", "hk2"]
         config.all_hotkeys = False
 
-        mock_balance = bittensor.Balance.from_float(config.max_stake * 3)
+        mock_balance = Balance.from_float(config.max_stake * 3)
 
-        mock_stakes: Dict[str, bittensor.Balance] = {
-            "hk0": bittensor.Balance.from_float(0.0),
-            "hk1": bittensor.Balance.from_float(config.max_stake * 2),
-            "hk2": bittensor.Balance.from_float(0.0),
+        mock_stakes: Dict[str, Balance] = {
+            "hk0": Balance.from_float(0.0),
+            "hk1": Balance.from_float(config.max_stake * 2),
+            "hk2": Balance.from_float(0.0),
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -1176,7 +1175,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0", "hk1", "hk2"]
         config.all_hotkeys = False
 
-        mock_balance = bittensor.Balance.from_float(
+        mock_balance = Balance.from_float(
             15.0 * 2
         )  # Not enough for all hotkeys
 
@@ -1271,7 +1270,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0"]
         config.all_hotkeys = False
 
-        mock_balance = bittensor.Balance.from_float(15.0 * 3)
+        mock_balance = Balance.from_float(15.0 * 3)
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -1359,7 +1358,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0"]
         config.all_hotkeys = False
 
-        mock_balance = bittensor.Balance.from_float(1.0)  # Not enough balance to do max
+        mock_balance = Balance.from_float(1.0)  # Not enough balance to do max
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -1448,12 +1447,12 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0"]
         config.all_hotkeys = False
 
-        mock_balance = bittensor.Balance.from_float(config.max_stake * 3)
+        mock_balance = Balance.from_float(config.max_stake * 3)
 
         mock_stakes: Dict[
-            str, bittensor.Balance
+            str, Balance
         ] = {  # has enough stake, more than max_stake
-            "hk0": bittensor.Balance.from_float(config.max_stake * 2)
+            "hk0": Balance.from_float(config.max_stake * 2)
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -1548,7 +1547,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.wallet.name = "w0"
         config.hotkey = "hk0"
 
-        mock_balance = bittensor.Balance.from_float(100.0)
+        mock_balance = Balance.from_float(100.0)
 
         mock_wallet = SimpleNamespace(
             name="w0",
@@ -1600,15 +1599,15 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.amount = 5.0
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, bittensor.Balance] = {
+        mock_balances: Dict[str, Balance] = {
             # All have more than 5.0 stake
             "w0": {
-                "hk0": bittensor.Balance.from_float(10.0),
+                "hk0": Balance.from_float(10.0),
             },
-            "w1": {"hk1": bittensor.Balance.from_float(11.1)},
+            "w1": {"hk1": Balance.from_float(11.1)},
         }
 
-        mock_stake = bittensor.Balance.from_float(5.0)
+        mock_stake = Balance.from_float(5.0)
 
         mock_wallets = []
         for idx, wallet_name in enumerate(list(mock_balances.keys())):
@@ -1688,16 +1687,16 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.amount = 5.0
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, bittensor.Balance] = {
+        mock_balances: Dict[str, Balance] = {
             # All have more than 5.0 stake
             "w0": {
-                "hk0": bittensor.Balance.from_float(10.0),
+                "hk0": Balance.from_float(10.0),
             },
-            "w1": {"hk1": bittensor.Balance.from_float(11.1)},
+            "w1": {"hk1": Balance.from_float(11.1)},
         }
 
-        mock_stake = bittensor.Balance.from_float(5.0)
-        mock_delegated = bittensor.Balance.from_float(6.0)
+        mock_stake = Balance.from_float(5.0)
+        mock_delegated = Balance.from_float(6.0)
 
         mock_wallets = []
         for idx, wallet_name in enumerate(list(mock_balances.keys())):
@@ -1794,9 +1793,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.amount = 3.2
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, bittensor.Balance] = {
-            "w0": bittensor.Balance.from_float(10.0),
-            "w1": bittensor.Balance.from_float(config.amount + 0.001),
+        mock_balances: Dict[str, Balance] = {
+            "w0": Balance.from_float(10.0),
+            "w1": Balance.from_float(config.amount + 0.001),
         }
 
         mock_wallets = []
@@ -1862,9 +1861,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.amount = 3.2
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, bittensor.Balance] = {
-            "w0": bittensor.Balance.from_float(10.0),
-            "w1": bittensor.Balance.from_float(
+        mock_balances: Dict[str, Balance] = {
+            "w0": Balance.from_float(10.0),
+            "w1": Balance.from_float(
                 config.amount - 0.1
             ),  # not enough balance
         }
@@ -1981,7 +1980,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Give the wallet some balance for burning
         success, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallet.coldkeypub.ss58_address,
-            balance=bittensor.Balance.from_float(200.0),
+            balance=Balance.from_float(200.0),
         )
         
         with patch("bittensor.wallet", return_value=mock_wallet) as mock_create_wallet:
@@ -2220,7 +2219,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         # Give the wallet some TAO
         _, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallet.coldkey.ss58_address,
-            balance=bittensor.Balance.from_tao(20.0),
+            balance=Balance.from_tao(20.0),
         )
         self.assertEqual(err, None)
 
