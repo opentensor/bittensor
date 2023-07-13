@@ -108,7 +108,7 @@ from .utils.balance import Balance as Balance
 from .chain_data import *
 from .errors import *
 from .subtensor import subtensor as subtensor
-from .subtensor_mock import MockSubtensor as mock_subtensor
+from .subtensor_mock import MockSubtensor
 from .cli import cli as cli
 from .logging import logging as logging
 from .metagraph import metagraph as metagraph

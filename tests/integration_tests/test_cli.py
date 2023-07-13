@@ -30,12 +30,10 @@ import substrateinterface
 from substrateinterface.base import Keypair
 
 import bittensor
-from bittensor._subtensor.subtensor_mock import Mock_Subtensor, mock_subtensor
 from bittensor.utils.balance import Balance
 from tests.helpers import MockConsole, get_mock_keypair
 
-_subtensor_mock: Mock_Subtensor = None
-
+_subtensor_mock: bittensor.MockSubtensor = None
 
 def setupMockSubtensor():
     global _subtensor_mock
