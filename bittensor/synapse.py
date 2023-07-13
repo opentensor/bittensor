@@ -15,7 +15,9 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+
 import sys
+import torch
 import pickle
 import base64
 import typing
@@ -397,59 +399,136 @@ class Synapse( pydantic.BaseModel ):
     
 
 def test_parse_headers_to_inputs():
+
+    class Test(Synapse):
+        key1: List[int]
+        key2: bittensor.Tensor
+
     # Define a mock headers dictionary to use for testing
     headers = {
         'bt_header_axon_nonce': '111',
         'bt_header_dendrite_ip': '12.1.1.2',
-        'bt_header_input_obj_key4': base64.b64encode(pickle.dumps('input_obj_value4')).decode('utf-8'),
+        'bt_header_input_obj_key1': base64.b64encode(pickle.dumps([1,2,3,4])).decode('utf-8'),
+        'bt_header_tensor_key2': '[3]-torch.float32',
         'timeout': '12',
-        'name': 'name_value',
+        'name': 'Test',
         'header_size': '111',
         'total_size': '111',
     }
 
     # Run the function to test
-    inputs_dict = Synapse.parse_headers_to_inputs(headers)
+    inputs_dict = Test.parse_headers_to_inputs(headers)
 
     # Check the resulting dictionary
     assert inputs_dict == {
-        'axon': {'nonce': '111'},
-        'dendrite': {'ip': '12.1.1.2'},
-        'key3': bittensor.Tensor(shape=3, dtype=1),
-        'key4': 'input_obj_value4',
+        'axon': {'nonce': '111'}, 
+        'dendrite': {'ip': '12.1.1.2'}, 
+        'key1': [1, 2, 3, 4], 
+        'key2': bittensor.Tensor(dtype='torch.float32', shape=[3]), 
+        'timeout': '12', 
+        'name': 'Test', 
+        'header_size': '111', 
+        'total_size': '111'
+    }
+
+def test_from_headers():
+    class Test(Synapse):
+        key1: List[int]
+        key2: bittensor.Tensor
+
+    # Define a mock headers dictionary to use for testing
+    headers = {
+        'bt_header_axon_nonce': '111',
+        'bt_header_dendrite_ip': '12.1.1.2',
+        'bt_header_input_obj_key1': base64.b64encode(pickle.dumps([1,2,3,4])).decode('utf-8'),
+        'bt_header_tensor_key2': '[3]-torch.float32',
         'timeout': '12',
-        'name': 'name_value',
+        'name': 'Test',
         'header_size': '111',
         'total_size': '111',
     }
 
-def test_from_headers():
-    # Define a mock headers dictionary to use for testing
-    headers = {
-        'bt_header_axon_key1': 'axon_value1',
-        'bt_header_dendrite_key2': 'dendrite_value2',
-        'bt_header_tensor_key3': '3-1',
-        'bt_header_input_obj_key4': base64.b64encode(pickle.dumps('input_obj_value4')).decode('utf-8'),
-        'timeout': 'timeout_value',
-        'name': 'name_value',
-        'header_size': 'header_size_value',
-        'total_size': 'total_size_value',
-    }
-
     # Run the function to test
-    synapse = Synapse.from_headers(headers)
+    synapse = Test.from_headers(headers)
 
     # Check that the resulting object is an instance of YourClass
-    assert isinstance(synapse, Synapse)
+    assert isinstance(synapse, Test)
 
     # Check the properties of the resulting object
     # Replace with actual checks based on the structure of your class
-    assert synapse.axon == {'key1': 'axon_value1'}
-    assert synapse.dendrite == {'key2': 'dendrite_value2'}
-    assert synapse.key3.shape == 3
-    assert synapse.key3.dtype == 1
-    assert synapse.key4 == 'input_obj_value4'
-    assert synapse.timeout == 'timeout_value'
-    assert synapse.name == 'name_value'
-    assert synapse.header_size == 'header_size_value'
-    assert synapse.total_size == 'total_size_value'
+    assert synapse.axon.nonce == 111
+    assert synapse.dendrite.ip == '12.1.1.2'
+    assert synapse.key1 == [1,2,3,4]
+    assert synapse.key2.shape == [3]
+    assert synapse.key2.dtype == 'torch.float32'
+    assert synapse.timeout == 12
+    assert synapse.name == 'Test'
+    assert synapse.header_size == 111
+    assert synapse.total_size == 111
+
+def test_synapse_create():
+    # Create an instance of Synapse
+    synapse = Synapse()
+
+    # Ensure the instance created is of type Synapse
+    assert isinstance(synapse, Synapse)
+
+    # Check default properties of a newly created Synapse
+    assert synapse.name == 'Synapse'
+    assert synapse.timeout == 12.0
+    assert synapse.header_size == 0
+    assert synapse.total_size == 0
+
+    # Convert the Synapse instance to a headers dictionary
+    headers = synapse.to_headers()
+
+    # Ensure the headers is a dictionary and contains the expected keys
+    assert isinstance(headers, dict)
+    assert 'timeout' in headers
+    assert 'name' in headers
+    assert 'header_size' in headers
+    assert 'total_size' in headers
+
+    # Ensure the 'name' and 'timeout' values match the Synapse's properties
+    assert headers['name'] == 'Synapse'
+    assert headers['timeout'] == '12.0'
+
+    # Create a new Synapse from the headers and check its 'timeout' property
+    next_synapse = synapse.from_headers(synapse.to_headers())
+    assert next_synapse.timeout == 12.0
+
+def test_custom_synapse():        
+    # Define a custom Synapse subclass
+    class Test(Synapse):
+        a: int  # Carried through because required.
+        b: int = None  # Not carried through headers
+        c: typing.Optional[int]  # Not carried through headers
+        d: typing.Optional[typing.List[int]]  # Not carried through headers
+        e: typing.List[int]  # Not carried through headers
+
+    # Create an instance of the custom Synapse subclass
+    synapse = Test(a=1, c=3, d=[1,2,3,4], e=[1,2,3,4])
+
+    # Ensure the instance created is of type Test and has the expected properties
+    assert isinstance(synapse, Test)
+    assert synapse.name == 'Test'
+    assert synapse.a == 1
+    assert synapse.b == None
+    assert synapse.c == 3
+    assert synapse.d == [1,2,3,4]
+    assert synapse.e == [1,2,3,4]
+
+    # Convert the Test instance to a headers dictionary
+    headers = synapse.to_headers()
+
+    # Ensure the headers contains 'a' but not 'b'
+    assert 'bt_header_input_obj_a' in headers
+    assert 'bt_header_input_obj_b' not in headers
+
+    # Create a new Test from the headers and check its properties
+    next_synapse = synapse.from_headers(synapse.to_headers())
+    assert next_synapse.a == 1
+    assert next_synapse.b == None
+    assert next_synapse.c == None
+    assert next_synapse.d == None
+    assert next_synapse.e == [1,2,3,4]
