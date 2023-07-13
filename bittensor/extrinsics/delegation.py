@@ -27,7 +27,7 @@ from loguru import logger
 logger = logger.opt(colors=True)
 
 def nominate_extrinsic(
-    subtensor: 'bittensor.Subtensor',
+    subtensor: 'bittensor.subtensor',
     wallet: 'bittensor.Wallet',
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True
@@ -75,7 +75,7 @@ def nominate_extrinsic(
 
 
 def delegate_extrinsic(
-        subtensor: 'bittensor.Subtensor',
+        subtensor: 'bittensor.subtensor',
         wallet: 'bittensor.wallet',
         delegate_ss58: Optional[str] = None,
         amount: Union[Balance, float] = None,
@@ -187,7 +187,7 @@ def delegate_extrinsic(
         return False
 
 def undelegate_extrinsic(
-        subtensor: 'bittensor.Subtensor',
+        subtensor: 'bittensor.subtensor',
         wallet: 'bittensor.wallet',
         delegate_ss58: Optional[str] = None,
         amount: Union[Balance, float] = None,

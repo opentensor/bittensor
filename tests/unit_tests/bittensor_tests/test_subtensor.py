@@ -37,7 +37,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
         )
 
         mock_subtensor = MagicMock(
-            spec=bittensor.Subtensor,
+            spec=bittensor.subtensor,
             # serve=mock_serve,
             serve_axon=mock_serve_axon
         )
@@ -97,7 +97,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
         )
 
         mock_subtensor = MagicMock(
-            spec=bittensor.Subtensor,
+            spec=bittensor.subtensor,
             serve=mock_serve,
             serve_axon=mock_serve_axon,
         )
@@ -186,7 +186,7 @@ class TestStakeMultiple(unittest.TestCase):
         )
 
         mock_subtensor = MagicMock(
-            spec=bittensor.Subtensor,
+            spec=bittensor.subtensor,
             network="mock_net",
             get_balance=MagicMock(return_value=bittensor.Balance.from_tao(mock_amount.tao + 20.0)), # enough balance to stake
             get_neuron_for_pubkey_and_subnet=MagicMock(return_value=mock_neuron),
@@ -194,7 +194,7 @@ class TestStakeMultiple(unittest.TestCase):
         )
 
         with pytest.raises(ExitEarly):
-            bittensor.Subtensor.add_stake_multiple(
+            bittensor.subtensor.add_stake_multiple(
                 mock_subtensor,
                 wallet=mock_wallet,
                 hotkey_ss58s=mock_hotkey_ss58s,

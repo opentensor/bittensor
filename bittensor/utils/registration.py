@@ -831,7 +831,7 @@ def create_pow(
     """
     Creates a proof of work for the given subtensor and wallet.
     Args:
-        subtensor (:obj:`bittensor.subtensor.Subtensor`, `required`):
+        subtensor (:obj:`bittensor.subtensor.subtensor`, `required`):
             The subtensor to create a proof of work for.
         wallet (:obj:`bittensor.wallet.Wallet`, `required`):
             The wallet to create a proof of work for.
@@ -881,7 +881,7 @@ def create_pow(
 def __reregister_wallet(
         netuid: int,
         wallet: 'bittensor.Wallet',
-        subtensor: 'bittensor.Subtensor',
+        subtensor: 'bittensor.subtensor',
         reregister: bool = False,
         prompt: bool = False,
         **registration_args: Any

@@ -24,7 +24,7 @@ from rich.prompt import Confirm
 from ..errors import *
 
 def register_senate_extrinsic (
-    subtensor: 'bittensor.Subtensor',
+    subtensor: 'bittensor.subtensor',
     wallet: 'bittensor.Wallet',
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
@@ -91,7 +91,7 @@ def register_senate_extrinsic (
                     bittensor.__console__.print(":cross_mark: [red]Unknown error. Senate membership not found.[/red]")
 
 def leave_senate_extrinsic (
-    subtensor: 'bittensor.Subtensor',
+    subtensor: 'bittensor.subtensor',
     wallet: 'bittensor.Wallet',
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
@@ -158,7 +158,7 @@ def leave_senate_extrinsic (
                     bittensor.__console__.print(":cross_mark: [red]Unknown error. Senate membership still found.[/red]")
 
 def vote_senate_extrinsic (
-    subtensor: 'bittensor.Subtensor',
+    subtensor: 'bittensor.subtensor',
     wallet: 'bittensor.Wallet',
     proposal_hash: str,
     proposal_idx: int,

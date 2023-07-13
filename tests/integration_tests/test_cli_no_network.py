@@ -319,9 +319,9 @@ class TestCLINoNetwork(unittest.TestCase):
             ]
             bittensor.subtensor.check_config = MagicMock(return_value = True)
             with patch('torch.cuda.is_available', return_value=True):
-                with patch('bittensor.Subtensor.get_subnets', return_value = [1]):
-                    with patch('bittensor.Subtensor.subnet_exists', side_effect=lambda netuid: netuid == 1):
-                        with patch('bittensor.Subtensor.register', side_effect=ExitEarlyException):
+                with patch('bittensor.subtensor.get_subnets', return_value = [1]):
+                    with patch('bittensor.subtensor.subnet_exists', side_effect=lambda netuid: netuid == 1):
+                        with patch('bittensor.subtensor.register', side_effect=ExitEarlyException):
                             # Should be able to set true without argument
                             args = base_args + [
                                 "--subtensor.register.cuda.use_cuda", # should be True without any arugment
@@ -811,7 +811,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
         delegate_ss58 = _get_mock_coldkey(0)
         with patch('bittensor._cli.commands.delegates.show_delegates'):
-            with patch('bittensor.Subtensor.get_delegates', return_value=[
+            with patch('bittensor.subtensor.get_delegates', return_value=[
                 bittensor.DelegateInfo(
                     hotkey_ss58=delegate_ss58, # return delegate with mock coldkey
                     total_stake=bittensor.Balance.from_float(0.1),
@@ -871,7 +871,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
         delegate_ss58 = _get_mock_coldkey(0)
         with patch('bittensor._cli.commands.delegates.show_delegates'):
-            with patch('bittensor.Subtensor.get_delegates', return_value=[
+            with patch('bittensor.subtensor.get_delegates', return_value=[
                 bittensor.DelegateInfo(
                     hotkey_ss58=delegate_ss58, # return delegate with mock coldkey
                     total_stake=bittensor.Balance.from_float(0.1),
