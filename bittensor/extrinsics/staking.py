@@ -77,7 +77,7 @@ def add_stake_extrinsic(
         if not own_hotkey:
             # This is not the wallet's own hotkey so we are delegating.
             if not subtensor.is_hotkey_delegate( hotkey_ss58 ):
-                raise bittensor.errors.bittensor.errors.NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
+                raise bittensor.errors.NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
 
             # Get hotkey take
             hotkey_take = subtensor.get_delegate_take( hotkey_ss58 )
