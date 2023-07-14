@@ -42,7 +42,7 @@ class TestSubtensor(unittest.TestCase):
         )
         self.balance = Balance.from_tao(1000)
         self.mock_neuron = MagicMock() # NOTE: this might need more sophistication
-        self.subtensor = bittensor.subtensor( network = 'mock' ) # own instance per test
+        self.subtensor = MockSubtensor( ) # own instance per test
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -52,7 +52,7 @@ class TestSubtensor(unittest.TestCase):
         cls._mock_console_patcher.start()
 
         # Keeps the same mock network for all tests. This stops the network from being re-setup for each test.
-        cls._mock_subtensor = bittensor.subtensor( network = 'mock' )
+        cls._mock_subtensor = MockSubtensor( )
 
         cls._do_setup_subnet()
 
