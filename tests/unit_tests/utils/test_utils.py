@@ -791,24 +791,25 @@ class TestWalletReregister(unittest.TestCase):
         class MockException(Exception):
             pass
         
-        with patch('bittensor.extrinsics.registration.create_pow', side_effect=MockException) as mock_create_pow:
-            # Should be able to set without argument
-            with pytest.raises(MockException):
-                bittensor.utils.reregister(
-                    wallet = mock_wallet,
-                    subtensor = self._mock_subtensor,
-                    netuid = 3,
-                    dev_id = 0,
-                    cuda = True,
-                    reregister = True,
-                )
+        with patch('torch.cuda.is_available', return_value=True) as mock_cuda_available:
+            with patch('bittensor.extrinsics.registration.create_pow', side_effect=MockException) as mock_create_pow:
+                # Should be able to set without argument
+                with pytest.raises(MockException):
+                    bittensor.utils.reregister(
+                        wallet = mock_wallet,
+                        subtensor = self._mock_subtensor,
+                        netuid = 3,
+                        dev_id = 0,
+                        cuda = True,
+                        reregister = True,
+                    )
 
-            call_args = mock_create_pow.call_args
-            _, kwargs = call_args
+                call_args = mock_create_pow.call_args
+                _, kwargs = call_args
 
-            mock_create_pow.assert_called_once()
-            self.assertIn('cuda', kwargs)
-            self.assertEqual(kwargs['cuda'], True) 
+                mock_create_pow.assert_called_once()
+                self.assertIn('cuda', kwargs)
+                self.assertEqual(kwargs['cuda'], True) 
 
     def test_wallet_reregister_use_cuda_flag_false(self):
         mock_wallet = _generate_wallet(
