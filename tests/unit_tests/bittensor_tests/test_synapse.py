@@ -14,6 +14,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import torch
 import pickle
 import base64
 import typing
@@ -157,3 +158,35 @@ def test_custom_synapse():
     assert next_synapse.c == None
     assert next_synapse.d == None
     assert next_synapse.e == [1,2,3,4]
+
+
+
+def test_list_tensors():        
+    class Test(bittensor.Synapse):
+        a: typing.List[ bittensor.Tensor ]
+
+    synapse = Test(
+        a = [ bittensor.Tensor.serialize( torch.randn(10) ) ],
+    )
+    headers = synapse.to_headers()
+    assert 'bt_header_list_tensor_a' in headers
+    assert headers['bt_header_list_tensor_a'] == "['[10]-torch.float32']"
+    next_synapse = synapse.from_headers(synapse.to_headers())
+    assert next_synapse.a[0].dtype == 'torch.float32'
+    assert next_synapse.a[0].shape == [10]
+
+    class Test(bittensor.Synapse):
+        a: typing.List[ bittensor.Tensor ]
+    synapse = Test(
+        a = [ bittensor.Tensor.serialize( torch.randn(10) ), bittensor.Tensor.serialize( torch.randn(11) ) , bittensor.Tensor.serialize( torch.randn(12) ) ],
+    )
+    headers = synapse.to_headers()
+    assert 'bt_header_list_tensor_a' in headers
+    assert headers['bt_header_list_tensor_a'] == "['[10]-torch.float32', '[11]-torch.float32', '[12]-torch.float32']"
+    next_synapse = synapse.from_headers(synapse.to_headers())
+    assert next_synapse.a[0].dtype == 'torch.float32'
+    assert next_synapse.a[0].shape == [10]
+    assert next_synapse.a[1].dtype == 'torch.float32'
+    assert next_synapse.a[1].shape == [11]
+    assert next_synapse.a[2].dtype == 'torch.float32'
+    assert next_synapse.a[2].shape == [12]

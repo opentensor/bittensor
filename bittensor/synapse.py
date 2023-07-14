@@ -16,6 +16,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import ast
 import sys
 import torch
 import pickle
@@ -387,6 +388,12 @@ class Synapse( pydantic.BaseModel ):
             if isinstance(value, bittensor.Tensor):
                 headers[f'bt_header_tensor_{field}'] = f'{value.shape}-{value.dtype}'
 
+            elif isinstance(value, list) and all(isinstance(elem, bittensor.Tensor) for elem in value):
+                serialized_list_tensor = []
+                for i, tensor in enumerate( value ):
+                    serialized_list_tensor.append(f'{tensor.shape}-{tensor.dtype}')
+                headers[f'bt_header_list_tensor_{field}'] = str( serialized_list_tensor )
+
             # If the object is not optional, serializing it, encoding it, and adding it to the headers
             elif field in property_type_hints and 'typing.Optional' not in str(property_type_hints[field]):
                 serialized_value = pickle.dumps(value)
@@ -442,6 +449,18 @@ class Synapse( pydantic.BaseModel ):
                     shape, dtype = value.split('-')
                     # TODO: Verify if the shape and dtype values need to be converted before being used
                     inputs_dict[new_key] = bittensor.Tensor(shape=shape, dtype=dtype)
+                except Exception as e:
+                    bittensor.logging.error(f"Error while parsing 'tensor' header {key}: {e}")
+                    continue
+            elif 'bt_header_list_tensor_' in key:
+                try:
+                    new_key = key.split('bt_header_list_tensor_')[1]
+                    deserialized_tensors = []
+                    stensors = ast.literal_eval(value)
+                    for value in stensors:
+                        shape, dtype = value.split('-')
+                        deserialized_tensors.append( bittensor.Tensor( shape = shape, dtype = dtype ) )
+                    inputs_dict[new_key] = deserialized_tensors
                 except Exception as e:
                     bittensor.logging.error(f"Error while parsing 'tensor' header {key}: {e}")
                     continue
