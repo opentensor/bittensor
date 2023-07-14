@@ -108,7 +108,8 @@ class blacklist:
         # Check for vpermit.
         if metagraph is not None and self.config.blacklist.vpermit_required and is_registered:
             uid = metagraph.hotkeys.index(src_hotkey)
-            return metagraph.neurons[uid].validator_permit
+            # To pass the blacklist you need to return FALSE
+            return not metagraph.neurons[uid].validator_permit
 
         # All checks passed.
         return False, 'passed blacklist'
