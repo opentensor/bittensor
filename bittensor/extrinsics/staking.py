@@ -380,8 +380,4 @@ def __do_add_stake_single(
         wait_for_finalization = wait_for_finalization,
     )
 
-    response.process_events()
-    if response.is_success:
-        return True
-    else:
-        raise bittensor.errors.StakeError(response.error_message)
+    return success
