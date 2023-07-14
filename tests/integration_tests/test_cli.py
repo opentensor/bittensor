@@ -68,7 +68,11 @@ def setUpModule():
         difficulty = 0
     )
 
-@patch("bittensor.subtensor.__new__", new=MagicMock(return_value=_subtensor_mock))
+def return_mock_sub(*args, **kwargs):
+    return MockSubtensor
+
+
+@patch("bittensor.subtensor", new_callable=return_mock_sub)
 class TestCLIWithNetworkAndConfig(unittest.TestCase):
     def setUp(self):
         self._config = TestCLIWithNetworkAndConfig.construct_config()
@@ -94,7 +98,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         return defaults
 
         
-    def test_overview(self):
+    def test_overview(self, _):
         config = self.config
         config.wallet.path = "/tmp/test_cli_test_overview"
         config.wallet.name = "mock_wallet"
@@ -201,7 +205,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                             self.assertNotIn(wallet.hotkey_str, output_no_syntax)
 
     
-    def test_overview_not_in_first_subnet(self):
+    def test_overview_not_in_first_subnet(self, _):
         config = self.config
         config.wallet.path = "/tmp/test_cli_test_overview"
         config.wallet.name = "mock_wallet"
@@ -305,7 +309,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                             self.assertNotIn(wallet.hotkey_str, output_no_syntax)
 
     
-    def test_overview_no_wallet(self):
+    def test_overview_no_wallet(self, _):
         # Mock IO for wallet
         with patch(
             "bittensor.Wallet.coldkeypub_file",
@@ -322,7 +326,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 cli.run()
 
     
-    def test_overview_with_hotkeys_config(self):
+    def test_overview_with_hotkeys_config(self, _):
         config = self.config
         config.command = "overview"
         config.no_prompt = True
@@ -334,7 +338,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.run()
 
     
-    def test_overview_without_hotkeys_config(self):
+    def test_overview_without_hotkeys_config(self, _):
         config = self.config
         config.command = "overview"
         config.no_prompt = True
@@ -345,7 +349,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.run()
 
     
-    def test_overview_with_sort_by_config(self):
+    def test_overview_with_sort_by_config(self, _):
         config = self.config
         config.command = "overview"
         config.no_prompt = True
@@ -357,7 +361,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.run()
 
     
-    def test_overview_with_sort_by_bad_column_name(self):
+    def test_overview_with_sort_by_bad_column_name(self, _):
         config = self.config
         config.command = "overview"
         config.no_prompt = True
@@ -369,7 +373,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.run()
 
     
-    def test_overview_without_sort_by_config(self):
+    def test_overview_without_sort_by_config(self, _):
         config = self.config
         config.command = "overview"
         config.no_prompt = True
@@ -380,7 +384,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.run()
 
     
-    def test_overview_with_sort_order_config(self):
+    def test_overview_with_sort_order_config(self, _):
         config = self.config
         config.command = "overview"
         config.wallet.sort_order = "desc"  # Set descending sort order
@@ -392,7 +396,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.run()
 
     
-    def test_overview_with_sort_order_config_bad_sort_type(self):
+    def test_overview_with_sort_order_config_bad_sort_type(self, _):
         config = self.config
         config.command = "overview"
         config.wallet.sort_order = "nowaythisshouldmatchanyorderingchoice"
@@ -404,7 +408,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.run()
 
     
-    def test_overview_without_sort_order_config(self):
+    def test_overview_without_sort_order_config(self, _):
         config = self.config
         config.command = "overview"
         # Don't specify sort_order in config
@@ -416,7 +420,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.run()
 
     
-    def test_overview_with_width_config(self):
+    def test_overview_with_width_config(self, _):
         config = self.config
         config.command = "overview"
         config.width = 100
@@ -428,7 +432,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.run()
 
     
-    def test_overview_without_width_config(self):
+    def test_overview_without_width_config(self, _):
         config = self.config
         config.command = "overview"
         # Don't specify width in config
@@ -440,7 +444,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.run()
 
     
-    def test_overview_all(self):
+    def test_overview_all(self, _):
         config = self.config
         config.command = "overview"
         config.no_prompt = True
@@ -450,7 +454,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_unstake_with_specific_hotkeys(self):
+    def test_unstake_with_specific_hotkeys(self, _):
         config = self.config
         config.command = "unstake"
         config.no_prompt = True
@@ -527,7 +531,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 )
 
     
-    def test_unstake_with_all_hotkeys(self):
+    def test_unstake_with_all_hotkeys(self, _):
         config = self.config
         config.command = "unstake"
         config.no_prompt = True
@@ -606,7 +610,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         places=4,
                     )
 
-    def test_unstake_with_exclude_hotkeys_from_all(self):
+    def test_unstake_with_exclude_hotkeys_from_all(self, _):
         config = self.config
         config.command = "unstake"
         config.no_prompt = True
@@ -690,7 +694,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                             places=4,
                         )
 
-    def test_unstake_with_multiple_hotkeys_max_stake(self):
+    def test_unstake_with_multiple_hotkeys_max_stake(self, _):
         config = self.config
         config.command = "unstake"
         config.no_prompt = True
@@ -777,7 +781,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         )
     
     
-    def test_stake_with_specific_hotkeys(self):
+    def test_stake_with_specific_hotkeys(self, _):
         config = self.config
         config.command = "stake"
         config.no_prompt = True
@@ -850,7 +854,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 self.assertAlmostEqual(stake.tao, config.amount, places=4)
 
     
-    def test_stake_with_all_hotkeys(self):
+    def test_stake_with_all_hotkeys(self, _):
         config = self.config
         config.command = "stake"
         config.no_prompt = True
@@ -948,7 +952,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     places=4,
                 )
 
-    def test_stake_with_exclude_hotkeys_from_all(self):
+    def test_stake_with_exclude_hotkeys_from_all(self, _):
         config = self.config
         config.command = "stake"
         config.no_prompt = True
@@ -1050,7 +1054,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     balance.tao, mock_balance.tao - (config.amount * 2), places=4
                 )
 
-    def test_stake_with_multiple_hotkeys_max_stake(self):
+    def test_stake_with_multiple_hotkeys_max_stake(self, _):
         config = self.config
         config.command = "stake"
         config.no_prompt = True
@@ -1163,7 +1167,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertLessEqual(balance.tao, mock_balance.tao)
 
-    def test_stake_with_multiple_hotkeys_max_stake_not_enough_balance(self):
+    def test_stake_with_multiple_hotkeys_max_stake_not_enough_balance(self, _):
         config = self.config
         config.command = "stake"
         config.no_prompt = True
@@ -1258,7 +1262,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 )
                 self.assertLessEqual(balance.tao, mock_balance.tao)
 
-    def test_stake_with_single_hotkey_max_stake(self):
+    def test_stake_with_single_hotkey_max_stake(self, _):
         config = self.config
         config.command = "stake"
         config.no_prompt = True
@@ -1346,7 +1350,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertLessEqual(balance.tao, mock_balance.tao)
 
-    def test_stake_with_single_hotkey_max_stake_not_enough_balance(self):
+    def test_stake_with_single_hotkey_max_stake_not_enough_balance(self, _):
         config = self.config
         config.command = "stake"
         config.no_prompt = True
@@ -1434,7 +1438,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertGreaterEqual(balance.tao, mock_balance.tao - config.max_stake)
 
-    def test_stake_with_single_hotkey_max_stake_enough_stake(self):
+    def test_stake_with_single_hotkey_max_stake_enough_stake(self, _):
         # tests max stake when stake >= max_stake already
         config = self.config
         config.command = "stake"
@@ -1538,7 +1542,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             self.assertAlmostEqual(balance.tao, mock_balance.tao, places=4)
     
     
-    def test_nominate(self):
+    def test_nominate(self, _):
         config = self.config
         config.command = "nominate"
         config.no_prompt = True
@@ -1590,7 +1594,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertTrue(is_delegate)
 
-    def test_delegate_stake(self):
+    def test_delegate_stake(self, _):
         config = self.config
         config.command = "delegate"
         config.no_prompt = True
@@ -1678,7 +1682,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             self.assertAlmostEqual(stake.tao, config.amount, places=4)
 
     
-    def test_undelegate_stake(self):
+    def test_undelegate_stake(self, _):
         config = self.config
         config.command = "undelegate"
         config.no_prompt = True
@@ -1784,7 +1788,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
 
     
-    def test_transfer(self):
+    def test_transfer(self, _):
         config = self.config
         config.command = "transfer"
         config.no_prompt = True
@@ -1852,7 +1856,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )  # no fees
 
     
-    def test_transfer_not_enough_balance(self):
+    def test_transfer_not_enough_balance(self, _):
         config = self.config
         config.command = "transfer"
         config.no_prompt = True
@@ -1933,7 +1937,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )  # did not transfer
 
     
-    def test_register(self):
+    def test_register(self, _):
         config = self.config
         config.command = "register"
         config.register.num_processes = 1
@@ -1963,7 +1967,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 self.assertEqual(mock_is_stale.call_count, 1)
 
     
-    def test_recycle_register(self):
+    def test_recycle_register(self, _):
         config = self.config
         config.command = "recycle_register"
         config.no_prompt = True
@@ -1994,7 +1998,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             self.assertTrue(registered)
 
     
-    def test_stake(self):
+    def test_stake(self, _):
         amount_to_stake: Balance = Balance.from_tao(0.5)
         config = self.config
         config.no_prompt = True
@@ -2042,7 +2046,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             self.assertGreater(new_stake, old_stake)
 
     
-    def test_metagraph(self):
+    def test_metagraph(self, _):
         config = self.config
         config.wallet.name = "metagraph_testwallet"
         config.command = "metagraph"
@@ -2100,7 +2104,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             self.assertIn(str(neuron.uid), output_no_syntax)
 
     
-    def test_inspect(self):
+    def test_inspect(self, _):
         config = self.config
         config.wallet.name = "inspect_testwallet"
         config.no_prompt = True
@@ -2129,12 +2133,12 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.run()
 
 
-@patch("bittensor.subtensor.__new__", new=MagicMock(return_value=_subtensor_mock))
+@patch("bittensor.subtensor", new_callable=return_mock_sub)
 class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     """
     Test the CLI by passing args directly to the bittensor.cli factory
     """
-    def test_list_delegates(self):
+    def test_list_delegates(self, _):
         cli = bittensor.cli(
             args=[
                 "list_delegates"
@@ -2143,7 +2147,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         cli.run()
 
     
-    def test_list_subnets(self):
+    def test_list_subnets(self, _):
         cli = bittensor.cli(
             args=[
                 "list_subnets"
@@ -2151,7 +2155,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         )
         cli.run()
 
-    def test_delegate(self):
+    def test_delegate(self, _):
         """
         Test delegate add command
         """
