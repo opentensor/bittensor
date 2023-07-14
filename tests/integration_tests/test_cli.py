@@ -69,6 +69,20 @@ def setUpModule():
     )
 
 class TestCLIWithNetworkAndConfig(unittest.TestCase):
+    _subtensor_patch: 'unittest.mock._patcher'
+
+    @classmethod
+    def setUpClass(cls):
+        cls._subtensor_patch = patch("bittensor.subtensor.__new__", new=MagicMock(
+            return_value=_subtensor_mock
+        ))
+        cls._subtensor_patch.start()
+
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._subtensor_patch.stop()
+
     def setUp(self):
         self._config = TestCLIWithNetworkAndConfig.construct_config()
 
@@ -2160,7 +2174,9 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls._subtensor_patch = patch("bittensor.subtensor.__new__", _subtensor_mock)
+        cls._subtensor_patch = patch("bittensor.subtensor.__new__", new=MagicMock(
+            return_value=_subtensor_mock
+        ))
         cls._subtensor_patch.start()
 
 
