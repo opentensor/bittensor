@@ -79,6 +79,24 @@ class dendrite(torch.nn.Module):
         # If a wallet or keypair is provided, use its hotkey. If not, generate a new one.
         self.keypair = (wallet.hotkey if isinstance(wallet, bt.Wallet) else wallet) or bt.wallet().hotkey
 
+    def sync_forward( self, *args, **kwargs ):
+        """
+        Makes a synchronous request to multiple target Axons and returns the server responses.
+
+        Args:
+            axons (Union[List[Union['bt.AxonInfo', 'bt.axon']], Union['bt.AxonInfo', 'bt.axon']]):
+                The list of target Axon information.
+            synapse (bt.Synapse, optional): The Synapse object. Defaults to bt.Synapse().
+            timeout (float, optional): The request timeout duration in seconds. 
+                Defaults to 12.0 seconds.
+        Returns:
+            Union[bt.Synapse, List[bt.Synapse]]: If a single target axon is provided, 
+                returns the response from that axon. If multiple target axons are provided, 
+                returns a list of responses from all target axons.
+        """
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete( self.forward( *args, **kwargs ) )
+
     async def forward(
             self, 
             axons: Union[List[Union['bt.AxonInfo', 'bt.axon']], Union['bt.AxonInfo', 'bt.axon']],
