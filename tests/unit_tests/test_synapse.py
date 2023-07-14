@@ -131,9 +131,10 @@ def test_custom_synapse():
         c: typing.Optional[int]  # Not carried through headers
         d: typing.Optional[typing.List[int]]  # Not carried through headers
         e: typing.List[int] # Carried through headers
+        f: bittensor.Tensor # Carried through headers, but not buffer.
 
     # Create an instance of the custom Synapse subclass
-    synapse = Test(a=1, c=3, d=[1,2,3,4], e=[1,2,3,4])
+    synapse = Test(a=1, c=3, d=[1,2,3,4], e=[1,2,3,4], f = bittensor.Tensor.serialize( torch.randn(10) ))
 
     # Ensure the instance created is of type Test and has the expected properties
     assert isinstance(synapse, Test)
@@ -143,6 +144,7 @@ def test_custom_synapse():
     assert synapse.c == 3
     assert synapse.d == [1,2,3,4]
     assert synapse.e == [1,2,3,4]
+    assert synapse.f.shape == [10]
 
     # Convert the Test instance to a headers dictionary
     headers = synapse.to_headers()
@@ -158,7 +160,9 @@ def test_custom_synapse():
     assert next_synapse.c == None
     assert next_synapse.d == None
     assert next_synapse.e == [1,2,3,4]
-
+    assert next_synapse.f.shape == [10] # Shape is passed through
+    assert next_synapse.f.dtype == 'torch.float32' # Type is passed through
+    assert next_synapse.f.buffer == None # Buffer is not passed through
 
 
 def test_list_tensors():        
