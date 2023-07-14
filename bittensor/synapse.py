@@ -381,6 +381,9 @@ class Synapse( pydantic.BaseModel ):
 
         # Iterating over the fields of the instance
         for field, value in instance_fields.items():
+            # If the object is not optional, serializing it, encoding it, and adding it to the headers
+            required = schema([self.__class__])['definitions'][self.name].get('required')
+
             # Skipping the field if it's already in the headers or its value is None
             if field in headers or value is None: 
                 continue 
@@ -395,9 +398,7 @@ class Synapse( pydantic.BaseModel ):
                     serialized_list_tensor.append(f'{tensor.shape}-{tensor.dtype}')
                 headers[f'bt_header_list_tensor_{field}'] = str( serialized_list_tensor )
 
-            # If the object is not optional, serializing it, encoding it, and adding it to the headers
-            required = schema([self.__class__])['definitions'][self.name].get('required')
-            if required and field in required:
+            elif required and field in required:
                 serialized_value = pickle.dumps(value)
                 encoded_value = base64.b64encode(serialized_value).decode('utf-8')
                 headers[f'bt_header_input_obj_{field}'] = encoded_value
