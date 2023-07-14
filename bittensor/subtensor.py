@@ -107,7 +107,7 @@ class subtensor:
             network: str = None,
             chain_endpoint: str = None,
             config: 'bittensor.config' = None,
-        ) -> 'bittensor.subtensor':
+        ) -> None:
         r""" Initializes a subtensor chain interface.
             Args:
                 config (:obj:`bittensor.Config`, `optional`):
