@@ -94,12 +94,8 @@ def setup_subtensor( port:int ):
     return subtensor, port
 
 def construct_config():
-    defaults = bittensor.Config()
-    bittensor.subtensor.add_defaults( defaults )
-    bittensor.dendrite.add_defaults( defaults )
-    bittensor.axon.add_defaults( defaults )
-    bittensor.wallet.add_defaults( defaults )
-    bittensor.dataset.add_defaults( defaults )
+    parser = bittensor.cli.__create_parser__()
+    defaults = bittensor.config(parser=parser, args=[])
 
     return defaults
 
@@ -558,7 +554,7 @@ class TestPOWCalled(unittest.TestCase):
 
         with patch('torch.cuda.is_available', return_value=True) as mock_cuda_available:
             with patch(
-                'bittensor._subtensor.extrinsics.registration.create_pow',
+                'bittensor.extrinsics.registration.create_pow',
                 return_value=mock_result
             ) as mock_create_pow:
                 # Should exit early
@@ -690,7 +686,7 @@ class TestWalletReregister(unittest.TestCase):
         class MockException(Exception):
             pass
         
-        with patch('bittensor._subtensor.extrinsics.registration.register_extrinsic', side_effect=MockException) as mock_register:
+        with patch('bittensor.extrinsics.registration.register_extrinsic', side_effect=MockException) as mock_register:
             with pytest.raises(SystemExit): # should exit because it's not registered
                 bittensor.utils.reregister(
                     wallet = mock_wallet,

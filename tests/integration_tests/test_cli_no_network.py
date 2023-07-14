@@ -24,9 +24,12 @@ import pytest
 from copy import deepcopy
 import re
 
-from tests.helpers import _get_mock_coldkey
+from tests.helpers import _get_mock_coldkey, __mock_wallet_factory__
+
+from bittensor_wallet.mock import MockKeyfile, MockWallet
 
 import bittensor
+from bittensor import Balance
 
 
 class TestCLINoNetwork(unittest.TestCase):
@@ -45,7 +48,7 @@ class TestCLINoNetwork(unittest.TestCase):
             "return_per_1000": bittensor.Balance.from_rao(0),
             "total_daily_return": bittensor.Balance.from_rao(0)
         }
-        cls._patched_subtensor = patch('bittensor.mock.MockSubtensor.__new__', new=MagicMock(
+        cls._patched_subtensor = patch('bittensor.subtensor.__new__', new=MagicMock(
             return_value=MagicMock(
                 get_subnets=MagicMock(return_value=[1]), # Mock subnet 1 ONLY.
                 block=10_000,
@@ -54,36 +57,41 @@ class TestCLINoNetwork(unittest.TestCase):
                 ]),
             )
         ))
+        cls._patched_wallet = patch(
+            'bittensor.wallet.__new__',
+            side_effect=__mock_wallet_factory__
+        )
+        cls._patched_wallet.start()
         cls._patched_subtensor.start()
 
     @classmethod
     def tearDownClass(cls) -> None:
         cls._patched_subtensor.stop()
+        cls._patched_wallet.stop()
 
     def setUp(self):
         self._config = TestCLINoNetwork.construct_config()
 
-    @property
     def config(self):
         copy_ = deepcopy(self._config)
         return copy_
 
     @staticmethod
     def construct_config():
-        defaults = bittensor.Config()
+        parser = bittensor.cli.__create_parser__()
 
+        defaults = bittensor.config(parser=parser, args=["metagraph"])
+        for command in bittensor.ALL_COMMANDS:
+            defaults.merge(bittensor.config(parser=parser, args=[command]))
+        
         defaults.netuid = 1
-        bittensor.subtensor.add_defaults( defaults )
         defaults.subtensor.network = 'mock'
         defaults.no_version_checking = True
-        bittensor.axon.add_defaults( defaults )
-        bittensor.wallet.add_defaults( defaults )
-        bittensor.dataset.add_defaults( defaults )
 
         return defaults
 
     def test_check_configs(self):
-        config = self.config
+        config = self.config()
         config.no_prompt = True
         config.model = "core_server"
         config.dest = "no_prompt"
@@ -119,7 +127,7 @@ class TestCLINoNetwork(unittest.TestCase):
                 cli.check_config(config)
 
     def test_new_coldkey( self ):
-        config = self.config
+        config = self.config()
         config.wallet.name = "new_coldkey_testwallet"
 
         config.command = "new_coldkey"
@@ -135,7 +143,7 @@ class TestCLINoNetwork(unittest.TestCase):
         cli.run()
 
     def test_new_hotkey( self ):
-        config = self.config
+        config = self.config()
         config.wallet.name = "new_hotkey_testwallet"
         config.command = "new_hotkey"
         config.amount = 1
@@ -151,7 +159,7 @@ class TestCLINoNetwork(unittest.TestCase):
         cli.run()
 
     def test_regen_coldkey( self ):
-        config = self.config
+        config = self.config()
         config.wallet.name = "regen_coldkey_testwallet"
         config.command = "regen_coldkey"
         config.amount = 1
@@ -169,7 +177,7 @@ class TestCLINoNetwork(unittest.TestCase):
         cli.run()
 
     def test_regen_coldkeypub( self ):
-        config = self.config
+        config = self.config()
         config.wallet.name = "regen_coldkeypub_testwallet"
         config.command = "regen_coldkeypub"
         config.ss58_address = "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
@@ -183,7 +191,7 @@ class TestCLINoNetwork(unittest.TestCase):
         cli.run()
 
     def test_regen_hotkey( self ):
-        config = self.config
+        config = self.config()
         config.wallet.name = "regen_hotkey_testwallet"
         config.command = "regen_hotkey"
         config.amount = 1
@@ -231,7 +239,7 @@ class TestCLINoNetwork(unittest.TestCase):
                 ).ss58_address
             )
         )]):
-            config = self.config
+            config = self.config()
             config.wallet.path = 'tmp/walletpath'
             config.wallet.name = 'mock_wallet'
             config.no_prompt = True
@@ -254,7 +262,7 @@ class TestCLINoNetwork(unittest.TestCase):
                 return_value=False # Wallet doesn't exist
             )
         )):
-            config = self.config
+            config = self.config()
             config.wallet.path = '/tmp/test_cli_test_list_no_wallet'
             config.no_prompt = True
             config.command = "list"
@@ -304,44 +312,53 @@ class TestCLINoNetwork(unittest.TestCase):
             self.assertLess( len(matches), 2, f"Duplicate command {command} in help output")
 
     def test_register_cuda_use_cuda_flag(self):
-            class ExitEarlyException(Exception):
-                """Raised by mocked function to exit early"""
-                pass
+        class ExitEarlyException(Exception):
+            """Raised by mocked function to exit early"""
+            pass
 
-            base_args = [
-                "register",
-                "--wallet.path", "tmp/walletpath",
-                "--wallet.name", "mock",
-                "--wallet.hotkey", "hk0",
-                "--no_prompt",
-                "--cuda.dev_id", "0",
-                "--network", "mock"
-            ]
-            bittensor.subtensor.check_config = MagicMock(return_value = True)
+        base_args = [
+            "register",
+            "--wallet.path", "tmp/walletpath",
+            "--wallet.name", "mock",
+            "--wallet.hotkey", "hk0",
+            "--no_prompt",
+            "--cuda.dev_id", "0",
+            "--network", "mock"
+        ]
+
+        self._patched_subtensor.stop()
+
+        bittensor.subtensor.check_config = MagicMock(return_value = True)
+        with patch('bittensor.subtensor.__new__', new=MagicMock(
+            return_value=MagicMock(
+                get_subnets=MagicMock(return_value=[1]), # Need to pass check config
+                subnet_exists=MagicMock(return_value=True),
+                register=MagicMock(side_effect=ExitEarlyException),
+            )
+        )): 
             with patch('torch.cuda.is_available', return_value=True):
-                with patch('bittensor.subtensor.get_subnets', return_value = [1]):
-                    with patch('bittensor.subtensor.subnet_exists', side_effect=lambda netuid: netuid == 1):
-                        with patch('bittensor.subtensor.register', side_effect=ExitEarlyException):
-                            # Should be able to set true without argument
-                            args = base_args + [
-                                "--subtensor.register.cuda.use_cuda", # should be True without any arugment
-                            ]
-                            with pytest.raises(ExitEarlyException):
-                                cli = bittensor.cli(args=args)
-                                cli.run()
+                # Should be able to set true without argument
+                args = base_args + [
+                    "--register.cuda.use_cuda", # should be True without any arugment
+                ]
+                with pytest.raises(ExitEarlyException):
+                    cli = bittensor.cli(args=args)
+                    cli.run()
 
-                            assert cli.config.subtensor.register.cuda.get('use_cuda') == True # should be None
+                self.assertEqual(cli.config.register.cuda.get('use_cuda'), True)
 
-                            # Should be able to set to false with no argument
+                # Should be able to set to false with no argument
 
-                            args = base_args + [
-                                "--subtensor.register.cuda.no_cuda",
-                            ]
-                            with pytest.raises(ExitEarlyException):
-                                cli = bittensor.cli(args=args)
-                                cli.run()
+                args = base_args + [
+                    "--register.cuda.no_cuda",
+                ]
+                with pytest.raises(ExitEarlyException):
+                    cli = bittensor.cli(args=args)
+                    cli.run()
 
-                            assert cli.config.subtensor.register.cuda.use_cuda == False
+                self.assertEqual(cli.config.register.cuda.get('use_cuda'), False)
+
+        self._patched_subtensor.start()
 
 class MockException(Exception):
     pass
@@ -352,16 +369,39 @@ class TestEmptyArgs(unittest.TestCase):
     Test that the CLI doesn't crash when no args are passed
     """
     _patched_subtensor = None
+    _patched_wallet = None
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls._patched_subtensor = patch('bittensor.mock.subtensor_mock.MockSubtensor.__new__', new=MagicMock(
+        cls._patched_subtensor = patch('bittensor.subtensor.__new__', new=MagicMock(
+            return_value=MagicMock(
+                get_subnets=MagicMock(return_value=[1]), # Need to pass check config
+                get_delegates=MagicMock(return_value=[
+                    bittensor.DelegateInfo(
+                        hotkey_ss58="",
+                        total_stake=Balance.from_rao(0),
+                        nominators=[],
+                        owner_ss58="",
+                        take=0.18,
+                        validator_permits=[],
+                        registrations=[],
+                        return_per_1000=Balance(0.0),
+                        total_daily_return=Balance(0.0)
+                    )
+                ]),
+                block=10_000,
+            )
         ))
+        cls._patched_wallet = patch('bittensor.wallet.__new__',
+            side_effect=__mock_wallet_factory__
+        )
         cls._patched_subtensor.start()
+        cls._patched_wallet.start()
 
     @classmethod
     def tearDownClass(cls) -> None:
         cls._patched_subtensor.stop()
+        cls._patched_wallet.stop()
     
     @patch('rich.prompt.PromptBase.ask', side_effect=MockException)
     def test_command_no_args(self, patched_prompt_ask):
@@ -400,7 +440,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             "return_per_1000": bittensor.Balance.from_rao(0), 
             "total_daily_return": bittensor.Balance.from_rao(0)
         }
-        cls._patched_subtensor = patch('bittensor.mock.subtensor_mock.MockSubtensor.__new__', new=MagicMock(
+        cls._patched_subtensor = patch('bittensor.subtensor.__new__', new=MagicMock(
             return_value=MagicMock(
                 get_subnets=MagicMock(return_value=[1]), # Mock subnet 1 ONLY.
                 block=10_000,
