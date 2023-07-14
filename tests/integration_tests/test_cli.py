@@ -1968,7 +1968,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 "bittensor.extrinsics.registration.POWSolution.is_stale",
                 side_effect=MockException,
             ) as mock_is_stale:
-                mock_is_stale.return_value = False
 
                 with pytest.raises(MockException):
                     cli = bittensor.cli(config)
