@@ -129,7 +129,7 @@ def test_custom_synapse():
         b: int = None  # Not carried through headers
         c: typing.Optional[int]  # Not carried through headers
         d: typing.Optional[typing.List[int]]  # Not carried through headers
-        e: typing.List[int]  # Not carried through headers
+        e: typing.List[int] # Carried through headers
 
     # Create an instance of the custom Synapse subclass
     synapse = Test(a=1, c=3, d=[1,2,3,4], e=[1,2,3,4])
