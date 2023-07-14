@@ -1,15 +1,7 @@
 [run]
 omit = 
-   ./nuclei/*
+  ./nuclei/*
   ./routers/*
   ./setup.py
   ./tests/*
-  ./bittensor/_logging/init.py
-  ./bittensor/_neuron/*
-  ./bittensor/_cli/__init__.py
-  ./bittensor/_cli/cli_impl.py
-  ./bittensor/_dendrite/dendrite_mock.py
-  ./bittensor/_dataset/dataset_mock.py
-  ./bittensor/_metagraph/metagraph_mock.py
-  ./benchmarks/*
   ./env/*
