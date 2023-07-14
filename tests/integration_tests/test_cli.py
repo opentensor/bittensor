@@ -324,16 +324,15 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             "bittensor.Wallet.coldkeypub_file",
             MagicMock(exists_on_device=MagicMock(return_value=False)),
         ):
-            bittensor.subtensor.register = MagicMock(return_value=True)
+            with patch('bittensor.subtensor.register', return_value=True):
+                config = self.config
+                config.command = "overview"
+                config.no_prompt = True
+                config.all = False
+                config.netuid = []  # Don't set, so it tries all networks.
 
-            config = self.config
-            config.command = "overview"
-            config.no_prompt = True
-            config.all = False
-            config.netuid = []  # Don't set, so it tries all networks.
-
-            cli = bittensor.cli(config)
-            cli.run()
+                cli = bittensor.cli(config)
+                cli.run()
 
     
     def test_overview_with_hotkeys_config(self):
