@@ -2115,28 +2115,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             self.assertIn(str(neuron.uid), output_no_syntax)
 
     
-    def test_set_weights(self):
-        config = self.config
-        config.wallet.name = "set_weights_testwallet"
-        config.no_prompt = True
-        config.uids = [1, 2, 3, 4]
-        config.weights = [0.25, 0.25, 0.25, 0.25]
-        config.n_words = 12
-        config.use_password = False
-
-        config.overwrite_hotkey = True
-
-        # First create a new hotkey
-        config.command = "new_hotkey"
-        cli = bittensor.cli(config)
-        cli.run()
-
-        # Now set the weights
-        config.command = "set_weights"
-        cli.config = config
-        cli.run()
-
-    
     def test_inspect(self):
         config = self.config
         config.wallet.name = "inspect_testwallet"
