@@ -69,11 +69,7 @@ def __do_remove_stake_single(
         wait_for_finalization = wait_for_finalization,
     )
 
-    response.process_events()
-    if response.is_success:
-        return True
-    else:
-        raise bittensor.errors.bittensor.errors.StakeError(response.error_message)
+    return success
 
 def unstake_extrinsic (
         subtensor: 'bittensor.subtensor',
@@ -165,10 +161,10 @@ def unstake_extrinsic (
             bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
             return False
 
-    except bittensor.errors.bittensor.errors.NotRegisteredError as e:
+    except bittensor.errors.NotRegisteredError as e:
         bittensor.__console__.print(":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(wallet.hotkey_str))
         return False
-    except bittensor.errors.bittensor.errors.StakeError as e:
+    except bittensor.errors.StakeError as e:
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
 
@@ -294,10 +290,10 @@ def unstake_multiple_extrinsic (
                 bittensor.__console__.print(":cross_mark: [red]Failed[/red]: Error unknown.")
                 continue
 
-        except bittensor.errors.bittensor.errors.NotRegisteredError as e:
+        except bittensor.errors.NotRegisteredError as e:
             bittensor.__console__.print(":cross_mark: [red]{} is not registered.[/red]".format(hotkey_ss58))
             continue
-        except bittensor.errors.bittensor.errors.StakeError as e:
+        except bittensor.errors.StakeError as e:
             bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
             continue
 
