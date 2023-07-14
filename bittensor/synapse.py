@@ -234,7 +234,7 @@ class Synapse( pydantic.BaseModel ):
         examples = 1000,
         default = 0,
         allow_mutation = True,
-        repr = True
+        repr = False
     )
     _extract_total_size = pydantic.validator('total_size', pre=True, allow_reuse=True)(cast_int)
 
@@ -245,7 +245,7 @@ class Synapse( pydantic.BaseModel ):
         examples = 1000,
         default = 0,
         allow_mutation = True,
-        repr = True
+        repr = False
     )
     _extract_header_size = pydantic.validator('header_size', pre=True, allow_reuse=True)(cast_int)
 
