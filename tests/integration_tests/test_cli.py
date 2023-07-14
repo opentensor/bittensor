@@ -166,7 +166,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_console = MockConsole()
         with patch(
-            "bittensor._cli.commands.overview.get_hotkey_wallets_for_wallet"
+            "bittensor.commands.overview.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
             with patch("bittensor.wallet") as mock_create_wallet:
@@ -269,7 +269,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_console = MockConsole()
         with patch(
-            "bittensor._cli.commands.overview.get_hotkey_wallets_for_wallet"
+            "bittensor.commands.overview.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
             with patch("bittensor.wallet") as mock_create_wallet:
@@ -578,7 +578,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 return mock_wallets[0]
 
         with patch(
-            "bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet"
+            "bittensor.commands.unstake.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
             with patch("bittensor.wallet") as mock_create_wallet:
@@ -656,7 +656,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 return mock_wallets[0]
 
         with patch(
-            "bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet"
+            "bittensor.commands.unstake.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
             with patch("bittensor.wallet") as mock_create_wallet:
@@ -743,7 +743,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 return mock_wallets[0]
 
         with patch(
-            "bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet"
+            "bittensor.commands.unstake.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
             with patch("bittensor.wallet") as mock_create_wallet:
@@ -907,7 +907,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         with patch("bittensor.wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
             with patch(
-                "bittensor._cli.commands.stake.get_hotkey_wallets_for_wallet"
+                "bittensor.commands.stake.get_hotkey_wallets_for_wallet"
             ) as mock_get_hotkey_wallets_for_wallet:
                 mock_get_hotkey_wallets_for_wallet.return_value = mock_wallets
 
@@ -1003,7 +1003,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 return mock_wallets[0]
 
         with patch(
-            "bittensor._cli.commands.stake.get_hotkey_wallets_for_wallet"
+            "bittensor.commands.stake.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
             with patch("bittensor.wallet") as mock_create_wallet:
@@ -2155,13 +2155,23 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     """
     Test the CLI by passing args directly to the bittensor.cli factory
     """
+
+    _subtensor_patch: 'unittest.mock._patcher'
+
+    @classmethod
+    def setUpClass(cls):
+        cls._subtensor_patch = patch("bittensor.subtensor.__new__", _subtensor_mock)
+        cls._subtensor_patch.start()
+
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._subtensor_patch.stop()
     
     def test_list_delegates(self):
         cli = bittensor.cli(
             args=[
-                "list_delegates",
-                "--subtensor.network",
-                "mock",  # Mock network
+                "list_delegates"
             ]
         )
         cli.run()
@@ -2170,9 +2180,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     def test_list_subnets(self):
         cli = bittensor.cli(
             args=[
-                "list_subnets",
-                "--subtensor.network",
-                "mock",  # Mock network
+                "list_subnets"
             ]
         )
         cli.run()
