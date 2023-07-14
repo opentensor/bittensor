@@ -407,10 +407,6 @@ class TestEmptyArgs(unittest.TestCase):
     """
     Test that the CLI doesn't crash when no args are passed
     """
-
-    _patched_subtensor = None
-    _patched_wallet = None
-
     @patch("rich.prompt.PromptBase.ask", side_effect=MockException)
     def test_command_no_args(self, patched_prompt_ask):
         # Get argparser
