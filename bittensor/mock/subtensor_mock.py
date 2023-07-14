@@ -27,7 +27,7 @@ from hashlib import sha256
 from bittensor_wallet import Wallet, wallet
 
 from ..chain_data import (NeuronInfo, NeuronInfoLite, PrometheusInfo, DelegateInfo,
-                         SubnetInfo)
+                         SubnetInfo, AxonInfo)
 from ..errors import *
 from ..subtensor import subtensor
 from ..utils import RAOPERTAO, U16_NORMALIZED_FLOAT
@@ -262,7 +262,7 @@ class MockSubtensor(subtensor):
             self.chain_endpoint = 'mock_endpoint'
             self.substrate = MagicMock()
 
-    def __init__(self) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         self.__dict__ = __GLOBAL_MOCK_STATE__
         
         if not hasattr(self, 'chain_state') or getattr(self, 'chain_state') is None:
@@ -832,7 +832,7 @@ class MockSubtensor(subtensor):
         validator_trust = U16_NORMALIZED_FLOAT(validator_trust)
         dividends = U16_NORMALIZED_FLOAT(dividends)
         prometheus_info = PrometheusInfo.fix_decoded_values(prometheus_info)
-        axon_info_ = axon_info.from_neuron_info( {
+        axon_info_ = AxonInfo.from_neuron_info( {
             'hotkey': hotkey,
             'coldkey': coldkey,
             'axon_info': axon_info_,
