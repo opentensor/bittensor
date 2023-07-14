@@ -312,7 +312,7 @@ class TestCLINoNetwork(unittest.TestCase):
             )
 
     @patch("torch.cuda.is_available", return_value=True)
-    def test_register_cuda_use_cuda_flag(self, patched_cuda_available, patched_wallet, patched_sub):
+    def test_register_cuda_use_cuda_flag(self, _, __, patched_sub):
         base_args = [
             "register",
             "--wallet.path",
@@ -375,7 +375,9 @@ def return_mock_sub_2(*args, **kwargs):
             ]
         ),
         block=10_000,
-    ))
+    ),
+    add_args=bittensor.subtensor.add_args,
+    )
 
 @patch("bittensor.wallet", new_callable=return_mock_wallet_factory)
 @patch(
