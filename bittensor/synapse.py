@@ -23,6 +23,7 @@ import pickle
 import base64
 import typing
 import pydantic
+from pydantic.schema import schema
 import bittensor
 from abc import abstractmethod
 from fastapi.responses import Response
@@ -395,7 +396,8 @@ class Synapse( pydantic.BaseModel ):
                 headers[f'bt_header_list_tensor_{field}'] = str( serialized_list_tensor )
 
             # If the object is not optional, serializing it, encoding it, and adding it to the headers
-            elif field in property_type_hints and 'typing.Optional' not in str(property_type_hints[field]):
+            required = schema([self.__class__])['definitions'][self.name].get('required')
+            if required and field in required:
                 serialized_value = pickle.dumps(value)
                 encoded_value = base64.b64encode(serialized_value).decode('utf-8')
                 headers[f'bt_header_input_obj_{field}'] = encoded_value
