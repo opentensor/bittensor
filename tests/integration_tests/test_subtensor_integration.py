@@ -434,7 +434,7 @@ class TestSubtensor(unittest.TestCase):
         mock_neuron = MagicMock()
         mock_neuron.is_null = True
 
-        with patch('bittensor._subtensor.extrinsics.registration.create_pow', return_value=None) as mock_create_pow:
+        with patch('bittensor.extrinsics.registration.create_pow', return_value=None) as mock_create_pow:
             wallet = _get_mock_wallet(
                 hotkey = _get_mock_keypair(0, self.id()),
                 coldkey = _get_mock_keypair(1, self.id())
@@ -482,7 +482,7 @@ class TestSubtensor(unittest.TestCase):
         )
 
         with patch('bittensor.subtensor.get_neuron_for_pubkey_and_subnet', return_value=bittensor.NeuronInfo._null_neuron() ):
-            with patch('bittensor._subtensor.extrinsics.registration.create_pow', mock_create_pow):
+            with patch('bittensor.extrinsics.registration.create_pow', mock_create_pow):
                 # should create a pow and check if it is stale
                 # then should create a new pow and check if it is stale
                 # then should enter substrate and exit early because of test

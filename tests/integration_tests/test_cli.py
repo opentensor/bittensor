@@ -79,19 +79,16 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
     @staticmethod
     def construct_config():
-        defaults = bittensor.Config()
+        parser = bittensor.cli.__create_parser__()
+        defaults = bittensor.config(parser=parser, args=["metagraph"])
+        for command in bittensor.ALL_COMMANDS:
+            defaults.merge(bittensor.config(parser=parser, args=[command]))
 
         defaults.netuid = 1
-        bittensor.subtensor.add_defaults(defaults)
         # Always use mock subtensor.
         defaults.subtensor.network = "finney"
         # Skip version checking.
         defaults.no_version_checking = True
-        bittensor.axon.add_defaults(defaults)
-        bittensor.wallet.add_defaults(defaults)
-        bittensor.dataset.add_defaults(defaults)
-        bittensor.logging.add_defaults(defaults)
-        bittensor.prometheus.add_defaults(defaults)
 
         return defaults
 
@@ -1939,8 +1936,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
     def test_register(self):
         config = self.config
         config.command = "register"
-        config.subtensor.register.num_processes = 1
-        config.subtensor.register.update_interval = 50_000
+        config.register.num_processes = 1
+        config.register.update_interval = 50_000
         config.no_prompt = True
 
         mock_wallet = generate_wallet(
@@ -1954,7 +1951,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         with patch("bittensor.wallet", return_value=mock_wallet) as mock_create_wallet:
             with patch(
-                "bittensor._subtensor.extrinsics.registration.POWSolution.is_stale",
+                "bittensor.extrinsics.registration.POWSolution.is_stale",
                 side_effect=MockException,
             ) as mock_is_stale:
                 mock_is_stale.return_value = False

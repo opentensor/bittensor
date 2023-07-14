@@ -67,13 +67,13 @@ def check_for_cuda_reg_config( config: 'bittensor.Config' ) -> None:
     """Checks, when CUDA is available, if the user would like to register with their CUDA device."""
     if torch.cuda.is_available():
         if not config.no_prompt:
-            if config.subtensor.register.cuda.get('use_cuda') == None: # flag not set
+            if config.register.cuda.get('use_cuda') == None: # flag not set
                 # Ask about cuda registration only if a CUDA device is available.
                 cuda = Confirm.ask("Detected CUDA device, use CUDA for registration?\n")
-                config.subtensor.register.cuda.use_cuda = cuda
+                config.register.cuda.use_cuda = cuda
 
             # Only ask about which CUDA device if the user has more than one CUDA device.
-            if config.subtensor.register.cuda.use_cuda and config.subtensor.register.cuda.get('dev_id') is None:
+            if config.register.cuda.use_cuda and config.register.cuda.get('dev_id') is None:
                 devices: List[str] = [str(x) for x in range(torch.cuda.device_count())]
                 device_names: List[str] = [torch.cuda.get_device_name(x) for x in range(torch.cuda.device_count())]
                 console.print("Available CUDA devices:")
@@ -92,11 +92,11 @@ def check_for_cuda_reg_config( config: 'bittensor.Config' ) -> None:
                     except ValueError:
                         console.log(":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(dev_id, choices_str))
                         sys.exit(1)
-                config.subtensor.register.cuda.dev_id = dev_id
+                config.register.cuda.dev_id = dev_id
         else:
             # flag was not set, use default value.
-            if config.subtensor.register.cuda.get('use_cuda') is None:
-                config.subtensor.register.cuda.use_cuda = defaults.subtensor.register.cuda.use_cuda
+            if config.register.cuda.get('use_cuda') is None:
+                config.register.cuda.use_cuda = defaults.register.cuda.use_cuda
 
 def get_hotkey_wallets_for_wallet( wallet ) -> List['bittensor.wallet']:
     hotkey_wallets = []

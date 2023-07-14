@@ -136,6 +136,10 @@ class MockStatus:
     def stop(self):
         pass
 
+    def update(self, *args, **kwargs):
+        MockConsole().print(*args, **kwargs)
+        
+
 class MockConsole:
     """
     Mocks the console object for status and print.
