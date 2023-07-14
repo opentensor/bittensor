@@ -658,12 +658,12 @@ class TestWalletReregister(unittest.TestCase):
     _mock_subtensor: MockSubtensor
 
     def setUp(self):
-        self.subtensor = bittensor.subtensor( network = 'mock' ) # own instance per test
+        self.subtensor = MockSubtensor( ) # own instance per test
 
     @classmethod
     def setUpClass(cls) -> None:
         # Keeps the same mock network for all tests. This stops the network from being re-setup for each test.
-        cls._mock_subtensor = bittensor.subtensor( network = 'mock' )
+        cls._mock_subtensor = MockSubtensor( )
 
         cls._do_setup_subnet()
 
@@ -686,7 +686,7 @@ class TestWalletReregister(unittest.TestCase):
         class MockException(Exception):
             pass
         
-        with patch('bittensor.extrinsics.registration.register_extrinsic', side_effect=MockException) as mock_register:
+        with patch('bittensor.subtensor.register_extrinsic', side_effect=MockException) as mock_register:
             with pytest.raises(SystemExit): # should exit because it's not registered
                 bittensor.utils.reregister(
                     wallet = mock_wallet,
@@ -717,7 +717,7 @@ class TestWalletReregister(unittest.TestCase):
             hotkey_ss58 = mock_wallet.hotkey.ss58_address,
         ))
         
-        with patch('bittensor._subtensor.subtensor_impl.register_extrinsic', side_effect=MockException) as mock_register:
+        with patch('bittensor.subtensor.register_extrinsic', side_effect=MockException) as mock_register:
             bittensor.utils.reregister(
                 wallet = mock_wallet,
                 subtensor = self._mock_subtensor,
@@ -747,7 +747,7 @@ class TestWalletReregister(unittest.TestCase):
             hotkey_ss58 = mock_wallet.hotkey.ss58_address,
         ))
         
-        with patch('bittensor._subtensor.subtensor_impl.register_extrinsic', side_effect=MockException) as mock_register:
+        with patch('bittensor.subtensor.register_extrinsic', side_effect=MockException) as mock_register:
             bittensor.utils.reregister(
                 wallet = mock_wallet,
                 subtensor = self._mock_subtensor,
@@ -768,7 +768,7 @@ class TestWalletReregister(unittest.TestCase):
         class MockException(Exception):
             pass
         
-        with patch('bittensor._subtensor.subtensor_impl.register_extrinsic', side_effect=MockException) as mock_register:
+        with patch('bittensor.extrinsics.registration.register_extrinsic', side_effect=MockException) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
                 bittensor.utils.reregister(
@@ -791,7 +791,7 @@ class TestWalletReregister(unittest.TestCase):
         class MockException(Exception):
             pass
         
-        with patch('bittensor._subtensor.subtensor_impl.register_extrinsic', side_effect=MockException) as mock_register:
+        with patch('bittensor.subtensor.register_extrinsic', side_effect=MockException) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
                 bittensor.utils.reregister(
@@ -820,7 +820,7 @@ class TestWalletReregister(unittest.TestCase):
         class MockException(Exception):
             pass
         
-        with patch('bittensor._subtensor.subtensor_impl.register_extrinsic', side_effect=MockException) as mock_register:
+        with patch('bittensor.subtensor.register_extrinsic', side_effect=MockException) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
                 bittensor.utils.reregister(
@@ -848,7 +848,7 @@ class TestWalletReregister(unittest.TestCase):
         class MockException(Exception):
             pass
 
-        with patch('bittensor._subtensor.subtensor_impl.register_extrinsic', side_effect=MockException) as mock_register:
+        with patch('bittensor.subtensor.register_extrinsic', side_effect=MockException) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
                 bittensor.utils.reregister(
