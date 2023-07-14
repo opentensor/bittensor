@@ -23,7 +23,7 @@ def setUpModule():
 class TestPrometheus(unittest.TestCase):
 
     def setUp(self):
-        self.subtensor = bittensor.subtensor(network = 'mock')
+        self.subtensor = _subtensor_mock
         self.wallet = _get_mock_wallet()
 
     def test_init_prometheus_success(self):
