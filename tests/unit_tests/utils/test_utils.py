@@ -791,7 +791,7 @@ class TestWalletReregister(unittest.TestCase):
         class MockException(Exception):
             pass
         
-        with patch('bittensor.subtensor.register', side_effect=MockException) as mock_register:
+        with patch('bittensor.extrinsics.registration.create_pow', side_effect=MockException) as mock_create_pow:
             # Should be able to set without argument
             with pytest.raises(MockException):
                 bittensor.utils.reregister(
@@ -803,10 +803,10 @@ class TestWalletReregister(unittest.TestCase):
                     reregister = True,
                 )
 
-            call_args = mock_register.call_args
+            call_args = mock_create_pow.call_args
             _, kwargs = call_args
 
-            mock_register.assert_called_once()
+            mock_create_pow.assert_called_once()
             self.assertIn('cuda', kwargs)
             self.assertEqual(kwargs['cuda'], True) 
 
@@ -820,7 +820,7 @@ class TestWalletReregister(unittest.TestCase):
         class MockException(Exception):
             pass
         
-        with patch('bittensor.subtensor.register', side_effect=MockException) as mock_register:
+        with patch('bittensor.extrinsics.registration.create_pow', side_effect=MockException) as mock_create_pow:
             # Should be able to set without argument
             with pytest.raises(MockException):
                 bittensor.utils.reregister(
@@ -832,10 +832,10 @@ class TestWalletReregister(unittest.TestCase):
                     reregister = True,
                 )
 
-            call_args = mock_register.call_args
+            call_args = mock_create_pow.call_args
             _, kwargs = call_args
 
-            mock_register.assert_called_once()
+            mock_create_pow.assert_called_once()
             self.assertEqual(kwargs['cuda'], False)
 
     def test_wallet_reregister_cuda_arg_not_specified_should_be_false(self):
@@ -848,7 +848,7 @@ class TestWalletReregister(unittest.TestCase):
         class MockException(Exception):
             pass
 
-        with patch('bittensor.subtensor.register', side_effect=MockException) as mock_register:
+        with patch('bittensor.extrinsics.registration.create_pow', side_effect=MockException) as mock_create_pow:
             # Should be able to set without argument
             with pytest.raises(MockException):
                 bittensor.utils.reregister(
@@ -859,10 +859,10 @@ class TestWalletReregister(unittest.TestCase):
                     reregister = True,
                 )
 
-            call_args = mock_register.call_args
+            call_args = mock_create_pow.call_args
             _, kwargs = call_args
 
-            mock_register.assert_called_once()
+            mock_create_pow.assert_called_once()
             self.assertEqual(kwargs['cuda'], False) # should be False by default
 
 
