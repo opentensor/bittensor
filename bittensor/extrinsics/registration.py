@@ -22,8 +22,7 @@ import bittensor
 import torch
 import time
 from rich.prompt import Confirm
-from typing import List, Dict, Union, Optional, Tuple
-import bittensor.utils.networking as net
+from typing import List, Union, Optional, Tuple
 from bittensor.utils.registration import POWSolution, create_pow
 
 def register_extrinsic (
