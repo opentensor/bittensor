@@ -23,6 +23,7 @@ import os
 import uuid
 import copy
 import time
+import inspect
 import uvicorn
 import argparse
 import threading
@@ -632,7 +633,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 # We attempt to run the verification function using the synapse instance 
                 # created from the request. If this function runs without throwing an exception,
                 # it means that the verification was successful.
-                verify_fn(synapse)
+                await verify_fn( synapse ) if inspect.iscoroutinefunction( verify_fn ) else verify_fn( synapse )
             except Exception as e:
                 # If there was an exception during the verification process, we log that 
                 # there was a verification exception.
@@ -664,10 +665,11 @@ class AxonMiddleware(BaseHTTPMiddleware):
         blacklist_fn = self.axon.blacklist_fns[synapse.name]
 
         # If a blacklist checking function exists for the request's name
-        if blacklist_fn and blacklist_fn(synapse):
+        if blacklist_fn:
             # We execute the blacklist checking function using the synapse instance as input.
             # If the function returns True, it means that the key or identifier is blacklisted.
-            if blacklist_fn(synapse):
+            blacklisted = await blacklist_fn( synapse ) if inspect.iscoroutinefunction( blacklist_fn ) else blacklist_fn( synapse )
+            if blacklisted:
                 # We log that the key or identifier is blacklisted.
                 bittensor.logging.trace(f'Blacklisted')
 
@@ -708,7 +710,8 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
                 # Submit the priority function to the thread pool for execution.
                 # The result is not used, but it allows us to set a timeout on the function execution.
-                future = self.axon.thread_pool.submit(set_event, priority=priority_fn(synapse))
+                priority = await priority_fn( synapse ) if inspect.iscoroutinefunction( priority_fn ) else priority_fn( synapse )
+                future = self.axon.thread_pool.submit(set_event, priority = priority)
 
                 # Wait for the event to be set with a specified timeout.
                 future.result(timeout=float(synapse.timeout))

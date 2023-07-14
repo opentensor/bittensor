@@ -23,7 +23,15 @@ import time
 import torch
 import httpx
 import bittensor as bt
+from IPython import get_ipython
 from typing import Union, Optional, List
+
+def am_i_in_ipython():
+    try:
+        __IPYTHON__
+        return True
+    except NameError:
+        return False
 
 class dendrite(torch.nn.Module):
     """
@@ -79,7 +87,7 @@ class dendrite(torch.nn.Module):
         # If a wallet or keypair is provided, use its hotkey. If not, generate a new one.
         self.keypair = (wallet.hotkey if isinstance(wallet, bt.Wallet) else wallet) or bt.wallet().hotkey
 
-    def sync_forward( self, *args, **kwargs ):
+    def query( self, *args, **kwargs ):
         """
         Makes a synchronous request to multiple target Axons and returns the server responses.
 
@@ -94,8 +102,15 @@ class dendrite(torch.nn.Module):
                 returns the response from that axon. If multiple target axons are provided, 
                 returns a list of responses from all target axons.
         """
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete( self.forward( *args, **kwargs ) )
+        try:
+            loop = asyncio.get_event_loop()
+            return loop.run_until_complete( self.forward( *args, **kwargs ) )
+        except:
+            new_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(new_loop)
+            result = loop.run_until_complete( self.forward( *args, **kwargs ) )
+            new_loop.close()
+            return result
 
     async def forward(
             self, 
