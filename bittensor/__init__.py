@@ -92,13 +92,10 @@ __type_registry__ = {
 
 from bittensor_config import Config as Config
 from bittensor_config import config as config
-
 from bittensor_wallet import Wallet as Wallet
 from bittensor_wallet import wallet as wallet
-
 from bittensor_wallet import Keyfile as Keyfile
 from bittensor_wallet import keyfile as keyfile
-
 from bittensor_wallet import Keypair as Keypair
 
 from .utils import *
