@@ -68,21 +68,8 @@ def setUpModule():
         difficulty = 0
     )
 
+@patch("bittensor.subtensor.__new__", new=MagicMock(return_value=_subtensor_mock))
 class TestCLIWithNetworkAndConfig(unittest.TestCase):
-    _subtensor_patch: 'unittest.mock._patcher'
-
-    @classmethod
-    def setUpClass(cls):
-        cls._subtensor_patch = patch("bittensor.subtensor.__new__", new=MagicMock(
-            return_value=_subtensor_mock
-        ))
-        cls._subtensor_patch.start()
-
-
-    @classmethod
-    def tearDownClass(cls):
-        cls._subtensor_patch.stop()
-
     def setUp(self):
         self._config = TestCLIWithNetworkAndConfig.construct_config()
 
@@ -2141,25 +2128,12 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.config = config
         cli.run()
 
+
+@patch("bittensor.subtensor.__new__", new=MagicMock(return_value=_subtensor_mock))
 class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     """
     Test the CLI by passing args directly to the bittensor.cli factory
     """
-
-    _subtensor_patch: 'unittest.mock._patcher'
-
-    @classmethod
-    def setUpClass(cls):
-        cls._subtensor_patch = patch("bittensor.subtensor.__new__", new=MagicMock(
-            return_value=_subtensor_mock
-        ))
-        cls._subtensor_patch.start()
-
-
-    @classmethod
-    def tearDownClass(cls):
-        cls._subtensor_patch.stop()
-    
     def test_list_delegates(self):
         cli = bittensor.cli(
             args=[
