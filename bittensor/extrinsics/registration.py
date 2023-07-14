@@ -105,9 +105,9 @@ def register_extrinsic (
                 if prompt:
                     bittensor.__console__.error('CUDA is not available.')
                 return False
-            pow_result: Optional[POWSolution] = create_pow( subtensor, wallet, netuid, output_in_place, cuda, dev_id, TPB, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
+            pow_result: Optional[POWSolution] = create_pow( subtensor, wallet, netuid, output_in_place, cuda=cuda, dev_id=dev_id, TPB=TPB, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
         else:
-            pow_result: Optional[POWSolution] = create_pow( subtensor, wallet, netuid, output_in_place, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
+            pow_result: Optional[POWSolution] = create_pow( subtensor, wallet, netuid, output_in_place, cuda=cuda, num_processes=num_processes, update_interval=update_interval, log_verbose=log_verbose )
 
         # pow failed
         if not pow_result:
