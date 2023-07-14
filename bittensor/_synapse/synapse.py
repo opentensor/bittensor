@@ -119,6 +119,18 @@ class SynapseCall( ABC ):
             synapse = self.name
         )
 
+    def get_summary(self):
+        return {
+            'start_time': self.start_time,
+            'timeout': self.timeout,
+            'src_version': self.src_version,
+            'hotkey': self.src_hotkey,
+            'dest_version': self.dest_version,
+            'return_code': self.return_code,
+            'return_message': self.return_message,
+            'priority': self.priority,
+        }
+
 class Synapse( ABC ):
     name: str
 

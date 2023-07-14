@@ -19,7 +19,7 @@ import grpc
 import torch
 import bittensor
 
-from typing import List, Dict, Union, Callable
+from typing import List, Dict, Union, Callable, Union
 from abc import abstractmethod
 import json
 
@@ -43,7 +43,10 @@ class SynapseForward( bittensor.SynapseCall ):
 
     def apply( self ):
         bittensor.logging.trace( "SynapseForward.apply()" )
-        self.completion = self.forward_callback( messages = self.formatted_messages )
+        self.completion = self.forward_callback( 
+            messages = self.formatted_messages,
+            log_data = self.get_summary()
+        )
         bittensor.logging.trace( "SynapseForward.apply() = ", self.completion )
 
     def get_response_proto( self ) -> bittensor.proto.ForwardTextPromptingResponse:
@@ -101,7 +104,8 @@ class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServi
         bittensor.grpc.add_TextPromptingServicer_to_server( self, self.axon.server )
 
     @abstractmethod
-    def forward( self, messages: List[Dict[str, str]] ) -> str: ...
+    def forward( self, messages: List[Dict[str, str]], log_data: Dict[str, Union[str, float]] = None) -> str: ...
+
 
     @abstractmethod
     def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: ...
