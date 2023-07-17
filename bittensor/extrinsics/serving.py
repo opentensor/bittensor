@@ -15,11 +15,11 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import bittensor
-
 import json
-from rich.prompt import Confirm
+import bittensor
+from dataclasses import asdict 
 import bittensor.utils.networking as net
+from rich.prompt import Confirm
 
 def serve_extrinsic (
     subtensor: 'bittensor.subtensor',
@@ -71,6 +71,7 @@ def serve_extrinsic (
         'port': port,
         'ip_type': net.ip_version(ip),
         'netuid': netuid,
+        'hotkey': wallet.hotkey.ss58_address,
         'coldkey': wallet.coldkeypub.ss58_address,
         'protocol': protocol,
         'placeholder1': placeholder1,
@@ -84,6 +85,7 @@ def serve_extrinsic (
             'port': neuron.axon_info.port,
             'ip_type': neuron.axon_info.ip_type,
             'netuid': neuron.netuid,
+            'hotkey': neuron.hotkey,
             'coldkey': neuron.coldkey,
             'protocol': neuron.axon_info.protocol,
             'placeholder1': neuron.axon_info.placeholder1,

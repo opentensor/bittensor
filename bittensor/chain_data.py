@@ -155,9 +155,9 @@ class AxonInfo:
     ip_type: int
     hotkey: str
     coldkey: str
-    protocol:int = 4,
-    placeholder1:int = 0,
-    placeholder2:int = 0,
+    protocol:int = 4
+    placeholder1:int = 0
+    placeholder2:int = 0
 
     @property
     def is_serving(self) -> bool:
