@@ -32,6 +32,7 @@ TORCH_DTYPES = {
     'torch.uint8': torch.uint8,
     'torch.int32': torch.int32,
     'torch.int64': torch.int64,
+    'torch.bool': torch.bool,
 }
 
 def cast_dtype(raw: Union[None, torch.dtype, str]) -> str:
