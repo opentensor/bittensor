@@ -194,3 +194,22 @@ def test_list_tensors():
     assert next_synapse.a[1].shape == [11]
     assert next_synapse.a[2].dtype == 'torch.float32'
     assert next_synapse.a[2].shape == [12]
+
+def test_dict_tensors():        
+    class Test(bittensor.Synapse):
+        a: typing.Dict[ str, bittensor.Tensor ]
+
+    synapse = Test(
+        a = { 
+            'cat': bittensor.Tensor.serialize( torch.randn(10) ),
+            'dog': bittensor.Tensor.serialize( torch.randn(11) ),
+        },
+    )
+    headers = synapse.to_headers()
+    assert 'bt_header_dict_tensor_a' in headers
+    assert headers['bt_header_dict_tensor_a'] == "['cat-[10]-torch.float32', 'dog-[11]-torch.float32']"
+    next_synapse = synapse.from_headers(synapse.to_headers())
+    assert next_synapse.a['cat'].dtype == 'torch.float32'
+    assert next_synapse.a['cat'].shape == [10]
+    assert next_synapse.a['dog'].dtype == 'torch.float32'
+    assert next_synapse.a['dog'].shape == [11]

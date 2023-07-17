@@ -398,6 +398,12 @@ class Synapse( pydantic.BaseModel ):
                     serialized_list_tensor.append(f'{tensor.shape}-{tensor.dtype}')
                 headers[f'bt_header_list_tensor_{field}'] = str( serialized_list_tensor )
 
+            elif isinstance(value, dict) and all(isinstance(elem, bittensor.Tensor) for elem in value.values() ):
+                serialized_dict_tensor = []
+                for key, tensor in value.items():
+                    serialized_dict_tensor.append(f'{key}-{tensor.shape}-{tensor.dtype}')
+                headers[f'bt_header_dict_tensor_{field}'] = str( serialized_dict_tensor )
+
             elif required and field in required:
                 serialized_value = pickle.dumps(value)
                 encoded_value = base64.b64encode(serialized_value).decode('utf-8')
@@ -464,6 +470,18 @@ class Synapse( pydantic.BaseModel ):
                         shape, dtype = value.split('-')
                         deserialized_tensors.append( bittensor.Tensor( shape = shape, dtype = dtype ) )
                     inputs_dict[new_key] = deserialized_tensors
+                except Exception as e:
+                    bittensor.logging.error(f"Error while parsing 'tensor' header {key}: {e}")
+                    continue
+            elif 'bt_header_dict_tensor_' in key:
+                try:
+                    new_key = key.split('bt_header_dict_tensor_')[1]
+                    deserialized_dict_tensors = {}
+                    stensors = ast.literal_eval(value)
+                    for value in stensors:
+                        key, shape, dtype = value.split('-')
+                        deserialized_dict_tensors[key] = bittensor.Tensor( shape = shape, dtype = dtype ) 
+                    inputs_dict[new_key] = deserialized_dict_tensors
                 except Exception as e:
                     bittensor.logging.error(f"Error while parsing 'tensor' header {key}: {e}")
                     continue
