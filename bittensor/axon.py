@@ -134,7 +134,7 @@ class axon:
     """     
 
     def info(self) -> 'bittensor.AxonInfo':
-        """Returns the axon info object associate with this axon.""" 
+        """Returns the axon info object associated with this axon.""" 
         return bittensor.AxonInfo(
             version = bittensor.__version_as_int__,
             ip = self.external_ip,
@@ -443,6 +443,22 @@ class axon:
         """
         self.fast_server.stop()
         self.started = False
+        return self
+    
+    def serve( self, netuid: int, subtensor: bittensor.subtensor = None ) -> "bittensor.axon":
+        """
+        Serves the axon on the passed subtensor connection using the axon wallet.
+
+        Args:
+            netuid: int
+                The subnet uid to register on.
+            subtensor: Optional[ bittensor.Subtensor ]
+                The subtensor connection to use for serving.
+        Returns:
+            bittensor.axon: The served Axon instance.
+        """
+        if subtensor == None: subtensor = bittensor.subtensor()
+        subtensor.serve_axon( netuid=netuid, axon = self )
         return self
             
     def default_verify( self, synapse: bittensor.Synapse ) -> Request:
