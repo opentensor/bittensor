@@ -16,6 +16,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import numpy
 import torch
 import base64
 import pytest
@@ -83,6 +84,16 @@ def cast_shape(raw: Union[None, List[int], str]) -> str:
         raise Exception(f"{raw} of type {type(raw)} does not have a valid type in Union[None, List[int], str]")
 
 
+class tensor:
+
+    def __new__(cls, tensor: Union[ list, numpy.ndarray, torch.Tensor ] ):
+        if isinstance(tensor, list):
+            tensor = torch.tensor( tensor )
+        elif isinstance( tensor, numpy.ndarray ):
+            tensor = torch.tensor( tensor )
+        return Tensor.serialize( tensor = tensor )
+    
+
 class Tensor(pydantic.BaseModel):
     """
     Represents a Tensor object.
@@ -96,7 +107,16 @@ class Tensor(pydantic.BaseModel):
     class Config:
         validate_assignment = True
 
-    def deserialize(self) -> torch.Tensor:
+    def tensor(self) -> torch.Tensor:
+        return self.deserialize()
+    
+    def tolist(self) -> List[object]:
+        return self.deserialize().tolist()
+
+    def numpy(self) -> 'numpy.ndarray':
+        return self.deserialize().detach().numpy()
+
+    def deserialize(self) -> 'torch.Tensor':
         """
         Deserializes the Tensor object.
 
@@ -113,7 +133,7 @@ class Tensor(pydantic.BaseModel):
         return torch_object.type(TORCH_DTYPES[self.dtype])
 
     @staticmethod
-    def serialize(tensor: torch.Tensor) -> 'Tensor':
+    def serialize(tensor: 'torch.Tensor') -> 'Tensor':
         """
         Serializes the given tensor.
 

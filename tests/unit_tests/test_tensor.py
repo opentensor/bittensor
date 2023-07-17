@@ -17,6 +17,7 @@
 import pytest
 import torch
 import bittensor
+import numpy
 
 # This is a fixture that creates an example tensor for testing
 @pytest.fixture
@@ -25,7 +26,7 @@ def example_tensor():
     data = torch.tensor([1, 2, 3, 4])
 
     # Serialize the tensor into a Tensor instance and return it
-    return bittensor.Tensor.serialize(data)
+    return bittensor.tensor(data)
 
 def test_deserialize(example_tensor):
     # Deserialize the tensor from the Tensor instance
@@ -43,6 +44,28 @@ def test_serialize(example_tensor):
     assert example_tensor.buffer == example_tensor.buffer
     assert example_tensor.dtype == example_tensor.dtype
     assert example_tensor.shape == example_tensor.shape
+
+    assert isinstance(example_tensor.tolist(), list)
+
+    # Check that the Tensor instance has the correct buffer, dtype, and shape
+    assert example_tensor.buffer == example_tensor.buffer
+    assert example_tensor.dtype == example_tensor.dtype
+    assert example_tensor.shape == example_tensor.shape
+
+    assert isinstance(example_tensor.numpy(), numpy.ndarray)
+
+    # Check that the Tensor instance has the correct buffer, dtype, and shape
+    assert example_tensor.buffer == example_tensor.buffer
+    assert example_tensor.dtype == example_tensor.dtype
+    assert example_tensor.shape == example_tensor.shape
+
+    assert isinstance(example_tensor.tensor(), torch.Tensor)
+
+    # Check that the Tensor instance has the correct buffer, dtype, and shape
+    assert example_tensor.buffer == example_tensor.buffer
+    assert example_tensor.dtype == example_tensor.dtype
+    assert example_tensor.shape == example_tensor.shape
+
 
 def test_buffer_field():
     # Create a Tensor instance with a specified buffer, dtype, and shape

@@ -480,7 +480,7 @@ class Synapse( pydantic.BaseModel ):
                     bittensor.logging.error(f"Error while parsing 'input_obj' header {key}: {e}")
                     continue
             else:
-                bittensor.logging.trace(f"Unexpected key in headers: {key}")  # log unexpected keys
+                pass # log unexpected keys
 
         # Assign the remaining known headers directly
         inputs_dict['timeout'] = headers.get('timeout', None)
