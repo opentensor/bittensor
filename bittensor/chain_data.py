@@ -275,8 +275,8 @@ class NeuronInfo:
     def fix_decoded_values(cls, neuron_info_decoded: Any) -> 'NeuronInfo':
         r""" Fixes the values of the NeuronInfo object.
         """
-        neuron_info_decoded['hotkey'] = ss58_encode(neuron_info_decoded['hotkey'], __ss58_format__)
-        neuron_info_decoded['coldkey'] = ss58_encode(neuron_info_decoded['coldkey'], __ss58_format__)
+        neuron_info_decoded['hotkey'] = ss58_encode(neuron_info_decoded['hotkey'], bittensor.__ss58_format__)
+        neuron_info_decoded['coldkey'] = ss58_encode(neuron_info_decoded['coldkey'], bittensor.__ss58_format__)
         stake_dict =  { ss58_encode( coldkey, bittensor.__ss58_format__): Balance.from_rao(int(stake)) for coldkey, stake in neuron_info_decoded['stake'] }
         neuron_info_decoded['stake_dict'] = stake_dict
         neuron_info_decoded['stake'] = sum(stake_dict.values())
