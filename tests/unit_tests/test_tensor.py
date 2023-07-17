@@ -87,3 +87,12 @@ def test_shape_field():
 
     # Check that the shape field matches the provided value
     assert tensor.shape == [3, 3]
+
+
+def test_serialize_all_types():
+    bittensor.tensor( torch.tensor( [1], dtype = torch.float16))
+    bittensor.tensor( torch.tensor( [1], dtype = torch.float32))
+    bittensor.tensor( torch.tensor( [1], dtype = torch.float64))
+    bittensor.tensor( torch.tensor( [1], dtype = torch.uint8))
+    bittensor.tensor( torch.tensor( [1], dtype = torch.int32))
+    bittensor.tensor( torch.tensor( [1], dtype = torch.int64))
