@@ -201,8 +201,8 @@ def test_dict_tensors():
 
     synapse = Test(
         a = { 
-            'cat': bittensor.Tensor.serialize( torch.randn(10) ),
-            'dog': bittensor.Tensor.serialize( torch.randn(11) ),
+            'cat': bittensor.tensor( torch.randn(10) ),
+            'dog': bittensor.tensor( torch.randn(11) ),
         },
     )
     headers = synapse.to_headers()

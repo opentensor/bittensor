@@ -126,9 +126,17 @@ class axon:
         # Attach the endpoint with the specified verification and forwarding functions  
         my_axon.attach(
             forward_fn = forward_my_synapse, 
-            verify_fn=verify_my_synapse,
+            verify_fn = verify_my_synapse,
             blacklist_fn = blacklist_my_synapse,
             priority_fn = prioritize_my_synape
+        ).attach(
+            forward_fn = forward_my_synapse_2, 
+            verify_fn = verify_my_synapse_2,
+            blacklist_fn = blacklist_my_synapse_2,
+            priority_fn = prioritize_my_synape_2
+        ).serve(
+            netuid = ...
+            subtensor = ...
         ).start()
         ```
     """     
@@ -458,7 +466,7 @@ class axon:
             bittensor.axon: The served Axon instance.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        subtensor.serve_axon( netuid=netuid, axon = self )
+        subtensor.serve_axon( netuid = netuid, axon = self )
         return self
             
     def default_verify( self, synapse: bittensor.Synapse ) -> Request:
