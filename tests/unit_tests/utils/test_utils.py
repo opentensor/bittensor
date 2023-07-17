@@ -514,6 +514,7 @@ class TestPOWNotStale(unittest.TestCase):
 
         assert mock_solution.is_stale(mock_subtensor)
 
+@patch('torch.cuda.is_available', return_value=True)
 class TestPOWCalled(unittest.TestCase):
     def setUp(self) -> None: 
         # Setup mock subnet
@@ -523,7 +524,7 @@ class TestPOWCalled(unittest.TestCase):
             netuid = 99
         )
 
-    def test_pow_called_for_cuda(self):
+    def test_pow_called_for_cuda(self, mock_cuda_available):
         class MockException(Exception):
             pass
         mock_pow_register_call = MagicMock(side_effect=MockException)
@@ -552,26 +553,25 @@ class TestPOWCalled(unittest.TestCase):
             is_stale=mock_pow_is_stale,
         )
 
-        with patch('torch.cuda.is_available', return_value=True) as mock_cuda_available:
-            with patch(
-                'bittensor.extrinsics.registration.create_pow',
-                return_value=mock_result
-            ) as mock_create_pow:
-                # Should exit early
-                with pytest.raises(MockException):
-                    mock_subtensor.register(mock_wallet, netuid=99, cuda=True, prompt=False)
+        with patch(
+            'bittensor.extrinsics.registration.create_pow',
+            return_value=mock_result
+        ) as mock_create_pow:
+            # Should exit early
+            with pytest.raises(MockException):
+                mock_subtensor.register(mock_wallet, netuid=99, cuda=True, prompt=False)
 
-                mock_pow_is_stale.assert_called_once()
-                mock_create_pow.assert_called_once()
-                mock_cuda_available.assert_called_once()
+            mock_pow_is_stale.assert_called_once()
+            mock_create_pow.assert_called_once()
+            mock_cuda_available.assert_called_once()
 
-                call0 = mock_pow_is_stale.call_args
-                _, kwargs = call0
-                assert kwargs['subtensor'] == mock_subtensor
+            call0 = mock_pow_is_stale.call_args
+            _, kwargs = call0
+            assert kwargs['subtensor'] == mock_subtensor
 
-                mock_pow_register_call.assert_called_once()
-                _, kwargs = mock_pow_register_call.call_args
-                kwargs['pow_result'].nonce == mock_result.nonce
+            mock_pow_register_call.assert_called_once()
+            _, kwargs = mock_pow_register_call.call_args
+            kwargs['pow_result'].nonce == mock_result.nonce
 
 
 class TestCUDASolverRun(unittest.TestCase):
