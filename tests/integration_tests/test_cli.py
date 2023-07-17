@@ -30,7 +30,7 @@ from substrateinterface.base import Keypair
 
 import bittensor
 from bittensor.utils.balance import Balance
-from tests.helpers import MockConsole, get_mock_keypair, get_mock_wallet as generate_wallet
+from tests.helpers import MockConsole, _get_mock_keypair, _get_mock_wallet as generate_wallet
 from bittensor._subtensor.subtensor_mock import MockSubtensor
 
 
@@ -109,7 +109,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_hotkeys = ["hk0", "hk1", "hk2", "hk3", "hk4"]
 
-        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
         mock_wallets = [
             SimpleNamespace(
@@ -117,7 +117,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_coldkey_kp,
                 coldkeypub=mock_coldkey_kp,
                 hotkey_str=hk,
-                hotkey=get_mock_keypair(idx + 100, self.id()),
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
                 coldkeypub_file=MagicMock(
                     exists_on_device=MagicMock(return_value=True)  # Wallet exists
                 ),
@@ -216,7 +216,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_hotkeys = ["hk0", "hk1", "hk2", "hk3", "hk4"]
 
-        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
         mock_wallets = [
             SimpleNamespace(
@@ -224,7 +224,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_coldkey_kp,
                 coldkeypub=mock_coldkey_kp,
                 hotkey_str=hk,
-                hotkey=get_mock_keypair(idx + 100, self.id()),
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
                 coldkeypub_file=MagicMock(
                     exists_on_device=MagicMock(return_value=True)  # Wallet exists
                 ),
@@ -470,7 +470,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             "hk2": bittensor.Balance.from_float(12.2),
         }
 
-        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
         mock_wallets = [
             SimpleNamespace(
@@ -478,7 +478,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_coldkey_kp,
                 coldkeypub=mock_coldkey_kp,
                 hotkey_str=hk,
-                hotkey=get_mock_keypair(idx + 100, self.id()),
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
             )
             for idx, hk in enumerate(config.hotkeys)
         ]
@@ -547,7 +547,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             "hk2": bittensor.Balance.from_float(12.2),
         }
 
-        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
         mock_wallets = [
             SimpleNamespace(
@@ -555,7 +555,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_coldkey_kp,
                 coldkeypub=mock_coldkey_kp,
                 hotkey_str=hk,
-                hotkey=get_mock_keypair(idx + 100, self.id()),
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
             )
             for idx, hk in enumerate(list(mock_stakes.keys()))
         ]
@@ -625,7 +625,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             "hk2": bittensor.Balance.from_float(12.2),
         }
 
-        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
         mock_wallets = [
             SimpleNamespace(
@@ -633,7 +633,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_coldkey_kp,
                 coldkeypub=mock_coldkey_kp,
                 hotkey_str=hk,
-                hotkey=get_mock_keypair(idx + 100, self.id()),
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
             )
             for idx, hk in enumerate(list(mock_stakes.keys()))
         ]
@@ -710,7 +710,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             "hk2": bittensor.Balance.from_float(12.2),
         }
 
-        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
         mock_wallets = [
             SimpleNamespace(
@@ -718,7 +718,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_coldkey_kp,
                 coldkeypub=mock_coldkey_kp,
                 hotkey_str=hk,
-                hotkey=get_mock_keypair(idx + 100, self.id()),
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
             )
             for idx, hk in enumerate(list(mock_stakes.keys()))
         ]
@@ -792,7 +792,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balance = bittensor.Balance.from_float(22.2)
 
-        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
         mock_wallets = [
             SimpleNamespace(
@@ -800,7 +800,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_coldkey_kp,
                 coldkeypub=mock_coldkey_kp,
                 hotkey_str=hk,
-                hotkey=get_mock_keypair(idx + 100, self.id()),
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
             )
             for idx, hk in enumerate(config.hotkeys)
         ]
@@ -867,7 +867,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balance = bittensor.Balance.from_float(22.0)
 
-        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
         mock_wallets = [
             SimpleNamespace(
@@ -875,7 +875,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_coldkey_kp,
                 coldkeypub=mock_coldkey_kp,
                 hotkey_str=hk,
-                hotkey=get_mock_keypair(idx + 100, self.id()),
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
             )
             for idx, hk in enumerate(mock_hotkeys)
         ]
@@ -965,7 +965,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balance = bittensor.Balance.from_float(25.0)
 
-        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
         mock_wallets = [
             SimpleNamespace(
@@ -973,7 +973,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_coldkey_kp,
                 coldkeypub=mock_coldkey_kp,
                 hotkey_str=hk,
-                hotkey=get_mock_keypair(idx + 100, self.id()),
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
             )
             for idx, hk in enumerate(mock_hotkeys)
         ]
@@ -1071,7 +1071,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             "hk2": bittensor.Balance.from_float(0.0),
         }
 
-        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
         mock_wallets = [
             SimpleNamespace(
@@ -1079,7 +1079,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_coldkey_kp,
                 coldkeypub=mock_coldkey_kp,
                 hotkey_str=hk,
-                hotkey=get_mock_keypair(idx + 100, self.id()),
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
             )
             for idx, hk in enumerate(config.hotkeys)
         ]
@@ -1180,7 +1180,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             15.0 * 2
         )  # Not enough for all hotkeys
 
-        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
         mock_wallets = [
             SimpleNamespace(
@@ -1188,7 +1188,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_coldkey_kp,
                 coldkeypub=mock_coldkey_kp,
                 hotkey_str=hk,
-                hotkey=get_mock_keypair(idx + 100, self.id()),
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
             )
             for idx, hk in enumerate(config.hotkeys)
         ]
@@ -1273,7 +1273,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balance = bittensor.Balance.from_float(15.0 * 3)
 
-        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
         mock_wallets = [
             SimpleNamespace(
@@ -1281,7 +1281,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_coldkey_kp,
                 coldkeypub=mock_coldkey_kp,
                 hotkey_str=hk,
-                hotkey=get_mock_keypair(idx + 100, self.id()),
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
             )
             for idx, hk in enumerate(config.hotkeys)
         ]
@@ -1361,7 +1361,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balance = bittensor.Balance.from_float(1.0)  # Not enough balance to do max
 
-        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
         mock_wallets = [
             SimpleNamespace(
@@ -1369,7 +1369,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_coldkey_kp,
                 coldkeypub=mock_coldkey_kp,
                 hotkey_str=hk,
-                hotkey=get_mock_keypair(idx + 100, self.id()),
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
             )
             for idx, hk in enumerate(config.hotkeys)
         ]
@@ -1456,7 +1456,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             "hk0": bittensor.Balance.from_float(config.max_stake * 2)
         }
 
-        mock_coldkey_kp = get_mock_keypair(0, self.id())
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
         mock_wallets = [
             SimpleNamespace(
@@ -1464,7 +1464,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=mock_coldkey_kp,
                 coldkeypub=mock_coldkey_kp,
                 hotkey_str=hk,
-                hotkey=get_mock_keypair(idx + 100, self.id()),
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
             )
             for idx, hk in enumerate(config.hotkeys)
         ]
@@ -1552,10 +1552,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_wallet = SimpleNamespace(
             name="w0",
-            coldkey=get_mock_keypair(0, self.id()),
-            coldkeypub=get_mock_keypair(0, self.id()),
+            coldkey=_get_mock_keypair(0, self.id()),
+            coldkeypub=_get_mock_keypair(0, self.id()),
             hotkey_str="hk0",
-            hotkey=get_mock_keypair(0 + 100, self.id()),
+            hotkey=_get_mock_keypair(0 + 100, self.id()),
         )
 
         # Register mock wallet and give it a balance
@@ -1615,10 +1615,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             for idx_hk, hk in enumerate(list(mock_balances[wallet_name].keys())):
                 wallet = SimpleNamespace(
                     name=wallet_name,
-                    coldkey=get_mock_keypair(idx, self.id()),
-                    coldkeypub=get_mock_keypair(idx, self.id()),
+                    coldkey=_get_mock_keypair(idx, self.id()),
+                    coldkeypub=_get_mock_keypair(idx, self.id()),
                     hotkey_str=hk,
-                    hotkey=get_mock_keypair(idx * 100 + idx_hk, self.id()),
+                    hotkey=_get_mock_keypair(idx * 100 + idx_hk, self.id()),
                 )
                 mock_wallets.append(wallet)
 
@@ -1704,10 +1704,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             for idx_hk, hk in enumerate(list(mock_balances[wallet_name].keys())):
                 wallet = SimpleNamespace(
                     name=wallet_name,
-                    coldkey=get_mock_keypair(idx, self.id()),
-                    coldkeypub=get_mock_keypair(idx, self.id()),
+                    coldkey=_get_mock_keypair(idx, self.id()),
+                    coldkeypub=_get_mock_keypair(idx, self.id()),
                     hotkey_str=hk,
-                    hotkey=get_mock_keypair(idx * 100 + idx_hk, self.id()),
+                    hotkey=_get_mock_keypair(idx * 100 + idx_hk, self.id()),
                 )
                 mock_wallets.append(wallet)
 
@@ -1803,8 +1803,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         for idx, wallet_name in enumerate(list(mock_balances.keys())):
             wallet = SimpleNamespace(
                 name=wallet_name,
-                coldkey=get_mock_keypair(idx, self.id()),
-                coldkeypub=get_mock_keypair(idx, self.id()),
+                coldkey=_get_mock_keypair(idx, self.id()),
+                coldkeypub=_get_mock_keypair(idx, self.id()),
             )
             mock_wallets.append(wallet)
 
@@ -1873,8 +1873,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         for idx, wallet_name in enumerate(list(mock_balances.keys())):
             wallet = SimpleNamespace(
                 name=wallet_name,
-                coldkey=get_mock_keypair(idx, self.id()),
-                coldkeypub=get_mock_keypair(idx, self.id()),
+                coldkey=_get_mock_keypair(idx, self.id()),
+                coldkeypub=_get_mock_keypair(idx, self.id()),
             )
             mock_wallets.append(wallet)
 
@@ -1944,7 +1944,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.no_prompt = True
 
         mock_wallet = generate_wallet(
-            hotkey = get_mock_keypair(
+            hotkey = _get_mock_keypair(
                 100, self.id()
             )
         )
@@ -1973,7 +1973,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.no_prompt = True
 
         mock_wallet = generate_wallet(
-            hotkey = get_mock_keypair(
+            hotkey = _get_mock_keypair(
                 100, self.id()
             )
         )
@@ -2013,7 +2013,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         subtensor = bittensor.subtensor(config)
 
         mock_wallet = generate_wallet(
-            hotkey = get_mock_keypair(
+            hotkey = _get_mock_keypair(
                 100, self.id()
             )
         )
@@ -2061,8 +2061,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ) -> int:
             mock_nn.append(
                 SimpleNamespace(
-                    hotkey=get_mock_keypair(i + 100, self.id()).ss58_address,
-                    coldkey=get_mock_keypair(i, self.id()).ss58_address,
+                    hotkey=_get_mock_keypair(i + 100, self.id()).ss58_address,
+                    coldkey=_get_mock_keypair(i, self.id()).ss58_address,
                     balance=Balance.from_rao(random.randint(0, 2**45)).rao,
                     stake=Balance.from_rao(random.randint(0, 2**45)).rao,
                 )
@@ -2186,12 +2186,12 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         Test delegate add command
         """
         mock_wallet = generate_wallet(
-            hotkey = get_mock_keypair(
+            hotkey = _get_mock_keypair(
                 100, self.id()
             )
         )
         delegate_wallet = generate_wallet(
-            hotkey = get_mock_keypair(
+            hotkey = _get_mock_keypair(
                 100 + 1, self.id()
             )
         )

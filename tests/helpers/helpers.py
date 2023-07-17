@@ -15,15 +15,26 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Union, Optional
-from bittensor import Balance, NeuronInfo, axon_info, PrometheusInfo, Keypair, __ss58_format__
-from scalecodec import ss58_encode
+from typing import Union
+from bittensor import Balance, NeuronInfo, axon_info, PrometheusInfo, __ss58_format__
 from rich.console import Console
 from rich.text import Text
 
-from tests.mocks.wallet_mock import MockWallet
+from bittensor_wallet.mock import MockWallet as _MockWallet, utils as _mock_wallet_utils
 
-from Crypto.Hash import keccak
+_get_mock_coldkey = _mock_wallet_utils.get_mock_coldkey
+_get_mock_hotkey = _mock_wallet_utils.get_mock_hotkey
+_get_mock_keypair = _mock_wallet_utils.get_mock_keypair
+_get_mock_wallet = _mock_wallet_utils.get_mock_wallet
+
+
+def __mock_wallet_factory__(*args, **kwargs) -> _MockWallet:
+    """Returns a mock wallet object."""
+
+    mock_wallet = _get_mock_wallet()
+
+    return mock_wallet
+
 
 class CLOSE_IN_VALUE():
     value: Union[float, int, Balance]
@@ -40,24 +51,7 @@ class CLOSE_IN_VALUE():
                 ((__o - self.tolerance) <= self.value and self.value <= (__o + self.tolerance))
 
 
-def get_mock_keypair( uid: int, test_name: Optional[str] = None ) -> Keypair:
-    """
-    Returns a mock keypair from a uid and optional test_name.
-    If test_name is not provided, the uid is the only seed.
-    If test_name is provided, the uid is hashed with the test_name to create a unique seed for the test.
-    """
-    if test_name is not None:
-        hashed_test_name: bytes = keccak.new(digest_bits=256, data=test_name.encode('utf-8')).digest()
-        hashed_test_name_as_int: int = int.from_bytes(hashed_test_name, byteorder='big', signed=False)
-        uid = uid + hashed_test_name_as_int
 
-    return Keypair.create_from_seed( seed_hex = int.to_bytes(uid, 32, 'big', signed=False), ss58_format = __ss58_format__)
-
-def get_mock_hotkey( uid: int ) -> str:
-    return get_mock_keypair(uid).ss58_address
-
-def get_mock_coldkey( uid: int ) -> str:
-    return get_mock_keypair(uid).ss58_address
 
 def get_mock_neuron(**kwargs) -> NeuronInfo:
     """
@@ -124,28 +118,10 @@ def get_mock_neuron(**kwargs) -> NeuronInfo:
 def get_mock_neuron_by_uid( uid: int, **kwargs ) -> NeuronInfo:
     return get_mock_neuron(
         uid = uid,
-        hotkey = get_mock_hotkey(uid),
-        coldkey = get_mock_coldkey(uid),
+        hotkey = _get_mock_hotkey(uid),
+        coldkey = _get_mock_coldkey(uid),
         **kwargs
     )
-
-def get_mock_wallet(coldkey: "Keypair" = None, hotkey: "Keypair" = None):
-    wallet = MockWallet(
-        name = 'mock_wallet',
-        hotkey = 'mock',
-        path = '/tmp/mock_wallet',
-    )
-
-    if not coldkey:
-        coldkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-    if not hotkey:
-        hotkey = Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
-
-    wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)
-    wallet.set_coldkeypub(coldkey, encrypt=False, overwrite=True)
-    wallet.set_hotkey(hotkey, encrypt=False, overwrite=True)
-
-    return wallet
 
 class MockStatus:
     def __enter__(self):
