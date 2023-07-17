@@ -25,8 +25,11 @@ import msgpack_numpy
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
 TORCH_DTYPES = {
+    'torch.float16': torch.float16,
     'torch.float32': torch.float32,
     'torch.float64': torch.float64,
+    'torch.uint8': torch.uint8,
+    'torch.int32': torch.int32,
     'torch.int64': torch.int64,
 }
 
