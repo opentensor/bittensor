@@ -194,7 +194,7 @@ class dendrite(torch.nn.Module):
             bt.logging.debug(f"dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success")
             
             # Make the HTTP POST request
-            json_response = await self.client.post(url, headers=synapse.to_headers(), json=synapse.dict())
+            json_response = await self.client.post( url, headers=synapse.to_headers(), json=synapse.dict(), timeout = timeout )
             
             # Process the server response
             self.process_server_response(json_response, synapse)
@@ -203,11 +203,17 @@ class dendrite(torch.nn.Module):
             synapse.dendrite.process_time = str(time.time() - start_time)
             bt.logging.debug(f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.axon.status_code} | {synapse.axon.status_message}")
 
+        except httpx.TimeoutException as e:
+            # Set the status code of the synapse to "406" which indicates a timeout error.
+            synapse.dendrite.status_code = '406'
+            synapse.dendrite.status_message = f"Timedout after {timeout} seconds."
+            bt.logging.debug(f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}")
+
         except Exception as e:    
             # Handle failure to parse response and log the error
             synapse.dendrite.status_code = '406'
             synapse.dendrite.status_message = f"Failed to parse response object with error: {str(e)}"
-            bt.logging.debug(f"dendrite | <-- | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}")
+            bt.logging.debug(f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}")
 
         finally:
             # Return the updated synapse object after deserializing if requested
