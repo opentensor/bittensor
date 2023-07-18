@@ -34,7 +34,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ $VERSION_TYPE != "major" && $VERSION_TYPE != "minor" && $VERSION_TYPE != "patch" && $VERSION_TYPE != "rc" ]]; then
-  echo_error "Incorrect version type (-V|--version). Version types accepted: {major, minor, patch}"
+  echo_error "Incorrect version type (-U|--update). Version types accepted: {major, minor, patch}"
   exit 1
 fi
 

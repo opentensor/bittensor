@@ -118,6 +118,7 @@ class dendrite(torch.nn.Module):
             synapse: bt.Synapse = bt.Synapse(), 
             timeout: float = 12,
             deserialize: bool = True,
+            run_async: bool = True,
         ) -> bt.Synapse:
         """
         Makes asynchronous requests to multiple target Axons and returns the server responses.
@@ -139,12 +140,26 @@ class dendrite(torch.nn.Module):
         if not isinstance(axons, list):
             axons = [axons]
 
-        # Build coroutines for all axons
+        # This asynchronous function is used to send queries to all axons.
         async def query_all_axons():
-            coroutines = [ self.call( target_axon = target_axon, synapse = synapse, timeout = timeout, deserialize = deserialize ) for target_axon in axons]
-            all_responses = await asyncio.gather(*coroutines)
-            return all_responses
-        
+            # If the 'run_async' flag is not set, the code runs synchronously.
+            if not run_async:
+                # Create an empty list to hold the responses from all axons.
+                all_responses = []
+                # Loop through each axon in the 'axons' list.
+                for target_axon in axons:
+                    # The response from each axon is then appended to the 'all_responses' list.
+                    all_responses.append( await self.call( target_axon = target_axon, synapse = synapse.copy(), timeout = timeout, deserialize = deserialize ) )
+                # The function then returns a list of responses from all axons.
+                return all_responses
+            else:
+                # Here we build a list of coroutines without awaiting them.
+                coroutines = [ self.call( target_axon = target_axon, synapse = synapse, timeout = timeout, deserialize = deserialize ) for target_axon in axons]
+                # 'asyncio.gather' is a method which takes multiple coroutines and runs them in parallel.
+                all_responses = await asyncio.gather(*coroutines)
+                # The function then returns a list of responses from all axons.
+                return all_responses
+
         # Run all requests concurrently and get the responses
         responses = await query_all_axons()
 
@@ -306,6 +321,7 @@ class dendrite(torch.nn.Module):
     
         # Extract server headers and overwrite None values in local synapse headers
         server_headers = bt.Synapse.from_headers(server_response.headers)
+        print ( server_response.headers )
 
         # Merge dendrite headers
         local_synapse.dendrite.__dict__.update(**(local_synapse.dendrite.dict(exclude_none=True) | server_headers.dendrite.dict(exclude_none=True)))
