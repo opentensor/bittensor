@@ -154,7 +154,7 @@ class dendrite(torch.nn.Module):
                 return all_responses
             else:
                 # Here we build a list of coroutines without awaiting them.
-                coroutines = [ self.call( target_axon = target_axon, synapse = synapse, timeout = timeout, deserialize = deserialize ) for target_axon in axons]
+                coroutines = [ self.call( target_axon = target_axon, synapse = synapse.copy(), timeout = timeout, deserialize = deserialize ) for target_axon in axons]
                 # 'asyncio.gather' is a method which takes multiple coroutines and runs them in parallel.
                 all_responses = await asyncio.gather(*coroutines)
                 # The function then returns a list of responses from all axons.
