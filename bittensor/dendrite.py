@@ -321,7 +321,6 @@ class dendrite(torch.nn.Module):
     
         # Extract server headers and overwrite None values in local synapse headers
         server_headers = bt.Synapse.from_headers(server_response.headers)
-        print ( server_response.headers )
 
         # Merge dendrite headers
         local_synapse.dendrite.__dict__.update(**(local_synapse.dendrite.dict(exclude_none=True) | server_headers.dendrite.dict(exclude_none=True)))
