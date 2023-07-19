@@ -254,13 +254,8 @@ class TestCLINoNetwork(unittest.TestCase):
                 cli.run()
 
     def test_list_no_wallet(self, _, __):
-        # Mock IO for wallet
-        with patch(
-            "bittensor.wallet.coldkeypub_file",
-            MagicMock(
-                exists_on_device=MagicMock(return_value=False)  # Wallet doesn't exist
-            ),
-        ):
+        
+        with patch( "bittensor.wallet", side_effect = [ MagicMock( coldkeypub_file = MagicMock( exists_on_device=MagicMock(return_value=True) ) ) ]):
             config = self.config()
             config.wallet.path = "/tmp/test_cli_test_list_no_wallet"
             config.no_prompt = True

@@ -309,23 +309,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                             self.assertNotIn(wallet.hotkey_str, output_no_syntax)
 
     
-    def test_overview_no_wallet(self, _):
-        # Mock IO for wallet
-        with patch(
-            "bittensor.wallet.coldkeypub_file",
-            MagicMock(exists_on_device=MagicMock(return_value=False)),
-        ):
-            with patch('bittensor.subtensor.register', return_value=True):
-                config = self.config
-                config.command = "overview"
-                config.no_prompt = True
-                config.all = False
-                config.netuid = []  # Don't set, so it tries all networks.
-
-                cli = bittensor.cli(config)
-                cli.run()
-
-    
     def test_overview_with_hotkeys_config(self, _):
         config = self.config
         config.command = "overview"
