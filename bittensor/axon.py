@@ -506,7 +506,7 @@ class axon:
                 raise Exception("Nonce is too small")
             
         if not keypair.verify(message, synapse.dendrite.signature):
-            raise Exception("Signature mismatch")
+            raise Exception(f"Signature mismatch with {message} and {synapse.dendrite.signature}")
         
         # Success
         self.nonces[endpoint_key] = synapse.dendrite.nonce
