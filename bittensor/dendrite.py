@@ -198,7 +198,7 @@ class dendrite(torch.nn.Module):
 
         # Build request endpoint from the synapse class
         request_name = synapse.__class__.__name__
-        endpoint = f"localhost:{str(target_axon.port)}" if target_axon.ip == str(self.external_ip) else f"{target_axon.ip}:{str(target_axon.port)}"
+        endpoint = f"0.0.0.0:{str(target_axon.port)}" if target_axon.ip == str(self.external_ip) else f"{target_axon.ip}:{str(target_axon.port)}"
         url = f"http://{endpoint}/{request_name}"
 
         # Preprocess synapse for making a request
