@@ -218,19 +218,20 @@ class dendrite(torch.nn.Module):
             synapse.dendrite.process_time = str(time.time() - start_time)
             bt.logging.debug(f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.axon.status_code} | {synapse.axon.status_message}")
 
+        except httpx.ConnectError as e:
+            synapse.dendrite.status_code = '503'
+            synapse.dendrite.status_message = f"Service at {synapse.axon.ip}:{str(synapse.axon.port)}/{request_name} unavailable."
+
         except httpx.TimeoutException as e:
-            # Set the status code of the synapse to "406" which indicates a timeout error.
             synapse.dendrite.status_code = '406'
             synapse.dendrite.status_message = f"Timedout after {timeout} seconds."
-            bt.logging.debug(f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}")
 
         except Exception as e:    
-            # Handle failure to parse response and log the error
-            synapse.dendrite.status_code = '406'
+            synapse.dendrite.status_code = '422'
             synapse.dendrite.status_message = f"Failed to parse response object with error: {str(e)}"
-            bt.logging.debug(f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}")
 
         finally:
+            bt.logging.debug(f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}")
             # Return the updated synapse object after deserializing if requested
             if deserialize:
                 return synapse.deserialize()
