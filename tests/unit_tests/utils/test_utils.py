@@ -519,7 +519,7 @@ class TestPOWCalled(unittest.TestCase):
     def setUp(self) -> None: 
         # Setup mock subnet
         self._subtensor = MockSubtensor( )
-
+        self._subtensor.reset()
         self._subtensor.create_subnet(
             netuid = 99
         )
@@ -530,6 +530,8 @@ class TestPOWCalled(unittest.TestCase):
         mock_pow_register_call = MagicMock(side_effect=MockException)
 
         mock_subtensor = MockSubtensor( )
+        mock_subtensor.reset()
+        mock_subtensor.create_subnet(netuid = 99)
         mock_subtensor.get_neuron_for_pubkey_and_subnet=MagicMock(is_null=True)
         mock_subtensor._do_pow_register = mock_pow_register_call
 
