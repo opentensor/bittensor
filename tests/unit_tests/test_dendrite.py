@@ -62,7 +62,7 @@ class AsyncMock(Mock):
 
 
 def test_dendrite_create_wallet():
-    with patch('bittensor.wallet.__new__', new=lambda x: _get_mock_wallet()):
+    with patch('bittensor.wallet', new=lambda x: _get_mock_wallet()):
         d = bt.dendrite()
     d = bt.dendrite(_get_mock_wallet())
     d = bt.dendrite(_get_mock_wallet().hotkey)
@@ -71,7 +71,7 @@ def test_dendrite_create_wallet():
 
 
 @pytest.mark.asyncio
-@patch('bittensor.wallet.__new__', new=lambda x: _get_mock_wallet())
+@patch('bittensor.wallet', new=lambda x: _get_mock_wallet())
 async def test_forward_many():
     n = 10
     d = bt.dendrite()
@@ -88,7 +88,7 @@ async def test_forward_many():
     resp = await d.forward(axons[0])
     assert len([resp]) == 1
 
-@patch('bittensor.wallet.__new__', new=lambda x: _get_mock_wallet())
+@patch('bittensor.wallet', new=lambda x: _get_mock_wallet())
 def test_pre_process_synapse():
     d = bt.dendrite()
     s = bt.Synapse()

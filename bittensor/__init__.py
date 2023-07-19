@@ -95,13 +95,10 @@ __type_registry__ = {
     },
 }
 
-from bittensor_config import Config as Config
-from bittensor_config import config as config
-from bittensor_wallet import Wallet as Wallet
-from bittensor_wallet import wallet as wallet
-from bittensor_wallet import Keyfile as Keyfile
-from bittensor_wallet import keyfile as keyfile
-from bittensor_wallet import Keypair as Keypair
+from substrateinterface import Keypair as Keypair
+from .config import *
+from .keyfile import *
+from .wallet import *
 
 from .utils import *
 from .utils.balance import Balance as Balance
@@ -111,9 +108,22 @@ from .subtensor import subtensor as subtensor
 from .cli import cli as cli, COMMANDS as ALL_COMMANDS
 from .logging import logging as logging
 from .metagraph import metagraph as metagraph
-from .threadpool import PriorityThreadPoolExecutor
+from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
 from .synapse import * 
 from .tensor import *
 from .axon import axon as axon
 from .dendrite import dendrite as dendrite
+
+from .mock.keyfile_mock import MockKeyfile as MockKeyfile
+from .mock.subtensor_mock import MockSubtensor as MockSubtensor
+from .mock.wallet_mock import MockWallet as MockWallet
+
+configs = [
+    axon.config(),
+    subtensor.config(),
+    PriorityThreadPoolExecutor.config(),
+    wallet.config(),
+    logging.config(),
+]
+defaults = config.merge_all( configs )
