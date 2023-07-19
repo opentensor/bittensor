@@ -95,6 +95,9 @@ __type_registry__ = {
     },
 }
 
+
+from .errors import *
+
 from substrateinterface import Keypair as Keypair
 from .config import *
 from .keyfile import *
@@ -103,7 +106,6 @@ from .wallet import *
 from .utils import *
 from .utils.balance import Balance as Balance
 from .chain_data import *
-from .errors import *
 from .subtensor import subtensor as subtensor
 from .cli import cli as cli, COMMANDS as ALL_COMMANDS
 from .logging import logging as logging
