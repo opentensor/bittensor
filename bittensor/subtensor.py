@@ -114,7 +114,7 @@ class subtensor:
         ) -> None:
         r""" Initializes a subtensor chain interface.
             Args:
-                config (:obj:`bittensor.Config`, `optional`):
+                config (:obj:`bittensor.config`, `optional`):
                     bittensor.subtensor.config()
                 network (default='local', type=str)
                     The subtensor network flag. The likely choices are:

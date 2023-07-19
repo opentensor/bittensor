@@ -333,7 +333,7 @@ class OverviewCommand:
         bittensor.subtensor.add_args( overview_parser )
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         if not config.is_set('wallet.name') and not config.no_prompt and not config.get( 'all', d=None ):
             wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)

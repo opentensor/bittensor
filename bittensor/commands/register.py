@@ -93,7 +93,7 @@ class RegisterCommand:
         bittensor.subtensor.add_args( register_parser )
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         check_netuid_set( config, subtensor = bittensor.subtensor( config = config ) )
 
         if not config.is_set('wallet.name') and not config.no_prompt:
@@ -170,7 +170,7 @@ class RecycleRegisterCommand:
         bittensor.subtensor.add_args( recycle_register_parser )
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         if not config.is_set('subtensor.network') and not config.no_prompt:
             config.subtensor.network = Prompt.ask("Enter subtensor network", choices=bittensor.__networks__, default = defaults.subtensor.network)
 

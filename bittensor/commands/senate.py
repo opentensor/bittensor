@@ -60,7 +60,7 @@ class SenateCommand:
         console.print(table)
 
     @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
+    def check_config( cls, config: 'bittensor.config' ):
         None
 
     @classmethod
@@ -160,7 +160,7 @@ class ProposalsCommand:
         console.print(table)
 
     @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
+    def check_config( cls, config: 'bittensor.config' ):
         None
 
     @classmethod
@@ -230,7 +230,7 @@ class ShowVotesCommand:
         console.print(table)
 
     @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
+    def check_config( cls, config: 'bittensor.config' ):
         if config.proposal_hash == "" and not config.no_prompt:
             proposal_hash = Prompt.ask("Enter proposal hash")
             config.proposal_hash = str(proposal_hash)
@@ -294,7 +294,7 @@ class SenateRegisterCommand:
         )
 
     @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
+    def check_config( cls, config: 'bittensor.config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -349,7 +349,7 @@ class SenateLeaveCommand:
         )
 
     @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
+    def check_config( cls, config: 'bittensor.config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -418,7 +418,7 @@ class VoteCommand:
         )
 
     @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
+    def check_config( cls, config: 'bittensor.config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)

@@ -55,7 +55,7 @@ class wallet:
     """
 
     @classmethod
-    def config(cls) -> 'bittensor.Config':
+    def config(cls) -> 'bittensor.config':
         """
         Get config from the argument parser.
         
@@ -114,7 +114,7 @@ class wallet:
             name (str, optional): The name of the wallet to unlock for running bittensor. Defaults to 'default'.
             hotkey (str, optional): The name of hotkey used to running the miner. Defaults to 'default'.
             path (str, optional): The path to your bittensor wallets. Defaults to '~/.bittensor/wallets/'.
-            config (bittensor.Config, optional): bittensor.wallet.config(). Defaults to None.
+            config (bittensor.config, optional): bittensor.wallet.config(). Defaults to None.
         """
         # Fill config from passed args using command line defaults.
         if config is None:

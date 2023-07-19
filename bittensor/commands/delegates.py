@@ -182,7 +182,7 @@ class DelegateStakeCommand:
         bittensor.subtensor.add_args( delegate_stake_parser )
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         if not config.get('delegate_ss58key'):
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
@@ -280,7 +280,7 @@ class DelegateUnstakeCommand:
         bittensor.subtensor.add_args( undelegate_stake_parser )
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -356,7 +356,7 @@ class ListDelegatesCommand:
         bittensor.subtensor.add_args( list_delegates_parser )
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         pass
 
 
@@ -407,7 +407,7 @@ class NominateCommand:
         bittensor.subtensor.add_args( nominate_parser )
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -525,7 +525,7 @@ class MyDelegatesCommand:
         bittensor.subtensor.add_args( delegate_stake_parser )
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         if not config.get( 'all', d=None ) and not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
