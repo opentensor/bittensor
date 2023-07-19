@@ -48,7 +48,7 @@ class logging:
 
     def __new__(
             cls,
-            config: 'bittensor.Config' = None,
+            config: 'bittensor.config' = None,
             debug: bool = None,
             trace: bool = None,
             record_log: bool = None,
@@ -56,7 +56,7 @@ class logging:
         ):
         r""" Instantiate bittensor logging system backend.
             Args:
-                config (:obj:`bittensor.Config`, `optional`):
+                config (:obj:`bittensor.config`, `optional`):
                     bittensor.logging.config()
                 debug (:obj:`bool`, `optional`):
                     Turn on debug.
@@ -156,7 +156,7 @@ class logging:
             pass
 
     @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
+    def check_config( cls, config: 'bittensor.config' ):
         """ Check config
         """
         assert config.logging

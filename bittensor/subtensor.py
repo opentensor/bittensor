@@ -85,6 +85,9 @@ class subtensor:
             parser.add_argument('--' + prefix_str + 'subtensor.chain_endpoint', default = default_chain_endpoint, type=str,
                                 help='''The subtensor endpoint flag. If set, overrides the --network flag.
                                     ''')
+            parser.add_argument('--' + prefix_str + 'subtensor._mock', default = False, type=bool,
+                                help='''If true, uses a mocked connection to the chain.
+                                    ''')
 
         except argparse.ArgumentError:
             # re-parsing arguments.
@@ -107,10 +110,11 @@ class subtensor:
             network: str = None,
             chain_endpoint: str = None,
             config: 'bittensor.config' = None,
+            _mock: bool = False,
         ) -> None:
         r""" Initializes a subtensor chain interface.
             Args:
-                config (:obj:`bittensor.Config`, `optional`):
+                config (:obj:`bittensor.config`, `optional`):
                     bittensor.subtensor.config()
                 network (default='local', type=str)
                     The subtensor network flag. The likely choices are:
@@ -127,12 +131,40 @@ class subtensor:
         # Argument importance: chain_endpoint > network > config.subtensor.chain_endpoint > config.subtensor.network
         if config == None: config = subtensor.config()
         self.config = copy.deepcopy( config )
+
+        # Returns a mocked connection with a background chain connection.
+        self.config.subtensor._mock = _mock if _mock != None else self.config.subtensor._mock
+        if config.subtensor._mock == True or network == 'mock' or self.config.subtensor.get('network', bittensor.defaults.subtensor.network) == 'mock':
+            config.subtensor._mock = True
+            return bittensor.subtensor_mock.MockSubtensor()
+
+        # Select using chain_endpoint arg.
         if chain_endpoint != None:
             self.config.subtensor.chain_endpoint = chain_endpoint
-            self.config.subtensor.network = 'endpoint'
+            if network != None:
+                self.config.subtensor.network = network
+            else:
+                self.config.subtensor.network = self.config.subtensor.get('network', bittensor.defaults.subtensor.network)
+
+        # Select using network arg.
         elif network != None:
-            self.config.subtensor.network = network
             self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( network )
+            self.config.subtensor.network = network
+
+        # Select using config.subtensor.chain_endpoint
+        elif config.subtensor.chain_endpoint != None:
+            self.config.subtensor.chain_endpoint = config.subtensor.chain_endpoint
+            self.config.subtensor.network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
+
+        # Select using config.subtensor.network
+        elif config.subtensor.get('network', bittensor.defaults.subtensor.network) != None:
+            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( config.subtensor.get('network', bittensor.defaults.subtensor.network) )
+            self.config.subtensor.network = self.config.subtensor.get('network', bittensor.defaults.subtensor.network)
+
+        # Fallback to defaults.
+        else:
+            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( bittensor.defaults.subtensor.network )
+            self.config.subtensor.network = bittensor.defaults.subtensor.network
 
         # Set up params.
         self.network = self.config.subtensor.network
@@ -331,7 +363,7 @@ class subtensor:
     def _do_pow_register(
         self,
         netuid: int,
-        wallet: 'bittensor.Wallet',
+        wallet: 'bittensor.wallet',
         pow_result: POWSolution,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
@@ -339,7 +371,7 @@ class subtensor:
         """ Sends a (POW) register extrinsic to the chain.
             Args:
                 netuid (int): the subnet to register on.
-                wallet (bittensor.Wallet): the wallet to register.
+                wallet (bittensor.wallet): the wallet to register.
                 pow_result (POWSolution): the pow result to register.
                 wait_for_inclusion (bool): if true, waits for the extrinsic to be included in a block.
                 wait_for_finalization (bool): if true, waits for the extrinsic to be finalized.
@@ -380,7 +412,7 @@ class subtensor:
     def _do_burned_register(
         self,
         netuid: int,
-        wallet: 'bittensor.Wallet',
+        wallet: 'bittensor.wallet',
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
@@ -435,7 +467,7 @@ class subtensor:
     
     def get_transfer_fee(
         self,
-        wallet: 'bittensor.Wallet',
+        wallet: 'bittensor.wallet',
         dest: str,
         value: Union[Balance, float, int],
     ) -> Balance:
@@ -649,7 +681,7 @@ class subtensor:
 
     def add_stake_multiple (
         self,
-        wallet: 'bittensor.Wallet',
+        wallet: 'bittensor.wallet',
         hotkey_ss58s: List[str],
         amounts: List[Union[Balance, float]] = None,
         wait_for_inclusion: bool = True,
@@ -661,7 +693,7 @@ class subtensor:
     
     def _do_stake(
         self,
-        wallet: 'bittensor.Wallet',
+        wallet: 'bittensor.wallet',
         hotkey_ss58: str,
         amount: Balance,
         wait_for_inclusion: bool = True,
@@ -669,7 +701,7 @@ class subtensor:
     ) -> bool:
         """ Sends a stake extrinsic to the chain.
             Args:
-                wallet (:obj:`bittensor.Wallet`): Wallet object that can sign the extrinsic.
+                wallet (:obj:`bittensor.wallet`): Wallet object that can sign the extrinsic.
                 hotkey_ss58 (:obj:`str`): Hotkey ss58 address to stake to.
                 amount (:obj:`Balance`): Amount to stake.
                 wait_for_inclusion (:obj:`bool`): If true, waits for inclusion before returning.
@@ -729,7 +761,7 @@ class subtensor:
     
     def _do_unstake(
         self,
-        wallet: 'bittensor.Wallet',
+        wallet: 'bittensor.wallet',
         hotkey_ss58: str,
         amount: Balance,
         wait_for_inclusion: bool = True,
@@ -737,7 +769,7 @@ class subtensor:
     ) -> bool:
         """ Sends an unstake extrinsic to the chain.
             Args:
-                wallet (:obj:`bittensor.Wallet`): Wallet object that can sign the extrinsic.
+                wallet (:obj:`bittensor.wallet`): Wallet object that can sign the extrinsic.
                 hotkey_ss58 (:obj:`str`): Hotkey ss58 address to unstake from.
                 amount (:obj:`Balance`): Amount to unstake.
                 wait_for_inclusion (:obj:`bool`): If true, waits for inclusion before returning.

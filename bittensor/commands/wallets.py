@@ -44,7 +44,7 @@ class RegenColdkeyCommand:
         wallet.regenerate_coldkey( mnemonic = cli.config.mnemonic, seed = cli.config.seed, json = (json_str, json_password), use_password = cli.config.use_password, overwrite = cli.config.overwrite_coldkey )
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -128,7 +128,7 @@ class RegenColdkeypubCommand:
         wallet.regenerate_coldkeypub( ss58_address=cli.config.get('ss58_address'), public_key=cli.config.get('public_key_hex'), overwrite = cli.config.overwrite_coldkeypub )
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -204,7 +204,7 @@ class RegenHotkeyCommand:
         wallet.regenerate_hotkey( mnemonic = cli.config.mnemonic, seed=cli.config.seed, json = (json_str, json_password), use_password = cli.config.use_password, overwrite = cli.config.overwrite_hotkey)
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -295,7 +295,7 @@ class NewHotkeyCommand:
         wallet.create_new_hotkey( n_words = cli.config.n_words, use_password = cli.config.use_password, overwrite = cli.config.overwrite_hotkey)
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -351,7 +351,7 @@ class NewColdkeyCommand:
         wallet.create_new_coldkey( n_words = cli.config.n_words, use_password = cli.config.use_password, overwrite = cli.config.overwrite_coldkey)
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         if not config.is_set('wallet.name') and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = defaults.wallet.name)
             config.wallet.name = str(wallet_name)

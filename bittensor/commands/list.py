@@ -68,7 +68,7 @@ class ListCommand:
         print(root)
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         pass
 
     @staticmethod

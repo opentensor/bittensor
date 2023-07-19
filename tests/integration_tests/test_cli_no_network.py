@@ -19,7 +19,7 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
-from typing import Any
+from typing import Any, Optional
 import pytest
 from copy import deepcopy
 import re
@@ -256,7 +256,7 @@ class TestCLINoNetwork(unittest.TestCase):
     def test_list_no_wallet(self, _, __):
         # Mock IO for wallet
         with patch(
-            "bittensor.Wallet.coldkeypub_file",
+            "bittensor.wallet.coldkeypub_file",
             MagicMock(
                 exists_on_device=MagicMock(return_value=False)  # Wallet doesn't exist
             ),

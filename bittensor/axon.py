@@ -167,7 +167,7 @@ class axon:
     ) -> "bittensor.axon":
         r"""Creates a new bittensor.Axon object from passed arguments.
         Args:
-            config (:obj:`Optional[bittensor.Config]`, `optional`):
+            config (:obj:`Optional[bittensor.config]`, `optional`):
                 bittensor.axon.config()
             wallet (:obj:`Optional[bittensor.wallet]`, `optional`):
                 bittensor wallet with hotkey and coldkeypub.

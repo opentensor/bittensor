@@ -30,6 +30,7 @@ class MetagraphCommand:
         console = bittensor.__console__
         subtensor = bittensor.subtensor( config = cli.config )
         console.print(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.network))
+        print("netuid in metagraphCommand:", cli.config.netuid)
         metagraph: bittensor.metagraph = subtensor.metagraph( netuid = cli.config.netuid )
         metagraph.save()
         difficulty = subtensor.difficulty( cli.config.netuid )
@@ -104,7 +105,7 @@ class MetagraphCommand:
         console.print(table)
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         check_netuid_set( config, subtensor = bittensor.subtensor( config = config ) )
 
     @staticmethod

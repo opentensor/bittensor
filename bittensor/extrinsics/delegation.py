@@ -28,13 +28,13 @@ logger = logger.opt(colors=True)
 
 def nominate_extrinsic(
     subtensor: 'bittensor.subtensor',
-    wallet: 'bittensor.Wallet',
+    wallet: 'bittensor.wallet',
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True
 ) -> bool:
     r""" Becomes a delegate for the hotkey.
     Args:
-        wallet ( bittensor.Wallet ):
+        wallet ( bittensor.wallet ):
             The wallet to become a delegate for.
     Returns:
         success (bool):
