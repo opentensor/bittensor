@@ -25,7 +25,7 @@ import yaml
 import copy
 from munch import Munch
 from typing import List, Optional
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser, Namespace, SUPPRESS, _SubParsersAction
 
 
 class config(Munch):
@@ -81,10 +81,11 @@ class config(Munch):
             config_file_path = None
 
         # Parse args not strict
-        params = config.__parse_args__(args=args, parser=parser, strict=False)
+        config_params = config.__parse_args__(args=args, parser=parser, strict=False)
 
         # 2. Optionally check for --strict, if strict we will parse the args strictly.
-        strict = params.strict
+        ## strict=True when passed in OR when --strict is set
+        strict = config_params.strict or strict
 
         if config_file_path is not None:
             config_file_path = os.path.expanduser(config_file_path)
@@ -101,8 +102,13 @@ class config(Munch):
 
         _config = self
 
+        # Make the is_set map
+        _config['__is_set'] = {}
+
         # Splits params on dot syntax i.e neuron.axon_port
+        # The is_set map only sets True if a value is different from the default values.
         for arg_key, arg_val in params.__dict__.items():
+            # default_val = parser.get_default(arg_key)
             split_keys = arg_key.split('.')
             head = _config
             keys = split_keys
@@ -116,6 +122,48 @@ class config(Munch):
                     keys = keys[1:]
             if len(keys) == 1:
                 head[keys[0]] = arg_val
+                # if arg_val != default_val:
+                #     _config['__is_set'][arg_key] = True
+
+        ## Reparse args using default of unset
+        parser_no_defaults = copy.deepcopy(parser)
+        ## Get all args by name
+        default_params = parser.parse_args(
+                args=[_config.get('command')] # Only command as the arg, else no args
+                    if _config.get('command') != None
+                    else []
+        )
+        all_default_args = default_params.__dict__.keys() | []
+        ## Make a dict with keys as args and values as argparse.SUPPRESS
+        defaults_as_suppress = {
+            key: SUPPRESS for key in all_default_args
+        }
+        ## Set the defaults to argparse.SUPPRESS, should remove them from the namespace
+        parser_no_defaults.set_defaults(**defaults_as_suppress)
+        parser_no_defaults._defaults.clear() # Needed for quirk of argparse
+
+        ### Check for subparsers and do the same
+        if parser_no_defaults._subparsers != None:
+            for action in parser_no_defaults._subparsers._actions:
+                # Should only be the "command" subparser action
+                if isinstance(action, _SubParsersAction):
+                    # Set the defaults to argparse.SUPPRESS, should remove them from the namespace
+                    # Each choice is the keyword for a command, we need to set the defaults for each of these
+                    ## Note: we also need to clear the _defaults dict for each, this is a quirk of argparse
+                    cmd_parser: ArgumentParser
+                    for cmd_parser in action.choices.values():
+                        cmd_parser.set_defaults(**defaults_as_suppress)
+                        cmd_parser._defaults.clear() # Needed for quirk of argparse
+                
+        ## Reparse the args, but this time with the defaults as argparse.SUPPRESS
+        params_no_defaults = self.__parse_args__(args=args, parser=parser_no_defaults, strict=strict)
+
+        ## Diff the params and params_no_defaults to get the is_set map
+        _config['__is_set'] = {
+            arg_key: True 
+                for arg_key in [k for k, _ in filter(lambda kv: kv[1] != SUPPRESS, params_no_defaults.__dict__.items())]
+        }
+
 
     @staticmethod
     def __parse_args__(args: List[str], parser: ArgumentParser = None, strict: bool = False) -> Namespace:
@@ -223,144 +271,13 @@ class config(Munch):
             result.merge(cfg)
         return result
 
+
     def is_set(self, param_name: str) -> bool:
         """
         Returns a boolean indicating whether the parameter has been set or is still the default.
-
-        Args:
-            param_name (str):
-                The name of the parameter to check.
-
-        Returns:
-            bool:
-                True if the parameter is set, False otherwise.
         """
-        keys = param_name.split('.')
-        if len(keys) == 1:
-            return keys[0] in self
+        if param_name not in self.get('__is_set'):
+            return False
         else:
-            next_config = self.get(keys[0])
-            if isinstance(next_config, config):
-                return next_config.is_set('.'.join(keys[1:]))
-            else:
-                return False
+            return self.get('__is_set')[param_name]
             
-#########
-# Tests #
-#########         
-
-import os
-import yaml
-import unittest
-import argparse
-import bittensor
-from argparse import ArgumentParser
-from unittest.mock import MagicMock
-
-def test_strict():
-    parser = argparse.ArgumentParser()
-    # Positional/mandatory arguments don't play nice with multiprocessing.
-    # When the CLI is used, the argument is just the 0th element or the filepath.
-    # However with multiprocessing this function call actually comes from a subprocess, and so there
-    # is no positional argument and this raises an exception when we try to parse the args later.
-    # parser.add_argument("arg", help="Dummy Args")
-    parser.add_argument("--cov", help="Dummy Args")
-    parser.add_argument("--cov-append", action='store_true', help="Dummy Args")
-    parser.add_argument("--cov-config",  help="Dummy Args")
-    bittensor.logging.add_args( parser )
-    bittensor.wallet.add_args( parser )
-    bittensor.subtensor.add_args( parser )
-    bittensor.axon.add_args( parser )
-    bittensor.config( parser, strict=False)
-    bittensor.config( parser, strict=True)
-
-def test_prefix():
-    # Test the use of prefixes to instantiate all of the bittensor objects.
-    parser = argparse.ArgumentParser()
-
-    mock_wallet = MagicMock(
-        spec=bittensor.wallet,
-        coldkey=MagicMock(),
-        coldkeypub=MagicMock(
-            # mock ss58 address
-            ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
-        ),
-        hotkey=MagicMock(
-            ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
-        ),
-    )
-
-    bittensor.logging.add_args( parser )
-    bittensor.logging.add_args( parser, prefix = 'second' )
-
-    bittensor.wallet.add_args( parser )
-    bittensor.wallet.add_args( parser, prefix = 'second' )
-
-    bittensor.subtensor.add_args( parser )
-    bittensor.subtensor.add_args( parser, prefix = 'second'  )
-
-    bittensor.axon.add_args( parser )
-    bittensor.axon.add_args( parser, prefix = 'second' )
-
-    config_non_strict = bittensor.config( parser, strict=False)
-    config_strict = bittensor.config( parser, strict=True)
-
-    bittensor.axon( wallet=mock_wallet, config=config_strict ).stop()
-    bittensor.axon( wallet=mock_wallet, config=config_non_strict ).stop()
-    bittensor.axon( wallet=mock_wallet, config=config_strict.second ).stop()
-    bittensor.axon( wallet=mock_wallet, config=config_non_strict.second ).stop()
-
-    bittensor.wallet( config_strict )
-    bittensor.wallet( config_non_strict )
-    bittensor.wallet( config_strict.second )
-    bittensor.wallet( config_non_strict.second )
-
-    bittensor.logging( config_strict )
-    bittensor.logging( config_non_strict )
-    bittensor.logging( config_strict.second )
-    bittensor.logging( config_non_strict.second )
-
-
-class TestConfig(unittest.TestCase):
-    def setUp(self):
-        self.parser = ArgumentParser()
-        self.parser.add_argument('--name', type=str, default='John')
-        self.parser.add_argument('--age', type=int, default=30)
-        self.parser.add_argument('--nested.param', type=float, default=1.23)
-
-    def test_config_creation_from_parser(self):
-        args = ['--name', 'Alice', '--age', '25', '--nested.param', '4.56']
-        cfg = config(self.parser, args)
-        
-        # Check if the values are correctly set
-        self.assertEqual(cfg.name, 'Alice')
-        self.assertEqual(cfg.age, 25)
-        self.assertEqual(cfg.nested.param, 4.56)
-
-    def test_config_merge(self):
-        # Create two config objects
-        cfg1 = config(self.parser, ['--name', 'Alice', '--age', '25'])
-        cfg2 = config(self.parser, ['--age', '30', '--nested.param', '4.56'])
-
-        # Merge the two configs
-        cfg2.merge(cfg1)
-
-        # Check if the values are correctly merged
-        self.assertEqual(cfg1.name, 'Alice')
-        self.assertEqual(cfg1.age, 25)
-        self.assertEqual(cfg1.nested.param, 1.23)
-
-    def test_config_is_set(self):
-        cfg = config(self.parser, ['--name', 'Alice'])
-        
-        # Check if the parameters are correctly set
-        self.assertTrue(cfg.is_set('name'))
-        self.assertTrue(cfg.is_set('age'))
-        self.assertTrue(cfg.is_set('nested.param'))
-    
-        # Check if nested parameters are correctly set
-        self.assertTrue(cfg.is_set('nested'))
-        self.assertTrue(cfg.is_set('nested.param'))
-
-if __name__ == '__main__':
-    unittest.main()
