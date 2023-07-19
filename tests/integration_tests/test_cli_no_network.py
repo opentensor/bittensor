@@ -969,7 +969,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         delegate_ss58 = _get_mock_coldkey(0)
         with patch("bittensor.commands.delegates.show_delegates"):
             with patch(
-                "bittensor.subtensor.get_delegates",
+                "bittensor.subtensor.subtensor.get_delegates",
                 return_value=[
                     bittensor.DelegateInfo(
                         hotkey_ss58=delegate_ss58,  # return delegate with mock coldkey
@@ -1055,7 +1055,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         delegate_ss58 = _get_mock_coldkey(0)
         with patch("bittensor.commands.delegates.show_delegates"):
             with patch(
-                "bittensor.subtensor.get_delegates",
+                "bittensor.subtensor.subtensor.get_delegates",
                 return_value=[
                     bittensor.DelegateInfo(
                         hotkey_ss58=delegate_ss58,  # return delegate with mock coldkey
