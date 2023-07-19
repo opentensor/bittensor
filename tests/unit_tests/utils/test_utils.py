@@ -687,8 +687,14 @@ class TestWalletReregister(unittest.TestCase):
 
         class MockException(Exception):
             pass
-        
-        with patch('bittensor.subtensor.subtensor.register', side_effect=MockException) as mock_register:
+
+        # Determine the correct string for patch based on Python version
+        if sys.version_info >= (3, 11):
+            patch_string = 'bittensor.subtensor.subtensor.register'
+        else:
+            patch_string = 'bittensor.subtensor.register'
+
+        with patch(patch_string, side_effect=MockException) as mock_register:
             with pytest.raises(SystemExit): # should exit because it's not registered
                 bittensor.utils.reregister(
                     wallet = mock_wallet,
@@ -718,8 +724,14 @@ class TestWalletReregister(unittest.TestCase):
             netuid = 3,
             hotkey_ss58 = mock_wallet.hotkey.ss58_address,
         ))
-        
-        with patch('bittensor.subtensor.subtensor.register', side_effect=MockException) as mock_register:
+
+        # Determine the correct string for patch based on Python version
+        if sys.version_info >= (3, 11):
+            patch_string = 'bittensor.subtensor.subtensor.register'
+        else:
+            patch_string = 'bittensor.subtensor.register'
+
+        with patch(patch_string, side_effect=MockException) as mock_register:
             bittensor.utils.reregister(
                 wallet = mock_wallet,
                 subtensor = self._mock_subtensor,
@@ -749,7 +761,13 @@ class TestWalletReregister(unittest.TestCase):
             hotkey_ss58 = mock_wallet.hotkey.ss58_address,
         ))
         
-        with patch('bittensor.subtensor.subtensor.register', side_effect=MockException) as mock_register:
+        # Determine the correct string for patch based on Python version
+        if sys.version_info >= (3, 11):
+            patch_string = 'bittensor.subtensor.subtensor.register'
+        else:
+            patch_string = 'bittensor.subtensor.register'
+
+        with patch(patch_string, side_effect=MockException) as mock_register:
             bittensor.utils.reregister(
                 wallet = mock_wallet,
                 subtensor = self._mock_subtensor,
@@ -769,8 +787,14 @@ class TestWalletReregister(unittest.TestCase):
 
         class MockException(Exception):
             pass
+
+        # Determine the correct string for patch based on Python version
+        if sys.version_info >= (3, 11):
+            patch_string = 'bittensor.subtensor.subtensor.register'
+        else:
+            patch_string = 'bittensor.subtensor.register'
         
-        with patch('bittensor.subtensor.subtensor.register', side_effect=MockException) as mock_register:
+        with patch(patch_string, side_effect=MockException) as mock_register:
             # Should be able to set without argument
             with pytest.raises(MockException):
                 bittensor.utils.reregister(
