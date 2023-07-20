@@ -135,9 +135,10 @@ class dendrite(torch.nn.Module):
                 returns the response from that axon. If multiple target axons are provided, 
                 returns a list of responses from all target axons.
         """
-        
+        is_list = True
         # If a single axon is provided, wrap it in a list for uniform processing
         if not isinstance(axons, list):
+            is_list = False
             axons = [axons]
 
         # This asynchronous function is used to send queries to all axons.
@@ -164,7 +165,7 @@ class dendrite(torch.nn.Module):
         responses = await query_all_axons()
 
         # Return the single response if only one axon was targeted, else return all responses
-        if len(responses) == 1:
+        if len(responses) == 1 and not is_list:
             return responses[0]
         else:
             return responses
