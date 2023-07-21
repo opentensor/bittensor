@@ -30,7 +30,9 @@ This is the fastest way to get an answer and the core development team is active
 ## What should I know before I get started?
 Bittensor is still in the Alpha stages, and as such you will likely run into some problems in deploying your model or installing Bittensor itself. If you run into an issue or end up resolving an issue yourself, feel free to create a pull request with a fix or with a fix to the documentation. The documentation repository can be found [here](https://github.com/opentensor/docs). 
 
-Additionally, note that the entire implementation of Bittensor cnosists of two separate repositories: [The core Bittensor code](https://github.com/opentensor/bittensor) and the Bittensor Blockchain [subtensor](https://github.com/opentensor/subtensor).
+Additionally, note that the core implementation of Bittensor consists of two separate repositories: [The core Bittensor code](https://github.com/opentensor/bittensor) and the Bittensor Blockchain [subtensor](https://github.com/opentensor/subtensor).
+
+Supplemental, yet necessary repositories are [openvalidators](https://github.com/opentensor/validators) and [openminers](https://github.com/opentensor/miners).
 
 ## How Can I Contribute?
 
@@ -76,7 +78,7 @@ In general, all pull requests must:
   - Where bugs are fixed, where possible, there should be unit tests demonstrating the bug and also proving the fix. This helps prevent regression.
   - Change relevant comments and documentation when behaviour of code changes.
 
-#### Process
+#### Pull Request Process
 Please follow these steps to have your contribution considered by the maintainers:
 
 *Before* creating the PR:
@@ -121,7 +123,7 @@ Here is a quick summary:
 Remember, testing is crucial for maintaining code health, catching issues early, and facilitating the addition of new features or refactoring of existing code.
 
 
-#### Address Feedback
+#### Addressing Feedback
 
 After submitting your pull request, expect comments and reviews from other contributors. You can add more commits to your pull request by committing them locally and pushing to your fork.
 
@@ -227,4 +229,4 @@ Enhancement suggestions are tracked as [GitHub issues](https://guides.github.com
 * **Specify which version of Bittensor are you using?** You can get the exact version by checking for `__version__` in [`bittensor/bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/master/bittensor/__init__.py#L30).
 * **Specify the name and version of the OS you're using.**
 
-Thank you for considering contributing to Bittensor! Any help is greatly appreciated along this journey to incentivize permissionless intelligence.
+Thank you for considering contributing to Bittensor! Any help is greatly appreciated along this journey to incentivize open and permissionless intelligence.
