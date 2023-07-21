@@ -107,7 +107,7 @@ Before creating bug reports, please check [this list](#before-submitting-a-bug-r
 
 * **Check the [debugging guide](https://opentensor.github.io/bittensor/debugging.html).** You might be able to find the cause of the problem and fix things yourself. Most importantly, check if you can reproduce the problem in the latest version of Bittensor by updating to the latest Master branch changes.
 * **Check the [Discord Server](https://discord.gg/7wvFuPJZgq)** and ask in #running-a-node channel or #contributions.
-* **Determine which repository the problem should be reported in**: if it has to do with your ML model, then it's likely [Bittensor](https://github.com/opentensor/bittensor). If you are having problems with your emissions or Blockchain, then it is in [subtensor](https://github.com/opentensor/subtensor) 
+* **Determine which repository the problem should be reported in**: if it has to do with your ML model, then it's likely [Bittensor](https://github.com/opentensor/bittensor). If you are having problems with your emissions or Blockchain, then it is in [subtensor](https://github.com/opentensor/subtensor). 
 
 #### How Do I Submit A (Good) Bug Report?
 
@@ -116,27 +116,27 @@ Bugs are tracked as [GitHub issues](https://guides.github.com/features/issues/).
 Explain the problem and include additional details to help maintainers reproduce the problem:
 
 * **Use a clear and descriptive title** for the issue to identify the problem.
-* **Describe the exact steps which reproduce the problem** in as many details as possible. For example, start by explaining how you started Bittensor, e.g. which command exactly you used in the terminal, or how you started Bittensor otherwise. When listing steps, **don't just say what you did, but explain how you did it**. For example, if you ran Bittensor with a set of custom configs, explain if you used a config file or command line arguments. 
+* **Describe the exact steps which reproduce the problem** in as many details as possible. For example, start by explaining how you started Bittensor, e.g., which command exactly you used in the terminal, or how you started Bittensor otherwise. When listing steps, **don't just say what you did, but explain how you did it**. For example, if you ran Bittensor with a set of custom configs, explain if you used a config file or command line arguments. 
 * **Provide specific examples to demonstrate the steps**. Include links to files or GitHub projects, or copy/pasteable snippets, which you use in those examples. If you're providing snippets in the issue, use [Markdown code blocks](https://help.github.com/articles/markdown-basics/#multiple-lines).
 * **Describe the behavior you observed after following the steps** and point out what exactly is the problem with that behavior.
 * **Explain which behavior you expected to see instead and why.**
 * **Include screenshots and animated GIFs** which show you following the described steps and clearly demonstrate the problem. You can use [this tool](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and [this tool](https://github.com/colinkeenan/silentcast) or [this tool](https://github.com/GNOME/byzanz) on Linux.
-* **If you're reporting that Bittensor crashed**, include a crash report with a stack trace from the operating system. On macOS, the crash report will be available in `Console.app` under "Diagnostic and usage information" > "User diagnostic reports". Include the crash report in the issue in a [code block](https://help.github.com/articles/markdown-basics/#multiple-lines), a [file attachment](https://help.github.com/articles/file-attachments-on-issues-and-pull-requests/), or put it in a [gist](https://gist.github.com/) and provide link to that gist.
-* **If the problem is related to performance or memory**, include a CPU profile capture with your report, if you're using a GPU then include a GPU profile capture as well. Look into the [PyTorch Profiler](https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html) to look at memory usage of your model.
+* **If you're reporting that Bittensor crashed**, include a crash report with a stack trace from the operating system. On macOS, the crash report will be available in `Console.app` under "Diagnostic and usage information" > "User diagnostic reports". Include the crash report in the issue in a [code block](https://help.github.com/articles/markdown-basics/#multiple-lines), a [file attachment](https://help.github.com/articles/file-attachments-on-issues-and-pull-requests/), or put it in a [gist](https://gist.github.com/) and provide a link to that gist.
+* **If the problem is related to performance or memory**, include a CPU profile capture with your report. If you're using a GPU, then include a GPU profile capture as well. Look into the [PyTorch Profiler](https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html) to look at memory usage of your model.
 * **If the problem wasn't triggered by a specific action**, describe what you were doing before the problem happened and share more information using the guidelines below.
 
 Provide more context by answering these questions:
 
-* **Did the problem start happening recently** (e.g. after updating to a new version of Bittensor) or was this always a problem?
+* **Did the problem start happening recently** (e.g., after updating to a new version of Bittensor) or was this always a problem?
 * If the problem started happening recently, **can you reproduce the problem in an older version of Bittensor?** 
 * **Can you reliably reproduce the issue?** If not, provide details about how often the problem happens and under which conditions it normally happens.
 
 Include details about your configuration and environment:
 
 * **Which version of Bittensor are you using?** You can get the exact version by checking for `__version__` in `[bittensor/bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/master/bittensor/__init__.py#L9).
-* **What's the name and version of the OS you're using**?
-* **Are you running Bittensor in a virtual machine?** If so, which VM software are you using and which operating systems and versions are used for the host and the guest?
-* **Are you running Bittensor in a dockerized container?** If so, have you made sure that your docker container contains your latest changes and is up to date with Master branch?
+* **What's the name and version of the OS you're using?**
+* **Are you running Bittensor in a virtual machine?** If so, which VM software are you using, and which operating systems and versions are used for the host and the guest?
+* **Are you running Bittensor in a dockerized container?** If so, have you made sure that your docker container contains your latest changes and is up to date with the Master branch?
 * **Are you using [local configuration files](https://opentensor.github.io/getting-started/configuration.html)** `config.yaml` to customize your Bittensor experiment? If so, provide the contents of that config file, preferably in a [code block](https://help.github.com/articles/markdown-basics/#multiple-lines) or with a link to a [gist](https://gist.github.com/).
 
 ### Suggesting Enhancements
@@ -148,7 +148,7 @@ Before creating enhancement suggestions, please check [this list](#before-submit
 #### Before Submitting An Enhancement Suggestion
 
 * **Check the [debugging guide](https://opentensor.github.io/bittensor/debugging.html).** for tips — you might discover that the enhancement is already available. Most importantly, check if you're using the latest version of Bittensor by pulling the latest changes from the Master branch and if you can get the desired behavior by changing [Bittensor's config settings](https://opentensor.github.io/getting-started/configuration.html).
-* **Determine which repository the problem should be reported in: if it has to do with your ML model, then it's likely [Bittensor](https://github.com/opentensor/bittensor). If you are having problems with your emissions or Blockchain, then it is in [subtensor](https://github.com/opentensor/subtensor) 
+* **Determine which repository the problem should be reported in**: If it has to do with your ML model, then it's likely [Bittensor](https://github.com/opentensor/bittensor). If you are having problems with your emissions or blockchain, then it is in [subtensor](https://github.com/opentensor/subtensor). 
 
 #### How Do I Submit A (Good) Enhancement Suggestion?
 
@@ -173,7 +173,7 @@ Examples:
     scripts: Fix second script
     log: Fix typo in log message
 
-The body of the pull request should contain sufficient description of *what* the
+The body of the pull request should contain a sufficient description of *what* the
 patch does, and even more importantly, *why*, with justification and reasoning.
 You should include references to any discussions (for example, other issues or
 mailing list discussions).
@@ -181,7 +181,7 @@ mailing list discussions).
 The description for a new pull request should not contain any `@` mentions. The
 PR description will be included in the commit message when the PR is merged and
 any users mentioned in the description will be annoyingly notified each time a
-fork of BBittensor copies the merge. Instead, make any username mentions in a
+fork of Bittensor copies the merge. Instead, make any username mentions in a
 subsequent comment to the PR.
 
 
@@ -285,7 +285,7 @@ where possible keep them short, uncomplex and easy to verify.
 
 Pull requests that refactor the code should not be made by new contributors. It
 requires a certain level of experience to know where the code belongs to and to
-understand the full ramification (including rebase effort of open pull requests).
+understand the full ramifications (including rebase effort of open pull requests).
 
 Trivial pull requests or pull requests that refactor the code with no clear
 benefits may be immediately closed by the maintainers to reduce unnecessary
@@ -295,92 +295,23 @@ workload on reviewing.
 
 ### Peer Review
 
-Anyone may participate in peer review which is expressed by comments in the pull
-request. Typically reviewers will review the code for obvious errors, as well as
-test out the patch set and opine on the technical merits of the patch. Project
-maintainers take into account the peer review when determining if there is
-consensus to merge a pull request (remember that discussions may have been
-spread out over GitHub, mailing list and IRC discussions).
+Anyone may participate in peer review which is expressed by comments in the pull request. Typically reviewers will review the code for obvious errors, as well as test out the patch set and opine on the technical merits of the patch. Project maintainers take into account the peer review when determining if there is consensus to merge a pull request (remember that discussions may have taken place elsewhere, not just on GitHub). The following language is used within pull-request comments:
 
-Code review is a burdensome but important part of the development process, and
-as such, certain types of pull requests are rejected. In general, if the
-**improvements** do not warrant the **review effort** required, the PR has a
-high chance of being rejected. It is up to the PR author to convince the
-reviewers that the changes warrant the review effort, and if reviewers are
-"Concept NACK'ing" the PR, the author may need to present arguments and/or do
-research backing their suggested changes.
+- ACK means "I have tested the code and I agree it should be merged";
+- NACK means "I disagree this should be merged", and must be accompanied by sound technical justification. NACKs without accompanying reasoning may be disregarded;
+- utACK means "I have not tested the code, but I have reviewed it and it looks OK, I agree it can be merged";
+- Concept ACK means "I agree in the general principle of this pull request";
+- Nit refers to trivial, often non-blocking issues.
 
-#### Conceptual Review
+Reviewers should include the commit(s) they have reviewed in their comments. This can be done by copying the commit SHA1 hash.
 
-A review can be a conceptual review, where the reviewer leaves a comment
- * `Concept (N)ACK`, meaning "I do (not) agree with the general goal of this pull
-   request",
- * `Approach (N)ACK`, meaning `Concept ACK`, but "I do (not) agree with the
-   approach of this change".
+A pull request that changes consensus-critical code is considerably more involved than a pull request that adds a feature to the wallet, for example. Such patches must be reviewed and thoroughly tested by several reviewers who are knowledgeable about the changed subsystems. Where new features are proposed, it is helpful for reviewers to try out the patch set on a test network and indicate that they have done so in their review. Project maintainers will take this into consideration when merging changes.
 
-A `NACK` needs to include a rationale why the change is not worthwhile.
-NACKs without accompanying reasoning may be disregarded.
+For a more detailed description of the review process, see the [Code Review section of the contribution guidelines](CODE_REVIEW_DOCS.md).
 
-#### Code Review
 
-After conceptual agreement on the change, code review can be provided. A review
-begins with `ACK BRANCH_COMMIT`, where `BRANCH_COMMIT` is the top of the PR
-branch, followed by a description of how the reviewer did the review. The
-following language is used within pull request comments:
+### Release Policy
 
-  - "I have tested the code", involving change-specific manual testing in
-    addition to running the unit, functional, or fuzz tests, and in case it is
-    not obvious how the manual testing was done, it should be described;
-  - "I have not tested the code, but I have reviewed it and it looks
-    OK, I agree it can be merged";
-  - A "nit" refers to a trivial, often non-blocking issue.
+The project leader is the release manager for each Bittensor release.
 
-Project maintainers reserve the right to weigh the opinions of peer reviewers
-using common sense judgement and may also weigh based on merit. Reviewers that
-have demonstrated a deeper commitment and understanding of the project over time
-or who have clear domain expertise may naturally have more weight, as one would
-expect in all walks of life.
-
-Where a patch set affects consensus-critical code, the bar will be much
-higher in terms of discussion and peer review requirements, keeping in mind that
-mistakes could be very costly to the wider community. This includes refactoring
-of consensus-critical code.
-
-Where a patch set proposes to change the Bittensor consensus, it must have been
-discussed extensively on the mailing list and IRC, be accompanied by a widely
-discussed BIP and have a generally widely perceived technical consensus of being
-a worthwhile change based on the judgement of the maintainers.
-
-### Finding Reviewers
-
-As most reviewers are themselves developers with their own projects, the review
-process can be quite lengthy, and some amount of patience is required. If you find
-that you've been waiting for a pull request to be given attention for several
-months, there may be a number of reasons for this, some of which you can do something
-about:
-
-  - It may be because of a feature freeze due to an upcoming release. During this time,
-    only bug fixes are taken into consideration. If your pull request is a new feature,
-    it will not be prioritized until after the release. Wait for the release.
-  - It may be because the changes you are suggesting do not appeal to people. Rather than
-    nits and critique, which require effort and means they care enough to spend time on your
-    contribution, thundering silence is a good sign of widespread (mild) dislike of a given change
-    (because people don't assume *others* won't actually like the proposal). Don't take
-    that personally, though! Instead, take another critical look at what you are suggesting
-    and see if it: changes too much, is too broad, doesn't adhere to the
-    [developer notes](doc/developer-notes.md), is dangerous or insecure, is messily written, etc.
-    Identify and address any of the issues you find. Then ask e.g. on IRC if someone could give
-    their opinion on the concept itself.
-  - It may be because your code is too complex for all but a few people, and those people
-    may not have realized your pull request even exists. A great way to find people who
-    are qualified and care about the code you are touching is the
-    [Git Blame feature](https://docs.github.com/en/github/managing-files-in-a-repository/managing-files-on-github/tracking-changes-in-a-file). Simply
-    look up who last modified the code you are changing and see if you can find
-    them and give them a nudge. Don't be incessant about the nudging, though.
-  - Finally, if all else fails, ask on IRC or elsewhere for someone to give your pull request
-    a look. If you think you've been waiting for an unreasonably long time (say,
-    more than a month) for no particular reason (a few lines changed, etc.),
-    this is totally fine. Try to return the favor when someone else is asking
-    for feedback on their code, and the universe balances out.
-  - Remember that the best thing you can do while waiting is give review to others!
-
+For more details, please see [Release Guidelines](RELEASE_GUIDELINES.md).
