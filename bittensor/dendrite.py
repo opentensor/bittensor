@@ -62,7 +62,8 @@ class dendrite(torch.nn.Module):
 
     def __init__(
             self, 
-            wallet: Optional[Union['bt.wallet', 'bt.keypair']] = None
+            wallet: Optional[Union['bt.wallet', 'bt.keypair']] = None,
+            timeout: float = 12.0
         ):
         """
         Initializes the Dendrite object, setting up essential properties.
@@ -79,7 +80,7 @@ class dendrite(torch.nn.Module):
         self.uuid = str(uuid.uuid1())
 
         # HTTP client for making requests
-        self.client = httpx.AsyncClient()
+        self.client = httpx.AsyncClient(timeout=timeout)
 
         # Get the external IP
         self.external_ip = bt.utils.networking.get_external_ip()
