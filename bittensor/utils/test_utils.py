@@ -13,7 +13,7 @@ def get_random_unused_port(allocated_ports: Set = set()):
     tries = 0
     while tries < max_tries:
         tries += 1
-        port = randint(2**14, 2**16 - 1)
+        port = randint(2 ** 14, 2 ** 16 - 1)
 
         if port not in allocated_ports and not port_in_use(port):
             allocated_ports.add(port)

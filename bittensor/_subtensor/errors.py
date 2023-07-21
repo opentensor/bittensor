@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+
 class ChainError(BaseException):
     r""" Base error for any chain related errors.
     """
@@ -49,6 +50,7 @@ class UnstakeError(ChainTransactionError):
     r""" Error raised when an unstake transaction fails.
     """
     pass
+
 
 class NominationError(ChainTransactionError):
     r""" Error raised when a nomination transaction fails.

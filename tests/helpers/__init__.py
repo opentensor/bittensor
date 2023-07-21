@@ -15,4 +15,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from .helpers import _get_mock_coldkey, _get_mock_hotkey, _get_mock_keypair, _get_mock_wallet, CLOSE_IN_VALUE, MockConsole
+from .helpers import (
+    _get_mock_coldkey,
+    _get_mock_hotkey,
+    _get_mock_keypair,
+    _get_mock_wallet,
+    CLOSE_IN_VALUE,
+    MockConsole,
+)

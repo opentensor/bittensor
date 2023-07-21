@@ -19,9 +19,11 @@
 
 import time
 
-class timed_rolling_avg():
+
+class timed_rolling_avg:
     """ A exponential moving average that updates values based on time since last update.
     """
+
     def __init__(self, initial_value, alpha):
         self.value = initial_value
         self.alpha = alpha
@@ -36,9 +38,11 @@ class timed_rolling_avg():
         new_value = new_value / time_delta
         self.value = (1 - self.alpha) * self.value + self.alpha * new_value
 
-class AmountPerSecondRollingAverage():
+
+class AmountPerSecondRollingAverage:
     """ A exponential moving average that counts quantity per second.
     """
+
     def __init__(self, initial_value=0, alpha=0.1):
         self.value = initial_value
         self.alpha = alpha
@@ -60,9 +64,10 @@ class AmountPerSecondRollingAverage():
         return float(self.value)
 
 
-class EventsPerSecondRollingAverage():
+class EventsPerSecondRollingAverage:
     """ A exponential moving average that counts the number of events per second.
     """
+
     def __init__(self, initial_value, alpha):
         self.value = initial_value
         self.alpha = alpha

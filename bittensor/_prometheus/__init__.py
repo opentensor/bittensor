@@ -26,6 +26,7 @@ from prometheus_client import start_http_server
 from enum import Enum
 
 from loguru import logger
+
 logger = logger.opt(colors=True)
 
 
@@ -34,10 +35,11 @@ class prometheus:
     """
 
     # Prometheus global logging levels.
-    class level ( Enum ):
+    class level(Enum):
         OFF = "OFF"
         INFO = "INFO"
         DEBUG = "DEBUG"
+
         def __str__(self):
             return self.value
 
@@ -47,14 +49,14 @@ class prometheus:
 
     def __new__(
         cls,
-        wallet: 'bittensor.wallet',
+        wallet: "bittensor.wallet",
         netuid: int,
-        config: 'bittensor.config' = None,
+        config: "bittensor.config" = None,
         port: int = None,
         level: Union[str, "prometheus.level"] = None,
         network: str = None,
         chain_endpoint: str = None,
-        subtensor: 'bittensor.subtensor' = None,
+        subtensor: "bittensor.subtensor" = None,
     ):
         """ Instantiates a global prometheus DB which can be accessed by other processes.
             Each prometheus DB is designated by a port.
@@ -80,89 +82,107 @@ class prometheus:
             config = prometheus.config()
 
         if isinstance(level, prometheus.level):
-            level = level.name # Convert ENUM to str.
+            level = level.name  # Convert ENUM to str.
 
-        if subtensor == None: subtensor = bittensor.subtensor( network = network, chain_endpoint = chain_endpoint)
+        if subtensor == None:
+            subtensor = bittensor.subtensor(
+                network=network, chain_endpoint=chain_endpoint
+            )
 
         config.prometheus.port = port if port != None else config.prometheus.port
         config.prometheus.level = level if level != None else config.prometheus.level
 
         if isinstance(config.prometheus.level, str):
-            config.prometheus.level = config.prometheus.level.upper() # Convert str to upper case.
+            config.prometheus.level = (
+                config.prometheus.level.upper()
+            )  # Convert str to upper case.
 
-        cls.check_config( config )
+        cls.check_config(config)
 
         return cls.serve(
             cls,
-            wallet = wallet,
-            netuid = netuid,
-            subtensor = subtensor,
-            port = config.prometheus.port,
-            level = config.prometheus.level,
+            wallet=wallet,
+            netuid=netuid,
+            subtensor=subtensor,
+            port=config.prometheus.port,
+            level=config.prometheus.level,
         )
 
     def serve(cls, wallet, subtensor, netuid, port, level) -> bool:
-        if level == prometheus.level.OFF.name: # If prometheus is off, return true.
-            logger.success('Prometheus:'.ljust(20) + '<red>OFF</red>')
+        if level == prometheus.level.OFF.name:  # If prometheus is off, return true.
+            logger.success("Prometheus:".ljust(20) + "<red>OFF</red>")
             return True
         else:
             # Serve prometheus. Not OFF
             serve_success = subtensor.serve_prometheus(
-                wallet = wallet,
-                port = port,
-                netuid = netuid,
+                wallet=wallet, port=port, netuid=netuid
             )
             if serve_success:
                 try:
-                    start_http_server( port )
+                    start_http_server(port)
                 except OSError:
                     # The singleton process is likely already running.
-                    logger.error( "Prometheus:".ljust(20) + "<blue>{}</blue>  <red>already in use</red> ".format( port ) )
+                    logger.error(
+                        "Prometheus:".ljust(20)
+                        + "<blue>{}</blue>  <red>already in use</red> ".format(port)
+                    )
                 prometheus.started = True
                 prometheus.port = port
-                logger.success( "Prometheus:".ljust(20) + "<green>ON</green>".ljust(20) + "using: <blue>[::]:{}</blue>".format( port ))
+                logger.success(
+                    "Prometheus:".ljust(20)
+                    + "<green>ON</green>".ljust(20)
+                    + "using: <blue>[::]:{}</blue>".format(port)
+                )
                 return True
             else:
-                logger.error('Prometheus:'.ljust(20) + '<red>OFF</red>')
-                raise RuntimeError('Failed to serve neuron.')
+                logger.error("Prometheus:".ljust(20) + "<red>OFF</red>")
+                raise RuntimeError("Failed to serve neuron.")
 
     @classmethod
-    def config(cls) -> 'bittensor.Config':
+    def config(cls) -> "bittensor.Config":
         """ Get config from the argument parser
         Return: bittensor.config object
         """
         parser = argparse.ArgumentParser()
         cls.add_args(parser=parser)
-        return bittensor.config( parser )
+        return bittensor.config(parser)
 
     @classmethod
     def help(cls):
         """ Print help to stdout
         """
         parser = argparse.ArgumentParser()
-        cls.add_args( parser )
-        print (cls.__new__.__doc__)
+        cls.add_args(parser)
+        print(cls.__new__.__doc__)
         parser.print_help()
 
     @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         """ Accept specific arguments from parser
         """
-        prefix_str = '' if prefix == None else prefix + '.'
+        prefix_str = "" if prefix == None else prefix + "."
         if prefix is not None:
             if bittensor.defaults.get(prefix, d=None) == None:
                 setattr(bittensor.defaults, prefix, bittensor.Config())
-            getattr(bittensor.defaults, prefix).prometheus = bittensor.defaults.prometheus
+            getattr(
+                bittensor.defaults, prefix
+            ).prometheus = bittensor.defaults.prometheus
         try:
-            parser.add_argument('--' + prefix_str + 'prometheus.port',  type=int, required=False, default = bittensor.defaults.prometheus.port,
-                help='''Prometheus serving port.''')
             parser.add_argument(
-                '--' + prefix_str + 'prometheus.level',
-                required = False,
-                type = str,
-                choices = [l.name for l in list(prometheus.level)],
-                default = bittensor.defaults.prometheus.level,
-                help = '''Prometheus logging level. <OFF | INFO | DEBUG>''')
+                "--" + prefix_str + "prometheus.port",
+                type=int,
+                required=False,
+                default=bittensor.defaults.prometheus.port,
+                help="""Prometheus serving port.""",
+            )
+            parser.add_argument(
+                "--" + prefix_str + "prometheus.level",
+                required=False,
+                type=str,
+                choices=[l.name for l in list(prometheus.level)],
+                default=bittensor.defaults.prometheus.level,
+                help="""Prometheus logging level. <OFF | INFO | DEBUG>""",
+            )
         except argparse.ArgumentError as e:
             pass
 
@@ -172,15 +192,31 @@ class prometheus:
         """
         defaults.prometheus = bittensor.Config()
         # Default the prometheus port to axon.port - 1000
-        defaults.prometheus.port = os.getenv('BT_PROMETHEUS_PORT') if os.getenv('BT_PROMETHEUS_PORT') != None else 7091
-        defaults.prometheus.level = os.getenv('BT_PROMETHEUS_LEVEL') if os.getenv('BT_PROMETHEUS_LEVEL') != None else bittensor.prometheus.level.INFO.value
+        defaults.prometheus.port = (
+            os.getenv("BT_PROMETHEUS_PORT")
+            if os.getenv("BT_PROMETHEUS_PORT") != None
+            else 7091
+        )
+        defaults.prometheus.level = (
+            os.getenv("BT_PROMETHEUS_LEVEL")
+            if os.getenv("BT_PROMETHEUS_LEVEL") != None
+            else bittensor.prometheus.level.INFO.value
+        )
 
     @classmethod
-    def check_config(cls, config: 'bittensor.Config' ):
+    def check_config(cls, config: "bittensor.Config"):
         """ Check config for wallet name/hotkey/path/hotkeys/sort_by
         """
-        assert 'prometheus' in config
-        assert config.prometheus.level in [l.name for l in list(prometheus.level)], "config.prometheus.level must be in: {}".format([l.name for l in list(prometheus.level)])
-        assert config.prometheus.port > 1024 and config.prometheus.port < 65535, 'config.prometheus.port must be in range [1024, 65535]'
+        assert "prometheus" in config
+        assert config.prometheus.level in [
+            l.name for l in list(prometheus.level)
+        ], "config.prometheus.level must be in: {}".format(
+            [l.name for l in list(prometheus.level)]
+        )
+        assert (
+            config.prometheus.port > 1024 and config.prometheus.port < 65535
+        ), "config.prometheus.port must be in range [1024, 65535]"
         if "axon" in config and "port" in config.axon:
-            assert config.prometheus.port != config.axon.port, 'config.prometheus.port != config.axon.port'
+            assert (
+                config.prometheus.port != config.axon.port
+            ), "config.prometheus.port != config.axon.port"

@@ -24,22 +24,26 @@ from typing import Tuple, List, Union, Optional
 
 from . import serializer_impl
 
+
 class serializer:
     """ An interface for serializing and deserializing bittensor tensors"""
 
-    class SerializationException (Exception):
+    class SerializationException(Exception):
         """ Raised during serialization """
 
-    class DeserializationException (Exception):
+    class DeserializationException(Exception):
         """ Raised during deserialization """
 
-    class NoSerializerForEnum (Exception):
+    class NoSerializerForEnum(Exception):
         """ Raised if there is no serializer for the passed type """
 
-    class SerializationTypeNotImplementedException (Exception):
+    class SerializationTypeNotImplementedException(Exception):
         """ Raised if serialization/deserialization is not implemented for the passed object type """
 
-    def __new__(cls, serializer_type: bittensor.proto.Serializer = bittensor.proto.Serializer.MSGPACK ) -> 'bittensor.Serializer':
+    def __new__(
+        cls,
+        serializer_type: bittensor.proto.Serializer = bittensor.proto.Serializer.MSGPACK,
+    ) -> "bittensor.Serializer":
         r"""Returns the correct serializer object for the passed Serializer enum.
 
             Args:
@@ -62,7 +66,9 @@ class serializer:
         elif serializer_type == bittensor.proto.Serializer.CMPPACK:
             return serializer_impl.CMPPackSerializer()
         else:
-            raise bittensor.serializer.NoSerializerForEnum("No known serialzier for proto type {}".format(serializer_type))
+            raise bittensor.serializer.NoSerializerForEnum(
+                "No known serialzier for proto type {}".format(serializer_type)
+            )
 
     @staticmethod
     def torch_dtype_to_bittensor_dtype(tdtype):
@@ -101,21 +107,23 @@ class serializer:
                 dtype: (torch.dtype): translated torch.dtype.
         """
         if bdtype == bittensor.proto.DataType.FLOAT32:
-            dtype=torch.float32
+            dtype = torch.float32
         elif bdtype == bittensor.proto.DataType.FLOAT64:
             dtype = torch.float64
         elif bdtype == bittensor.proto.DataType.INT32:
             dtype = torch.int32
         elif bdtype == bittensor.proto.DataType.INT64:
-            dtype=torch.int64
+            dtype = torch.int64
         elif bdtype == bittensor.proto.DataType.FLOAT16:
-            dtype=torch.float16
+            dtype = torch.float16
         elif bdtype == bittensor.proto.DataType.BOOL:
-            dtype=torch.bool
+            dtype = torch.bool
         else:
             raise bittensor.serializer.DeserializationException(
-                'Unknown bittensor.Dtype or no equivalent torch.dtype for bittensor.dtype = {}'
-                .format(bdtype))
+                "Unknown bittensor.Dtype or no equivalent torch.dtype for bittensor.dtype = {}".format(
+                    bdtype
+                )
+            )
         return dtype
 
     @staticmethod
@@ -138,7 +146,8 @@ class serializer:
             dtype = np.int64
         else:
             raise bittensor.serializer.SerializationException(
-                'Unknown bittensor.dtype or no equivalent numpy.dtype for bittensor.dtype = {}'
-                .format(bdtype))
+                "Unknown bittensor.dtype or no equivalent numpy.dtype for bittensor.dtype = {}".format(
+                    bdtype
+                )
+            )
         return dtype
-

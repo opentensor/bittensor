@@ -23,7 +23,7 @@ class Critic(LoRAModule):
         model: nn.Module,
         value_head: nn.Module,
         lora_rank: int = 0,
-        lora_train_bias: str = 'none',
+        lora_train_bias: str = "none",
         use_action_mask: bool = False,
     ) -> None:
 
@@ -33,12 +33,14 @@ class Critic(LoRAModule):
         self.use_action_mask = use_action_mask
         self.convert_to_lora()
 
-    def forward(self,
-                sequences: torch.LongTensor,
-                action_mask: Optional[torch.Tensor] = None,
-                attention_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self,
+        sequences: torch.LongTensor,
+        action_mask: Optional[torch.Tensor] = None,
+        attention_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         outputs = self.model(sequences, attention_mask=attention_mask)
-        last_hidden_states = outputs['last_hidden_state']
+        last_hidden_states = outputs["last_hidden_state"]
 
         values = self.value_head(last_hidden_states).squeeze(-1)
 
