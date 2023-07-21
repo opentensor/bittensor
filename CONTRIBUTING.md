@@ -307,7 +307,7 @@ Reviewers should include the commit(s) they have reviewed in their comments. Thi
 
 A pull request that changes consensus-critical code is considerably more involved than a pull request that adds a feature to the wallet, for example. Such patches must be reviewed and thoroughly tested by several reviewers who are knowledgeable about the changed subsystems. Where new features are proposed, it is helpful for reviewers to try out the patch set on a test network and indicate that they have done so in their review. Project maintainers will take this into consideration when merging changes.
 
-For a more detailed description of the review process, see the [Code Review section of the contribution guidelines](CODE_REVIEW_DOCS.md).
+For a more detailed description of the review process, see the [Code Review Guidelines](CODE_REVIEW_DOCS.md).
 
 
 ### Release Policy
