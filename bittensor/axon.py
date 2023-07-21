@@ -126,9 +126,17 @@ class axon:
         # Attach the endpoint with the specified verification and forwarding functions  
         my_axon.attach(
             forward_fn = forward_my_synapse, 
-            verify_fn=verify_my_synapse,
+            verify_fn = verify_my_synapse,
             blacklist_fn = blacklist_my_synapse,
             priority_fn = prioritize_my_synape
+        ).attach(
+            forward_fn = forward_my_synapse_2, 
+            verify_fn = verify_my_synapse_2,
+            blacklist_fn = blacklist_my_synapse_2,
+            priority_fn = prioritize_my_synape_2
+        ).serve(
+            netuid = ...
+            subtensor = ...
         ).start()
         ```
     """     
@@ -159,7 +167,7 @@ class axon:
     ) -> "bittensor.axon":
         r"""Creates a new bittensor.Axon object from passed arguments.
         Args:
-            config (:obj:`Optional[bittensor.Config]`, `optional`):
+            config (:obj:`Optional[bittensor.config]`, `optional`):
                 bittensor.axon.config()
             wallet (:obj:`Optional[bittensor.wallet]`, `optional`):
                 bittensor wallet with hotkey and coldkeypub.
@@ -458,7 +466,7 @@ class axon:
             bittensor.axon: The served Axon instance.
         """
         if subtensor == None: subtensor = bittensor.subtensor()
-        subtensor.serve_axon( netuid=netuid, axon = self )
+        subtensor.serve_axon( netuid = netuid, axon = self )
         return self
             
     def default_verify( self, synapse: bittensor.Synapse ) -> Request:
@@ -498,7 +506,7 @@ class axon:
                 raise Exception("Nonce is too small")
             
         if not keypair.verify(message, synapse.dendrite.signature):
-            raise Exception("Signature mismatch")
+            raise Exception(f"Signature mismatch with {message} and {synapse.dendrite.signature}")
         
         # Success
         self.nonces[endpoint_key] = synapse.dendrite.nonce
@@ -542,8 +550,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             synapse: bittensor.Synapse = await self.preprocess( request )
 
             # Logs the start of the request processing
-            total_size = synapse.total_size
-            bittensor.logging.debug(f"axon     | <-- | {total_size} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success ")
+            bittensor.logging.debug(f"axon     | <-- | {request.headers['content-length']} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success ")
 
             # Call the verify function
             await self.verify( synapse )
@@ -582,7 +589,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
             # Log the details of the processed synapse, including total size, name, hotkey, IP, port,
             # status code, and status message, using the debug level of the logger.
-            bittensor.logging.debug(f"axon     | --> | {total_size} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}")
+            bittensor.logging.debug(f"axon     | --> | {response.headers['content-length']} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}")
 
             # Return the response to the requester.
             return response

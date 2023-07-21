@@ -77,37 +77,25 @@ def serve_extrinsic (
         'placeholder1': placeholder1,
         'placeholder2': placeholder2,
     }
-    with bittensor.__console__.status(":satellite: Checking Axon..."):
-        neuron = subtensor.get_neuron_for_pubkey_and_subnet( wallet.hotkey.ss58_address, netuid = netuid )
-        neuron_up_to_date = not neuron.is_null and params == {
-            'version': neuron.axon_info.version,
-            'ip': net.ip_to_int(neuron.axon_info.ip),
-            'port': neuron.axon_info.port,
-            'ip_type': neuron.axon_info.ip_type,
-            'netuid': neuron.netuid,
-            'hotkey': neuron.hotkey,
-            'coldkey': neuron.coldkey,
-            'protocol': neuron.axon_info.protocol,
-            'placeholder1': neuron.axon_info.placeholder1,
-            'placeholder2': neuron.axon_info.placeholder2,
-        }
+    bittensor.logging.info('Checking axon ...')
+    neuron = subtensor.get_neuron_for_pubkey_and_subnet( wallet.hotkey.ss58_address, netuid = netuid )
+    neuron_up_to_date = not neuron.is_null and params == {
+        'version': neuron.axon_info.version,
+        'ip': net.ip_to_int(neuron.axon_info.ip),
+        'port': neuron.axon_info.port,
+        'ip_type': neuron.axon_info.ip_type,
+        'netuid': neuron.netuid,
+        'hotkey': neuron.hotkey,
+        'coldkey': neuron.coldkey,
+        'protocol': neuron.axon_info.protocol,
+        'placeholder1': neuron.axon_info.placeholder1,
+        'placeholder2': neuron.axon_info.placeholder2,
+    }
     output = params.copy()
     output['coldkey'] = wallet.coldkeypub.ss58_address
     output['hotkey'] = wallet.hotkey.ss58_address
     if neuron_up_to_date:
-        bittensor.__console__.print(f":white_heavy_check_mark: [green]Axon already Served[/green]\n"
-                                    f"[green not bold]- coldkey: [/green not bold][white not bold]{output['coldkey']}[/white not bold] \n"
-                                    f"[green not bold]- hotkey: [/green not bold][white not bold]{output['hotkey']}[/white not bold] \n"
-                                    f"[green not bold]- Status: [/green not bold] |"
-                                    f"[green not bold] ip: [/green not bold][white not bold]{net.int_to_ip(output['ip'])}[/white not bold] |"
-                                    f"[green not bold] ip_type: [/green not bold][white not bold]{output['ip_type']}[/white not bold] |"
-                                    f"[green not bold] port: [/green not bold][white not bold]{output['port']}[/white not bold] | "
-                                    f"[green not bold] netuid: [/green not bold][white not bold]{output['netuid']}[/white not bold] |"
-                                    f"[green not bold] protocol: [/green not bold][white not bold]{output['protocol']}[/white not bold] |"
-                                    f"[green not bold] version: [/green not bold][white not bold]{output['version']}[/white not bold] |"
-        )
-
-
+        bittensor.logging.info(f'Axon already served on: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) ')
         return True
 
     if prompt:
@@ -119,25 +107,23 @@ def serve_extrinsic (
         )):
             return False
 
-    with bittensor.__console__.status(":satellite: Serving axon on: [white]{}:{}[/white] ...".format(subtensor.network, netuid)):
-        success, error_message = subtensor._do_serve_axon(
-            wallet = wallet,
-            call_params = params,
-            wait_for_finalization=wait_for_finalization,
-            wait_for_inclusion=wait_for_inclusion,
-        )
+    bittensor.logging.info(f"Serving axon with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) -> {subtensor.network}:{netuid}" )
+    success, error_message = subtensor._do_serve_axon(
+        wallet = wallet,
+        call_params = params,
+        wait_for_finalization=wait_for_finalization,
+        wait_for_inclusion=wait_for_inclusion,
+    )
 
-        if wait_for_inclusion or wait_for_finalization:
-            if success == True:
-                bittensor.__console__.print(':white_heavy_check_mark: [green]Served[/green]\n  [bold white]{}[/bold white]'.format(
-                    json.dumps(params, indent=4, sort_keys=True)
-                ))
-                return True
-            else:
-                bittensor.__console__.print(':cross_mark: [green]Failed to Serve axon[/green] error: {}'.format(error_message))
-                return False
-        else:
+    if wait_for_inclusion or wait_for_finalization:
+        if success == True:
+            bittensor.logging.info(f'Axon served with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) on {subtensor.network}:{netuid} ')
             return True
+        else:
+            bittensor.logging.info(f'Axon failed to served with error: {error_message} ')
+            return False
+    else:
+        return True
 
 def serve_axon_extrinsic (
     subtensor: 'bittensor.subtensor',

@@ -23,15 +23,8 @@ import time
 import torch
 import httpx
 import bittensor as bt
-from IPython import get_ipython
 from typing import Union, Optional, List
 
-def am_i_in_ipython():
-    try:
-        __IPYTHON__
-        return True
-    except NameError:
-        return False
 
 class dendrite(torch.nn.Module):
     """
@@ -86,7 +79,7 @@ class dendrite(torch.nn.Module):
         self.external_ip = bt.utils.networking.get_external_ip()
 
         # If a wallet or keypair is provided, use its hotkey. If not, generate a new one.
-        self.keypair = (wallet.hotkey if isinstance(wallet, bt.Wallet) else wallet) or bt.wallet().hotkey
+        self.keypair = (wallet.hotkey if isinstance(wallet, bt.wallet) else wallet) or bt.wallet().hotkey
 
     def query( self, *args, **kwargs ):
         """
@@ -119,6 +112,7 @@ class dendrite(torch.nn.Module):
             synapse: bt.Synapse = bt.Synapse(), 
             timeout: float = 12,
             deserialize: bool = True,
+            run_async: bool = True,
         ) -> bt.Synapse:
         """
         Makes asynchronous requests to multiple target Axons and returns the server responses.
@@ -135,22 +129,37 @@ class dendrite(torch.nn.Module):
                 returns the response from that axon. If multiple target axons are provided, 
                 returns a list of responses from all target axons.
         """
-        
+        is_list = True
         # If a single axon is provided, wrap it in a list for uniform processing
         if not isinstance(axons, list):
+            is_list = False
             axons = [axons]
 
-        # Build coroutines for all axons
+        # This asynchronous function is used to send queries to all axons.
         async def query_all_axons():
-            coroutines = [ self.call( target_axon = target_axon, synapse = synapse, timeout = timeout, deserialize = deserialize ) for target_axon in axons]
-            all_responses = await asyncio.gather(*coroutines)
-            return all_responses
-        
+            # If the 'run_async' flag is not set, the code runs synchronously.
+            if not run_async:
+                # Create an empty list to hold the responses from all axons.
+                all_responses = []
+                # Loop through each axon in the 'axons' list.
+                for target_axon in axons:
+                    # The response from each axon is then appended to the 'all_responses' list.
+                    all_responses.append( await self.call( target_axon = target_axon, synapse = synapse.copy(), timeout = timeout, deserialize = deserialize ) )
+                # The function then returns a list of responses from all axons.
+                return all_responses
+            else:
+                # Here we build a list of coroutines without awaiting them.
+                coroutines = [ self.call( target_axon = target_axon, synapse = synapse.copy(), timeout = timeout, deserialize = deserialize ) for target_axon in axons]
+                # 'asyncio.gather' is a method which takes multiple coroutines and runs them in parallel.
+                all_responses = await asyncio.gather(*coroutines)
+                # The function then returns a list of responses from all axons.
+                return all_responses
+
         # Run all requests concurrently and get the responses
         responses = await query_all_axons()
 
         # Return the single response if only one axon was targeted, else return all responses
-        if len(responses) == 1:
+        if len(responses) == 1 and not is_list:
             return responses[0]
         else:
             return responses
@@ -184,7 +193,7 @@ class dendrite(torch.nn.Module):
 
         # Build request endpoint from the synapse class
         request_name = synapse.__class__.__name__
-        endpoint = f"localhost:{str(target_axon.port)}" if target_axon.ip == str(self.external_ip) else f"{target_axon.ip}:{str(target_axon.port)}"
+        endpoint = f"0.0.0.0:{str(target_axon.port)}" if target_axon.ip == str(self.external_ip) else f"{target_axon.ip}:{str(target_axon.port)}"
         url = f"http://{endpoint}/{request_name}"
 
         # Preprocess synapse for making a request
@@ -195,7 +204,7 @@ class dendrite(torch.nn.Module):
             bt.logging.debug(f"dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success")
             
             # Make the HTTP POST request
-            json_response = await self.client.post(url, headers=synapse.to_headers(), json=synapse.dict())
+            json_response = await self.client.post( url, headers=synapse.to_headers(), json=synapse.dict(), timeout = timeout )
             
             # Process the server response
             self.process_server_response(json_response, synapse)
@@ -204,13 +213,20 @@ class dendrite(torch.nn.Module):
             synapse.dendrite.process_time = str(time.time() - start_time)
             bt.logging.debug(f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.axon.status_code} | {synapse.axon.status_message}")
 
-        except Exception as e:    
-            # Handle failure to parse response and log the error
+        except httpx.ConnectError as e:
+            synapse.dendrite.status_code = '503'
+            synapse.dendrite.status_message = f"Service at {synapse.axon.ip}:{str(synapse.axon.port)}/{request_name} unavailable."
+
+        except httpx.TimeoutException as e:
             synapse.dendrite.status_code = '406'
+            synapse.dendrite.status_message = f"Timedout after {timeout} seconds."
+
+        except Exception as e:    
+            synapse.dendrite.status_code = '422'
             synapse.dendrite.status_message = f"Failed to parse response object with error: {str(e)}"
-            bt.logging.debug(f"dendrite | <-- | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}")
 
         finally:
+            bt.logging.debug(f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}")
             # Return the updated synapse object after deserializing if requested
             if deserialize:
                 return synapse.deserialize()

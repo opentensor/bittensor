@@ -25,7 +25,7 @@ from ..errors import *
 
 def register_senate_extrinsic (
     subtensor: 'bittensor.subtensor',
-    wallet: 'bittensor.Wallet',
+    wallet: 'bittensor.wallet',
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     prompt: bool = False
@@ -92,7 +92,7 @@ def register_senate_extrinsic (
 
 def leave_senate_extrinsic (
     subtensor: 'bittensor.subtensor',
-    wallet: 'bittensor.Wallet',
+    wallet: 'bittensor.wallet',
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     prompt: bool = False
@@ -159,7 +159,7 @@ def leave_senate_extrinsic (
 
 def vote_senate_extrinsic (
     subtensor: 'bittensor.subtensor',
-    wallet: 'bittensor.Wallet',
+    wallet: 'bittensor.wallet',
     proposal_hash: str,
     proposal_idx: int,
     vote: bool,

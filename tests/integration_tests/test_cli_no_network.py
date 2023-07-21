@@ -19,7 +19,7 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
-from typing import Any
+from typing import Any, Optional
 import pytest
 from copy import deepcopy
 import re
@@ -254,13 +254,8 @@ class TestCLINoNetwork(unittest.TestCase):
                 cli.run()
 
     def test_list_no_wallet(self, _, __):
-        # Mock IO for wallet
-        with patch(
-            "bittensor.Wallet.coldkeypub_file",
-            MagicMock(
-                exists_on_device=MagicMock(return_value=False)  # Wallet doesn't exist
-            ),
-        ):
+        
+        with patch( "bittensor.wallet", side_effect = [ MagicMock( coldkeypub_file = MagicMock( exists_on_device=MagicMock(return_value=True) ) ) ]):
             config = self.config()
             config.wallet.path = "/tmp/test_cli_test_list_no_wallet"
             config.no_prompt = True
@@ -974,7 +969,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         delegate_ss58 = _get_mock_coldkey(0)
         with patch("bittensor.commands.delegates.show_delegates"):
             with patch(
-                "bittensor.subtensor.get_delegates",
+                "bittensor.subtensor.subtensor.get_delegates",
                 return_value=[
                     bittensor.DelegateInfo(
                         hotkey_ss58=delegate_ss58,  # return delegate with mock coldkey
@@ -1060,7 +1055,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         delegate_ss58 = _get_mock_coldkey(0)
         with patch("bittensor.commands.delegates.show_delegates"):
             with patch(
-                "bittensor.subtensor.get_delegates",
+                "bittensor.subtensor.subtensor.get_delegates",
                 return_value=[
                     bittensor.DelegateInfo(
                         hotkey_ss58=delegate_ss58,  # return delegate with mock coldkey

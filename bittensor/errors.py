@@ -82,3 +82,9 @@ class NotDelegateError(StakeError):
     r""" Error raised when a hotkey you are trying to stake to is not a delegate.
     """
     pass
+
+
+class KeyFileError(Exception):
+    """ Error thrown when the keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid.
+    """
+    pass

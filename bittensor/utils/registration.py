@@ -356,7 +356,7 @@ def _solve_for_difficulty_fast( subtensor, wallet: 'bittensor.wallet', netuid: i
         subtensor
             Subtensor to connect to for block information and to submit.
         wallet:
-            Wallet to use for registration.
+            wallet to use for registration.
         netuid: int
             The netuid of the subnet to register to.
         output_in_place: bool
@@ -833,7 +833,7 @@ def create_pow(
     Args:
         subtensor (:obj:`bittensor.subtensor.subtensor`, `required`):
             The subtensor to create a proof of work for.
-        wallet (:obj:`bittensor.wallet.Wallet`, `required`):
+        wallet (:obj:`bittensor.wallet.wallet`, `required`):
             The wallet to create a proof of work for.
         netuid (:obj:`int`, `required`):
             The netuid for the subnet to create a proof of work for.
@@ -880,20 +880,20 @@ def create_pow(
 
 def __reregister_wallet(
         netuid: int,
-        wallet: 'bittensor.Wallet',
+        wallet: 'bittensor.wallet',
         subtensor: 'bittensor.subtensor',
         reregister: bool = False,
         prompt: bool = False,
         **registration_args: Any
-    ) -> Optional['bittensor.Wallet']:
-        """ Re-register this a Wallet on the chain, or exits.
+    ) -> Optional['bittensor.wallet']:
+        """ Re-register this a wallet on the chain, or exits.
                 Exits if the wallet is not registered on the chain AND
                 reregister is set to False.
             Args:
                 netuid (int):
                     The network uid of the subnet to register on.
-                wallet( 'bittensor.Wallet' ):
-                    Bittensor Wallet to re-register
+                wallet( 'bittensor.wallet' ):
+                    Bittensor wallet to re-register
                 reregister (bool, default=False):
                     If true, re-registers the wallet on the chain.
                     Exits if False and the wallet is not registered on the chain.
@@ -902,7 +902,7 @@ def __reregister_wallet(
                 **registration_args (Any):
                     The registration arguments to pass to the subtensor register function.
             Return:
-                wallet (bittensor.Wallet):
+                wallet (bittensor.wallet):
                     The wallet
 
             Raises:

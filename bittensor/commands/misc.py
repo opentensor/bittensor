@@ -33,7 +33,7 @@ class UpdateCommand:
             os.system('pip install -e ~/.bittensor/bittensor/')
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         if not config.no_prompt:
             answer = Prompt.ask('This will update the local bittensor package', choices = ['Y','N'], default = 'Y')
             config.answer = answer
@@ -103,7 +103,7 @@ class ListSubnetsCommand:
         bittensor.__console__.print(table)
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config( config: 'bittensor.config' ):
         pass
 
     @staticmethod

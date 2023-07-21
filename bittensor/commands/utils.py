@@ -38,7 +38,7 @@ class IntListPrompt(PromptBase):
             all( val.strip() in self.choices for val in value.replace(',', ' ').split( ))
 
 
-def check_netuid_set( config: 'bittensor.Config', subtensor: 'bittensor.subtensor', allow_none: bool = False ):
+def check_netuid_set( config: 'bittensor.config', subtensor: 'bittensor.subtensor', allow_none: bool = False ):
     if subtensor.network != 'nakamoto':
         all_netuids = [str(netuid) for netuid in subtensor.get_subnets()]
         if len(all_netuids) == 0:
@@ -57,13 +57,15 @@ def check_netuid_set( config: 'bittensor.Config', subtensor: 'bittensor.subtenso
         if isinstance(netuid, str) and netuid.lower() in ['none'] and allow_none:
             config.netuid = None
         else:
+            if isinstance(netuid, list):
+                netuid = netuid[0]
             try:
                 config.netuid = int(netuid)
-            except ValueError:
+            except:
                 raise ValueError('netuid must be an integer or "None" (if applicable)')
 
 
-def check_for_cuda_reg_config( config: 'bittensor.Config' ) -> None:
+def check_for_cuda_reg_config( config: 'bittensor.config' ) -> None:
     """Checks, when CUDA is available, if the user would like to register with their CUDA device."""
     if torch.cuda.is_available():
         if not config.no_prompt:

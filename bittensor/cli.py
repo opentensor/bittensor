@@ -135,7 +135,7 @@ class cli:
         Checks if the essential configuration exists under different command
 
         Args:
-            config (bittensor.Config): The configuration settings for the CLI.
+            config (bittensor.config): The configuration settings for the CLI.
         """
         # Check if command exists, if so, run the corresponding check_config.
         # If command doesn't exist, inform user and exit the program.

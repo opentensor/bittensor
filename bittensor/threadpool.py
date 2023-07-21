@@ -165,7 +165,7 @@ class PriorityThreadPoolExecutor(_base.Executor):
             pass
 
     @classmethod
-    def config(cls) -> 'bittensor.Config':
+    def config(cls) -> 'bittensor.config':
         """ Get config from the argument parser
             Return: bittensor.config object
         """

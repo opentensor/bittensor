@@ -43,7 +43,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
 
         mock_add_insecure_port = mock.MagicMock(return_value=None)
         mock_wallet = MagicMock(
-            spec=bittensor.Wallet,
+            spec=bittensor.wallet,
             coldkey=MagicMock(),
             coldkeypub=MagicMock(
                 # mock ss58 address
@@ -96,7 +96,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
         )
 
         mock_wallet = MagicMock(
-            spec=bittensor.Wallet,
+            spec=bittensor.wallet,
             coldkey=MagicMock(),
             coldkeypub=MagicMock(
                 # mock ss58 address
@@ -145,7 +145,7 @@ class TestStakeMultiple(unittest.TestCase):
         mock_amount: bittensor.Balance = bittensor.Balance.from_tao(1.0)
 
         mock_wallet = MagicMock(
-                        spec=bittensor.Wallet,
+                        spec=bittensor.wallet,
                         coldkey=MagicMock(),
                         coldkeypub=MagicMock(
                             # mock ss58 address

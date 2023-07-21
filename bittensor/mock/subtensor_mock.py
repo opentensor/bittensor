@@ -24,7 +24,7 @@ from abc import abstractclassmethod
 from collections.abc import Mapping
 
 from hashlib import sha256
-from bittensor_wallet import Wallet, wallet
+from ..wallet import wallet
 
 from ..chain_data import (NeuronInfo, NeuronInfoLite, PrometheusInfo, DelegateInfo,
                          SubnetInfo, AxonInfo)
@@ -909,7 +909,7 @@ class MockSubtensor(subtensor):
     # Extrinsics
     def _do_delegation(
         self,
-        wallet: 'Wallet',
+        wallet: 'wallet',
         delegate_ss58: str,
         amount: 'Balance',
         wait_for_inclusion: bool = True,
@@ -935,7 +935,7 @@ class MockSubtensor(subtensor):
 
     def _do_undelegation(
         self,
-        wallet: 'Wallet',
+        wallet: 'wallet',
         delegate_ss58: str,
         amount: 'Balance',
         wait_for_inclusion: bool = True,
@@ -958,7 +958,7 @@ class MockSubtensor(subtensor):
     
     def _do_nominate(
         self,
-        wallet: 'Wallet',
+        wallet: 'wallet',
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -979,7 +979,7 @@ class MockSubtensor(subtensor):
         
     def get_transfer_fee(
         self,
-        wallet: 'Wallet',
+        wallet: 'wallet',
         dest: str,
         value: Union['Balance', float, int],
     ) -> 'Balance':    
@@ -987,7 +987,7 @@ class MockSubtensor(subtensor):
     
     def _do_transfer(
         self,
-        wallet: 'Wallet',
+        wallet: 'wallet',
         dest: str,
         transfer_balance: 'Balance',
         wait_for_inclusion: bool = True,
@@ -1020,7 +1020,7 @@ class MockSubtensor(subtensor):
     def _do_pow_register(
         self,
         netuid: int,
-        wallet: 'Wallet',
+        wallet: 'wallet',
         pow_result: 'POWSolution',
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
@@ -1042,7 +1042,7 @@ class MockSubtensor(subtensor):
     def _do_burned_register(
         self,
         netuid: int,
-        wallet: 'Wallet',
+        wallet: 'wallet',
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
@@ -1070,7 +1070,7 @@ class MockSubtensor(subtensor):
 
     def _do_stake(
         self,
-        wallet: 'Wallet',
+        wallet: 'wallet',
         hotkey_ss58: str,
         amount: 'Balance',
         wait_for_inclusion: bool = True,
@@ -1132,7 +1132,7 @@ class MockSubtensor(subtensor):
 
     def _do_unstake(
         self,
-        wallet: 'Wallet',
+        wallet: 'wallet',
         hotkey_ss58: str,
         amount: 'Balance',
         wait_for_inclusion: bool = True,
