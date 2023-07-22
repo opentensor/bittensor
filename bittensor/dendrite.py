@@ -325,10 +325,10 @@ class dendrite(torch.nn.Module):
         server_headers = bt.Synapse.from_headers(server_response.headers)
 
         # Merge dendrite headers
-        local_synapse.dendrite.__dict__.update(**(local_synapse.dendrite.dict(exclude_none=True) | server_headers.dendrite.dict(exclude_none=True)))
+        local_synapse.dendrite.__dict__.update( { **local_synapse.dendrite.dict(exclude_none=True), **server_headers.dendrite.dict(exclude_none=True) } )
         
         # Merge axon headers
-        local_synapse.axon.__dict__.update(**(local_synapse.axon.dict(exclude_none=True) | server_headers.axon.dict(exclude_none=True)))
+        local_synapse.axon.__dict__.update( { **local_synapse.axon.dict(exclude_none=True), ** server_headers.axon.dict(exclude_none=True) } )
 
         # Update the status code and status message of the dendrite to match the axon
         local_synapse.dendrite.status_code = local_synapse.axon.status_code
