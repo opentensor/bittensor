@@ -185,7 +185,7 @@ class axon:
         # Build and check config.
         if config is None: config = axon.config()
         config = copy.deepcopy(config)
-        config.axon.ip = ip or config.axon.get('ip', bittensor.defatuts.axon.ip)
+        config.axon.ip = ip or config.axon.get('ip', bittensor.defaults.axon.ip)
         config.axon.port = port or config.axon.get('port', bittensor.defaults.axon.port)
         config.axon.external_ip = external_ip or config.axon.get('external_ip', bittensor.defaults.axon.external_ip)
         config.axon.external_port = external_port or config.axon.get('external_port', bittensor.defaults.axon.external_port)
