@@ -120,9 +120,9 @@ class wallet:
         if config is None:
             config = wallet.config()
         self.config = copy.deepcopy(config)
-        self.config.wallet.name = name or self.config.wallet.name
-        self.config.wallet.hotkey = hotkey or self.config.wallet.hotkey
-        self.config.wallet.path = path or self.config.wallet.path
+        self.config.wallet.name = name or self.config.wallet.get('name', bittensor.defaults.wallet.name)
+        self.config.wallet.hotkey = hotkey or self.config.wallet.get('hotkey', bittensor.defaults.wallet.hotkey)
+        self.config.wallet.path = path or self.config.wallet.get('path', bittensor.defaults.wallet.path)
 
         self.name = self.config.wallet.name
         self.path = self.config.wallet.path
