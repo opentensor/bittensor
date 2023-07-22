@@ -23,15 +23,8 @@ import time
 import torch
 import httpx
 import bittensor as bt
-from IPython import get_ipython
 from typing import Union, Optional, List
 
-def am_i_in_ipython():
-    try:
-        __IPYTHON__
-        return True
-    except NameError:
-        return False
 
 class dendrite(torch.nn.Module):
     """
