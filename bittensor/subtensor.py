@@ -133,8 +133,8 @@ class subtensor:
         self.config = copy.deepcopy( config )
 
         # Returns a mocked connection with a background chain connection.
-        self.config.subtensor._mock = _mock if _mock != None else self.config.subtensor._mock
-        if config.subtensor._mock == True or network == 'mock' or self.config.subtensor.get('network', bittensor.defaults.subtensor.network) == 'mock':
+        self.config.subtensor._mock = _mock if _mock != None else self.config.subtensor.get('_mock', bittensor.defaults.subtensor._mock)
+        if self.config.subtensor._mock == True or network == 'mock' or self.config.subtensor.get('network', bittensor.defaults.subtensor.network) == 'mock':
             config.subtensor._mock = True
             return bittensor.subtensor_mock.MockSubtensor()
 

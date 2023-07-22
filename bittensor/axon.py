@@ -185,11 +185,11 @@ class axon:
         # Build and check config.
         if config is None: config = axon.config()
         config = copy.deepcopy(config)
-        config.axon.ip = ip or config.axon.ip
-        config.axon.port = port or config.axon.port
-        config.axon.external_ip = external_ip or config.axon.external_ip
-        config.axon.external_port = external_port or config.axon.external_port
-        config.axon.max_workers = max_workers or config.axon.max_workers
+        config.axon.ip = ip or config.axon.get('ip', bittensor.defatuts.axon.ip)
+        config.axon.port = port or config.axon.get('port', bittensor.defaults.axon.port)
+        config.axon.external_ip = external_ip or config.axon.get('external_ip', bittensor.defaults.axon.external_ip)
+        config.axon.external_port = external_port or config.axon.get('external_port', bittensor.defaults.axon.external_port)
+        config.axon.max_workers = max_workers or config.axon.get('max_workers', bittensor.defaults.axon.max_workers)
         axon.check_config(config)
         self.config = config
 
