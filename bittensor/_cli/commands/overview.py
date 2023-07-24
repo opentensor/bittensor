@@ -109,12 +109,10 @@ class OverviewCommand:
                         # Add neurons to overview.
                         neurons[str(netuid)] = neurons_for_netuid
 
-                    return netuids, neurons
+                return netuids, neurons
 
             result = loop.run_until_complete(get_all_neurons(netuids, neurons))
             netuids, neurons = result
-            
-            
 
         # Setup outer table.
         grid = Table.grid(pad_edge=False)
