@@ -198,7 +198,8 @@ Provide more context by answering these questions:
 
 Include details about your configuration and environment:
 
-* **Which version of Bittensor are you using?** You can get the exact version by checking for `__version__` in [`bittensor/bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/master/bittensor/__init__.py#L30).
+* **Which version of Bittensor are you using?** You can get the version by checking for `__version__` in [`bittensor/bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/master/bittensor/__init__.py#L30). This is not sufficient.  Also add the commit hash of the branch you are on.
+* **What commit hash are you on?** You can get the exact commit hash by checking `git log` and pasting the full commit hash.
 * **What's the name and version of the OS you're using**?
 * **Are you running Bittensor in a virtual machine?** If so, which VM software are you using and which operating systems and versions are used for the host and the guest?
 * **Are you running Bittensor in a dockerized container?** If so, have you made sure that your docker container contains your latest changes and is up to date with Master branch?
