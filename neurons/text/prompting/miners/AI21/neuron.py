@@ -17,6 +17,7 @@
 
 import argparse
 import bittensor
+from torch import FloatTensor
 
 from typing import List, Dict
 from langchain.llms import AI21
@@ -45,7 +46,7 @@ class AI21Miner( bittensor.BasePromptingMiner ):
         )
         bittensor.logging.info( 'Model loaded!' )
 
-    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: FloatTensor ) -> str: pass
 
     @staticmethod
     def _process_history( history:  List[Dict[str, str]] ) -> str:

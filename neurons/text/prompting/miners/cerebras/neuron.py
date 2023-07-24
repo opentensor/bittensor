@@ -20,6 +20,7 @@ import argparse
 import bittensor
 from typing import List, Dict
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from torch import FloatTensor
 
 class CerebrasMiner( bittensor.BasePromptingMiner ):
 
@@ -53,7 +54,7 @@ class CerebrasMiner( bittensor.BasePromptingMiner ):
             no_repeat_ngram_size = self.config.cerebras.no_repeat_ngram_size
         )
 
-    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: FloatTensor ) -> str: pass
 
     @staticmethod
     def _process_history( history: List[Dict[str, str]] ) -> str:

@@ -19,6 +19,7 @@ import argparse
 import bittensor
 from rich import print
 from typing import List, Dict
+from torch import FloatTensor
 
 from langchain.llms import AlephAlpha
 
@@ -52,7 +53,7 @@ class AlephAlphaMiner( bittensor.BasePromptingMiner ):
             stop_sequences = self.config.aleph.stop_sequences
         )
 
-    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: FloatTensor ) -> str: pass
 
     @staticmethod
     def _process_history( history:  List[Dict[str, str]] ) -> str:

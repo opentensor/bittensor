@@ -18,6 +18,7 @@
 import argparse
 import bittensor
 from typing import List, Dict
+from torch import FloatTensor
 from langchain.llms import GPT4All
 
 class GPT4ALLMiner( bittensor.BasePromptingMiner ):
@@ -73,7 +74,7 @@ class GPT4ALLMiner( bittensor.BasePromptingMiner ):
             streaming=self.config.gpt4all.streaming,
         )
 
-    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: FloatTensor ) -> str: pass
 
     @staticmethod
     def _process_history(history: List[dict]) -> str:

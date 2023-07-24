@@ -21,6 +21,7 @@ import argparse
 import bittensor
 from typing import List, Dict
 from langchain.llms import Cohere
+from torch import FloatTensor
 
 class CohereMiner( bittensor.BasePromptingMiner ):
 
@@ -58,7 +59,7 @@ class CohereMiner( bittensor.BasePromptingMiner ):
             stop=self.config.cohere.stop,
         )
 
-    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+    def backward( self, messages: List[Dict[str, str]], response: str, rewards: FloatTensor ) -> str: pass
         
     @staticmethod
     def _process_history( history: List[Dict[str, str]] ) -> str:
