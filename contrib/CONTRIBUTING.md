@@ -56,6 +56,8 @@ Here is a high-level summary:
   - Body Content: Explain what changed and why, not how.
 - Make use of your commit messages to simplify project understanding and maintenance.
 
+> For clear examples of each of the commit rules, see the style guide's [rules](./STYLE.md#the-six-rules-of-a-great-commit) section.
+
 ### Code Contribution General Guidelines
 
 > Review the Bittensor [style guide](./STYLE.md) and [development workflow](./DEVELOPMENT_WORKFLOW.md) before contributing. 
