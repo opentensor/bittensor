@@ -1,0 +1,61 @@
+name: Performance Improvement Contribution
+description: Use this template when contributing a performance improvement.
+labels: [performance, pull request]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Requirements for Contributing a Performance Improvement
+
+        * Fill out the template below. Any pull request that does not include enough information to be reviewed in a timely manner may be closed at the maintainers' discretion.
+        * The pull request must only affect performance of existing functionality. To contribute other changes, you must use a different template. You can see all templates at <https://github.com/atom/.github/tree/master/.github/PULL_REQUEST_TEMPLATE>.
+        * After you create the pull request, all status checks must be pass before a maintainer reviews your contribution. For more details, please see <https://github.com/atom/.github/tree/master/CONTRIBUTING.md#pull-requests>.
+
+  - type: textarea
+    id: change
+    attributes:
+      label: Description of the Change
+      description: We must be able to understand the design of your change from this description.
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefits
+    attributes:
+      label: Quantitative Performance Benefits
+      description: Describe the exact performance improvement observed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: drawbacks
+    attributes:
+      label: Possible Drawbacks
+      description: What are the possible side-effects or negative impacts of the code change?
+    validations:
+      required: false
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification Process
+      description: What process did you follow to verify that your change has the desired effects?
+    validations:
+      required: true
+
+  - type: input
+    id: applicable-issues
+    attributes:
+      label: Applicable Issues
+      description: Enter any applicable Issues here.
+    validations:
+      required: false
+
+  - type: input
+    id: release-notes
+    attributes:
+      label: Release Notes
+      description: Please describe the changes in a single line that explains this improvement in terms that a user can understand.
+    validations:
+      required: true
