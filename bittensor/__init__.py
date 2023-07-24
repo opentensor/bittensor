@@ -23,9 +23,6 @@ from prometheus_client import Info
 from langchain.llms.base import LLM
 from typing import Optional, List, Mapping, Any, Tuple
 
-import nest_asyncio
-nest_asyncio.apply()
-
 # Bittensor code and protocol version.
 __version__ = '5.3.1'
 version_split = __version__.split(".")
