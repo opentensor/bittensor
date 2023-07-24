@@ -88,8 +88,7 @@ Remember, while high test coverage is a good goal, it's also important to write 
 
 ## Continuous Integration
 
-Bittensor uses GitHub Actions for continuous integration. This means that every time you push changes to the repository, all tests are automatically run. If any tests fail, you'll be notified so you can fix the issue before merging your changes.
+Bittensor uses CircleCI for continuous integration. This means that every time you push changes to the repository, all tests are automatically run. If any tests fail, you'll be notified so you can fix the issue before merging your changes.
 
-You can view the results of these tests in the "Actions" tab of the Bittensor GitHub repository.
 
 Remember, tests are an important part of maintaining the health of a codebase. They help catch issues early and make it easier to add new features or refactor existing code. Happy testing!
