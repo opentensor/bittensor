@@ -32,7 +32,8 @@ Bittensor is still in the Alpha stages, and as such you will likely run into som
 
 Additionally, note that the core implementation of Bittensor consists of two separate repositories: [The core Bittensor code](https://github.com/opentensor/bittensor) and the Bittensor Blockchain [subtensor](https://github.com/opentensor/subtensor).
 
-Supplemental, yet necessary repositories are [openvalidators](https://github.com/opentensor/validators) and [openminers](https://github.com/opentensor/miners).
+Supplemental, yet necessary repositories are [openvalidators](https://github.com/opentensor/validators) and [openminers](https://github.com/opentensor/miners) which contain Bittensor Validators and Miners (respectively) designed by the OpenTensor Foundation team and open-sourced for the community to use.
+
 
 ## How Can I Contribute?
 
