@@ -66,11 +66,7 @@ Benefits
 - Easy to make other changes on the fly
 - Easy to merge features to other branches
 
-> *Caveat*: When working with new features, an atomic commit will often consist of multiple files, since a layout file, code behind file, and additional resources may have been added/modified. You don’t want to commit all of these separately, because if you had to roll back the application to a state before the feature was added, it would involve multiple commit entries, and that can get confusing
-
-
-
-##### Avoid trivial commit messages
+#### Avoid trivial commit messages
 
 Commit messages like "fix", "fix2", or "fix3" don't provide any context or clear understanding of what changes the commit introduces. Here are some examples of good vs. bad commit messages:
 
@@ -82,27 +78,7 @@ Commit messages like "fix", "fix2", or "fix3" don't provide any context or clear
 
     $ git commit -m "Fix typo in README file"
 
-##### Using `--fixup`
-
-If you've made a commit and then realize you've missed something or made a minor mistake, you can use the `--fixup` option. 
-
-For example, suppose you've made a commit with a hash `9fceb02`. Later, you realize you've left a debug statement in your code. Instead of making a new commit titled "remove debug statement" or "fix", you can do the following:
-
-    $ git commit --fixup 9fceb02
-
-This will create a new commit to fix the issue, with a message like "fixup! The original commit message".
-
-##### Interactive Rebase
-
-Interactive rebase, or `rebase -i`, can be used to squash these fixup commits into the original commits they're fixing, which cleans up your commit history. You can use the `autosquash` option to automatically squash any commits marked as "fixup" into their target commits.
-
-For example:
-
-    $ git rebase -i --autosquash HEAD~5
-
-This command starts an interactive rebase for the last 5 commits (`HEAD~5`). Any commits marked as "fixup" will be automatically moved to squash with their target commits.
-
-The benefit of using `--fixup` and interactive rebase is that it keeps your commit history clean and readable. It groups fixes with the commits they are related to, rather than having a separate "fix" commit that might not make sense to other developers (or even to you) in the future.
+> **Caveat**: When working with new features, an atomic commit will often consist of multiple files, since a layout file, code behind file, and additional resources may have been added/modified. You don’t want to commit all of these separately, because if you had to roll back the application to a state before the feature was added, it would involve multiple commit entries, and that can get confusing
 
 #### 2. Separate subject from body with a blank line
 
@@ -242,3 +218,29 @@ Take a look at the [full diff](https://github.com/bitcoin/bitcoin/commit/eb0b56b
 In most cases, you can leave out details about how a change has been made. Code is generally self-explanatory in this regard (and if the code is so complex that it needs to be explained in prose, that’s what source comments are for). Just focus on making clear the reasons why you made the change in the first place—the way things worked before the change (and what was wrong with that), the way they work now, and why you decided to solve it the way you did.
 
 The future maintainer that thanks you may be yourself!
+
+
+
+#### Tools worth mentioning
+
+##### Using `--fixup`
+
+If you've made a commit and then realize you've missed something or made a minor mistake, you can use the `--fixup` option. 
+
+For example, suppose you've made a commit with a hash `9fceb02`. Later, you realize you've left a debug statement in your code. Instead of making a new commit titled "remove debug statement" or "fix", you can do the following:
+
+    $ git commit --fixup 9fceb02
+
+This will create a new commit to fix the issue, with a message like "fixup! The original commit message".
+
+##### Interactive Rebase
+
+Interactive rebase, or `rebase -i`, can be used to squash these fixup commits into the original commits they're fixing, which cleans up your commit history. You can use the `autosquash` option to automatically squash any commits marked as "fixup" into their target commits.
+
+For example:
+
+    $ git rebase -i --autosquash HEAD~5
+
+This command starts an interactive rebase for the last 5 commits (`HEAD~5`). Any commits marked as "fixup" will be automatically moved to squash with their target commits.
+
+The benefit of using `--fixup` and interactive rebase is that it keeps your commit history clean and readable. It groups fixes with the commits they are related to, rather than having a separate "fix" commit that might not make sense to other developers (or even to you) in the future.
