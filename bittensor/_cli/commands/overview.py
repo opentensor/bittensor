@@ -16,13 +16,15 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import asyncio
 import bittensor
 from tqdm import tqdm
+from tqdm.asyncio import tqdm_asyncio
 from fuzzywuzzy import fuzz
 from rich.align import Align
 from rich.table import Table
 from rich.prompt import Prompt
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 from .utils import get_hotkey_wallets_for_wallet, get_coldkey_wallets_for_path, get_all_wallets_for_path
 console = bittensor.__console__
 
@@ -81,22 +83,38 @@ class OverviewCommand:
             netuids = [netuid for netuid in netuids if netuid in cli.config.netuid]
         for netuid in netuids:
             neurons[str(netuid)] = []
-        netuids_copy = netuids.copy()
 
         with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
-            for netuid in tqdm(netuids_copy, desc="Checking each subnet"):
-                all_neurons: List[bittensor.NeuronInfoLite] = subtensor.neurons_lite( netuid = netuid )
-                # Map the hotkeys to uids
-                hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
-                for hot_wallet in all_hotkeys:
-                    uid = hotkey_to_neurons.get(hot_wallet.hotkey.ss58_address)
-                    if uid is not None:
-                        nn = all_neurons[uid]
-                        neurons[str(netuid)].append( (nn, hot_wallet) )
+            # Pull neuron info for all keys.
+            loop = asyncio.get_event_loop()  
 
-                if len(neurons[str(netuid)]) == 0:
-                    # Remove netuid from overview if no neurons are found.
-                    netuids.remove(netuid)
+            async def get_all_neurons(netuids: List[int], neurons: Dict[str, List[Tuple[bittensor.NeuronInfoLite, bittensor.Wallet]]]):
+                neurons_tasks = [
+                    asyncio.to_thread(OverviewCommand._get_neurons_for_netuid, *(subtensor, netuid, all_hotkeys)) for netuid in netuids
+                ]
+
+                for result in tqdm_asyncio.as_completed(
+                    neurons_tasks,
+                    loop=loop,
+                    total=len(netuids),
+                    desc="Pulling neurons for each netuid...",
+                ):
+                    netuid, neurons_for_netuid = await result
+
+                    if len(neurons_for_netuid) == 0:
+                        # Remove netuid from overview if no neurons are found.
+                        netuids.remove(netuid)
+                    else:
+                        # Add neurons to overview.
+                        neurons[str(netuid)] = neurons_for_netuid
+
+                    return netuids, neurons
+
+            result = loop.run_until_complete(get_all_neurons(netuids, neurons))
+            
+            netuids, neurons = result
+            
+            
 
         # Setup outer table.
         grid = Table.grid(pad_edge=False)
@@ -250,6 +268,21 @@ class OverviewCommand:
 
         # Print the entire table/grid
         console.print(grid, width=cli.config.get('width', None))
+
+    @staticmethod
+    def _get_neurons_for_netuid(subtensor: 'bittensor.Subtensor', netuid: int, hot_wallets: List['bittensor.Wallet']) -> Tuple[int, List[Tuple['bittensor.NeuronInfoLite', 'bittensor.Wallet']]]:
+        result: List[Tuple['bittensor.NeuronInfoLite', 'bittensor.Wallet']] = []
+
+        all_neurons: List['bittensor.NeuronInfoLite'] = subtensor.neurons_lite( netuid = netuid )
+        # Map the hotkeys to uids
+        hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
+        for hot_wallet in hot_wallets:
+            uid = hotkey_to_neurons.get(hot_wallet.hotkey.ss58_address)
+            if uid is not None:
+                nn = all_neurons[uid]
+                result.append( (nn, hot_wallet) )
+
+        return netuid, result
 
     @staticmethod
     def add_args( parser: argparse.ArgumentParser ):
