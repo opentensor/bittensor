@@ -104,6 +104,7 @@ class OverviewCommand:
                     if len(neurons_for_netuid) == 0:
                         # Remove netuid from overview if no neurons are found.
                         netuids.remove(netuid)
+                        del neurons[str(netuid)]
                     else:
                         # Add neurons to overview.
                         neurons[str(netuid)] = neurons_for_netuid
@@ -111,7 +112,6 @@ class OverviewCommand:
                     return netuids, neurons
 
             result = loop.run_until_complete(get_all_neurons(netuids, neurons))
-            
             netuids, neurons = result
             
             
