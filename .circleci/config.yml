@@ -169,7 +169,7 @@ jobs:
 workflows:
   pr-requirements:
     jobs:
-      - black:
+      - python-lib/black:
           python-version: "3.8.14"
       - build-and-test:
           matrix:
