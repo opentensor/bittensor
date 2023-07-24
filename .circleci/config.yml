@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
   python: circleci/python@2.1.1
+  python-lib: dialogue/python-lib@0.1.55
   # coveralls: coveralls/coveralls@1.0.6
 
 jobs:
@@ -168,6 +169,8 @@ jobs:
 workflows:
   pr-requirements:
     jobs:
+      - python-lib/black:
+          python-version: "3.8.14"
       - build-and-test:
           matrix:
             parameters:
