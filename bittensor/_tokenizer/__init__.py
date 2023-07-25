@@ -23,18 +23,18 @@ from bittensor.utils.tokenizer_utils import prep_tokenizer
 
 
 class tokenizer:
-    """ Implementation of the bittensor tokenizer
-    """
+    """Implementation of the bittensor tokenizer"""
+
     cached_tokenizer_for_version: dict = {}
 
-    def __new__( cls, version: str = None ):
+    def __new__(cls, version: str = None):
         if version == None:
             version = bittensor.__version__
         if version not in cls.cached_tokenizer_for_version:
-            _tokenizer = cls.get_tokenizer_for_version( version )
-            cls.cached_tokenizer_for_version[ version ] = _tokenizer
+            _tokenizer = cls.get_tokenizer_for_version(version)
+            cls.cached_tokenizer_for_version[version] = _tokenizer
         else:
-            _tokenizer = cls.cached_tokenizer_for_version[ version ]
+            _tokenizer = cls.cached_tokenizer_for_version[version]
         return _tokenizer
 
     # Tokenizer
@@ -42,9 +42,8 @@ class tokenizer:
     # neurons must be aware that versions will increase and be ready to convert between tokenizers.
     # TODO (const): Add functionality to allow tokenizer conversion. i.e. for input token conversion.
     @classmethod
-    def get_tokenizer_for_version( cls, version = bittensor.__version__ ):
-        """ Return the GPT2 tokenizer with bittersor's special tokens
-        """
-        _tokenizer = AutoTokenizer.from_pretrained('gpt2', local_files_only=False)
+    def get_tokenizer_for_version(cls, version=bittensor.__version__):
+        """Return the GPT2 tokenizer with bittersor's special tokens"""
+        _tokenizer = AutoTokenizer.from_pretrained("gpt2", local_files_only=False)
         _tokenizer = prep_tokenizer(_tokenizer)
         return _tokenizer

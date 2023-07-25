@@ -19,7 +19,7 @@ ModelOrModelOptimPair = Union[nn.Module, ModelOptimPair]
 
 class Strategy(ABC):
     """
-        Base class for training strategies.
+    Base class for training strategies.
     """
 
     def __init__(self) -> None:
@@ -27,7 +27,9 @@ class Strategy(ABC):
         self.setup_distributed()
 
     @abstractmethod
-    def backward(self, loss: torch.Tensor, model: nn.Module, optimizer: Optimizer, **kwargs) -> None:
+    def backward(
+        self, loss: torch.Tensor, model: nn.Module, optimizer: Optimizer, **kwargs
+    ) -> None:
         pass
 
     @abstractmethod
@@ -47,7 +49,9 @@ class Strategy(ABC):
         pass
 
     @abstractmethod
-    def setup_dataloader(self, replay_buffer: ReplayBuffer, pin_memory: bool = False) -> DataLoader:
+    def setup_dataloader(
+        self, replay_buffer: ReplayBuffer, pin_memory: bool = False
+    ) -> DataLoader:
         pass
 
     def model_init_context(self):
@@ -78,7 +82,9 @@ class Strategy(ABC):
         rets = []
         for arg in models_or_model_optim_pairs:
             if isinstance(arg, tuple):
-                assert len(arg) == 2, f'Expect (model, optimizer) pair, got a tuple with size "{len(arg)}"'
+                assert (
+                    len(arg) == 2
+                ), f'Expect (model, optimizer) pair, got a tuple with size "{len(arg)}"'
                 model, optimizer = arg
                 model = prepare_model(model)
                 optimizer = self.setup_optimizer(optimizer, self._unwrap_model(model))
@@ -86,7 +92,9 @@ class Strategy(ABC):
             elif isinstance(arg, nn.Module):
                 rets.append(prepare_model(arg))
             else:
-                raise RuntimeError(f'Expect model or (model, optimizer) pair, got {type(arg)}')
+                raise RuntimeError(
+                    f"Expect model or (model, optimizer) pair, got {type(arg)}"
+                )
 
         if len(rets) == 1:
             return rets[0]
@@ -113,23 +121,31 @@ class Strategy(ABC):
         return Strategy._unwrap_model(actor)
 
     @abstractmethod
-    def save_model(self,
-                   model: nn.Module,
-                   path: str,
-                   only_rank0: bool = False,
-                   tokenizer: Optional[PreTrainedTokenizerBase] = None) -> None:
+    def save_model(
+        self,
+        model: nn.Module,
+        path: str,
+        only_rank0: bool = False,
+        tokenizer: Optional[PreTrainedTokenizerBase] = None,
+    ) -> None:
         pass
 
     @abstractmethod
-    def load_model(self, model: nn.Module, path: str, map_location: Any = None, strict: bool = True) -> None:
+    def load_model(
+        self, model: nn.Module, path: str, map_location: Any = None, strict: bool = True
+    ) -> None:
         pass
 
     @abstractmethod
-    def save_optimizer(self, optimizer: Optimizer, path: str, only_rank0: bool = False) -> None:
+    def save_optimizer(
+        self, optimizer: Optimizer, path: str, only_rank0: bool = False
+    ) -> None:
         pass
 
     @abstractmethod
-    def load_optimizer(self, optimizer: Optimizer, path: str, map_location: Any = None) -> None:
+    def load_optimizer(
+        self, optimizer: Optimizer, path: str, map_location: Any = None
+    ) -> None:
         pass
 
     def setup_sampler(self, dataset) -> DistributedSampler:

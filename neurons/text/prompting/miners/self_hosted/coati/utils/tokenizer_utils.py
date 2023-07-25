@@ -25,13 +25,11 @@ DEFAULT_UNK_TOKEN = "</s>"
 
 
 def prepare_llama_tokenizer_and_embedding(
-        tokenizer: transformers.PreTrainedTokenizer,
-        model: transformers.PreTrainedModel,
-        special_tokens_dict: Dict = dict(pad_token=DEFAULT_PAD_TOKEN),
+    tokenizer: transformers.PreTrainedTokenizer,
+    model: transformers.PreTrainedModel,
+    special_tokens_dict: Dict = dict(pad_token=DEFAULT_PAD_TOKEN),
 ):
-    """prepare llama tokenizer and embedding.
-
-    """
+    """prepare llama tokenizer and embedding."""
 
     if tokenizer.pad_token is None:
         smart_tokenizer_and_embedding_resize(
@@ -40,19 +38,21 @@ def prepare_llama_tokenizer_and_embedding(
             model=model,
         )
 
-    tokenizer.add_special_tokens({
-        "eos_token": DEFAULT_EOS_TOKEN,
-        "bos_token": DEFAULT_BOS_TOKEN,
-        "unk_token": DEFAULT_UNK_TOKEN,
-    })
+    tokenizer.add_special_tokens(
+        {
+            "eos_token": DEFAULT_EOS_TOKEN,
+            "bos_token": DEFAULT_BOS_TOKEN,
+            "unk_token": DEFAULT_UNK_TOKEN,
+        }
+    )
 
     return tokenizer
 
 
 def smart_tokenizer_and_embedding_resize(
-        tokenizer: transformers.PreTrainedTokenizer,
-        model: transformers.PreTrainedModel,
-        special_tokens_dict: Dict = dict(pad_token=DEFAULT_PAD_TOKEN),
+    tokenizer: transformers.PreTrainedTokenizer,
+    model: transformers.PreTrainedModel,
+    special_tokens_dict: Dict = dict(pad_token=DEFAULT_PAD_TOKEN),
 ):
     """Resize tokenizer and embedding.
 
@@ -71,8 +71,12 @@ def smart_tokenizer_and_embedding_resize(
             input_embeddings = model.model.get_input_embeddings().weight.data
             output_embeddings = model.model.get_output_embeddings().weight.data
 
-            input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
-            output_embeddings_avg = output_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
+            input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(
+                dim=0, keepdim=True
+            )
+            output_embeddings_avg = output_embeddings[:-num_new_tokens].mean(
+                dim=0, keepdim=True
+            )
 
             input_embeddings[-num_new_tokens:] = input_embeddings_avg
             output_embeddings[-num_new_tokens:] = output_embeddings_avg

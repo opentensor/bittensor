@@ -20,9 +20,10 @@ import time
 import queue
 from loguru import logger
 
+
 class ProducerThread(threading.Thread):
-    r""" This producer thread runs in backgraound to fill the queue with the result of the target function.
-    """
+    r"""This producer thread runs in backgraound to fill the queue with the result of the target function."""
+
     def __init__(self, queue, target, arg, name=None):
         r"""Initialization.
         Args:
@@ -38,7 +39,7 @@ class ProducerThread(threading.Thread):
             name (:type:`str`, `optional`)
                 The name of this threading object.
         """
-        super(ProducerThread,self).__init__()
+        super(ProducerThread, self).__init__()
         self.name = name
         self.target = target
         self.arg = arg
@@ -46,11 +47,10 @@ class ProducerThread(threading.Thread):
         self._stop_event = threading.Event()
 
     def run(self):
-        r""" Work of the thread. Keep checking if the queue is full, if it is not full, run the target function to fill the queue.
-        """
+        r"""Work of the thread. Keep checking if the queue is full, if it is not full, run the target function to fill the queue."""
         while not self.stopped():
             if not self.queue.full():
-                item = self.target(*self.arg, self.queue.qsize()+1 )
+                item = self.target(*self.arg, self.queue.qsize() + 1)
                 self.queue.put(item)
             time.sleep(2)
         return
@@ -61,11 +61,12 @@ class ProducerThread(threading.Thread):
     def stopped(self):
         return self._stop_event.is_set()
 
-class ThreadQueue():
-    r""" Manages the queue the producer thread that monitor and fills the queue.
-    """
-    def __init__(self, producer_target, producer_arg, buffer_size = 2):
-        """ Setup the queue and start the producer thread.
+
+class ThreadQueue:
+    r"""Manages the queue the producer thread that monitor and fills the queue."""
+
+    def __init__(self, producer_target, producer_arg, buffer_size=2):
+        """Setup the queue and start the producer thread.
 
         Args:
 
@@ -80,7 +81,9 @@ class ThreadQueue():
         """
         self.buffer_size = buffer_size
         self.queue = queue.Queue(buffer_size)
-        self.producer = ProducerThread(name='producer', queue = self.queue, target = producer_target, arg = producer_arg)
+        self.producer = ProducerThread(
+            name="producer", queue=self.queue, target=producer_target, arg=producer_arg
+        )
         self.producer.start()
 
     def __del__(self):
@@ -89,4 +92,4 @@ class ThreadQueue():
     def close(self):
         self.producer.stop()
         self.producer.join()
-        logger.success('Dataset Thread Queue Closed')
+        logger.success("Dataset Thread Queue Closed")

@@ -28,8 +28,10 @@ from bittensor.utils.test_utils import get_random_unused_port
 
 from tests.helpers import _get_mock_wallet, _get_mock_keypair
 
+
 def gen_nonce():
     return f"{time.monotonic_ns()}"
+
 
 def sign_v2(sender_wallet, receiver_wallet):
     nonce, receptor_uid = gen_nonce(), str(uuid.uuid1())
@@ -39,33 +41,36 @@ def sign_v2(sender_wallet, receiver_wallet):
     signature = f"0x{sender_wallet.hotkey.sign(message).hex()}"
     return ".".join([nonce, sender_hotkey, signature, receptor_uid])
 
+
 def sign(sender_wallet, receiver_wallet, receiver_version):
     return sign_v2(sender_wallet, receiver_wallet)
 
+
 def is_port_in_use(port):
     import socket
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        val = s.connect_ex(('localhost', port))
+        val = s.connect_ex(("localhost", port))
         if val == 0:
             return True
         else:
             return False
 
+
 class TestAxon(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.wallet = wallet = _get_mock_wallet(
-            coldkey = _get_mock_keypair(0, cls.__name__),
-            hotkey= _get_mock_keypair(100 + 0, cls.__name__),
+            coldkey=_get_mock_keypair(0, cls.__name__),
+            hotkey=_get_mock_keypair(100 + 0, cls.__name__),
         )
 
-        cls.axon = bittensor.axon( wallet = wallet, metagraph = None )
+        cls.axon = bittensor.axon(wallet=wallet, metagraph=None)
 
         cls.sender_wallet = _get_mock_wallet(
-            coldkey = _get_mock_keypair(1, cls.__name__),
-            hotkey= _get_mock_keypair(100 + 1, cls.__name__),
+            coldkey=_get_mock_keypair(1, cls.__name__),
+            hotkey=_get_mock_keypair(100 + 1, cls.__name__),
         )
-
 
     def test_axon_start(self):
         mock_wallet = MagicMock(
@@ -79,7 +84,7 @@ class TestAxon(unittest.TestCase):
                 ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
             ),
         )
-        axon = bittensor.axon( wallet = mock_wallet, metagraph = None )
+        axon = bittensor.axon(wallet=mock_wallet, metagraph=None)
         axon.start()
         assert axon.server._state.stage == grpc._server._ServerStage.STARTED
 
@@ -95,11 +100,11 @@ class TestAxon(unittest.TestCase):
                 ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
             ),
         )
-        axon = bittensor.axon( wallet = mock_wallet, metagraph = None )
+        axon = bittensor.axon(wallet=mock_wallet, metagraph=None)
         axon.start()
-        time.sleep( 1 )
+        time.sleep(1)
         axon.stop()
-        time.sleep( 1 )
+        time.sleep(1)
         assert axon.server._state.stage == grpc._server._ServerStage.STOPPED
 
     def test_sign_v2(self):
@@ -119,40 +124,41 @@ class TestAxon(unittest.TestCase):
         )
 
         port = get_random_unused_port()
-        assert is_port_in_use( port ) == False
-        axon = bittensor.axon ( wallet = mock_wallet, metagraph = None, port = port )
-        assert is_port_in_use( port ) == True
+        assert is_port_in_use(port) == False
+        axon = bittensor.axon(wallet=mock_wallet, metagraph=None, port=port)
+        assert is_port_in_use(port) == True
         axon.start()
-        assert is_port_in_use( port ) == True
+        assert is_port_in_use(port) == True
         axon.stop()
-        assert is_port_in_use( port ) == False
+        assert is_port_in_use(port) == False
         axon.__del__()
-        assert is_port_in_use( port ) == False
+        assert is_port_in_use(port) == False
 
         port = get_random_unused_port()
-        assert is_port_in_use( port ) == False
-        axon2 = bittensor.axon ( wallet = mock_wallet, metagraph = None, port = port )
-        assert is_port_in_use( port ) == True
+        assert is_port_in_use(port) == False
+        axon2 = bittensor.axon(wallet=mock_wallet, metagraph=None, port=port)
+        assert is_port_in_use(port) == True
         axon2.start()
-        assert is_port_in_use( port ) == True
+        assert is_port_in_use(port) == True
         axon2.__del__()
-        assert is_port_in_use( port ) == False
+        assert is_port_in_use(port) == False
 
         port_3 = get_random_unused_port()
-        assert is_port_in_use( port_3 ) == False
-        axonA = bittensor.axon ( wallet = mock_wallet, metagraph = None, port = port_3 )
-        assert is_port_in_use( port_3 ) == True
-        axonB = bittensor.axon ( wallet = mock_wallet, metagraph = None, port = port_3 )
+        assert is_port_in_use(port_3) == False
+        axonA = bittensor.axon(wallet=mock_wallet, metagraph=None, port=port_3)
+        assert is_port_in_use(port_3) == True
+        axonB = bittensor.axon(wallet=mock_wallet, metagraph=None, port=port_3)
         assert axonA.server != axonB.server
-        assert is_port_in_use( port_3 ) == True
+        assert is_port_in_use(port_3) == True
         axonA.start()
-        assert is_port_in_use( port_3 ) == True
+        assert is_port_in_use(port_3) == True
         axonB.start()
-        assert is_port_in_use( port_3 ) == True
+        assert is_port_in_use(port_3) == True
         axonA.__del__()
-        assert is_port_in_use( port ) == False
+        assert is_port_in_use(port) == False
         axonB.__del__()
-        assert is_port_in_use( port ) == False
+        assert is_port_in_use(port) == False
+
 
 # test external axon args
 class TestExternalAxon(unittest.TestCase):
@@ -169,9 +175,7 @@ class TestExternalAxon(unittest.TestCase):
     def test_external_ip_not_set_dont_use_internal_ip(self):
         # Verify that not setting the external ip arg will NOT default to the internal axon ip
         mock_add_insecure_port = mock.MagicMock(return_value=None)
-        mock_server = mock.MagicMock(
-            add_insecure_port=mock_add_insecure_port
-        )
+        mock_server = mock.MagicMock(add_insecure_port=mock_add_insecure_port)
 
         mock_config = bittensor.axon.config()
         mock_wallet = MagicMock(
@@ -185,51 +189,67 @@ class TestExternalAxon(unittest.TestCase):
                 ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
             ),
         )
-        axon = bittensor.axon ( wallet = mock_wallet, metagraph = None, ip = 'fake_ip', server = mock_server, config = mock_config )
-        assert axon.external_ip != axon.ip # should be different
-        assert (axon.external_ip is None) or (axon.external_ip == bittensor.utils.networking.get_external_ip()) # should be None OR default from bittensor.utils
+        axon = bittensor.axon(
+            wallet=mock_wallet,
+            metagraph=None,
+            ip="fake_ip",
+            server=mock_server,
+            config=mock_config,
+        )
+        assert axon.external_ip != axon.ip  # should be different
+        assert (axon.external_ip is None) or (
+            axon.external_ip == bittensor.utils.networking.get_external_ip()
+        )  # should be None OR default from bittensor.utils
 
     def test_external_port_not_set_use_internal_port(self):
         # Verify that not setting the external port arg will default to the internal axon port
         mock_config = bittensor.axon.config()
 
         mock_wallet = mock.MagicMock(
-            hotkey = mock.MagicMock(
-                ss58_address = 'fake_hotkey_address',
-                spec = bittensor.Keypair
+            hotkey=mock.MagicMock(
+                ss58_address="fake_hotkey_address", spec=bittensor.Keypair
             ),
-            spec = bittensor.Wallet
+            spec=bittensor.Wallet,
         )
 
-        with mock.patch('bittensor.wallet') as mock_create_wallet:
+        with mock.patch("bittensor.wallet") as mock_create_wallet:
             mock_create_wallet.return_value = mock_wallet
-            axon = bittensor.axon ( wallet = mock_wallet, metagraph = None, port = 1234, config=mock_config )
+            axon = bittensor.axon(
+                wallet=mock_wallet, metagraph=None, port=1234, config=mock_config
+            )
             assert axon.external_port == axon.port
 
     def test_external_port_set_full_address_internal(self):
         internal_port = 1234
         external_port = 5678
         mock_wallet = mock.MagicMock(
-            hotkey = mock.MagicMock(
-                ss58_address = 'fake_hotkey_address',
-                spec = bittensor.Keypair
+            hotkey=mock.MagicMock(
+                ss58_address="fake_hotkey_address", spec=bittensor.Keypair
             ),
-            spec = bittensor.Wallet
+            spec=bittensor.Wallet,
         )
         mock_add_insecure_port = mock.MagicMock(return_value=None)
-        mock_server = mock.MagicMock(
-            add_insecure_port=mock_add_insecure_port
-        )
+        mock_server = mock.MagicMock(add_insecure_port=mock_add_insecure_port)
 
         mock_config = bittensor.axon.config()
 
-        _ = bittensor.axon( wallet = mock_wallet, metagraph = None, port = internal_port, external_port = external_port, server = mock_server, config = mock_config )
+        _ = bittensor.axon(
+            wallet=mock_wallet,
+            metagraph=None,
+            port=internal_port,
+            external_port=external_port,
+            server=mock_server,
+            config=mock_config,
+        )
 
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
         full_address0 = args[0]
 
-        assert f'{internal_port}' in full_address0 and f':{external_port}' not in full_address0
+        assert (
+            f"{internal_port}" in full_address0
+            and f":{external_port}" not in full_address0
+        )
 
         mock_add_insecure_port.reset_mock()
 
@@ -239,41 +259,53 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.port = internal_port
         mock_config.axon.external_port = external_port
 
-        _ = bittensor.axon( wallet = mock_wallet, metagraph = None, config = mock_config, server = mock_server )
+        _ = bittensor.axon(
+            wallet=mock_wallet, metagraph=None, config=mock_config, server=mock_server
+        )
 
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
         full_address0 = args[0]
 
-        assert f'{internal_port}' in full_address0, f'{internal_port} was not found in {full_address0}'
-        assert f':{external_port}' not in full_address0, f':{external_port} was found in {full_address0}'
+        assert (
+            f"{internal_port}" in full_address0
+        ), f"{internal_port} was not found in {full_address0}"
+        assert (
+            f":{external_port}" not in full_address0
+        ), f":{external_port} was found in {full_address0}"
 
     def test_external_ip_set_full_address_internal(self):
-        internal_ip = 'fake_ip_internal'
-        external_ip = 'fake_ip_external'
+        internal_ip = "fake_ip_internal"
+        external_ip = "fake_ip_external"
 
         mock_wallet = mock.MagicMock(
-            hotkey = mock.MagicMock(
-                ss58_address = 'fake_hotkey_address',
-                spec = bittensor.Keypair
+            hotkey=mock.MagicMock(
+                ss58_address="fake_hotkey_address", spec=bittensor.Keypair
             ),
-            spec = bittensor.Wallet
+            spec=bittensor.Wallet,
         )
 
         mock_add_insecure_port = mock.MagicMock(return_value=None)
-        mock_server = mock.MagicMock(
-            add_insecure_port=mock_add_insecure_port
-        )
+        mock_server = mock.MagicMock(add_insecure_port=mock_add_insecure_port)
 
         mock_config = bittensor.axon.config()
 
-        _ = bittensor.axon( wallet = mock_wallet, metagraph = None, ip=internal_ip, external_ip=external_ip, server=mock_server, config=mock_config )
+        _ = bittensor.axon(
+            wallet=mock_wallet,
+            metagraph=None,
+            ip=internal_ip,
+            external_ip=external_ip,
+            server=mock_server,
+            config=mock_config,
+        )
 
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
         full_address0 = args[0]
 
-        assert f'{internal_ip}' in full_address0 and f'{external_ip}' not in full_address0
+        assert (
+            f"{internal_ip}" in full_address0 and f"{external_ip}" not in full_address0
+        )
 
         mock_add_insecure_port.reset_mock()
 
@@ -282,43 +314,58 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.external_ip = external_ip
         mock_config.axon.ip = internal_ip
 
-        _ = bittensor.axon( wallet = mock_wallet, metagraph = None, config=mock_config, server=mock_server )
+        _ = bittensor.axon(
+            wallet=mock_wallet, metagraph=None, config=mock_config, server=mock_server
+        )
 
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
         full_address0 = args[0]
 
-        assert f'{internal_ip}' in full_address0, f'{internal_ip} was not found in {full_address0}'
-        assert f'{external_ip}' not in full_address0, f'{external_ip} was found in {full_address0}'
+        assert (
+            f"{internal_ip}" in full_address0
+        ), f"{internal_ip} was not found in {full_address0}"
+        assert (
+            f"{external_ip}" not in full_address0
+        ), f"{external_ip} was found in {full_address0}"
 
     def test_external_ip_port_set_full_address_internal(self):
-        internal_ip = 'fake_ip_internal'
-        external_ip = 'fake_ip_external'
+        internal_ip = "fake_ip_internal"
+        external_ip = "fake_ip_external"
         internal_port = 1234
         external_port = 5678
 
         mock_wallet = mock.MagicMock(
-            hotkey = mock.MagicMock(
-                ss58_address = 'fake_hotkey_address',
-                spec = bittensor.Keypair
+            hotkey=mock.MagicMock(
+                ss58_address="fake_hotkey_address", spec=bittensor.Keypair
             ),
-            spec = bittensor.Wallet
+            spec=bittensor.Wallet,
         )
 
         mock_add_insecure_port = mock.MagicMock(return_value=None)
-        mock_server = mock.MagicMock(
-            add_insecure_port=mock_add_insecure_port
-        )
+        mock_server = mock.MagicMock(add_insecure_port=mock_add_insecure_port)
 
         mock_config = bittensor.axon.config()
 
-        _ = bittensor.axon( wallet = mock_wallet, metagraph = None, ip=internal_ip, external_ip=external_ip, port=internal_port, external_port=external_port, server=mock_server, config=mock_config )
+        _ = bittensor.axon(
+            wallet=mock_wallet,
+            metagraph=None,
+            ip=internal_ip,
+            external_ip=external_ip,
+            port=internal_port,
+            external_port=external_port,
+            server=mock_server,
+            config=mock_config,
+        )
 
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
         full_address0 = args[0]
 
-        assert f'{internal_ip}:{internal_port}' == full_address0 and f'{external_ip}:{external_port}' != full_address0
+        assert (
+            f"{internal_ip}:{internal_port}" == full_address0
+            and f"{external_ip}:{external_port}" != full_address0
+        )
 
         mock_add_insecure_port.reset_mock()
 
@@ -330,11 +377,17 @@ class TestExternalAxon(unittest.TestCase):
         mock_config.axon.port = internal_port
         mock_config.axon.external_port = external_port
 
-        _ = bittensor.axon( wallet = mock_wallet, metagraph = None, config=mock_config, server=mock_server )
+        _ = bittensor.axon(
+            wallet=mock_wallet, metagraph=None, config=mock_config, server=mock_server
+        )
 
         mock_add_insecure_port.assert_called_once()
         args, _ = mock_add_insecure_port.call_args
         full_address1 = args[0]
 
-        assert f'{internal_ip}:{internal_port}' == full_address1, f'{internal_ip}:{internal_port} is not eq to {full_address1}'
-        assert f'{external_ip}:{external_port}' != full_address1, f'{external_ip}:{external_port} is eq to {full_address1}'
+        assert (
+            f"{internal_ip}:{internal_port}" == full_address1
+        ), f"{internal_ip}:{internal_port} is not eq to {full_address1}"
+        assert (
+            f"{external_ip}:{external_port}" != full_address1
+        ), f"{external_ip}:{external_port} is eq to {full_address1}"
