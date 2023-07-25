@@ -16,10 +16,9 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import asyncio
 import bittensor
 from tqdm import tqdm
-from tqdm.asyncio import tqdm_asyncio
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from fuzzywuzzy import fuzz
 from rich.align import Align
 from rich.table import Table
@@ -113,42 +112,39 @@ class OverviewCommand:
             )
         ):
             # Pull neuron info for all keys.
-            loop = asyncio.get_event_loop()
-
-            async def get_all_neurons(
-                netuids: List[int],
-                neurons: Dict[
-                    str, List[Tuple[bittensor.NeuronInfoLite, bittensor.Wallet]]
-                ],
-            ):
-                neurons_tasks = [
-                    asyncio.to_thread(
+            ## Max len(netuids) or 5 threads.
+            with ThreadPoolExecutor(max_workers=max(len(netuids), 5)) as executor:
+                neurons_futures_to_netuid = {
+                    executor.submit(
                         OverviewCommand._get_neurons_for_netuid,
                         *(subtensor, netuid, all_hotkeys),
-                    )
+                    ): netuid
                     for netuid in netuids
-                ]
+                }
 
-                for result in tqdm_asyncio.as_completed(
-                    neurons_tasks,
-                    loop=loop,
-                    total=len(netuids),
-                    desc="Pulling neurons for each netuid...",
-                ):
-                    netuid, neurons_for_netuid = await result
+                for future_ in as_completed(neurons_futures_to_netuid):
+                    netuid = neurons_futures_to_netuid[future_]
+                    try:
+                        neurons_result = future_.result()
+                    except Exception as e:
+                        console.print(
+                            "[red]Error pulling neuron info for netuid {}:[/red] {}".format(
+                                netuid, e
+                            )
+                        )
 
-                    if len(neurons_for_netuid) == 0:
+                        netuids.remove(netuid)
+                        del neurons[str(netuid)]
+
+                        continue
+
+                    if len(neurons_result) == 0:
                         # Remove netuid from overview if no neurons are found.
                         netuids.remove(netuid)
                         del neurons[str(netuid)]
                     else:
                         # Add neurons to overview.
-                        neurons[str(netuid)] = neurons_for_netuid
-
-                return netuids, neurons
-
-            result = loop.run_until_complete(get_all_neurons(netuids, neurons))
-            netuids, neurons = result
+                        neurons[str(netuid)] = neurons_result
 
         # Setup outer table.
         grid = Table.grid(pad_edge=False)
@@ -402,7 +398,7 @@ class OverviewCommand:
         subtensor: "bittensor.Subtensor",
         netuid: int,
         hot_wallets: List["bittensor.Wallet"],
-    ) -> Tuple[int, List[Tuple["bittensor.NeuronInfoLite", "bittensor.Wallet"]]]:
+    ) -> List[Tuple["bittensor.NeuronInfoLite", "bittensor.Wallet"]]:
         result: List[Tuple["bittensor.NeuronInfoLite", "bittensor.Wallet"]] = []
 
         all_neurons: List["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
@@ -416,7 +412,7 @@ class OverviewCommand:
                 nn = all_neurons[uid]
                 result.append((nn, hot_wallet))
 
-        return netuid, result
+        return result
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
