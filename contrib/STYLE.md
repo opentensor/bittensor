@@ -4,6 +4,22 @@ A project’s long-term success rests (among other things) on its maintainabilit
 
 Most programming languages have well-established conventions as to what constitutes idiomatic style, i.e. naming, formatting and so on. There are variations on these conventions, of course, but most developers agree that picking one and sticking to it is far better than the chaos that ensues when everybody does their own thing.
 
+# Table of Contents
+1. [Code Style](#code-style)
+2. [Git Commit Style](#git-commit-style)
+3. [The Six Rules of a Great Commit](#the-six-rules-of-a-great-commit)
+   - [1. Atomic Commits](#1-atomic-commits)
+   - [2. Separate Subject from Body with a Blank Line](#2-separate-subject-from-body-with-a-blank-line)
+   - [3. Limit the Subject Line to 50 Characters](#3-limit-the-subject-line-to-50-characters)
+   - [4. Use the Imperative Mood in the Subject Line](#4-use-the-imperative-mood-in-the-subject-line)
+   - [5. Wrap the Body at 72 Characters](#5-wrap-the-body-at-72-characters)
+   - [6. Use the Body to Explain What and Why vs. How](#6-use-the-body-to-explain-what-and-why-vs-how)
+4. [Tools Worth Mentioning](#tools-worth-mentioning)
+   - [Using `--fixup`](#using---fixup)
+   - [Interactive Rebase](#interactive-rebase)
+5. [Pull Request and Squashing Commits Caveats](#pull-request-and-squashing-commits-caveats)
+
+
 ### Code style
 Use `black` to format your python code before commiting for consistency across such a large pool of contributors. Black's code [style](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html#code-style) ensures consistent and opinionated code formatting. It automatically formats your Python code according to the Black style guide, enhancing code readability and maintainability.
 
@@ -244,3 +260,40 @@ For example:
 This command starts an interactive rebase for the last 5 commits (`HEAD~5`). Any commits marked as "fixup" will be automatically moved to squash with their target commits.
 
 The benefit of using `--fixup` and interactive rebase is that it keeps your commit history clean and readable. It groups fixes with the commits they are related to, rather than having a separate "fix" commit that might not make sense to other developers (or even to you) in the future.
+
+
+---
+
+#### Pull Request and Squashing Commits Caveats
+
+While atomic commits are great for development and for understanding the changes within the branch, the commit history can get messy when merging to the main branch. To keep a cleaner and more understandable commit history in our main branch, we encourage squashing all the commits of a PR into one when merging.
+
+This single commit should provide an overview of the changes that the PR introduced. It should follow the guidelines for atomic commits (an atomic commit is complete, self-contained, and understandable) but on the scale of the entire feature, task, or fix that the PR addresses. This approach combines the benefits of atomic commits during development with a clean commit history in our main branch.
+
+Here is how you can squash commits:
+
+```bash
+git rebase -i HEAD~n
+```
+
+where `n` is the number of commits to squash. After running the command, replace `pick` with `squash` for the commits you want to squash into the previous commit. This will combine the commits and allow you to write a new commit message.
+
+In this context, an atomic commit message could look like:
+
+```
+Add feature X
+
+This commit introduces feature X which does A, B, and C. It adds 
+new files for layout, updates the code behind the file, and introduces
+new resources. This change is important because it allows users to 
+perform task Y more efficiently. 
+
+It includes:
+- Creation of new layout file
+- Updates in the code-behind file
+- Addition of new resources
+
+Resolves: #123
+```
+
+In your PRs, remember to detail what the PR is introducing or fixing. This will be helpful for reviewers to understand the context and the reason behind the changes. 
