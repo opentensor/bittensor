@@ -25,7 +25,12 @@ from rich.align import Align
 from rich.table import Table
 from rich.prompt import Prompt
 from typing import List, Optional, Dict, Tuple
-from .utils import get_hotkey_wallets_for_wallet, get_coldkey_wallets_for_path, get_all_wallets_for_path
+from .utils import (
+    get_hotkey_wallets_for_wallet,
+    get_coldkey_wallets_for_path,
+    get_all_wallets_for_path,
+)
+
 console = bittensor.__console__
 
 
@@ -100,13 +105,28 @@ class OverviewCommand:
         for netuid in netuids:
             neurons[str(netuid)] = []
 
-        with console.status(":satellite: Syncing with chain: [white]{}[/white] ...".format(cli.config.subtensor.get('network', bittensor.defaults.subtensor.network))):
+        with console.status(
+            ":satellite: Syncing with chain: [white]{}[/white] ...".format(
+                cli.config.subtensor.get(
+                    "network", bittensor.defaults.subtensor.network
+                )
+            )
+        ):
             # Pull neuron info for all keys.
-            loop = asyncio.get_event_loop()  
+            loop = asyncio.get_event_loop()
 
-            async def get_all_neurons(netuids: List[int], neurons: Dict[str, List[Tuple[bittensor.NeuronInfoLite, bittensor.Wallet]]]):
+            async def get_all_neurons(
+                netuids: List[int],
+                neurons: Dict[
+                    str, List[Tuple[bittensor.NeuronInfoLite, bittensor.Wallet]]
+                ],
+            ):
                 neurons_tasks = [
-                    asyncio.to_thread(OverviewCommand._get_neurons_for_netuid, *(subtensor, netuid, all_hotkeys)) for netuid in netuids
+                    asyncio.to_thread(
+                        OverviewCommand._get_neurons_for_netuid,
+                        *(subtensor, netuid, all_hotkeys),
+                    )
+                    for netuid in netuids
                 ]
 
                 for result in tqdm_asyncio.as_completed(
@@ -378,22 +398,28 @@ class OverviewCommand:
         console.print(grid, width=cli.config.get("width", None))
 
     @staticmethod
-    def _get_neurons_for_netuid(subtensor: 'bittensor.Subtensor', netuid: int, hot_wallets: List['bittensor.Wallet']) -> Tuple[int, List[Tuple['bittensor.NeuronInfoLite', 'bittensor.Wallet']]]:
-        result: List[Tuple['bittensor.NeuronInfoLite', 'bittensor.Wallet']] = []
+    def _get_neurons_for_netuid(
+        subtensor: "bittensor.Subtensor",
+        netuid: int,
+        hot_wallets: List["bittensor.Wallet"],
+    ) -> Tuple[int, List[Tuple["bittensor.NeuronInfoLite", "bittensor.Wallet"]]]:
+        result: List[Tuple["bittensor.NeuronInfoLite", "bittensor.Wallet"]] = []
 
-        all_neurons: List['bittensor.NeuronInfoLite'] = subtensor.neurons_lite( netuid = netuid )
+        all_neurons: List["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
+            netuid=netuid
+        )
         # Map the hotkeys to uids
         hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
         for hot_wallet in hot_wallets:
             uid = hotkey_to_neurons.get(hot_wallet.hotkey.ss58_address)
             if uid is not None:
                 nn = all_neurons[uid]
-                result.append( (nn, hot_wallet) )
+                result.append((nn, hot_wallet))
 
         return netuid, result
 
     @staticmethod
-    def add_args( parser: argparse.ArgumentParser ):
+    def add_args(parser: argparse.ArgumentParser):
         overview_parser = parser.add_parser(
             "overview", help="""Show registered account overview."""
         )
