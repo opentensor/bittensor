@@ -17,20 +17,24 @@
 
 from typing import TypedDict
 
+
 class AxonServeCallParams(TypedDict):
     """
     Axon serve chain call parameters.
     """
+
     version: int
     ip: int
     port: int
     ip_type: int
     netuid: int
 
+
 class PrometheusServeCallParams(TypedDict):
     """
     Prometheus serve chain call parameters.
     """
+
     version: int
     ip: int
     port: int

@@ -25,18 +25,21 @@ from typing import Tuple, List, Union, Optional
 
 import bittensor
 
+
 class Serializer(object):
-    r""" Bittensor base serialization object for converting between bittensor.proto.Tensor and their
+    r"""Bittensor base serialization object for converting between bittensor.proto.Tensor and their
     various python tensor equivalents. i.e. torch.Tensor or tensorflow.Tensor
     """
 
     @staticmethod
     def empty():
         """Returns an empty bittensor.proto.Tensor message with the version"""
-        torch_proto = bittensor.proto.Tensor(version= bittensor.__version_as_int__)
+        torch_proto = bittensor.proto.Tensor(version=bittensor.__version_as_int__)
         return torch_proto
 
-    def serialize (self, tensor_obj: object, from_type: int = bittensor.proto.TensorType.TORCH ) -> bittensor.proto.Tensor:
+    def serialize(
+        self, tensor_obj: object, from_type: int = bittensor.proto.TensorType.TORCH
+    ) -> bittensor.proto.Tensor:
         """Serializes a torch object to bittensor.proto.Tensor wire format.
 
         Args:
@@ -59,20 +62,26 @@ class Serializer(object):
         """
         # TODO (const): add deserialization types for torch -> tensorflow
         if from_type == bittensor.proto.TensorType.TORCH:
-            return self.serialize_from_torch( torch_tensor = tensor_obj )
+            return self.serialize_from_torch(torch_tensor=tensor_obj)
 
         elif from_type == bittensor.proto.TensorType.NUMPY:
-            return self.serialize_from_numpy( numpy_tensor = tensor_obj )
+            return self.serialize_from_numpy(numpy_tensor=tensor_obj)
 
         elif from_type == bittensor.proto.TensorType.TENSORFLOW:
-            return self.serialize_from_tensorflow( tensorflow_tensor = tensor_obj )
+            return self.serialize_from_tensorflow(tensorflow_tensor=tensor_obj)
 
         else:
-            raise bittensor.serializer.SerializationTypeNotImplementedException("Serialization from type {} not implemented.".format(from_type))
+            raise bittensor.serializer.SerializationTypeNotImplementedException(
+                "Serialization from type {} not implemented.".format(from_type)
+            )
 
         raise NotImplementedError
 
-    def deserialize (self, tensor_pb2: bittensor.proto.Tensor, to_type: int = bittensor.proto.TensorType.TORCH ) -> object:
+    def deserialize(
+        self,
+        tensor_pb2: bittensor.proto.Tensor,
+        to_type: int = bittensor.proto.TensorType.TORCH,
+    ) -> object:
         """Serializes a torch object to bittensor.proto.Tensor wire format.
 
         Args:
@@ -95,47 +104,57 @@ class Serializer(object):
         """
         # TODO (const): add deserialization types for torch -> tensorflow
         if to_type == bittensor.proto.TensorType.TORCH:
-            return self.deserialize_to_torch( tensor_pb2 )
+            return self.deserialize_to_torch(tensor_pb2)
 
         elif to_type == bittensor.proto.TensorType.NUMPY:
-            return self.deserialize_to_numpy( tensor_pb2 )
+            return self.deserialize_to_numpy(tensor_pb2)
 
         elif to_type == bittensor.proto.TensorType.TENSORFLOW:
-            return self.deserialize_to_tensorflow( tensor_pb2 )
+            return self.deserialize_to_tensorflow(tensor_pb2)
 
         else:
-            raise bittensor.serializer.SerializationTypeNotImplementedException("Deserialization to type {} not implemented.".format(to_type))
+            raise bittensor.serializer.SerializationTypeNotImplementedException(
+                "Deserialization to type {} not implemented.".format(to_type)
+            )
 
-    def serialize_from_tensorflow( self, tensorflow_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ tensorflow -> bittensor.proto.Tensor """
+    def serialize_from_tensorflow(
+        self, tensorflow_tensor: torch.Tensor
+    ) -> bittensor.proto.Tensor:
+        """tensorflow -> bittensor.proto.Tensor"""
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
-    def serialize_from_torch( self, torch_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ torch -> bittensor.proto.Tensor """
+    def serialize_from_torch(
+        self, torch_tensor: torch.Tensor
+    ) -> bittensor.proto.Tensor:
+        """torch -> bittensor.proto.Tensor"""
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
-    def serialize_from_numpy( self, numpy_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ numpy -> bittensor.proto.Tensor """
+    def serialize_from_numpy(
+        self, numpy_tensor: torch.Tensor
+    ) -> bittensor.proto.Tensor:
+        """numpy -> bittensor.proto.Tensor"""
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
-    def deserialize_to_torch( self, tensor_pb2: bittensor.proto.Tensor ) -> torch.Tensor:
-        """ bittensor.proto.Tensor -> torch """
+    def deserialize_to_torch(self, tensor_pb2: bittensor.proto.Tensor) -> torch.Tensor:
+        """bittensor.proto.Tensor -> torch"""
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
-    def deserialize_to_tensorflow( self, tensor_pb2: bittensor.proto.Tensor ) -> object:
-        """ bittensor.proto.Tensor -> tensorflow """
+    def deserialize_to_tensorflow(self, tensor_pb2: bittensor.proto.Tensor) -> object:
+        """bittensor.proto.Tensor -> tensorflow"""
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
-    def deserialize_to_numpy( self, tensor_pb2: bittensor.proto.Tensor ) -> object:
-        """ bittensor.proto.Tensor -> numpy """
+    def deserialize_to_numpy(self, tensor_pb2: bittensor.proto.Tensor) -> object:
+        """bittensor.proto.Tensor -> numpy"""
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
 
-class MSGPackSerializer( Serializer ):
-    """ Make conversion between torch and bittensor.proto.torch
-    """
-    def serialize_from_torch( self, torch_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ Serializes a torch.Tensor to an bittensor Tensor proto.
+class MSGPackSerializer(Serializer):
+    """Make conversion between torch and bittensor.proto.torch"""
+
+    def serialize_from_torch(
+        self, torch_tensor: torch.Tensor
+    ) -> bittensor.proto.Tensor:
+        """Serializes a torch.Tensor to an bittensor Tensor proto.
 
         Args:
             torch_tensor (torch.Tensor):
@@ -148,15 +167,15 @@ class MSGPackSerializer( Serializer ):
         shape = list(torch_tensor.shape)
         torch_numpy = torch_tensor.cpu().detach().numpy().copy()
         data_buffer = msgpack.packb(torch_numpy, default=msgpack_numpy.encode)
-        torch_proto = bittensor.proto.Tensor (
-                                    version = bittensor.__version_as_int__,
-                                    buffer = data_buffer,
-                                    shape = shape,
-                                    dtype = dtype,
-                                    serializer = bittensor.proto.Serializer.MSGPACK,
-                                    tensor_type = bittensor.proto.TensorType.TORCH,
-                                    requires_grad = torch_tensor.requires_grad
-                                )
+        torch_proto = bittensor.proto.Tensor(
+            version=bittensor.__version_as_int__,
+            buffer=data_buffer,
+            shape=shape,
+            dtype=dtype,
+            serializer=bittensor.proto.Serializer.MSGPACK,
+            tensor_type=bittensor.proto.TensorType.TORCH,
+            requires_grad=torch_tensor.requires_grad,
+        )
         return torch_proto
 
     def deserialize_to_torch(self, torch_proto: bittensor.proto.Tensor) -> torch.Tensor:
@@ -172,16 +191,24 @@ class MSGPackSerializer( Serializer ):
         """
         dtype = bittensor.serializer.bittensor_dtype_to_torch_dtype(torch_proto.dtype)
         shape = tuple(torch_proto.shape)
-        numpy_object = msgpack.unpackb(torch_proto.buffer, object_hook=msgpack_numpy.decode).copy()
-        torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)
+        numpy_object = msgpack.unpackb(
+            torch_proto.buffer, object_hook=msgpack_numpy.decode
+        ).copy()
+        torch_object = (
+            torch.as_tensor(numpy_object)
+            .view(shape)
+            .requires_grad_(torch_proto.requires_grad)
+        )
         return torch_object.type(dtype)
 
 
-class CMPPackSerializer( Serializer ):
-    """ Make conversion between torch and bittensor.proto.torch in float16
-    """
-    def serialize_from_torch(self, torch_tensor: torch.Tensor ) -> bittensor.proto.Tensor:
-        """ Serializes a torch.Tensor to an bittensor Tensor proto in float16
+class CMPPackSerializer(Serializer):
+    """Make conversion between torch and bittensor.proto.torch in float16"""
+
+    def serialize_from_torch(
+        self, torch_tensor: torch.Tensor
+    ) -> bittensor.proto.Tensor:
+        """Serializes a torch.Tensor to an bittensor Tensor proto in float16
 
         Args:
             torch_tensor (torch.Tensor):
@@ -194,15 +221,15 @@ class CMPPackSerializer( Serializer ):
         shape = list(torch_tensor.shape)
         torch_numpy = torch_tensor.cpu().detach().half().numpy().copy()
         data_buffer = msgpack.packb(torch_numpy, default=msgpack_numpy.encode)
-        torch_proto = bittensor.proto.Tensor (
-                                    version = bittensor.__version_as_int__,
-                                    buffer = data_buffer,
-                                    shape = shape,
-                                    dtype = dtype,
-                                    serializer = bittensor.proto.Serializer.CMPPACK,
-                                    tensor_type = bittensor.proto.TensorType.TORCH,
-                                    requires_grad = torch_tensor.requires_grad
-                                )
+        torch_proto = bittensor.proto.Tensor(
+            version=bittensor.__version_as_int__,
+            buffer=data_buffer,
+            shape=shape,
+            dtype=dtype,
+            serializer=bittensor.proto.Serializer.CMPPACK,
+            tensor_type=bittensor.proto.TensorType.TORCH,
+            requires_grad=torch_tensor.requires_grad,
+        )
         return torch_proto
 
     def deserialize_to_torch(self, torch_proto: bittensor.proto.Tensor) -> torch.Tensor:
@@ -218,7 +245,12 @@ class CMPPackSerializer( Serializer ):
         """
         dtype = bittensor.serializer.bittensor_dtype_to_torch_dtype(torch_proto.dtype)
         shape = tuple(torch_proto.shape)
-        numpy_object = msgpack.unpackb(torch_proto.buffer, object_hook=msgpack_numpy.decode).copy()
-        torch_object = torch.as_tensor(numpy_object).view(shape).requires_grad_(torch_proto.requires_grad)
+        numpy_object = msgpack.unpackb(
+            torch_proto.buffer, object_hook=msgpack_numpy.decode
+        ).copy()
+        torch_object = (
+            torch.as_tensor(numpy_object)
+            .view(shape)
+            .requires_grad_(torch_proto.requires_grad)
+        )
         return torch_object.type(dtype)
-

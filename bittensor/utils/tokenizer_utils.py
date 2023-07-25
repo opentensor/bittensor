@@ -25,7 +25,9 @@ from transformers import PreTrainedTokenizerBase
 EPSILON = 1e-40
 
 
-def get_tokenizer_alignment_splits(offset_mapping: List[tuple], offset_mapping_std: List[tuple]) -> Dict[int, tuple]:
+def get_tokenizer_alignment_splits(
+    offset_mapping: List[tuple], offset_mapping_std: List[tuple]
+) -> Dict[int, tuple]:
     r"""
     Calculates split depths necessary for tokens to align input offsets to standard offsets.
     Only input offsets may be split, not standard offsets, to create one-to-one, one-to-many, or many-to-one
@@ -49,12 +51,15 @@ def get_tokenizer_alignment_splits(offset_mapping: List[tuple], offset_mapping_s
     right = offset_mapping[idx][1]  # first right edge
     right_std = offset_mapping_std[idx_std][1]  # first std right edge
 
-    while (idx + 1 < len(offset_mapping) and
-           offset_mapping[idx + 1][1] == right):  # ignore overlapping tokens
+    while (
+        idx + 1 < len(offset_mapping) and offset_mapping[idx + 1][1] == right
+    ):  # ignore overlapping tokens
         idx += 1
 
-    while (idx_std + 1 < len(offset_mapping_std) and
-           offset_mapping_std[idx_std + 1][1] == right_std):  # ignore overlapping tokens
+    while (
+        idx_std + 1 < len(offset_mapping_std)
+        and offset_mapping_std[idx_std + 1][1] == right_std
+    ):  # ignore overlapping tokens
         idx_std += 1
 
     segment_count = 1  # keep count of segments traversed,
@@ -82,8 +87,9 @@ def get_tokenizer_alignment_splits(offset_mapping: List[tuple], offset_mapping_s
                 right = offset_mapping[idx][1]
                 segment_count += 1
 
-            while (idx + 1 < len(offset_mapping) and
-                   offset_mapping[idx + 1][1] == right):  # ignore right-aligned overlapping tokens
+            while (
+                idx + 1 < len(offset_mapping) and offset_mapping[idx + 1][1] == right
+            ):  # ignore right-aligned overlapping tokens
                 idx += 1
 
         elif right_std < right:
@@ -107,8 +113,10 @@ def get_tokenizer_alignment_splits(offset_mapping: List[tuple], offset_mapping_s
                 right_std = offset_mapping_std[idx_std][1]
                 segment_count_std += 1
 
-            while (idx_std + 1 < len(offset_mapping_std) and
-                   offset_mapping_std[idx_std + 1][1] == right_std):  # ignore right-aligned overlapping tokens
+            while (
+                idx_std + 1 < len(offset_mapping_std)
+                and offset_mapping_std[idx_std + 1][1] == right_std
+            ):  # ignore right-aligned overlapping tokens
                 idx_std += 1
 
         else:  # right == right_std
@@ -122,23 +130,30 @@ def get_tokenizer_alignment_splits(offset_mapping: List[tuple], offset_mapping_s
                 right_std = offset_mapping_std[idx_std][1]
                 segment_count_std = 1
 
-            while (idx + 1 < len(offset_mapping) and
-                   offset_mapping[idx + 1][1] == right):  # ignore right-aligned overlapping tokens
+            while (
+                idx + 1 < len(offset_mapping) and offset_mapping[idx + 1][1] == right
+            ):  # ignore right-aligned overlapping tokens
                 idx += 1
 
-            while (idx_std + 1 < len(offset_mapping_std) and
-                   offset_mapping_std[idx_std + 1][1] == right_std):  # ignore right-aligned overlapping tokens
+            while (
+                idx_std + 1 < len(offset_mapping_std)
+                and offset_mapping_std[idx_std + 1][1] == right_std
+            ):  # ignore right-aligned overlapping tokens
                 idx_std += 1
 
             continue
 
     for idx in splits:
-        splits[idx] = tuple(splits[idx])  # to enable hashable depths for split_map_cache keying
+        splits[idx] = tuple(
+            splits[idx]
+        )  # to enable hashable depths for split_map_cache keying
 
     return splits
 
 
-def get_tokenizer_sequence_mappings(offset_mapping: List[tuple], offset_mapping_std: List[tuple]) -> List[tuple]:
+def get_tokenizer_sequence_mappings(
+    offset_mapping: List[tuple], offset_mapping_std: List[tuple]
+) -> List[tuple]:
     r"""
     Greedily determine the one-to-one, one-to-many, or many-to-one token alignments
     between input-to-standard tokenizations.
@@ -169,13 +184,16 @@ def get_tokenizer_sequence_mappings(offset_mapping: List[tuple], offset_mapping_
     segment_count_overlap = 0  # keep count of overlapping segments
     segment_count_std_overlap = 0
 
-    while (idx + 1 < len(offset_mapping) and
-           offset_mapping[idx + 1][1] == right):  # ignore overlapping tokens
+    while (
+        idx + 1 < len(offset_mapping) and offset_mapping[idx + 1][1] == right
+    ):  # ignore overlapping tokens
         idx += 1
         segment_count_overlap += 1
 
-    while (idx_std + 1 < len(offset_mapping_std) and
-           offset_mapping_std[idx_std + 1][1] == right_std):  # ignore overlapping tokens
+    while (
+        idx_std + 1 < len(offset_mapping_std)
+        and offset_mapping_std[idx_std + 1][1] == right_std
+    ):  # ignore overlapping tokens
         idx_std += 1
         segment_count_std_overlap += 1
 
@@ -185,8 +203,10 @@ def get_tokenizer_sequence_mappings(offset_mapping: List[tuple], offset_mapping_
                 # Examples: [|] edge, [\] next edge, [.] split
                 #  |     . |   \
                 #  | | | |   |
-                print('Unaligned: Expected an aligned std edge.')
-                print('idx, idx_std, right, right_std, segment_count, segment_count_std')
+                print("Unaligned: Expected an aligned std edge.")
+                print(
+                    "idx, idx_std, right, right_std, segment_count, segment_count_std"
+                )
                 print(idx, idx_std, right, right_std, segment_count, segment_count_std)
 
             idx += 1
@@ -194,8 +214,9 @@ def get_tokenizer_sequence_mappings(offset_mapping: List[tuple], offset_mapping_
                 right = offset_mapping[idx][1]
                 segment_count += 1
 
-            while (idx + 1 < len(offset_mapping) and
-                   offset_mapping[idx + 1][1] == right):  # ignore overlapping tokens
+            while (
+                idx + 1 < len(offset_mapping) and offset_mapping[idx + 1][1] == right
+            ):  # ignore overlapping tokens
                 idx += 1
                 segment_count_overlap += 1
 
@@ -204,8 +225,10 @@ def get_tokenizer_sequence_mappings(offset_mapping: List[tuple], offset_mapping_
                 # Examples: [|] edge, [\] next edge, [.] split
                 #  | | | | . |
                 #  |       |    \
-                print('Unaligned: Expected an aligned edge.')
-                print('idx, idx_std, right, right_std, segment_count, segment_count_std')
+                print("Unaligned: Expected an aligned edge.")
+                print(
+                    "idx, idx_std, right, right_std, segment_count, segment_count_std"
+                )
                 print(idx, idx_std, right, right_std, segment_count, segment_count_std)
 
             idx_std += 1
@@ -213,14 +236,24 @@ def get_tokenizer_sequence_mappings(offset_mapping: List[tuple], offset_mapping_
                 right_std = offset_mapping_std[idx_std][1]
                 segment_count_std += 1
 
-            while (idx_std + 1 < len(offset_mapping_std) and
-                   offset_mapping_std[idx_std + 1][1] == right_std):  # ignore overlapping tokens
+            while (
+                idx_std + 1 < len(offset_mapping_std)
+                and offset_mapping_std[idx_std + 1][1] == right_std
+            ):  # ignore overlapping tokens
                 idx_std += 1
                 segment_count_std_overlap += 1
 
         else:  # right == right_std
-            mappings += [(idx, idx_std, segment_count, segment_count_std,
-                          segment_count_overlap, segment_count_std_overlap)]
+            mappings += [
+                (
+                    idx,
+                    idx_std,
+                    segment_count,
+                    segment_count_std,
+                    segment_count_overlap,
+                    segment_count_std_overlap,
+                )
+            ]
 
             segment_count_overlap = 0
             segment_count_std_overlap = 0
@@ -235,24 +268,30 @@ def get_tokenizer_sequence_mappings(offset_mapping: List[tuple], offset_mapping_
                 right_std = offset_mapping_std[idx_std][1]
                 segment_count_std = 1
 
-            while (idx + 1 < len(offset_mapping) and
-                   offset_mapping[idx + 1][1] == right):  # ignore overlapping tokens
+            while (
+                idx + 1 < len(offset_mapping) and offset_mapping[idx + 1][1] == right
+            ):  # ignore overlapping tokens
                 idx += 1
                 segment_count_overlap += 1
 
-            while (idx_std + 1 < len(offset_mapping_std) and
-                   offset_mapping_std[idx_std + 1][1] == right_std):  # ignore overlapping tokens
+            while (
+                idx_std + 1 < len(offset_mapping_std)
+                and offset_mapping_std[idx_std + 1][1] == right_std
+            ):  # ignore overlapping tokens
                 idx_std += 1
                 segment_count_std_overlap += 1
             continue
 
-    mappings += [(len(offset_mapping), len(offset_mapping_std), 1, 1, 0, 0)]  # validation segment
+    mappings += [
+        (len(offset_mapping), len(offset_mapping_std), 1, 1, 0, 0)
+    ]  # validation segment
 
     return mappings
 
 
-def get_tokenizer_depth_split_map(tokenizer: PreTrainedTokenizerBase,
-                                  depths: tuple) -> List[Dict[str, torch.LongTensor]]:
+def get_tokenizer_depth_split_map(
+    tokenizer: PreTrainedTokenizerBase, depths: tuple
+) -> List[Dict[str, torch.LongTensor]]:
     r"""
     Split individual token strings at specified depths, retokenize each resulting segment,
     keep only the first token of each segment (if there is one).
@@ -268,29 +307,43 @@ def get_tokenizer_depth_split_map(tokenizer: PreTrainedTokenizerBase,
     """
     split_map = []
 
-    phrases = tokenizer.batch_decode(range(tokenizer.vocab_len))  # list of variable len strings (one per token)
+    phrases = tokenizer.batch_decode(
+        range(tokenizer.vocab_len)
+    )  # list of variable len strings (one per token)
 
     # first part of the phrase up to distance characters
-    split_phrases = [[phrase[:depths[0]] for phrase in phrases]]
-    for i in range(len(depths)-1):
+    split_phrases = [[phrase[: depths[0]] for phrase in phrases]]
+    for i in range(len(depths) - 1):
         # middle parts of the phrase from distance characters to end
-        split_phrases += [[phrase[depths[i]:depths[i+1]] for phrase in phrases]]
+        split_phrases += [[phrase[depths[i] : depths[i + 1]] for phrase in phrases]]
     # right part of the phrase from distance characters to end
-    split_phrases += [[phrase[depths[-1]:] for phrase in phrases]]
+    split_phrases += [[phrase[depths[-1] :] for phrase in phrases]]
 
-    for i, phrases in enumerate(split_phrases):  # loop through left, middle, right phrase collections
-        side_tokens = tokenizer(phrases)['input_ids']  # tokenize phrase collection
+    for i, phrases in enumerate(
+        split_phrases
+    ):  # loop through left, middle, right phrase collections
+        side_tokens = tokenizer(phrases)["input_ids"]  # tokenize phrase collection
         tokens_lens = [len(p) for p in side_tokens]  # get token lengths of each phrase
-        from_idx = [i for i, l in enumerate(tokens_lens) if l > 0]  # only non-zero len tokens list
-        first_tokens = [side_tokens[i][0] for i in from_idx]  # collect first tokens of each tokenized phrase
+        from_idx = [
+            i for i, l in enumerate(tokens_lens) if l > 0
+        ]  # only non-zero len tokens list
+        first_tokens = [
+            side_tokens[i][0] for i in from_idx
+        ]  # collect first tokens of each tokenized phrase
         # add dict for phrase collection, mapping from original index to first tokens of tokenized phrase substrings
-        split_map += [{'from': torch.tensor(from_idx, dtype=torch.long),
-                       'to': torch.tensor(first_tokens, dtype=torch.long)}]
+        split_map += [
+            {
+                "from": torch.tensor(from_idx, dtype=torch.long),
+                "to": torch.tensor(first_tokens, dtype=torch.long),
+            }
+        ]
 
     return split_map
 
 
-def split_probs(probs: torch.FloatTensor, split_map: List[Dict[str, torch.Tensor]]) -> torch.FloatTensor:
+def split_probs(
+    probs: torch.FloatTensor, split_map: List[Dict[str, torch.Tensor]]
+) -> torch.FloatTensor:
     r"""
     Split a given probability distribution over a tokenizer vocabulary, given a split_map
     of mappings from original tokens to target tokens at each depth of the split.
@@ -305,24 +358,33 @@ def split_probs(probs: torch.FloatTensor, split_map: List[Dict[str, torch.Tensor
                 [splits, vocab_size] A new tensor with resultant probability distribution at each index
                 of the first dim, representing corresponding split depth.
     """
-    splits = len(split_map)  # how many parts to the depth split map, e.g. left, middle, right parts
+    splits = len(
+        split_map
+    )  # how many parts to the depth split map, e.g. left, middle, right parts
     vocab_size = probs.shape[0]  # retain input vocabulary size
-    new_probs = torch.zeros((splits, vocab_size)).to(probs.device)  # provision prob dist for each part
+    new_probs = torch.zeros((splits, vocab_size)).to(
+        probs.device
+    )  # provision prob dist for each part
 
     for pos in range(splits):  # loop through all parts of the split
-        from_idx = split_map[pos]['from']  # from original string token index
-        to_idx = split_map[pos]['to']  # to first token index of retokenized part string
-        new_probs[pos].scatter_add_(0, to_idx, probs[from_idx])  # transfer probabilities to new part distributions
+        from_idx = split_map[pos]["from"]  # from original string token index
+        to_idx = split_map[pos]["to"]  # to first token index of retokenized part string
+        new_probs[pos].scatter_add_(
+            0, to_idx, probs[from_idx]
+        )  # transfer probabilities to new part distributions
 
     return new_probs  # [splits, vocab_size]
 
 
-def align_tokenizer_sequences(probs: torch.FloatTensor, offset_mapping: List[tuple], offset_mapping_std: List[tuple],
-                              tokenizer: PreTrainedTokenizerBase,
-                              split_map_cache: Dict[tuple, List[Dict[str, torch.Tensor]]],
-                              tokens: torch.LongTensor, tokens_std: torch.LongTensor) -> Tuple[torch.FloatTensor,
-                                                                                               List[tuple],
-                                                                                               torch.LongTensor]:
+def align_tokenizer_sequences(
+    probs: torch.FloatTensor,
+    offset_mapping: List[tuple],
+    offset_mapping_std: List[tuple],
+    tokenizer: PreTrainedTokenizerBase,
+    split_map_cache: Dict[tuple, List[Dict[str, torch.Tensor]]],
+    tokens: torch.LongTensor,
+    tokens_std: torch.LongTensor,
+) -> Tuple[torch.FloatTensor, List[tuple], torch.LongTensor]:
     r"""
     Align an input tokenization distribution to standard tokenization segments by depth-splitting
     the input distribution at greedily chosen locations. Prepares the input distribution for mapping to a standard
@@ -354,56 +416,87 @@ def align_tokenizer_sequences(probs: torch.FloatTensor, offset_mapping: List[tup
     """
     aligned_tokens = []  # to store new aligned tokens
     aligned_probs = []  # to store new aligned probability distributions
-    aligned_offset_mapping = []  # to store new aligned offset mappings of aligned tokens
-    splits = get_tokenizer_alignment_splits(offset_mapping, offset_mapping_std)  # get necessary token split locations
+    aligned_offset_mapping = (
+        []
+    )  # to store new aligned offset mappings of aligned tokens
+    splits = get_tokenizer_alignment_splits(
+        offset_mapping, offset_mapping_std
+    )  # get necessary token split locations
 
     prev_idx = 0
     for idx in splits:  # each source token index that must be split
         depths = splits[idx]  # list of depths at which the token string must be split
         aligned_probs += [probs[prev_idx:idx]]  # retain preceding token probabilities
-        aligned_offset_mapping += offset_mapping[prev_idx:idx]  # retain preceding offset mappings
+        aligned_offset_mapping += offset_mapping[
+            prev_idx:idx
+        ]  # retain preceding offset mappings
         aligned_tokens += [tokens[prev_idx:idx]]  # retain preceding tokens
 
         if depths not in split_map_cache:
             # add depths split to cache to reuse in future (split map calc is relatively time-consuming)
             split_map_cache[depths] = get_tokenizer_depth_split_map(tokenizer, depths)
 
-        new_probs = split_probs(probs[idx], split_map_cache[depths])  # [splits, vocab_size] new split probabilities
+        new_probs = split_probs(
+            probs[idx], split_map_cache[depths]
+        )  # [splits, vocab_size] new split probabilities
         aligned_probs += [new_probs]
 
         text_idx = tokenizer.decode(tokens[idx])
 
         # === Left part ===
-        new_tokens = tokenizer(text_idx[:depths[0]], add_special_tokens=False, return_tensors='pt')['input_ids'][0]
+        new_tokens = tokenizer(
+            text_idx[: depths[0]], add_special_tokens=False, return_tensors="pt"
+        )["input_ids"][0]
         aligned_tokens += [new_tokens[:1]]
-        aligned_offset_mapping += [(offset_mapping[idx][0], offset_mapping[idx][0] + depths[0])]
+        aligned_offset_mapping += [
+            (offset_mapping[idx][0], offset_mapping[idx][0] + depths[0])
+        ]
 
         # === Middle parts ===
-        for d in range(len(depths)-1):
-            new_tokens = tokenizer(text_idx[depths[d]:depths[d+1]],
-                                   add_special_tokens=False, return_tensors='pt')['input_ids'][0]
+        for d in range(len(depths) - 1):
+            new_tokens = tokenizer(
+                text_idx[depths[d] : depths[d + 1]],
+                add_special_tokens=False,
+                return_tensors="pt",
+            )["input_ids"][0]
             aligned_tokens += [new_tokens[:1]]
-            aligned_offset_mapping += [(offset_mapping[idx][0] + depths[d], offset_mapping[idx][0] + depths[d+1])]
+            aligned_offset_mapping += [
+                (
+                    offset_mapping[idx][0] + depths[d],
+                    offset_mapping[idx][0] + depths[d + 1],
+                )
+            ]
 
         # == Right part ===
-        new_tokens = tokenizer(text_idx[depths[-1]:], add_special_tokens=False, return_tensors='pt')['input_ids'][0]
+        new_tokens = tokenizer(
+            text_idx[depths[-1] :], add_special_tokens=False, return_tensors="pt"
+        )["input_ids"][0]
         aligned_tokens += [new_tokens[:1]]
-        aligned_offset_mapping += [(offset_mapping[idx][0] + depths[-1], offset_mapping[idx][1])]
+        aligned_offset_mapping += [
+            (offset_mapping[idx][0] + depths[-1], offset_mapping[idx][1])
+        ]
 
         prev_idx = idx + 1
 
     aligned_probs += [probs[prev_idx:]]  # retain remainder of tokens probabilities
     aligned_tokens += [tokens[prev_idx:]]  # retain remainder of tokens
-    aligned_offset_mapping += offset_mapping[prev_idx:]  # retain remainder of offset mappings
+    aligned_offset_mapping += offset_mapping[
+        prev_idx:
+    ]  # retain remainder of offset mappings
 
-    aligned_probs = torch.cat(aligned_probs, dim=0)  # [sequence_len, vocab_size] assemble final probability tensor
-    aligned_tokens = torch.cat(aligned_tokens, dim=0).long()  # [sequence_len] assemble final token sequence
+    aligned_probs = torch.cat(
+        aligned_probs, dim=0
+    )  # [sequence_len, vocab_size] assemble final probability tensor
+    aligned_tokens = torch.cat(
+        aligned_tokens, dim=0
+    ).long()  # [sequence_len] assemble final token sequence
 
     return aligned_probs, aligned_offset_mapping, aligned_tokens
 
 
-def get_translation_map(from_tokenizer: PreTrainedTokenizerBase,
-                        to_tokenizer: PreTrainedTokenizerBase) -> Dict[str, Any]:
+def get_translation_map(
+    from_tokenizer: PreTrainedTokenizerBase, to_tokenizer: PreTrainedTokenizerBase
+) -> Dict[str, Any]:
     r"""
     Map individual token phrases from a tokenizer to another tokenizer.
         Args:
@@ -420,32 +513,42 @@ def get_translation_map(from_tokenizer: PreTrainedTokenizerBase,
     set_vocab_len(from_tokenizer)
     set_vocab_len(to_tokenizer)
 
-    translation_map = {'lengths': {}}
+    translation_map = {"lengths": {}}
 
-    phrases = from_tokenizer.batch_decode(range(from_tokenizer.vocab_len))  # tokens to strings
+    phrases = from_tokenizer.batch_decode(
+        range(from_tokenizer.vocab_len)
+    )  # tokens to strings
 
-    to_tokens = to_tokenizer(phrases)['input_ids']  # convert single token from-phrases to to-tokenization
+    to_tokens = to_tokenizer(phrases)[
+        "input_ids"
+    ]  # convert single token from-phrases to to-tokenization
     to_tokens_lens = [len(p) for p in to_tokens]
     unique_lens = set(to_tokens_lens)
     max_len = max(unique_lens)
     counts = torch.zeros((max_len, to_tokenizer.vocab_len), dtype=torch.long)
 
     for l in unique_lens:  # each unique one-to-many mapping length
-        from_idx = [i for i, k in enumerate(to_tokens_lens) if k == l]  # find len l to-tokenizations
+        from_idx = [
+            i for i, k in enumerate(to_tokens_lens) if k == l
+        ]  # find len l to-tokenizations
         subset = [to_tokens[i] for i in from_idx]  # find len l to-tokenizations
         from_idx = torch.tensor(from_idx, dtype=torch.long)  # [subset_size]
         to_idx = torch.tensor(subset, dtype=torch.long)  # [subset_size, l]
-        translation_map['lengths'][l] = {'from': from_idx,
-                                         'to': to_idx}
+        translation_map["lengths"][l] = {"from": from_idx, "to": to_idx}
         # accumulate counts on tokens, to be used to divide probability mass over its channeled sequences
-        counts[:l, :].scatter_add_(1, to_idx.T, torch.ones((l, len(subset)), dtype=torch.long))
+        counts[:l, :].scatter_add_(
+            1, to_idx.T, torch.ones((l, len(subset)), dtype=torch.long)
+        )
 
-    translation_map['counts'] = counts
+    translation_map["counts"] = counts
     return translation_map
 
 
-def translate_one_to_many(probs_from: torch.FloatTensor, probs_to: torch.FloatTensor,
-                          translation_map: Dict[str, Any]) -> None:
+def translate_one_to_many(
+    probs_from: torch.FloatTensor,
+    probs_to: torch.FloatTensor,
+    translation_map: Dict[str, Any],
+) -> None:
     r"""
     Translate a single token probability distribution from a source tokenization to a
     sequence of probability distributions over a target tokenization.
@@ -465,59 +568,89 @@ def translate_one_to_many(probs_from: torch.FloatTensor, probs_to: torch.FloatTe
 
     # === Unroll single distribution into std sequence ===
     for i in range(many_len):  # each unrolling step
-        for map_len in translation_map['lengths'].keys():  # each one-to-many mapping length available
+        for map_len in translation_map[
+            "lengths"
+        ].keys():  # each one-to-many mapping length available
             if map_len < i + 1:
                 continue  # skip unrolling steps not available in a shorter mapping length
-            from_idx = translation_map['lengths'][map_len]['from']
-            to_idx = translation_map['lengths'][map_len]['to'].T  # [map_len, subset_size_std]
-            probs_to[i, :].scatter_add_(0, to_idx[i, :], probs_from[from_idx])  # add probs in-place
+            from_idx = translation_map["lengths"][map_len]["from"]
+            to_idx = translation_map["lengths"][map_len][
+                "to"
+            ].T  # [map_len, subset_size_std]
+            probs_to[i, :].scatter_add_(
+                0, to_idx[i, :], probs_from[from_idx]
+            )  # add probs in-place
 
 
-def translate_many_to_one(probs_from: torch.FloatTensor, probs_to: torch.FloatTensor,
-                          translation_map: Dict[str, Any]) -> None:
+def translate_many_to_one(
+    probs_from: torch.FloatTensor,
+    probs_to: torch.FloatTensor,
+    translation_map: Dict[str, Any],
+) -> None:
     r"""
-        Translate a sequence of token probability distributions from a source tokenization to a
-        single token probability distribution over a target tokenization.
-            Args:
-                probs_from (:obj:`torch.FloatTensor`, `required`):
-                    [many, vocab_size] Input probability distributions over a from-tokenizer vocabulary.
-                probs_to (:obj:`torch.FloatTensor`, `required`):
-                    [vocab_size] Output probability distribution over a to-tokenizer vocabulary.
-                translation_map (:obj:`Dict[str, Any]`, `required`):
-                    Maps for each observed length, a source token to a token sequence of that length,
-                    with source index to target indices.
+    Translate a sequence of token probability distributions from a source tokenization to a
+    single token probability distribution over a target tokenization.
+        Args:
+            probs_from (:obj:`torch.FloatTensor`, `required`):
+                [many, vocab_size] Input probability distributions over a from-tokenizer vocabulary.
+            probs_to (:obj:`torch.FloatTensor`, `required`):
+                [vocab_size] Output probability distribution over a to-tokenizer vocabulary.
+            translation_map (:obj:`Dict[str, Any]`, `required`):
+                Maps for each observed length, a source token to a token sequence of that length,
+                with source index to target indices.
 
-            Returns:
+        Returns:
 
-        """
+    """
     many_len = probs_from.shape[0]
     probs_from_copy = probs_from.clone()  # will modify from-probabilities
 
     # === Spread probability mass over realized sequences ===
-    counts = translation_map['counts']  # [max_len, vocab_size]
-    translation_max_len = counts.shape[0]  # maximum possible many-to-one length available in translation map
+    counts = translation_map["counts"]  # [max_len, vocab_size]
+    translation_max_len = counts.shape[
+        0
+    ]  # maximum possible many-to-one length available in translation map
 
     if many_len <= translation_max_len:
-        probs_from_copy /= counts[:many_len, :]  # divide probability mass by amount of paths crossing each token
+        probs_from_copy /= counts[
+            :many_len, :
+        ]  # divide probability mass by amount of paths crossing each token
     else:  # limit probs_from token depth to max_len
         probs_from_copy[:translation_max_len, :] /= counts
 
     # === Reverse map std token to source sequences, gather avg. sequence prob ===
-    for map_len in translation_map['lengths'].keys():  # mutually exclusive over std tokens
-        from_idx = translation_map['lengths'][map_len]['from']  # [subset_size_std] one std token
-        to_idx = translation_map['lengths'][map_len]['to'].T  # [map_len, subset_size_std] many server token seq
+    for map_len in translation_map[
+        "lengths"
+    ].keys():  # mutually exclusive over std tokens
+        from_idx = translation_map["lengths"][map_len][
+            "from"
+        ]  # [subset_size_std] one std token
+        to_idx = translation_map["lengths"][map_len][
+            "to"
+        ].T  # [map_len, subset_size_std] many server token seq
         if many_len < map_len:  # sequence beyond segment_count has min probability 0
             to_idx = to_idx[:many_len, :]  # [segment_count, subset_size_std]
-        server_seq_tokens = probs_from_copy.gather(1, to_idx)  # [map_len, subset_size_std] gather sequences
-        probs_to[from_idx] = server_seq_tokens.sum(dim=0) / map_len  # [subset_size_std] in-place average approx.
+        server_seq_tokens = probs_from_copy.gather(
+            1, to_idx
+        )  # [map_len, subset_size_std] gather sequences
+        probs_to[from_idx] = (
+            server_seq_tokens.sum(dim=0) / map_len
+        )  # [subset_size_std] in-place average approx.
 
 
-def translate_tokenizer_probs(probs: torch.FloatTensor, probs_std: torch.FloatTensor,
-                              offset_mapping: List[tuple], offset_mapping_std: List[tuple],
-                              tokenizer: PreTrainedTokenizerBase, std_tokenizer: PreTrainedTokenizerBase,
-                              split_map_cache: Dict[tuple, List[Dict[str, torch.Tensor]]],
-                              to_translation_map: Dict[str, Any], from_translation_map: Dict[str, Any],
-                              tokens: torch.LongTensor, tokens_std: torch.LongTensor) -> None:
+def translate_tokenizer_probs(
+    probs: torch.FloatTensor,
+    probs_std: torch.FloatTensor,
+    offset_mapping: List[tuple],
+    offset_mapping_std: List[tuple],
+    tokenizer: PreTrainedTokenizerBase,
+    std_tokenizer: PreTrainedTokenizerBase,
+    split_map_cache: Dict[tuple, List[Dict[str, torch.Tensor]]],
+    to_translation_map: Dict[str, Any],
+    from_translation_map: Dict[str, Any],
+    tokens: torch.LongTensor,
+    tokens_std: torch.LongTensor,
+) -> None:
     r"""
     Translates source token probability distributions to target probability distributions, by
     aligning segments through source token splits, then greedily performing one-to-one,
@@ -554,41 +687,69 @@ def translate_tokenizer_probs(probs: torch.FloatTensor, probs_std: torch.FloatTe
 
     """
     # === Align tokenized sequences via source token splitting ===
-    result = align_tokenizer_sequences(probs, offset_mapping, offset_mapping_std,
-                                       tokenizer, split_map_cache, tokens.cpu(), tokens_std.cpu())
+    result = align_tokenizer_sequences(
+        probs,
+        offset_mapping,
+        offset_mapping_std,
+        tokenizer,
+        split_map_cache,
+        tokens.cpu(),
+        tokens_std.cpu(),
+    )
     aligned_probs, aligned_offset_mapping, aligned_tokens = result
 
     # === Get one-to-many / many-to-one mappings ===
-    mappings = get_tokenizer_sequence_mappings(aligned_offset_mapping, offset_mapping_std)
+    mappings = get_tokenizer_sequence_mappings(
+        aligned_offset_mapping, offset_mapping_std
+    )
 
     # === Perform probability mappings ===
-    for (right_idx, right_idx_std, segment_count_base, segment_count_std_base,
-         segment_count_overlap, segment_count_std_overlap) in mappings[1:]:  # don't map start token
-
-        segment_count = segment_count_base + segment_count_overlap  # calculate effective segments length
-        segment_count_std = segment_count_std_base + segment_count_std_overlap  # calculate effective segments length
+    for (
+        right_idx,
+        right_idx_std,
+        segment_count_base,
+        segment_count_std_base,
+        segment_count_overlap,
+        segment_count_std_overlap,
+    ) in mappings[
+        1:
+    ]:  # don't map start token
+        segment_count = (
+            segment_count_base + segment_count_overlap
+        )  # calculate effective segments length
+        segment_count_std = (
+            segment_count_std_base + segment_count_std_overlap
+        )  # calculate effective segments length
 
         # === One-to-many / one-to-one mapping ===
         if segment_count_base == 1:
-            start_idx_std = right_idx_std - segment_count_std  # calculate starting index
+            start_idx_std = (
+                right_idx_std - segment_count_std
+            )  # calculate starting index
 
-            translate_one_to_many(aligned_probs[right_idx-1],
-                                  probs_std[start_idx_std:start_idx_std+segment_count_std],
-                                  to_translation_map)
+            translate_one_to_many(
+                aligned_probs[right_idx - 1],
+                probs_std[start_idx_std : start_idx_std + segment_count_std],
+                to_translation_map,
+            )
 
         # === Many-to-one mapping ===
         elif segment_count_std_base == 1:  # many-to-one
             start_idx = right_idx - segment_count  # calculate starting index
 
-            translate_many_to_one(aligned_probs[start_idx:right_idx],
-                                  probs_std[right_idx_std-1],
-                                  from_translation_map)
+            translate_many_to_one(
+                aligned_probs[start_idx:right_idx],
+                probs_std[right_idx_std - 1],
+                from_translation_map,
+            )
 
         else:
-            print('Undefined mapping.')
+            print("Undefined mapping.")
 
 
-def get_top_probs(probs: torch.FloatTensor, tokenizer: PreTrainedTokenizerBase, amount: int = 10) -> str:
+def get_top_probs(
+    probs: torch.FloatTensor, tokenizer: PreTrainedTokenizerBase, amount: int = 10
+) -> str:
     r"""
     Constructs output string with top amount of highest probability token strings.
     Used to display the top probabilities.
@@ -604,65 +765,76 @@ def get_top_probs(probs: torch.FloatTensor, tokenizer: PreTrainedTokenizerBase, 
             string (:obj:`str`, `required`):
             Highest probability token strings, prob[token-string] ...
     """
-    string = ''
+    string = ""
 
-    vals, indices = probs.sort(dim=-1, descending=True)  # descending sort token probabilities
+    vals, indices = probs.sort(
+        dim=-1, descending=True
+    )  # descending sort token probabilities
 
     for i in range(amount):
-        string += '%.4f[%s] ' % (vals[i], tokenizer.decode(indices[i]))  # prob[token-string]
+        string += "%.4f[%s] " % (
+            vals[i],
+            tokenizer.decode(indices[i]),
+        )  # prob[token-string]
 
     return string
 
 
-def translate_logits_to_probs_std(logits: torch.FloatTensor,
-                                  offset_mapping: List[List[tuple]], offset_mapping_std: List[List[tuple]],
-                                  tokenizer: PreTrainedTokenizerBase, std_tokenizer: PreTrainedTokenizerBase,
-                                  split_map_cache: Dict[tuple, List[Dict[str, torch.Tensor]]],
-                                  to_translation_map: Dict[str, Any], from_translation_map: Dict[str, Any],
-                                  tokens: torch.LongTensor, tokens_std: torch.LongTensor,
-                                  skip_equivalent: bool = True) -> torch.FloatTensor:
+def translate_logits_to_probs_std(
+    logits: torch.FloatTensor,
+    offset_mapping: List[List[tuple]],
+    offset_mapping_std: List[List[tuple]],
+    tokenizer: PreTrainedTokenizerBase,
+    std_tokenizer: PreTrainedTokenizerBase,
+    split_map_cache: Dict[tuple, List[Dict[str, torch.Tensor]]],
+    to_translation_map: Dict[str, Any],
+    from_translation_map: Dict[str, Any],
+    tokens: torch.LongTensor,
+    tokens_std: torch.LongTensor,
+    skip_equivalent: bool = True,
+) -> torch.FloatTensor:
     r"""
-        Translates source token logit scores to probability distributions over the standard tokenizer.
-            Args:
-                logits (:obj:`torch.FloatTensor`, `required`):
-                    [batch_size, sequence_len, vocab_size] Input source logits over a source tokenizer vocabulary.
-                offset_mapping (:obj:`List[List[tuple]]`, `required`):
-                    Batch of tokenizer offset mappings
-                    [[(left_0, right_0), (left_1, right_1), ...], ...].
-                offset_mapping_std (:obj:`List[List[tuple]]`, `required`):
-                    Batch of standard tokenizer offset mappings
-                    [[(left_0, right_0), (left_1, right_1), ...], ...].
-                tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
-                    Source tokenizer.
-                std_tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
-                    Standard/target tokenizer.
-                split_map_cache (:obj:`Dict[tuple, List[Dict[str, torch.Tensor]]]`, `required`):
-                    A dictionary of depths keying split_maps of mappings from original tokens to
-                    target tokens at each depth of the split. Adds split_maps to cache for faster future recall.
-                tokens (:obj:`torch.LongTensor`, `required`):
-                    [batch_size, sequence_len] A sequence of tokens produced by the source tokenizer.
-                tokens_std (:obj:`torch.LongTensor`, `required`):
-                    [batch_size, std_sequence_len] A sequence of tokens produced by the standard tokenizer.
-                to_translation_map (:obj:`Dict[str, Any]`, `required`):
-                    Maps for each observed length, a source token to a token sequence of that length,
-                    with source index to target indices.
-                from_translation_map (:obj:`Dict[str, Any]`, `required`):
-                    Maps for each observed length, a source token to a token sequence of that length,
-                    from target index to source indices.
-                skip_equivalent (:obj:`bool`, `optional`):
-                    Skips translation if tokenizer and std_tokenizer are equivalent.
+    Translates source token logit scores to probability distributions over the standard tokenizer.
+        Args:
+            logits (:obj:`torch.FloatTensor`, `required`):
+                [batch_size, sequence_len, vocab_size] Input source logits over a source tokenizer vocabulary.
+            offset_mapping (:obj:`List[List[tuple]]`, `required`):
+                Batch of tokenizer offset mappings
+                [[(left_0, right_0), (left_1, right_1), ...], ...].
+            offset_mapping_std (:obj:`List[List[tuple]]`, `required`):
+                Batch of standard tokenizer offset mappings
+                [[(left_0, right_0), (left_1, right_1), ...], ...].
+            tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
+                Source tokenizer.
+            std_tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
+                Standard/target tokenizer.
+            split_map_cache (:obj:`Dict[tuple, List[Dict[str, torch.Tensor]]]`, `required`):
+                A dictionary of depths keying split_maps of mappings from original tokens to
+                target tokens at each depth of the split. Adds split_maps to cache for faster future recall.
+            tokens (:obj:`torch.LongTensor`, `required`):
+                [batch_size, sequence_len] A sequence of tokens produced by the source tokenizer.
+            tokens_std (:obj:`torch.LongTensor`, `required`):
+                [batch_size, std_sequence_len] A sequence of tokens produced by the standard tokenizer.
+            to_translation_map (:obj:`Dict[str, Any]`, `required`):
+                Maps for each observed length, a source token to a token sequence of that length,
+                with source index to target indices.
+            from_translation_map (:obj:`Dict[str, Any]`, `required`):
+                Maps for each observed length, a source token to a token sequence of that length,
+                from target index to source indices.
+            skip_equivalent (:obj:`bool`, `optional`):
+                Skips translation if tokenizer and std_tokenizer are equivalent.
 
-            Returns:
-                probs_std (:obj:`torch.FloatTensor`, `required`):
-                    [batch_size, std_sequence_len, std_vocab_size] Output probability distribution over the
-                    standard tokenizer vocabulary.
-        """
+        Returns:
+            probs_std (:obj:`torch.FloatTensor`, `required`):
+                [batch_size, std_sequence_len, std_vocab_size] Output probability distribution over the
+                standard tokenizer vocabulary.
+    """
     set_vocab_len(tokenizer)
     set_vocab_len(std_tokenizer)
 
     # === Check tokenizer equivalence / Skip if equivalent ===
     if skip_equivalent and check_tokenizer_equivalence(tokenizer, std_tokenizer):
-        logits = logits.to(torch.float).to('cpu')
+        logits = logits.to(torch.float).to("cpu")
         probs = torch.softmax(logits, dim=2)
         return probs
 
@@ -672,14 +844,16 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
     std_vocab_size = std_tokenizer.vocab_len
 
     if tokenizer.vocab_len < vocab_size:
-        logits = logits[..., :tokenizer.vocab_len]
+        logits = logits[..., : tokenizer.vocab_len]
         vocab_size = tokenizer.vocab_len
 
     # === Convert logits to probabilities ===
-    logits = logits.to(torch.float).to('cpu')
+    logits = logits.to(torch.float).to("cpu")
     probs = torch.softmax(logits, dim=2)  # [batch_size, sequence_len, vocab_size]
 
-    if vocab_size < tokenizer.vocab_len:  # fixes bug when model logits output is not full width
+    if (
+        vocab_size < tokenizer.vocab_len
+    ):  # fixes bug when model logits output is not full width
         padded_probs = torch.zeros((batch_size, sequence_len, tokenizer.vocab_len))
         padded_probs[..., :vocab_size] = probs
         probs = padded_probs
@@ -687,28 +861,43 @@ def translate_logits_to_probs_std(logits: torch.FloatTensor,
     # === Translate to probabilities over standard tokenizer ===
     probs_std = torch.zeros(batch_size, std_sequence_len, std_vocab_size)
     for b in range(batch_size):
-        probs_b = probs[b][-len(offset_mapping[b]):]  # remove left padding
-        tokens_b = tokens[b][-len(offset_mapping[b]):]  # remove left padding
-        translate_tokenizer_probs(probs_b, probs_std[b], offset_mapping[b], offset_mapping_std[b],
-                                  tokenizer, std_tokenizer,
-                                  split_map_cache, to_translation_map, from_translation_map,
-                                  tokens_b, tokens_std[b])
+        probs_b = probs[b][-len(offset_mapping[b]) :]  # remove left padding
+        tokens_b = tokens[b][-len(offset_mapping[b]) :]  # remove left padding
+        translate_tokenizer_probs(
+            probs_b,
+            probs_std[b],
+            offset_mapping[b],
+            offset_mapping_std[b],
+            tokenizer,
+            std_tokenizer,
+            split_map_cache,
+            to_translation_map,
+            from_translation_map,
+            tokens_b,
+            tokens_std[b],
+        )
 
     # === Correct excess probability mass (haircut) ===
     probs_std_sum = probs_std.sum(dim=-1)  # [batch_size, std_sequence_len]
-    over = (probs_std_sum > 1)
+    over = probs_std_sum > 1
     probs_std[over] /= probs_std_sum[over][:, None]
 
     # === Correct deficient probability mass (raise) ===
     probs_std_sum = probs_std.sum(dim=-1)  # [batch_size, std_sequence_len]
-    under = (probs_std_sum < 1)
-    probs_std[under] += ((1 - probs_std_sum[under]) / probs_std[under].shape[-1])[:, None]  # raise noise floor so sum 1
+    under = probs_std_sum < 1
+    probs_std[under] += ((1 - probs_std_sum[under]) / probs_std[under].shape[-1])[
+        :, None
+    ]  # raise noise floor so sum 1
 
     return probs_std  # [batch_size, std_sequence_len, std_vocab_size]
 
 
-def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
-                       topk: int, ignore_index: int = -100) -> torch.Tensor:
+def topk_token_phrases(
+    logits: torch.Tensor,
+    tokenizer: PreTrainedTokenizerBase,
+    topk: int,
+    ignore_index: int = -100,
+) -> torch.Tensor:
     r"""
     Select topk tokenizer logits/phrases and include std_token_phrases counterparts (std_tokenization of token text)
     in topk_tensor output of shape [batch_size, (topk + 1), max_len], where max len of all phrase lists
@@ -744,18 +933,27 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
                  [...]]
     """
     # Get shape sizes
-    batch_size, vocab_size = logits.shape  # [batch_size, vocab_size] only last token prediction
+    (
+        batch_size,
+        vocab_size,
+    ) = logits.shape  # [batch_size, vocab_size] only last token prediction
 
     # Convert logits to probabilities
-    logits = logits.float()  # ensure further computations done in float32 for improved precision
+    logits = (
+        logits.float()
+    )  # ensure further computations done in float32 for improved precision
     probs = torch.softmax(logits, dim=1)  # [batch_size, vocab_size]
 
     # TopK phrase selection
-    topk_probs, topk_indices = torch.topk(probs, topk)  # topk probs and indices: [batch_size, topk]
+    topk_probs, topk_indices = torch.topk(
+        probs, topk
+    )  # topk probs and indices: [batch_size, topk]
 
     # === Calculate floor probability ===
     topk_pmass = topk_probs.sum(dim=-1)  # [batch_size] topk probability mass
-    remainder_pmass = torch.clamp(1 - topk_pmass, 1e-40, 1)  # [batch_size] remainder probability mass
+    remainder_pmass = torch.clamp(
+        1 - topk_pmass, 1e-40, 1
+    )  # [batch_size] remainder probability mass
     floor_probs = remainder_pmass / (vocab_size - topk)  # [batch_size]divide remainder
 
     # convert to list for faster iteration in list comprehension
@@ -764,31 +962,49 @@ def topk_token_phrases(logits: torch.Tensor, tokenizer: PreTrainedTokenizerBase,
     floor_probs_list = floor_probs.tolist()
 
     # === Construct topk phrases list ===
-    probs = []  # collect probability tensors with gradients attached (to be grafted into topk_tensor)
-    phrases = []  # form topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
+    probs = (
+        []
+    )  # collect probability tensors with gradients attached (to be grafted into topk_tensor)
+    phrases = (
+        []
+    )  # form topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
 
     for b in range(batch_size):
         # collect probability tensors with gradients attached (to be grafted into topk_tensor)
-        probs += [topk_probs[b], floor_probs[b]]  # [tensor(prob_k=0_b, prob_k=1_b, ...), tensor(prob_floor_b)]
+        probs += [
+            topk_probs[b],
+            floor_probs[b],
+        ]  # [tensor(prob_k=0_b, prob_k=1_b, ...), tensor(prob_floor_b)]
 
         # form topk token phrases with prob prepend [prob, tok_0, tok_1, ... tok_n]
-        phrases += [[prob] + tokenizer.std_token_phrases[i]
-                    for prob, i in zip(topk_probs_list[b], topk_indices_list[b])]  # [prob_k, tok_0_k, tok_1_k, ...]
+        phrases += [
+            [prob] + tokenizer.std_token_phrases[i]
+            for prob, i in zip(topk_probs_list[b], topk_indices_list[b])
+        ]  # [prob_k, tok_0_k, tok_1_k, ...]
 
         # also add prob_floor for batch item
         phrases += [[floor_probs_list[b]]]  # [prob_floor_b]
 
     # determine width of topk_tensor as max len of all phrase lists (with prob in front)
-    max_len = max([len(p) for p in phrases])  # max_{b,k}(len([prob_k, tok_0_k, tok_1_k, ...]))
+    max_len = max(
+        [len(p) for p in phrases]
+    )  # max_{b,k}(len([prob_k, tok_0_k, tok_1_k, ...]))
 
     # form single 2D tensor with all phrase and probs (typically to send to axon wire encoding)
-    topk_tensor = torch.tensor([p + [ignore_index] * (max_len - len(p))
-                                for p in phrases]).to(logits.device)  # [batch_size * (topk + 1), max_len]
+    topk_tensor = torch.tensor(
+        [p + [ignore_index] * (max_len - len(p)) for p in phrases]
+    ).to(
+        logits.device
+    )  # [batch_size * (topk + 1), max_len]
 
     # grafting probability tensors into first column to attach gradients
-    topk_tensor[:, 0] = torch.hstack(probs)  # tensor([prob_k=0_b, prob_k=1_b, ..., prob_floor_b])
+    topk_tensor[:, 0] = torch.hstack(
+        probs
+    )  # tensor([prob_k=0_b, prob_k=1_b, ..., prob_floor_b])
 
-    topk_tensor = topk_tensor.reshape(batch_size, topk + 1, max_len)  # [batch_size, (topk + 1), max_len] reshaped
+    topk_tensor = topk_tensor.reshape(
+        batch_size, topk + 1, max_len
+    )  # [batch_size, (topk + 1), max_len] reshaped
 
     return topk_tensor  # [batch_size, (topk + 1), max_len] (probability gradients attached in first column)
 
@@ -823,16 +1039,26 @@ def compact_topk_token_phrases(topk_tensor: torch.Tensor):
                      prob_k=0_b=1, tok_0_k=0_b=1, tok_1_k=0_b=1, ..., prob_k=1_b=1, tok_0_k=1_b=1, ..., prob_floor_b=1,
                      ...]
     """
-    topk_tensor_offset = topk_tensor.clone()  # assume topk_tensor may be reused elsewhere so clone
-    topk_tensor_offset[:, :, 1:] += 2  # add 2 to token ids to preserve [0, 1] for probabilities (in first column)
+    topk_tensor_offset = (
+        topk_tensor.clone()
+    )  # assume topk_tensor may be reused elsewhere so clone
+    topk_tensor_offset[
+        :, :, 1:
+    ] += 2  # add 2 to token ids to preserve [0, 1] for probabilities (in first column)
 
-    flattened = topk_tensor_offset.flatten()  # [batch_size * (topk + 1) * max_len] 1D tensor
-    compact_topk = flattened[flattened > -1]  # remove ignore_index < -1 padding to compact content
+    flattened = (
+        topk_tensor_offset.flatten()
+    )  # [batch_size * (topk + 1) * max_len] 1D tensor
+    compact_topk = flattened[
+        flattened > -1
+    ]  # remove ignore_index < -1 padding to compact content
 
     return compact_topk  # [>= batch_size * (2 * topk + 1)]
 
 
-def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_index: int = -100) -> torch.Tensor:
+def unravel_topk_token_phrases(
+    compact_topk: torch.Tensor, topk: int, ignore_index: int = -100
+) -> torch.Tensor:
     r"""
     Unravel topk token phrases input_tensor from 1-D to [batch_size, (topk + 1), max_len] topk_tensor, which
     includes topk token probabilities (prob_k) + floor_prob in first column with gradients attached, with
@@ -868,23 +1094,41 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
 
     atol = 1e-6  # absolute tolerance
     # Find probability markers (per batch item: topk phrase probabilities + floor_prob)
-    prob_idx = torch.where((-atol < compact_topk) & (compact_topk < 1 + atol))[0]  # 0 <= prob <= 1 [batch_size * (topk + 1)], expect token_ids >= 2
+    prob_idx = torch.where((-atol < compact_topk) & (compact_topk < 1 + atol))[
+        0
+    ]  # 0 <= prob <= 1 [batch_size * (topk + 1)], expect token_ids >= 2
 
-    batch_size = len(prob_idx) // (topk + 1)  # (batch_size * (topk + floor)) / (topk + floor)
-    assert batch_size * (topk + 1) == len(prob_idx), f'unravel_topk_token_phrases() probability marker failure: ' \
-                                                     f'{batch_size} * ({topk} + 1) != {len(prob_idx)}'  # decoding irregularity otherwise
+    batch_size = len(prob_idx) // (
+        topk + 1
+    )  # (batch_size * (topk + floor)) / (topk + floor)
+    assert batch_size * (topk + 1) == len(prob_idx), (
+        f"unravel_topk_token_phrases() probability marker failure: "
+        f"{batch_size} * ({topk} + 1) != {len(prob_idx)}"
+    )  # decoding irregularity otherwise
 
-    probs = torch.clamp(compact_topk[prob_idx], 0, 1)  # [batch_size * (topk + 1)] ensure probabilities within [0, 1]
+    probs = torch.clamp(
+        compact_topk[prob_idx], 0, 1
+    )  # [batch_size * (topk + 1)] ensure probabilities within [0, 1]
     probs_sum = probs.reshape(batch_size, topk + 1).sum(dim=1)  # [batch_size]
-    assert torch.all((-atol < probs_sum) & (probs_sum < 1 + atol)), f'unravel_topk_token_phrases(): probs_sum not in [0, 1]'
+    assert torch.all(
+        (-atol < probs_sum) & (probs_sum < 1 + atol)
+    ), f"unravel_topk_token_phrases(): probs_sum not in [0, 1]"
 
     # Obtain phrase lengths and maximum phrase length
-    phrase_len = prob_idx[1:] - prob_idx[:-1]  # [batch_size * (topk + 1) - 1] length of each phrase
-    phrase_len = torch.cat((phrase_len, torch.tensor([1])))  # [batch_size * (topk + 1)] prob_floor is always len=1
-    max_len = phrase_len.max()  # determine width of topk_tensor as max len of all phrase lists (with prob in front)
+    phrase_len = (
+        prob_idx[1:] - prob_idx[:-1]
+    )  # [batch_size * (topk + 1) - 1] length of each phrase
+    phrase_len = torch.cat(
+        (phrase_len, torch.tensor([1]))
+    )  # [batch_size * (topk + 1)] prob_floor is always len=1
+    max_len = (
+        phrase_len.max()
+    )  # determine width of topk_tensor as max len of all phrase lists (with prob in front)
 
     # Initialize topk_tensor with ignore_index + 2, since decrement with 2 follows to remove token offset later
-    topk_tensor = torch.ones((batch_size * (topk + 1), max_len), device=compact_topk.device)
+    topk_tensor = torch.ones(
+        (batch_size * (topk + 1), max_len), device=compact_topk.device
+    )
     topk_tensor *= ignore_index + 2  # [batch_size * (topk + 1), max_len]
 
     # Insert phrases of each unique length as block into topk_tensor
@@ -892,31 +1136,45 @@ def unravel_topk_token_phrases(compact_topk: torch.Tensor, topk: int, ignore_ind
         if unique_len <= 1:
             continue  # skip probability column, will be added afterward
 
-        phrase_idx = torch.where(phrase_len == unique_len)[0]  # phrase indices where phrase_len is unique_len
+        phrase_idx = torch.where(phrase_len == unique_len)[
+            0
+        ]  # phrase indices where phrase_len is unique_len
         compact_idx = prob_idx[phrase_idx]  # indices in compact_topk
 
         # Create indexing block, add index for each phrase position, skip first (prob) position
-        block_idx = [compact_idx + position for position in range(1, unique_len)]  # incrementally add each position of phrase
+        block_idx = [
+            compact_idx + position for position in range(1, unique_len)
+        ]  # incrementally add each position of phrase
         # transpose .t() ensures correct interleaving of consecutive positions:
         # [[phrase_a_1, phrase_a_2, ..., phrase_a_n], [phrase_b_1, phrase_b_2, ..., phrase_b_n], ...]
-        block_idx = torch.vstack(block_idx).t().reshape(-1, unique_len - 1)  # [-1, unique_len - 1] for all phrases with unique_len
+        block_idx = (
+            torch.vstack(block_idx).t().reshape(-1, unique_len - 1)
+        )  # [-1, unique_len - 1] for all phrases with unique_len
 
-        topk_tensor[phrase_idx, 1:unique_len] = compact_topk[block_idx]  # slice selected phrases and copy into topk_tensor
+        topk_tensor[phrase_idx, 1:unique_len] = compact_topk[
+            block_idx
+        ]  # slice selected phrases and copy into topk_tensor
 
     topk_tensor -= 2  # remove token offset, overwrites probability column, replace probabilities below
 
     # grafting probability tensors into first column to attach gradients
     topk_tensor[:, 0] = probs  # tensor([prob_k=0_b, prob_k=1_b, ..., prob_floor_b])
 
-    topk_tensor = topk_tensor.reshape(batch_size, topk + 1, max_len)  # [batch_size, (topk + 1), max_len] reshaped
+    topk_tensor = topk_tensor.reshape(
+        batch_size, topk + 1, max_len
+    )  # [batch_size, (topk + 1), max_len] reshaped
 
     return topk_tensor  # [batch_size, (topk + 1), max_len]
 
 
-def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
-                         topk_tensor: torch.Tensor,
-                         ignore_index: int = -100, reduce=True, reduction='mean',
-                         vocab_size_min: int = 50257) -> Tuple[torch.Tensor, torch.Tensor]:
+def phrase_cross_entropy(
+    target_phrases: Union[List[List[int]], torch.Tensor],
+    topk_tensor: torch.Tensor,
+    ignore_index: int = -100,
+    reduce=True,
+    reduction="mean",
+    vocab_size_min: int = 50257,
+) -> Tuple[torch.Tensor, torch.Tensor]:
     r"""
     Calculates the cross entropy of a phrase prediction against a target phrase, so that this is a multi-token
     extension of typical cross entropy calculated for next token prediction.
@@ -952,23 +1210,45 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
                 Phrase cross entropy loss, either scalar if reduce or [batch_size].
     """
 
-    batch_size, topk_p1, max_len = topk_tensor.shape  # [batch_size, (topk + 1), max_len]
+    (
+        batch_size,
+        topk_p1,
+        max_len,
+    ) = topk_tensor.shape  # [batch_size, (topk + 1), max_len]
     topk = topk_p1 - 1
 
-    topk_tokens = topk_tensor[:, :-1, 1:].round().int()  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
-    topk_probs = topk_tensor[:, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
-    floor_probs = topk_tensor[:, -1, 0]  # [batch_size] Floor probabilities as mean probability for non-topk tokens
+    topk_tokens = (
+        topk_tensor[:, :-1, 1:].round().int()
+    )  # [batch_size, topk, max_len - 1] Phrase tokens with ignore_index token for padding.
+    topk_probs = topk_tensor[
+        :, :-1, 0
+    ]  # [batch_size, topk] Probabilities for each phrase in topk
+    floor_probs = topk_tensor[
+        :, -1, 0
+    ]  # [batch_size] Floor probabilities as mean probability for non-topk tokens
 
-    topk_probs = torch.clamp(topk_probs, 0, 1)  # [batch_size, topk] ensure probabilities within [0, 1]
-    floor_probs = torch.clamp(floor_probs, 0, 1)  # [batch_size] ensure floor probabilities within [0, 1]
+    topk_probs = torch.clamp(
+        topk_probs, 0, 1
+    )  # [batch_size, topk] ensure probabilities within [0, 1]
+    floor_probs = torch.clamp(
+        floor_probs, 0, 1
+    )  # [batch_size] ensure floor probabilities within [0, 1]
 
     # === Ensure total probability is 1 ===
-    total_probs = topk_probs.sum(dim=-1) + max(0, vocab_size_min - topk) * floor_probs  # [batch_size] total probs
-    n_topk_probs = topk_probs / total_probs[:, None]  # [batch_size, topk] normalized topk_probs
+    total_probs = (
+        topk_probs.sum(dim=-1) + max(0, vocab_size_min - topk) * floor_probs
+    )  # [batch_size] total probs
+    n_topk_probs = (
+        topk_probs / total_probs[:, None]
+    )  # [batch_size, topk] normalized topk_probs
     n_floor_probs = floor_probs / total_probs  # [batch_size] normalized floor_probs
 
-    val_probs = torch.zeros(batch_size).to(topk_probs.device)  # accumulate probabilities when first tokens match
-    match_probs = torch.zeros(batch_size).to(topk_probs.device)  # accumulate probabilities when sub target matches phrase
+    val_probs = torch.zeros(batch_size).to(
+        topk_probs.device
+    )  # accumulate probabilities when first tokens match
+    match_probs = torch.zeros(batch_size).to(
+        topk_probs.device
+    )  # accumulate probabilities when sub target matches phrase
     for b in range(batch_size):
         target_phrase = target_phrases[b]
         if not isinstance(target_phrase, torch.Tensor):
@@ -976,45 +1256,69 @@ def phrase_cross_entropy(target_phrases: Union[List[List[int]], torch.Tensor],
         if isinstance(target_phrase, torch.FloatTensor):
             target_phrase = target_phrase.round().int()
 
-        match = (topk_tokens[b, :, 0] == target_phrase[0].item())  # bool where first tokens match (validation token)
+        match = (
+            topk_tokens[b, :, 0] == target_phrase[0].item()
+        )  # bool where first tokens match (validation token)
         if match.sum() > 0:
             val_probs[b] = n_topk_probs[b, match].sum()  # accumulate all matches
         else:  # no matches
-            val_probs[b] = n_floor_probs[b]  # assume match is in non-topk tokens with avg floor_prob
+            val_probs[b] = n_floor_probs[
+                b
+            ]  # assume match is in non-topk tokens with avg floor_prob
 
         # === Integrate sub target matches ===
         check_len = min(max_len - 1, len(target_phrase))
         for c in range(1, check_len + 1):  # progressively increase sub target length
-            target = ignore_index * torch.ones(check_len, dtype=torch.int32).to(topk_tensor.device)  # [-100, ..., -100]
+            target = ignore_index * torch.ones(check_len, dtype=torch.int32).to(
+                topk_tensor.device
+            )  # [-100, ..., -100]
             target[:c] = target_phrase[:c]  # [tok0, tok1, ...tokc, -100, ..., -100]
 
             # Find sub target matches
-            match = (topk_tokens[b, :, :check_len] == target)
-            match_idx = torch.where(match.sum(dim=-1) == check_len)[0]  # phrase indices which match sub target
+            match = topk_tokens[b, :, :check_len] == target
+            match_idx = torch.where(match.sum(dim=-1) == check_len)[
+                0
+            ]  # phrase indices which match sub target
 
             if len(match_idx):  # at least one match
-                match_probs[b] += n_topk_probs[b, match_idx].sum()  # accumulate all matches
+                match_probs[b] += n_topk_probs[
+                    b, match_idx
+                ].sum()  # accumulate all matches
             else:  # no matches
-                match_probs[b] += n_floor_probs[b]  # assume match is in non-topk tokens with avg floor_prob
+                match_probs[b] += n_floor_probs[
+                    b
+                ]  # assume match is in non-topk tokens with avg floor_prob
 
-    val_probs = torch.clamp(val_probs, 0, 1)  # [batch_size] ensure 0 <= total probability <= 1
-    loss_val = - torch.log(val_probs + 1e-40)  # [batch_size] calculate cross entropy loss
+    val_probs = torch.clamp(
+        val_probs, 0, 1
+    )  # [batch_size] ensure 0 <= total probability <= 1
+    loss_val = -torch.log(
+        val_probs + 1e-40
+    )  # [batch_size] calculate cross entropy loss
 
-    match_probs = torch.clamp(match_probs, 0, 1)  # [batch_size] ensure 0 <= total probability <= 1
-    loss = - torch.log(match_probs + 1e-40)  # [batch_size] calculate cross entropy loss
+    match_probs = torch.clamp(
+        match_probs, 0, 1
+    )  # [batch_size] ensure 0 <= total probability <= 1
+    loss = -torch.log(match_probs + 1e-40)  # [batch_size] calculate cross entropy loss
 
     if reduce:
         if not hasattr(loss_val, reduction) or not hasattr(loss, reduction):
-            raise RuntimeError(f'phase_cross_entropy(): Reduction function {reduction} not found.')
+            raise RuntimeError(
+                f"phase_cross_entropy(): Reduction function {reduction} not found."
+            )
         loss_val = getattr(loss_val, reduction)()
         loss = getattr(loss, reduction)()
         if loss.numel() > 1:
-            raise ValueError(f'phase_cross_entropy(): Expected reduction to scalar, obtained {loss.shape} instead.')
+            raise ValueError(
+                f"phase_cross_entropy(): Expected reduction to scalar, obtained {loss.shape} instead."
+            )
 
     return loss_val, loss
 
 
-def topk_tokens_to_vocab_size(topk_tensor: torch.Tensor, vocab_size_std: int, vocab_size_min: int = 50257) -> torch.Tensor:
+def topk_tokens_to_vocab_size(
+    topk_tensor: torch.Tensor, vocab_size_std: int, vocab_size_min: int = 50257
+) -> torch.Tensor:
     r"""
     Convert topk_tokens first token probabilities into a standard logits tensor shape [batch_size, vocab_size_std].
         Args:
@@ -1041,29 +1345,51 @@ def topk_tokens_to_vocab_size(topk_tensor: torch.Tensor, vocab_size_std: int, vo
                 [batch_size, vocab_size_std] Standard logits.
     """
 
-    batch_size, topk_p1, max_len = topk_tensor.shape  # [batch_size, (topk + 1), max_len]
+    (
+        batch_size,
+        topk_p1,
+        max_len,
+    ) = topk_tensor.shape  # [batch_size, (topk + 1), max_len]
     topk = topk_p1 - 1
 
-    topk_tokens = topk_tensor[:, :-1, 1].round().to(torch.int64)  # [batch_size, topk] first tokens
-    topk_probs = topk_tensor[:, :-1, 0]  # [batch_size, topk] Probabilities for each phrase in topk
-    floor_probs = topk_tensor[:, -1, 0]  # [batch_size] Floor probabilities as mean probability for non-topk tokens
+    topk_tokens = (
+        topk_tensor[:, :-1, 1].round().to(torch.int64)
+    )  # [batch_size, topk] first tokens
+    topk_probs = topk_tensor[
+        :, :-1, 0
+    ]  # [batch_size, topk] Probabilities for each phrase in topk
+    floor_probs = topk_tensor[
+        :, -1, 0
+    ]  # [batch_size] Floor probabilities as mean probability for non-topk tokens
 
-    topk_probs = torch.clamp(topk_probs, 0, 1)  # [batch_size, topk] ensure probabilities within [0, 1]
-    floor_probs = torch.clamp(floor_probs, 0, 1)  # [batch_size] ensure floor probabilities within [0, 1]
+    topk_probs = torch.clamp(
+        topk_probs, 0, 1
+    )  # [batch_size, topk] ensure probabilities within [0, 1]
+    floor_probs = torch.clamp(
+        floor_probs, 0, 1
+    )  # [batch_size] ensure floor probabilities within [0, 1]
 
     # === Ensure total probability is 1 ===
-    total_probs = topk_probs.sum(dim=-1) + max(0, vocab_size_min - topk) * floor_probs  # [batch_size] total probs
-    n_topk_probs = topk_probs / total_probs[:, None]  # [batch_size, topk] normalized topk_probs
+    total_probs = (
+        topk_probs.sum(dim=-1) + max(0, vocab_size_min - topk) * floor_probs
+    )  # [batch_size] total probs
+    n_topk_probs = (
+        topk_probs / total_probs[:, None]
+    )  # [batch_size, topk] normalized topk_probs
 
     # === Convert to logits tensor ===
     probs = torch.zeros((batch_size, vocab_size_std))  # [batch_size, vocab_size_std]
-    probs.scatter_add_(1, topk_tokens, n_topk_probs)  # accumulate token probabilities onto logits tensor
+    probs.scatter_add_(
+        1, topk_tokens, n_topk_probs
+    )  # accumulate token probabilities onto logits tensor
 
     return probs  # [batch_size, vocab_size_std]
 
 
-def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
-                                target_tokenizer: PreTrainedTokenizerBase) -> bool:
+def check_tokenizer_equivalence(
+    tokenizer_to_check: PreTrainedTokenizerBase,
+    target_tokenizer: PreTrainedTokenizerBase,
+) -> bool:
     r"""
     Is tokenizer_to_check equivalent to target_tokenizer?
         Args:
@@ -1081,7 +1407,9 @@ def check_tokenizer_equivalence(tokenizer_to_check: PreTrainedTokenizerBase,
     if tokenizer_to_check.vocab_len != target_tokenizer.vocab_len:
         return False
 
-    to_check_vocab = tokenizer_to_check.batch_decode(range(tokenizer_to_check.vocab_len))
+    to_check_vocab = tokenizer_to_check.batch_decode(
+        range(tokenizer_to_check.vocab_len)
+    )
     target_vocab = target_tokenizer.batch_decode(range(target_tokenizer.vocab_len))
 
     return to_check_vocab == target_vocab  # indexed tokenizer vocabularies should match
@@ -1116,8 +1444,11 @@ def prune_tokens(inputs: torch.FloatTensor, prune_len: int = 1, margin: int = 3)
     return torch.stack(pruned_inputs)
 
 
-def pad_offsets(offsets_batch: List[List[tuple]], source_offsets_batch: List[List[List[Any]]],
-                pad_offsets_batch: List[List[List[Any]]]) -> List[List[List[Any]]]:
+def pad_offsets(
+    offsets_batch: List[List[tuple]],
+    source_offsets_batch: List[List[List[Any]]],
+    pad_offsets_batch: List[List[List[Any]]],
+) -> List[List[List[Any]]]:
     r"""
     Pads specific tuples in offsets_batch, selected by source_offsets_batch with
     associated paddings in pad_offsets_batch.
@@ -1149,13 +1480,19 @@ def pad_offsets(offsets_batch: List[List[tuple]], source_offsets_batch: List[Lis
         for left, right in offsets_batch[b]:  # go through original offsets
             if idx < len(source_offsets_batch[b]):
                 source_left, source_right = source_offsets_batch[b][idx]
-                if left == source_left and right == source_right:  # matching offset found
+                if (
+                    left == source_left and right == source_right
+                ):  # matching offset found
                     pad_left, pad_right = pad_offsets_batch[b][idx]
-                    new_offsets += [(pad_left + pad, pad_right + pad)]  # replace offsets with padded + accum. pad
+                    new_offsets += [
+                        (pad_left + pad, pad_right + pad)
+                    ]  # replace offsets with padded + accum. pad
                     pad += pad_right - right
                     idx += 1
                     continue
-            new_offsets += [(left + pad, right + pad)]  # adjust original offsets w/ accum. pad
+            new_offsets += [
+                (left + pad, right + pad)
+            ]  # adjust original offsets w/ accum. pad
 
         new_offsets_batch += [new_offsets]
 
@@ -1185,7 +1522,9 @@ def find_offsets(string: str, substring: str) -> List[List[int]]:
     return offsets
 
 
-def replace_at_offsets(string: str, offsets: List[List[Any]]) -> Tuple[str, List[List[int]]]:
+def replace_at_offsets(
+    string: str, offsets: List[List[Any]]
+) -> Tuple[str, List[List[int]]]:
     r"""
     Replace indicated [left, right] offset positions with a new substring, by
     deleting [left, right] content and adding [left, left+len(substring)] substring,
@@ -1206,7 +1545,7 @@ def replace_at_offsets(string: str, offsets: List[List[Any]]) -> Tuple[str, List
                 New offsets where replacements are now located
                 [[left_0, right_0], [left_1, right_1], ...]
     """
-    new_string = ''
+    new_string = ""
     new_offsets = []
 
     prev = 0
@@ -1226,8 +1565,9 @@ def replace_at_offsets(string: str, offsets: List[List[Any]]) -> Tuple[str, List
     return new_string, new_offsets
 
 
-def get_special_token_pairings(from_tokenizer: PreTrainedTokenizerBase,
-                               to_tokenizer: PreTrainedTokenizerBase) -> Dict[str, str]:
+def get_special_token_pairings(
+    from_tokenizer: PreTrainedTokenizerBase, to_tokenizer: PreTrainedTokenizerBase
+) -> Dict[str, str]:
     r"""
     Determines a prioritized matching of special token texts between two tokenizers.
     Purpose is to produce replacement pairs so special token test is correctly represented for target tokenizer.
@@ -1245,22 +1585,32 @@ def get_special_token_pairings(from_tokenizer: PreTrainedTokenizerBase,
 
     # some tokenizers e.g. GPT2 have the same text signifying BOS and EOS, while in other e.g. XGLM they differ
     # so prioritize EOS token first, since this seems to be the default context separator, e.g. XGLM, GerPT2, GPT2
-    if ('eos_token' in from_tokenizer.special_tokens_map) and ('eos_token' in to_tokenizer.special_tokens_map):
-        pairings[getattr(from_tokenizer, 'eos_token')] = getattr(to_tokenizer, 'eos_token')
+    if ("eos_token" in from_tokenizer.special_tokens_map) and (
+        "eos_token" in to_tokenizer.special_tokens_map
+    ):
+        pairings[getattr(from_tokenizer, "eos_token")] = getattr(
+            to_tokenizer, "eos_token"
+        )
 
     for special_token in from_tokenizer.special_tokens_map:
         if special_token in to_tokenizer.special_tokens_map:
-            if getattr(from_tokenizer, special_token) not in pairings:  # prevent priority overwrite
-                pairings[getattr(from_tokenizer, special_token)] = getattr(to_tokenizer, special_token)
+            if (
+                getattr(from_tokenizer, special_token) not in pairings
+            ):  # prevent priority overwrite
+                pairings[getattr(from_tokenizer, special_token)] = getattr(
+                    to_tokenizer, special_token
+                )
 
     return pairings
 
 
-def translate_special_token_text(text_batch: List[str], from_tokenizer: PreTrainedTokenizerBase,
-                                 to_tokenizer: PreTrainedTokenizerBase) -> Tuple[List[str],
-                                                                                 List[List[List[int]]],
-                                                                                 List[List[List[int]]],
-                                                                                 List[List[List[Any]]]]:
+def translate_special_token_text(
+    text_batch: List[str],
+    from_tokenizer: PreTrainedTokenizerBase,
+    to_tokenizer: PreTrainedTokenizerBase,
+) -> Tuple[
+    List[str], List[List[List[int]]], List[List[List[int]]], List[List[List[Any]]]
+]:
     r"""
     Translates special_token signifier text in from_tokenizer to to_tokenizer special_token text, for
     a given text_batch. Resulting to_text_batch can then be to_tokenized where special_tokens should
@@ -1299,14 +1649,24 @@ def translate_special_token_text(text_batch: List[str], from_tokenizer: PreTrain
         padding_offsets = []
         for token_string in pairings:
             offsets = find_offsets(text, token_string)  # find special-token locations
-            from_offsets += [[left, right, pairings[token_string]] for left, right in offsets]
+            from_offsets += [
+                [left, right, pairings[token_string]] for left, right in offsets
+            ]
 
-            pad_string = token_string if len(token_string) > len(pairings[token_string]) else pairings[token_string]
+            pad_string = (
+                token_string
+                if len(token_string) > len(pairings[token_string])
+                else pairings[token_string]
+            )
             padding_offsets += [[left, right, pad_string] for left, right in offsets]
 
         from_offsets = sorted(from_offsets)  # incrementally arrange locations
-        to_text, to_offsets = replace_at_offsets(text, from_offsets)  # replace special-token text
-        pad_text, padding_offsets = replace_at_offsets(text, padding_offsets)  # pad special-token text locations
+        to_text, to_offsets = replace_at_offsets(
+            text, from_offsets
+        )  # replace special-token text
+        pad_text, padding_offsets = replace_at_offsets(
+            text, padding_offsets
+        )  # pad special-token text locations
 
         to_text_batch += [to_text]
         from_offsets_batch += [[[left, right] for left, right, _ in from_offsets]]
@@ -1325,10 +1685,14 @@ def set_vocab_len(tokenizer: PreTrainedTokenizerBase):
         Returns:
 
     """
-    if not hasattr(tokenizer, 'vocab_len'):
-        if hasattr(tokenizer, 'vocab'):  # use independent vocab_len when tokenizer.vocab_size != len(tokenizer.vocab)
+    if not hasattr(tokenizer, "vocab_len"):
+        if hasattr(
+            tokenizer, "vocab"
+        ):  # use independent vocab_len when tokenizer.vocab_size != len(tokenizer.vocab)
             tokenizer.vocab_len = len(tokenizer.vocab)
-        elif hasattr(tokenizer, 'encoder'):  # tokenizers like facebook/opt-* has encoder=vocab
+        elif hasattr(
+            tokenizer, "encoder"
+        ):  # tokenizers like facebook/opt-* has encoder=vocab
             tokenizer.vocab_len = len(tokenizer.encoder)
         else:  # revert to vocab_size
             tokenizer.vocab_len = tokenizer.vocab_size
@@ -1344,10 +1708,10 @@ def set_whitespace_preserving(tokenizer: PreTrainedTokenizerBase):
         Returns:
 
     """
-    if not hasattr(tokenizer, 'whitespace_preserving'):
-        space_token = tokenizer(' ', add_special_tokens=False)['input_ids']
+    if not hasattr(tokenizer, "whitespace_preserving"):
+        space_token = tokenizer(" ", add_special_tokens=False)["input_ids"]
         space_text = tokenizer.decode(space_token)
-        if space_text == ' ':
+        if space_text == " ":
             tokenizer.whitespace_preserving = True
         else:
             tokenizer.whitespace_preserving = False
@@ -1368,16 +1732,22 @@ def set_std_token_phrases(tokenizer, std_tokenizer):
 
     """
     # === Tokenizer phrases to memory ===
-    if not hasattr(tokenizer, 'phrases'):
+    if not hasattr(tokenizer, "phrases"):
         if tokenizer.whitespace_preserving:
-            tokenizer.phrases = tokenizer.batch_decode(range(tokenizer.vocab_len))  # server tokens to strings
+            tokenizer.phrases = tokenizer.batch_decode(
+                range(tokenizer.vocab_len)
+            )  # server tokens to strings
         else:
-            tokenizer.phrases = [' ' + phrase for phrase in
-                                 tokenizer.batch_decode(range(tokenizer.vocab_len))]  # server tokens to strings
+            tokenizer.phrases = [
+                " " + phrase
+                for phrase in tokenizer.batch_decode(range(tokenizer.vocab_len))
+            ]  # server tokens to strings
 
-    if not hasattr(tokenizer, 'std_token_phrases'):
+    if not hasattr(tokenizer, "std_token_phrases"):
         # Retokenize phrases to new tokenizer
-        tokenizer.std_token_phrases = std_tokenizer(tokenizer.phrases)['input_ids']  # [topk, max_len] convert phrases to tokens sequences
+        tokenizer.std_token_phrases = std_tokenizer(tokenizer.phrases)[
+            "input_ids"
+        ]  # [topk, max_len] convert phrases to tokens sequences
 
 
 def prep_tokenizer(tokenizer, std_tokenizer=None):
