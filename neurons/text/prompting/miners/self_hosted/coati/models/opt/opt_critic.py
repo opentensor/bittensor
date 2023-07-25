@@ -19,13 +19,15 @@ class OPTCritic(Critic):
         lora_train_bias (str): LoRA bias training mode.
     """
 
-    def __init__(self,
-                 pretrained: Optional[str] = None,
-                 config: Optional[OPTConfig] = None,
-                 checkpoint: bool = False,
-                 lora_rank: int = 0,
-                 lora_train_bias: str = 'none',
-                 **kwargs) -> None:
+    def __init__(
+        self,
+        pretrained: Optional[str] = None,
+        config: Optional[OPTConfig] = None,
+        checkpoint: bool = False,
+        lora_rank: int = 0,
+        lora_train_bias: str = "none",
+        **kwargs
+    ) -> None:
         if pretrained is not None:
             model = OPTModel.from_pretrained(pretrained)
         elif config is not None:

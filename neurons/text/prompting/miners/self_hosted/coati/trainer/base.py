@@ -30,17 +30,19 @@ class Trainer(ABC):
         generate_kwargs (dict, optional): the kwargs to use while model generating
     """
 
-    def __init__(self,
-                 strategy: Strategy,
-                 experience_maker: ExperienceMaker,
-                 replay_buffer: ReplayBuffer,
-                 experience_batch_size: int = 8,
-                 max_epochs: int = 1,
-                 tokenizer: Optional[Callable[[Any], dict]] = None,
-                 sample_replay_buffer: bool = False,
-                 dataloader_pin_memory: bool = True,
-                 callbacks: List[Callback] = [],
-                 **generate_kwargs) -> None:
+    def __init__(
+        self,
+        strategy: Strategy,
+        experience_maker: ExperienceMaker,
+        replay_buffer: ReplayBuffer,
+        experience_batch_size: int = 8,
+        max_epochs: int = 1,
+        tokenizer: Optional[Callable[[Any], dict]] = None,
+        sample_replay_buffer: bool = False,
+        dataloader_pin_memory: bool = True,
+        callbacks: List[Callback] = [],
+        **generate_kwargs,
+    ) -> None:
         super().__init__()
         self.strategy = strategy
         self.experience_maker = experience_maker
@@ -61,22 +63,30 @@ class Trainer(ABC):
         if isinstance(inputs, Tensor):
             return self.experience_maker.make_experience(inputs, **self.generate_kwargs)
         elif isinstance(inputs, dict):
-            return self.experience_maker.make_experience(**inputs, **self.generate_kwargs)
+            return self.experience_maker.make_experience(
+                **inputs, **self.generate_kwargs
+            )
         else:
             raise ValueError(f'Unsupported input type "{type(inputs)}"')
 
     def _sample_prompts(self, prompts) -> list:
         indices = list(range(len(prompts)))
-        sampled_indices = self.strategy.experience_sampler.choice(indices, self.experience_batch_size, replace=False)
+        sampled_indices = self.strategy.experience_sampler.choice(
+            indices, self.experience_batch_size, replace=False
+        )
         return [prompts[i] for i in sampled_indices]
 
     def _learn(self):
         # replay buffer may be empty at first, we should rebuild at each training
         if not self.sample_replay_buffer:
-            dataloader = self.strategy.setup_dataloader(self.replay_buffer, self.dataloader_pin_memory)
+            dataloader = self.strategy.setup_dataloader(
+                self.replay_buffer, self.dataloader_pin_memory
+            )
             device = torch.cuda.current_device()
         if self.sample_replay_buffer:
-            pbar = tqdm(range(self.max_epochs), desc='Train epoch', disable=not is_rank_0())
+            pbar = tqdm(
+                range(self.max_epochs), desc="Train epoch", disable=not is_rank_0()
+            )
             for _ in pbar:
                 experience = self.replay_buffer.sample()
                 metrics = self.training_step(experience)
@@ -86,7 +96,11 @@ class Trainer(ABC):
                 self._on_learn_epoch_start(epoch)
                 if isinstance(dataloader.sampler, DistributedSampler):
                     dataloader.sampler.set_epoch(epoch)
-                pbar = tqdm(dataloader, desc=f'Train epoch [{epoch+1}/{self.max_epochs}]', disable=not is_rank_0())
+                pbar = tqdm(
+                    dataloader,
+                    desc=f"Train epoch [{epoch+1}/{self.max_epochs}]",
+                    disable=not is_rank_0(),
+                )
                 for experience in pbar:
                     self._on_learn_batch_start()
                     experience.to_device(device)
@@ -95,21 +109,25 @@ class Trainer(ABC):
                     pbar.set_postfix(metrics)
                 self._on_learn_epoch_end(epoch)
 
-    def fit(self,
-            prompt_dataloader,
-            pretrain_dataloader,
-            num_episodes: int = 50000,
-            max_timesteps: int = 500,
-            update_timesteps: int = 5000) -> None:
+    def fit(
+        self,
+        prompt_dataloader,
+        pretrain_dataloader,
+        num_episodes: int = 50000,
+        max_timesteps: int = 500,
+        update_timesteps: int = 5000,
+    ) -> None:
         time = 0
         self.pretrain_dataloader = pretrain_dataloader
         self.prompt_dataloader = prompt_dataloader
         self._on_fit_start()
         for episode in range(num_episodes):
             self._on_episode_start(episode)
-            for timestep in tqdm(range(max_timesteps),
-                                 desc=f'Episode [{episode+1}/{num_episodes}]',
-                                 disable=not is_rank_0()):
+            for timestep in tqdm(
+                range(max_timesteps),
+                desc=f"Episode [{episode+1}/{num_episodes}]",
+                disable=not is_rank_0(),
+            ):
                 time += 1
                 prompts = next(iter(self.prompt_dataloader))
                 self._on_make_experience_start()
@@ -119,8 +137,8 @@ class Trainer(ABC):
                 self._on_make_experience_end(experience)
                 self.replay_buffer.append(experience)
                 if time % update_timesteps == 0:
-                    self.experience_maker.initial_model.to('cpu')
-                    self.experience_maker.reward_model.to('cpu')
+                    self.experience_maker.initial_model.to("cpu")
+                    self.experience_maker.reward_model.to("cpu")
                     self._learn()
                     self.replay_buffer.clear()
             self._on_episode_end(episode)

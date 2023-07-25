@@ -19,69 +19,70 @@ import math
 import argparse
 import bittensor
 
-class priority:
 
-    def __init__( self, config: "bittensor.Config" = None ):
+class priority:
+    def __init__(self, config: "bittensor.Config" = None):
         self.config = config or priority.config()
 
     @classmethod
-    def config( cls ) -> "bittensor.Config":
+    def config(cls) -> "bittensor.Config":
         parser = argparse.ArgumentParser()
         priority.add_args(parser)
-        return bittensor.config( parser )
+        return bittensor.config(parser)
 
     @classmethod
     def help(cls):
         parser = argparse.ArgumentParser()
         cls.add_args(parser)
-        print( cls.__new__.__doc__ )
+        print(cls.__new__.__doc__)
         parser.print_help()
 
     @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser, prefix: str = None ):
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         prefix_str = "" if prefix is None else prefix + "."
         parser.add_argument(
-            '--' + prefix_str + 'priority.default_priority',
-            type = float,
-            help = 'Default call priority in queue.',
-            default = 0.0
+            "--" + prefix_str + "priority.default_priority",
+            type=float,
+            help="Default call priority in queue.",
+            default=0.0,
         )
         parser.add_argument(
-            '--' + prefix_str + 'priority.blacklisted_keys', 
-            type = str, 
-            required = False, 
-            nargs = '*', 
-            action = 'store',
-            help = 'List of ss58 addresses which are always given -math.inf priority', default=[]
+            "--" + prefix_str + "priority.blacklisted_keys",
+            type=str,
+            required=False,
+            nargs="*",
+            action="store",
+            help="List of ss58 addresses which are always given -math.inf priority",
+            default=[],
         )
         parser.add_argument(
-            '--' + prefix_str + 'priority.whitelisted_keys', 
-            type = str, 
-            required = False, 
-            nargs = '*', 
-            action = 'store',
-            help = 'List of ss58 addresses which are always given math.inf priority', default=[]
+            "--" + prefix_str + "priority.whitelisted_keys",
+            type=str,
+            required=False,
+            nargs="*",
+            action="store",
+            help="List of ss58 addresses which are always given math.inf priority",
+            default=[],
         )
 
-    def priority( 
-            self, 
-            forward_call: "bittensor.SynapseCall",
-            metagraph: "bittensor.Metagraph" = None,
-        ) -> float:
-
+    def priority(
+        self,
+        forward_call: "bittensor.SynapseCall",
+        metagraph: "bittensor.Metagraph" = None,
+    ) -> float:
         # Check for blacklisted keys which take priority over all other checks.
         src_hotkey = forward_call.src_hotkey
         if src_hotkey in self.config.priority.blacklisted_keys:
             return -math.inf
-        
+
         # Check for whitelisted keys which take priority over all remaining checks.
         if src_hotkey in self.config.priority.whitelisted_keys:
-            return math.inf 
+            return math.inf
 
         # Otherwise priority of requests is based on stake.
         if metagraph is not None:
-            uid = metagraph.hotkeys.index( forward_call.src_hotkey )
-            return metagraph.S[ uid ].item()
-        
+            uid = metagraph.hotkeys.index(forward_call.src_hotkey)
+            return metagraph.S[uid].item()
+
         # Default priority.
         return self.config.priority.default_priority

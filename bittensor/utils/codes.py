@@ -22,131 +22,132 @@ import bittensor
 
 logger = logger.opt(colors=True)
 
-def code_to_string( code: 'bittensor.proto.ReturnCode' ) -> str:
-    """ Return code -> string
-    """
-    if code == 0:
-        return 'NoReturn'
-    elif code == 1:
-        return 'Success'
-    elif code == 2:
-        return 'Timeout'
-    elif code == 3:
-        return 'Backoff'
-    elif code == 4:
-        return 'Unavailable'
-    elif code == 5:
-        return 'NotImplemented'
-    elif code == 6:
-        return 'EmptyRequest'
-    elif code == 7:
-        return 'EmptyResponse'
-    elif code == 8:
-        return 'InvalidResponse'
-    elif code == 9:
-        return 'InvalidRequest'
-    elif code == 10:
-        return 'RequestShapeException'
-    elif code == 11:
-        return 'ResponseShapeException'
-    elif code == 12:
-        return 'RequestSerializationException'
-    elif code == 13:
-        return 'ResponseSerializationException'
-    elif code == 14:
-        return 'RequestDeserializationException'
-    elif code == 15:
-        return 'ResponseDeserializationException'
-    elif code == 16:
-        return 'NotServingNucleus'
-    elif code == 17:
-        return 'NucleusTimeout'
-    elif code == 18:
-        return 'NucleusFull'
-    elif code == 19:
-        return 'RequestIncompatibleVersion'
-    elif code == 20:
-        return 'ResponseIncompatibleVersion'
-    elif code == 21:
-        return 'SenderUnknown'
-    elif code == 22:
-        return 'UnknownException'
-    elif code == 23:
-        return 'Unauthenticated'
-    elif code == 24:
-        return 'BadEndpoint'
-    elif code == 25:
-        return 'Blacklisted'
-    else:
-        return 'UnknownCode'
 
-def code_to_loguru_color( code: 'bittensor.proto.ReturnCode' ) -> str:
-    """ Return code -> loguru color
-    """
+def code_to_string(code: "bittensor.proto.ReturnCode") -> str:
+    """Return code -> string"""
     if code == 0:
-        return 'red'
+        return "NoReturn"
     elif code == 1:
-        return 'green'
+        return "Success"
     elif code == 2:
-        return 'yellow'
+        return "Timeout"
     elif code == 3:
-        return 'yellow'
+        return "Backoff"
     elif code == 4:
-        return 'red'
+        return "Unavailable"
     elif code == 5:
-        return 'red'
+        return "NotImplemented"
     elif code == 6:
-        return 'red'
+        return "EmptyRequest"
     elif code == 7:
-        return 'red'
+        return "EmptyResponse"
     elif code == 8:
-        return 'red'
+        return "InvalidResponse"
     elif code == 9:
-        return 'red'
+        return "InvalidRequest"
     elif code == 10:
-        return 'red'
+        return "RequestShapeException"
     elif code == 11:
-        return 'red'
+        return "ResponseShapeException"
     elif code == 12:
-        return 'red'
+        return "RequestSerializationException"
     elif code == 13:
-        return 'red'
+        return "ResponseSerializationException"
     elif code == 14:
-        return 'red'
+        return "RequestDeserializationException"
     elif code == 15:
-        return 'red'
+        return "ResponseDeserializationException"
     elif code == 16:
-        return 'red'
+        return "NotServingNucleus"
     elif code == 17:
-        return 'yellow'
+        return "NucleusTimeout"
     elif code == 18:
-        return 'yellow'
+        return "NucleusFull"
     elif code == 19:
-        return 'red'
+        return "RequestIncompatibleVersion"
     elif code == 20:
-        return 'red'
+        return "ResponseIncompatibleVersion"
     elif code == 21:
-        return 'red'
+        return "SenderUnknown"
     elif code == 22:
-        return 'red'
+        return "UnknownException"
     elif code == 23:
-        return 'red'
+        return "Unauthenticated"
     elif code == 24:
-        return 'red'
+        return "BadEndpoint"
     elif code == 25:
-        return 'magenta'
+        return "Blacklisted"
     else:
-        return 'red'
+        return "UnknownCode"
 
-def code_to_synapse( code: 'bittensor.proto.Synapse.SynapseType'):
+
+def code_to_loguru_color(code: "bittensor.proto.ReturnCode") -> str:
+    """Return code -> loguru color"""
+    if code == 0:
+        return "red"
+    elif code == 1:
+        return "green"
+    elif code == 2:
+        return "yellow"
+    elif code == 3:
+        return "yellow"
+    elif code == 4:
+        return "red"
+    elif code == 5:
+        return "red"
+    elif code == 6:
+        return "red"
+    elif code == 7:
+        return "red"
+    elif code == 8:
+        return "red"
+    elif code == 9:
+        return "red"
+    elif code == 10:
+        return "red"
+    elif code == 11:
+        return "red"
+    elif code == 12:
+        return "red"
+    elif code == 13:
+        return "red"
+    elif code == 14:
+        return "red"
+    elif code == 15:
+        return "red"
+    elif code == 16:
+        return "red"
+    elif code == 17:
+        return "yellow"
+    elif code == 18:
+        return "yellow"
+    elif code == 19:
+        return "red"
+    elif code == 20:
+        return "red"
+    elif code == 21:
+        return "red"
+    elif code == 22:
+        return "red"
+    elif code == 23:
+        return "red"
+    elif code == 24:
+        return "red"
+    elif code == 25:
+        return "magenta"
+    else:
+        return "red"
+
+
+def code_to_synapse(code: "bittensor.proto.Synapse.SynapseType"):
     """Return Code -> Synapse Type"""
     if code == 1:
-        return 'text_last_hidden_state'
+        return "text_last_hidden_state"
     elif code == 2:
-        return 'text_causal_lm'
+        return "text_causal_lm"
     elif code == 3:
-        return 'text_seq_2_seq'
+        return "text_seq_2_seq"
     elif code == 4:
-        return 'text_causal_lm_next'
+        return "text_causal_lm_next"
     else:
-        return 'Null'
+        return "Null"

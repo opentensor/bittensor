@@ -22,46 +22,54 @@ from typing import List, Dict
 from transformers import AutoTokenizer, GPTNeoXForCausalLM
 from transformers import StoppingCriteria, StoppingCriteriaList
 
-class StopOnTokens( StoppingCriteria ):
-    def __init__( self, stop_token_ids: List[int] = None ):
+
+class StopOnTokens(StoppingCriteria):
+    def __init__(self, stop_token_ids: List[int] = None):
         self.stop_token_ids = stop_token_ids
 
-    def __call__( self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs ) -> bool:
+    def __call__(
+        self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs
+    ) -> bool:
         for stop_id in self.stop_token_ids:
             if input_ids[0][-1] == stop_id:
                 return True
         return False
 
-class OasstPythiaMiner( bittensor.HuggingFaceMiner ):
-    arg_prefix = 'oasst_pythia'
+
+class OasstPythiaMiner(bittensor.HuggingFaceMiner):
+    arg_prefix = "oasst_pythia"
     system_label = "<|system|>"
     assistant_label = "<|assistant|>"
     user_label = "<|prompter|>"
 
-    def __init__( self ):
-        super( OasstPythiaMiner, self ).__init__()
-        self.stop = StopOnTokens( self.tokenizer.convert_tokens_to_ids( [ "<|endoftext|>" ] ) )
+    def __init__(self):
+        super(OasstPythiaMiner, self).__init__()
+        self.stop = StopOnTokens(
+            self.tokenizer.convert_tokens_to_ids(["<|endoftext|>"])
+        )
 
     def load_tokenizer(self):
-        return AutoTokenizer.from_pretrained( self.config.oasst_pythia.model_name, torch_dtype=torch.bfloat16 )
+        return AutoTokenizer.from_pretrained(
+            self.config.oasst_pythia.model_name, torch_dtype=torch.bfloat16
+        )
 
-    def load_model( self ):
-        bittensor.logging.info( 'Loading ' + str( self.config.oasst_pythia.model_name ) )
+    def load_model(self):
+        bittensor.logging.info("Loading " + str(self.config.oasst_pythia.model_name))
         model = GPTNeoXForCausalLM.from_pretrained(
             self.config.oasst_pythia.model_name,
             device_map="auto",
             low_cpu_mem_usage=True,
-            torch_dtype=torch.bfloat16
+            torch_dtype=torch.bfloat16,
         )
-        bittensor.logging.info( 'Model loaded!' )
+        bittensor.logging.info("Model loaded!")
         return model
 
-    def forward( self, messages: List[Dict[str, str]] ):
+    def forward(self, messages: List[Dict[str, str]]):
         history = self.process_history(messages)
         prompt = history + self.assistant_label
 
-        inputs = self.tokenizer( prompt, return_tensors="pt" )
-        inputs = inputs.to( self.model.device )
+        inputs = self.tokenizer(prompt, return_tensors="pt")
+        inputs = inputs.to(self.model.device)
 
         gkw = {
             **{
@@ -73,16 +81,19 @@ class OasstPythiaMiner( bittensor.HuggingFaceMiner ):
                 "top_p": self.config.oasst_pythia.top_p,
                 "top_k": self.config.oasst_pythia.top_k,
                 "repetition_penalty": self.config.oasst_pythia.repetition_penalty,
-                "stopping_criteria": StoppingCriteriaList( [ self.stop ] ),
+                "stopping_criteria": StoppingCriteriaList([self.stop]),
                 "pad_token_id": self.tokenizer.eos_token_id,
-            },
+            }
         }
-        output = self.model.generate( **gkw )
-        generation = self.tokenizer.decode( output[0][inputs.input_ids.shape[1]:], skip_special_tokens=True )
+        output = self.model.generate(**gkw)
+        generation = self.tokenizer.decode(
+            output[0][inputs.input_ids.shape[1] :], skip_special_tokens=True
+        )
 
-        bittensor.logging.debug( "Message: " + str(messages ) )
-        bittensor.logging.debug( "Generation: " + str(generation ) )
+        bittensor.logging.debug("Message: " + str(messages))
+        bittensor.logging.debug("Generation: " + str(generation))
         return generation
+
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()

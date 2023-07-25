@@ -64,26 +64,30 @@ class SFTTrainer(ABC):
         num_update_steps_per_epoch = len(train_dataloader) // self.accimulation_steps
         max_steps = math.ceil(self.epochs * num_update_steps_per_epoch)
 
-        self.scheduler = get_scheduler("cosine",
-                                       self.optimizer,
-                                       num_warmup_steps=math.ceil(max_steps * 0.03),
-                                       num_training_steps=max_steps)
+        self.scheduler = get_scheduler(
+            "cosine",
+            self.optimizer,
+            num_warmup_steps=math.ceil(max_steps * 0.03),
+            num_training_steps=max_steps,
+        )
 
     def fit(self, logger, log_interval=10):
-        wandb.init(project="Coati", name=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+        wandb.init(
+            project="Coati", name=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        )
         wandb.watch(self.model)
         total_loss = 0
         # epoch_bar = tqdm(range(self.epochs), desc='Epochs', disable=not is_rank_0())
-        step_bar = tqdm(range(len(self.train_dataloader) // self.accimulation_steps * self.epochs),
-                        desc=f'steps',
-                        disable=not is_rank_0())
+        step_bar = tqdm(
+            range(len(self.train_dataloader) // self.accimulation_steps * self.epochs),
+            desc=f"steps",
+            disable=not is_rank_0(),
+        )
         for epoch in range(self.epochs):
-
             # process_bar = tqdm(range(len(self.train_dataloader)), desc=f'Train process for{epoch}', disable=not is_rank_0())
             # train
             self.model.train()
             for batch_id, batch in enumerate(self.train_dataloader):
-
                 prompt_ids = batch["input_ids"].to(torch.cuda.current_device())
                 p_mask = batch["attention_mask"].to(torch.cuda.current_device())
                 labels = batch["labels"].to(torch.cuda.current_device())
@@ -110,12 +114,14 @@ class SFTTrainer(ABC):
                     self.strategy.optimizer_step(self.optimizer)
                     self.optimizer.zero_grad()
                     self.scheduler.step()
-                    wandb.log({
-                        "loss": total_loss / self.accimulation_steps,
-                        "lr": self.scheduler.get_last_lr()[0],
-                        "epoch": epoch,
-                        "batch_id": batch_id
-                    })
+                    wandb.log(
+                        {
+                            "loss": total_loss / self.accimulation_steps,
+                            "lr": self.scheduler.get_last_lr()[0],
+                            "epoch": epoch,
+                            "batch_id": batch_id,
+                        }
+                    )
                     total_loss = 0
                     step_bar.update()
 
@@ -138,7 +144,9 @@ class SFTTrainer(ABC):
                         # prompt_ids = prompt_ids.squeeze(1).cuda()
                         # p_mask = p_mask.squeeze(1).cuda()
 
-                        outputs = self.model(prompt_ids, attention_mask=p_mask, labels=labels)
+                        outputs = self.model(
+                            prompt_ids, attention_mask=p_mask, labels=labels
+                        )
                         loss = outputs.loss
                         # prompt_logits = outputs.logits
 
@@ -147,12 +155,18 @@ class SFTTrainer(ABC):
 
                     loss_mean = loss_sum / num_seen
                     if dist.get_rank() == 0:
-                        logger.info(f'Eval Epoch {epoch}/{self.epochs} loss {loss_mean}')
+                        logger.info(
+                            f"Eval Epoch {epoch}/{self.epochs} loss {loss_mean}"
+                        )
 
             # epoch_bar.update()
 
-    def save_model(self,
-                   path: str,
-                   only_rank0: bool = False,
-                   tokenizer: Optional[PreTrainedTokenizerBase] = None) -> None:
-        self.strategy.save_model(model=self.model, path=path, only_rank0=only_rank0, tokenizer=tokenizer)
+    def save_model(
+        self,
+        path: str,
+        only_rank0: bool = False,
+        tokenizer: Optional[PreTrainedTokenizerBase] = None,
+    ) -> None:
+        self.strategy.save_model(
+            model=self.model, path=path, only_rank0=only_rank0, tokenizer=tokenizer
+        )

@@ -18,19 +18,21 @@
 import bittensor
 import unittest
 
+
 class TestPriorityThreadPool(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.priority_pool = bittensor.prioritythreadpool(max_workers=1)
-        
+
     def test_priority_thread_pool(self):
         save = []
-        def save_number(number,save):
+
+        def save_number(number, save):
             save += [number]
+
         with self.priority_pool:
             for x in range(10):
-                self.priority_pool.submit(save_number, x,save,priority=x)
+                self.priority_pool.submit(save_number, x, save, priority=x)
 
         assert save[0] == 0
         assert save[1] == 9
-
