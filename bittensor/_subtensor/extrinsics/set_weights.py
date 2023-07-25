@@ -90,11 +90,11 @@ def set_weights_extrinsic(
     ):
         try:
             success, error_message = subtensor._do_set_weights(
-                wallet = wallet,
-                netuid = netuid,
-                uids = weight_uids,
-                vals = weight_vals,
-                version_key = version_key,
+                wallet=wallet,
+                netuid=netuid,
+                uids=weight_uids,
+                vals=weight_vals,
+                version_key=version_key,
                 wait_for_finalization=wait_for_finalization,
                 wait_for_inclusion=wait_for_inclusion,
             )
