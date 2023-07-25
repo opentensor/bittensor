@@ -28,79 +28,76 @@ You can test your installation by running:
 ```bash
 python3 -c "import bittensor; print(bittensor.__version__)"
 ```
+## Logging
+Make good use of the `bittensor.logging` module. It can be your friend and will help you find things that are otherwise difficult to get visibility on.
 
-## Wallets
-
-Bittensor uses wallets for identity and ownership. Wallets consist of a coldkey and hotkey. Coldkeys store funds securely and operate functions such as transfers and staking, while hotkeys are used for all online operations such as signing queries, running miners, and validating.
-
-Here's how to create a wallet using the Python API:
-
-```python
-import bittensor as bt
-wallet = bt.wallet()
-wallet.create_new_coldkey()
-wallet.create_new_hotkey()
-print(wallet)
+You can enable debug or trace modes by running:
 ```
+import bittensor
+bittensor.trace() # lowest level of granularity, best for figuring out what went wrong.
+bittensor.debug() # for most everything else that you don't want to see normally at runtime
+```
+at the top of your script or source file to enable more verbose output logs.
+
+You can also write your own in the code simply:
+```python
+# Bittensor's wallet maintenance class.
+wallet = bt.wallet()
+
+bittensor.logging.debug( f"wallet keypair: {wallet.hotkey}" )
+
+...
+
+# Bittensor's chain state object.
+metagraph = bt.metagraph(netuid=1)
+
+bittensor.logging.trace( f"metagraph created! netuid {metagraph.netuid}" )
+```
+
 
 ## Querying the Network
 
-You can query the Bittensor network using the Python API. Here's an example of how to do this:
+Ensure you can query the Bittensor network using the Python API. If something is broken with your installation or the chain, this won't work out of the box. Here's an example of how to do this:
 
 ```python
 import bittensor as bt
+bt.trace()
 
-# Query through the foundation endpoint.
+# Attempt to query through the foundation endpoint.
 print(bt.prompt("Heraclitus was a "))
 ```
 
 ## Debugging Miners
 
-Miners in Bittensor are incentivized to contribute distinct forms of value determined by the verification mechanism that that subnetwork’s Validators are running. 
 
-Here's an example of how to register a miner:
+First, try registering and running on a testnet:
+```bash
+btcli register --netuid <testnet uid> --subtensor.chain_endpoint wss://test.finney.opentensor.ai:443
+```
+
+If that works, then try to register a miner on mainnet:
 
 ```bash
 btcli register --netuid <subnetwork uid>
 ```
 
-Once registered, the miner attains a slot specified by their UID. To view your slot after registration, run the overview command:
+See if you can observe your slot specified by UID:
 
 ```bash
 btcli overview --netuid <subnetwork uid>
 ```
 
-Registered miners can select from a variety of pre-written miners or write their own using the Python API. Here's an example of how to run a miner:
+Here's an example of how to run a pre-configured miner:
 
 ```bash
-python3 bittensor/neurons/text_prompting/miners/GPT4ALL/neuron.py --netuid 1
-```
-
-## Debugging Validators
-
-Validators in Bittensor are participants who hold TAO. They use a dual proof-of-stake, proof-of-work mechanism called Yuma Consensus. Here's how to stake funds:
-
-```bash
-btcli stake --help
-```
-
-And here's how to become a delegate available for delegated stake:
-
-```bash
-btcli nominate --help
-```
-
-## Using the CLI
-
-Bittensor comes with a command-line interface (CLI) called `btcli` that you can use to interact with the network. Here's how to get help on the available commands:
-
-```bash
-btcli --help
+python3 bittensor/neurons/text_prompting/miners/GPT4ALL/neuron.py --netuid <subnetwork uid>
 ```
 
 ## Debugging with the Bittensor Package
 
-The Bittensor package contains data structures for interacting with the Bittensor ecosystem, writing miners, validators, and querying the network. Here's an example of how to use the Bittensor package to create a wallet, connect to the axon running on slot 10, and send a prompt to this endpoint:
+The Bittensor package contains data structures for interacting with the Bittensor ecosystem, writing miners, validators, and querying the network. 
+
+Try to use the Bittensor package to create a wallet, connect to the axon running on slot 10, and send a prompt to this endpoint and see where things are breaking along this typical codepath:
 
 ```python
 import bittensor as bt
@@ -127,7 +124,40 @@ subtensor.serve_axon(netuid=1, axon=axon)
 dendrite = bt.text_prompting(keypair=wallet.hotkey, axon=metagraph.axons[10])
 
 # Send a prompt to this endpoint
-dendrite.forward(roles=['user'], messages=['what are you?'])
+dendrite.forward(roles=['user'], messages=['Who is Rick James?'])
+```
+
+> NOTE: It may be helpful to throw in breakpoints such as with `pdb`.
+```python
+# some code ...
+import pdb; pdb.set_trace() # breakpoint!
+# more code ...
+
+```
+This will stop execution at the breakpoint you set and can operate on the stack directly in the terminal.
+
+## Searching for strings
+Use `ag`.  It's fast, convenient, and widely available on unix systems. Ag will highlight all occurnaces of a given pattern.
+
+```bash
+apt-get install silversearcher-ag
+```
+
+Usage:
+```bash
+$ ag "query_subtensor"
+
+>>> bittensor/_subtensor/subtensor_mock.py
+>>> 165:    e.g. We mock `Subtensor.query_subtensor` instead of all query methods.
+>>> 536:    def query_subtensor(
+>>> 1149:        curr_total_hotkey_stake = self.query_subtensor(
+>>> 1154:        curr_total_coldkey_stake = self.query_subtensor(
+>>> 1345:            return self.query_subtensor(name=name, block=block, params=[netuid]).value
+>>> 
+>>> bittensor/_subtensor/subtensor_impl.py
+>>> 902:    def query_subtensor(
+>>> 1017:        return self.query_subtensor("Rho", block, [netuid]).value
+...
 ```
 
 Remember, debugging involves a lot of trial and error. Don't be discouraged if things don't work right away. Keep trying different things, and don't hesitate to ask for help if you need it.
