@@ -29,7 +29,8 @@ from . import subtensor_impl, subtensor_mock
 
 logger = logger.opt(colors=True)
 
-GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = 'node-subtensor'
+GLOBAL_SUBTENSOR_MOCK_PROCESS_NAME = "node-subtensor"
+
 
 class subtensor:
     """Factory Class for both bittensor.Subtensor and Mock_Subtensor Classes
@@ -39,34 +40,40 @@ class subtensor:
     """
 
     def __new__(
-            cls,
-            config: 'bittensor.config' = None,
-            network: str = None,
-            chain_endpoint: str = None,
-            _mock: bool = None,
-        ) -> 'bittensor.Subtensor':
-        r""" Initializes a subtensor chain interface.
-            Args:
-                config (:obj:`bittensor.Config`, `optional`):
-                    bittensor.subtensor.config()
-                network (default='local', type=str)
-                    The subtensor network flag. The likely choices are:
-                            -- local (local running network)
-                            -- finney (main network)
-                            -- mock (mock network for testing.)
-                    If this option is set it overloads subtensor.chain_endpoint with
-                    an entry point node from that network.
-                chain_endpoint (default=None, type=str)
-                    The subtensor endpoint flag. If set, overrides the network argument.
-                _mock (bool, `optional`):
-                    Returned object is mocks the underlying chain connection.
+        cls,
+        config: "bittensor.config" = None,
+        network: str = None,
+        chain_endpoint: str = None,
+        _mock: bool = None,
+    ) -> "bittensor.Subtensor":
+        r"""Initializes a subtensor chain interface.
+        Args:
+            config (:obj:`bittensor.Config`, `optional`):
+                bittensor.subtensor.config()
+            network (default='local', type=str)
+                The subtensor network flag. The likely choices are:
+                        -- local (local running network)
+                        -- finney (main network)
+                        -- mock (mock network for testing.)
+                If this option is set it overloads subtensor.chain_endpoint with
+                an entry point node from that network.
+            chain_endpoint (default=None, type=str)
+                The subtensor endpoint flag. If set, overrides the network argument.
+            _mock (bool, `optional`):
+                Returned object is mocks the underlying chain connection.
         """
-        if config == None: config = subtensor.config()
-        config = copy.deepcopy( config )
+        if config == None:
+            config = subtensor.config()
+        config = copy.deepcopy(config)
 
         # Returns a mocked connection with a background chain connection.
         config.subtensor._mock = _mock if _mock != None else config.subtensor._mock
-        if config.subtensor._mock == True or network == 'mock' or config.subtensor.get('network', bittensor.defaults.subtensor.network) == 'mock':
+        if (
+            config.subtensor._mock == True
+            or network == "mock"
+            or config.subtensor.get("network", bittensor.defaults.subtensor.network)
+            == "mock"
+        ):
             config.subtensor._mock = True
             return subtensor_mock.MockSubtensor()
 
@@ -80,26 +87,41 @@ class subtensor:
             if network != None:
                 config.subtensor.network = network
             else:
-                config.subtensor.network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
+                config.subtensor.network = config.subtensor.get(
+                    "network", bittensor.defaults.subtensor.network
+                )
 
         # Select using network arg.
         elif network != None:
-            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( network )
+            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
+                network
+            )
             config.subtensor.network = network
 
         # Select using config.subtensor.chain_endpoint
         elif config.subtensor.chain_endpoint != None:
             config.subtensor.chain_endpoint = config.subtensor.chain_endpoint
-            config.subtensor.network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
+            config.subtensor.network = config.subtensor.get(
+                "network", bittensor.defaults.subtensor.network
+            )
 
         # Select using config.subtensor.network
-        elif config.subtensor.get('network', bittensor.defaults.subtensor.network) != None:
-            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( config.subtensor.get('network', bittensor.defaults.subtensor.network) )
-            config.subtensor.network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
+        elif (
+            config.subtensor.get("network", bittensor.defaults.subtensor.network)
+            != None
+        ):
+            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
+                config.subtensor.get("network", bittensor.defaults.subtensor.network)
+            )
+            config.subtensor.network = config.subtensor.get(
+                "network", bittensor.defaults.subtensor.network
+            )
 
         # Fallback to defaults.
         else:
-            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint( bittensor.defaults.subtensor.network )
+            config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
+                bittensor.defaults.subtensor.network
+            )
             config.subtensor.network = bittensor.defaults.subtensor.network
 
         # make sure it's wss:// or ws://
@@ -107,86 +129,182 @@ class subtensor:
         endpoint_url: str = config.subtensor.chain_endpoint
 
         # make sure formatting is good
-        endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(endpoint_url)
+        endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(
+            endpoint_url
+        )
 
-        subtensor.check_config( config )
-        network = config.subtensor.get('network', bittensor.defaults.subtensor.network)
+        subtensor.check_config(config)
+        network = config.subtensor.get("network", bittensor.defaults.subtensor.network)
         substrate = SubstrateInterface(
-            ss58_format = bittensor.__ss58_format__,
+            ss58_format=bittensor.__ss58_format__,
             use_remote_preset=True,
-            url = endpoint_url,
-            type_registry=bittensor.__type_registry__
+            url=endpoint_url,
+            type_registry=bittensor.__type_registry__,
         )
         return subtensor_impl.Subtensor(
-            substrate = substrate,
-            network = config.subtensor.get('network', bittensor.defaults.subtensor.network),
-            chain_endpoint = config.subtensor.chain_endpoint,
+            substrate=substrate,
+            network=config.subtensor.get(
+                "network", bittensor.defaults.subtensor.network
+            ),
+            chain_endpoint=config.subtensor.chain_endpoint,
         )
 
     @staticmethod
-    def config() -> 'bittensor.Config':
+    def config() -> "bittensor.Config":
         parser = argparse.ArgumentParser()
-        subtensor.add_args( parser )
-        return bittensor.config( parser )
+        subtensor.add_args(parser)
+        return bittensor.config(parser)
 
     @classmethod
     def help(cls):
-        """ Print help to stdout
-        """
+        """Print help to stdout"""
         parser = argparse.ArgumentParser()
-        cls.add_args( parser )
-        print (cls.__new__.__doc__)
+        cls.add_args(parser)
+        print(cls.__new__.__doc__)
         parser.print_help()
 
     @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None ):
-        prefix_str = '' if prefix == None else prefix + '.'
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
+        prefix_str = "" if prefix == None else prefix + "."
         if prefix is not None:
             if bittensor.defaults.get(prefix, d=None) == None:
                 setattr(bittensor.defaults, prefix, bittensor.Config())
             getattr(bittensor.defaults, prefix).subtensor = bittensor.defaults.subtensor
         try:
-            parser.add_argument('--' + prefix_str + 'subtensor.network', default = bittensor.defaults.subtensor.network, type=str,
-                                help='''The subtensor network flag. The likely choices are:
+            parser.add_argument(
+                "--" + prefix_str + "subtensor.network",
+                default=bittensor.defaults.subtensor.network,
+                type=str,
+                help="""The subtensor network flag. The likely choices are:
                                         -- finney (main network)
                                         -- local (local running network)
                                         -- mock (creates a mock connection (for testing))
                                     If this option is set it overloads subtensor.chain_endpoint with
                                     an entry point node from that network.
-                                    ''')
-            parser.add_argument('--' + prefix_str + 'subtensor.chain_endpoint', default = bittensor.defaults.subtensor.chain_endpoint, type=str,
-                                help='''The subtensor endpoint flag. If set, overrides the --network flag.
-                                    ''')
-            parser.add_argument('--' + prefix_str + 'subtensor._mock', action='store_true', help='To turn on subtensor mocking for testing purposes.', default=bittensor.defaults.subtensor._mock)
+                                    """,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "subtensor.chain_endpoint",
+                default=bittensor.defaults.subtensor.chain_endpoint,
+                type=str,
+                help="""The subtensor endpoint flag. If set, overrides the --network flag.
+                                    """,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "subtensor._mock",
+                action="store_true",
+                help="To turn on subtensor mocking for testing purposes.",
+                default=bittensor.defaults.subtensor._mock,
+            )
             # registration args. Used for register and re-register and anything that calls register.
-            parser.add_argument('--' + prefix_str + 'subtensor.register.num_processes', '-n', dest=prefix_str + 'subtensor.register.num_processes', help="Number of processors to use for registration", type=int, default=bittensor.defaults.subtensor.register.num_processes)
-            parser.add_argument('--' + prefix_str + 'subtensor.register.update_interval', '--' + prefix_str + 'subtensor.register.cuda.update_interval', '--' + prefix_str + 'cuda.update_interval', '-u', help="The number of nonces to process before checking for next block during registration", type=int, default=bittensor.defaults.subtensor.register.update_interval)
-            parser.add_argument('--' + prefix_str + 'subtensor.register.no_output_in_place', '--' + prefix_str + 'no_output_in_place', dest="subtensor.register.output_in_place", help="Whether to not ouput the registration statistics in-place. Set flag to disable output in-place.", action='store_false', required=False, default=bittensor.defaults.subtensor.register.output_in_place)
-            parser.add_argument('--' + prefix_str + 'subtensor.register.verbose', help="Whether to ouput the registration statistics verbosely.", action='store_true', required=False, default=bittensor.defaults.subtensor.register.verbose)
+            parser.add_argument(
+                "--" + prefix_str + "subtensor.register.num_processes",
+                "-n",
+                dest=prefix_str + "subtensor.register.num_processes",
+                help="Number of processors to use for registration",
+                type=int,
+                default=bittensor.defaults.subtensor.register.num_processes,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "subtensor.register.update_interval",
+                "--" + prefix_str + "subtensor.register.cuda.update_interval",
+                "--" + prefix_str + "cuda.update_interval",
+                "-u",
+                help="The number of nonces to process before checking for next block during registration",
+                type=int,
+                default=bittensor.defaults.subtensor.register.update_interval,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "subtensor.register.no_output_in_place",
+                "--" + prefix_str + "no_output_in_place",
+                dest="subtensor.register.output_in_place",
+                help="Whether to not ouput the registration statistics in-place. Set flag to disable output in-place.",
+                action="store_false",
+                required=False,
+                default=bittensor.defaults.subtensor.register.output_in_place,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "subtensor.register.verbose",
+                help="Whether to ouput the registration statistics verbosely.",
+                action="store_true",
+                required=False,
+                default=bittensor.defaults.subtensor.register.verbose,
+            )
 
             ## Registration args for CUDA registration.
-            parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.use_cuda', '--' + prefix_str + 'cuda', '--' + prefix_str + 'cuda.use_cuda', default=bittensor.defaults.subtensor.register.cuda.use_cuda, help='''Set flag to use CUDA to register.''', action="store_true", required=False )
-            parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.no_cuda', '--' + prefix_str + 'no_cuda', '--' + prefix_str + 'cuda.no_cuda', dest=prefix_str + 'subtensor.register.cuda.use_cuda', default=not bittensor.defaults.subtensor.register.cuda.use_cuda, help='''Set flag to not use CUDA for registration''', action="store_false", required=False )
+            parser.add_argument(
+                "--" + prefix_str + "subtensor.register.cuda.use_cuda",
+                "--" + prefix_str + "cuda",
+                "--" + prefix_str + "cuda.use_cuda",
+                default=bittensor.defaults.subtensor.register.cuda.use_cuda,
+                help="""Set flag to use CUDA to register.""",
+                action="store_true",
+                required=False,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "subtensor.register.cuda.no_cuda",
+                "--" + prefix_str + "no_cuda",
+                "--" + prefix_str + "cuda.no_cuda",
+                dest=prefix_str + "subtensor.register.cuda.use_cuda",
+                default=not bittensor.defaults.subtensor.register.cuda.use_cuda,
+                help="""Set flag to not use CUDA for registration""",
+                action="store_false",
+                required=False,
+            )
 
-            parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.dev_id', '--' + prefix_str + 'cuda.dev_id',  type=int, nargs='+', default=bittensor.defaults.subtensor.register.cuda.dev_id, help='''Set the CUDA device id(s). Goes by the order of speed. (i.e. 0 is the fastest).''', required=False )
-            parser.add_argument( '--' + prefix_str + 'subtensor.register.cuda.TPB', '--' + prefix_str + 'cuda.TPB', type=int, default=bittensor.defaults.subtensor.register.cuda.TPB, help='''Set the number of Threads Per Block for CUDA.''', required=False )
+            parser.add_argument(
+                "--" + prefix_str + "subtensor.register.cuda.dev_id",
+                "--" + prefix_str + "cuda.dev_id",
+                type=int,
+                nargs="+",
+                default=bittensor.defaults.subtensor.register.cuda.dev_id,
+                help="""Set the CUDA device id(s). Goes by the order of speed. (i.e. 0 is the fastest).""",
+                required=False,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "subtensor.register.cuda.TPB",
+                "--" + prefix_str + "cuda.TPB",
+                type=int,
+                default=bittensor.defaults.subtensor.register.cuda.TPB,
+                help="""Set the number of Threads Per Block for CUDA.""",
+                required=False,
+            )
 
         except argparse.ArgumentError:
             # re-parsing arguments.
             pass
 
     @classmethod
-    def add_defaults(cls, defaults ):
-        """ Adds parser defaults to object from enviroment variables.
-        """
+    def add_defaults(cls, defaults):
+        """Adds parser defaults to object from enviroment variables."""
         defaults.subtensor = bittensor.Config()
-        defaults.subtensor.network = os.getenv('BT_SUBTENSOR_NETWORK') if os.getenv('BT_SUBTENSOR_NETWORK') != None else 'finney'
-        defaults.subtensor.chain_endpoint = os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') if os.getenv('BT_SUBTENSOR_CHAIN_ENDPOINT') != None else None
-        defaults.subtensor._mock = os.getenv('BT_SUBTENSOR_MOCK') if os.getenv('BT_SUBTENSOR_MOCK') != None else False
+        defaults.subtensor.network = (
+            os.getenv("BT_SUBTENSOR_NETWORK")
+            if os.getenv("BT_SUBTENSOR_NETWORK") != None
+            else "finney"
+        )
+        defaults.subtensor.chain_endpoint = (
+            os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
+            if os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT") != None
+            else None
+        )
+        defaults.subtensor._mock = (
+            os.getenv("BT_SUBTENSOR_MOCK")
+            if os.getenv("BT_SUBTENSOR_MOCK") != None
+            else False
+        )
 
         defaults.subtensor.register = bittensor.Config()
-        defaults.subtensor.register.num_processes = os.getenv('BT_SUBTENSOR_REGISTER_NUM_PROCESSES') if os.getenv('BT_SUBTENSOR_REGISTER_NUM_PROCESSES') != None else None # uses processor count by default within the function
-        defaults.subtensor.register.update_interval = os.getenv('BT_SUBTENSOR_REGISTER_UPDATE_INTERVAL') if os.getenv('BT_SUBTENSOR_REGISTER_UPDATE_INTERVAL') != None else 50_000
+        defaults.subtensor.register.num_processes = (
+            os.getenv("BT_SUBTENSOR_REGISTER_NUM_PROCESSES")
+            if os.getenv("BT_SUBTENSOR_REGISTER_NUM_PROCESSES") != None
+            else None
+        )  # uses processor count by default within the function
+        defaults.subtensor.register.update_interval = (
+            os.getenv("BT_SUBTENSOR_REGISTER_UPDATE_INTERVAL")
+            if os.getenv("BT_SUBTENSOR_REGISTER_UPDATE_INTERVAL") != None
+            else 50_000
+        )
         defaults.subtensor.register.output_in_place = True
         defaults.subtensor.register.verbose = False
 
@@ -195,24 +313,30 @@ class subtensor:
         defaults.subtensor.register.cuda.use_cuda = False
         defaults.subtensor.register.cuda.TPB = 256
 
-
-
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config(config: "bittensor.Config"):
         assert config.subtensor
-        #assert config.subtensor.network != None
-        if config.subtensor.get('register') and config.subtensor.register.get('cuda'):
-            assert all((isinstance(x, int) or isinstance(x, str) and x.isnumeric() ) for x in config.subtensor.register.cuda.get('dev_id', []))
+        # assert config.subtensor.network != None
+        if config.subtensor.get("register") and config.subtensor.register.get("cuda"):
+            assert all(
+                (isinstance(x, int) or isinstance(x, str) and x.isnumeric())
+                for x in config.subtensor.register.cuda.get("dev_id", [])
+            )
 
-            if config.subtensor.register.cuda.get('use_cuda', bittensor.defaults.subtensor.register.cuda.use_cuda):
+            if config.subtensor.register.cuda.get(
+                "use_cuda", bittensor.defaults.subtensor.register.cuda.use_cuda
+            ):
                 try:
                     import cubit
                 except ImportError:
-                    raise ImportError('CUDA registration is enabled but cubit is not installed. Please install cubit.')
+                    raise ImportError(
+                        "CUDA registration is enabled but cubit is not installed. Please install cubit."
+                    )
 
                 if not is_cuda_available():
-                    raise RuntimeError('CUDA registration is enabled but no CUDA devices are detected.')
-
+                    raise RuntimeError(
+                        "CUDA registration is enabled but no CUDA devices are detected."
+                    )
 
     @staticmethod
     def determine_chain_endpoint(network: str):
@@ -228,9 +352,9 @@ class subtensor:
         elif network == "local":
             # Local chain.
             return bittensor.__local_entrypoint__
-        elif network == 'mock':
+        elif network == "mock":
             return bittensor.__mock_entrypoint__
-        elif network == 'test':
+        elif network == "test":
             return bittensor.__finney_test_entrypoint__
         else:
             return bittensor.__local_entrypoint__

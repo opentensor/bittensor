@@ -23,55 +23,68 @@ from rich import print
 from typing import List, Dict, Union, Tuple
 from abc import ABC, abstractmethod
 
-class BasePromptingMiner( bittensor.BaseMinerNeuron, ABC ):
 
+class BasePromptingMiner(bittensor.BaseMinerNeuron, ABC):
     @classmethod
     @abstractmethod
-    def add_args( cls, parser: argparse.ArgumentParser ):
+    def add_args(cls, parser: argparse.ArgumentParser):
         ...
 
     @abstractmethod
-    def forward( self, messages: List[Dict[str, str]] ) -> str:
+    def forward(self, messages: List[Dict[str, str]]) -> str:
         ...
 
     @classmethod
     @abstractmethod
-    def check_config( cls, config: 'bittensor.Config' ):
+    def check_config(cls, config: "bittensor.Config"):
         ...
 
     @classmethod
-    def config( cls ) -> "bittensor.Config":
+    def config(cls) -> "bittensor.Config":
         parser = argparse.ArgumentParser()
-        cls.add_super_args( parser )
-        return bittensor.config( parser )
+        cls.add_super_args(parser)
+        return bittensor.config(parser)
 
     @classmethod
-    def add_super_args( cls, parser: argparse.ArgumentParser ):
-        """ Add arguments specific to BasePromptingMiner to parser.
-        """
+    def add_super_args(cls, parser: argparse.ArgumentParser):
+        """Add arguments specific to BasePromptingMiner to parser."""
         cls.add_args(parser)
         parser.add_argument(
-            '--neuron.max_batch_size', 
-            type = int, 
-            help = 'The maximum batch size for forward requests.',
-            default = -1
+            "--neuron.max_batch_size",
+            type=int,
+            help="The maximum batch size for forward requests.",
+            default=-1,
         )
         parser.add_argument(
-            '--neuron.max_sequence_len', 
-            type = int, 
-            help = 'The maximum sequence length for forward requests.',
-            default = -1
+            "--neuron.max_sequence_len",
+            type=int,
+            help="The maximum sequence length for forward requests.",
+            default=-1,
         )
 
-    def __init__( self, config: "bittensor.Config" = None ):
-        super( BasePromptingMiner, self ).__init__()
+    def __init__(self, config: "bittensor.Config" = None):
+        super(BasePromptingMiner, self).__init__()
 
-        class Synapse( bittensor.TextPromptingSynapse ):
-            def priority( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> float:
-                return self.priority( forward_call )
-            def blacklist( _, forward_call: "bittensor.TextPromptingForwardCall" ) -> Union[ Tuple[bool, str], bool ]:
-                return self.blacklist( forward_call )
-            def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
-            def forward( _, messages: List[Dict[str, str]] ) -> str:
-                return self.forward( messages )
-        self.synapse = Synapse( axon = self.axon )
+        class Synapse(bittensor.TextPromptingSynapse):
+            def priority(
+                _, forward_call: "bittensor.TextPromptingForwardCall"
+            ) -> float:
+                return self.priority(forward_call)
+
+            def blacklist(
+                _, forward_call: "bittensor.TextPromptingForwardCall"
+            ) -> Union[Tuple[bool, str], bool]:
+                return self.blacklist(forward_call)
+
+            def backward(
+                self,
+                messages: List[Dict[str, str]],
+                response: str,
+                rewards: torch.FloatTensor,
+            ) -> str:
+                pass
+
+            def forward(_, messages: List[Dict[str, str]]) -> str:
+                return self.forward(messages)
+
+        self.synapse = Synapse(axon=self.axon)
