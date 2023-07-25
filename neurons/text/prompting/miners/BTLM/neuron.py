@@ -22,7 +22,7 @@ from typing import List, Dict
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
-class CerebrasMiner( bittensor.BasePromptingMiner ):
+class CerebrasBTLMMiner( bittensor.BasePromptingMiner ):
 
     @classmethod
     def check_config( cls, config: 'bittensor.Config' ):
@@ -34,15 +34,14 @@ class CerebrasMiner( bittensor.BasePromptingMiner ):
         parser.add_argument('--cerebras.max_length', type=int, default=50, help='The maximum length (in tokens) of the generated text.')
         parser.add_argument('--cerebras.do_sample', action='store_true', default=False, help='Whether to use sampling or not (if not, uses greedy decoding).')
         parser.add_argument('--cerebras.no_repeat_ngram_size', type=int, default=2, help='The size of the n-grams to avoid repeating in the generated text.')
-        parser.add_argument('--cerebras.model_size', type=str, choices=['1.3B', '2.7B', '6.7B', '13B'], default="1.3B", help='Model size to use.')
 
     def __init__( self ):
-        super( CerebrasMiner, self ).__init__()
+        super( CerebrasBTLMMiner, self ).__init__()
         print ( self.config )
 
         bittensor.logging.info( "Loading BTLM {} model...".format( self.config.cerebras.model_size) )
-        model = AutoModelForCausalLM.from_pretrained( "cerebras/btlm-3b-8k-base", trust_remote_code=True )
-        tokenizer = AutoTokenizer.from_pretrained( "cerebras/btlm-3b-8k-base", trust_remote_code=True )
+        model = AutoModelForCausalLM.from_pretrained( "cerebras/btlm-3b-8k-base")
+        tokenizer = AutoTokenizer.from_pretrained( "cerebras/btlm-3b-8k-base", trust_remote_code=True,  )
 
         self.pipe = pipeline(
             "text-generation",
@@ -74,4 +73,4 @@ class CerebrasMiner( bittensor.BasePromptingMiner ):
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
-    CerebrasMiner().run()
+    CerebrasBTLMMiner().run()

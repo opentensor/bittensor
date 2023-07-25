@@ -1,6 +1,6 @@
-## Cerebras Miner
-Cerebras 13B Language Model Serving with BitTensor
-This code is for running a language model powered by Cerebrus through the BitTensor framework. 
+## Bittensor LM  (BTLM) Miner
+Bittensor LM 1.3B Language Model
+This code is for running the very small Bittenso Language Model created by Cerebras.  
 
 # Example Usage
 ```
@@ -10,7 +10,7 @@ python3 neurons/text/prompting/miners/cerebras/neuron.py
 # Full Usage
 ```
 usage: neuron.py [-h] [--cerebras.device CEREBRAS.DEVICE] [--cerebras.max_length CEREBRAS.MAX_LENGTH] [--cerebras.do_sample]
-                 [--cerebras.no_repeat_ngram_size CEREBRAS.NO_REPEAT_NGRAM_SIZE] [--cerebras.model_size {1.3B,2.7B,6.7B,13B}]
+                 [--cerebras.no_repeat_ngram_size CEREBRAS.NO_REPEAT_NGRAM_SIZE] 
                  [--netuid NETUID] [--neuron.name NEURON.NAME] [--neuron.blocks_per_epoch NEURON.BLOCKS_PER_EPOCH] [--neuron.no_set_weights]
                  [--neuron.max_batch_size NEURON.MAX_BATCH_SIZE] [--neuron.max_sequence_len NEURON.MAX_SEQUENCE_LEN]
                  [--neuron.blacklist.hotkeys [NEURON.BLACKLIST.HOTKEYS ...]] [--neuron.blacklist.allow_non_registered]
