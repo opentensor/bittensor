@@ -47,27 +47,27 @@ In this example, we're testing the `create_new_coldkey` function of the `wallet`
 
 ## Mocking
 
-In some cases, you may need to mock certain functions or objects to isolate the functionality you're testing. Bittensor uses the `unittest.mock` library for this. Here's an example:
+In some cases, you may need to mock certain functions or objects to isolate the functionality you're testing. Bittensor uses the `unittest.mock` library for this. Here's a simple example from the axon unittest:
 
 ```python
-from unittest.mock import MagicMock
-
-def test_some_functionality():
-    # Create a mock object.
-    mock_wallet = MagicMock()
-
-    # Set the return value for a specific function.
-    mock_wallet.create_new_coldkey.return_value = "mocked_key"
-
-    # Call the function you're testing.
-    result = mock_wallet.create_new_coldkey()
-
-    # Assert that the function behaved as expected.
-    assert result == "mocked_key"
+def test_axon_start(self):
+    mock_wallet = MagicMock(
+        spec=bittensor.Wallet,
+        coldkey=MagicMock(),
+        coldkeypub=MagicMock(
+            # mock ss58 address
+            ss58_address="5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+        ),
+        hotkey=MagicMock(
+            ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
+        ),
+    )
+    axon = bittensor.axon(wallet=mock_wallet, metagraph=None)
+    axon.start()
+    assert axon.server._state.stage == grpc._server._ServerStage.STARTED
 ```
 
-In this example, we're mocking the `create_new_coldkey` function to return a specific value. This allows us to test how our code behaves when `create_new_coldkey` is called, without actually calling the real function.
-
+In this example, we're mocking the `coldkey`, `coldkeypub` and `hotkey` for a wallet. This allows us to test how the axon code behaves when `bittensor.Wallet()` would normally be called, without actually calling the constructor.
 ## Test Coverage
 
 It's important to ensure that your tests cover as much of your code as possible. You can use the `pytest-cov` plugin to measure your test coverage. To use it, first install it with pip:
