@@ -40,7 +40,7 @@ class CerebrasBTLMMiner( bittensor.BasePromptingMiner ):
         print ( self.config )
 
         bittensor.logging.info( "Loading BTLM {} model...".format( self.config.cerebras.model_size) )
-        model = AutoModelForCausalLM.from_pretrained( "cerebras/btlm-3b-8k-base")
+        model = AutoModelForCausalLM.from_pretrained( "cerebras/btlm-3b-8k-base", trust_remote_code=True)
         tokenizer = AutoTokenizer.from_pretrained( "cerebras/btlm-3b-8k-base", trust_remote_code=True,  )
 
         self.pipe = pipeline(
