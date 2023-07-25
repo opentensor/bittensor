@@ -119,29 +119,16 @@ class OverviewCommand:
             # Pull neuron info for all keys.
             ## Max len(netuids) or 5 threads.
             with ProcessPoolExecutor(max_workers=max(len(netuids), 5)) as executor:
-                neurons_futures_to_netuid = {
-                    executor.submit(
-                        OverviewCommand._get_neurons_for_netuid,
-                        *(cli.config, netuid, all_hotkey_addresses),
-                    ): netuid
+                results = executor.map(OverviewCommand._get_neurons_for_netuid, [
+                    (cli.config, netuid, all_hotkey_addresses)
                     for netuid in netuids
-                }
-
-                for future_ in as_completed(neurons_futures_to_netuid):
-                    netuid = neurons_futures_to_netuid[future_]
-                    try:
-                        neurons_result = future_.result()
-                    except Exception as e:
-                        console.print(
-                            "[red]Error pulling neuron info for netuid {}:[/red] {}".format(
-                                netuid, e
-                            )
-                        )
-
-                        netuids.remove(netuid)
-                        del neurons[str(netuid)]
-
-                        continue
+                ])
+                executor.shutdown(wait=True) # wait for all complete
+                
+                for result in results:
+                    netuid, neurons_result, err_msg = result
+                    if err_msg is not None:
+                        console.print(err_msg)
 
                     if len(neurons_result) == 0:
                         # Remove netuid from overview if no neurons are found.
@@ -401,26 +388,29 @@ class OverviewCommand:
 
     @staticmethod
     def _get_neurons_for_netuid(
-        subtensor_config: "bittensor.Config",
-        netuid: int,
-        hot_wallets: List[str], # List of hotkey ss58 addresses
-    ) -> List[Tuple["bittensor.NeuronInfoLite", str]]:
+        args_tuple: Tuple["bittensor.Config", int, List[str]]
+    ) -> Tuple[int, List[Tuple["bittensor.NeuronInfoLite", str]], Optional[str]]:
+        subtensor_config, netuid, hot_wallets = args_tuple
+
         result: List[Tuple["bittensor.NeuronInfoLite", str]] = []
 
-        subtensor = bittensor.subtensor(config=subtensor_config)
+        try:
+            subtensor = bittensor.subtensor(config=subtensor_config)
 
-        all_neurons: List["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
-            netuid=netuid
-        )
-        # Map the hotkeys to uids
-        hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
-        for hot_wallet_addr in hot_wallets:
-            uid = hotkey_to_neurons.get(hot_wallet_addr)
-            if uid is not None:
-                nn = all_neurons[uid]
-                result.append((nn, hot_wallet_addr))
+            all_neurons: List["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
+                netuid=netuid
+            )
+            # Map the hotkeys to uids
+            hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
+            for hot_wallet_addr in hot_wallets:
+                uid = hotkey_to_neurons.get(hot_wallet_addr)
+                if uid is not None:
+                    nn = all_neurons[uid]
+                    result.append((nn, hot_wallet_addr))
+        except Exception as e:
+            return netuid, [], "Error: {}".format(e)
 
-        return result
+        return netuid, result, None
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
