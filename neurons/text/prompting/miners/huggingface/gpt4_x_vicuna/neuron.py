@@ -20,24 +20,32 @@ import bittensor
 from typing import List, Dict
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-class Gpt4_x_vicunaMiner( bittensor.HuggingFaceMiner ):
-    arg_prefix = 'gpt4_x_vicuna'
-    system_label = '### System:'
-    user_label = '### User:'
-    assistant_label = '### Response:'
-        
+
+class Gpt4_x_vicunaMiner(bittensor.HuggingFaceMiner):
+    arg_prefix = "gpt4_x_vicuna"
+    system_label = "### System:"
+    user_label = "### User:"
+    assistant_label = "### Response:"
+
     def load_tokenizer(self):
-        return AutoTokenizer.from_pretrained( self.config.gpt4_x_vicuna.model_name, use_fast=False )
+        return AutoTokenizer.from_pretrained(
+            self.config.gpt4_x_vicuna.model_name, use_fast=False
+        )
 
     def load_model(self):
-        return AutoModelForCausalLM.from_pretrained( self.config.gpt4_x_vicuna.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
+        return AutoModelForCausalLM.from_pretrained(
+            self.config.gpt4_x_vicuna.model_name,
+            torch_dtype=torch.float16,
+            low_cpu_mem_usage=True,
+        )
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
-
-        history = self.process_history( messages )
+        history = self.process_history(messages)
         prompt = history + self.assistant_label
 
-        input_ids = self.tokenizer.encode( prompt, return_tensors="pt" ).to( self.config.gpt4_x_vicuna.device )
+        input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(
+            self.config.gpt4_x_vicuna.device
+        )
 
         output = self.model.generate(
             input_ids,
@@ -46,12 +54,15 @@ class Gpt4_x_vicunaMiner( bittensor.HuggingFaceMiner ):
             do_sample=self.config.gpt4_x_vicuna.do_sample,
             pad_token_id=self.tokenizer.eos_token_id,
         )
-        generation = self.tokenizer.decode( output[0][input_ids.shape[1]:], skip_special_tokens=True )
+        generation = self.tokenizer.decode(
+            output[0][input_ids.shape[1] :], skip_special_tokens=True
+        )
 
-        bittensor.logging.debug( "Messages: " + str( messages ) )
-        bittensor.logging.debug( "Prompt: " + str( prompt ) )
-        bittensor.logging.debug( "Generation: " + str( generation ) )
+        bittensor.logging.debug("Messages: " + str(messages))
+        bittensor.logging.debug("Prompt: " + str(prompt))
+        bittensor.logging.debug("Generation: " + str(generation))
         return generation
+
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()

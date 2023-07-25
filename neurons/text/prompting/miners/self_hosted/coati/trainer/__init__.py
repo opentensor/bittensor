@@ -3,4 +3,4 @@ from .ppo import PPOTrainer
 from .rm import RewardModelTrainer
 from .sft import SFTTrainer
 
-__all__ = ['Trainer', 'PPOTrainer', 'RewardModelTrainer', 'SFTTrainer']
+__all__ = ["Trainer", "PPOTrainer", "RewardModelTrainer", "SFTTrainer"]

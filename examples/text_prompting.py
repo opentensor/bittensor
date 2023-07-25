@@ -19,48 +19,68 @@ import torch
 import bittensor
 from typing import List, Dict, Union, Tuple
 
-bittensor.logging( bittensor.logging.config() )
+bittensor.logging(bittensor.logging.config())
 
-class Synapse( bittensor.TextPromptingSynapse ):
+
+class Synapse(bittensor.TextPromptingSynapse):
     def priority(self, forward_call: "bittensor.TextPromptingForwardCall") -> float:
         return 0.0
 
-    def blacklist(self, forward_call: "bittensor.TextPromptingForwardCall") -> Union[ Tuple[bool, str], bool ]:
+    def blacklist(
+        self, forward_call: "bittensor.TextPromptingForwardCall"
+    ) -> Union[Tuple[bool, str], bool]:
         return False
 
-    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str:
+    def backward(
+        self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor
+    ) -> str:
         pass
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
         return "hello im a chat bot."
 
-    def multi_forward(self, messages: List[Dict[str, str]]) -> List[ str ]:
-        return ["hello im a chat bot.", "my name is bob" ]
+    def multi_forward(self, messages: List[Dict[str, str]]) -> List[str]:
+        return ["hello im a chat bot.", "my name is bob"]
+
 
 # Create a mock wallet.
 wallet = bittensor.wallet().create_if_non_existent()
-axon = bittensor.axon( wallet = wallet, port = 9090, external_ip = "127.0.0.1" )
+axon = bittensor.axon(wallet=wallet, port=9090, external_ip="127.0.0.1")
 
-dendrite = bittensor.text_prompting( axon = axon, keypair = wallet.hotkey )
-synapse = Synapse( axon = axon )
+dendrite = bittensor.text_prompting(axon=axon, keypair=wallet.hotkey)
+synapse = Synapse(axon=axon)
 axon.start()
 
 
 forward_call = dendrite.forward(
-    roles = ['system', 'assistant'],
-    messages = ['you are chat bot', 'what is the whether'],
-    timeout = 1e6
+    roles=["system", "assistant"],
+    messages=["you are chat bot", "what is the whether"],
+    timeout=1e6,
 )
-print ( forward_call )
-print ( 'success', forward_call.is_success, 'failed', forward_call.did_fail, 'timedout', forward_call.did_timeout )
-print ( 'completion', forward_call.completion )
+print(forward_call)
+print(
+    "success",
+    forward_call.is_success,
+    "failed",
+    forward_call.did_fail,
+    "timedout",
+    forward_call.did_timeout,
+)
+print("completion", forward_call.completion)
 
 
 multi_forward_call = dendrite.multi_forward(
-    roles = ['system', 'assistant'],
-    messages = ['you are chat bot', 'what is the whether'],
-    timeout = 1e6
+    roles=["system", "assistant"],
+    messages=["you are chat bot", "what is the whether"],
+    timeout=1e6,
 )
-print ( multi_forward_call )
-print ( 'success', multi_forward_call.is_success, 'failed', multi_forward_call.did_fail, 'timedout', multi_forward_call.did_timeout )
-print ( 'completions', multi_forward_call.multi_completions )
+print(multi_forward_call)
+print(
+    "success",
+    multi_forward_call.is_success,
+    "failed",
+    multi_forward_call.did_fail,
+    "timedout",
+    multi_forward_call.did_timeout,
+)
+print("completions", multi_forward_call.multi_completions)

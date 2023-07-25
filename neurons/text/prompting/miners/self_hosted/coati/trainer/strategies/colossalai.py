@@ -16,7 +16,12 @@ from colossalai.logging import get_dist_logger
 from colossalai.nn.optimizer import CPUAdam, HybridAdam
 from colossalai.tensor import ProcessGroup, ShardSpec
 from colossalai.utils import get_current_device
-from colossalai.zero import ColoInitContext, ZeroDDP, zero_model_wrapper, zero_optim_wrapper
+from colossalai.zero import (
+    ColoInitContext,
+    ZeroDDP,
+    zero_model_wrapper,
+    zero_optim_wrapper,
+)
 from colossalai.zero.gemini.utils import get_static_torch_model
 
 from .base import Strategy
@@ -59,66 +64,76 @@ class ColossalAIStrategy(DDPStrategy):
     """
 
     def __init__(
-            self,
-            stage: int = 3,
-            precision: str = 'fp16',
-            seed: int = 42,
-            shard_init: bool = False,    # only for stage 3
-            placement_policy: str = 'cuda',
-            pin_memory: bool = True,    # only for stage 3
-            force_outputs_fp32: bool = False,    # only for stage 3
-            search_range_mb: int = 32,    # only for stage 3
-            hidden_dim: Optional[int] = None,    # only for stage 3
-            min_chunk_size_mb: float = 32,    # only for stage 3
-            gpu_margin_mem_ratio: float = 0.0,    # only for stage 3
-            reduce_bucket_size: int = 12 * 1024**2,    # only for stage 1&2
-            overlap_communication: bool = True,    # only for stage 1&2
-            initial_scale: float = 2**16,
-            growth_factor: float = 2,
-            backoff_factor: float = 0.5,
-            growth_interval: int = 1000,
-            hysteresis: int = 2,
-            min_scale: float = 1,
-            max_scale: float = 2**32,
-            max_norm: float = 0.0,
-            norm_type: float = 2.0) -> None:
+        self,
+        stage: int = 3,
+        precision: str = "fp16",
+        seed: int = 42,
+        shard_init: bool = False,  # only for stage 3
+        placement_policy: str = "cuda",
+        pin_memory: bool = True,  # only for stage 3
+        force_outputs_fp32: bool = False,  # only for stage 3
+        search_range_mb: int = 32,  # only for stage 3
+        hidden_dim: Optional[int] = None,  # only for stage 3
+        min_chunk_size_mb: float = 32,  # only for stage 3
+        gpu_margin_mem_ratio: float = 0.0,  # only for stage 3
+        reduce_bucket_size: int = 12 * 1024**2,  # only for stage 1&2
+        overlap_communication: bool = True,  # only for stage 1&2
+        initial_scale: float = 2**16,
+        growth_factor: float = 2,
+        backoff_factor: float = 0.5,
+        growth_interval: int = 1000,
+        hysteresis: int = 2,
+        min_scale: float = 1,
+        max_scale: float = 2**32,
+        max_norm: float = 0.0,
+        norm_type: float = 2.0,
+    ) -> None:
         super().__init__(seed)
-        assert placement_policy in ('cpu', 'cuda'), f'Unsupported placement policy "{placement_policy}"'
-        assert precision in ('fp32', 'fp16'), f'Unsupported precision "{precision}"'
+        assert placement_policy in (
+            "cpu",
+            "cuda",
+        ), f'Unsupported placement policy "{placement_policy}"'
+        assert precision in ("fp32", "fp16"), f'Unsupported precision "{precision}"'
         self.stage = stage
         # TODO(ver217): support shard_init when using from_pretrained()
         if shard_init:
             warnings.warn(
-                f'Shard init is not supported model.from_pretrained() yet. Please load weights after strategy.prepare()'
+                f"Shard init is not supported model.from_pretrained() yet. Please load weights after strategy.prepare()"
             )
-        if stage == 3 and precision == 'fp32':
-            warnings.warn(f'Stage 3 only supports fp16. Precision is set to fp16.')
-            precision = 'fp16'
+        if stage == 3 and precision == "fp32":
+            warnings.warn(f"Stage 3 only supports fp16. Precision is set to fp16.")
+            precision = "fp16"
         self.precision = precision
         self.shard_init = shard_init
-        self.gemini_config = dict(device=get_current_device(),
-                                  placement_policy=placement_policy,
-                                  pin_memory=pin_memory,
-                                  force_outputs_fp32=force_outputs_fp32,
-                                  strict_ddp_mode=shard_init,
-                                  search_range_mb=search_range_mb,
-                                  hidden_dim=hidden_dim,
-                                  min_chunk_size_mb=min_chunk_size_mb)
+        self.gemini_config = dict(
+            device=get_current_device(),
+            placement_policy=placement_policy,
+            pin_memory=pin_memory,
+            force_outputs_fp32=force_outputs_fp32,
+            strict_ddp_mode=shard_init,
+            search_range_mb=search_range_mb,
+            hidden_dim=hidden_dim,
+            min_chunk_size_mb=min_chunk_size_mb,
+        )
         if stage == 3:
             self.zero_optim_config = dict(gpu_margin_mem_ratio=gpu_margin_mem_ratio)
         else:
-            self.zero_optim_config = dict(reduce_bucket_size=reduce_bucket_size,
-                                          overlap_communication=overlap_communication,
-                                          cpu_offload=(placement_policy == 'cpu'))
-        self.optim_kwargs = dict(initial_scale=initial_scale,
-                                 growth_factor=growth_factor,
-                                 backoff_factor=backoff_factor,
-                                 growth_interval=growth_interval,
-                                 hysteresis=hysteresis,
-                                 min_scale=min_scale,
-                                 max_scale=max_scale,
-                                 max_norm=max_norm,
-                                 norm_type=norm_type)
+            self.zero_optim_config = dict(
+                reduce_bucket_size=reduce_bucket_size,
+                overlap_communication=overlap_communication,
+                cpu_offload=(placement_policy == "cpu"),
+            )
+        self.optim_kwargs = dict(
+            initial_scale=initial_scale,
+            growth_factor=growth_factor,
+            backoff_factor=backoff_factor,
+            growth_interval=growth_interval,
+            hysteresis=hysteresis,
+            min_scale=min_scale,
+            max_scale=max_scale,
+            max_norm=max_norm,
+            norm_type=norm_type,
+        )
 
     def setup_distributed(self) -> None:
         colossalai.launch_from_torch({}, seed=self.seed)
@@ -127,26 +142,39 @@ class ColossalAIStrategy(DDPStrategy):
         if self.stage == 3:
             world_size = dist.get_world_size()
             shard_pg = ProcessGroup(tp_degree=world_size) if self.shard_init else None
-            default_dist_spec = ShardSpec([-1], [world_size]) if self.shard_init else None
-            return ColoInitContext(device=get_current_device(),
-                                   dtype=torch.half,
-                                   default_pg=shard_pg,
-                                   default_dist_spec=default_dist_spec)
+            default_dist_spec = (
+                ShardSpec([-1], [world_size]) if self.shard_init else None
+            )
+            return ColoInitContext(
+                device=get_current_device(),
+                dtype=torch.half,
+                default_pg=shard_pg,
+                default_dist_spec=default_dist_spec,
+            )
         return super().model_init_context()
 
     def setup_model(self, model: nn.Module) -> nn.Module:
+        model = zero_model_wrapper(
+            model, zero_stage=self.stage, gemini_config=self.gemini_config
+        )
 
-        model = zero_model_wrapper(model, zero_stage=self.stage, gemini_config=self.gemini_config)
-
-        if self.stage != 3 and self.precision == 'fp16':
+        if self.stage != 3 and self.precision == "fp16":
             model = model.half()
         return model
 
-    def setup_optimizer(self, optimizer: optim.Optimizer, model: nn.Module) -> optim.Optimizer:
-        assert isinstance(optimizer, (CPUAdam, HybridAdam)), f'Unsupported optimizer {type(optimizer)}'
-        return zero_optim_wrapper(model, optimizer, optim_config=self.zero_optim_config, **self.optim_kwargs)
+    def setup_optimizer(
+        self, optimizer: optim.Optimizer, model: nn.Module
+    ) -> optim.Optimizer:
+        assert isinstance(
+            optimizer, (CPUAdam, HybridAdam)
+        ), f"Unsupported optimizer {type(optimizer)}"
+        return zero_optim_wrapper(
+            model, optimizer, optim_config=self.zero_optim_config, **self.optim_kwargs
+        )
 
-    def backward(self, loss: torch.Tensor, model: nn.Module, optimizer: optim.Optimizer, **kwargs) -> None:
+    def backward(
+        self, loss: torch.Tensor, model: nn.Module, optimizer: optim.Optimizer, **kwargs
+    ) -> None:
         optimizer.backward(loss)
 
     def optimizer_step(self, optimizer: optim.Optimizer, **kwargs) -> None:
@@ -167,12 +195,13 @@ class ColossalAIStrategy(DDPStrategy):
 
         return super()._unwrap_model(model)
 
-    def save_model(self,
-                   model: nn.Module,
-                   path: str,
-                   only_rank0: bool = True,
-                   tokenizer: Optional[PreTrainedTokenizerBase] = None) -> None:
-
+    def save_model(
+        self,
+        model: nn.Module,
+        path: str,
+        only_rank0: bool = True,
+        tokenizer: Optional[PreTrainedTokenizerBase] = None,
+    ) -> None:
         if only_rank0 and dist.get_rank() != 0:
             return None
         unwrapped_model = self._unwrap_model(model)
@@ -192,21 +221,24 @@ class ColossalAIStrategy(DDPStrategy):
             try:
                 if isinstance(unwrapped_model, LM):
                     unwrapped_model = unwrapped_model.model
-                logger.info(f'Saving model to {path}', ranks=[0])
+                logger.info(f"Saving model to {path}", ranks=[0])
                 unwrapped_model.save_pretrained(path)
-                logger.info(f'Model saved to {path} Successfully', ranks=[0])
+                logger.info(f"Model saved to {path} Successfully", ranks=[0])
                 if tokenizer is not None:
-                    logger.info(f'Saving tokenizer to {path}', ranks=[0])
+                    logger.info(f"Saving tokenizer to {path}", ranks=[0])
                     tokenizer.save_pretrained(path)
-                    logger.info(f'Tokenizer saved to {path} Successfully', ranks=[0])
+                    logger.info(f"Tokenizer saved to {path} Successfully", ranks=[0])
             except AttributeError:
                 state_dict = unwrapped_model.state_dict()
                 if only_rank0 and dist.get_rank() != 0:
                     return
                 torch.save(state_dict, path)
 
-    def save_optimizer(self, optimizer: Optimizer, path: str, only_rank0: bool = False) -> None:
+    def save_optimizer(
+        self, optimizer: Optimizer, path: str, only_rank0: bool = False
+    ) -> None:
         if only_rank0:
             raise RuntimeError(
-                f'Optimizer states are sharded when using ColossalAIStrategy. Only rank0 is not supported.')
+                f"Optimizer states are sharded when using ColossalAIStrategy. Only rank0 is not supported."
+            )
         torch.save(optimizer.state_dict(), path)

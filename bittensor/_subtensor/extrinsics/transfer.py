@@ -24,17 +24,18 @@ from bittensor.utils.balance import Balance
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 from ..errors import *
 
+
 def transfer_extrinsic(
-        subtensor: 'bittensor.Subtensor',
-        wallet: 'bittensor.wallet',
-        dest: str,
-        amount: Union[Balance, float],
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        keep_alive: bool = True,
-        prompt: bool = False,
-    ) -> bool:
-    r""" Transfers funds from this wallet to the destination public key address
+    subtensor: "bittensor.Subtensor",
+    wallet: "bittensor.wallet",
+    dest: str,
+    amount: Union[Balance, float],
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = False,
+    keep_alive: bool = True,
+    prompt: bool = False,
+) -> bool:
+    r"""Transfers funds from this wallet to the destination public key address
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object to make transfer from.
@@ -58,11 +59,15 @@ def transfer_extrinsic(
             If we did not wait for finalization / inclusion, the response is true.
     """
     # Validate destination address.
-    if not is_valid_bittensor_address_or_public_key( dest ):
-        bittensor.__console__.print(":cross_mark: [red]Invalid destination address[/red]:[bold white]\n  {}[/bold white]".format(dest))
+    if not is_valid_bittensor_address_or_public_key(dest):
+        bittensor.__console__.print(
+            ":cross_mark: [red]Invalid destination address[/red]:[bold white]\n  {}[/bold white]".format(
+                dest
+            )
+        )
         return False
 
-    if isinstance( dest, bytes):
+    if isinstance(dest, bytes):
         # Convert bytes to hex string.
         dest = "0x" + dest.hex()
 
@@ -70,22 +75,20 @@ def transfer_extrinsic(
     wallet.coldkey
 
     # Convert to bittensor.Balance
-    if not isinstance(amount, bittensor.Balance ):
-        transfer_balance = bittensor.Balance.from_tao( amount )
+    if not isinstance(amount, bittensor.Balance):
+        transfer_balance = bittensor.Balance.from_tao(amount)
     else:
         transfer_balance = amount
 
     # Check balance.
     with bittensor.__console__.status(":satellite: Checking Balance..."):
-        account_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
+        account_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
         # check existential deposit.
         existential_deposit = subtensor.get_existential_deposit()
 
     with bittensor.__console__.status(":satellite: Transferring..."):
         fee = subtensor.get_transfer_fee(
-            wallet=wallet,
-            dest = dest,
-            value = transfer_balance.rao
+            wallet=wallet, dest=dest, value=transfer_balance.rao
         )
 
     if not keep_alive:
@@ -94,12 +97,20 @@ def transfer_extrinsic(
 
     # Check if we have enough balance.
     if account_balance < (transfer_balance + fee + existential_deposit):
-        bittensor.__console__.print(":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}\n  for fee: {}[/bold white]".format( account_balance, transfer_balance, fee ))
+        bittensor.__console__.print(
+            ":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}\n  for fee: {}[/bold white]".format(
+                account_balance, transfer_balance, fee
+            )
+        )
         return False
 
     # Ask before moving on.
     if prompt:
-        if not Confirm.ask("Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}\n  for fee: {}[/bold white]".format( transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest, fee )):
+        if not Confirm.ask(
+            "Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}\n  for fee: {}[/bold white]".format(
+                transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest, fee
+            )
+        ):
             return False
 
     with bittensor.__console__.status(":satellite: Transferring..."):
@@ -112,19 +123,33 @@ def transfer_extrinsic(
         )
 
         if success:
-            bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
-            bittensor.__console__.print("[green]Block Hash: {}[/green]".format( block_hash ))
+            bittensor.__console__.print(
+                ":white_heavy_check_mark: [green]Finalized[/green]"
+            )
+            bittensor.__console__.print(
+                "[green]Block Hash: {}[/green]".format(block_hash)
+            )
 
-            explorer_url = bittensor.utils.get_explorer_url_for_network( subtensor.network, block_hash, bittensor.__network_explorer_map__ )
+            explorer_url = bittensor.utils.get_explorer_url_for_network(
+                subtensor.network, block_hash, bittensor.__network_explorer_map__
+            )
             if explorer_url is not None:
-                bittensor.__console__.print("[green]Explorer Link: {}[/green]".format( explorer_url ))
+                bittensor.__console__.print(
+                    "[green]Explorer Link: {}[/green]".format(explorer_url)
+                )
         else:
-            bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(err_msg))
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
+            )
 
     if success:
         with bittensor.__console__.status(":satellite: Checking Balance..."):
-            new_balance = subtensor.get_balance( wallet.coldkey.ss58_address )
-            bittensor.__console__.print("Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(account_balance, new_balance))
+            new_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
+            bittensor.__console__.print(
+                "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
+                    account_balance, new_balance
+                )
+            )
             return True
 
     return False
