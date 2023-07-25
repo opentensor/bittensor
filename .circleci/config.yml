@@ -39,7 +39,7 @@ jobs:
           name: Black format check
           command: |
             . env/bin/activate
-            python -m black --exclude '(venv|.eggs)' --check .
+            python -m black --exclude '(env|venv|.eggs)' --check .
 
   build-and-test:
     resource_class: medium
