@@ -66,34 +66,55 @@ Here is a high-level summary:
 If you're looking to contribute to Bittensor but unsure where to start, please join our community [discord](https://discord.gg/bittensor), a developer-friendly Bittensor town square. Start with [#development](https://discord.com/channels/799672011265015819/799678806159392768) and [#bounties](https://discord.com/channels/799672011265015819/1095684873810890883) to see what issues are currently posted. For a greater understanding of Bittensor's usage and development, check the [Bittensor Documentation](https://bittensor.com/docs).
 
 
-
 #### Pull Request Philosophy
 
-Patchsets and enhancements should always be focused. For example, a pull request could add a feature, fix a bug, or refactor code; but not a mixture. Please also avoid super pull requests which attempt to do too much, are overly large, or overly complex as this makes review difficult. This helps maintain a separation of concerns and reduces review cognitive load.
+Patchsets and enhancements should always be focused. A pull request could add a feature, fix a bug, or refactor code, but it should not contain a mixture of these. Please also avoid 'super' pull requests which attempt to do too much, are overly large, or overly complex as this makes review difficult. 
 
-In general, all pull requests must:
+Specifically, pull requests must adhere to the following criteria:
+- Contain fewer than 50 files. PRs with more than 50 files will be closed.
+- Use the specific [template](./.github/pull_request_template.md) appropriate to your contribution.
+- If a PR introduces a new feature, it *must* include corresponding tests.
+- Other PRs (bug fixes, refactoring, etc.) should ideally also have tests, as they provide proof of concept and prevent regression.
+- Categorize your PR properly by using GitHub labels. This aids in the review process by informing reviewers about the type of change at a glance.
+- Make sure your code includes adequate comments. These should explain why certain decisions were made and how your changes work.
+- If your changes are extensive, consider breaking your PR into smaller, related PRs. This makes your contributions easier to understand and review.
+- Be active in the discussion about your PR. Respond promptly to comments and questions to help reviewers understand your changes and speed up the acceptance process.
 
-  - Have a clear use case, fix a demonstrable bug or serve the greater good of the project (for example refactoring for modularisation);
-  - Be well peer-reviewed;
-  - Have unit tests and functional tests, where appropriate;
-  - Follow code style guidelines;
-  - Not break the existing test suite;
-  - Where bugs are fixed, where possible, there should be unit tests demonstrating the bug and also proving the fix. This helps prevent regression.
+
+Generally, all pull requests must:
+
+  - Have a clear use case, fix a demonstrable bug or serve the greater good of the project (e.g. refactoring for modularisation).
+  - Be well peer-reviewed.
+  - Follow code style guidelines.
+  - Not break the existing test suite.
+  - Where bugs are fixed, where possible, there should be unit tests demonstrating the bug and also proving the fix.
   - Change relevant comments and documentation when behaviour of code changes.
 
 #### Pull Request Process
+
 Please follow these steps to have your contribution considered by the maintainers:
 
-*Before* creating the PR:
-1. Read the [development workflow](./DEVELOPMENT_WORKFLOW.md) defined for this repository in order to agree on the ways of working.
-1. While coding, please, add tests relevant to the fixed bug or new feature. Follow the [testing guide](./TESTING.md)
-1. To create the PR follow all instructions in [the template](https://github.com/opentensor/bittensor/blob/master/.github/PULL_REQUEST_TEMPLATE/pull_request_template.md)
-1. Make sure your commit messages are clear and concise. Include the issue number if applicable.
-1. If you have multiple commits, rebase them into a single commit. Use `git rebase -i` for this.
-1. In the pull request description, explain what the changes do and why you think they should be applied.
-1. If your changes are not ready for merge but you want feedback, create a draft pull request.
-1. After you submit your pull request, verify that all [status checks](https://help.github.com/articles/about-status-checks/) are passing <details><summary>What if the status checks are failing?</summary>It is impossible (and also unwise) to merge any change withs failing CI checks. If a status check is failing, and you believe that the failure is unrelated to your change, please leave a comment on the pull request explaining why you believe the failure is unrelated. A maintainer will re-run the status check for you. Until the failing tests are completely resolved, the changes cannot be merged.</details>
 
+*Before* creating the PR:
+1. Read the [development workflow](./DEVELOPMENT_WORKFLOW.md) defined for this repository to understand our workflow.
+2. Ensure your PR meets the criteria stated in the 'Pull Request Philosophy' section.
+3. Include relevant tests for any fixed bugs or new features as stated in the [testing guide](./TESTING.md).
+4. Follow all instructions in [the template](https://github.com/opentensor/bittensor/blob/master/.github/PULL_REQUEST_TEMPLATE/pull_request_template.md) to create the PR.
+5. Ensure your commit messages are clear and concise. Include the issue number if applicable.
+6. If you have multiple commits, rebase them into a single commit using `git rebase -i`.
+7. Explain what your changes do and why you think they should be merged in the PR description consistent with the [style guide](./STYLE.md).
+
+*After* creating the PR:
+1. Verify that all [status checks](https://help.github.com/articles/about-status-checks/) are passing after you submit your pull request. 
+2. Label your PR using GitHub's labeling feature. The labels help categorize the PR and streamline the review process.
+3. Document your code with comments that provide a clear understanding of your changes. Explain any non-obvious parts of your code or design decisions you've made.
+4. If your PR has extensive changes, consider splitting it into smaller, related PRs. This reduces the cognitive load on the reviewers and speeds up the review process.
+
+Please be responsive and participate in the discussion on your PR! This aids in clarifying any confusion or concerns and leads to quicker resolution and merging of your PR.
+
+> Note: If your changes are not ready for merge but you want feedback, create a draft pull request.
+
+Following these criteria will aid in quicker review and potential merging of your PR.
 While the prerequisites above must be satisfied prior to having your pull request reviewed, the reviewer(s) may ask you to complete additional design work, tests, or other changes before your pull request can be ultimately accepted.
 
 When you are ready to submit your changes, create a pull request:
