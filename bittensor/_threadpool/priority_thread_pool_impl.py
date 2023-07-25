@@ -44,8 +44,7 @@ class _WorkItem(object):
         self.kwargs = kwargs
 
     def run(self):
-        """ Run the given work item
-        """
+        """Run the given work item"""
         # Checks if future is canceled or if work item is stale
         if (not self.future.set_running_or_notify_cancel()) or (
             time.time() - self.start_time > bittensor.__blocktime__
@@ -114,8 +113,7 @@ class BrokenThreadPool(_base.BrokenExecutor):
 
 
 class PriorityThreadPoolExecutor(_base.Executor):
-    """ Base threadpool executor with a priority queue
-    """
+    """Base threadpool executor with a priority queue"""
 
     # Used to assign unique thread names when thread_name_prefix is not supplied.
     _counter = itertools.count().__next__

@@ -25,7 +25,7 @@ from typing import Optional
 
 class RegenColdkeyCommand:
     def run(cli):
-        r""" Creates a new coldkey under this wallet."""
+        r"""Creates a new coldkey under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
 
         json_str: Optional[str] = None
@@ -140,7 +140,7 @@ class RegenColdkeyCommand:
 
 class RegenColdkeypubCommand:
     def run(cli):
-        r""" Creates a new coldkeypub under this wallet."""
+        r"""Creates a new coldkeypub under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
         wallet.regenerate_coldkeypub(
             ss58_address=cli.config.get("ss58_address"),
@@ -220,7 +220,7 @@ class RegenColdkeypubCommand:
 
 class RegenHotkeyCommand:
     def run(cli):
-        r""" Creates a new coldkey under this wallet."""
+        r"""Creates a new coldkey under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
 
         json_str: Optional[str] = None
@@ -342,7 +342,7 @@ class RegenHotkeyCommand:
 
 class NewHotkeyCommand:
     def run(cli):
-        """ Creates a new hotke under this wallet."""
+        """Creates a new hotke under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
         wallet.create_new_hotkey(
             n_words=cli.config.n_words,
@@ -415,7 +415,7 @@ class NewHotkeyCommand:
 
 class NewColdkeyCommand:
     def run(cli):
-        r""" Creates a new coldkey under this wallet."""
+        r"""Creates a new coldkey under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
         wallet.create_new_coldkey(
             n_words=cli.config.n_words,

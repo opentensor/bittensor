@@ -438,7 +438,6 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         with patch(
             "bittensor._cli.commands.inspect.InspectCommand.run", return_value=None
         ):
-
             # Test prompt happens when no wallet name is passed
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
@@ -473,7 +472,6 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         with patch(
             "bittensor._cli.commands.overview.OverviewCommand.run", return_value=None
         ):
-
             # Test prompt happens when no wallet name is passed
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
@@ -519,7 +517,6 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         base_args = ["stake", "--all"]
         # Patch command to exit early
         with patch("bittensor._cli.commands.stake.StakeCommand.run", return_value=None):
-
             # Test prompt happens when
             # - wallet name IS NOT passed, AND
             # - hotkey name IS NOT passed
@@ -674,7 +671,6 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         with patch(
             "bittensor._cli.commands.unstake.UnStakeCommand.run", return_value=None
         ):
-
             # Test prompt happens when
             # - wallet name IS NOT passed, AND
             # - hotkey name IS NOT passed
@@ -829,7 +825,6 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             "bittensor._cli.commands.delegates.DelegateStakeCommand.run",
             return_value=None,
         ):
-
             # Test prompt happens when
             # - wallet name IS NOT passed
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
@@ -882,7 +877,6 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             "bittensor._cli.commands.delegates.DelegateUnstakeCommand.run",
             return_value=None,
         ):
-
             # Test prompt happens when
             # - wallet name IS NOT passed
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
@@ -957,7 +951,6 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                     "bittensor._cli.commands.delegates.DelegateStakeCommand.run",
                     return_value=None,
                 ):
-
                     # Test prompt happens when
                     # - delegate hotkey IS NOT passed
                     with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
@@ -1035,7 +1028,6 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                     "bittensor._cli.commands.delegates.DelegateUnstakeCommand.run",
                     return_value=None,
                 ):
-
                     # Test prompt happens when
                     # - delegate hotkey IS NOT passed
                     with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:

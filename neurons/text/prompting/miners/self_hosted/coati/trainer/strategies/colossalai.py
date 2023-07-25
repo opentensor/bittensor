@@ -76,15 +76,15 @@ class ColossalAIStrategy(DDPStrategy):
         hidden_dim: Optional[int] = None,  # only for stage 3
         min_chunk_size_mb: float = 32,  # only for stage 3
         gpu_margin_mem_ratio: float = 0.0,  # only for stage 3
-        reduce_bucket_size: int = 12 * 1024 ** 2,  # only for stage 1&2
+        reduce_bucket_size: int = 12 * 1024**2,  # only for stage 1&2
         overlap_communication: bool = True,  # only for stage 1&2
-        initial_scale: float = 2 ** 16,
+        initial_scale: float = 2**16,
         growth_factor: float = 2,
         backoff_factor: float = 0.5,
         growth_interval: int = 1000,
         hysteresis: int = 2,
         min_scale: float = 1,
-        max_scale: float = 2 ** 32,
+        max_scale: float = 2**32,
         max_norm: float = 0.0,
         norm_type: float = 2.0,
     ) -> None:
@@ -154,7 +154,6 @@ class ColossalAIStrategy(DDPStrategy):
         return super().model_init_context()
 
     def setup_model(self, model: nn.Module) -> nn.Module:
-
         model = zero_model_wrapper(
             model, zero_stage=self.stage, gemini_config=self.gemini_config
         )
@@ -203,7 +202,6 @@ class ColossalAIStrategy(DDPStrategy):
         only_rank0: bool = True,
         tokenizer: Optional[PreTrainedTokenizerBase] = None,
     ) -> None:
-
         if only_rank0 and dist.get_rank() != 0:
             return None
         unwrapped_model = self._unwrap_model(model)

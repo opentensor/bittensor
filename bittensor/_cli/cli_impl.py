@@ -26,10 +26,10 @@ class CLI:
     """
 
     def __init__(self, config: "bittensor.Config"):
-        r""" Initialized a bittensor.CLI object.
-            Args:
-                config (:obj:`bittensor.Config`, `required`):
-                    bittensor.cli.config()
+        r"""Initialized a bittensor.CLI object.
+        Args:
+            config (:obj:`bittensor.Config`, `required`):
+                bittensor.cli.config()
         """
         # (d)efaults to True if config.no_version_checking is not set.
         if not config.get("no_version_checking", d=True):
@@ -42,8 +42,7 @@ class CLI:
         self.config = config
 
     def run(self):
-        """ Execute the command from config
-        """
+        """Execute the command from config"""
         if self.config.command == "transfer":
             TransferCommand.run(self)
         elif self.config.command == "register":

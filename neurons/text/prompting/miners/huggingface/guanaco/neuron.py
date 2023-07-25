@@ -22,7 +22,6 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
 class GuanacoMiner(bittensor.HuggingFaceMiner):
-
     arg_prefix: str = "guanaco"
     assistant_label: str = "### Assistant:"
     user_label: str = "### Human:"

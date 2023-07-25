@@ -84,7 +84,7 @@ def unstake_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> bool:
-    r""" Removes stake into the wallet coldkey from the specified hotkey uid.
+    r"""Removes stake into the wallet coldkey from the specified hotkey uid.
     Args:
         wallet (bittensor.wallet):
             bittensor wallet object.
@@ -225,7 +225,7 @@ def unstake_multiple_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> bool:
-    r""" Removes stake from each hotkey_ss58 in the list, using each amount, to a common coldkey.
+    r"""Removes stake from each hotkey_ss58 in the list, using each amount, to a common coldkey.
     Args:
         wallet (bittensor.wallet):
             The wallet with the coldkey to unstake to.

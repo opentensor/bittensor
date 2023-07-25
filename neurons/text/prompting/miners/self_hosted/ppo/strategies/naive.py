@@ -15,7 +15,7 @@ from .base import Strategy
 
 class NaiveStrategy(Strategy):
     """
-        Strategy for single GPU. No parallelism is used.
+    Strategy for single GPU. No parallelism is used.
     """
 
     def backward(

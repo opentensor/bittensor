@@ -31,8 +31,7 @@ logger = logger.opt(colors=True)
 
 
 class prometheus:
-    """ Namespace for prometheus tooling.
-    """
+    """Namespace for prometheus tooling."""
 
     # Prometheus global logging levels.
     class level(Enum):
@@ -58,25 +57,25 @@ class prometheus:
         chain_endpoint: str = None,
         subtensor: "bittensor.subtensor" = None,
     ):
-        """ Instantiates a global prometheus DB which can be accessed by other processes.
-            Each prometheus DB is designated by a port.
-            Args:
-                wallet (:obj: `bittensor.wallet`, `required`):
-                    bittensor wallet object.
-                netuid (:obj: `int`, `required`):
-                    network uid to serve on.
-                config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.prometheus.config()):
-                    A config namespace object created by calling bittensor.prometheus.config()
-                port (:obj:`int`, `optional`, defaults to bittensor.defaults.prometheus.port ):
-                    The port to run the prometheus DB on, this uniquely identifies the prometheus DB.
-                level (:obj:`prometheus.level`, `optional`, defaults to bittensor.defaults.prometheus.level ):
-                    Prometheus logging level. If OFF, the prometheus DB is not initialized.
-                subtensor (:obj:`bittensor.Subtensor`, `optional`):
-                    Chain connection through which to serve.
-                network (default='local', type=str)
-                    If subtensor is not set, uses this network flag to create the subtensor connection.
-                chain_endpoint (default=None, type=str)
-                    Overrides the network argument if not set.
+        """Instantiates a global prometheus DB which can be accessed by other processes.
+        Each prometheus DB is designated by a port.
+        Args:
+            wallet (:obj: `bittensor.wallet`, `required`):
+                bittensor wallet object.
+            netuid (:obj: `int`, `required`):
+                network uid to serve on.
+            config (:obj:`bittensor.Config`, `optional`, defaults to bittensor.prometheus.config()):
+                A config namespace object created by calling bittensor.prometheus.config()
+            port (:obj:`int`, `optional`, defaults to bittensor.defaults.prometheus.port ):
+                The port to run the prometheus DB on, this uniquely identifies the prometheus DB.
+            level (:obj:`prometheus.level`, `optional`, defaults to bittensor.defaults.prometheus.level ):
+                Prometheus logging level. If OFF, the prometheus DB is not initialized.
+            subtensor (:obj:`bittensor.Subtensor`, `optional`):
+                Chain connection through which to serve.
+            network (default='local', type=str)
+                If subtensor is not set, uses this network flag to create the subtensor connection.
+            chain_endpoint (default=None, type=str)
+                Overrides the network argument if not set.
         """
         if config == None:
             config = prometheus.config()
@@ -140,7 +139,7 @@ class prometheus:
 
     @classmethod
     def config(cls) -> "bittensor.Config":
-        """ Get config from the argument parser
+        """Get config from the argument parser
         Return: bittensor.config object
         """
         parser = argparse.ArgumentParser()
@@ -149,8 +148,7 @@ class prometheus:
 
     @classmethod
     def help(cls):
-        """ Print help to stdout
-        """
+        """Print help to stdout"""
         parser = argparse.ArgumentParser()
         cls.add_args(parser)
         print(cls.__new__.__doc__)
@@ -158,8 +156,7 @@ class prometheus:
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
-        """ Accept specific arguments from parser
-        """
+        """Accept specific arguments from parser"""
         prefix_str = "" if prefix == None else prefix + "."
         if prefix is not None:
             if bittensor.defaults.get(prefix, d=None) == None:
@@ -188,8 +185,7 @@ class prometheus:
 
     @classmethod
     def add_defaults(cls, defaults):
-        """ Adds parser defaults to object from enviroment variables.
-        """
+        """Adds parser defaults to object from enviroment variables."""
         defaults.prometheus = bittensor.Config()
         # Default the prometheus port to axon.port - 1000
         defaults.prometheus.port = (
@@ -205,8 +201,7 @@ class prometheus:
 
     @classmethod
     def check_config(cls, config: "bittensor.Config"):
-        """ Check config for wallet name/hotkey/path/hotkeys/sort_by
-        """
+        """Check config for wallet name/hotkey/path/hotkeys/sort_by"""
         assert "prometheus" in config
         assert config.prometheus.level in [
             l.name for l in list(prometheus.level)

@@ -28,7 +28,6 @@ class LlamaCritic(Critic):
         lora_train_bias: str = "none",
         **kwargs
     ) -> None:
-
         if pretrained is not None:
             model = LlamaForCausalLM.from_pretrained(pretrained)
         elif config is not None:

@@ -64,14 +64,14 @@ def masked_normalize(
     tensor = tensor * mask
     mean = masked_mean(tensor, mask, dim=dim)
     mean_centered = tensor - mean
-    var = masked_mean(mean_centered ** 2, mask, dim=dim)
+    var = masked_mean(mean_centered**2, mask, dim=dim)
     return mean_centered * var.clamp(min=eps).rsqrt()
 
 
 def normalize(tensor: torch.Tensor, dim: int = 0, eps: float = 1e-8) -> torch.Tensor:
     mean = tensor.mean(dim)
     mean_centered = tensor - mean
-    var = (mean_centered ** 2).mean(dim)
+    var = (mean_centered**2).mean(dim)
     norm = mean_centered * var.clamp(min=eps).rsqrt()
     return norm
 

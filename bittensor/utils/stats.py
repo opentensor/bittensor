@@ -21,8 +21,7 @@ import time
 
 
 class timed_rolling_avg:
-    """ A exponential moving average that updates values based on time since last update.
-    """
+    """A exponential moving average that updates values based on time since last update."""
 
     def __init__(self, initial_value, alpha):
         self.value = initial_value
@@ -30,8 +29,7 @@ class timed_rolling_avg:
         self.last_update = time.time()
 
     def update(self, new_value):
-        """ Update self.value (the moving average) with the new_value
-        """
+        """Update self.value (the moving average) with the new_value"""
         now = time.time()
         time_delta = now - self.last_update
         self.last_update = now
@@ -40,8 +38,7 @@ class timed_rolling_avg:
 
 
 class AmountPerSecondRollingAverage:
-    """ A exponential moving average that counts quantity per second.
-    """
+    """A exponential moving average that counts quantity per second."""
 
     def __init__(self, initial_value=0, alpha=0.1):
         self.value = initial_value
@@ -49,8 +46,7 @@ class AmountPerSecondRollingAverage:
         self.last_update = None
 
     def event(self, amount):
-        """ Update self.value (the moving average) with the new_value
-        """
+        """Update self.value (the moving average) with the new_value"""
         if self.last_update == None:
             self.last_update = time.time()
         else:
@@ -65,8 +61,7 @@ class AmountPerSecondRollingAverage:
 
 
 class EventsPerSecondRollingAverage:
-    """ A exponential moving average that counts the number of events per second.
-    """
+    """A exponential moving average that counts the number of events per second."""
 
     def __init__(self, initial_value, alpha):
         self.value = initial_value
@@ -74,8 +69,7 @@ class EventsPerSecondRollingAverage:
         self.last_update = None
 
     def event(self):
-        """ Update self.value (the moving average) with the new_value
-        """
+        """Update self.value (the moving average) with the new_value"""
         if self.last_update == None:
             self.last_update = time.time()
         else:

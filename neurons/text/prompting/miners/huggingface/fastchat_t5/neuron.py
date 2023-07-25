@@ -6,7 +6,6 @@ from transformers import T5Tokenizer, AutoModelForSeq2SeqLM
 
 
 class FastChatT5Miner(bittensor.HuggingFaceMiner):
-
     arg_prefix: str = "fastchat_t5"
     assistant_label: str = "ASSISTANT:"
     user_label: str = "USER:"

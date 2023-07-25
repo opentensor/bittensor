@@ -23,8 +23,7 @@ from bittensor.utils.tokenizer_utils import prep_tokenizer
 
 
 class tokenizer:
-    """ Implementation of the bittensor tokenizer
-    """
+    """Implementation of the bittensor tokenizer"""
 
     cached_tokenizer_for_version: dict = {}
 
@@ -44,8 +43,7 @@ class tokenizer:
     # TODO (const): Add functionality to allow tokenizer conversion. i.e. for input token conversion.
     @classmethod
     def get_tokenizer_for_version(cls, version=bittensor.__version__):
-        """ Return the GPT2 tokenizer with bittersor's special tokens
-        """
+        """Return the GPT2 tokenizer with bittersor's special tokens"""
         _tokenizer = AutoTokenizer.from_pretrained("gpt2", local_files_only=False)
         _tokenizer = prep_tokenizer(_tokenizer)
         return _tokenizer

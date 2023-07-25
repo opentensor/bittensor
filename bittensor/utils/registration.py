@@ -154,11 +154,10 @@ class _SolverBase(multiprocessing.Process):
         raise NotImplementedError("_SolverBase is an abstract class")
 
     @staticmethod
-    def create_shared_memory() -> Tuple[
-        multiprocessing.Array, multiprocessing.Value, multiprocessing.Array
-    ]:
-        """Creates shared memory for the solver processes to use.
-        """
+    def create_shared_memory() -> (
+        Tuple[multiprocessing.Array, multiprocessing.Value, multiprocessing.Array]
+    ):
+        """Creates shared memory for the solver processes to use."""
         curr_block = multiprocessing.Array("h", 32, lock=True)  # byte array
         curr_block_num = multiprocessing.Value("i", 0, lock=True)  # int
         curr_diff = multiprocessing.Array("Q", [0, 0], lock=True)  # [high, low]
@@ -575,7 +574,7 @@ def _solve_for_difficulty_fast(
     solution = None
 
     hash_rates = [0] * n_samples  # The last n true hash_rates
-    weights = [alpha_ ** i for i in range(n_samples)]  # weights decay by alpha
+    weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
 
     while not subtensor.is_hotkey_registered(
         netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
@@ -921,7 +920,7 @@ def _solve_for_difficulty_fast_cuda(
         logger.start()
 
         hash_rates = [0] * n_samples  # The last n true hash_rates
-        weights = [alpha_ ** i for i in range(n_samples)]  # weights decay by alpha
+        weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
 
         solution = None
         while not subtensor.is_hotkey_registered(
@@ -1005,7 +1004,7 @@ def _solve_for_difficulty_fast_cuda(
 
 
 def _terminate_workers_and_wait_for_exit(
-    workers: List[multiprocessing.Process]
+    workers: List[multiprocessing.Process],
 ) -> None:
     for worker in workers:
         worker.terminate()
@@ -1095,30 +1094,30 @@ def __reregister_wallet(
     prompt: bool = False,
     **registration_args: Any,
 ) -> Optional["bittensor.Wallet"]:
-    """ Re-register this a Wallet on the chain, or exits.
-                Exits if the wallet is not registered on the chain AND
-                reregister is set to False.
-            Args:
-                netuid (int):
-                    The network uid of the subnet to register on.
-                wallet( 'bittensor.Wallet' ):
-                    Bittensor Wallet to re-register
-                reregister (bool, default=False):
-                    If true, re-registers the wallet on the chain.
-                    Exits if False and the wallet is not registered on the chain.
-                prompt (bool):
-                    If true, the call waits for confirmation from the user before proceeding.
-                **registration_args (Any):
-                    The registration arguments to pass to the subtensor register function.
-            Return:
-                wallet (bittensor.Wallet):
-                    The wallet
+    """Re-register this a Wallet on the chain, or exits.
+        Exits if the wallet is not registered on the chain AND
+        reregister is set to False.
+    Args:
+        netuid (int):
+            The network uid of the subnet to register on.
+        wallet( 'bittensor.Wallet' ):
+            Bittensor Wallet to re-register
+        reregister (bool, default=False):
+            If true, re-registers the wallet on the chain.
+            Exits if False and the wallet is not registered on the chain.
+        prompt (bool):
+            If true, the call waits for confirmation from the user before proceeding.
+        **registration_args (Any):
+            The registration arguments to pass to the subtensor register function.
+    Return:
+        wallet (bittensor.Wallet):
+            The wallet
 
-            Raises:
-                SytemExit(0):
-                    If the wallet is not registered on the chain AND
-                    the config.subtensor.reregister flag is set to False.
-        """
+    Raises:
+        SytemExit(0):
+            If the wallet is not registered on the chain AND
+            the config.subtensor.reregister flag is set to False.
+    """
     wallet.hotkey
 
     if not subtensor.is_hotkey_registered_on_subnet(

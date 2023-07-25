@@ -576,8 +576,7 @@ class ValidatorLogger:
     def print_console_validator_identifier(
         self, uid: int, wallet: "bittensor.Wallet", external_ip: str
     ):
-        r""" Console print for validator identifier.
-        """
+        r"""Console print for validator identifier."""
 
         # validator identifier status console message (every 25 validation steps)
         rich_print(
@@ -601,8 +600,7 @@ class ValidatorLogger:
         network: str,
         netuid: int,
     ):
-        r""" Console print for current validator's metagraph status.
-        """
+        r"""Console print for current validator's metagraph status."""
         # validator update status console message
         rich_print(
             f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
@@ -626,8 +624,7 @@ class ValidatorLogger:
         epoch_responsive_uids: Set,
         epoch_queried_uids: Set,
     ):
-        r""" Console print for query summary.
-        """
+        r"""Console print for query summary."""
         rich_print(
             f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
             f"{f'[magenta dim not bold]#{current_block}[/magenta dim not bold]'.center(16 + len('[magenta dim not bold][/magenta dim not bold]'))} | "
@@ -650,8 +647,7 @@ class ValidatorLogger:
         max_weight_limit: float,
         epoch_start_time: time.time,
     ):
-        r""" Console print for weight setting to subtensor.
-        """
+        r"""Console print for weight setting to subtensor."""
 
         rich_print(
             f"[white not bold]{datetime.datetime.now():%Y-%m-%d %H:%M:%S}[/white not bold]{' ' * 4} | "
@@ -702,8 +698,7 @@ class ValidatorPrometheus:
         network: str,
         wallet: "bittensor.Wallet",
     ):
-        r""" Set up prometheus running info.
-        """
+        r"""Set up prometheus running info."""
 
         self.gauges.labels("model_size_params").set(sum(p.numel() for p in parameters))
         self.gauges.labels("model_size_bytes").set(
@@ -729,8 +724,7 @@ class ValidatorPrometheus:
         blocks_per_epoch: int,
         epochs_until_reset: int,
     ):
-        r""" All prometheus logging at the start of epoch.
-        """
+        r"""All prometheus logging at the start of epoch."""
         self.gauges.labels("current_block").set(current_block)
         self.gauges.labels("batch_size").set(batch_size)
         self.gauges.labels("sequence_length").set(sequence_length)
@@ -747,8 +741,7 @@ class ValidatorPrometheus:
         self.gauges.labels("epoch_steps").set(0)
 
     def log_step(self, current_block: int, last_update: int, step_time: int, loss: int):
-        r""" All prometheus logging at the each validation step.
-        """
+        r"""All prometheus logging at the each validation step."""
         self.gauges.labels("global_step").inc()
         self.gauges.labels("epoch_steps").inc()
         self.gauges.labels("current_block").set(current_block)
@@ -760,8 +753,7 @@ class ValidatorPrometheus:
     def log_epoch_end(
         self, uid: int, metagraph: "bittensor.Metagraph", current_block: int
     ):
-        r""" All prometheus logging at the end of epoch.
-        """
+        r"""All prometheus logging at the end of epoch."""
         self.gauges.labels("epoch").inc()
         self.gauges.labels("set_weights").inc()
         self.gauges.labels("set_weights_block").set(current_block)

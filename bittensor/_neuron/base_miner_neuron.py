@@ -184,7 +184,6 @@ class BaseMinerNeuron:
         last_update = self.subtensor.get_current_block()
         retries = 0
         while not self.should_exit:
-
             # --- Wait until next epoch.
             current_block = self.subtensor.get_current_block()
             while (current_block - last_update) < self.config.neuron.blocks_per_epoch:

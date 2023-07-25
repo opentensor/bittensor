@@ -596,7 +596,7 @@ def solve_for_difficulty_fast(
     solution = None
 
     hash_rates = [0] * n_samples  # The last n true hash_rates
-    weights = [alpha_ ** i for i in range(n_samples)]  # weights decay by alpha
+    weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
 
     while not subtensor.is_hotkey_registered(hotkey_ss58=wallet.hotkey.ss58_address):
         # Wait until a solver finds a solution
@@ -900,7 +900,7 @@ def solve_for_difficulty_fast_cuda(
         logger.start()
 
         hash_rates = [0] * n_samples  # The last n true hash_rates
-        weights = [alpha_ ** i for i in range(n_samples)]  # weights decay by alpha
+        weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
 
         solution = None
         while not subtensor.is_hotkey_registered(

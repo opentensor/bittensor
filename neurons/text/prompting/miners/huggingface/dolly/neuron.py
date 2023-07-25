@@ -22,7 +22,6 @@ from transformers import pipeline
 
 
 class Dolly12BMiner(bittensor.HuggingFaceMiner):
-
     arg_prefix: str = "dolly"
     assistant_label: str = "### Response:"
     user_label: str = "### Instruction:"
@@ -43,7 +42,6 @@ class Dolly12BMiner(bittensor.HuggingFaceMiner):
         pass
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
-
         history = self.process_history(messages)
         prompt = history + self.assistant_label
         generation = self.model(prompt)

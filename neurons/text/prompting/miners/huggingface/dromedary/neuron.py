@@ -54,7 +54,6 @@ class DromedaryMiner(bittensor.HuggingFaceMiner):
         bittensor.logging.info("Model loaded!")
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
-
         history = self._process_history(self, messages)
         prompt = history + self.assistant_label
 

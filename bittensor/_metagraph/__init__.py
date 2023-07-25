@@ -328,7 +328,7 @@ class metagraph(torch.nn.Module):
                 )
 
     def save(self) -> "metagraph":
-        r""" Saves this metagraph object's state_dict under bittensor root dir."""
+        r"""Saves this metagraph object's state_dict under bittensor root dir."""
         save_directory = get_save_dir(self.network, self.netuid)
         os.makedirs(save_directory, exist_ok=True)
         graph_file = save_directory + f"/block-{self.block.item()}.pt"
@@ -339,11 +339,11 @@ class metagraph(torch.nn.Module):
         return self
 
     def load(self) -> "metagraph":
-        r""" Loads this metagraph object's state_dict from bittensor root dir. """
+        r"""Loads this metagraph object's state_dict from bittensor root dir."""
         self.load_from_path(get_save_dir(self.network, self.netuid))
 
     def load_from_path(self, dir_path: str) -> "metagraph":
-        r""" Loads this metagraph object with state_dict under the specified path."""
+        r"""Loads this metagraph object with state_dict under the specified path."""
         graph_file = latest_block_path(dir_path)
         state_dict = torch.load(graph_file)
         self.n = torch.nn.Parameter(state_dict["n"], requires_grad=False)

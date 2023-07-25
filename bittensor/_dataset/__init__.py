@@ -30,7 +30,7 @@ from . import dataset_mock
 
 
 class dataset:
-    """ Factory class for the GenesisTextDataset class or the mocked GenesisTextDataset
+    """Factory class for the GenesisTextDataset class or the mocked GenesisTextDataset
     The GenesisTextDataset downloads text data from the bittensor mountain dataset.
     The class makes http requests to bittensor's IPFS backend server which contains the full dataset.
     By default, the GenesisTextDataset class will return a fully functioning pytorch dataloader.
@@ -54,27 +54,27 @@ class dataset:
         _mock: bool = None,
         dataset_name: list = None,  # For backwards compatibility
     ):
-        r""" Create and init the GenesisTextDataset class, which handles dataloading from ipfs.
-            Args:
-                config (:obj:`bittensor.Config`, `optional`):
-                    bittensor.dataset.config()
-                block_size (:obj:`int`, `optional`):
-                    Number of text items to pull for each example.
-                batch_size (:obj:`int`, `optional`):
-                    Batch size.
-                num_workers (:obj:`int`, `optional`):
-                    Number of workers for data loader.
-                dataset_names (:obj:`list`,`str`, `optional`):
-                    Which datasets to use (ArXiv, BookCorpus2, Books3, DMMathematics, EnronEmails, EuroParl,
-                    Gutenberg_PG, HackerNews, NIHExPorter, OpenSubtitles, PhilPapers, UbuntuIRC, YoutubeSubtitles)).
-                save_dataset (:obj:`bool`, `optional`):
-                    Save the downloaded dataset or not.
-                no_tokenizer (:obj:`bool`, `optional`):
-                    To return non-tokenized text (EXPERIMENTAL, DO NOT USE)
-                num_batches (:obj:`int`, `optional`):
-                    The number of batches of data to prepare for the dataloader.
-                _mock (:obj:`bool`, `optional`):
-                    For testing, if true the dataset if filled with fake text data.
+        r"""Create and init the GenesisTextDataset class, which handles dataloading from ipfs.
+        Args:
+            config (:obj:`bittensor.Config`, `optional`):
+                bittensor.dataset.config()
+            block_size (:obj:`int`, `optional`):
+                Number of text items to pull for each example.
+            batch_size (:obj:`int`, `optional`):
+                Batch size.
+            num_workers (:obj:`int`, `optional`):
+                Number of workers for data loader.
+            dataset_names (:obj:`list`,`str`, `optional`):
+                Which datasets to use (ArXiv, BookCorpus2, Books3, DMMathematics, EnronEmails, EuroParl,
+                Gutenberg_PG, HackerNews, NIHExPorter, OpenSubtitles, PhilPapers, UbuntuIRC, YoutubeSubtitles)).
+            save_dataset (:obj:`bool`, `optional`):
+                Save the downloaded dataset or not.
+            no_tokenizer (:obj:`bool`, `optional`):
+                To return non-tokenized text (EXPERIMENTAL, DO NOT USE)
+            num_batches (:obj:`int`, `optional`):
+                The number of batches of data to prepare for the dataloader.
+            _mock (:obj:`bool`, `optional`):
+                For testing, if true the dataset if filled with fake text data.
         """
         if config == None:
             config = dataset.config()
@@ -141,8 +141,8 @@ class dataset:
 
     @classmethod
     def config(cls) -> "bittensor.Config":
-        """ Get config from the argument parser
-            Return: bittensor.config object
+        """Get config from the argument parser
+        Return: bittensor.config object
         """
         parser = argparse.ArgumentParser()
         dataset.add_args(parser)
@@ -150,8 +150,7 @@ class dataset:
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
-        """ Accept specific arguments from parser
-        """
+        """Accept specific arguments from parser"""
         prefix_str = "" if prefix == None else prefix + "."
         if prefix is not None:
             if bittensor.defaults.get(prefix, d=None) == None:
@@ -228,8 +227,7 @@ class dataset:
 
     @classmethod
     def help(cls):
-        """ Print help to stdout
-        """
+        """Print help to stdout"""
         parser = argparse.ArgumentParser()
         cls.add_args(parser)
         print(cls.__new__.__doc__)
@@ -237,8 +235,7 @@ class dataset:
 
     @classmethod
     def add_defaults(cls, defaults):
-        """ Adds parser defaults to object from enviroment variables.
-        """
+        """Adds parser defaults to object from enviroment variables."""
         defaults.dataset = bittensor.Config()
         defaults.dataset.batch_size = (
             os.getenv("BT_DATASET_BATCH_SIZE")
@@ -283,8 +280,7 @@ class dataset:
 
     @classmethod
     def check_config(cls, config: "bittensor.Config"):
-        """ Check config for batch size, block size, corpus size, num_workers and dataset
-        """
+        """Check config for batch size, block size, corpus size, num_workers and dataset"""
         assert config.dataset.batch_size > 0, "Batch size must be larger than 0"
         assert config.dataset.block_size > 0, "Block size must be larger than 0"
         assert (

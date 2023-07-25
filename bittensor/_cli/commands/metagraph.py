@@ -27,7 +27,7 @@ console = bittensor.__console__
 class MetagraphCommand:
     @staticmethod
     def run(cli):
-        r""" Prints an entire metagraph."""
+        r"""Prints an entire metagraph."""
         console = bittensor.__console__
         subtensor = bittensor.subtensor(config=cli.config)
         console.print(

@@ -33,7 +33,7 @@ def prometheus_extrinsic(
     wait_for_inclusion: bool = False,
     wait_for_finalization=True,
 ) -> bool:
-    r""" Subscribes an bittensor endpoint to the substensor chain.
+    r"""Subscribes an bittensor endpoint to the substensor chain.
     Args:
         subtensor (bittensor.subtensor):
             bittensor subtensor object.

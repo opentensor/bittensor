@@ -27,7 +27,7 @@ import bittensor
 
 
 class Serializer(object):
-    r""" Bittensor base serialization object for converting between bittensor.proto.Tensor and their
+    r"""Bittensor base serialization object for converting between bittensor.proto.Tensor and their
     various python tensor equivalents. i.e. torch.Tensor or tensorflow.Tensor
     """
 
@@ -120,42 +120,41 @@ class Serializer(object):
     def serialize_from_tensorflow(
         self, tensorflow_tensor: torch.Tensor
     ) -> bittensor.proto.Tensor:
-        """ tensorflow -> bittensor.proto.Tensor """
+        """tensorflow -> bittensor.proto.Tensor"""
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
     def serialize_from_torch(
         self, torch_tensor: torch.Tensor
     ) -> bittensor.proto.Tensor:
-        """ torch -> bittensor.proto.Tensor """
+        """torch -> bittensor.proto.Tensor"""
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
     def serialize_from_numpy(
         self, numpy_tensor: torch.Tensor
     ) -> bittensor.proto.Tensor:
-        """ numpy -> bittensor.proto.Tensor """
+        """numpy -> bittensor.proto.Tensor"""
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
     def deserialize_to_torch(self, tensor_pb2: bittensor.proto.Tensor) -> torch.Tensor:
-        """ bittensor.proto.Tensor -> torch """
+        """bittensor.proto.Tensor -> torch"""
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
     def deserialize_to_tensorflow(self, tensor_pb2: bittensor.proto.Tensor) -> object:
-        """ bittensor.proto.Tensor -> tensorflow """
+        """bittensor.proto.Tensor -> tensorflow"""
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
     def deserialize_to_numpy(self, tensor_pb2: bittensor.proto.Tensor) -> object:
-        """ bittensor.proto.Tensor -> numpy """
+        """bittensor.proto.Tensor -> numpy"""
         raise bittensor.serializer.SerializationTypeNotImplementedException
 
 
 class MSGPackSerializer(Serializer):
-    """ Make conversion between torch and bittensor.proto.torch
-    """
+    """Make conversion between torch and bittensor.proto.torch"""
 
     def serialize_from_torch(
         self, torch_tensor: torch.Tensor
     ) -> bittensor.proto.Tensor:
-        """ Serializes a torch.Tensor to an bittensor Tensor proto.
+        """Serializes a torch.Tensor to an bittensor Tensor proto.
 
         Args:
             torch_tensor (torch.Tensor):
@@ -204,13 +203,12 @@ class MSGPackSerializer(Serializer):
 
 
 class CMPPackSerializer(Serializer):
-    """ Make conversion between torch and bittensor.proto.torch in float16
-    """
+    """Make conversion between torch and bittensor.proto.torch in float16"""
 
     def serialize_from_torch(
         self, torch_tensor: torch.Tensor
     ) -> bittensor.proto.Tensor:
-        """ Serializes a torch.Tensor to an bittensor Tensor proto in float16
+        """Serializes a torch.Tensor to an bittensor Tensor proto in float16
 
         Args:
             torch_tensor (torch.Tensor):

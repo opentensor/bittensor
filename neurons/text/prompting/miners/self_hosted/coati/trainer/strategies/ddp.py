@@ -22,7 +22,7 @@ from .sampler import DistributedSampler
 
 class DDPStrategy(NaiveStrategy):
     """
-        Strategy for distributed training using torch.distributed.
+    Strategy for distributed training using torch.distributed.
     """
 
     def __init__(self, seed: int = 42) -> None:

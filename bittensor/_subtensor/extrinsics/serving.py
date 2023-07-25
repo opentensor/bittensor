@@ -37,7 +37,7 @@ def serve_extrinsic(
     wait_for_finalization=True,
     prompt: bool = False,
 ) -> bool:
-    r""" Subscribes an bittensor endpoint to the substensor chain.
+    r"""Subscribes an bittensor endpoint to the substensor chain.
     Args:
         wallet (bittensor.wallet):
             bittensor wallet object.
@@ -164,7 +164,7 @@ def serve_axon_extrinsic(
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
-    r""" Serves the axon to the network.
+    r"""Serves the axon to the network.
     Args:
         netuid ( int ):
             The netuid being served on.

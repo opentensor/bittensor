@@ -22,7 +22,6 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
 class VicunaMiner(bittensor.HuggingFaceMiner):
-
     arg_prefix: str = "vicuna"
     system_label: str = ""
     assistant_label: str = "ASSISTANT:"
@@ -45,7 +44,6 @@ class VicunaMiner(bittensor.HuggingFaceMiner):
         )
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
-
         history = self.process_history(messages)
         prompt = history + self.assistant_label
         print(prompt)

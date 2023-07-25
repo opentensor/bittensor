@@ -40,7 +40,7 @@ def set_weights_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> bool:
-    r""" Sets the given weights and values on chain for wallet hotkey account.
+    r"""Sets the given weights and values on chain for wallet hotkey account.
     Args:
         wallet (bittensor.wallet):
             bittensor wallet object.
@@ -123,7 +123,6 @@ def set_weights_extrinsic(
                 return False
 
         except Exception as e:
-
             # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with loguru.
             bittensor.__console__.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)

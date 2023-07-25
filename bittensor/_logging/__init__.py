@@ -43,8 +43,7 @@ def _remove_loguru_ansi_directive(text: str) -> str:
 
 
 class logging:
-    """ Standardize logging for bittensor
-    """
+    """Standardize logging for bittensor"""
 
     __has_been_inited__: bool = False
     __debug_on__: bool = False
@@ -60,18 +59,18 @@ class logging:
         record_log: bool = None,
         logging_dir: str = None,
     ):
-        r""" Instantiate bittensor logging system backend.
-            Args:
-                config (:obj:`bittensor.Config`, `optional`):
-                    bittensor.logging.config()
-                debug (:obj:`bool`, `optional`):
-                    Turn on debug.
-                trace (:obj:`bool`, `optional`):
-                    Turn on trace.
-                record_log (:obj:`bool`, `optional`):
-                    If true, logs are saved to loggind dir.
-                logging_dir (:obj:`str`, `optional`):
-                    Directory where logs are sunk.
+        r"""Instantiate bittensor logging system backend.
+        Args:
+            config (:obj:`bittensor.Config`, `optional`):
+                bittensor.logging.config()
+            debug (:obj:`bool`, `optional`):
+                Turn on debug.
+            trace (:obj:`bool`, `optional`):
+                Turn on trace.
+            record_log (:obj:`bool`, `optional`):
+                If true, logs are saved to loggind dir.
+            logging_dir (:obj:`str`, `optional`):
+                Directory where logs are sunk.
         """
 
         cls.__has_been_inited__ = True
@@ -131,8 +130,8 @@ class logging:
 
     @classmethod
     def config(cls):
-        """ Get config from the argument parser
-            Return: bittensor.config object
+        """Get config from the argument parser
+        Return: bittensor.config object
         """
         parser = argparse.ArgumentParser()
         logging.add_args(parser)
@@ -140,8 +139,7 @@ class logging:
 
     @classmethod
     def help(cls):
-        """ Print help to stdout
-        """
+        """Print help to stdout"""
         parser = argparse.ArgumentParser()
         cls.add_args(parser)
         print(cls.__new__.__doc__)
@@ -149,8 +147,7 @@ class logging:
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
-        """ Accept specific arguments fro parser
-        """
+        """Accept specific arguments fro parser"""
         prefix_str = "" if prefix == None else prefix + "."
         if prefix is not None:
             if bittensor.defaults.get(prefix, d=None) == None:
@@ -187,8 +184,7 @@ class logging:
 
     @classmethod
     def add_defaults(cls, defaults):
-        """ Adds parser defaults to object from enviroment variables.
-        """
+        """Adds parser defaults to object from enviroment variables."""
         defaults.logging = bittensor.Config()
         defaults.logging.debug = (
             os.getenv("BT_LOGGING_DEBUG")
@@ -213,22 +209,19 @@ class logging:
 
     @classmethod
     def check_config(cls, config: "bittensor.Config"):
-        """ Check config
-        """
+        """Check config"""
         assert config.logging
 
     @classmethod
     def set_debug(cls, debug_on: bool = True):
-        """ Set debug for the specific cls class
-        """
+        """Set debug for the specific cls class"""
         if not cls.__has_been_inited__:
             cls()
         cls.__debug_on__ = debug_on
 
     @classmethod
     def set_trace(cls, trace_on: bool = True):
-        """ Set trace back for the specific cls class
-        """
+        """Set trace back for the specific cls class"""
         if not cls.__has_been_inited__:
             cls()
         cls.__trace_on__ = trace_on
@@ -239,8 +232,7 @@ class logging:
 
     @classmethod
     def log_filter(cls, record):
-        """ Filter out debug log if debug is not on
-        """
+        """Filter out debug log if debug is not on"""
         if cls.get_level() <= record["level"].no:
             return True
         else:
@@ -255,8 +247,7 @@ class logging:
 
     @classmethod
     def log_formatter(cls, record):
-        """ Log with different format according to record['extra']
-        """
+        """Log with different format according to record['extra']"""
         extra = record["extra"]
         if "rpc" in extra:
             return (
@@ -297,8 +288,7 @@ class logging:
         message: str = "",
         synapse: "bittensor.Synapse" = None,
     ):
-        """ Debug logging for the communication between endpoints with axon/dendrite
-        """
+        """Debug logging for the communication between endpoints with axon/dendrite"""
 
         if axon:
             prefix = "Synapse"
@@ -357,8 +347,7 @@ class logging:
 
     @classmethod
     def _format(cls, prefix: object, sufix: object = None):
-        """ Format logging message
-        """
+        """Format logging message"""
         if isinstance(prefix, torch.Tensor):
             prefix = prefix.detach()
         if sufix != None:
@@ -375,48 +364,42 @@ class logging:
 
     @classmethod
     def success(cls, prefix: object, sufix: object = None):
-        """ Success logging
-        """
+        """Success logging"""
         if not cls.__has_been_inited__:
             cls()
         logger.success(cls._format(prefix, sufix))
 
     @classmethod
     def warning(cls, prefix: object, sufix: object = None):
-        """ Warning logging
-        """
+        """Warning logging"""
         if not cls.__has_been_inited__:
             cls()
         logger.warning(cls._format(prefix, sufix))
 
     @classmethod
     def error(cls, prefix: object, sufix: object = None):
-        """ Error logging
-        """
+        """Error logging"""
         if not cls.__has_been_inited__:
             cls()
         logger.error(cls._format(prefix, sufix))
 
     @classmethod
     def info(cls, prefix: object, sufix: object = None):
-        """ Info logging
-        """
+        """Info logging"""
         if not cls.__has_been_inited__:
             cls()
         logger.info(cls._format(prefix, sufix))
 
     @classmethod
     def debug(cls, prefix: object, sufix: object = None):
-        """ Info logging
-        """
+        """Info logging"""
         if not cls.__has_been_inited__:
             cls()
         logger.debug(cls._format(prefix, sufix))
 
     @classmethod
     def trace(cls, prefix: object, sufix: object = None):
-        """ Info logging
-        """
+        """Info logging"""
         if not cls.__has_been_inited__:
             cls()
         logger.trace(cls._format(prefix, sufix))

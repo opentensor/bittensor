@@ -27,7 +27,7 @@ console = bittensor.__console__
 class TransferCommand:
     @staticmethod
     def run(cli):
-        r""" Transfer token of amount to destination."""
+        r"""Transfer token of amount to destination."""
         wallet = bittensor.wallet(config=cli.config)
         subtensor = bittensor.subtensor(config=cli.config)
         subtensor.transfer(

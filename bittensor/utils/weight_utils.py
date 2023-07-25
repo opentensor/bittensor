@@ -28,15 +28,15 @@ U16_MAX = 65535
 def normalize_max_weight(
     x: torch.FloatTensor, limit: float = 0.1
 ) -> "torch.FloatTensor":
-    r""" Normalizes the tensor x so that sum(x) = 1 and the max value is not greater than the limit.
-        Args:
-            x (:obj:`torch.FloatTensor`):
-                Tensor to be max_value normalized.
-            limit: float:
-                Max value after normalization.
-        Returns:
-            y (:obj:`torch.FloatTensor`):
-                Normalized x tensor.
+    r"""Normalizes the tensor x so that sum(x) = 1 and the max value is not greater than the limit.
+    Args:
+        x (:obj:`torch.FloatTensor`):
+            Tensor to be max_value normalized.
+        limit: float:
+            Max value after normalization.
+    Returns:
+        y (:obj:`torch.FloatTensor`):
+            Normalized x tensor.
     """
     epsilon = 1e-7  # For numerical stability after normalization
 
@@ -77,17 +77,17 @@ def normalize_max_weight(
 def convert_weight_uids_and_vals_to_tensor(
     n: int, uids: List[int], weights: List[int]
 ) -> "torch.FloatTensor":
-    r""" Converts weights and uids from chain representation into a torch tensor (inverse operation from convert_weights_and_uids_for_emit)
-        Args:
-            n: int:
-                number of neurons on network.
-            uids (:obj:`List[int],`):
-                Tensor of uids as destinations for passed weights.
-            weights (:obj:`List[int],`):
-                Tensor of weights.
-        Returns:
-            row_weights ( torch.FloatTensor ):
-                Converted row weights.
+    r"""Converts weights and uids from chain representation into a torch tensor (inverse operation from convert_weights_and_uids_for_emit)
+    Args:
+        n: int:
+            number of neurons on network.
+        uids (:obj:`List[int],`):
+            Tensor of uids as destinations for passed weights.
+        weights (:obj:`List[int],`):
+            Tensor of weights.
+    Returns:
+        row_weights ( torch.FloatTensor ):
+            Converted row weights.
     """
     row_weights = torch.zeros([n], dtype=torch.float32)
     for uid_j, wij in list(zip(uids, weights)):
@@ -103,17 +103,17 @@ def convert_weight_uids_and_vals_to_tensor(
 def convert_bond_uids_and_vals_to_tensor(
     n: int, uids: List[int], bonds: List[int]
 ) -> "torch.LongTensor":
-    r""" Converts bond and uids from chain representation into a torch tensor.
-        Args:
-            n: int:
-                number of neurons on network.
-            uids (:obj:`List[int],`):
-                Tensor of uids as destinations for passed bonds.
-            bonds (:obj:`List[int],`):
-                Tensor of bonds.
-        Returns:
-            row_bonds ( torch.FloatTensor ):
-                Converted row bonds.
+    r"""Converts bond and uids from chain representation into a torch tensor.
+    Args:
+        n: int:
+            number of neurons on network.
+        uids (:obj:`List[int],`):
+            Tensor of uids as destinations for passed bonds.
+        bonds (:obj:`List[int],`):
+            Tensor of bonds.
+    Returns:
+        row_bonds ( torch.FloatTensor ):
+            Converted row bonds.
     """
     row_bonds = torch.zeros([n], dtype=torch.int64)
     for uid_j, bij in list(zip(uids, bonds)):
@@ -124,17 +124,17 @@ def convert_bond_uids_and_vals_to_tensor(
 def convert_weights_and_uids_for_emit(
     uids: torch.LongTensor, weights: torch.FloatTensor
 ) -> Tuple[List[int], List[int]]:
-    r""" Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
-        Args:
-            uids (:obj:`torch.LongTensor,`):
-                Tensor of uids as destinations for passed weights.
-            weights (:obj:`torch.FloatTensor,`):
-                Tensor of weights.
-        Returns:
-            weight_uids (List[int]):
-                Uids as a list.
-            weight_vals (List[int]):
-                Weights as a list.
+    r"""Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
+    Args:
+        uids (:obj:`torch.LongTensor,`):
+            Tensor of uids as destinations for passed weights.
+        weights (:obj:`torch.FloatTensor,`):
+            Tensor of weights.
+    Returns:
+        weight_uids (List[int]):
+            Uids as a list.
+        weight_vals (List[int]):
+            Weights as a list.
     """
     # Checks.
     weights = weights.tolist()

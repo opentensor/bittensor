@@ -160,7 +160,7 @@ class MockChainState(TypedDict):
 
 class MockSubtensor(Subtensor):
     """
-    A Mock Subtensor class for running tests. 
+    A Mock Subtensor class for running tests.
     This should mock only methods that make queries to the chain.
     e.g. We mock `Subtensor.query_subtensor` instead of all query methods.
 
@@ -1315,8 +1315,7 @@ class MockSubtensor(Subtensor):
     def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
     ) -> List[Tuple["bittensor.DelegateInfo", "bittensor.Balance"]]:
-        """ Returns the list of delegates that a given coldkey is staked to.
-        """
+        """Returns the list of delegates that a given coldkey is staked to."""
         delegates = self.get_delegates(block=block)
 
         result = []

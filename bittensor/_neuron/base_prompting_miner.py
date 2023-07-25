@@ -47,8 +47,7 @@ class BasePromptingMiner(bittensor.BaseMinerNeuron, ABC):
 
     @classmethod
     def add_super_args(cls, parser: argparse.ArgumentParser):
-        """ Add arguments specific to BasePromptingMiner to parser.
-        """
+        """Add arguments specific to BasePromptingMiner to parser."""
         cls.add_args(parser)
         parser.add_argument(
             "--neuron.max_batch_size",

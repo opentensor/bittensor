@@ -37,6 +37,7 @@ from coati.models.auto import AutoActor as Actor, AutoCritic as Critic
 from coati.trainer.strategies import ColossalAIStrategy, DDPStrategy, NaiveStrategy
 from coati.models.loss import PolicyLoss, ValueLoss
 
+
 # Check run config.
 def check_config(config: "bittensor.Config"):
     bittensor.logging.check_config(config)
@@ -220,7 +221,6 @@ def main():
     # --- Run Forever.
     last_update = subtensor.get_current_block()
     while True:
-
         # --- Wait until next epoch.
         current_block = subtensor.get_current_block()
         while (current_block - last_update) < config.neuron.blocks_per_epoch:

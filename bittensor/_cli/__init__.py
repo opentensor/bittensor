@@ -44,12 +44,12 @@ class cli:
         config: Optional["bittensor.Config"] = None,
         args: Optional[List[str]] = None,
     ) -> "bittensor.CLI":
-        r""" Creates a new bittensor.cli from passed arguments.
-            Args:
-                config (:obj:`bittensor.Config`, `optional`):
-                    bittensor.cli.config()
-                args (`List[str]`, `optional`):
-                    The arguments to parse from the command line.
+        r"""Creates a new bittensor.cli from passed arguments.
+        Args:
+            config (:obj:`bittensor.Config`, `optional`):
+                bittensor.cli.config()
+            args (`List[str]`, `optional`):
+                The arguments to parse from the command line.
         """
         if config == None:
             config = cli.config(args)
@@ -59,8 +59,7 @@ class cli:
 
     @staticmethod
     def __create_parser__() -> "argparse.ArgumentParser":
-        """ Creates the argument parser for the bittensor cli.
-        """
+        """Creates the argument parser for the bittensor cli."""
         parser = argparse.ArgumentParser(
             description=f"bittensor cli v{bittensor.__version__}",
             usage="btcli <command> <command args>",
@@ -100,8 +99,8 @@ class cli:
 
     @staticmethod
     def config(args: List[str]) -> "bittensor.config":
-        """ From the argument parser, add config to bittensor.executor and local config
-            Return: bittensor.config object
+        """From the argument parser, add config to bittensor.executor and local config
+        Return: bittensor.config object
         """
         parser = cli.__create_parser__()
 
@@ -114,8 +113,7 @@ class cli:
 
     @staticmethod
     def check_config(config: "bittensor.Config"):
-        """ Check if the essential config exist under different command
-        """
+        """Check if the essential config exist under different command"""
         if config.command == "transfer":
             TransferCommand.check_config(config)
         elif config.command == "register":

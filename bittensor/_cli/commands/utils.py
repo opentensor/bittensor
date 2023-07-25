@@ -28,7 +28,7 @@ console = bittensor.__console__
 
 
 class IntListPrompt(PromptBase):
-    """ Prompt for a list of integers. """
+    """Prompt for a list of integers."""
 
     def check_choice(self, value: str) -> bool:
         assert self.choices is not None

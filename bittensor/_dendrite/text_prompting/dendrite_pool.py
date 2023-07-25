@@ -111,6 +111,7 @@ class TextPromptingDendritePool(torch.nn.Module):
             uids = range(self.metagraph.n.item())
         if isinstance(uids, torch.Tensor):
             uids = uids.tolist()
+
         # The following asyncio defintion queries a single endpoint with the message
         # prompt and returns the response.
         async def call_single_uid(uid: int) -> str:

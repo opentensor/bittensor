@@ -8,8 +8,7 @@ import torch.nn.functional as F
 
 
 class LoraLinear(lora.LoRALayer, nn.Module):
-    """Replace in-place ops to out-of-place ops to fit gemini. Convert a torch.nn.Linear to LoraLinear.
-    """
+    """Replace in-place ops to out-of-place ops to fit gemini. Convert a torch.nn.Linear to LoraLinear."""
 
     def __init__(
         self,

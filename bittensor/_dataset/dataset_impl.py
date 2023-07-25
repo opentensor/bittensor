@@ -41,11 +41,9 @@ logger = logger.opt(colors=True)
 
 
 class Dataset:
-    """ Implementation for the dataset class, which handles dataloading from ipfs
-    """
+    """Implementation for the dataset class, which handles dataloading from ipfs"""
 
     def __init__(self):
-
         # Used to retrieve directory contentx
         self.dataset_dir = "http://global.ipfs.opentensor.ai/api/v0/cat"
         self.text_dir = "http://global.ipfs.opentensor.ai/api/v0/object/get"
@@ -60,7 +58,7 @@ class Dataset:
         status_forcelist=(104, 500, 502, 504),
         session=None,
     ):
-        """ Creates a retriable session for request calls. This enables
+        """Creates a retriable session for request calls. This enables
         automatic retries and back-off retries should any request calls fail.
 
         Args:
@@ -121,17 +119,14 @@ class Dataset:
         return response
 
     def __len__(self):
-        """ Returns length of the dataset that the dataset is processing
-        """
+        """Returns length of the dataset that the dataset is processing"""
 
     def __getitem__(self, idx):
-        """ Returns the next batch from the dataset.
-        """
+        """Returns the next batch from the dataset."""
 
 
 class GenesisTextDataset(Dataset):
-    """ One kind of dataset that caters for the data from ipfs
-    """
+    """One kind of dataset that caters for the data from ipfs"""
 
     def __init__(
         self,
@@ -198,7 +193,7 @@ class GenesisTextDataset(Dataset):
         self.data_queue.close()
 
     def get_folder_size(self, folder):
-        r""" Get the size (in byte) of a folder inside the data_dir.
+        r"""Get the size (in byte) of a folder inside the data_dir.
         Args:
             folder (str):
                 The name of the folder
@@ -219,7 +214,7 @@ class GenesisTextDataset(Dataset):
         return total_size
 
     def load_hash(self, file_meta):
-        r""" Load a hash from disk.
+        r"""Load a hash from disk.
         Args:
             file_meta (dict of str: int):
                 Specify the details of the dataset in the format of {'Name': , 'Hash':}.
@@ -253,7 +248,7 @@ class GenesisTextDataset(Dataset):
         return None
 
     def save_hash(self, file_meta, text):
-        r""" Save a hash to disk.
+        r"""Save a hash to disk.
         Args:
             file_meta (dict of str: int):
                 Specify the details of the dataset in the format of {'Name': , 'Hash':}.
@@ -287,7 +282,7 @@ class GenesisTextDataset(Dataset):
             return False
 
     def get_text(self, file_meta):
-        r""" Either load a file from disk or download it from IPFS
+        r"""Either load a file from disk or download it from IPFS
         Args:
             file_meta (dict of str: int):
                 Specify the details of the file in the format of {'Name': , 'Hash':}.
@@ -324,7 +319,7 @@ class GenesisTextDataset(Dataset):
         return text
 
     def get_dataset(self, file_meta):
-        r""" Either load a dataset, which is a list of hashes, from disk or download it from IPFS
+        r"""Either load a dataset, which is a list of hashes, from disk or download it from IPFS
         Args:
             file_meta (dict of str: int):
                 Specify the details of the dataset in the format of {'Name': , 'Hash':}.
@@ -368,7 +363,7 @@ class GenesisTextDataset(Dataset):
             return hashes
 
     def get_hashes_from_dataset(self):
-        r""" Getting directories .
+        r"""Getting directories .
         Where a directory could be leading to a data file or a directory file.
 
         Returns:
@@ -486,7 +481,6 @@ class GenesisTextDataset(Dataset):
         return None
 
     def get_text_from_local(self, min_data_len):
-
         folders = os.listdir(os.path.expanduser(self.data_dir))
         if self.dataset_names == ["default"]:
             folders_avail = folders
@@ -529,7 +523,7 @@ class GenesisTextDataset(Dataset):
         return data_corpus
 
     def construct_text_corpus(self, min_data_len=0):
-        """ Main function for generating the text data.
+        """Main function for generating the text data.
         1. Get directories from a random dataset_hash (dataset_hash is the result from calling pin/ls).
         2. Pick a random directory and get the directory that would lead to a datafile.
         3. Get text from the directory.
@@ -609,7 +603,7 @@ class GenesisTextDataset(Dataset):
         return data_corpus
 
     def reserve_multiple_data(self, epoch_length=100, multiples=2):
-        r""" Make sure the reserved data meet the multiple,
+        r"""Make sure the reserved data meet the multiple,
         If not, then keep constructing text corpus.
         Arg:
             epoch_length (int, optional):
@@ -632,7 +626,7 @@ class GenesisTextDataset(Dataset):
         return True
 
     def set_data_size(self, batch_size, block_size):
-        r""" Update the size of data (batch_size, block_size) that we need.
+        r"""Update the size of data (batch_size, block_size) that we need.
 
         Args:
             batch_size(int, required):
@@ -643,8 +637,7 @@ class GenesisTextDataset(Dataset):
         """
 
         def check_valid(size):
-            r""" Check if the size is a valid positive intiget, if not, return False.
-            """
+            r"""Check if the size is a valid positive intiget, if not, return False."""
             if size <= 0 or (not isinstance(size, int)):
                 return False
             else:
@@ -671,7 +664,7 @@ class GenesisTextDataset(Dataset):
         )
 
     def dataloader(self, epoch_length=100):
-        r""" Creates a torch dataloader out of a subclass of this class.
+        r"""Creates a torch dataloader out of a subclass of this class.
 
         Args:
             epoch_length (int, optional):
@@ -699,8 +692,7 @@ class GenesisTextDataset(Dataset):
         )
 
     def set_dataset_iterator(self):
-        r""" Get a new dataset that is ready from the queue. The result would be updated to self.__infinite_dataset_iterator__ .
-        """
+        r"""Get a new dataset that is ready from the queue. The result would be updated to self.__infinite_dataset_iterator__ ."""
         success = False
         while not success:
             if not self.data_queue.queue.empty():
@@ -719,8 +711,7 @@ class GenesisTextDataset(Dataset):
         return
 
     def __next__(self):
-        """Returns the next element from the dataset.
-        """
+        """Returns the next element from the dataset."""
         if self.__infinite_dataset_iterator == None:
             self.set_dataset_iterator()
 
@@ -742,13 +733,13 @@ class GenesisTextDataset(Dataset):
         return round(len(self.data) / self.block_size)
 
     def __getitem__(self, idx: int) -> Union[str, torch.tensor]:
-        """ Returns a block of sentences from text dataset.
+        """Returns a block of sentences from text dataset.
 
-            Args:
-                idx: index of data input
+        Args:
+            idx: index of data input
 
-            Returns:
-                torch.tensor(dix)
+        Returns:
+            torch.tensor(dix)
         """
         start_idx = (idx * self.block_size) % len(self.data)
         end_idx = start_idx + self.block_size

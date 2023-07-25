@@ -28,7 +28,7 @@ from dataclasses import dataclass
 
 @dataclass
 class SynapseCall(ABC):
-    """ Base class for all synapse calls."""
+    """Base class for all synapse calls."""
 
     is_forward: bool  # If it is an forward of backward
     name: str  # The name of the call.
@@ -51,7 +51,9 @@ class SynapseCall(ABC):
         self.src_hotkey = sender_hotkey
         self.dest_hotkey = synapse.axon.wallet.hotkey.ss58_address
         self.dest_version = bittensor.__version_as_int__
-        self.return_code: bittensor.proto.ReturnCode = bittensor.proto.ReturnCode.Success
+        self.return_code: bittensor.proto.ReturnCode = (
+            bittensor.proto.ReturnCode.Success
+        )
         self.return_message: str = "Success"
         self.priority: float = 0
 

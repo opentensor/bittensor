@@ -31,7 +31,6 @@ from tests.helpers import _get_mock_wallet as _generate_wallet, _get_mock_keypai
 
 @fixture(scope="function")
 def setup_chain():
-
     operating_system = "OSX" if platform == "darwin" else "Linux"
     path = "./bin/chain/{}/node-subtensor".format(operating_system)
     logger.info(path)
@@ -703,7 +702,6 @@ class TestCUDASolverRun(unittest.TestCase):
                 MockException,
             ],  # first call returns mocked no solution, second call raises exception
         ) as mock_solve_for_nonce_block_cuda:
-
             # Should exit early
             with pytest.raises(MockException):
                 _CUDASolver.run(mock_solver_self)

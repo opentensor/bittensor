@@ -23,7 +23,6 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
 
 class RobertMyersMiner(bittensor.HuggingFaceMiner):
-
     arg_prefix: str = "robertmyers"
     system_label: str = "system:"
     assistant_label: str = "assistant:"

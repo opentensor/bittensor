@@ -73,19 +73,19 @@ class Subtensor:
     def __init__(
         self, substrate: "SubstrateInterface", network: str, chain_endpoint: str
     ):
-        r""" Initializes a subtensor chain interface.
-            Args:
-                substrate (:obj:`SubstrateInterface`, `required`):
-                    substrate websocket client.
-                network (default='local', type=str)
-                    The subtensor network flag. The likely choices are:
-                            -- local (local running network)
-                            -- nobunaga (staging network)
-                            -- finney (main network)
-                    If this option is set it overloads subtensor.chain_endpoint with
-                    an entry point node from that network.
-                chain_endpoint (default=None, type=str)
-                    The subtensor endpoint flag. If set, overrides the network argument.
+        r"""Initializes a subtensor chain interface.
+        Args:
+            substrate (:obj:`SubstrateInterface`, `required`):
+                substrate websocket client.
+            network (default='local', type=str)
+                The subtensor network flag. The likely choices are:
+                        -- local (local running network)
+                        -- nobunaga (staging network)
+                        -- finney (main network)
+                If this option is set it overloads subtensor.chain_endpoint with
+                an entry point node from that network.
+            chain_endpoint (default=None, type=str)
+                The subtensor endpoint flag. If set, overrides the network argument.
         """
         self.network = network
         self.chain_endpoint = chain_endpoint
@@ -111,7 +111,7 @@ class Subtensor:
         wait_for_finalization: bool = False,
         wait_for_inclusion: bool = True,
     ) -> bool:
-        """ Becomes a delegate for the hotkey."""
+        """Becomes a delegate for the hotkey."""
         return nominate_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -128,7 +128,7 @@ class Subtensor:
         wait_for_finalization: bool = False,
         prompt: bool = False,
     ) -> bool:
-        """ Adds the specified amount of stake to the passed delegate using the passed wallet. """
+        """Adds the specified amount of stake to the passed delegate using the passed wallet."""
         return delegate_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -148,7 +148,7 @@ class Subtensor:
         wait_for_finalization: bool = False,
         prompt: bool = False,
     ) -> bool:
-        """ Removes the specified amount of stake from the passed delegate using the passed wallet. """
+        """Removes the specified amount of stake from the passed delegate using the passed wallet."""
         return undelegate_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -244,7 +244,7 @@ class Subtensor:
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
     ) -> bool:
-        """ Registers the wallet to chain."""
+        """Registers the wallet to chain."""
         return register_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -270,7 +270,7 @@ class Subtensor:
         wait_for_finalization: bool = True,
         prompt: bool = False,
     ) -> bool:
-        """ Registers the wallet to chain by recycling TAO."""
+        """Registers the wallet to chain by recycling TAO."""
         return burned_register_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -288,16 +288,16 @@ class Subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-        """ Sends a (POW) register extrinsic to the chain.
-            Args:
-                netuid (int): the subnet to register on.
-                wallet (bittensor.Wallet): the wallet to register.
-                pow_result (POWSolution): the pow result to register.
-                wait_for_inclusion (bool): if true, waits for the extrinsic to be included in a block.
-                wait_for_finalization (bool): if true, waits for the extrinsic to be finalized.
-            Returns:
-                success (bool): True if the extrinsic was included in a block.
-                error (Optional[str]): None on success or not waiting for inclusion/finalization, otherwise the error message.
+        """Sends a (POW) register extrinsic to the chain.
+        Args:
+            netuid (int): the subnet to register on.
+            wallet (bittensor.Wallet): the wallet to register.
+            pow_result (POWSolution): the pow result to register.
+            wait_for_inclusion (bool): if true, waits for the extrinsic to be included in a block.
+            wait_for_finalization (bool): if true, waits for the extrinsic to be finalized.
+        Returns:
+            success (bool): True if the extrinsic was included in a block.
+            error (Optional[str]): None on success or not waiting for inclusion/finalization, otherwise the error message.
         """
         with self.substrate as substrate:
             # create extrinsic call
@@ -387,7 +387,7 @@ class Subtensor:
         wait_for_finalization: bool = False,
         prompt: bool = False,
     ) -> bool:
-        """ Transfers funds from this wallet to the destination public key address"""
+        """Transfers funds from this wallet to the destination public key address"""
         return transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -436,18 +436,18 @@ class Subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> Tuple[bool, Optional[str], Optional[str]]:
-        """ Sends a transfer extrinsic to the chain.
-            Args:
-                wallet (:obj:`bittensor.wallet`): Wallet object.
-                dest (:obj:`str`): Destination public key address.
-                transfer_balance (:obj:`bittensor.Balance`): Amount to transfer.
-                wait_for_inclusion (:obj:`bool`): If true, waits for inclusion.
-                wait_for_finalization (:obj:`bool`): If true, waits for finalization.
-            Returns:
-                success (:obj:`bool`): True if transfer was successful.
-                block_hash (:obj:`str`): Block hash of the transfer. 
-                    (On success and if wait_for_ finalization/inclusion is True)
-                error (:obj:`str`): Error message if transfer failed.
+        """Sends a transfer extrinsic to the chain.
+        Args:
+            wallet (:obj:`bittensor.wallet`): Wallet object.
+            dest (:obj:`str`): Destination public key address.
+            transfer_balance (:obj:`bittensor.Balance`): Amount to transfer.
+            wait_for_inclusion (:obj:`bool`): If true, waits for inclusion.
+            wait_for_finalization (:obj:`bool`): If true, waits for finalization.
+        Returns:
+            success (:obj:`bool`): True if transfer was successful.
+            block_hash (:obj:`str`): Block hash of the transfer.
+                (On success and if wait_for_ finalization/inclusion is True)
+            error (:obj:`str`): Error message if transfer failed.
         """
         with self.substrate as substrate:
             call = substrate.compose_call(
@@ -479,7 +479,7 @@ class Subtensor:
                 return False, None, response.error_message
 
     def get_existential_deposit(self, block: Optional[int] = None) -> Optional[Balance]:
-        """ Returns the existential deposit for the chain. """
+        """Returns the existential deposit for the chain."""
         result = self.query_constant(
             module_name="Balances", constant_name="ExistentialDeposit", block=block
         )
@@ -631,7 +631,7 @@ class Subtensor:
         wait_for_finalization: bool = False,
         prompt: bool = False,
     ) -> bool:
-        """ Adds the specified amount of stake to passed hotkey uid. """
+        """Adds the specified amount of stake to passed hotkey uid."""
         return add_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -651,7 +651,7 @@ class Subtensor:
         wait_for_finalization: bool = False,
         prompt: bool = False,
     ) -> bool:
-        """ Adds stake to each hotkey_ss58 in the list, using each amount, from a common coldkey."""
+        """Adds stake to each hotkey_ss58 in the list, using each amount, from a common coldkey."""
         return add_stake_multiple_extrinsic(
             self,
             wallet,
@@ -670,17 +670,17 @@ class Subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
-        """ Sends a stake extrinsic to the chain.
-            Args:
-                wallet (:obj:`bittensor.Wallet`): Wallet object that can sign the extrinsic.
-                hotkey_ss58 (:obj:`str`): Hotkey ss58 address to stake to.
-                amount (:obj:`bittensor.Balance`): Amount to stake.
-                wait_for_inclusion (:obj:`bool`): If true, waits for inclusion before returning.
-                wait_for_finalization (:obj:`bool`): If true, waits for finalization before returning.
-            Returns:
-                success (:obj:`bool`): True if the extrinsic was successful.
-            Raises:
-                StakeError: If the extrinsic failed.
+        """Sends a stake extrinsic to the chain.
+        Args:
+            wallet (:obj:`bittensor.Wallet`): Wallet object that can sign the extrinsic.
+            hotkey_ss58 (:obj:`str`): Hotkey ss58 address to stake to.
+            amount (:obj:`bittensor.Balance`): Amount to stake.
+            wait_for_inclusion (:obj:`bool`): If true, waits for inclusion before returning.
+            wait_for_finalization (:obj:`bool`): If true, waits for finalization before returning.
+        Returns:
+            success (:obj:`bool`): True if the extrinsic was successful.
+        Raises:
+            StakeError: If the extrinsic failed.
         """
         with self.substrate as substrate:
             call = substrate.compose_call(
@@ -718,7 +718,7 @@ class Subtensor:
         wait_for_finalization: bool = False,
         prompt: bool = False,
     ) -> bool:
-        """ Removes stake from each hotkey_ss58 in the list, using each amount, to a common coldkey. """
+        """Removes stake from each hotkey_ss58 in the list, using each amount, to a common coldkey."""
         return unstake_multiple_extrinsic(
             self,
             wallet,
@@ -738,7 +738,7 @@ class Subtensor:
         wait_for_finalization: bool = False,
         prompt: bool = False,
     ) -> bool:
-        """ Removes stake into the wallet coldkey from the specified hotkey uid."""
+        """Removes stake into the wallet coldkey from the specified hotkey uid."""
         return unstake_extrinsic(
             self,
             wallet,
@@ -757,17 +757,17 @@ class Subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
-        """ Sends an unstake extrinsic to the chain.
-            Args:
-                wallet (:obj:`bittensor.Wallet`): Wallet object that can sign the extrinsic.
-                hotkey_ss58 (:obj:`str`): Hotkey ss58 address to unstake from.
-                amount (:obj:`bittensor.Balance`): Amount to unstake.
-                wait_for_inclusion (:obj:`bool`): If true, waits for inclusion before returning.
-                wait_for_finalization (:obj:`bool`): If true, waits for finalization before returning.
-            Returns:
-                success (:obj:`bool`): True if the extrinsic was successful.
-            Raises:
-                StakeError: If the extrinsic failed.
+        """Sends an unstake extrinsic to the chain.
+        Args:
+            wallet (:obj:`bittensor.Wallet`): Wallet object that can sign the extrinsic.
+            hotkey_ss58 (:obj:`str`): Hotkey ss58 address to unstake from.
+            amount (:obj:`bittensor.Balance`): Amount to unstake.
+            wait_for_inclusion (:obj:`bool`): If true, waits for inclusion before returning.
+            wait_for_finalization (:obj:`bool`): If true, waits for finalization before returning.
+        Returns:
+            success (:obj:`bool`): True if the extrinsic was successful.
+        Raises:
+            StakeError: If the extrinsic failed.
         """
         with self.substrate as substrate:
             call = substrate.compose_call(
@@ -1296,7 +1296,7 @@ class Subtensor:
 
     @property
     def block(self) -> int:
-        r""" Returns current chain block.
+        r"""Returns current chain block.
         Returns:
             block (int):
                 Current chain block.
@@ -1494,8 +1494,7 @@ class Subtensor:
     def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
     ) -> List[Tuple[DelegateInfo, Balance]]:
-        """ Returns the list of delegates that a given coldkey is staked to.
-        """
+        """Returns the list of delegates that a given coldkey is staked to."""
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry(encoded_coldkey: List[int]):
@@ -1598,7 +1597,7 @@ class Subtensor:
     def neuron_for_uid(
         self, uid: int, netuid: int, block: Optional[int] = None
     ) -> Optional[NeuronInfo]:
-        r""" Returns a list of neuron from the chain.
+        r"""Returns a list of neuron from the chain.
         Args:
             uid ( int ):
                 The uid of the neuron to query for.
@@ -1633,7 +1632,7 @@ class Subtensor:
         return NeuronInfo.from_vec_u8(result)
 
     def neurons(self, netuid: int, block: Optional[int] = None) -> List[NeuronInfo]:
-        r""" Returns a list of neuron from the chain.
+        r"""Returns a list of neuron from the chain.
         Args:
             netuid ( int ):
                 The netuid of the subnet to pull neurons from.
@@ -1662,7 +1661,7 @@ class Subtensor:
     def neuron_for_uid_lite(
         self, uid: int, netuid: int, block: Optional[int] = None
     ) -> Optional[NeuronInfoLite]:
-        r""" Returns a list of neuron lite from the chain.
+        r"""Returns a list of neuron lite from the chain.
         Args:
             uid ( int ):
                 The uid of the neuron to query for.
@@ -1700,7 +1699,7 @@ class Subtensor:
     def neurons_lite(
         self, netuid: int, block: Optional[int] = None
     ) -> List[NeuronInfoLite]:
-        r""" Returns a list of neuron lite from the chain.
+        r"""Returns a list of neuron lite from the chain.
         Args:
             netuid ( int ):
                 The netuid of the subnet to pull neurons from.
@@ -1734,7 +1733,7 @@ class Subtensor:
     def metagraph(
         self, netuid: int, lite: bool = True, block: Optional[int] = None
     ) -> "bittensor.Metagraph":
-        r""" Returns a synced metagraph for the subnet.
+        r"""Returns a synced metagraph for the subnet.
         Args:
             netuid ( int ):
                 The network uid of the subnet to query.
@@ -1879,7 +1878,7 @@ class Subtensor:
     ################
 
     def get_balance(self, address: str, block: int = None) -> Balance:
-        r""" Returns the token balance for the passed ss58_address address
+        r"""Returns the token balance for the passed ss58_address address
         Args:
             address (Substrate address format, default = 42):
                 ss58 chain address.
@@ -1910,7 +1909,7 @@ class Subtensor:
         return Balance(result.value["data"]["free"])
 
     def get_current_block(self) -> int:
-        r""" Returns the current block number on the chain.
+        r"""Returns the current block number on the chain.
         Returns:
             block_number (int):
                 Current chain blocknumber.

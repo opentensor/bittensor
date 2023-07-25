@@ -86,7 +86,7 @@ class MockGenesisTextDataset(dataset_impl.Dataset):
         del self.data_remained[:data_size]
 
     def dataloader(self, epoch_length=100):
-        """ Creates a torch dataloader out of a subclass of this class.
+        """Creates a torch dataloader out of a subclass of this class.
 
         Args:
             epoch_length (int, optional): The epoch length of the miner. If this length is not set or if it is larger than the dataset,
@@ -106,8 +106,7 @@ class MockGenesisTextDataset(dataset_impl.Dataset):
         )
 
     def __next__(self):
-        """Returns the next element from the dataset.
-        """
+        """Returns the next element from the dataset."""
         if self.__infinite_dataset_iterator == None:
             self.__infinite_dataset_iterator = iter(list(self.dataloader()))
         try:
@@ -127,13 +126,13 @@ class MockGenesisTextDataset(dataset_impl.Dataset):
         return round(len(self.data) / self.block_size)
 
     def __getitem__(self, idx):
-        """ Returns a block of sentences from text dataset.
+        """Returns a block of sentences from text dataset.
 
-            Args:
-                idx: index of data input
+        Args:
+            idx: index of data input
 
-            Returns:
-                torch.tensor(dix)
+        Returns:
+            torch.tensor(dix)
         """
         start_idx = (idx * self.block_size) % len(self.data)
         end_idx = start_idx + self.block_size

@@ -84,12 +84,10 @@ class SFTTrainer(ABC):
             disable=not is_rank_0(),
         )
         for epoch in range(self.epochs):
-
             # process_bar = tqdm(range(len(self.train_dataloader)), desc=f'Train process for{epoch}', disable=not is_rank_0())
             # train
             self.model.train()
             for batch_id, batch in enumerate(self.train_dataloader):
-
                 prompt_ids = batch["input_ids"].to(torch.cuda.current_device())
                 p_mask = batch["attention_mask"].to(torch.cuda.current_device())
                 labels = batch["labels"].to(torch.cuda.current_device())

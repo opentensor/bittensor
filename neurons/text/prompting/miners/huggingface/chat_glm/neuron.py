@@ -23,7 +23,6 @@ from transformers import AutoTokenizer, AutoModel
 
 
 class ChatGLMMiner(bittensor.HuggingFaceMiner):
-
     arg_prefix: str = "chat_glm"
     assistant_label: str = ""
     user_label: str = ""

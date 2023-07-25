@@ -63,7 +63,6 @@ class SaveCheckpoint(Callback):
             os.makedirs(base_path)
 
         for model in self.model_dict.keys():
-
             # save model
             if self.model_dict[model][0] is None:
                 # saving only optimizer states is meaningless, so it would be skipped

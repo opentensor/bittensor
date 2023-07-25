@@ -43,7 +43,7 @@ def register_extrinsic(
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
 ) -> bool:
-    r""" Registers the wallet to chain.
+    r"""Registers the wallet to chain.
     Args:
         wallet (bittensor.wallet):
             bittensor wallet object.
@@ -231,7 +231,7 @@ def burned_register_extrinsic(
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
-    r""" Registers the wallet to chain by recycling TAO.
+    r"""Registers the wallet to chain by recycling TAO.
     Args:
         wallet (bittensor.wallet):
             bittensor wallet object.

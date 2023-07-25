@@ -26,19 +26,19 @@ from . import serializer_impl
 
 
 class serializer:
-    """ An interface for serializing and deserializing bittensor tensors"""
+    """An interface for serializing and deserializing bittensor tensors"""
 
     class SerializationException(Exception):
-        """ Raised during serialization """
+        """Raised during serialization"""
 
     class DeserializationException(Exception):
-        """ Raised during deserialization """
+        """Raised during deserialization"""
 
     class NoSerializerForEnum(Exception):
-        """ Raised if there is no serializer for the passed type """
+        """Raised if there is no serializer for the passed type"""
 
     class SerializationTypeNotImplementedException(Exception):
-        """ Raised if serialization/deserialization is not implemented for the passed object type """
+        """Raised if serialization/deserialization is not implemented for the passed object type"""
 
     def __new__(
         cls,
@@ -46,17 +46,17 @@ class serializer:
     ) -> "bittensor.Serializer":
         r"""Returns the correct serializer object for the passed Serializer enum.
 
-            Args:
-                serializer_type (:obj:`bittensor.proto.Serializer`, `required`):
-                    The serializer_type ENUM from bittensor.proto.
+        Args:
+            serializer_type (:obj:`bittensor.proto.Serializer`, `required`):
+                The serializer_type ENUM from bittensor.proto.
 
-            Returns:
-                Serializer: (obj: `bittensor.Serializer`, `required`):
-                    The bittensor serializer/deserialzer for the passed type.
+        Returns:
+            Serializer: (obj: `bittensor.Serializer`, `required`):
+                The bittensor serializer/deserialzer for the passed type.
 
-            Raises:
-                NoSerializerForEnum: (Exception):
-                    Raised if the passed there is no serialzier for the passed type.
+        Raises:
+            NoSerializerForEnum: (Exception):
+                Raised if the passed there is no serialzier for the passed type.
         """
         # WARNING: the pickle serializer is not safe. Should be removed in future verions.
         # if serializer_type == bittensor.proto.Serializer.PICKLE:
@@ -72,13 +72,13 @@ class serializer:
 
     @staticmethod
     def torch_dtype_to_bittensor_dtype(tdtype):
-        """ Translates between torch.dtypes and bittensor.dtypes.
+        """Translates between torch.dtypes and bittensor.dtypes.
 
-            Args:
-                tdtype (torch.dtype): torch.dtype to translate.
+        Args:
+            tdtype (torch.dtype): torch.dtype to translate.
 
-            Returns:
-                dtype: (bittensor.dtype): translated bittensor.dtype.
+        Returns:
+            dtype: (bittensor.dtype): translated bittensor.dtype.
         """
         if tdtype == torch.float32:
             dtype = bittensor.proto.DataType.FLOAT32
@@ -98,13 +98,13 @@ class serializer:
 
     @staticmethod
     def bittensor_dtype_to_torch_dtype(bdtype):
-        """ Translates between bittensor.dtype and torch.dtypes.
+        """Translates between bittensor.dtype and torch.dtypes.
 
-            Args:
-                bdtype (bittensor.dtype): bittensor.dtype to translate.
+        Args:
+            bdtype (bittensor.dtype): bittensor.dtype to translate.
 
-            Returns:
-                dtype: (torch.dtype): translated torch.dtype.
+        Returns:
+            dtype: (torch.dtype): translated torch.dtype.
         """
         if bdtype == bittensor.proto.DataType.FLOAT32:
             dtype = torch.float32
@@ -128,13 +128,13 @@ class serializer:
 
     @staticmethod
     def bittensor_dtype_np_dtype(bdtype):
-        """ Translates between bittensor.dtype and np.dtypes.
+        """Translates between bittensor.dtype and np.dtypes.
 
-            Args:
-                bdtype (bittensor.dtype): bittensor.dtype to translate.
+        Args:
+            bdtype (bittensor.dtype): bittensor.dtype to translate.
 
-            Returns:
-                dtype: (numpy.dtype): translated np.dtype.
+        Returns:
+            dtype: (numpy.dtype): translated np.dtype.
         """
         if bdtype == bittensor.proto.DataType.FLOAT32:
             dtype = np.float32

@@ -26,7 +26,6 @@ class Critic(LoRAModule):
         lora_train_bias: str = "none",
         use_action_mask: bool = False,
     ) -> None:
-
         super().__init__(lora_rank=lora_rank, lora_train_bias=lora_train_bias)
         self.model = model
         self.value_head = value_head

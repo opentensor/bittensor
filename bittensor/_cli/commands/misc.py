@@ -69,7 +69,7 @@ class UpdateCommand:
 class ListSubnetsCommand:
     @staticmethod
     def run(cli):
-        r"""List all subnet netuids in the network. """
+        r"""List all subnet netuids in the network."""
         subtensor = bittensor.subtensor(config=cli.config)
         subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 

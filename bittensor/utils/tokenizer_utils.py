@@ -588,20 +588,20 @@ def translate_many_to_one(
     translation_map: Dict[str, Any],
 ) -> None:
     r"""
-        Translate a sequence of token probability distributions from a source tokenization to a
-        single token probability distribution over a target tokenization.
-            Args:
-                probs_from (:obj:`torch.FloatTensor`, `required`):
-                    [many, vocab_size] Input probability distributions over a from-tokenizer vocabulary.
-                probs_to (:obj:`torch.FloatTensor`, `required`):
-                    [vocab_size] Output probability distribution over a to-tokenizer vocabulary.
-                translation_map (:obj:`Dict[str, Any]`, `required`):
-                    Maps for each observed length, a source token to a token sequence of that length,
-                    with source index to target indices.
+    Translate a sequence of token probability distributions from a source tokenization to a
+    single token probability distribution over a target tokenization.
+        Args:
+            probs_from (:obj:`torch.FloatTensor`, `required`):
+                [many, vocab_size] Input probability distributions over a from-tokenizer vocabulary.
+            probs_to (:obj:`torch.FloatTensor`, `required`):
+                [vocab_size] Output probability distribution over a to-tokenizer vocabulary.
+            translation_map (:obj:`Dict[str, Any]`, `required`):
+                Maps for each observed length, a source token to a token sequence of that length,
+                with source index to target indices.
 
-            Returns:
+        Returns:
 
-        """
+    """
     many_len = probs_from.shape[0]
     probs_from_copy = probs_from.clone()  # will modify from-probabilities
 
@@ -714,7 +714,6 @@ def translate_tokenizer_probs(
     ) in mappings[
         1:
     ]:  # don't map start token
-
         segment_count = (
             segment_count_base + segment_count_overlap
         )  # calculate effective segments length
@@ -795,41 +794,41 @@ def translate_logits_to_probs_std(
     skip_equivalent: bool = True,
 ) -> torch.FloatTensor:
     r"""
-        Translates source token logit scores to probability distributions over the standard tokenizer.
-            Args:
-                logits (:obj:`torch.FloatTensor`, `required`):
-                    [batch_size, sequence_len, vocab_size] Input source logits over a source tokenizer vocabulary.
-                offset_mapping (:obj:`List[List[tuple]]`, `required`):
-                    Batch of tokenizer offset mappings
-                    [[(left_0, right_0), (left_1, right_1), ...], ...].
-                offset_mapping_std (:obj:`List[List[tuple]]`, `required`):
-                    Batch of standard tokenizer offset mappings
-                    [[(left_0, right_0), (left_1, right_1), ...], ...].
-                tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
-                    Source tokenizer.
-                std_tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
-                    Standard/target tokenizer.
-                split_map_cache (:obj:`Dict[tuple, List[Dict[str, torch.Tensor]]]`, `required`):
-                    A dictionary of depths keying split_maps of mappings from original tokens to
-                    target tokens at each depth of the split. Adds split_maps to cache for faster future recall.
-                tokens (:obj:`torch.LongTensor`, `required`):
-                    [batch_size, sequence_len] A sequence of tokens produced by the source tokenizer.
-                tokens_std (:obj:`torch.LongTensor`, `required`):
-                    [batch_size, std_sequence_len] A sequence of tokens produced by the standard tokenizer.
-                to_translation_map (:obj:`Dict[str, Any]`, `required`):
-                    Maps for each observed length, a source token to a token sequence of that length,
-                    with source index to target indices.
-                from_translation_map (:obj:`Dict[str, Any]`, `required`):
-                    Maps for each observed length, a source token to a token sequence of that length,
-                    from target index to source indices.
-                skip_equivalent (:obj:`bool`, `optional`):
-                    Skips translation if tokenizer and std_tokenizer are equivalent.
+    Translates source token logit scores to probability distributions over the standard tokenizer.
+        Args:
+            logits (:obj:`torch.FloatTensor`, `required`):
+                [batch_size, sequence_len, vocab_size] Input source logits over a source tokenizer vocabulary.
+            offset_mapping (:obj:`List[List[tuple]]`, `required`):
+                Batch of tokenizer offset mappings
+                [[(left_0, right_0), (left_1, right_1), ...], ...].
+            offset_mapping_std (:obj:`List[List[tuple]]`, `required`):
+                Batch of standard tokenizer offset mappings
+                [[(left_0, right_0), (left_1, right_1), ...], ...].
+            tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
+                Source tokenizer.
+            std_tokenizer (:obj:`PreTrainedTokenizerBase`, `required`):
+                Standard/target tokenizer.
+            split_map_cache (:obj:`Dict[tuple, List[Dict[str, torch.Tensor]]]`, `required`):
+                A dictionary of depths keying split_maps of mappings from original tokens to
+                target tokens at each depth of the split. Adds split_maps to cache for faster future recall.
+            tokens (:obj:`torch.LongTensor`, `required`):
+                [batch_size, sequence_len] A sequence of tokens produced by the source tokenizer.
+            tokens_std (:obj:`torch.LongTensor`, `required`):
+                [batch_size, std_sequence_len] A sequence of tokens produced by the standard tokenizer.
+            to_translation_map (:obj:`Dict[str, Any]`, `required`):
+                Maps for each observed length, a source token to a token sequence of that length,
+                with source index to target indices.
+            from_translation_map (:obj:`Dict[str, Any]`, `required`):
+                Maps for each observed length, a source token to a token sequence of that length,
+                from target index to source indices.
+            skip_equivalent (:obj:`bool`, `optional`):
+                Skips translation if tokenizer and std_tokenizer are equivalent.
 
-            Returns:
-                probs_std (:obj:`torch.FloatTensor`, `required`):
-                    [batch_size, std_sequence_len, std_vocab_size] Output probability distribution over the
-                    standard tokenizer vocabulary.
-        """
+        Returns:
+            probs_std (:obj:`torch.FloatTensor`, `required`):
+                [batch_size, std_sequence_len, std_vocab_size] Output probability distribution over the
+                standard tokenizer vocabulary.
+    """
     set_vocab_len(tokenizer)
     set_vocab_len(std_tokenizer)
 
@@ -934,9 +933,10 @@ def topk_token_phrases(
                  [...]]
     """
     # Get shape sizes
-    batch_size, vocab_size = (
-        logits.shape
-    )  # [batch_size, vocab_size] only last token prediction
+    (
+        batch_size,
+        vocab_size,
+    ) = logits.shape  # [batch_size, vocab_size] only last token prediction
 
     # Convert logits to probabilities
     logits = (
@@ -1006,9 +1006,7 @@ def topk_token_phrases(
         batch_size, topk + 1, max_len
     )  # [batch_size, (topk + 1), max_len] reshaped
 
-    return (
-        topk_tensor
-    )  # [batch_size, (topk + 1), max_len] (probability gradients attached in first column)
+    return topk_tensor  # [batch_size, (topk + 1), max_len] (probability gradients attached in first column)
 
 
 def compact_topk_token_phrases(topk_tensor: torch.Tensor):
@@ -1157,9 +1155,7 @@ def unravel_topk_token_phrases(
             block_idx
         ]  # slice selected phrases and copy into topk_tensor
 
-    topk_tensor -= (
-        2
-    )  # remove token offset, overwrites probability column, replace probabilities below
+    topk_tensor -= 2  # remove token offset, overwrites probability column, replace probabilities below
 
     # grafting probability tensors into first column to attach gradients
     topk_tensor[:, 0] = probs  # tensor([prob_k=0_b, prob_k=1_b, ..., prob_floor_b])
@@ -1214,9 +1210,11 @@ def phrase_cross_entropy(
                 Phrase cross entropy loss, either scalar if reduce or [batch_size].
     """
 
-    batch_size, topk_p1, max_len = (
-        topk_tensor.shape
-    )  # [batch_size, (topk + 1), max_len]
+    (
+        batch_size,
+        topk_p1,
+        max_len,
+    ) = topk_tensor.shape  # [batch_size, (topk + 1), max_len]
     topk = topk_p1 - 1
 
     topk_tokens = (
@@ -1347,9 +1345,11 @@ def topk_tokens_to_vocab_size(
                 [batch_size, vocab_size_std] Standard logits.
     """
 
-    batch_size, topk_p1, max_len = (
-        topk_tensor.shape
-    )  # [batch_size, (topk + 1), max_len]
+    (
+        batch_size,
+        topk_p1,
+        max_len,
+    ) = topk_tensor.shape  # [batch_size, (topk + 1), max_len]
     topk = topk_p1 - 1
 
     topk_tokens = (
@@ -1751,9 +1751,7 @@ def set_std_token_phrases(tokenizer, std_tokenizer):
 
 
 def prep_tokenizer(tokenizer, std_tokenizer=None):
-    tokenizer.padding_side = (
-        "left"
-    )  # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
+    tokenizer.padding_side = "left"  # Generative default expects most recent token on right-hand side with padding on left. https://github.com/huggingface/transformers/pull/10552
     # tokenizer.add_prefix_space = False
     # tokenizer.add_special_tokens({'bos_token': "[BOS]"}) # A special token representing the beginning of a sentence.
     # tokenizer.add_special_tokens({'eos_token': "[EOS]"}) # A special token representing the end of a sentence.

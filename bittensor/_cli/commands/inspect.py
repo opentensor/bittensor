@@ -65,8 +65,7 @@ def _get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
 class InspectCommand:
     @staticmethod
     def run(cli):
-        r""" Inspect a cold, hot pair.
-        """
+        r"""Inspect a cold, hot pair."""
         if cli.config.get("all", d=False) == True:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)
         else:

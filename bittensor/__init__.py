@@ -63,9 +63,7 @@ __vocab_size__ = 50258
 
 # Tensor dimension.
 # NOTE (const): if/when this increases peers must be responsible for trimming or expanding output to this size.
-__network_dim__ = (
-    1024
-)  # All network responses have shape = [ __batch_size__, __sequence_dim__, __network_dim__ ]
+__network_dim__ = 1024  # All network responses have shape = [ __batch_size__, __sequence_dim__, __network_dim__ ]
 
 # Substrate chain block time (seconds).
 __blocktime__ = 12
@@ -253,6 +251,7 @@ wallet.add_defaults(defaults, prefix="wallet")
 dataset.add_defaults(defaults)
 logging.add_defaults(defaults)
 
+
 # Logging helpers.
 def trace():
     logging.set_trace(True)
@@ -376,13 +375,13 @@ class prompting(torch.nn.Module):
 
 class BittensorLLM(LLM):
     """Wrapper around Bittensor Prompting Subnetwork.
-This Python file implements the BittensorLLM class, a wrapper around the Bittensor Prompting Subnetwork for easy integration into language models. The class provides a query method to receive responses from the subnetwork for a given user message and an implementation of the _call method to return the best response. The class can be initialized with various parameters such as the wallet name and chain endpoint.
+    This Python file implements the BittensorLLM class, a wrapper around the Bittensor Prompting Subnetwork for easy integration into language models. The class provides a query method to receive responses from the subnetwork for a given user message and an implementation of the _call method to return the best response. The class can be initialized with various parameters such as the wallet name and chain endpoint.
 
-    Example:
-        .. code-block:: python
+        Example:
+            .. code-block:: python
 
-            from bittensor import BittensorLLM
-            btllm = BittensorLLM(wallet_name="default")
+                from bittensor import BittensorLLM
+                btllm = BittensorLLM(wallet_name="default")
     """
 
     wallet_name: str = "default"

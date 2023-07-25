@@ -75,14 +75,11 @@ class TestSubtensor(unittest.TestCase):
         cls._mock_console_patcher.stop()
 
     def test_network_overrides(self):
-        """ Tests that the network overrides the chain_endpoint.
-        """
+        """Tests that the network overrides the chain_endpoint."""
         # Argument importance: chain_endpoint (arg) > network (arg) > config.subtensor.chain_endpoint > config.subtensor.network
         config0 = bittensor.subtensor.config()
         config0.subtensor.network = "finney"
-        config0.subtensor.chain_endpoint = (
-            "wss://finney.subtensor.io"
-        )  # Should not match bittensor.__finney_entrypoint__
+        config0.subtensor.chain_endpoint = "wss://finney.subtensor.io"  # Should not match bittensor.__finney_entrypoint__
         assert config0.subtensor.chain_endpoint != bittensor.__finney_entrypoint__
 
         config1 = bittensor.subtensor.config()
@@ -457,7 +454,6 @@ class TestSubtensor(unittest.TestCase):
                 with patch(
                     "multiprocessing.queues.Queue.get_nowait", side_effect=QueueEmpty
                 ) as mock_queue_get_nowait:
-
                     wallet = _get_mock_wallet(
                         hotkey=_get_mock_keypair(0, self.id()),
                         coldkey=_get_mock_keypair(1, self.id()),

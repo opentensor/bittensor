@@ -21,7 +21,6 @@ from typing import Callable, List, Union
 
 
 class DendriteForwardCall(bittensor.DendriteCall):
-
     name: str = "text_prompting_forward"
     is_forward: bool = True
     completion: str = ""  # To be filled.
@@ -88,7 +87,6 @@ class DendriteForwardCall(bittensor.DendriteCall):
 
 
 class DendriteBackwardCall(bittensor.DendriteCall):
-
     name: str = "text_prompting_backward"
     is_forward: bool = False
 

@@ -29,8 +29,7 @@ console = bittensor.__console__
 class SenateCommand:
     @staticmethod
     def run(cli):
-        r""" View Bittensor's governance protocol proposals
-        """
+        r"""View Bittensor's governance protocol proposals"""
         config = cli.config.copy()
         subtensor: bittensor.Subtensor = bittensor.subtensor(config=config)
 
@@ -150,8 +149,7 @@ def display_votes(
 class ProposalsCommand:
     @staticmethod
     def run(cli):
-        r""" View Bittensor's governance protocol proposals
-        """
+        r"""View Bittensor's governance protocol proposals"""
         config = cli.config.copy()
         subtensor: bittensor.Subtensor = bittensor.subtensor(config=config)
 
@@ -169,8 +167,10 @@ class ProposalsCommand:
         ] = get_delegates_details(url=bittensor.__delegates_details_url__)
 
         table = Table(show_footer=False)
-        table.title = "[white]Proposals\t\tActive Proposals: {}\t\tSenate Size: {}".format(
-            len(proposals), len(senate_members)
+        table.title = (
+            "[white]Proposals\t\tActive Proposals: {}\t\tSenate Size: {}".format(
+                len(proposals), len(senate_members)
+            )
         )
         table.add_column(
             "[overline white]HASH",
@@ -247,8 +247,7 @@ class ProposalsCommand:
 class ShowVotesCommand:
     @staticmethod
     def run(cli):
-        r""" View Bittensor's governance protocol proposals active votes
-        """
+        r"""View Bittensor's governance protocol proposals active votes"""
         config = cli.config.copy()
         subtensor: bittensor.Subtensor = bittensor.subtensor(config=config)
 
@@ -336,8 +335,7 @@ class ShowVotesCommand:
 class SenateRegisterCommand:
     @staticmethod
     def run(cli):
-        r""" Register to participate in Bittensor's governance protocol proposals
-        """
+        r"""Register to participate in Bittensor's governance protocol proposals"""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=cli.config)
         subtensor: bittensor.Subtensor = bittensor.subtensor(config=config)
@@ -405,8 +403,7 @@ class SenateRegisterCommand:
 class SenateLeaveCommand:
     @staticmethod
     def run(cli):
-        r""" Discard membership in Bittensor's governance protocol proposals
-        """
+        r"""Discard membership in Bittensor's governance protocol proposals"""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=cli.config)
         subtensor: bittensor.Subtensor = bittensor.subtensor(config=config)
@@ -465,8 +462,7 @@ class SenateLeaveCommand:
 class VoteCommand:
     @staticmethod
     def run(cli):
-        r""" Vote in Bittensor's governance protocol proposals
-        """
+        r"""Vote in Bittensor's governance protocol proposals"""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=cli.config)
         subtensor: bittensor.Subtensor = bittensor.subtensor(config=config)

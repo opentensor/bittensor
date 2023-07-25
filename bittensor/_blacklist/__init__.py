@@ -82,7 +82,6 @@ class blacklist:
         forward_call: "bittensor.SynapseCall",
         metagraph: "bittensor.Metagraph" = None,
     ) -> Union[Tuple[bool, str], bool]:
-
         # Check for blacklisted keys which take priority over all other checks.
         src_hotkey = forward_call.src_hotkey
         if src_hotkey in self.config.blacklist.blacklisted_keys:

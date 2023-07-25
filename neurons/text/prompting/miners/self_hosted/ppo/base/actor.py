@@ -66,8 +66,7 @@ class Actor(LoRAModule):
         num_actions: int,
         attention_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """Returns action log probs
-        """
+        """Returns action log probs"""
         output = self.model(sequences, attention_mask=attention_mask)
         logits = output["logits"]
         log_probs = log_probs_from_logits(logits[:, :-1, :], sequences[:, 1:])

@@ -22,7 +22,6 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
 class PythiaMiner(bittensor.HuggingFaceMiner):
-
     arg_prefix: str = "pythia"
     assistant_label: str = "<bot>:"
     user_label: str = "<human>:"

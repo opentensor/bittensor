@@ -70,7 +70,6 @@ class priority:
         forward_call: "bittensor.SynapseCall",
         metagraph: "bittensor.Metagraph" = None,
     ) -> float:
-
         # Check for blacklisted keys which take priority over all other checks.
         src_hotkey = forward_call.src_hotkey
         if src_hotkey in self.config.priority.blacklisted_keys:

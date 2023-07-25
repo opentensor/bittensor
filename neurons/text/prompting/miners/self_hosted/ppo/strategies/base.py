@@ -19,7 +19,7 @@ ModelOrModelOptimPair = Union[nn.Module, ModelOptimPair]
 
 class Strategy(ABC):
     """
-        Base class for training strategies.
+    Base class for training strategies.
     """
 
     def __init__(self) -> None:

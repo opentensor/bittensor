@@ -30,8 +30,7 @@ console = bittensor.__console__
 class StakeCommand:
     @staticmethod
     def run(cli):
-        r""" Stake token of amount to hotkey(s).
-        """
+        r"""Stake token of amount to hotkey(s)."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
         subtensor: bittensor.Subtensor = bittensor.subtensor(config=config)

@@ -11,10 +11,10 @@ from .utils import BufferItem, make_experience_batch, split_experience_batch
 class NaiveReplayBuffer(ReplayBuffer):
     """Naive replay buffer class. It stores experience.
 
-     Args:
-         sample_batch_size (int): Batch size when sampling.
-         limit (int, optional): Limit of number of experience samples. A number <= 0 means unlimited. Defaults to 0.
-         cpu_offload (bool, optional): Whether to offload experience to cpu when sampling. Defaults to True.
+    Args:
+        sample_batch_size (int): Batch size when sampling.
+        limit (int, optional): Limit of number of experience samples. A number <= 0 means unlimited. Defaults to 0.
+        cpu_offload (bool, optional): Whether to offload experience to cpu when sampling. Defaults to True.
     """
 
     def __init__(

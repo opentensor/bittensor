@@ -27,7 +27,7 @@ console = bittensor.__console__
 class ListCommand:
     @staticmethod
     def run(cli):
-        r""" Lists wallets."""
+        r"""Lists wallets."""
         try:
             wallets = next(os.walk(os.path.expanduser(cli.config.wallet.path)))[1]
         except StopIteration:

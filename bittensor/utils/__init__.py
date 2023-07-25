@@ -47,18 +47,18 @@ def indexed_values_to_dataframe(
 
 
 def unbiased_topk(values, k, dim=0, sorted=True, largest=True):
-    r""" Selects topk as in torch.topk but does not bias lower indices when values are equal.
-        Args:
-            values: (torch.Tensor)
-                Values to index into.
-            k: (int):
-                Number to take.
+    r"""Selects topk as in torch.topk but does not bias lower indices when values are equal.
+    Args:
+        values: (torch.Tensor)
+            Values to index into.
+        k: (int):
+            Number to take.
 
-        Return:
-            topk: (torch.Tensor):
-                topk k values.
-            indices: (torch.LongTensor)
-                indices of the topk values.
+    Return:
+        topk: (torch.Tensor):
+            topk k values.
+        indices: (torch.LongTensor)
+            indices of the topk values.
     """
     permutation = torch.randperm(values.shape[dim])
     permuted_values = values[permutation]
@@ -87,7 +87,7 @@ def version_checking():
 
 
 def strtobool_with_default(
-    default: bool
+    default: bool,
 ) -> Callable[[str], Union[bool, Literal["==SUPRESS=="]]]:
     """
     Creates a strtobool function with a default value.

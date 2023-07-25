@@ -38,8 +38,8 @@ def solve_cuda(
             The CUDA device ID
     Returns:
         Tuple[int64, bytes]
-            Tuple of the nonce and the seal corresponding to the solution.  
-            Returns -1 for nonce if no solution is found.     
+            Tuple of the nonce and the seal corresponding to the solution.
+            Returns -1 for nonce if no solution is found.
     """
 
     try:

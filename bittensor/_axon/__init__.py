@@ -33,7 +33,7 @@ from typing import Dict, Optional, Tuple
 
 
 class axon:
-    """ Axon object for serving synapse receptors. """
+    """Axon object for serving synapse receptors."""
 
     def info(self) -> "axon_info":
         """Returns the axon info object associate with this axon."""
@@ -379,7 +379,6 @@ METADATA_BUFFER_SIZE = 250
 
 @dataclass
 class axon_info:
-
     version: int
     ip: str
     port: int
@@ -392,14 +391,14 @@ class axon_info:
 
     @property
     def is_serving(self) -> bool:
-        """ True if the endpoint is serving. """
+        """True if the endpoint is serving."""
         if self.ip == "0.0.0.0":
             return False
         else:
             return True
 
     def ip_str(self) -> str:
-        """ Return the whole ip as string """
+        """Return the whole ip as string"""
         return net.ip__str__(self.ip_type, self.ip, self.port)
 
     def __eq__(self, other: "axon_info"):
@@ -427,7 +426,7 @@ class axon_info:
 
     @classmethod
     def from_neuron_info(cls, neuron_info: dict) -> "axon_info":
-        """ Converts a dictionary to an axon_info object. """
+        """Converts a dictionary to an axon_info object."""
         return cls(
             version=neuron_info["axon_info"]["version"],
             ip=bittensor.utils.networking.int_to_ip(
@@ -440,14 +439,12 @@ class axon_info:
         )
 
     def to_parameter_dict(self) -> "torch.nn.ParameterDict":
-        r""" Returns a torch tensor of the subnet info.
-        """
+        r"""Returns a torch tensor of the subnet info."""
         return torch.nn.ParameterDict(self.__dict__)
 
     @classmethod
     def from_parameter_dict(
         cls, parameter_dict: "torch.nn.ParameterDict"
     ) -> "axon_info":
-        r""" Returns an axon_info object from a torch parameter_dict.
-        """
+        r"""Returns an axon_info object from a torch parameter_dict."""
         return cls(**dict(parameter_dict))

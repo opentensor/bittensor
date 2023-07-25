@@ -28,8 +28,7 @@ class LM(Actor):
     def forward(
         self, sequences: torch.LongTensor, attention_mask: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
-        """Returns output log probs
-        """
+        """Returns output log probs"""
         output = self.model(sequences, attention_mask=attention_mask)
         logits = output["logits"]
         log_probs = F.log_softmax(logits, dim=-1)

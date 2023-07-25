@@ -8,7 +8,6 @@ from rwkv.utils import PIPELINE
 
 
 class RavenMiner(bittensor.HuggingFaceMiner):
-
     arg_prefix = "raven"
     system_label = ""
     assistant_label = "Alice:"

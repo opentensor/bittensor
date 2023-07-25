@@ -22,8 +22,7 @@ from loguru import logger
 
 
 class ProducerThread(threading.Thread):
-    r""" This producer thread runs in backgraound to fill the queue with the result of the target function.
-    """
+    r"""This producer thread runs in backgraound to fill the queue with the result of the target function."""
 
     def __init__(self, queue, target, arg, name=None):
         r"""Initialization.
@@ -48,8 +47,7 @@ class ProducerThread(threading.Thread):
         self._stop_event = threading.Event()
 
     def run(self):
-        r""" Work of the thread. Keep checking if the queue is full, if it is not full, run the target function to fill the queue.
-        """
+        r"""Work of the thread. Keep checking if the queue is full, if it is not full, run the target function to fill the queue."""
         while not self.stopped():
             if not self.queue.full():
                 item = self.target(*self.arg, self.queue.qsize() + 1)
@@ -65,11 +63,10 @@ class ProducerThread(threading.Thread):
 
 
 class ThreadQueue:
-    r""" Manages the queue the producer thread that monitor and fills the queue.
-    """
+    r"""Manages the queue the producer thread that monitor and fills the queue."""
 
     def __init__(self, producer_target, producer_arg, buffer_size=2):
-        """ Setup the queue and start the producer thread.
+        """Setup the queue and start the producer thread.
 
         Args:
 

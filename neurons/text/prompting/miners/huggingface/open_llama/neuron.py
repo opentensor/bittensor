@@ -40,7 +40,6 @@ class OpenLlamaMiner(bittensor.HuggingFaceMiner):
         )
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
-
         history = self.process_history(messages)
         prompt = history + self.assistant_label
 

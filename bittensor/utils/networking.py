@@ -28,75 +28,74 @@ from loguru import logger
 
 
 def int_to_ip(int_val: int) -> str:
-    r""" Maps an integer to a unique ip-string
-        Args:
-            int_val  (:type:`int128`, `required`):
-                The integer representation of an ip. Must be in the range (0, 3.4028237e+38).
+    r"""Maps an integer to a unique ip-string
+    Args:
+        int_val  (:type:`int128`, `required`):
+            The integer representation of an ip. Must be in the range (0, 3.4028237e+38).
 
-        Returns:
-            str_val (:tyep:`str`, `required):
-                The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
+    Returns:
+        str_val (:tyep:`str`, `required):
+            The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
 
-        Raises:
-            netaddr.core.AddrFormatError (Exception):
-                Raised when the passed int_vals is not a valid ip int value.
+    Raises:
+        netaddr.core.AddrFormatError (Exception):
+            Raised when the passed int_vals is not a valid ip int value.
     """
     return str(netaddr.IPAddress(int_val))
 
 
 def ip_to_int(str_val: str) -> int:
-    r""" Maps an ip-string to a unique integer.
-        arg:
-            str_val (:tyep:`str`, `required):
-                The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
+    r"""Maps an ip-string to a unique integer.
+    arg:
+        str_val (:tyep:`str`, `required):
+            The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
 
-        Returns:
-            int_val  (:type:`int128`, `required`):
-                The integer representation of an ip. Must be in the range (0, 3.4028237e+38).
+    Returns:
+        int_val  (:type:`int128`, `required`):
+            The integer representation of an ip. Must be in the range (0, 3.4028237e+38).
 
-        Raises:
-            netaddr.core.AddrFormatError (Exception):
-                Raised when the passed str_val is not a valid ip string value.
+    Raises:
+        netaddr.core.AddrFormatError (Exception):
+            Raised when the passed str_val is not a valid ip string value.
     """
     return int(netaddr.IPAddress(str_val))
 
 
 def ip_version(str_val: str) -> int:
-    r""" Returns the ip version (IPV4 or IPV6).
-        arg:
-            str_val (:tyep:`str`, `required):
-                The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
+    r"""Returns the ip version (IPV4 or IPV6).
+    arg:
+        str_val (:tyep:`str`, `required):
+            The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
 
-        Returns:
-            int_val  (:type:`int128`, `required`):
-                The ip version (Either 4 or 6 for IPv4/IPv6)
+    Returns:
+        int_val  (:type:`int128`, `required`):
+            The ip version (Either 4 or 6 for IPv4/IPv6)
 
-        Raises:
-            netaddr.core.AddrFormatError (Exception):
-                Raised when the passed str_val is not a valid ip string value.
+    Raises:
+        netaddr.core.AddrFormatError (Exception):
+            Raised when the passed str_val is not a valid ip string value.
     """
     return int(netaddr.IPAddress(str_val).version)
 
 
 def ip__str__(ip_type: int, ip_str: str, port: int):
-    """ Return a formatted ip string
-    """
+    """Return a formatted ip string"""
     return "/ipv%i/%s:%i" % (ip_type, ip_str, port)
 
 
 class ExternalIPNotFound(Exception):
-    """ Raised if we cannot attain your external ip from CURL/URLLIB/IPIFY/AWS """
+    """Raised if we cannot attain your external ip from CURL/URLLIB/IPIFY/AWS"""
 
 
 def get_external_ip() -> str:
-    r""" Checks CURL/URLLIB/IPIFY/AWS for your external ip.
-        Returns:
-            external_ip  (:obj:`str` `required`):
-                Your routers external facing ip as a string.
+    r"""Checks CURL/URLLIB/IPIFY/AWS for your external ip.
+    Returns:
+        external_ip  (:obj:`str` `required`):
+            Your routers external facing ip as a string.
 
-        Raises:
-            ExternalIPNotFound (Exception):
-                Raised if all external ip attempts fail.
+    Raises:
+        ExternalIPNotFound (Exception):
+            Raised if all external ip attempts fail.
     """
     # --- Try AWS
     try:
@@ -156,23 +155,23 @@ def get_external_ip() -> str:
 
 
 class UPNPCException(Exception):
-    """ Raised when trying to perform a port mapping on your router. """
+    """Raised when trying to perform a port mapping on your router."""
 
 
 def upnpc_create_port_map(port: int):
-    r""" Creates a upnpc port map on your router from passed external_port to local port.
+    r"""Creates a upnpc port map on your router from passed external_port to local port.
 
-        Args:
-            port (int, `required`):
-                The local machine port to map from your external port.
+    Args:
+        port (int, `required`):
+            The local machine port to map from your external port.
 
-        Return:
-            external_port (int, `required`):
-                The external port mapped to the local port on your machine.
+    Return:
+        external_port (int, `required`):
+            The external port mapped to the local port on your machine.
 
-        Raises:
-            UPNPCException (Exception):
-                Raised if UPNPC port mapping fails, for instance, if upnpc is not enabled on your router.
+    Raises:
+        UPNPCException (Exception):
+            Raised if UPNPC port mapping fails, for instance, if upnpc is not enabled on your router.
     """
     try:
         upnp = miniupnpc.UPnP()

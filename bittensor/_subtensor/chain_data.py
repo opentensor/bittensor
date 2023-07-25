@@ -216,8 +216,7 @@ class NeuronInfo:
 
     @classmethod
     def fix_decoded_values(cls, neuron_info_decoded: Any) -> "NeuronInfo":
-        r""" Fixes the values of the NeuronInfo object.
-        """
+        r"""Fixes the values of the NeuronInfo object."""
         neuron_info_decoded["hotkey"] = ss58_encode(
             neuron_info_decoded["hotkey"], bittensor.__ss58_format__
         )
@@ -270,8 +269,7 @@ class NeuronInfo:
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> "NeuronInfo":
-        r""" Returns a NeuronInfo object from a vec_u8.
-        """
+        r"""Returns a NeuronInfo object from a vec_u8."""
         if len(vec_u8) == 0:
             return NeuronInfo._null_neuron()
 
@@ -285,8 +283,7 @@ class NeuronInfo:
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["NeuronInfo"]:
-        r""" Returns a list of NeuronInfo objects from a vec_u8.
-        """
+        r"""Returns a list of NeuronInfo objects from a vec_u8."""
 
         decoded_list = from_scale_encoding(
             vec_u8, ChainDataType.NeuronInfo, is_vec=True
@@ -396,8 +393,7 @@ class NeuronInfoLite:
 
     @classmethod
     def fix_decoded_values(cls, neuron_info_decoded: Any) -> "NeuronInfoLite":
-        r""" Fixes the values of the NeuronInfoLite object.
-        """
+        r"""Fixes the values of the NeuronInfoLite object."""
         neuron_info_decoded["hotkey"] = ss58_encode(
             neuron_info_decoded["hotkey"], bittensor.__ss58_format__
         )
@@ -445,8 +441,7 @@ class NeuronInfoLite:
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> "NeuronInfoLite":
-        r""" Returns a NeuronInfoLite object from a vec_u8.
-        """
+        r"""Returns a NeuronInfoLite object from a vec_u8."""
         if len(vec_u8) == 0:
             return NeuronInfoLite._null_neuron()
 
@@ -460,8 +455,7 @@ class NeuronInfoLite:
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["NeuronInfoLite"]:
-        r""" Returns a list of NeuronInfoLite objects from a vec_u8.
-        """
+        r"""Returns a list of NeuronInfoLite objects from a vec_u8."""
 
         decoded_list = from_scale_encoding(
             vec_u8, ChainDataType.NeuronInfoLite, is_vec=True
@@ -539,8 +533,7 @@ class PrometheusInfo:
 
     @classmethod
     def fix_decoded_values(cls, prometheus_info_decoded: Dict) -> "PrometheusInfo":
-        r""" Returns a PrometheusInfo object from a prometheus_info_decoded dictionary.
-        """
+        r"""Returns a PrometheusInfo object from a prometheus_info_decoded dictionary."""
         prometheus_info_decoded["ip"] = bittensor.utils.networking.int_to_ip(
             int(prometheus_info_decoded["ip"])
         )
@@ -569,8 +562,7 @@ class DelegateInfo:
 
     @classmethod
     def fix_decoded_values(cls, decoded: Any) -> "DelegateInfo":
-        r""" Fixes the decoded values.
-        """
+        r"""Fixes the decoded values."""
 
         return cls(
             hotkey_ss58=ss58_encode(
@@ -598,8 +590,7 @@ class DelegateInfo:
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DelegateInfo"]:
-        r""" Returns a DelegateInfo object from a vec_u8.
-        """
+        r"""Returns a DelegateInfo object from a vec_u8."""
         if len(vec_u8) == 0:
             return None
 
@@ -614,8 +605,7 @@ class DelegateInfo:
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["DelegateInfo"]:
-        r""" Returns a list of DelegateInfo objects from a vec_u8.
-        """
+        r"""Returns a list of DelegateInfo objects from a vec_u8."""
         decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfo, is_vec=True)
 
         if decoded is None:
@@ -629,7 +619,7 @@ class DelegateInfo:
     def delegated_list_from_vec_u8(
         cls, vec_u8: List[int]
     ) -> List[Tuple["DelegateInfo", Balance]]:
-        r""" Returns a list of Tuples of DelegateInfo objects, and Balance, from a vec_u8.
+        r"""Returns a list of Tuples of DelegateInfo objects, and Balance, from a vec_u8.
         This is the list of delegates that the user has delegated to, and the amount of stake delegated.
         """
         decoded = from_scale_encoding(vec_u8, ChainDataType.DelegatedInfo, is_vec=True)
@@ -676,8 +666,7 @@ class SubnetInfo:
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetInfo"]:
-        r""" Returns a SubnetInfo object from a vec_u8.
-        """
+        r"""Returns a SubnetInfo object from a vec_u8."""
         if len(vec_u8) == 0:
             return None
 
@@ -690,8 +679,7 @@ class SubnetInfo:
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetInfo"]:
-        r""" Returns a list of SubnetInfo objects from a vec_u8.
-        """
+        r"""Returns a list of SubnetInfo objects from a vec_u8."""
         decoded = from_scale_encoding(
             vec_u8, ChainDataType.SubnetInfo, is_vec=True, is_option=True
         )
@@ -705,8 +693,7 @@ class SubnetInfo:
 
     @classmethod
     def fix_decoded_values(cls, decoded: Dict) -> "SubnetInfo":
-        r""" Returns a SubnetInfo object from a decoded SubnetInfo dictionary.
-        """
+        r"""Returns a SubnetInfo object from a decoded SubnetInfo dictionary."""
         return SubnetInfo(
             netuid=decoded["netuid"],
             rho=decoded["rho"],
@@ -736,16 +723,14 @@ class SubnetInfo:
         )
 
     def to_parameter_dict(self) -> "torch.nn.ParameterDict":
-        r""" Returns a torch tensor of the subnet info.
-        """
+        r"""Returns a torch tensor of the subnet info."""
         return torch.nn.ParameterDict(self.__dict__)
 
     @classmethod
     def from_parameter_dict(
         cls, parameter_dict: "torch.nn.ParameterDict"
     ) -> "SubnetInfo":
-        r""" Returns a SubnetInfo object from a torch parameter_dict.
-        """
+        r"""Returns a SubnetInfo object from a torch parameter_dict."""
         return cls(**dict(parameter_dict))
 
 

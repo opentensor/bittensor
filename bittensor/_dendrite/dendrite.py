@@ -30,7 +30,7 @@ from abc import ABC, abstractmethod
 
 @dataclass
 class DendriteCall(ABC):
-    """ Base class for all dendrite calls."""
+    """Base class for all dendrite calls."""
 
     is_forward: bool
     name: str
@@ -46,7 +46,9 @@ class DendriteCall(ABC):
         self.src_version = bittensor.__version_as_int__
         self.dest_hotkey = self.dendrite.axon_info.hotkey
         self.dest_version = self.dendrite.axon_info.version
-        self.return_code: bittensor.proto.ReturnCode = bittensor.proto.ReturnCode.Success
+        self.return_code: bittensor.proto.ReturnCode = (
+            bittensor.proto.ReturnCode.Success
+        )
         self.return_message: str = "Success"
 
     def __repr__(self) -> str:
@@ -153,14 +155,14 @@ class Dendrite(ABC, torch.nn.Module):
             ("grpc.keepalive_time_ms", 100000),
         ],
     ):
-        """ Dendrite abstract class
-            Args:
-                keypair (:obj:`Union[ 'bittensor.Wallet', 'bittensor.Keypair']`, `required`):
-                    bittensor keypair used for signing messages.
-                axon (:obj:Union[`bittensor.axon_info`, 'bittensor.axon'], `required`):
-                    bittensor axon object or its info used to create the connection.
-                grpc_options (:obj:`List[Tuple[str,object]]`, `optional`):
-                    grpc options to pass through to channel.
+        """Dendrite abstract class
+        Args:
+            keypair (:obj:`Union[ 'bittensor.Wallet', 'bittensor.Keypair']`, `required`):
+                bittensor keypair used for signing messages.
+            axon (:obj:Union[`bittensor.axon_info`, 'bittensor.axon'], `required`):
+                bittensor axon object or its info used to create the connection.
+            grpc_options (:obj:`List[Tuple[str,object]]`, `optional`):
+                grpc options to pass through to channel.
         """
         super(Dendrite, self).__init__()
         self.uuid = str(uuid.uuid1())
@@ -181,12 +183,12 @@ class Dendrite(ABC, torch.nn.Module):
         self.loop = asyncio.get_event_loop()
 
     async def apply(self, dendrite_call: "DendriteCall") -> DendriteCall:
-        """ Applies a dendrite call to the endpoint.
-            Args:
-                dendrite_call (:obj:`DendriteCall`, `required`):
-                    Dendrite call to apply.
-            Returns:
-                DendriteCall: Dendrite call with response.
+        """Applies a dendrite call to the endpoint.
+        Args:
+            dendrite_call (:obj:`DendriteCall`, `required`):
+                Dendrite call to apply.
+        Returns:
+            DendriteCall: Dendrite call with response.
         """
         bittensor.logging.trace("Dendrite.apply()")
         try:
@@ -269,7 +271,7 @@ class Dendrite(ABC, torch.nn.Module):
         return time.monotonic_ns()
 
     def sign(self) -> str:
-        """ Creates a signature for the dendrite and returns it as a string."""
+        """Creates a signature for the dendrite and returns it as a string."""
         nonce = f"{self.nonce()}"
         sender_hotkey = self.keypair.ss58_address
         receiver_hotkey = self.axon_info.hotkey
@@ -278,7 +280,7 @@ class Dendrite(ABC, torch.nn.Module):
         return ".".join([nonce, sender_hotkey, signature, self.uuid])
 
     def state(self):
-        """ Returns the state of the dendrite channel."""
+        """Returns the state of the dendrite channel."""
         try:
             return self.state_dict[self.channel._channel.check_connectivity_state(True)]
         except ValueError:

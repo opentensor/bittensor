@@ -29,9 +29,7 @@ def prepare_llama_tokenizer_and_embedding(
     model: transformers.PreTrainedModel,
     special_tokens_dict: Dict = dict(pad_token=DEFAULT_PAD_TOKEN),
 ):
-    """prepare llama tokenizer and embedding.
-
-    """
+    """prepare llama tokenizer and embedding."""
 
     if tokenizer.pad_token is None:
         smart_tokenizer_and_embedding_resize(

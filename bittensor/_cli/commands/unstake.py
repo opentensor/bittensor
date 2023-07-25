@@ -139,8 +139,7 @@ class UnStakeCommand:
 
     @staticmethod
     def run(cli):
-        r""" Unstake token of amount from hotkey(s).
-        """
+        r"""Unstake token of amount from hotkey(s)."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
         subtensor: bittensor.Subtensor = bittensor.subtensor(config=cli.config)

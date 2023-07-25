@@ -24,8 +24,7 @@ logger = logger.opt(colors=True)
 
 
 def code_to_string(code: "bittensor.proto.ReturnCode") -> str:
-    """ Return code -> string
-    """
+    """Return code -> string"""
     if code == 0:
         return "NoReturn"
     elif code == 1:
@@ -83,8 +82,7 @@ def code_to_string(code: "bittensor.proto.ReturnCode") -> str:
 
 
 def code_to_loguru_color(code: "bittensor.proto.ReturnCode") -> str:
-    """ Return code -> loguru color
-    """
+    """Return code -> loguru color"""
     if code == 0:
         return "red"
     elif code == 1:

@@ -5,11 +5,9 @@ import requests
 
 
 class Ipfs:
-    """ Implementation for the dataset class, which handles dataloading from ipfs
-    """
+    """Implementation for the dataset class, which handles dataloading from ipfs"""
 
     def __init__(self):
-
         # Used to retrieve directory contentx
         self.cat = "http://global.ipfs.opentensor.ai/api/v0/cat"
         self.node_get = "http://global.ipfs.opentensor.ai/api/v0/object/get"
@@ -32,7 +30,7 @@ class Ipfs:
         status_forcelist=(104, 500, 502, 504),
         session=None,
     ):
-        """ Creates a retriable session for request calls. This enables
+        """Creates a retriable session for request calls. This enables
         automatic retries and back-off retries should any request calls fail.
 
         Args:

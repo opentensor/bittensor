@@ -25,8 +25,7 @@ from . import priority_thread_pool_impl
 
 
 class prioritythreadpool:
-    """ Factory method for creating priority threadpool
-    """
+    """Factory method for creating priority threadpool"""
 
     def __new__(
         cls,
@@ -34,14 +33,14 @@ class prioritythreadpool:
         max_workers: int = None,
         maxsize: int = None,
     ):
-        r""" Initializes a priority thread pool.
-            Args:
-                config (:obj:`bittensor.Config`, `optional`):
-                    bittensor.subtensor.config()
-                max_workers (default=10, type=int)
-.                   The maximum number of threads in thread pool
-                maxsize (default=-1, type=int)
-                    The maximum number of tasks in the priority queue
+        r"""Initializes a priority thread pool.
+                    Args:
+                        config (:obj:`bittensor.Config`, `optional`):
+                            bittensor.subtensor.config()
+                        max_workers (default=10, type=int)
+        .                   The maximum number of threads in thread pool
+                        maxsize (default=-1, type=int)
+                            The maximum number of tasks in the priority queue
         """
         if config == None:
             config = prioritythreadpool.config()
@@ -60,8 +59,7 @@ class prioritythreadpool:
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
-        """ Accept specific arguments from parser
-        """
+        """Accept specific arguments from parser"""
         prefix_str = "" if prefix == None else prefix + "."
         if prefix is not None:
             if bittensor.defaults.get(prefix, d=None) == None:
@@ -86,8 +84,7 @@ class prioritythreadpool:
 
     @classmethod
     def help(cls):
-        """ Print help to stdout
-        """
+        """Print help to stdout"""
         parser = argparse.ArgumentParser()
         cls.add_args(parser)
         print(cls.__new__.__doc__)
@@ -95,8 +92,7 @@ class prioritythreadpool:
 
     @classmethod
     def add_defaults(cls, defaults):
-        """ Adds parser defaults to object from enviroment variables.
-        """
+        """Adds parser defaults to object from enviroment variables."""
         defaults.priority = bittensor.Config()
         defaults.priority = bittensor.Config()
         defaults.priority.max_workers = (
@@ -112,8 +108,8 @@ class prioritythreadpool:
 
     @classmethod
     def config(cls) -> "bittensor.Config":
-        """ Get config from the argument parser
-            Return: bittensor.config object
+        """Get config from the argument parser
+        Return: bittensor.config object
         """
         parser = argparse.ArgumentParser()
         prioritythreadpool.add_args(parser)
@@ -121,8 +117,7 @@ class prioritythreadpool:
 
     @classmethod
     def check_config(cls, config: "bittensor.Config"):
-        """ Check config for threadpool worker number and size
-        """
+        """Check config for threadpool worker number and size"""
         assert isinstance(
             config.priority.max_workers, int
         ), "priority.max_workers must be a int"

@@ -27,7 +27,7 @@ console = bittensor.__console__
 class RegisterCommand:
     @staticmethod
     def run(cli):
-        r""" Register neuron. """
+        r"""Register neuron."""
         wallet = bittensor.wallet(config=cli.config)
         subtensor = bittensor.subtensor(config=cli.config)
 
@@ -108,7 +108,7 @@ class RegisterCommand:
 class RecycleRegisterCommand:
     @staticmethod
     def run(cli):
-        r""" Register neuron by recycling some TAO. """
+        r"""Register neuron by recycling some TAO."""
         wallet = bittensor.wallet(config=cli.config)
         subtensor = bittensor.subtensor(config=cli.config)
 

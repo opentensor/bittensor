@@ -46,21 +46,21 @@ class subtensor:
         chain_endpoint: str = None,
         _mock: bool = None,
     ) -> "bittensor.Subtensor":
-        r""" Initializes a subtensor chain interface.
-            Args:
-                config (:obj:`bittensor.Config`, `optional`):
-                    bittensor.subtensor.config()
-                network (default='local', type=str)
-                    The subtensor network flag. The likely choices are:
-                            -- local (local running network)
-                            -- finney (main network)
-                            -- mock (mock network for testing.)
-                    If this option is set it overloads subtensor.chain_endpoint with
-                    an entry point node from that network.
-                chain_endpoint (default=None, type=str)
-                    The subtensor endpoint flag. If set, overrides the network argument.
-                _mock (bool, `optional`):
-                    Returned object is mocks the underlying chain connection.
+        r"""Initializes a subtensor chain interface.
+        Args:
+            config (:obj:`bittensor.Config`, `optional`):
+                bittensor.subtensor.config()
+            network (default='local', type=str)
+                The subtensor network flag. The likely choices are:
+                        -- local (local running network)
+                        -- finney (main network)
+                        -- mock (mock network for testing.)
+                If this option is set it overloads subtensor.chain_endpoint with
+                an entry point node from that network.
+            chain_endpoint (default=None, type=str)
+                The subtensor endpoint flag. If set, overrides the network argument.
+            _mock (bool, `optional`):
+                Returned object is mocks the underlying chain connection.
         """
         if config == None:
             config = subtensor.config()
@@ -157,8 +157,7 @@ class subtensor:
 
     @classmethod
     def help(cls):
-        """ Print help to stdout
-        """
+        """Print help to stdout"""
         parser = argparse.ArgumentParser()
         cls.add_args(parser)
         print(cls.__new__.__doc__)
@@ -277,8 +276,7 @@ class subtensor:
 
     @classmethod
     def add_defaults(cls, defaults):
-        """ Adds parser defaults to object from enviroment variables.
-        """
+        """Adds parser defaults to object from enviroment variables."""
         defaults.subtensor = bittensor.Config()
         defaults.subtensor.network = (
             os.getenv("BT_SUBTENSOR_NETWORK")
