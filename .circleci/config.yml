@@ -205,7 +205,7 @@ workflows:
   pr-requirements:
     jobs:
       - black:
-        python-version: "3.8.12"
+          python-version: "3.8.12"
       - build-and-test:
           matrix:
             parameters:
