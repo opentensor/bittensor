@@ -18,7 +18,7 @@
 import argparse
 import bittensor
 from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
 from fuzzywuzzy import fuzz
 from rich.align import Align
 from rich.table import Table
@@ -95,7 +95,7 @@ class OverviewCommand:
             return
 
         # Pull neuron info for all keys.
-        neurons: Dict[str, List[bittensor.NeuronInfoLite, bittensor.Wallet]] = {}
+        neurons: Dict[str, List[bittensor.NeuronInfoLite, str]] = {}
         block = subtensor.block
 
         netuids = subtensor.get_all_subnet_netuids()
@@ -111,13 +111,18 @@ class OverviewCommand:
                 )
             )
         ):
+            hotkey_addr_to_wallet = {
+                hotkey.hotkey.ss58_address: hotkey for hotkey in all_hotkeys
+            }
+            all_hotkey_addresses = list(hotkey_addr_to_wallet.keys())
+
             # Pull neuron info for all keys.
             ## Max len(netuids) or 5 threads.
-            with ThreadPoolExecutor(max_workers=max(len(netuids), 5)) as executor:
+            with ProcessPoolExecutor(max_workers=max(len(netuids), 5)) as executor:
                 neurons_futures_to_netuid = {
                     executor.submit(
                         OverviewCommand._get_neurons_for_netuid,
-                        *(subtensor, netuid, all_hotkeys),
+                        *(cli.config, netuid, all_hotkey_addresses),
                     ): netuid
                     for netuid in netuids
                 }
@@ -176,7 +181,8 @@ class OverviewCommand:
             total_dividends = 0.0
             total_emission = 0
 
-            for nn, hotwallet in neurons[str(netuid)]:
+            for nn, hotwallet_addr in neurons[str(netuid)]:
+                hotwallet = hotkey_addr_to_wallet[hotwallet_addr]
                 nn: bittensor.NeuronInfoLite
                 uid = nn.uid
                 active = nn.active
@@ -395,22 +401,24 @@ class OverviewCommand:
 
     @staticmethod
     def _get_neurons_for_netuid(
-        subtensor: "bittensor.Subtensor",
+        subtensor_config: "bittensor.Config",
         netuid: int,
-        hot_wallets: List["bittensor.Wallet"],
-    ) -> List[Tuple["bittensor.NeuronInfoLite", "bittensor.Wallet"]]:
-        result: List[Tuple["bittensor.NeuronInfoLite", "bittensor.Wallet"]] = []
+        hot_wallets: List[str], # List of hotkey ss58 addresses
+    ) -> List[Tuple["bittensor.NeuronInfoLite", str]]:
+        result: List[Tuple["bittensor.NeuronInfoLite", str]] = []
+
+        subtensor = bittensor.subtensor(config=subtensor_config)
 
         all_neurons: List["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
             netuid=netuid
         )
         # Map the hotkeys to uids
         hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
-        for hot_wallet in hot_wallets:
-            uid = hotkey_to_neurons.get(hot_wallet.hotkey.ss58_address)
+        for hot_wallet_addr in hot_wallets:
+            uid = hotkey_to_neurons.get(hot_wallet_addr)
             if uid is not None:
                 nn = all_neurons[uid]
-                result.append((nn, hot_wallet))
+                result.append((nn, hot_wallet_addr))
 
         return result
 
