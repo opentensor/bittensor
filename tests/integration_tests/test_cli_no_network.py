@@ -351,7 +351,6 @@ class TestCLINoNetwork(unittest.TestCase):
                         )  # should be None
 
                         # Should be able to set to false with no argument
-
                         args = base_args + [
                             "--subtensor.register.cuda.no_cuda",
                         ]

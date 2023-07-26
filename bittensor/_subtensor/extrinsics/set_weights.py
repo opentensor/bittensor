@@ -95,6 +95,8 @@ def set_weights_extrinsic(
                 uids=weight_uids,
                 vals=weight_vals,
                 version_key=version_key,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_inclusion=wait_for_inclusion,
             )
 
             if not wait_for_finalization and not wait_for_inclusion:

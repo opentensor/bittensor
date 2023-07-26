@@ -295,10 +295,7 @@ class axon:
 class AuthInterceptor(grpc.ServerInterceptor):
     """Creates a new server interceptor that authenticates incoming messages from passed arguments."""
 
-    def __init__(
-        self,
-        receiver_hotkey: str,
-    ):
+    def __init__(self, receiver_hotkey: str):
         r"""Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
             receiver_hotkey(str):
@@ -336,11 +333,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         raise Exception("Unknown signature format")
 
     def check_signature(
-        self,
-        nonce: int,
-        sender_hotkey: str,
-        signature: str,
-        receptor_uuid: str,
+        self, nonce: int, sender_hotkey: str, signature: str, receptor_uuid: str
     ):
         r"""verification of signature in metadata. Uses the pubkey and nonce"""
         keypair = Keypair(ss58_address=sender_hotkey)
@@ -366,12 +359,9 @@ class AuthInterceptor(grpc.ServerInterceptor):
         metadata = dict(handler_call_details.invocation_metadata)
 
         try:
-            (
-                nonce,
-                sender_hotkey,
-                signature,
-                receptor_uuid,
-            ) = self.parse_signature(metadata)
+            (nonce, sender_hotkey, signature, receptor_uuid) = self.parse_signature(
+                metadata
+            )
 
             # signature checking
             self.check_signature(nonce, sender_hotkey, signature, receptor_uuid)

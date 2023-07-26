@@ -790,8 +790,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
 
         success, err = _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
         cli = bittensor.cli(config)
@@ -865,8 +864,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Set the coldkey balance
         success, err = _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
         cli = bittensor.cli(config)
@@ -963,8 +961,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Set the coldkey balance
         _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
         cli = bittensor.cli(config)
@@ -1077,8 +1074,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 )
 
         _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
         cli = bittensor.cli(config)
@@ -1177,8 +1173,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
 
         _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
         cli = bittensor.cli(config)
@@ -1270,8 +1265,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
 
         _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
         cli = bittensor.cli(config)
@@ -1357,8 +1351,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
 
         _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
         cli = bittensor.cli(config)
@@ -1453,8 +1446,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
 
         success, err = _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
         cli = bittensor.cli(config)
@@ -1573,9 +1565,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balances: Dict[str, bittensor.Balance] = {
             # All have more than 5.0 stake
-            "w0": {
-                "hk0": bittensor.Balance.from_float(10.0),
-            },
+            "w0": {"hk0": bittensor.Balance.from_float(10.0)},
             "w1": {"hk1": bittensor.Balance.from_float(11.1)},
         }
 
@@ -1612,9 +1602,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         )
 
         # Make the first wallet a delegate
-        success = _subtensor_mock.nominate(
-            wallet=mock_wallets[0],
-        )
+        success = _subtensor_mock.nominate(wallet=mock_wallets[0])
         self.assertTrue(success)
 
         cli = bittensor.cli(config)
@@ -1659,9 +1647,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balances: Dict[str, bittensor.Balance] = {
             # All have more than 5.0 stake
-            "w0": {
-                "hk0": bittensor.Balance.from_float(10.0),
-            },
+            "w0": {"hk0": bittensor.Balance.from_float(10.0)},
             "w1": {"hk1": bittensor.Balance.from_float(11.1)},
         }
 
@@ -1699,9 +1685,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         )
 
         # Make the first wallet a delegate
-        success = _subtensor_mock.nominate(
-            wallet=mock_wallets[0],
-        )
+        success = _subtensor_mock.nominate(wallet=mock_wallets[0])
         self.assertTrue(success)
 
         # Stake to the delegate
@@ -2107,21 +2091,13 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
 
     def test_list_delegates(self):
         cli = bittensor.cli(
-            args=[
-                "list_delegates",
-                "--subtensor.network",
-                "mock",  # Mock network
-            ]
+            args=["list_delegates", "--subtensor.network", "mock"]  # Mock network
         )
         cli.run()
 
     def test_list_subnets(self):
         cli = bittensor.cli(
-            args=[
-                "list_subnets",
-                "--subtensor.network",
-                "mock",  # Mock network
-            ]
+            args=["list_subnets", "--subtensor.network", "mock"]  # Mock network
         )
         cli.run()
 
