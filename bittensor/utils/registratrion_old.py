@@ -468,8 +468,9 @@ class RegistrationStatisticsLogger:
         if self.status is not None:
             self.status.update(self.get_status_message(stats, verbose=verbose))
         else:
-            self.console.log(self.get_status_message(stats, verbose=verbose))
-
+            self.console.log(
+                self.get_status_message(stats, verbose=verbose),
+            )
 
 def solve_for_difficulty_fast(
     subtensor: "bittensor.Subtensor",
@@ -598,7 +599,9 @@ def solve_for_difficulty_fast(
     hash_rates = [0] * n_samples  # The last n true hash_rates
     weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
 
-    while not subtensor.is_hotkey_registered(hotkey_ss58=wallet.hotkey.ss58_address):
+    while not subtensor.is_hotkey_registered(
+        hotkey_ss58=wallet.hotkey.ss58_address,
+    ):
         # Wait until a solver finds a solution
         try:
             solution = solution_queue.get(block=True, timeout=0.25)
@@ -904,7 +907,7 @@ def solve_for_difficulty_fast_cuda(
 
         solution = None
         while not subtensor.is_hotkey_registered(
-            hotkey_ss58=wallet.hotkey.ss58_address
+            hotkey_ss58=wallet.hotkey.ss58_address,
         ):
             # Wait until a solver finds a solution
             try:

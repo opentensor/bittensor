@@ -98,6 +98,7 @@ class PrometheusInfoDict(InfoDict):
         return cls(block=0, version=0, ip=0, port=0, ip_type=0)
 
 
+
 @dataclass
 class MockSubtensorValue:
     value: Optional[Any]
@@ -147,9 +148,7 @@ class MockSubtensorState(TypedDict):
     ]  # netuid -> block -> validator_batch_size
     Active: Dict[int, Dict[BlockNumber, bool]]  # (netuid, uid), block -> active
     Stake: Dict[str, Dict[str, Dict[int, int]]]  # (hotkey, coldkey) -> block -> stake
-
     Delegates: Dict[str, Dict[int, float]]  # address -> block -> delegate_take
-
     NetworksAdded: Dict[int, Dict[BlockNumber, bool]]  # netuid -> block -> added
 
 
@@ -180,7 +179,9 @@ class MockSubtensor(Subtensor):
         if not hasattr(self, "chain_state") or getattr(self, "chain_state") is None:
             self.chain_state = {
                 "System": {"Account": {}},
-                "Balances": {"ExistentialDeposit": {0: 500}},
+                "Balances": {
+                    "ExistentialDeposit": {0: 500},
+                },
                 "SubtensorModule": {
                     "NetworksAdded": {},
                     "Rho": {},
@@ -333,7 +334,12 @@ class MockSubtensor(Subtensor):
 
         subtensor_state["Difficulty"][netuid][self.block_number] = difficulty
 
-    def _register_neuron(self, netuid: int, hotkey: str, coldkey: str) -> int:
+    def _register_neuron(
+        self,
+        netuid: int,
+        hotkey: str,
+        coldkey: str,
+    ) -> int:
         subtensor_state = self.chain_state["SubtensorModule"]
         if netuid not in subtensor_state["NetworksAdded"]:
             raise Exception("Subnet does not exist")
@@ -487,7 +493,11 @@ class MockSubtensor(Subtensor):
 
         if ss58_address not in self.chain_state["System"]["Account"]:
             self.chain_state["System"]["Account"][ss58_address] = {
-                "data": {"free": {0: 0}}
+                "data": {
+                    "free": {
+                        0: 0,
+                    },
+                },
             }
 
         old_balance = self.get_balance(ss58_address, self.block_number)
@@ -867,7 +877,11 @@ class MockSubtensor(Subtensor):
         dividends = U16_NORMALIZED_FLOAT(dividends)
         prometheus_info = PrometheusInfo.fix_decoded_values(prometheus_info)
         axon_info_ = axon_info.from_neuron_info(
-            {"hotkey": hotkey, "coldkey": coldkey, "axon_info": axon_info_}
+            {
+                "hotkey": hotkey,
+                "coldkey": coldkey,
+                "axon_info": axon_info_,
+            }
         )
 
         neuron_info = NeuronInfo(
@@ -1039,7 +1053,11 @@ class MockSubtensor(Subtensor):
 
         # Add to the free balance
         if dest not in self.chain_state["System"]["Account"]:
-            self.chain_state["System"]["Account"][dest] = {"data": {"free": {}}}
+            self.chain_state["System"]["Account"][dest] = {
+                "data": {
+                    "free": {},
+                }
+            }
 
         self.chain_state["System"]["Account"][dest]["data"]["free"][
             self.block_number
@@ -1204,7 +1222,9 @@ class MockSubtensor(Subtensor):
         # Add to the free balance
         if wallet.coldkeypub.ss58_address not in self.chain_state["System"]["Account"]:
             self.chain_state["System"]["Account"][wallet.coldkeypub.ss58_address] = {
-                "data": {"free": {}}
+                "data": {
+                    "free": {},
+                }
             }
 
         # Remove from total stake storage
@@ -1279,7 +1299,9 @@ class MockSubtensor(Subtensor):
 
         info = DelegateInfo(
             hotkey_ss58=hotkey_ss58,
-            total_stake=self.get_total_stake_for_hotkey(ss58_address=hotkey_ss58)
+            total_stake=self.get_total_stake_for_hotkey(
+                ss58_address=hotkey_ss58,
+            )
             or bittensor.Balance(0),
             nominators=nom_result,
             owner_ss58=self.get_hotkey_owner(hotkey_ss58=hotkey_ss58, block=block),
@@ -1306,7 +1328,10 @@ class MockSubtensor(Subtensor):
         subtensor_state = self.chain_state["SubtensorModule"]
         delegates_info = []
         for hotkey in subtensor_state["Delegates"]:
-            info = self.get_delegate_by_hotkey(hotkey_ss58=hotkey, block=block)
+            info = self.get_delegate_by_hotkey(
+                hotkey_ss58=hotkey,
+                block=block,
+            )
             if info is not None:
                 delegates_info.append(info)
 
@@ -1329,7 +1354,10 @@ class MockSubtensor(Subtensor):
         subtensor_state = self.chain_state["SubtensorModule"]
         result = []
         for subnet in subtensor_state["NetworksAdded"]:
-            info = self.get_subnet_info(netuid=subnet, block=block)
+            info = self.get_subnet_info(
+                netuid=subnet,
+                block=block,
+            )
             if info is not None:
                 result.append(info)
 
@@ -1338,7 +1366,10 @@ class MockSubtensor(Subtensor):
     def get_subnet_info(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[SubnetInfo]:
-        if not self.subnet_exists(netuid=netuid, block=block):
+        if not self.subnet_exists(
+            netuid=netuid,
+            block=block,
+        ):
             return None
 
         def query_subnet_info(name: str) -> Optional[object]:
@@ -1346,14 +1377,59 @@ class MockSubtensor(Subtensor):
 
         info = SubnetInfo(
             netuid=netuid,
-            rho=query_subnet_info(name="Rho"),
-            kappa=query_subnet_info(name="Kappa"),
-            difficulty=query_subnet_info(name="Difficulty"),
-            immunity_period=query_subnet_info(name="ImmunityPeriod"),
-            validator_batch_size=query_subnet_info(name="ValidatorBatchSize"),
-            validator_sequence_length=query_subnet_info(name="ValidatorSequenceLength"),
+            rho=query_subnet_info(
+                name="Rho",
+            ),
+            kappa=query_subnet_info(
+                name="Kappa",
+            ),
+            difficulty=query_subnet_info(
+                name="Difficulty",
+            ),
+            immunity_period=query_subnet_info(
+                name="ImmunityPeriod",
+            ),
+            validator_batch_size=query_subnet_info(
+                name="ValidatorBatchSize",
+            ),
+            validator_sequence_length=query_subnet_info(
+                name="ValidatorSequenceLength",
+            ),
             validator_epochs_per_reset=query_subnet_info(
-                name="ValidatorEpochsPerReset"
+                name="ValidatorEpochsPerReset",
+            ),
+            validator_epoch_length=query_subnet_info(
+                name="ValidatorEpochLength",
+            ),
+            max_allowed_validators=query_subnet_info(
+                name="MaxAllowedValidators",
+            ),
+            min_allowed_weights=query_subnet_info(
+                name="MinAllowedWeights",
+            ),
+            max_weight_limit=query_subnet_info(
+                name="MaxWeightLimit",
+            ),
+            scaling_law_power=query_subnet_info(
+                name="ScalingLawPower",
+            ),
+            synergy_scaling_law_power=query_subnet_info(
+                name="SynergyScalingLawPower",
+            ),
+            subnetwork_n=query_subnet_info(
+                name="SubnetworkN",
+            ),
+            max_n=query_subnet_info(
+                name="MaxAllowedUids",
+            ),
+            blocks_since_epoch=query_subnet_info(
+                name="BlocksSinceLastStep",
+            ),
+            tempo=query_subnet_info(
+                name="Tempo",
+            ),
+            modality=query_subnet_info(
+                name="NetworkModality",
             ),
             validator_epoch_length=query_subnet_info(name="ValidatorEpochLength"),
             max_allowed_validators=query_subnet_info(name="MaxAllowedValidators"),
@@ -1372,8 +1448,12 @@ class MockSubtensor(Subtensor):
                     name="NetworkConnect", block=block, params=[netuid]
                 ).records
             },
-            emission_value=query_subnet_info(name="EmissionValues"),
-            burn=query_subnet_info(name="Burn"),
+            emission_value=query_subnet_info(
+                name="EmissionValues",
+            ),
+            burn=query_subnet_info(
+                name="Burn",
+            ),
         )
 
         return info

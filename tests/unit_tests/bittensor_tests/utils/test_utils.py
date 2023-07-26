@@ -89,7 +89,9 @@ def select_port():
 
 def setup_subtensor(port: int):
     chain_endpoint = "localhost:{}".format(port)
-    subtensor = bittensor.subtensor(chain_endpoint=chain_endpoint)
+    subtensor = bittensor.subtensor(
+        chain_endpoint=chain_endpoint,
+    )
     return subtensor, port
 
 
@@ -162,7 +164,7 @@ class TestRegistrationHelpers(unittest.TestCase):
         subtensor.get_block_hash = MagicMock(return_value=block_hash)
         subtensor.is_hotkey_registered = MagicMock(return_value=False)
         wallet = MagicMock(
-            hotkey=Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+            hotkey=Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
         )
         num_proc: int = 1
         limit = int(math.pow(2, 256)) - 1
@@ -206,7 +208,7 @@ class TestRegistrationHelpers(unittest.TestCase):
                 side_effect=is_registered_return_values
             )
             wallet = MagicMock(
-                hotkey=Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+                hotkey=Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
             )
 
             # all arugments should return None to indicate an early return
@@ -234,7 +236,7 @@ class TestRegistrationHelpers(unittest.TestCase):
         )
         subtensor.is_hotkey_registered = MagicMock(return_value=False)
         wallet = MagicMock(
-            hotkey=Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+            hotkey=Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
         )
         num_proc: int = 1
         limit = int(math.pow(2, 256)) - 1
@@ -471,7 +473,9 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
         ]
 
         mock_curr_stats = MagicMock(
-            block_number=current_block_num, block_hash=b"", difficulty=0
+            block_number=current_block_num,
+            block_hash=b"",
+            difficulty=0,
         )
 
         self.assertEqual(
@@ -855,7 +859,8 @@ class TestWalletReregister(unittest.TestCase):
         )
         self.assertTrue(
             self._mock_subtensor.is_hotkey_registered_on_subnet(
-                netuid=3, hotkey_ss58=mock_wallet.hotkey.ss58_address
+                netuid=3,
+                hotkey_ss58=mock_wallet.hotkey.ss58_address,
             )
         )
 
@@ -885,7 +890,8 @@ class TestWalletReregister(unittest.TestCase):
         )
         self.assertTrue(
             self._mock_subtensor.is_hotkey_registered_on_subnet(
-                netuid=3, hotkey_ss58=mock_wallet.hotkey.ss58_address
+                netuid=3,
+                hotkey_ss58=mock_wallet.hotkey.ss58_address,
             )
         )
 

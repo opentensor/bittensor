@@ -152,7 +152,10 @@ class TextPromptingDendrite(bittensor.Dendrite):
         return_call: bool = True,
     ) -> Union[str, DendriteForwardCall]:
         forward_call = DendriteForwardCall(
-            dendrite=self, messages=messages, roles=roles, timeout=timeout
+            dendrite=self,
+            messages=messages,
+            roles=roles,
+            timeout=timeout,
         )
         response_call = self.loop.run_until_complete(
             self.apply(dendrite_call=forward_call)
@@ -170,7 +173,10 @@ class TextPromptingDendrite(bittensor.Dendrite):
         return_call: bool = True,
     ) -> Union[str, DendriteForwardCall]:
         forward_call = DendriteForwardCall(
-            dendrite=self, messages=messages, roles=roles, timeout=timeout
+            dendrite=self,
+            messages=messages,
+            roles=roles,
+            timeout=timeout,
         )
         forward_call = await self.apply(dendrite_call=forward_call)
         if return_call:

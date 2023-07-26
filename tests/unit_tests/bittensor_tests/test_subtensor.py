@@ -161,7 +161,9 @@ class TestStakeMultiple(unittest.TestCase):
 
         mock_amounts = [mock_amount]  # more than 1000 RAO
 
-        mock_neuron = MagicMock(is_null=False)
+        mock_neuron = MagicMock(
+            is_null=False,
+        )
 
         mock_do_stake = MagicMock(side_effect=ExitEarly)
 

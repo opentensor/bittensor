@@ -444,8 +444,9 @@ class RegistrationStatisticsLogger:
         if self.status is not None:
             self.status.update(self.get_status_message(stats, verbose=verbose))
         else:
-            self.console.log(self.get_status_message(stats, verbose=verbose))
-
+            self.console.log(
+                self.get_status_message(stats, verbose=verbose),
+            )
 
 def _solve_for_difficulty_fast(
     subtensor,
@@ -577,7 +578,8 @@ def _solve_for_difficulty_fast(
     weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
 
     while not subtensor.is_hotkey_registered(
-        netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
+        netuid=netuid,
+        hotkey_ss58=wallet.hotkey.ss58_address,
     ):
         # Wait until a solver finds a solution
         try:
@@ -924,7 +926,8 @@ def _solve_for_difficulty_fast_cuda(
 
         solution = None
         while not subtensor.is_hotkey_registered(
-            netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
+            netuid=netuid,
+            hotkey_ss58=wallet.hotkey.ss58_address,
         ):
             # Wait until a solver finds a solution
             try:
@@ -1128,7 +1131,10 @@ def __reregister_wallet(
             sys.exit(0)
 
         subtensor.register(
-            wallet=wallet, netuid=netuid, prompt=prompt, **registration_args
+            wallet=wallet,
+            netuid=netuid,
+            prompt=prompt,
+            **registration_args,
         )
 
     return wallet

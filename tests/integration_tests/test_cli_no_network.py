@@ -311,7 +311,6 @@ class TestCLINoNetwork(unittest.TestCase):
     def test_register_cuda_use_cuda_flag(self):
         class ExitEarlyException(Exception):
             """Raised by mocked function to exit early"""
-
             pass
 
         base_args = [
@@ -340,7 +339,7 @@ class TestCLINoNetwork(unittest.TestCase):
                     ):
                         # Should be able to set true without argument
                         args = base_args + [
-                            "--subtensor.register.cuda.use_cuda"  # should be True without any arugment
+                            "--subtensor.register.cuda.use_cuda",  # should be True without any arugment
                         ]
                         with pytest.raises(ExitEarlyException):
                             cli = bittensor.cli(args=args)
@@ -351,8 +350,9 @@ class TestCLINoNetwork(unittest.TestCase):
                         )  # should be None
 
                         # Should be able to set to false with no argument
-
-                        args = base_args + ["--subtensor.register.cuda.no_cuda"]
+                        args = base_args + [
+                            "--subtensor.register.cuda.no_cuda",
+                        ]
                         with pytest.raises(ExitEarlyException):
                             cli = bittensor.cli(args=args)
                             cli.run()
@@ -453,7 +453,13 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
             # Test NO prompt happens when wallet name is passed
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
-                cli = bittensor.cli(args=["inspect", "--wallet.name", "coolwalletname"])
+                cli = bittensor.cli(
+                    args=[
+                        "inspect",
+                        "--wallet.name",
+                        "coolwalletname",
+                    ]
+                )
                 cli.run()
 
                 # NO prompt happened
@@ -461,7 +467,13 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
             # Test NO prompt happens when wallet name 'default' is passed
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
-                cli = bittensor.cli(args=["inspect", "--wallet.name", "default"])
+                cli = bittensor.cli(
+                    args=[
+                        "inspect",
+                        "--wallet.name",
+                        "default",
+                    ]
+                )
                 cli.run()
 
                 # NO prompt happened
@@ -506,7 +518,13 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             # Test NO prompt happens when wallet name 'default' is passed
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
-                    args=["overview", "--wallet.name", "default", "--netuid", "1"]
+                    args=[
+                        "overview",
+                        "--wallet.name",
+                        "default",
+                        "--netuid",
+                        "1",
+                    ]
                 )
                 cli.run()
 
@@ -514,7 +532,10 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 mock_ask_prompt.assert_not_called()
 
     def test_stake_prompt_wallet_name_and_hotkey_name(self):
-        base_args = ["stake", "--all"]
+        base_args = [
+            "stake",
+            "--all",
+        ]
         # Patch command to exit early
         with patch("bittensor._cli.commands.stake.StakeCommand.run", return_value=None):
             # Test prompt happens when
@@ -658,7 +679,12 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
                     args=base_args
-                    + ["--wallet.name", "default", "--wallet.hotkey", "default"]
+                    + [
+                        "--wallet.name",
+                        "default",
+                        "--wallet.hotkey",
+                        "default",
+                    ]
                 )
                 cli.run()
 
@@ -666,7 +692,10 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 mock_ask_prompt.assert_not_called()
 
     def test_unstake_prompt_wallet_name_and_hotkey_name(self):
-        base_args = ["unstake", "--all"]
+        base_args = [
+            "unstake",
+            "--all",
+        ]
         # Patch command to exit early
         with patch(
             "bittensor._cli.commands.unstake.UnStakeCommand.run", return_value=None
@@ -811,7 +840,12 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
                     args=base_args
-                    + ["--wallet.name", "default", "--wallet.hotkey", "default"]
+                    + [
+                        "--wallet.name",
+                        "default",
+                        "--wallet.hotkey",
+                        "default",
+                    ]
                 )
                 cli.run()
 
@@ -863,7 +897,11 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             # - wallet name IS passed
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
-                    args=base_args + ["--wallet.name", "coolwalletname"]
+                    args=base_args
+                    + [
+                        "--wallet.name",
+                        "coolwalletname",
+                    ]
                 )
                 cli.run()
 
@@ -915,7 +953,11 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             # - wallet name IS passed
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
-                    args=base_args + ["--wallet.name", "coolwalletname"]
+                    args=base_args
+                    + [
+                        "--wallet.name",
+                        "coolwalletname",
+                    ]
                 )
                 cli.run()
 
@@ -926,7 +968,12 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         # Tests when
         # - wallet name IS passed, AND
         # - delegate hotkey IS NOT passed
-        base_args = ["delegate", "--all", "--wallet.name", "mock"]
+        base_args = [
+            "delegate",
+            "--all",
+            "--wallet.name",
+            "mock",
+        ]
 
         delegate_ss58 = _get_mock_coldkey(0)
         with patch("bittensor._cli.commands.delegates.show_delegates"):
@@ -992,7 +1039,11 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                     # - delegate hotkey IS passed
                     with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                         cli = bittensor.cli(
-                            args=base_args + ["--delegate_ss58key", delegate_ss58]
+                            args=base_args
+                            + [
+                                "--delegate_ss58key",
+                                delegate_ss58,
+                            ]
                         )
                         cli.run()
 
@@ -1003,7 +1054,12 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         # Tests when
         # - wallet name IS passed, AND
         # - delegate hotkey IS NOT passed
-        base_args = ["undelegate", "--all", "--wallet.name", "mock"]
+        base_args = [
+            "undelegate",
+            "--all",
+            "--wallet.name",
+            "mock",
+        ]
 
         delegate_ss58 = _get_mock_coldkey(0)
         with patch("bittensor._cli.commands.delegates.show_delegates"):
@@ -1069,7 +1125,11 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                     # - delegate hotkey IS passed
                     with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                         cli = bittensor.cli(
-                            args=base_args + ["--delegate_ss58key", delegate_ss58]
+                            args=base_args
+                            + [
+                                "--delegate_ss58key",
+                                delegate_ss58,
+                            ]
                         )
                         cli.run()
 

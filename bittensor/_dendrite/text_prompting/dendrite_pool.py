@@ -50,7 +50,10 @@ class TextPromptingDendritePool(torch.nn.Module):
     ):
         def _backward():
             self.loop.run_until_complete(
-                self.async_backward(forward_calls=forward_calls, timeout=timeout)
+                self.async_backward(
+                    forward_calls=forward_calls,
+                    timeout=timeout,
+                )
             )
 
         future = self.priority_threadpool.submit(_backward, priority=priority)

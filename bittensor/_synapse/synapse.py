@@ -40,9 +40,12 @@ class SynapseCall(ABC):
         context: grpc.ServicerContext,
     ):
         metadata = dict(context.invocation_metadata())
-        (_, sender_hotkey, _, _) = synapse.axon.auth_interceptor.parse_signature(
-            metadata
-        )
+        (
+            _,
+            sender_hotkey,
+            _,
+            _,
+        ) = synapse.axon.auth_interceptor.parse_signature(metadata)
 
         self.completed = False
         self.start_time = time.time()
@@ -173,7 +176,8 @@ class Synapse(ABC):
                 # Queue the forward call with priority.
                 call.priority = self.priority(call)
                 future = self.axon.priority_threadpool.submit(
-                    call._apply, priority=call.priority
+                    call._apply,
+                    priority=call.priority,
                 )
                 bittensor.logging.trace(
                     "Synapse: {} loaded future: {}".format(self.name, future)

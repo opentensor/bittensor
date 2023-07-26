@@ -11,8 +11,7 @@ class DistributedSampler:
 
         if len(self.dataset) % self.num_replicas != 0:
             self.num_samples = math.ceil(
-                (len(self.dataset) - self.num_replicas)
-                / self.num_replicas  # type: ignore[arg-type]
+                (len(self.dataset) - self.num_replicas) / self.num_replicas  # type: ignore[arg-type]
             )
         else:
             self.num_samples = math.ceil(len(self.dataset) / self.num_replicas)

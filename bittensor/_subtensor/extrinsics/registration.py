@@ -151,7 +151,8 @@ def register_extrinsic(
         if not pow_result:
             # might be registered already on this subnet
             is_registered = subtensor.is_hotkey_registered(
-                netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
+                netuid=netuid,
+                hotkey_ss58=wallet.hotkey.ss58_address,
             )
             if is_registered:
                 bittensor.__console__.print(
@@ -190,7 +191,8 @@ def register_extrinsic(
                     else:
                         bittensor.__console__.print(":satellite: Checking Balance...")
                         is_registered = subtensor.is_hotkey_registered(
-                            netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
+                            netuid=netuid,
+                            hotkey_ss58=wallet.hotkey.ss58_address,
                         )
                         if is_registered:
                             bittensor.__console__.print(
@@ -314,7 +316,8 @@ def burned_register_extrinsic(
                 )
             )
             is_registered = subtensor.is_hotkey_registered(
-                netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
+                netuid=netuid,
+                hotkey_ss58=wallet.hotkey.ss58_address,
             )
             if is_registered:
                 bittensor.__console__.print(

@@ -90,7 +90,10 @@ class UnStakeCommand:
             default=False,
         )
         unstake_parser.add_argument(
-            "--all", dest="unstake_all", action="store_true", default=False
+            "--all",
+            dest="unstake_all",
+            action="store_true",
+            default=False,
         )
         unstake_parser.add_argument(
             "--amount", dest="amount", type=float, required=False

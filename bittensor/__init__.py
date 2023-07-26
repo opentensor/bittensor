@@ -28,7 +28,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = "5.3.1"
+__version__ = "5.3.2"
 version_split = __version__.split(".")
 __version_as_int__ = (
     (100 * int(version_split[0]))
@@ -123,7 +123,11 @@ __network_explorer_map__ = {
 }
 
 # --- Type Registry ---
-__type_registry__ = {"types": {"Balance": "u64"}}  # Need to override default u128
+__type_registry__ = {
+    "types": {
+        "Balance": "u64",  # Need to override default u128
+    },
+}
 
 # --- Prometheus ---
 __prometheus_version__ = "0.1.0"
@@ -283,7 +287,10 @@ def prompt(
     global __context_prompting_llm
     if __context_prompting_llm == None:
         __context_prompting_llm = prompting(
-            wallet_name=wallet_name, hotkey=hotkey, subtensor_=subtensor_, axon_=axon_
+            wallet_name=wallet_name,
+            hotkey=hotkey,
+            subtensor_=subtensor_,
+            axon_=axon_,
         )
     return __context_prompting_llm(content=content, return_all=return_all)
 
@@ -330,10 +337,9 @@ class prompting(torch.nn.Module):
             if isinstance(content[0], str):
                 return ["user" for _ in content], content
             elif isinstance(content[0], dict):
-                return (
-                    [dictitem[list(dictitem.keys())[0]] for dictitem in content],
-                    [dictitem[list(dictitem.keys())[1]] for dictitem in content],
-                )
+                return [dictitem[list(dictitem.keys())[0]] for dictitem in content], [
+                    dictitem[list(dictitem.keys())[1]] for dictitem in content
+                ]
             else:
                 raise ValueError("content has invalid type {}".format(type(content)))
         else:

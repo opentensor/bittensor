@@ -269,7 +269,11 @@ class TestSubtensor(unittest.TestCase):
             return_value=self.mock_neuron
         )
         self.subtensor.get_balance = MagicMock(return_value=self.balance)
-        success = self.subtensor.transfer(self.wallet, fake_coldkey, amount=200)
+        success = self.subtensor.transfer(
+            self.wallet,
+            fake_coldkey,
+            amount=200,
+        )
         self.assertTrue(success, msg="Transfer should succeed")
 
     def test_transfer_inclusion(self):
@@ -340,7 +344,10 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor._do_set_weights = MagicMock(return_value=(True, None))
 
         success = self.subtensor.set_weights(
-            wallet=self.wallet, netuid=3, uids=[1], weights=chain_weights
+            wallet=self.wallet,
+            netuid=3,
+            uids=[1],
+            weights=chain_weights,
         )
         assert success == True
 
@@ -580,7 +587,9 @@ class TestSubtensor(unittest.TestCase):
                 return_value=MagicMock(is_null=True)
             ),  # not registered
             _do_pow_register=mock_do_pow_register,
-            substrate=MagicMock(get_block_hash=MagicMock(return_value="0x" + "0" * 64)),
+            substrate=MagicMock(
+                get_block_hash=MagicMock(return_value="0x" + "0" * 64),
+            ),
         )
 
         mock_wallet = MagicMock()

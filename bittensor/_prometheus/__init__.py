@@ -114,7 +114,9 @@ class prometheus:
         else:
             # Serve prometheus. Not OFF
             serve_success = subtensor.serve_prometheus(
-                wallet=wallet, port=port, netuid=netuid
+                wallet=wallet,
+                port=port,
+                netuid=netuid,
             )
             if serve_success:
                 try:
