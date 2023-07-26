@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.2.1 / 2023-07-26
+
+## What's Changed
+* Remove datasets requirement by @camfairchild in 2f27b229db
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.2.0...v5.2.1
+
+
 ## 5.2.0 / 2023-06-28
 
 ## What's Changed
