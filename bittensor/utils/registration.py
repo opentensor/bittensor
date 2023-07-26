@@ -448,6 +448,7 @@ class RegistrationStatisticsLogger:
                 self.get_status_message(stats, verbose=verbose),
             )
 
+
 def _solve_for_difficulty_fast(
     subtensor,
     wallet: "bittensor.Wallet",

@@ -311,6 +311,7 @@ class TestCLINoNetwork(unittest.TestCase):
     def test_register_cuda_use_cuda_flag(self):
         class ExitEarlyException(Exception):
             """Raised by mocked function to exit early"""
+
             pass
 
         base_args = [

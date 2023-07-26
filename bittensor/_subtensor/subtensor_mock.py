@@ -98,7 +98,6 @@ class PrometheusInfoDict(InfoDict):
         return cls(block=0, version=0, ip=0, port=0, ip_type=0)
 
 
-
 @dataclass
 class MockSubtensorValue:
     value: Optional[Any]
