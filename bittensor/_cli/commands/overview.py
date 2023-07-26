@@ -119,12 +119,12 @@ class OverviewCommand:
             # Pull neuron info for all keys.
             ## Max len(netuids) or 5 threads.
             with ProcessPoolExecutor(max_workers=max(len(netuids), 5)) as executor:
-                results = executor.map(OverviewCommand._get_neurons_for_netuid, [
-                    (cli.config, netuid, all_hotkey_addresses)
-                    for netuid in netuids
-                ])
-                executor.shutdown(wait=True) # wait for all complete
-                
+                results = executor.map(
+                    OverviewCommand._get_neurons_for_netuid,
+                    [(cli.config, netuid, all_hotkey_addresses) for netuid in netuids],
+                )
+                executor.shutdown(wait=True)  # wait for all complete
+
                 for result in results:
                     netuid, neurons_result, err_msg = result
                     if err_msg is not None:
