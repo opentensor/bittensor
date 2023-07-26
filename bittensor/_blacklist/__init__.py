@@ -106,9 +106,12 @@ class blacklist:
                 return True, 'pubkey stake below min_allowed_stake'
 
         # Check for vpermit.
-        if metagraph is not None and self.config.blacklist.vpermit_required and is_registered:
+        if is_registered and self.config.blacklist.vpermit_required:
             uid = metagraph.hotkeys.index(src_hotkey)
-            return metagraph.neurons[uid].validator_permit
+            # Return False (pass) if there is a permit, and True (fail) if there isn't.
+            if metagraph.neurons[uid].validator_permit:
+                return False, "has vpermit"
+            return True, "no vpermit"
 
         # All checks passed.
         return False, 'passed blacklist'
