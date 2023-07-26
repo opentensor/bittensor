@@ -18,7 +18,7 @@
 import argparse
 import bittensor
 from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 from fuzzywuzzy import fuzz
 from rich.align import Align
 from rich.table import Table
