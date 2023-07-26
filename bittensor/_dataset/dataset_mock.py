@@ -1,4 +1,3 @@
-
 """ Implementation for the mock dataset which returns dummy tokenized text.
 """
 # The MIT License (MIT)
@@ -27,7 +26,8 @@ from . import dataset_impl
 
 logger = logger.opt(colors=True)
 
-class MockGenesisTextDataset( dataset_impl.Dataset ):
+
+class MockGenesisTextDataset(dataset_impl.Dataset):
     def __init__(
         self,
         block_size,
@@ -44,7 +44,7 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
         self.block_size = block_size
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.tokenizer = bittensor.tokenizer( version = bittensor.__version__ )
+        self.tokenizer = bittensor.tokenizer(version=bittensor.__version__)
         self.dataset_names = dataset_names
         self.data_dir = data_dir
         self.save_dataset = save_dataset
@@ -63,11 +63,11 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
     def __del__(self):
         self.close()
 
-    def construct_text_corpus(self, min_data_len = 0):
+    def construct_text_corpus(self, min_data_len=0):
         data_corpus = []
         total_dataset_len = 0
         i = 0
-        while (total_dataset_len < min_data_len):
+        while total_dataset_len < min_data_len:
             text = "lorem ipsum data is not here this is super fake but maybe you could still learn from it?"
             text_list = text.split()
             data_corpus.extend(text_list)
@@ -75,18 +75,18 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
             i += 1
         return data_corpus
 
-    def _fill_data(self, epoch_length:int = 100):
+    def _fill_data(self, epoch_length: int = 100):
         data_size = epoch_length * self.batch_size * self.block_size
 
         # Make sure the data remained is at least as big as data_size
-        while len(self.data_remained) < (data_size) :
-            self.data_remained += self.construct_text_corpus(min_data_len = data_size)
+        while len(self.data_remained) < (data_size):
+            self.data_remained += self.construct_text_corpus(min_data_len=data_size)
 
         self.data = self.data_remained[:data_size]
         del self.data_remained[:data_size]
 
-    def dataloader(self, epoch_length = 100):
-        """ Creates a torch dataloader out of a subclass of this class.
+    def dataloader(self, epoch_length=100):
+        """Creates a torch dataloader out of a subclass of this class.
 
         Args:
             epoch_length (int, optional): The epoch length of the miner. If this length is not set or if it is larger than the dataset,
@@ -97,15 +97,16 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
             torch.utils.data.dataloader.DataLoader: Pytorch dataloader.
         """
         self._fill_data(epoch_length)
-        return DataLoader(self,
-                    shuffle=True,
-                    batch_size=self.batch_size,
-                    num_workers=self.num_workers,
-                    drop_last=True)
+        return DataLoader(
+            self,
+            shuffle=True,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            drop_last=True,
+        )
 
     def __next__(self):
-        """Returns the next element from the dataset.
-        """
+        """Returns the next element from the dataset."""
         if self.__infinite_dataset_iterator == None:
             self.__infinite_dataset_iterator = iter(list(self.dataloader()))
         try:
@@ -122,23 +123,27 @@ class MockGenesisTextDataset( dataset_impl.Dataset ):
         """
         if (self.data == None) or (self.block_size == None) or (self.block_size == 0):
             return 0
-        return round( len(self.data) / self.block_size )
+        return round(len(self.data) / self.block_size)
 
     def __getitem__(self, idx):
-        """ Returns a block of sentences from text dataset.
+        """Returns a block of sentences from text dataset.
 
-            Args:
-                idx: index of data input
+        Args:
+            idx: index of data input
 
-            Returns:
-                torch.tensor(dix)
+        Returns:
+            torch.tensor(dix)
         """
         start_idx = (idx * self.block_size) % len(self.data)
         end_idx = start_idx + self.block_size
         if self.no_tokenizer == False:
-            tokenized_text = torch.tensor(self.tokenizer(" ".join(self.data[start_idx:end_idx]), truncation=True)['input_ids'], dtype=torch.long)
+            tokenized_text = torch.tensor(
+                self.tokenizer(" ".join(self.data[start_idx:end_idx]), truncation=True)[
+                    "input_ids"
+                ],
+                dtype=torch.long,
+            )
         elif self.no_tokenizer == True:
             tokenized_text = " ".join(self.data[start_idx:end_idx])
 
-        return tokenized_text[:self.block_size]
-
+        return tokenized_text[: self.block_size]

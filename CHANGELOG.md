@@ -1,5 +1,18 @@
 # Changelog
 
+## 5.3.2 / 2023-07-25
+
+## What's Changed
+* Btlm miner by @shibshib in https://github.com/opentensor/bittensor/pull/1463
+* Don't finalize set_weights ext by @camfairchild in https://github.com/opentensor/bittensor/pull/1461
+* Faster overview pull by @camfairchild in https://github.com/opentensor/bittensor/pull/1464
+* Contrib revamp by @ifrit98 in https://github.com/opentensor/bittensor/pull/1456
+* fix torch typehint on some neurons BT-1329 by @camfairchild in https://github.com/opentensor/bittensor/pull/1460
+* bump bittensor-wallet version to 0.0.5
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.3.1...v5.3.2
+
+
 ## 5.3.1 / 2023-07-06
 
 ## What's Changed

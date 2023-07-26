@@ -31,13 +31,16 @@ logger = get_dist_logger()
 
 IGNORE_INDEX = -100
 PROMPT_DICT = {
-    "prompt_input":
-        ("Below is an instruction that describes a task, paired with an input that provides further context. "
-         "Write a response that appropriately completes the request.\n\n"
-         "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:"),
-    "prompt_no_input": ("Below is an instruction that describes a task. "
-                        "Write a response that appropriately completes the request.\n\n"
-                        "### Instruction:\n{instruction}\n\n### Response:"),
+    "prompt_input": (
+        "Below is an instruction that describes a task, paired with an input that provides further context. "
+        "Write a response that appropriately completes the request.\n\n"
+        "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:"
+    ),
+    "prompt_no_input": (
+        "Below is an instruction that describes a task. "
+        "Write a response that appropriately completes the request.\n\n"
+        "### Instruction:\n{instruction}\n\n### Response:"
+    ),
 }
 
 
@@ -57,12 +60,14 @@ class SFTDataset(Dataset):
         self.input_ids = []
 
         for data in tqdm(dataset, disable=not is_rank_0()):
-            prompt = data['prompt'] + data['completion'] + "<|endoftext|>"
-            prompt_token = tokenizer(prompt,
-                                     max_length=max_length,
-                                     padding="max_length",
-                                     truncation=True,
-                                     return_tensors="pt")
+            prompt = data["prompt"] + data["completion"] + "<|endoftext|>"
+            prompt_token = tokenizer(
+                prompt,
+                max_length=max_length,
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt",
+            )
 
             # self.prompts.append(prompt_token)s
             self.input_ids.append(prompt_token)
@@ -78,7 +83,9 @@ class SFTDataset(Dataset):
         # return dict(self.prompts[idx], self.prompts[idx])
 
 
-def _tokenize_fn(strings: Sequence[str], tokenizer: transformers.PreTrainedTokenizer) -> Dict:
+def _tokenize_fn(
+    strings: Sequence[str], tokenizer: transformers.PreTrainedTokenizer
+) -> Dict:
     """Tokenize a list of strings."""
     tokenized_list = [
         tokenizer(
@@ -87,11 +94,13 @@ def _tokenize_fn(strings: Sequence[str], tokenizer: transformers.PreTrainedToken
             padding="longest",
             max_length=tokenizer.model_max_length,
             truncation=True,
-        ) for text in strings
+        )
+        for text in strings
     ]
     input_ids = labels = [tokenized.input_ids[0] for tokenized in tokenized_list]
     input_ids_lens = labels_lens = [
-        tokenized.input_ids.ne(tokenizer.pad_token_id).sum().item() for tokenized in tokenized_list
+        tokenized.input_ids.ne(tokenizer.pad_token_id).sum().item()
+        for tokenized in tokenized_list
     ]
     return dict(
         input_ids=input_ids,
@@ -108,7 +117,9 @@ def preprocess(
 ) -> Dict:
     """Preprocess the data by tokenizing."""
     examples = [s + t for s, t in zip(sources, targets)]
-    examples_tokenized, sources_tokenized = [_tokenize_fn(strings, tokenizer) for strings in (examples, sources)]
+    examples_tokenized, sources_tokenized = [
+        _tokenize_fn(strings, tokenizer) for strings in (examples, sources)
+    ]
     input_ids = examples_tokenized["input_ids"]
     labels = copy.deepcopy(input_ids)
     for label, source_len in zip(labels, sources_tokenized["input_ids_lens"]):
@@ -119,7 +130,12 @@ def preprocess(
 class SupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning."""
 
-    def __init__(self, data_path: str, tokenizer: transformers.PreTrainedTokenizer, max_datasets_size: int = None):
+    def __init__(
+        self,
+        data_path: str,
+        tokenizer: transformers.PreTrainedTokenizer,
+        max_datasets_size: int = None,
+    ):
         super(SupervisedDataset, self).__init__()
         logger.info("Loading data...")
         list_data_dict = jload(data_path)
@@ -130,12 +146,19 @@ class SupervisedDataset(Dataset):
             list_data_dict = list_data_dict[:max_datasets_size]
 
         logger.info("Formatting inputs...")
-        prompt_input, prompt_no_input = PROMPT_DICT["prompt_input"], PROMPT_DICT["prompt_no_input"]
+        prompt_input, prompt_no_input = (
+            PROMPT_DICT["prompt_input"],
+            PROMPT_DICT["prompt_no_input"],
+        )
         sources = [
-            prompt_input.format_map(example) if example.get("input", "") != "" else prompt_no_input.format_map(example)
+            prompt_input.format_map(example)
+            if example.get("input", "") != ""
+            else prompt_no_input.format_map(example)
             for example in list_data_dict
         ]
-        targets = [f"{example['output']}{tokenizer.eos_token}" for example in list_data_dict]
+        targets = [
+            f"{example['output']}{tokenizer.eos_token}" for example in list_data_dict
+        ]
 
         logger.info("Tokenizing inputs... This may take some time...")
         data_dict = preprocess(sources, targets, tokenizer)
@@ -157,11 +180,15 @@ class DataCollatorForSupervisedDataset(object):
     tokenizer: transformers.PreTrainedTokenizer
 
     def __call__(self, instances: Sequence[Dict]) -> Dict[str, torch.Tensor]:
-        input_ids, labels = tuple([instance[key] for instance in instances] for key in ("input_ids", "labels"))
-        input_ids = torch.nn.utils.rnn.pad_sequence(input_ids,
-                                                    batch_first=True,
-                                                    padding_value=self.tokenizer.pad_token_id)
-        labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=IGNORE_INDEX)
+        input_ids, labels = tuple(
+            [instance[key] for instance in instances] for key in ("input_ids", "labels")
+        )
+        input_ids = torch.nn.utils.rnn.pad_sequence(
+            input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
+        )
+        labels = torch.nn.utils.rnn.pad_sequence(
+            labels, batch_first=True, padding_value=IGNORE_INDEX
+        )
         return dict(
             input_ids=input_ids,
             labels=labels,

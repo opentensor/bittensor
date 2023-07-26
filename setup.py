@@ -28,60 +28,62 @@ import pathlib
 def read_requirements(path):
     with pathlib.Path(path).open() as requirements_txt:
         return [
-            str(requirement)
-            for requirement
-            in parse_requirements(requirements_txt)
+            str(requirement) for requirement in parse_requirements(requirements_txt)
         ]
 
-requirements = read_requirements('requirements/prod.txt')
-extra_requirements_dev = read_requirements('requirements/dev.txt')
-extra_requirements_cubit = read_requirements('requirements/cubit.txt')
+
+requirements = read_requirements("requirements/prod.txt")
+extra_requirements_dev = read_requirements("requirements/dev.txt")
+extra_requirements_cubit = read_requirements("requirements/cubit.txt")
 
 here = path.abspath(path.dirname(__file__))
 
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 
 # loading version from setup.py
-with codecs.open(os.path.join(here, 'bittensor/__init__.py'), encoding='utf-8') as init_file:
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", init_file.read(), re.M)
+with codecs.open(
+    os.path.join(here, "bittensor/__init__.py"), encoding="utf-8"
+) as init_file:
+    version_match = re.search(
+        r"^__version__ = ['\"]([^'\"]*)['\"]", init_file.read(), re.M
+    )
     version_string = version_match.group(1)
 
 setup(
-    name='bittensor',
+    name="bittensor",
     version=version_string,
-    description='bittensor',
+    description="bittensor",
     long_description=long_description,
-    long_description_content_type='text/markdown',
-    url='https://github.com/opentensor/bittensor',
-    author='bittensor.com',
+    long_description_content_type="text/markdown",
+    url="https://github.com/opentensor/bittensor",
+    author="bittensor.com",
     packages=find_packages(),
     include_package_data=True,
-    author_email='',
-    license='MIT',
-    python_requires='>=3.8',
+    author_email="",
+    license="MIT",
+    python_requires=">=3.8",
     install_requires=requirements,
     extras_require={
-        'dev': extra_requirements_dev,
+        "dev": extra_requirements_dev,
     },
-    scripts=['bin/btcli'],
+    scripts=["bin/btcli"],
     classifiers=[
-        'Development Status :: 3 - Alpha',
-        'Intended Audience :: Developers',
-        'Topic :: Software Development :: Build Tools',
-
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "Topic :: Software Development :: Build Tools",
         # Pick your license as you wish
-        'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3 :: Only',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Topic :: Scientific/Engineering',
-        'Topic :: Scientific/Engineering :: Mathematics',
-        'Topic :: Scientific/Engineering :: Artificial Intelligence',
-        'Topic :: Software Development',
-        'Topic :: Software Development :: Libraries',
-        'Topic :: Software Development :: Libraries :: Python Modules',
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Topic :: Scientific/Engineering",
+        "Topic :: Scientific/Engineering :: Mathematics",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Software Development",
+        "Topic :: Software Development :: Libraries",
+        "Topic :: Software Development :: Libraries :: Python Modules",
     ],
 )

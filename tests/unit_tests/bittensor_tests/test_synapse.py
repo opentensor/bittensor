@@ -21,21 +21,22 @@ import unittest
 from unittest.mock import MagicMock
 
 
-class MockTextPromptingSynapse( bittensor.TextPromptingSynapse ):
-    def forward( self, messages ):
+class MockTextPromptingSynapse(bittensor.TextPromptingSynapse):
+    def forward(self, messages):
         return messages
 
-    def multi_forward( self, messages ):
+    def multi_forward(self, messages):
         return messages
 
-    def backward( self, messages, response, rewards ):
+    def backward(self, messages, response, rewards):
         return messages, response, rewards
 
-    def priority( self, call: bittensor.SynapseCall ) -> float:
+    def priority(self, call: bittensor.SynapseCall) -> float:
         return 0.0
 
-    def blacklist( self, call: bittensor.SynapseCall ) -> bool:
+    def blacklist(self, call: bittensor.SynapseCall) -> bool:
         return False
+
 
 def test_create_text_prompting():
     mock_wallet = MagicMock(
@@ -49,8 +50,9 @@ def test_create_text_prompting():
             ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
         ),
     )
-    axon = bittensor.axon( wallet = mock_wallet, metagraph = None )
-    synapse = MockTextPromptingSynapse( axon = axon )
+    axon = bittensor.axon(wallet=mock_wallet, metagraph=None)
+    synapse = MockTextPromptingSynapse(axon=axon)
+
 
 # @unittest.skip("This is for convenience of testing without violating DRY too much")
 def get_synapse():
@@ -65,32 +67,35 @@ def get_synapse():
             ss58_address="5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg"
         ),
     )
-    axon = bittensor.axon( wallet = mock_wallet, metagraph = None )
-    return MockTextPromptingSynapse( axon = axon )
+    axon = bittensor.axon(wallet=mock_wallet, metagraph=None)
+    return MockTextPromptingSynapse(axon=axon)
 
 
 def test_text_prompting_synapse_forward():
     synapse = get_synapse()
-    messages = ['test message']
-    response = synapse.forward( messages )
+    messages = ["test message"]
+    response = synapse.forward(messages)
     assert response == messages
+
 
 def test_text_prompting_synapse_multi_forward():
     synapse = get_synapse()
-    messages = ['test message'] * 10
-    responses = synapse.multi_forward( messages )
+    messages = ["test message"] * 10
+    responses = synapse.multi_forward(messages)
     assert responses == messages
+
 
 def test_text_prompting_synapse_backward():
     synapse = get_synapse()
-    messages = ['test message']
-    response = ['test response']
+    messages = ["test message"]
+    response = ["test response"]
     rewards = torch.tensor([1.0])
-    output = synapse.backward( messages, response, rewards )
+    output = synapse.backward(messages, response, rewards)
     assert len(output) == 3
     assert messages == output[0]
     assert response == output[1]
     assert torch.all(torch.eq(rewards, output[2]))
+
 
 def test_text_prompting_synapse_blacklist():
     synapse = get_synapse()
@@ -101,11 +106,19 @@ def test_text_prompting_synapse_blacklist():
     context.invocation_metadata.return_value = {}
     synapse.axon = MagicMock()
     synapse.axon.auth_interceptor = MagicMock()
-    synapse.axon.auth_interceptor.parse_signature.return_value = (None, None, "5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg", None)
+    synapse.axon.auth_interceptor.parse_signature.return_value = (
+        None,
+        None,
+        "5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg",
+        None,
+    )
 
-    call = bittensor._synapse.text_prompting.synapse.SynapseForward( synapse, request, synapse.forward, context = context )
-    blacklist = synapse.blacklist( call )
+    call = bittensor._synapse.text_prompting.synapse.SynapseForward(
+        synapse, request, synapse.forward, context=context
+    )
+    blacklist = synapse.blacklist(call)
     assert blacklist == False
+
 
 def test_text_prompting_synapse_priority():
     synapse = get_synapse()
@@ -116,9 +129,15 @@ def test_text_prompting_synapse_priority():
     context.invocation_metadata.return_value = {}
     synapse.axon = MagicMock()
     synapse.axon.auth_interceptor = MagicMock()
-    synapse.axon.auth_interceptor.parse_signature.return_value = (None, None, "5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg", None)
+    synapse.axon.auth_interceptor.parse_signature.return_value = (
+        None,
+        None,
+        "5CtstubuSoVLJGCXkiWRNKrrGg2DVBZ9qMs2qYTLsZR4q1Wg",
+        None,
+    )
 
-    call = bittensor._synapse.text_prompting.synapse.SynapseForward( synapse, request, synapse.forward, context = context )
-    priority = synapse.priority( call )
+    call = bittensor._synapse.text_prompting.synapse.SynapseForward(
+        synapse, request, synapse.forward, context=context
+    )
+    priority = synapse.priority(call)
     assert priority == 0.0
-

@@ -25,79 +25,82 @@ import bittensor
 from . import cli_impl
 from .commands import *
 from typing import List, Optional
+
 console = bittensor.__console__
 
 # Turn off rich console locals trace.
 from rich.traceback import install
+
 install(show_locals=False)
+
 
 class cli:
     """
     Create and init the CLI class, which handles the coldkey, hotkey and tao transfer
     """
+
     def __new__(
-            cls,
-            config: Optional['bittensor.Config'] = None,
-            args: Optional[List[str]] = None,
-        ) -> 'bittensor.CLI':
-        r""" Creates a new bittensor.cli from passed arguments.
-            Args:
-                config (:obj:`bittensor.Config`, `optional`):
-                    bittensor.cli.config()
-                args (`List[str]`, `optional`):
-                    The arguments to parse from the command line.
+        cls,
+        config: Optional["bittensor.Config"] = None,
+        args: Optional[List[str]] = None,
+    ) -> "bittensor.CLI":
+        r"""Creates a new bittensor.cli from passed arguments.
+        Args:
+            config (:obj:`bittensor.Config`, `optional`):
+                bittensor.cli.config()
+            args (`List[str]`, `optional`):
+                The arguments to parse from the command line.
         """
         if config == None:
-            config = cli.config( args )
-        cli.check_config( config )
+            config = cli.config(args)
+        cli.check_config(config)
 
-        return cli_impl.CLI( config = config)
+        return cli_impl.CLI(config=config)
 
     @staticmethod
-    def __create_parser__() -> 'argparse.ArgumentParser':
-        """ Creates the argument parser for the bittensor cli.
-        """
+    def __create_parser__() -> "argparse.ArgumentParser":
+        """Creates the argument parser for the bittensor cli."""
         parser = argparse.ArgumentParser(
             description=f"bittensor cli v{bittensor.__version__}",
             usage="btcli <command> <command args>",
-            add_help=True)
+            add_help=True,
+        )
 
-        cmd_parsers = parser.add_subparsers(dest='command')
-        ListCommand.add_args( cmd_parsers )
-        StakeCommand.add_args( cmd_parsers )
-        UpdateCommand.add_args( cmd_parsers )
-        InspectCommand.add_args( cmd_parsers )
-        UnStakeCommand.add_args( cmd_parsers )
-        OverviewCommand.add_args( cmd_parsers )
-        RegisterCommand.add_args( cmd_parsers )
-        TransferCommand.add_args( cmd_parsers )
-        NominateCommand.add_args( cmd_parsers )
-        NewHotkeyCommand.add_args( cmd_parsers )
-        MetagraphCommand.add_args( cmd_parsers )
-        NewColdkeyCommand.add_args( cmd_parsers )
-        MyDelegatesCommand.add_args( cmd_parsers )
-        ListSubnetsCommand.add_args( cmd_parsers )
-        RegenHotkeyCommand.add_args( cmd_parsers )
-        RegenColdkeyCommand.add_args( cmd_parsers )
-        DelegateStakeCommand.add_args( cmd_parsers )
-        DelegateUnstakeCommand.add_args( cmd_parsers )
-        ListDelegatesCommand.add_args( cmd_parsers )
-        RegenColdkeypubCommand.add_args( cmd_parsers )
-        RecycleRegisterCommand.add_args( cmd_parsers )
-        SenateCommand.add_args( cmd_parsers )
-        ProposalsCommand.add_args( cmd_parsers )
-        ShowVotesCommand.add_args( cmd_parsers )
-        SenateRegisterCommand.add_args( cmd_parsers )
-        SenateLeaveCommand.add_args( cmd_parsers )
-        VoteCommand.add_args( cmd_parsers )
-
+        cmd_parsers = parser.add_subparsers(dest="command")
+        ListCommand.add_args(cmd_parsers)
+        StakeCommand.add_args(cmd_parsers)
+        UpdateCommand.add_args(cmd_parsers)
+        InspectCommand.add_args(cmd_parsers)
+        UnStakeCommand.add_args(cmd_parsers)
+        OverviewCommand.add_args(cmd_parsers)
+        RegisterCommand.add_args(cmd_parsers)
+        TransferCommand.add_args(cmd_parsers)
+        NominateCommand.add_args(cmd_parsers)
+        NewHotkeyCommand.add_args(cmd_parsers)
+        MetagraphCommand.add_args(cmd_parsers)
+        NewColdkeyCommand.add_args(cmd_parsers)
+        MyDelegatesCommand.add_args(cmd_parsers)
+        ListSubnetsCommand.add_args(cmd_parsers)
+        RegenHotkeyCommand.add_args(cmd_parsers)
+        RegenColdkeyCommand.add_args(cmd_parsers)
+        DelegateStakeCommand.add_args(cmd_parsers)
+        DelegateUnstakeCommand.add_args(cmd_parsers)
+        ListDelegatesCommand.add_args(cmd_parsers)
+        RegenColdkeypubCommand.add_args(cmd_parsers)
+        RecycleRegisterCommand.add_args(cmd_parsers)
+        SenateCommand.add_args(cmd_parsers)
+        ProposalsCommand.add_args(cmd_parsers)
+        ShowVotesCommand.add_args(cmd_parsers)
+        SenateRegisterCommand.add_args(cmd_parsers)
+        SenateLeaveCommand.add_args(cmd_parsers)
+        VoteCommand.add_args(cmd_parsers)
 
         return parser
 
     @staticmethod
-    def config(args: List[str]) -> 'bittensor.config':
-        """ From the argument parser, add config to bittensor.executor and local config
-            Return: bittensor.config object
+    def config(args: List[str]) -> "bittensor.config":
+        """From the argument parser, add config to bittensor.executor and local config
+        Return: bittensor.config object
         """
         parser = cli.__create_parser__()
 
@@ -106,67 +109,67 @@ class cli:
             parser.print_help()
             sys.exit()
 
-        return bittensor.config( parser, args=args )
+        return bittensor.config(parser, args=args)
 
     @staticmethod
-    def check_config (config: 'bittensor.Config'):
-        """ Check if the essential config exist under different command
-        """
+    def check_config(config: "bittensor.Config"):
+        """Check if the essential config exist under different command"""
         if config.command == "transfer":
-            TransferCommand.check_config( config )
+            TransferCommand.check_config(config)
         elif config.command == "register":
-            RegisterCommand.check_config( config )
+            RegisterCommand.check_config(config)
         elif config.command == "unstake":
-            UnStakeCommand.check_config( config )
+            UnStakeCommand.check_config(config)
         elif config.command == "stake":
-            StakeCommand.check_config( config )
+            StakeCommand.check_config(config)
         elif config.command == "overview":
-            OverviewCommand.check_config( config )
+            OverviewCommand.check_config(config)
         elif config.command == "new_coldkey":
-            NewColdkeyCommand.check_config( config )
+            NewColdkeyCommand.check_config(config)
         elif config.command == "new_hotkey":
-            NewHotkeyCommand.check_config( config )
+            NewHotkeyCommand.check_config(config)
         elif config.command == "regen_coldkey":
-            RegenColdkeyCommand.check_config( config )
+            RegenColdkeyCommand.check_config(config)
         elif config.command == "regen_coldkeypub":
-            RegenColdkeypubCommand.check_config( config )
+            RegenColdkeypubCommand.check_config(config)
         elif config.command == "regen_hotkey":
-            RegenHotkeyCommand.check_config( config )
+            RegenHotkeyCommand.check_config(config)
         elif config.command == "metagraph":
-            MetagraphCommand.check_config( config )
+            MetagraphCommand.check_config(config)
         elif config.command == "list":
-            ListCommand.check_config( config )
+            ListCommand.check_config(config)
         elif config.command == "inspect":
-            InspectCommand.check_config( config )
+            InspectCommand.check_config(config)
         elif config.command == "update":
-            UpdateCommand.check_config( config )
+            UpdateCommand.check_config(config)
         elif config.command == "nominate":
-            NominateCommand.check_config( config )
+            NominateCommand.check_config(config)
         elif config.command == "list_delegates":
-            ListDelegatesCommand.check_config( config )
+            ListDelegatesCommand.check_config(config)
         elif config.command == "list_subnets":
-            ListSubnetsCommand.check_config( config )
+            ListSubnetsCommand.check_config(config)
         elif config.command == "delegate":
-            DelegateStakeCommand.check_config( config )
+            DelegateStakeCommand.check_config(config)
         elif config.command == "undelegate":
-            DelegateUnstakeCommand.check_config( config )
+            DelegateUnstakeCommand.check_config(config)
         elif config.command == "my_delegates":
-            MyDelegatesCommand.check_config( config )
+            MyDelegatesCommand.check_config(config)
         elif config.command == "recycle_register":
-            RecycleRegisterCommand.check_config( config )
+            RecycleRegisterCommand.check_config(config)
         elif config.command == "senate":
-            SenateCommand.check_config( config )
+            SenateCommand.check_config(config)
         elif config.command == "proposals":
-            ProposalsCommand.check_config( config )
+            ProposalsCommand.check_config(config)
         elif config.command == "proposal_votes":
-            ShowVotesCommand.check_config( config )
+            ShowVotesCommand.check_config(config)
         elif config.command == "senate_register":
-            SenateRegisterCommand.check_config( config )
+            SenateRegisterCommand.check_config(config)
         elif config.command == "senate_leave":
-            SenateLeaveCommand.check_config( config )
+            SenateLeaveCommand.check_config(config)
         elif config.command == "senate_vote":
-            VoteCommand.check_config( config )
+            VoteCommand.check_config(config)
         else:
-            console.print(":cross_mark:[red]Unknown command: {}[/red]".format(config.command))
+            console.print(
+                ":cross_mark:[red]Unknown command: {}[/red]".format(config.command)
+            )
             sys.exit()
-

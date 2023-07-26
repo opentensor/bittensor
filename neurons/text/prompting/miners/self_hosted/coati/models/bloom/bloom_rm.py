@@ -18,12 +18,14 @@ class BLOOMRM(RewardModel):
         lora_train_bias (str): LoRA bias training mode.
     """
 
-    def __init__(self,
-                 pretrained: str = None,
-                 config: Optional[BloomConfig] = None,
-                 checkpoint: bool = False,
-                 lora_rank: int = 0,
-                 lora_train_bias: str = 'none') -> None:
+    def __init__(
+        self,
+        pretrained: str = None,
+        config: Optional[BloomConfig] = None,
+        checkpoint: bool = False,
+        lora_rank: int = 0,
+        lora_train_bias: str = "none",
+    ) -> None:
         if pretrained is not None:
             model = BloomModel.from_pretrained(pretrained)
         elif config is not None:

@@ -22,36 +22,44 @@ from typing import List, Dict
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
-class DromedaryMiner( bittensor.HuggingFaceMiner ):
+class DromedaryMiner(bittensor.HuggingFaceMiner):
     arg_prefix: str = "dromedary"
     assistant_label: str = "Dromedary:"
     user_label: str = "User:"
     system_label: str = "System:"
 
     @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument( '--dromedary.device_map', type=str, help='Device to load model: Default "auto" for multi-GPU', default="auto" )
-
-    def __init__( self ):
-        super( DromedaryMiner, self ).__init__()
-        print ( self.config )
-
-        bittensor.logging.info( 'Loading ' + str( self.config.dromedary.model_name ) )
-        self.tokenizer = AutoTokenizer.from_pretrained( self.config.dromedary.model_name, use_fast=False )
-        self.model = AutoModelForCausalLM.from_pretrained( 
-            self.config.dromedary.model_name,  
-            device_map=self.config.dromedary.device_map, 
-            torch_dtype=torch.float16, 
-            low_cpu_mem_usage=True 
+    def add_args(cls, parser: argparse.ArgumentParser):
+        parser.add_argument(
+            "--dromedary.device_map",
+            type=str,
+            help='Device to load model: Default "auto" for multi-GPU',
+            default="auto",
         )
-        bittensor.logging.info( 'Model loaded!' )
 
-    def forward( self, messages: List[Dict[str, str]] ) -> str:
+    def __init__(self):
+        super(DromedaryMiner, self).__init__()
+        print(self.config)
 
-        history = self._process_history( self, messages )
+        bittensor.logging.info("Loading " + str(self.config.dromedary.model_name))
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.config.dromedary.model_name, use_fast=False
+        )
+        self.model = AutoModelForCausalLM.from_pretrained(
+            self.config.dromedary.model_name,
+            device_map=self.config.dromedary.device_map,
+            torch_dtype=torch.float16,
+            low_cpu_mem_usage=True,
+        )
+        bittensor.logging.info("Model loaded!")
+
+    def forward(self, messages: List[Dict[str, str]]) -> str:
+        history = self._process_history(self, messages)
         prompt = history + self.assistant_label
 
-        input_ids = self.tokenizer.encode( prompt, return_tensors="pt" ).to( self.config.dromedary.device )
+        input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(
+            self.config.dromedary.device
+        )
         output = self.model.generate(
             input_ids,
             max_length=input_ids.shape[1] + self.config.dromedary.max_new_tokens,
@@ -59,11 +67,14 @@ class DromedaryMiner( bittensor.HuggingFaceMiner ):
             do_sample=self.config.dromedary.do_sample,
             pad_token_id=self.tokenizer.eos_token_id,
         )
-        generation = self.tokenizer.decode( output[0][input_ids.shape[1]:], skip_special_tokens=True )
+        generation = self.tokenizer.decode(
+            output[0][input_ids.shape[1] :], skip_special_tokens=True
+        )
 
-        bittensor.logging.debug( "Message: " + str( messages ) )
-        bittensor.logging.debug( "Generation: " + str( generation ) )
+        bittensor.logging.debug("Message: " + str(messages))
+        bittensor.logging.debug("Generation: " + str(generation))
         return generation
+
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()

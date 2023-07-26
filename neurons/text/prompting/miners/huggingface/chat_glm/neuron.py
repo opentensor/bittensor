@@ -21,21 +21,23 @@ import bittensor
 from typing import List, Dict
 from transformers import AutoTokenizer, AutoModel
 
-class ChatGLMMiner( bittensor.HuggingFaceMiner ):
-    
-    arg_prefix: str = 'chat_glm'
-    assistant_label: str = ''
-    user_label: str = ''
-    system_label: str = ''
 
-    def load_tokenizer( self ):
-        return AutoTokenizer.from_pretrained( "THUDM/chatglm-6b", trust_remote_code=True)
+class ChatGLMMiner(bittensor.HuggingFaceMiner):
+    arg_prefix: str = "chat_glm"
+    assistant_label: str = ""
+    user_label: str = ""
+    system_label: str = ""
 
-    def load_model( self ):
-        return AutoModel.from_pretrained( "THUDM/chatglm-6b",trust_remote_code=True, torch_dtype = torch.float16 )
-    
+    def load_tokenizer(self):
+        return AutoTokenizer.from_pretrained("THUDM/chatglm-6b", trust_remote_code=True)
+
+    def load_model(self):
+        return AutoModel.from_pretrained(
+            "THUDM/chatglm-6b", trust_remote_code=True, torch_dtype=torch.float16
+        )
+
     def forward(self, messages: List[Dict[str, str]]) -> str:
-        history = self.process_history( messages )
+        history = self.process_history(messages)
         prompt = history[-1][-1]
         if len(history) == 1:
             history = []
@@ -49,8 +51,12 @@ class ChatGLMMiner( bittensor.HuggingFaceMiner ):
             pad_token_id=self.tokenizer.eos_token_id,
         )
 
-        bittensor.logging.debug("Message: " + str( messages ).replace( "<","-" ).replace( ">","-" ) )
-        bittensor.logging.debug("Generation: " + str( generation ).replace( "<","-" ).replace( ">","-" ) )
+        bittensor.logging.debug(
+            "Message: " + str(messages).replace("<", "-").replace(">", "-")
+        )
+        bittensor.logging.debug(
+            "Generation: " + str(generation).replace("<", "-").replace(">", "-")
+        )
         return generation
 
 

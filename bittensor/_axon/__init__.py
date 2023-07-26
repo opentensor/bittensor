@@ -31,21 +31,22 @@ from substrateinterface import Keypair
 import bittensor.utils.networking as net
 from typing import Dict, Optional, Tuple
 
-class axon:
-    """ Axon object for serving synapse receptors. """
 
-    def info(self) -> 'axon_info':
+class axon:
+    """Axon object for serving synapse receptors."""
+
+    def info(self) -> "axon_info":
         """Returns the axon info object associate with this axon."""
         return axon_info(
-            version = bittensor.__version_as_int__,
-            ip = self.external_ip,
-            ip_type = 4,
-            port = self.external_port,
-            hotkey = self.wallet.hotkey.ss58_address,
-            coldkey = self.wallet.coldkeypub.ss58_address,
-            protocol = 4,
-            placeholder1 = 0,
-            placeholder2 = 0,
+            version=bittensor.__version_as_int__,
+            ip=self.external_ip,
+            ip_type=4,
+            port=self.external_port,
+            hotkey=self.wallet.hotkey.ss58_address,
+            coldkey=self.wallet.coldkeypub.ss58_address,
+            protocol=4,
+            placeholder1=0,
+            placeholder2=0,
         )
 
     def __init__(
@@ -89,11 +90,15 @@ class axon:
         config = copy.deepcopy(config)
         config.axon.port = port if port is not None else config.axon.port
         config.axon.ip = ip if ip is not None else config.axon.ip
-        config.axon.external_ip = external_ip if external_ip is not None else config.axon.external_ip
+        config.axon.external_ip = (
+            external_ip if external_ip is not None else config.axon.external_ip
+        )
         config.axon.external_port = (
             external_port if external_port is not None else config.axon.external_port
         )
-        config.axon.max_workers = max_workers if max_workers is not None else config.axon.max_workers
+        config.axon.max_workers = (
+            max_workers if max_workers is not None else config.axon.max_workers
+        )
         config.axon.maximum_concurrent_rpcs = (
             maximum_concurrent_rpcs
             if maximum_concurrent_rpcs is not None
@@ -105,8 +110,16 @@ class axon:
         # Build axon objects.
         self.ip = self.config.axon.ip
         self.port = self.config.axon.port
-        self.external_ip = self.config.axon.external_ip if self.config.axon.external_ip != None else bittensor.utils.networking.get_external_ip()
-        self.external_port = self.config.axon.external_port if self.config.axon.external_port != None else self.config.axon.port
+        self.external_ip = (
+            self.config.axon.external_ip
+            if self.config.axon.external_ip != None
+            else bittensor.utils.networking.get_external_ip()
+        )
+        self.external_port = (
+            self.config.axon.external_port
+            if self.config.axon.external_port != None
+            else self.config.axon.port
+        )
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
         self.started = False
 
@@ -119,12 +132,17 @@ class axon:
 
         # Build grpc server
         if server is None:
-            self.thread_pool = futures.ThreadPoolExecutor(max_workers=self.config.axon.max_workers)
+            self.thread_pool = futures.ThreadPoolExecutor(
+                max_workers=self.config.axon.max_workers
+            )
             self.server = grpc.server(
                 self.thread_pool,
                 interceptors=(self.auth_interceptor,),
                 maximum_concurrent_rpcs=self.config.axon.maximum_concurrent_rpcs,
-                options=[("grpc.keepalive_time_ms", 100000), ("grpc.keepalive_timeout_ms", 500000)],
+                options=[
+                    ("grpc.keepalive_time_ms", 100000),
+                    ("grpc.keepalive_timeout_ms", 500000),
+                ],
             )
             self.server.add_insecure_port(self.full_address)
         else:
@@ -210,17 +228,23 @@ class axon:
         defaults.axon.port = (
             os.getenv("BT_AXON_PORT") if os.getenv("BT_AXON_PORT") is not None else 8091
         )
-        defaults.axon.ip = os.getenv("BT_AXON_IP") if os.getenv("BT_AXON_IP") is not None else "[::]"
+        defaults.axon.ip = (
+            os.getenv("BT_AXON_IP") if os.getenv("BT_AXON_IP") is not None else "[::]"
+        )
         defaults.axon.external_port = (
             os.getenv("BT_AXON_EXTERNAL_PORT")
             if os.getenv("BT_AXON_EXTERNAL_PORT") is not None
             else None
         )
         defaults.axon.external_ip = (
-            os.getenv("BT_AXON_EXTERNAL_IP") if os.getenv("BT_AXON_EXTERNAL_IP") is not None else None
+            os.getenv("BT_AXON_EXTERNAL_IP")
+            if os.getenv("BT_AXON_EXTERNAL_IP") is not None
+            else None
         )
         defaults.axon.max_workers = (
-            os.getenv("BT_AXON_MAX_WORERS") if os.getenv("BT_AXON_MAX_WORERS") is not None else 10
+            os.getenv("BT_AXON_MAX_WORERS")
+            if os.getenv("BT_AXON_MAX_WORERS") is not None
+            else 10
         )
         defaults.axon.maximum_concurrent_rpcs = (
             os.getenv("BT_AXON_MAXIMUM_CONCURRENT_RPCS")
@@ -271,10 +295,7 @@ class axon:
 class AuthInterceptor(grpc.ServerInterceptor):
     """Creates a new server interceptor that authenticates incoming messages from passed arguments."""
 
-    def __init__(
-        self,
-        receiver_hotkey: str,
-    ):
+    def __init__(self, receiver_hotkey: str):
         r"""Creates a new server interceptor that authenticates incoming messages from passed arguments.
         Args:
             receiver_hotkey(str):
@@ -283,7 +304,6 @@ class AuthInterceptor(grpc.ServerInterceptor):
         super().__init__()
         self.nonces = {}
         self.receiver_hotkey = receiver_hotkey
-
 
     def parse_signature_v2(self, signature: str) -> Optional[Tuple[int, str, str, str]]:
         r"""Attempts to parse a signature using the v2 format"""
@@ -302,7 +322,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
     def parse_signature(self, metadata: Dict[str, str]) -> Tuple[int, str, str, str]:
         r"""Attempts to parse a signature from the metadata"""
         signature = metadata.get("bittensor-signature")
-        version = metadata.get('bittensor-version')
+        version = metadata.get("bittensor-version")
         if signature is None:
             raise Exception("Request signature missing")
         if int(version) < 510:
@@ -313,11 +333,7 @@ class AuthInterceptor(grpc.ServerInterceptor):
         raise Exception("Unknown signature format")
 
     def check_signature(
-        self,
-        nonce: int,
-        sender_hotkey: str,
-        signature: str,
-        receptor_uuid: str,
+        self, nonce: int, sender_hotkey: str, signature: str, receptor_uuid: str
     ):
         r"""verification of signature in metadata. Uses the pubkey and nonce"""
         keypair = Keypair(ss58_address=sender_hotkey)
@@ -343,17 +359,12 @@ class AuthInterceptor(grpc.ServerInterceptor):
         metadata = dict(handler_call_details.invocation_metadata)
 
         try:
-            (
-                nonce,
-                sender_hotkey,
-                signature,
-                receptor_uuid,
-            ) = self.parse_signature(metadata)
+            (nonce, sender_hotkey, signature, receptor_uuid) = self.parse_signature(
+                metadata
+            )
 
             # signature checking
-            self.check_signature(
-                nonce, sender_hotkey, signature, receptor_uuid
-            )
+            self.check_signature(nonce, sender_hotkey, signature, receptor_uuid)
 
             return continuation(handler_call_details)
 
@@ -365,61 +376,75 @@ class AuthInterceptor(grpc.ServerInterceptor):
 
 METADATA_BUFFER_SIZE = 250
 
+
 @dataclass
 class axon_info:
-
     version: int
     ip: str
     port: int
     ip_type: int
     hotkey: str
     coldkey: str
-    protocol:int = 4,
-    placeholder1:int = 0,
-    placeholder2:int = 0,
+    protocol: int = (4,)
+    placeholder1: int = (0,)
+    placeholder2: int = (0,)
 
     @property
     def is_serving(self) -> bool:
-        """ True if the endpoint is serving. """
-        if self.ip == '0.0.0.0': return False
-        else:return True
+        """True if the endpoint is serving."""
+        if self.ip == "0.0.0.0":
+            return False
+        else:
+            return True
 
     def ip_str(self) -> str:
-        """ Return the whole ip as string """
+        """Return the whole ip as string"""
         return net.ip__str__(self.ip_type, self.ip, self.port)
 
-    def __eq__ (self, other: 'axon_info'):
-        if other == None: return False
-        if self.version == other.version and self.ip == other.ip and self.port == other.port and self.ip_type == other.ip_type and self.coldkey == other.coldkey and self.hotkey == other.hotkey: return True
-        else: return False
+    def __eq__(self, other: "axon_info"):
+        if other == None:
+            return False
+        if (
+            self.version == other.version
+            and self.ip == other.ip
+            and self.port == other.port
+            and self.ip_type == other.ip_type
+            and self.coldkey == other.coldkey
+            and self.hotkey == other.hotkey
+        ):
+            return True
+        else:
+            return False
 
     def __str__(self):
-        return "axon_info( {}, {}, {}, {} )".format( str(self.ip_str()), str(self.hotkey), str(self.coldkey), self.version)
+        return "axon_info( {}, {}, {}, {} )".format(
+            str(self.ip_str()), str(self.hotkey), str(self.coldkey), self.version
+        )
 
     def __repr__(self):
         return self.__str__()
 
     @classmethod
-    def from_neuron_info(cls, neuron_info: dict ) -> 'axon_info':
-        """ Converts a dictionary to an axon_info object. """
+    def from_neuron_info(cls, neuron_info: dict) -> "axon_info":
+        """Converts a dictionary to an axon_info object."""
         return cls(
-            version = neuron_info['axon_info']['version'],
-            ip = bittensor.utils.networking.int_to_ip(int(neuron_info['axon_info']['ip'])),
-            port = neuron_info['axon_info']['port'],
-            ip_type = neuron_info['axon_info']['ip_type'],
-            hotkey = neuron_info['hotkey'],
-            coldkey = neuron_info['coldkey'],
+            version=neuron_info["axon_info"]["version"],
+            ip=bittensor.utils.networking.int_to_ip(
+                int(neuron_info["axon_info"]["ip"])
+            ),
+            port=neuron_info["axon_info"]["port"],
+            ip_type=neuron_info["axon_info"]["ip_type"],
+            hotkey=neuron_info["hotkey"],
+            coldkey=neuron_info["coldkey"],
         )
 
-    def to_parameter_dict( self ) -> 'torch.nn.ParameterDict':
-        r""" Returns a torch tensor of the subnet info.
-        """
-        return torch.nn.ParameterDict(
-            self.__dict__
-        )
+    def to_parameter_dict(self) -> "torch.nn.ParameterDict":
+        r"""Returns a torch tensor of the subnet info."""
+        return torch.nn.ParameterDict(self.__dict__)
 
     @classmethod
-    def from_parameter_dict( cls, parameter_dict: 'torch.nn.ParameterDict' ) -> 'axon_info':
-        r""" Returns an axon_info object from a torch parameter_dict.
-        """
-        return cls( **dict(parameter_dict) )
+    def from_parameter_dict(
+        cls, parameter_dict: "torch.nn.ParameterDict"
+    ) -> "axon_info":
+        r"""Returns an axon_info object from a torch parameter_dict."""
+        return cls(**dict(parameter_dict))

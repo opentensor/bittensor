@@ -18,12 +18,14 @@ class GPTLM(LM):
         lora_train_bias (str): Bias training strategy for the LoRa layer.
     """
 
-    def __init__(self,
-                 pretrained: Optional[str] = None,
-                 config: Optional[GPT2Config] = None,
-                 checkpoint: bool = False,
-                 lora_rank: int = 0,
-                 lora_train_bias: str = 'none') -> None:
+    def __init__(
+        self,
+        pretrained: Optional[str] = None,
+        config: Optional[GPT2Config] = None,
+        checkpoint: bool = False,
+        lora_rank: int = 0,
+        lora_train_bias: str = "none",
+    ) -> None:
         if pretrained is not None:
             model = GPT2LMHeadModel.from_pretrained(pretrained)
         elif config is not None:
@@ -35,4 +37,6 @@ class GPTLM(LM):
         super().__init__(model, lora_rank, lora_train_bias)
 
     def forward(self, input_ids, attention_mask=None, labels=None, **kwargs):
-        return self.model(input_ids, attention_mask=attention_mask, labels=labels, **kwargs)
+        return self.model(
+            input_ids, attention_mask=attention_mask, labels=labels, **kwargs
+        )
