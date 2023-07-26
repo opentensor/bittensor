@@ -44,10 +44,10 @@ jobs:
             pip install -e '.[dev]'
 
       - run:
-          name: Instantiate Mock Wallet & Protos
+          name: Instantiate Mock Wallet
           command: |
             . env/bin/activate
-            ./scripts/create_wallet.sh && ./scripts/build_protos.sh
+            ./scripts/create_wallet.sh
 
       # TODO: Update test durations on different runs
       - run:
