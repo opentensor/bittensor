@@ -95,13 +95,7 @@ class PrometheusInfoDict(InfoDict):
 
     @classmethod
     def default(cls):
-        return cls(
-            block=0,
-            version=0,
-            ip=0,
-            port=0,
-            ip_type=0,
-        )
+        return cls(block=0, version=0, ip=0, port=0, ip_type=0)
 
 
 @dataclass
@@ -153,9 +147,7 @@ class MockSubtensorState(TypedDict):
     ]  # netuid -> block -> validator_batch_size
     Active: Dict[int, Dict[BlockNumber, bool]]  # (netuid, uid), block -> active
     Stake: Dict[str, Dict[str, Dict[int, int]]]  # (hotkey, coldkey) -> block -> stake
-
     Delegates: Dict[str, Dict[int, float]]  # address -> block -> delegate_take
-
     NetworksAdded: Dict[int, Dict[BlockNumber, bool]]  # netuid -> block -> added
 
 
@@ -474,11 +466,7 @@ class MockSubtensor(Subtensor):
         if netuid not in subtensor_state["NetworksAdded"]:
             raise Exception("Subnet does not exist")
 
-        uid = self._register_neuron(
-            netuid=netuid,
-            hotkey=hotkey,
-            coldkey=coldkey,
-        )
+        uid = self._register_neuron(netuid=netuid, hotkey=hotkey, coldkey=coldkey)
 
         subtensor_state["TotalStake"][self.block_number] = (
             self._get_most_recent_storage(subtensor_state["TotalStake"]) + stake.rao
@@ -1141,8 +1129,7 @@ class MockSubtensor(Subtensor):
 
         bal = self.get_balance(wallet.coldkeypub.ss58_address)
         curr_stake = self.get_stake_for_coldkey_and_hotkey(
-            hotkey_ss58=hotkey_ss58,
-            coldkey_ss58=wallet.coldkeypub.ss58_address,
+            hotkey_ss58=hotkey_ss58, coldkey_ss58=wallet.coldkeypub.ss58_address
         )
         if curr_stake is None:
             curr_stake = bittensor.Balance(0)
@@ -1213,8 +1200,7 @@ class MockSubtensor(Subtensor):
 
         bal = self.get_balance(wallet.coldkeypub.ss58_address)
         curr_stake = self.get_stake_for_coldkey_and_hotkey(
-            hotkey_ss58=hotkey_ss58,
-            coldkey_ss58=wallet.coldkeypub.ss58_address,
+            hotkey_ss58=hotkey_ss58, coldkey_ss58=wallet.coldkeypub.ss58_address
         )
         if curr_stake is None:
             curr_stake = bittensor.Balance(0)
@@ -1296,9 +1282,7 @@ class MockSubtensor(Subtensor):
         nominators = subtensor_state["Stake"][hotkey_ss58]
         for nominator in nominators:
             nom_amount = self.get_stake_for_coldkey_and_hotkey(
-                hotkey_ss58=hotkey_ss58,
-                coldkey_ss58=nominator,
-                block=block,
+                hotkey_ss58=hotkey_ss58, coldkey_ss58=nominator, block=block
             )
             if nom_amount is not None and nom_amount.rao > 0:
                 nom_result.append((nominator, nom_amount))
@@ -1306,9 +1290,7 @@ class MockSubtensor(Subtensor):
         registered_subnets = []
         for subnet in self.get_all_subnet_netuids(block=block):
             uid = self.get_uid_for_hotkey_on_subnet(
-                hotkey_ss58=hotkey_ss58,
-                netuid=subnet,
-                block=block,
+                hotkey_ss58=hotkey_ss58, netuid=subnet, block=block
             )
 
             if uid is not None:
@@ -1321,10 +1303,7 @@ class MockSubtensor(Subtensor):
             )
             or bittensor.Balance(0),
             nominators=nom_result,
-            owner_ss58=self.get_hotkey_owner(
-                hotkey_ss58=hotkey_ss58,
-                block=block,
-            ),
+            owner_ss58=self.get_hotkey_owner(hotkey_ss58=hotkey_ss58, block=block),
             take=0.18,
             validator_permits=[
                 subnet

@@ -864,9 +864,7 @@ class Subtensor:
         return senate_members.count(hotkey_ss58) > 0
 
     def get_vote_data(
-        self,
-        proposal_hash: str,
-        block: Optional[int] = None,
+        self, proposal_hash: str, block: Optional[int] = None
     ) -> Optional[ProposalVoteData]:
         vote_data = self.query_module(
             module="Triumvirate", name="Voting", block=block, params=[proposal_hash]

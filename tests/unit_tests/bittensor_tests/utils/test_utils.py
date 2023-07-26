@@ -566,9 +566,7 @@ class TestGetBlockWithRetry(unittest.TestCase):
 
 class TestPOWNotStale(unittest.TestCase):
     def test_pow_not_stale_same_block_number(self):
-        mock_subtensor = MagicMock(
-            get_current_block=MagicMock(return_value=1),
-        )
+        mock_subtensor = MagicMock(get_current_block=MagicMock(return_value=1))
         mock_solution = bittensor.utils.registration.POWSolution(
             block_number=1,  # 3 less than current block number
             nonce=1,
@@ -579,9 +577,7 @@ class TestPOWNotStale(unittest.TestCase):
         assert not mock_solution.is_stale(mock_subtensor)
 
     def test_pow_not_stale_diff_block_number(self):
-        mock_subtensor = MagicMock(
-            get_current_block=MagicMock(return_value=2),
-        )
+        mock_subtensor = MagicMock(get_current_block=MagicMock(return_value=2))
         mock_solution = bittensor.utils.registration.POWSolution(
             block_number=1,  # 1 less than current block number
             nonce=1,
@@ -591,9 +587,7 @@ class TestPOWNotStale(unittest.TestCase):
 
         assert not mock_solution.is_stale(mock_subtensor)
 
-        mock_subtensor = MagicMock(
-            get_current_block=MagicMock(return_value=3),
-        )
+        mock_subtensor = MagicMock(get_current_block=MagicMock(return_value=3))
         mock_solution = bittensor.utils.registration.POWSolution(
             block_number=1,  # 2 less than current block number
             nonce=1,
@@ -603,9 +597,7 @@ class TestPOWNotStale(unittest.TestCase):
 
         assert not mock_solution.is_stale(mock_subtensor)
 
-        mock_subtensor = MagicMock(
-            get_current_block=MagicMock(return_value=4),
-        )
+        mock_subtensor = MagicMock(get_current_block=MagicMock(return_value=4))
         mock_solution = bittensor.utils.registration.POWSolution(
             block_number=1,  # 3 less than current block number
             nonce=1,
@@ -616,9 +608,7 @@ class TestPOWNotStale(unittest.TestCase):
         assert not mock_solution.is_stale(mock_subtensor)
 
     def test_pow_not_stale_diff_block_number_too_old(self):
-        mock_subtensor = MagicMock(
-            get_current_block=MagicMock(return_value=5),
-        )
+        mock_subtensor = MagicMock(get_current_block=MagicMock(return_value=5))
         mock_solution = bittensor.utils.registration.POWSolution(
             block_number=1,  # 4 less than current block number
             nonce=1,

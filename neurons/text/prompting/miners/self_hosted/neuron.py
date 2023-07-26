@@ -167,11 +167,7 @@ def main():
         )
 
     # --- Build axon server and start it.tensor.loggi
-    axon = bittensor.axon(
-        wallet=wallet,
-        metagraph=metagraph,
-        config=config,
-    )
+    axon = bittensor.axon(wallet=wallet, metagraph=metagraph, config=config)
 
     def _process_history(history: List[str]) -> str:
         processed_history = ""

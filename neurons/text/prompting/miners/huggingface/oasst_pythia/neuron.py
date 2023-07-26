@@ -83,7 +83,7 @@ class OasstPythiaMiner(bittensor.HuggingFaceMiner):
                 "repetition_penalty": self.config.oasst_pythia.repetition_penalty,
                 "stopping_criteria": StoppingCriteriaList([self.stop]),
                 "pad_token_id": self.tokenizer.eos_token_id,
-            },
+            }
         }
         output = self.model.generate(**gkw)
         generation = self.tokenizer.decode(
