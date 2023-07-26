@@ -1431,17 +1431,6 @@ class MockSubtensor(Subtensor):
             modality=query_subnet_info(
                 name="NetworkModality",
             ),
-            validator_epoch_length=query_subnet_info(name="ValidatorEpochLength"),
-            max_allowed_validators=query_subnet_info(name="MaxAllowedValidators"),
-            min_allowed_weights=query_subnet_info(name="MinAllowedWeights"),
-            max_weight_limit=query_subnet_info(name="MaxWeightLimit"),
-            scaling_law_power=query_subnet_info(name="ScalingLawPower"),
-            synergy_scaling_law_power=query_subnet_info(name="SynergyScalingLawPower"),
-            subnetwork_n=query_subnet_info(name="SubnetworkN"),
-            max_n=query_subnet_info(name="MaxAllowedUids"),
-            blocks_since_epoch=query_subnet_info(name="BlocksSinceLastStep"),
-            tempo=query_subnet_info(name="Tempo"),
-            modality=query_subnet_info(name="NetworkModality"),
             connection_requirements={
                 str(netuid_.value): percentile.value
                 for netuid_, percentile in self.query_map_subtensor(
