@@ -44,7 +44,6 @@ class DendriteCall( ABC ):
         self.timeout = timeout
         self.start_time = time.time()
         self.elapsed_time = 0.0
-        self.src_hotkey = self.dendrite.keypair.ss58_address
         self.src_version = bittensor.__version_as_int__
         self.dest_hotkey = self.dendrite.axon_info.hotkey
         self.dest_version = self.dendrite.axon_info.version
@@ -73,7 +72,6 @@ class DendriteCall( ABC ):
         request_proto = self.get_request_proto()
         request_proto.version = self.src_version
         request_proto.timeout = self.timeout
-        request_proto.hotkey = self.src_hotkey
         return request_proto
 
     @abstractmethod

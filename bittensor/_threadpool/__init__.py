@@ -56,7 +56,7 @@ class prioritythreadpool:
         """
         prefix_str = '' if prefix == None else prefix + '.'
         if prefix is not None:
-            if not hasattr(bittensor.defaults, prefix):
+            if bittensor.defaults.get(prefix, d=None) == None:
                 setattr(bittensor.defaults, prefix, bittensor.Config())
             getattr(bittensor.defaults, prefix).priority = bittensor.defaults.priority
         try:

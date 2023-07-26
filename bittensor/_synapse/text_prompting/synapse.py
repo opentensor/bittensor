@@ -20,42 +20,9 @@ import torch
 import bittensor
 
 from typing import List, Dict, Union, Callable
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import json
 
-
-class SynapseForwardMulti( bittensor.SynapseCall ):
-    name: str = "text_prompting_forward_multi"
-    is_forward: bool = True
-    multi_completions: List[ str ] = [""]
-
-    def __init__(
-            self,
-            synapse: "bittensor.TextPromptingSynapseMulti",
-            request_proto: bittensor.proto.MultiForwardTextPromptingRequest,
-            multi_forward_callback: Callable,
-        ):
-        super().__init__( synapse = synapse, request_proto = request_proto )
-        self.messages: List[ Dict[str, str] ] = request_proto.messages
-        self.formatted_messages = [ json.loads(message) for message in self.messages ]
-        self.multi_forward_callback = multi_forward_callback
-
-    def apply( self ):
-        bittensor.logging.trace( "SynapseForward.apply()" )
-        self.multi_completions = self.multi_forward_callback( messages = self.formatted_messages )
-        bittensor.logging.trace( "SynapseForward.apply() = ", self.multi_completions )
-
-    def get_response_proto( self ) -> bittensor.proto.MultiForwardTextPromptingResponse:
-        bittensor.logging.trace( "SynapseForward.get_response_proto()")
-        return bittensor.MultiForwardTextPromptingResponse( multi_completions = self.multi_completions )
-
-    def get_inputs_shape(self) -> Union[torch.Size, None]:
-        bittensor.logging.trace( "SynapseForward.get_inputs_shape()" )
-        return torch.Size( [ len(message) for message in self.messages ] )
-
-    def get_outputs_shape(self) -> Union[torch.Size, None]:
-        bittensor.logging.trace( "SynapseForward.get_outputs_shape()" )
-        return torch.Size( [ len(self.multi_completions) ]  )
 
 class SynapseForward( bittensor.SynapseCall ):
     name: str = "text_prompting_forward"
@@ -67,8 +34,9 @@ class SynapseForward( bittensor.SynapseCall ):
             synapse: "TextPromptingSynapse",
             request_proto: bittensor.proto.ForwardTextPromptingRequest,
             forward_callback: Callable,
+            context: grpc.ServicerContext
         ):
-        super().__init__( synapse = synapse, request_proto = request_proto )
+        super().__init__( synapse = synapse, request_proto = request_proto, context = context )
         self.messages = request_proto.messages
         self.formatted_messages = [ json.loads(message) for message in self.messages ]
         self.forward_callback = forward_callback
@@ -99,8 +67,9 @@ class SynapseBackward( bittensor.SynapseCall ):
             synapse: "TextPromptingSynapse",
             request_proto: bittensor.proto.BackwardTextPromptingRequest,
             backward_callback: Callable,
+            context: grpc.ServicerContext
         ):
-        super().__init__( synapse = synapse, request_proto = request_proto )
+        super().__init__( synapse = synapse, request_proto = request_proto, context = context )
         self.formatted_messages = [ message for message in request_proto.messages ]
         self.formatted_rewards = torch.tensor( [ request_proto.rewards ], dtype = torch.float32 )
         self.completion = request_proto.response
@@ -134,23 +103,15 @@ class TextPromptingSynapse( bittensor.Synapse, bittensor.grpc.TextPromptingServi
     @abstractmethod
     def forward( self, messages: List[Dict[str, str]] ) -> str: ...
 
-    def multi_forward( self, messages: List[Dict[str, str]] ) -> List[ str ]: ...
-
     @abstractmethod
     def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: ...
 
     def Forward( self, request: bittensor.proto.ForwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.ForwardTextPromptingResponse:
-        call = SynapseForward( self, request, self.forward )
+        call = SynapseForward( self, request, self.forward, context )
         bittensor.logging.trace( 'Forward: {} '.format( call ) )
         return self.apply( call = call )
 
-    def MultiForward( self, request: bittensor.proto.MultiForwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.MultiForwardTextPromptingResponse:
-        call = SynapseForwardMulti( self, request, self.multi_forward )
-        bittensor.logging.trace( 'MultiForward: {} '.format( call ) )
-        return self.apply( call = call )
-
     def Backward( self, request: bittensor.proto.BackwardTextPromptingRequest, context: grpc.ServicerContext ) -> bittensor.proto.BackwardTextPromptingResponse:
-        call = SynapseBackward( self, request, self.backward )
+        call = SynapseBackward( self, request, self.backward, context )
         bittensor.logging.trace( 'Backward: {}'.format( call ) )
         return self.apply( call = call )
-

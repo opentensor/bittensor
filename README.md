@@ -9,14 +9,14 @@
 
 ### Internet-scale Neural Networks <!-- omit in toc -->
 
-[Discord](https://discord.gg/realbittensor) • [Network](https://taostats.io/) • [Research](https://drive.google.com/file/d/1VnsobL6lIAAqcA1_Tbm8AYIQscfJV4KU)
+[Discord](https://discord.gg/bittensor) • [Network](https://taostats.io/) • [Research](https://drive.google.com/file/d/1VnsobL6lIAAqcA1_Tbm8AYIQscfJV4KU)
 
 </div>
 
 This repository contains Bittensor's Python API, which can be used for the following purposes:
 
 1. Querying the Bittensor network as a client.
-2. Running and building Bittensor miners and validators.
+2. Running and building Bittensor miners.  (Validators are now at [openvalidators](https://github.com/opentensor/validators)).
 3. Pulling network state information.
 4. Managing TAO wallets, balances, transfers, etc.
 
@@ -205,8 +205,8 @@ Registered miners are free to select from variety of pre-written miners or to wr
 ```bash
 $ git clone https://github.com/opentensor/bittensor.git
     bittensor/                              # This repo.
-        neurons/                            # Miners and Validators across all subnetworks.
-            text_prompting/                 # Miners and Validators for the text_prompting subnetwork.
+        neurons/                            # Miners across all subnetworks.
+            text_prompting/                 # Miners for the text_prompting subnetwork.
                 miners/                     # Miners.
                     GPT4ALL/                # The root folder for the GPT4ALL miner.
                         neuron.py           # GPT4ALL miner main script.
@@ -235,18 +235,7 @@ $ btcli stake --help # To add funds to the staking account associated with your 
 $ btcli nominate --help # to become a key available for delegated stake
 $ btcli delegate --help # for others to delegate stake to your wallet.
 ```
-Bittensor's API is designed to allow Validators to write their own validation mechanisms and express their own subjective prefrences about what the network should learn. However, going too far outside consensus reduces the rewards validators attain while performing validation. To ensure your validator remains in alignment with others this repository contains a "core" validator for each subnetwork
-```bash
-$ tree bittensor/neurons
-    bittensor/
-        neurons/
-            text_to_embedding/
-            text_prompting/
-                validators/
-                    core/
-                        neuron.py
-```
-For instance you can run the core text prompting validator on subnetwork 1 as follows. Note it is also recommended that you run validators on machines with a GPU. In the future bittensor/neurons/valdidators is likely to expand into its own repository. 
+Bittensor's API is designed to allow Validators to write their own validation mechanisms and express their own subjective prefrences about what the network should learn. However, going too far outside consensus reduces the rewards validators attain while performing validation. To ensure your validator remains in alignment with others, please see the `openvalidators` repo [here](https://github.com/opentensor/validators).
 
 # Using the CLI
 
@@ -276,12 +265,54 @@ $ btcli --help
         list_delegates      List all delegates on the network.
         regen_coldkeypub    Regenerates a public coldkey from the public part of the coldkey.
         recycle_register    Register a wallet to a network.
+	senate              View senate and it's members
+    	proposals           View active triumvirate proposals and their status
+    	proposal_votes      View an active proposal's votes by address.
+    	senate_register     Register as a senate member to participate in proposals
+    	senate_leave        Discard senate membership in the governance protocol
+    	senate_vote         Vote on an active proposal by hash.
 
     optional arguments:
     -h, 
     --help                  Show this help message and exit
     --config CONFIG         If set, defaults are overridden by passed file.
     --strict                If flagged, config will check that only exact arguemnts have been set.
+```
+
+# Senate 
+List all active proposals for the Senate to vote on. Usage: btcli proposals
+```bash
+btcli proposals
+```
+
+View Senate
+View all delegates currently registered to Senate. Usage: btcli senate
+```bash
+btcli senate
+```
+
+Proposal Votes
+Inspect the votes for a single proposal. Usage: btcli proposal_votes [OPTIONS]
+```bash
+btcli proposal_votes --proposal=[PROPOSAL_HASH]
+```
+
+Senate Register
+Elect to join the Senate with your nominated hotkey. Usage: btcli senate_register [OPTIONS]
+```bash
+btcli senate_register
+```
+
+Senate Leave
+Disown your membership of a Senate seat with your nominated hotkey. Usage: btcli senate_leave [OPTIONS]
+```bash
+btcli senate_leave
+```
+
+Senate Vote
+Participate in a triumvirate proposal by voting with your senate hotkey. Usage: btcli senate_vote [OPTIONS]
+```bash
+btcli senate_vote --proposal=[PROPOSAL_HASH]
 ```
 
 # The Bittensor Package
@@ -301,7 +332,7 @@ wallet.coldkey.sign( data )
 
 ```
 
-Subtensor: Interfaces with bittensor's blochain and can perform operations like extracting state information or sending transactions.
+Subtensor: Interfaces with bittensor's blockchain and can perform operations like extracting state information or sending transactions.
 ```python
 import bittensor as bt
 # Bittensor's chain interface.
