@@ -18,6 +18,8 @@
 import argparse
 import bittensor
 from typing import List, Dict, Any, Optional
+from torch import FloatTensor
+
 from langchain.llms import GooseAI
 
 
@@ -111,7 +113,7 @@ class GooseAIMiner(bittensor.BasePromptingMiner):
         )
 
     def backward(
-        self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor
+        self, messages: List[Dict[str, str]], response: str, rewards: FloatTensor
     ) -> str:
         pass
 
