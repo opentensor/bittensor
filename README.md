@@ -9,7 +9,7 @@
 
 ### Internet-scale Neural Networks <!-- omit in toc -->
 
-[Discord](https://discord.gg/realbittensor) • [Network](https://taostats.io/) • [Research](https://drive.google.com/file/d/1VnsobL6lIAAqcA1_Tbm8AYIQscfJV4KU)
+[Discord](https://discord.gg/bittensor) • [Network](https://taostats.io/) • [Research](https://drive.google.com/file/d/1VnsobL6lIAAqcA1_Tbm8AYIQscfJV4KU)
 
 </div>
 

@@ -26,8 +26,7 @@ import bittensor
 from bittensor.utils.registration import _CUDASolver, _SolverBase
 from bittensor._subtensor.subtensor_mock import MockSubtensor
 
-from tests.mocks.wallet_mock import MockWallet
-from tests.helpers import get_mock_wallet as generate_wallet, get_mock_keypair
+from tests.helpers import _get_mock_wallet as _generate_wallet, _get_mock_keypair
 
 
 @fixture(scope="function")
@@ -665,8 +664,8 @@ class TestWalletReregister(unittest.TestCase):
         )
 
     def test_wallet_reregister_reregister_false(self):
-        mock_wallet = generate_wallet(
-            hotkey = get_mock_keypair(
+        mock_wallet = _generate_wallet(
+            hotkey = _get_mock_keypair(
                 100, self.id()
             )
         )
@@ -686,8 +685,8 @@ class TestWalletReregister(unittest.TestCase):
             mock_register.assert_not_called() # should not call register
 
     def test_wallet_reregister_reregister_false_and_registered_already(self):
-        mock_wallet = generate_wallet(
-            hotkey = get_mock_keypair(
+        mock_wallet = _generate_wallet(
+            hotkey = _get_mock_keypair(
                 100, self.id()
             )
         )
@@ -716,8 +715,8 @@ class TestWalletReregister(unittest.TestCase):
             mock_register.assert_not_called() # should not call register
 
     def test_wallet_reregister_reregister_true_and_registered_already(self):
-        mock_wallet = generate_wallet(
-            hotkey = get_mock_keypair(
+        mock_wallet = _generate_wallet(
+            hotkey = _get_mock_keypair(
                 100, self.id()
             )
         )
@@ -747,8 +746,8 @@ class TestWalletReregister(unittest.TestCase):
 
 
     def test_wallet_reregister_no_params(self):
-        mock_wallet = generate_wallet(
-            hotkey = get_mock_keypair(
+        mock_wallet = _generate_wallet(
+            hotkey = _get_mock_keypair(
                 100, self.id()
             )
         )
@@ -770,8 +769,8 @@ class TestWalletReregister(unittest.TestCase):
             mock_register.assert_called_once() # should call register once
 
     def test_wallet_reregister_use_cuda_flag_true(self):
-        mock_wallet = generate_wallet(
-            hotkey = get_mock_keypair(
+        mock_wallet = _generate_wallet(
+            hotkey = _get_mock_keypair(
                 100, self.id()
             )
         )
@@ -799,8 +798,8 @@ class TestWalletReregister(unittest.TestCase):
             self.assertEqual(kwargs['cuda'], True) 
 
     def test_wallet_reregister_use_cuda_flag_false(self):
-        mock_wallet = generate_wallet(
-            hotkey = get_mock_keypair(
+        mock_wallet = _generate_wallet(
+            hotkey = _get_mock_keypair(
                 100, self.id()
             )
         )
@@ -827,8 +826,8 @@ class TestWalletReregister(unittest.TestCase):
             self.assertEqual(kwargs['cuda'], False)
 
     def test_wallet_reregister_cuda_arg_not_specified_should_be_false(self):
-        mock_wallet = generate_wallet(
-            hotkey = get_mock_keypair(
+        mock_wallet = _generate_wallet(
+            hotkey = _get_mock_keypair(
                 100, self.id()
             )
         )

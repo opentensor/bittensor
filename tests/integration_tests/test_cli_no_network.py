@@ -24,7 +24,7 @@ import pytest
 from copy import deepcopy
 import re
 
-from tests.helpers import get_mock_coldkey
+from tests.helpers import _get_mock_coldkey
 
 import bittensor
 
@@ -721,7 +721,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         base_args = [
             'delegate',
             '--all',
-            '--delegate_ss58key', get_mock_coldkey(0)
+            '--delegate_ss58key', _get_mock_coldkey(0)
         ]
         # Patch command to exit early
         with patch('bittensor._cli.commands.delegates.DelegateStakeCommand.run', return_value=None):
@@ -762,7 +762,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         base_args = [
             'undelegate',
             '--all',
-            '--delegate_ss58key', get_mock_coldkey(0)
+            '--delegate_ss58key', _get_mock_coldkey(0)
         ]
         # Patch command to exit early
         with patch('bittensor._cli.commands.delegates.DelegateUnstakeCommand.run', return_value=None):
@@ -809,7 +809,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             '--wallet.name', 'mock', 
         ]
 
-        delegate_ss58 = get_mock_coldkey(0)
+        delegate_ss58 = _get_mock_coldkey(0)
         with patch('bittensor._cli.commands.delegates.show_delegates'):
             with patch('bittensor.Subtensor.get_delegates', return_value=[
                 bittensor.DelegateInfo(
@@ -869,7 +869,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             '--wallet.name', 'mock', 
         ]
 
-        delegate_ss58 = get_mock_coldkey(0)
+        delegate_ss58 = _get_mock_coldkey(0)
         with patch('bittensor._cli.commands.delegates.show_delegates'):
             with patch('bittensor.Subtensor.get_delegates', return_value=[
                 bittensor.DelegateInfo(
