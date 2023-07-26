@@ -18,20 +18,19 @@
 import bittensor
 import unittest
 
-_subtensor_mock = bittensor.subtensor( network = 'mock', _mock = True )
-    
+_subtensor_mock = bittensor.subtensor(network="mock", _mock=True)
+
+
 class TestMetagraph(unittest.TestCase):
     def setUp(self) -> None:
         global _subtensor_mock
         _subtensor_mock.reset()
 
-        _subtensor_mock.create_subnet(
-            netuid = 999
-        )
+        _subtensor_mock.create_subnet(netuid=999)
 
     def test_metagraph(self):
         global _subtensor_mock
-        metagraph = _subtensor_mock.metagraph( netuid = 999 )
+        metagraph = _subtensor_mock.metagraph(netuid=999)
 
         assert metagraph.netuid == 999
         assert metagraph.n == 0

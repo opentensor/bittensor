@@ -25,20 +25,22 @@ import bittensor.utils.weight_utils as weight_utils
 from ..errors import *
 
 from loguru import logger
+
 logger = logger.opt(colors=True)
 
+
 def set_weights_extrinsic(
-        subtensor: 'bittensor.Subtensor',
-        wallet: 'bittensor.wallet',
-        netuid: int,
-        uids: Union[torch.LongTensor, list],
-        weights: Union[torch.FloatTensor, list],
-        version_key: int = 0,
-        wait_for_inclusion:bool = False,
-        wait_for_finalization:bool = False,
-        prompt:bool = False
-    ) -> bool:
-    r""" Sets the given weights and values on chain for wallet hotkey account.
+    subtensor: "bittensor.Subtensor",
+    wallet: "bittensor.wallet",
+    netuid: int,
+    uids: Union[torch.LongTensor, list],
+    weights: Union[torch.FloatTensor, list],
+    version_key: int = 0,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
+    prompt: bool = False,
+) -> bool:
+    r"""Sets the given weights and values on chain for wallet hotkey account.
     Args:
         wallet (bittensor.wallet):
             bittensor wallet object.
@@ -64,54 +66,91 @@ def set_weights_extrinsic(
             If we did not wait for finalization / inclusion, the response is true.
     """
     # First convert types.
-    if isinstance( uids, list ):
-        uids = torch.tensor( uids, dtype = torch.int64 )
-    if isinstance( weights, list ):
-        weights = torch.tensor( weights, dtype = torch.float32 )
+    if isinstance(uids, list):
+        uids = torch.tensor(uids, dtype=torch.int64)
+    if isinstance(weights, list):
+        weights = torch.tensor(weights, dtype=torch.float32)
 
     # Reformat and normalize.
-    weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit( uids, weights )
+    weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+        uids, weights
+    )
 
     # Ask before moving on.
     if prompt:
-        if not Confirm.ask("Do you want to set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]?".format( [float(v/65535) for v in weight_vals], weight_uids) ):
+        if not Confirm.ask(
+            "Do you want to set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]?".format(
+                [float(v / 65535) for v in weight_vals], weight_uids
+            )
+        ):
             return False
 
-    with bittensor.__console__.status(":satellite: Setting weights on [white]{}[/white] ...".format(subtensor.network)):
+    with bittensor.__console__.status(
+        ":satellite: Setting weights on [white]{}[/white] ...".format(subtensor.network)
+    ):
         try:
             success, error_message = subtensor._do_set_weights(
-                wallet = wallet,
-                netuid = netuid,
-                uids = weight_uids,
-                vals = weight_vals,
-                version_key = version_key,
+                wallet=wallet,
+                netuid=netuid,
+                uids=weight_uids,
+                vals=weight_vals,
+                version_key=version_key,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_inclusion=wait_for_inclusion,
             )
 
             if not wait_for_finalization and not wait_for_inclusion:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Sent[/green]"
+                )
                 return True
 
             if success == True:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
-                bittensor.logging.success(  prefix = 'Set weights', sufix = '<green>Finalized: </green>' + str(success) )
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
+                bittensor.logging.success(
+                    prefix="Set weights",
+                    sufix="<green>Finalized: </green>" + str(success),
+                )
                 return True
             else:
-                bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(error_message))
-                bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(error_message) )
+                bittensor.__console__.print(
+                    ":cross_mark: [red]Failed[/red]: error:{}".format(error_message)
+                )
+                bittensor.logging.warning(
+                    prefix="Set weights",
+                    sufix="<red>Failed: </red>" + str(error_message),
+                )
                 return False
 
         except Exception as e:
-
             # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with loguru.
-            bittensor.__console__.print(":cross_mark: [red]Failed[/red]: error:{}".format(e))
-            bittensor.logging.warning(  prefix = 'Set weights', sufix = '<red>Failed: </red>' + str(e) )
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+            )
+            bittensor.logging.warning(
+                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+            )
             return False
 
     # TODO( devs ): this code is dead.
     if response.is_success:
-        bittensor.__console__.print("Set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]".format( [float(v/4294967295) for v in weight_vals], weight_uids ))
-        message = '<green>Success: </green>' + f'Set {len(uids)} weights, top 5 weights' + str(list(zip(uids.tolist()[:5], [round (w,4) for w in weights.tolist()[:5]] )))
-        logger.debug('Set weights:'.ljust(20) +  message)
+        bittensor.__console__.print(
+            "Set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]".format(
+                [float(v / 4294967295) for v in weight_vals], weight_uids
+            )
+        )
+        message = (
+            "<green>Success: </green>"
+            + f"Set {len(uids)} weights, top 5 weights"
+            + str(
+                list(
+                    zip(uids.tolist()[:5], [round(w, 4) for w in weights.tolist()[:5]])
+                )
+            )
+        )
+        logger.debug("Set weights:".ljust(20) + message)
         return True
 
     return False

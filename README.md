@@ -414,6 +414,9 @@ dendrite.forward( roles = ['user'], messages = ['what are you?'] )
 ## Release
 The release manager should follow the instructions of the [RELEASE_GUIDELINES.md](./RELEASE_GUIDELINES.md) document.
 
+## Contributions
+Please review the [contributing guide](./contrib/CONTRIBUTING.md) for more information before making a pull request.
+
 ## License
 The MIT License (MIT)
 Copyright © 2021 Yuma Rao

@@ -20,24 +20,32 @@ import bittensor
 from typing import List, Dict
 from transformers import LlamaForCausalLM, LlamaTokenizer
 
-class OpenLlamaMiner( bittensor.HuggingFaceMiner ):
-    arg_prefix = 'open_llama'
-    system_label = '\nSystem:'
-    assistant_label = '\nAssistant:'
-    user_label = '\nUser:'
 
-    def load_tokenizer( self ):
-        return LlamaTokenizer.from_pretrained( self.config.open_llama.model_name, use_fast=False )
+class OpenLlamaMiner(bittensor.HuggingFaceMiner):
+    arg_prefix = "open_llama"
+    system_label = "\nSystem:"
+    assistant_label = "\nAssistant:"
+    user_label = "\nUser:"
 
-    def load_model( self ):
-        return LlamaForCausalLM.from_pretrained( self.config.open_llama.model_name, torch_dtype = torch.float16, low_cpu_mem_usage=True )
+    def load_tokenizer(self):
+        return LlamaTokenizer.from_pretrained(
+            self.config.open_llama.model_name, use_fast=False
+        )
 
-    def forward( self, messages: List[Dict[str, str]] ) -> str:
+    def load_model(self):
+        return LlamaForCausalLM.from_pretrained(
+            self.config.open_llama.model_name,
+            torch_dtype=torch.float16,
+            low_cpu_mem_usage=True,
+        )
 
-        history = self.process_history( messages )
+    def forward(self, messages: List[Dict[str, str]]) -> str:
+        history = self.process_history(messages)
         prompt = history + self.assistant_label
 
-        input_ids = self.tokenizer.encode( prompt, return_tensors="pt" ).to( self.config.open_llama.device )
+        input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(
+            self.config.open_llama.device
+        )
         output = self.model.generate(
             input_ids,
             max_length=input_ids.shape[1] + self.config.open_llama.max_new_tokens,
@@ -46,14 +54,17 @@ class OpenLlamaMiner( bittensor.HuggingFaceMiner ):
             pad_token_id=self.tokenizer.eos_token_id,
         )
 
-        generation = self.tokenizer.decode( output[0][input_ids.shape[1]:], skip_special_tokens=True )
-        generation = generation.split( "User:" )[0].strip()
-        
+        generation = self.tokenizer.decode(
+            output[0][input_ids.shape[1] :], skip_special_tokens=True
+        )
+        generation = generation.split("User:")[0].strip()
+
         # Logging input and generation if debugging is active
-        bittensor.logging.debug( "Prompt: " + str( prompt) )
-        bittensor.logging.debug( "Message: " + str( messages ) )
-        bittensor.logging.debug( "Generation: " + str( generation ).replace( "<", "-" ) )
+        bittensor.logging.debug("Prompt: " + str(prompt))
+        bittensor.logging.debug("Message: " + str(messages))
+        bittensor.logging.debug("Generation: " + str(generation).replace("<", "-"))
         return generation
+
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()

@@ -21,29 +21,79 @@ import argparse
 import bittensor
 from typing import List, Dict
 from langchain.llms import Cohere
+from torch import FloatTensor
 
-class CohereMiner( bittensor.BasePromptingMiner ):
+
+class CohereMiner(bittensor.BasePromptingMiner):
+    @classmethod
+    def check_config(cls, config: "bittensor.Config"):
+        assert (
+            config.cohere.api_key != None
+        ), "the miner requires passing --cohere.api_key as an argument of the config."
 
     @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
-        assert config.cohere.api_key != None, 'the miner requires passing --cohere.api_key as an argument of the config.'
+    def add_args(cls, parser: argparse.ArgumentParser):
+        parser.add_argument(
+            "--cohere.model_name",
+            type=str,
+            help="Name of the model.",
+            default="command-xlarge-nightly",
+        )
+        parser.add_argument(
+            "--cohere.max_tokens",
+            type=int,
+            help="Number of tokens to generate.",
+            default=256,
+        )
+        parser.add_argument(
+            "--cohere.temperature",
+            type=float,
+            help="Temperature of generation.",
+            default=0.75,
+        )
+        parser.add_argument(
+            "--cohere.k",
+            type=int,
+            help="Number of most likely tokens to consider at each step.",
+            default=0,
+        )
+        parser.add_argument(
+            "--cohere.p",
+            type=int,
+            help="Total probability mass of tokens to consider at each step.",
+            default=1,
+        )
+        parser.add_argument(
+            "--cohere.frequency_penalty",
+            type=float,
+            help="Penalizes repeated tokens according to frequency.",
+            default=0.0,
+        )
+        parser.add_argument(
+            "--cohere.presence_penalty",
+            type=float,
+            help="Penalizes repeated tokens.",
+            default=0.0,
+        )
+        parser.add_argument(
+            "--cohere.truncate",
+            type=str,
+            help="Specify how the client handles inputs longer than the maximum token length: Truncate from START, END or NONE",
+            default=None,
+        )
+        parser.add_argument(
+            "--cohere.stop",
+            type=str,
+            help="List of tokens to stop generation on.",
+            default=None,
+        )
+        parser.add_argument(
+            "--cohere.api_key", type=str, help="API key for Cohere.", required=True
+        )
 
-    @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument('--cohere.model_name', type=str, help='Name of the model.', default='command-xlarge-nightly')
-        parser.add_argument('--cohere.max_tokens', type=int, help='Number of tokens to generate.', default=256)
-        parser.add_argument('--cohere.temperature', type=float, help='Temperature of generation.', default=0.75)
-        parser.add_argument('--cohere.k', type=int, help='Number of most likely tokens to consider at each step.', default=0)
-        parser.add_argument('--cohere.p', type=int, help='Total probability mass of tokens to consider at each step.', default=1)
-        parser.add_argument('--cohere.frequency_penalty', type=float, help='Penalizes repeated tokens according to frequency.', default=0.0)
-        parser.add_argument('--cohere.presence_penalty', type=float, help='Penalizes repeated tokens.', default=0.0)
-        parser.add_argument('--cohere.truncate', type=str, help='Specify how the client handles inputs longer than the maximum token length: Truncate from START, END or NONE', default=None)
-        parser.add_argument('--cohere.stop', type=str, help='List of tokens to stop generation on.', default=None)
-        parser.add_argument('--cohere.api_key', type=str, help='API key for Cohere.', required=True)
-
-    def __init__( self ):
-        super( CohereMiner, self ).__init__()
-        print ( self.config )
+    def __init__(self):
+        super(CohereMiner, self).__init__()
+        print(self.config)
 
         self.model = Cohere(
             model=self.config.cohere.model_name,
@@ -58,23 +108,27 @@ class CohereMiner( bittensor.BasePromptingMiner ):
             stop=self.config.cohere.stop,
         )
 
-    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
-        
+    def backward(
+        self, messages: List[Dict[str, str]], response: str, rewards: FloatTensor
+    ) -> str:
+        pass
+
     @staticmethod
-    def _process_history( history: List[Dict[str, str]] ) -> str:
-        processed_history = ''
+    def _process_history(history: List[Dict[str, str]]) -> str:
+        processed_history = ""
         for message in history:
-            if message['role'] == 'system':
-                processed_history += 'system: ' + message['content'] + '\n'
-            if message['role'] == 'assistant':
-                processed_history += 'assistant: ' + message['content'] + '\n'
-            if message['role'] == 'user':
-                processed_history += 'user: ' + message['content'] + '\n'
+            if message["role"] == "system":
+                processed_history += "system: " + message["content"] + "\n"
+            if message["role"] == "assistant":
+                processed_history += "assistant: " + message["content"] + "\n"
+            if message["role"] == "user":
+                processed_history += "user: " + message["content"] + "\n"
         return processed_history
 
-    def forward( self, messages: List[Dict[str, str]]  ) -> str:
-        history = self._process_history( messages )
-        return self.model( history )
+    def forward(self, messages: List[Dict[str, str]]) -> str:
+        history = self._process_history(messages)
+        return self.model(history)
+
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
