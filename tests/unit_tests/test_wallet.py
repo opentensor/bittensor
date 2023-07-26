@@ -1,4 +1,3 @@
-
 # The MIT License (MIT)
 # Copyright © 2022 Opentensor Foundation
 
