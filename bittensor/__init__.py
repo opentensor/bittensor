@@ -23,12 +23,17 @@ from rich.traceback import install
 # Install and apply nest asyncio to allow the async functions
 # to run in a .ipynb
 import nest_asyncio
+
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = '6.0.0'
+__version__ = "6.0.0"
 version_split = __version__.split(".")
-__version_as_int__ = (100 * int(version_split[0])) + (10 * int(version_split[1])) + (1 * int(version_split[2]))
+__version_as_int__ = (
+    (100 * int(version_split[0]))
+    + (10 * int(version_split[1]))
+    + (1 * int(version_split[2]))
+)
 __new_signature_version__ = 360
 
 # Rich console.
@@ -38,23 +43,28 @@ __use_console__ = True
 # Remove overdue locals in debug training.
 install(show_locals=False)
 
+
 def turn_console_off():
     from io import StringIO
+
     __use_console__ = False
     __console__ = Console(file=StringIO(), stderr=False)
 
-# Logging helpers.
-def trace( on:bool = True ):
-    logging.set_trace( on )
 
-def debug( on:bool = True ):
-    logging.set_debug( on )
+# Logging helpers.
+def trace(on: bool = True):
+    logging.set_trace(on)
+
+
+def debug(on: bool = True):
+    logging.set_debug(on)
+
 
 # Substrate chain block time (seconds).
 __blocktime__ = 12
 
 # Pip address for versioning
-__pipaddress__ = 'https://pypi.org/pypi/bittensor/json'
+__pipaddress__ = "https://pypi.org/pypi/bittensor/json"
 
 # Raw github url for delegates registry file
 __delegates_details_url__: str = "https://raw.githubusercontent.com/opentensor/bittensor-delegates/main/public/delegates.json"
@@ -65,7 +75,7 @@ __ss58_format__ = 42
 # Wallet ss58 address length
 __ss58_address_length__ = 48
 
-__networks__ = [ 'local', 'finney']
+__networks__ = ["local", "finney"]
 
 __finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 
@@ -83,15 +93,15 @@ __rao_symbol__: str = chr(0x03C1)
 # Block Explorers map network to explorer url
 ## Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
-    'local': "https://explorer.finney.opentensor.ai/#/explorer",
-    'endpoint': "https://explorer.finney.opentensor.ai/#/explorer",
-    'finney': "https://explorer.finney.opentensor.ai/#/explorer"
+    "local": "https://explorer.finney.opentensor.ai/#/explorer",
+    "endpoint": "https://explorer.finney.opentensor.ai/#/explorer",
+    "finney": "https://explorer.finney.opentensor.ai/#/explorer",
 }
 
 # --- Type Registry ---
 __type_registry__ = {
-    'types': {
-        'Balance': 'u64', # Need to override default u128
+    "types": {
+        "Balance": "u64",  # Need to override default u128
     },
 }
 
@@ -112,7 +122,7 @@ from .logging import logging as logging
 from .metagraph import metagraph as metagraph
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
-from .synapse import * 
+from .synapse import *
 from .tensor import *
 from .axon import axon as axon
 from .dendrite import dendrite as dendrite
@@ -128,4 +138,4 @@ configs = [
     wallet.config(),
     logging.config(),
 ]
-defaults = config.merge_all( configs )
+defaults = config.merge_all(configs)

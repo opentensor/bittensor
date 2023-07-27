@@ -46,20 +46,25 @@ mock_delegate_info = {
     "total_daily_return": bittensor.Balance.from_rao(0),
 }
 
+
 def return_mock_sub_1(*args, **kwargs):
-    return MagicMock(return_value=MagicMock(
-        get_subnets=MagicMock(return_value=[1]),  # Mock subnet 1 ONLY.
-        block=10_000,
-        get_delegates=MagicMock(
-            return_value=[bittensor.DelegateInfo(**mock_delegate_info)]
-        ),
-    ))
+    return MagicMock(
+        return_value=MagicMock(
+            get_subnets=MagicMock(return_value=[1]),  # Mock subnet 1 ONLY.
+            block=10_000,
+            get_delegates=MagicMock(
+                return_value=[bittensor.DelegateInfo(**mock_delegate_info)]
+            ),
+        )
+    )
+
 
 def return_mock_wallet_factory(*args, **kwargs):
     return MagicMock(
         return_value=__mock_wallet_factory__(*args, **kwargs),
         add_args=bittensor.wallet.add_args,
     )
+
 
 @patch(
     "bittensor.subtensor",
@@ -254,8 +259,16 @@ class TestCLINoNetwork(unittest.TestCase):
                 cli.run()
 
     def test_list_no_wallet(self, _, __):
-        
-        with patch( "bittensor.wallet", side_effect = [ MagicMock( coldkeypub_file = MagicMock( exists_on_device=MagicMock(return_value=True) ) ) ]):
+        with patch(
+            "bittensor.wallet",
+            side_effect=[
+                MagicMock(
+                    coldkeypub_file=MagicMock(
+                        exists_on_device=MagicMock(return_value=True)
+                    )
+                )
+            ],
+        ):
             config = self.config()
             config.wallet.path = "/tmp/test_cli_test_list_no_wallet"
             config.no_prompt = True
@@ -321,11 +334,10 @@ class TestCLINoNetwork(unittest.TestCase):
             "0",
         ]
 
-
         patched_sub.return_value = MagicMock(
-            get_subnets = MagicMock(return_value=[1]),
-            subnet_exists = MagicMock(return_value=True),
-            register = MagicMock(side_effect=MockException)
+            get_subnets=MagicMock(return_value=[1]),
+            subnet_exists=MagicMock(return_value=True),
+            register=MagicMock(side_effect=MockException),
         )
 
         # Should be able to set true without argument
@@ -350,39 +362,38 @@ class TestCLINoNetwork(unittest.TestCase):
         self.assertEqual(cli.config.register.cuda.get("use_cuda"), False)
 
 
-
 def return_mock_sub_2(*args, **kwargs):
-    return MagicMock(return_value=MagicMock(
-        get_subnets=MagicMock(return_value=[1]),  # Need to pass check config
-        get_delegates=MagicMock(
-            return_value=[
-                bittensor.DelegateInfo(
-                    hotkey_ss58="",
-                    total_stake=Balance.from_rao(0),
-                    nominators=[],
-                    owner_ss58="",
-                    take=0.18,
-                    validator_permits=[],
-                    registrations=[],
-                    return_per_1000=Balance(0.0),
-                    total_daily_return=Balance(0.0),
-                )
-            ]
+    return MagicMock(
+        return_value=MagicMock(
+            get_subnets=MagicMock(return_value=[1]),  # Need to pass check config
+            get_delegates=MagicMock(
+                return_value=[
+                    bittensor.DelegateInfo(
+                        hotkey_ss58="",
+                        total_stake=Balance.from_rao(0),
+                        nominators=[],
+                        owner_ss58="",
+                        take=0.18,
+                        validator_permits=[],
+                        registrations=[],
+                        return_per_1000=Balance(0.0),
+                        total_daily_return=Balance(0.0),
+                    )
+                ]
+            ),
+            block=10_000,
         ),
-        block=10_000,
-    ),
-    add_args=bittensor.subtensor.add_args,
+        add_args=bittensor.subtensor.add_args,
     )
 
+
 @patch("bittensor.wallet", new_callable=return_mock_wallet_factory)
-@patch(
-    "bittensor.subtensor",
-    new_callable=return_mock_sub_2
-)
+@patch("bittensor.subtensor", new_callable=return_mock_sub_2)
 class TestEmptyArgs(unittest.TestCase):
     """
     Test that the CLI doesn't crash when no args are passed
     """
+
     @patch("rich.prompt.PromptBase.ask", side_effect=MockException)
     def test_command_no_args(self, _, __, patched_prompt_ask):
         # Get argparser
@@ -425,10 +436,8 @@ def return_mock_sub_3(*args, **kwargs):
         block=10_000,
     )
 
-@patch(
-    "bittensor.subtensor",
-    new_callable=return_mock_sub_3
-)
+
+@patch("bittensor.subtensor", new_callable=return_mock_sub_3)
 class TestCLIDefaultsNoNetwork(unittest.TestCase):
     def test_inspect_prompt_wallet_name(self, _):
         # Patch command to exit early

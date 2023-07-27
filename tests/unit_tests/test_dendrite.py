@@ -25,7 +25,7 @@ from tests.helpers import _get_mock_wallet
 
 @pytest.fixture
 def setup_dendrite():
-    user_wallet =  _get_mock_wallet()  # assuming bt.wallet() returns a wallet object
+    user_wallet = _get_mock_wallet()  # assuming bt.wallet() returns a wallet object
     dendrite_obj = bt.dendrite(user_wallet)
     return dendrite_obj
 
@@ -71,7 +71,7 @@ def test_dendrite_create_wallet():
 @pytest.mark.asyncio
 async def test_forward_many():
     n = 10
-    d = bt.dendrite(wallet = _get_mock_wallet())
+    d = bt.dendrite(wallet=_get_mock_wallet())
     d.call = AsyncMock()
     axons = [MagicMock() for _ in range(n)]
 
@@ -85,11 +85,14 @@ async def test_forward_many():
     resp = await d.forward(axons[0])
     assert len([resp]) == 1
 
+
 def test_pre_process_synapse():
-    d = bt.dendrite(wallet = _get_mock_wallet())
+    d = bt.dendrite(wallet=_get_mock_wallet())
     s = bt.Synapse()
     synapse = d.preprocess_synapse_for_request(
-        target_axon_info=bt.axon(wallet = _get_mock_wallet()).info(), synapse=s, timeout=12
+        target_axon_info=bt.axon(wallet=_get_mock_wallet()).info(),
+        synapse=s,
+        timeout=12,
     )
     assert synapse.timeout == 12
     assert synapse.dendrite

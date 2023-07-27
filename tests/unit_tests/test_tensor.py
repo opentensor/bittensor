@@ -19,6 +19,7 @@ import torch
 import bittensor
 import numpy
 
+
 # This is a fixture that creates an example tensor for testing
 @pytest.fixture
 def example_tensor():
@@ -28,6 +29,7 @@ def example_tensor():
     # Serialize the tensor into a Tensor instance and return it
     return bittensor.tensor(data)
 
+
 def test_deserialize(example_tensor):
     # Deserialize the tensor from the Tensor instance
     tensor = example_tensor.deserialize()
@@ -35,6 +37,7 @@ def test_deserialize(example_tensor):
     # Check that the result is a PyTorch tensor with the correct values
     assert isinstance(tensor, torch.Tensor)
     assert tensor.tolist() == [1, 2, 3, 4]
+
 
 def test_serialize(example_tensor):
     # Check that the serialized tensor is an instance of Tensor
@@ -69,53 +72,66 @@ def test_serialize(example_tensor):
 
 def test_buffer_field():
     # Create a Tensor instance with a specified buffer, dtype, and shape
-    tensor = bittensor.Tensor(buffer='0x321e13edqwds231231231232131', dtype='torch.float32', shape=[3, 3])
+    tensor = bittensor.Tensor(
+        buffer="0x321e13edqwds231231231232131", dtype="torch.float32", shape=[3, 3]
+    )
 
     # Check that the buffer field matches the provided value
-    assert tensor.buffer == '0x321e13edqwds231231231232131'
+    assert tensor.buffer == "0x321e13edqwds231231231232131"
+
 
 def test_dtype_field():
     # Create a Tensor instance with a specified buffer, dtype, and shape
-    tensor = bittensor.Tensor(buffer='0x321e13edqwds231231231232131', dtype='torch.float32', shape=[3, 3])
+    tensor = bittensor.Tensor(
+        buffer="0x321e13edqwds231231231232131", dtype="torch.float32", shape=[3, 3]
+    )
 
     # Check that the dtype field matches the provided value
-    assert tensor.dtype == 'torch.float32'
+    assert tensor.dtype == "torch.float32"
+
 
 def test_shape_field():
     # Create a Tensor instance with a specified buffer, dtype, and shape
-    tensor = bittensor.Tensor(buffer='0x321e13edqwds231231231232131', dtype='torch.float32', shape=[3, 3])
+    tensor = bittensor.Tensor(
+        buffer="0x321e13edqwds231231231232131", dtype="torch.float32", shape=[3, 3]
+    )
 
     # Check that the shape field matches the provided value
     assert tensor.shape == [3, 3]
 
+
 def test_serialize_all_types():
-    bittensor.tensor( torch.tensor( [1], dtype = torch.float16))
-    bittensor.tensor( torch.tensor( [1], dtype = torch.float32))
-    bittensor.tensor( torch.tensor( [1], dtype = torch.float64))
-    bittensor.tensor( torch.tensor( [1], dtype = torch.uint8))
-    bittensor.tensor( torch.tensor( [1], dtype = torch.int32))
-    bittensor.tensor( torch.tensor( [1], dtype = torch.int64))
-    bittensor.tensor( torch.tensor( [1], dtype = torch.bool))
+    bittensor.tensor(torch.tensor([1], dtype=torch.float16))
+    bittensor.tensor(torch.tensor([1], dtype=torch.float32))
+    bittensor.tensor(torch.tensor([1], dtype=torch.float64))
+    bittensor.tensor(torch.tensor([1], dtype=torch.uint8))
+    bittensor.tensor(torch.tensor([1], dtype=torch.int32))
+    bittensor.tensor(torch.tensor([1], dtype=torch.int64))
+    bittensor.tensor(torch.tensor([1], dtype=torch.bool))
 
 
 def test_serialize_all_types_equality():
-    torchtensor = torch.randn( [100], dtype = torch.float16)
-    assert torch.all( bittensor.tensor( torchtensor ).tensor() == torchtensor )
+    torchtensor = torch.randn([100], dtype=torch.float16)
+    assert torch.all(bittensor.tensor(torchtensor).tensor() == torchtensor)
 
-    torchtensor = torch.randn( [100], dtype = torch.float32)
-    assert torch.all( bittensor.tensor( torchtensor ).tensor() == torchtensor )
+    torchtensor = torch.randn([100], dtype=torch.float32)
+    assert torch.all(bittensor.tensor(torchtensor).tensor() == torchtensor)
 
-    torchtensor = torch.randn( [100], dtype = torch.float64)
-    assert torch.all( bittensor.tensor( torchtensor ).tensor() == torchtensor )
+    torchtensor = torch.randn([100], dtype=torch.float64)
+    assert torch.all(bittensor.tensor(torchtensor).tensor() == torchtensor)
 
-    torchtensor = torch.randint( 255, 256, (1000,), dtype = torch.uint8 )
-    assert torch.all( bittensor.tensor( torchtensor ).tensor() == torchtensor )
+    torchtensor = torch.randint(255, 256, (1000,), dtype=torch.uint8)
+    assert torch.all(bittensor.tensor(torchtensor).tensor() == torchtensor)
 
-    torchtensor = torch.randint(2_147_483_646, 2_147_483_647, (1000,), dtype = torch.int32 )
-    assert torch.all( bittensor.tensor( torchtensor ).tensor() == torchtensor )
+    torchtensor = torch.randint(
+        2_147_483_646, 2_147_483_647, (1000,), dtype=torch.int32
+    )
+    assert torch.all(bittensor.tensor(torchtensor).tensor() == torchtensor)
 
-    torchtensor = torch.randint(9_223_372_036_854_775_806, 9_223_372_036_854_775_807, (1000,), dtype = torch.int64 )
-    assert torch.all( bittensor.tensor( torchtensor ).tensor() == torchtensor )
+    torchtensor = torch.randint(
+        9_223_372_036_854_775_806, 9_223_372_036_854_775_807, (1000,), dtype=torch.int64
+    )
+    assert torch.all(bittensor.tensor(torchtensor).tensor() == torchtensor)
 
-    torchtensor = torch.randn( [100], dtype = torch.float32) < 0.5
-    assert torch.all( bittensor.tensor( torchtensor ).tensor() == torchtensor )
+    torchtensor = torch.randn([100], dtype=torch.float32) < 0.5
+    assert torch.all(bittensor.tensor(torchtensor).tensor() == torchtensor)

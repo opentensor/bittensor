@@ -36,7 +36,9 @@ def get_save_dir(network: str, netuid: int) -> str:
     Returns:
         str: Directory path.
     """
-    return os.path.expanduser(f"~/.bittensor/metagraphs/network-{str(network)}/netuid-{str(netuid)}/")
+    return os.path.expanduser(
+        f"~/.bittensor/metagraphs/network-{str(network)}/netuid-{str(netuid)}/"
+    )
 
 
 def latest_block_path(dir_path: str) -> int:
@@ -54,7 +56,7 @@ def latest_block_path(dir_path: str) -> int:
     for filename in listdir(dir_path):
         full_path_filename = os.path.expanduser(join(dir_path, filename))
         try:
-            block_number = int(filename.split('-')[1].split('.')[0])
+            block_number = int(filename.split("-")[1].split(".")[0])
             if block_number > latest_block:
                 latest_block = block_number
                 latest_file_full_path = full_path_filename
@@ -265,7 +267,7 @@ class metagraph(torch.nn.Module):
         network: str = "finney",
         lite: bool = True,
         sync: bool = True,
-    ) -> 'metagraph':
+    ) -> "metagraph":
         """
         Initialize the metagraph object.
 
@@ -337,8 +339,12 @@ class metagraph(torch.nn.Module):
         if sync:
             self.sync(block=None, lite=lite)
 
-
-    def sync(self, block: Optional[int] = None, lite: bool = True, subtensor: Optional['bittensor.subtensor'] = None) -> 'metagraph':
+    def sync(
+        self,
+        block: Optional[int] = None,
+        lite: bool = True,
+        subtensor: Optional["bittensor.subtensor"] = None,
+    ) -> "metagraph":
         """
         Initiates the synchronization process of the metagraph.
 
@@ -410,21 +416,51 @@ class metagraph(torch.nn.Module):
         """
         # TODO: Check and test the setting of each attribute
         self.n = self._create_tensor(len(self.neurons), dtype=torch.int64)
-        self.version = self._create_tensor([bittensor.__version_as_int__], dtype=torch.int64)
-        self.block = self._create_tensor(block if block else subtensor.block, dtype=torch.int64)
-        self.uids = self._create_tensor([neuron.uid for neuron in self.neurons], dtype=torch.int64)
-        self.trust = self._create_tensor([neuron.trust for neuron in self.neurons], dtype=torch.float32)
-        self.consensus = self._create_tensor([neuron.consensus for neuron in self.neurons], dtype=torch.float32)
-        self.incentive = self._create_tensor([neuron.incentive for neuron in self.neurons], dtype=torch.float32)
-        self.dividends = self._create_tensor([neuron.dividends for neuron in self.neurons], dtype=torch.float32)
-        self.ranks = self._create_tensor([neuron.rank for neuron in self.neurons], dtype=torch.float32)
-        self.emission = self._create_tensor([neuron.emission for neuron in self.neurons], dtype=torch.float32)
-        self.active = self._create_tensor([neuron.active for neuron in self.neurons], dtype=torch.int64)
-        self.last_update = self._create_tensor([neuron.last_update for neuron in self.neurons], dtype=torch.int64)
-        self.validator_permit = self._create_tensor([neuron.validator_permit for neuron in self.neurons], dtype=torch.bool)
-        self.validator_trust = self._create_tensor([neuron.validator_trust for neuron in self.neurons], dtype=torch.float32)
-        self.total_stake = self._create_tensor([neuron.total_stake.tao for neuron in self.neurons], dtype=torch.float32)
-        self.stake = self._create_tensor([neuron.stake for neuron in self.neurons], dtype=torch.float32)
+        self.version = self._create_tensor(
+            [bittensor.__version_as_int__], dtype=torch.int64
+        )
+        self.block = self._create_tensor(
+            block if block else subtensor.block, dtype=torch.int64
+        )
+        self.uids = self._create_tensor(
+            [neuron.uid for neuron in self.neurons], dtype=torch.int64
+        )
+        self.trust = self._create_tensor(
+            [neuron.trust for neuron in self.neurons], dtype=torch.float32
+        )
+        self.consensus = self._create_tensor(
+            [neuron.consensus for neuron in self.neurons], dtype=torch.float32
+        )
+        self.incentive = self._create_tensor(
+            [neuron.incentive for neuron in self.neurons], dtype=torch.float32
+        )
+        self.dividends = self._create_tensor(
+            [neuron.dividends for neuron in self.neurons], dtype=torch.float32
+        )
+        self.ranks = self._create_tensor(
+            [neuron.rank for neuron in self.neurons], dtype=torch.float32
+        )
+        self.emission = self._create_tensor(
+            [neuron.emission for neuron in self.neurons], dtype=torch.float32
+        )
+        self.active = self._create_tensor(
+            [neuron.active for neuron in self.neurons], dtype=torch.int64
+        )
+        self.last_update = self._create_tensor(
+            [neuron.last_update for neuron in self.neurons], dtype=torch.int64
+        )
+        self.validator_permit = self._create_tensor(
+            [neuron.validator_permit for neuron in self.neurons], dtype=torch.bool
+        )
+        self.validator_trust = self._create_tensor(
+            [neuron.validator_trust for neuron in self.neurons], dtype=torch.float32
+        )
+        self.total_stake = self._create_tensor(
+            [neuron.total_stake.tao for neuron in self.neurons], dtype=torch.float32
+        )
+        self.stake = self._create_tensor(
+            [neuron.stake for neuron in self.neurons], dtype=torch.float32
+        )
         self.axons = [n.axon_info for n in self.neurons]
 
     def _create_tensor(self, data, dtype):
@@ -449,8 +485,12 @@ class metagraph(torch.nn.Module):
             None.
         """
         # TODO: Check and test the computation of weights and bonds
-        self.weights = self._process_weights_or_bonds([neuron.weights for neuron in self.neurons], "weights")
-        self.bonds = self._process_weights_or_bonds([neuron.bonds for neuron in self.neurons], "bonds")
+        self.weights = self._process_weights_or_bonds(
+            [neuron.weights for neuron in self.neurons], "weights"
+        )
+        self.bonds = self._process_weights_or_bonds(
+            [neuron.bonds for neuron in self.neurons], "bonds"
+        )
 
     def _process_weights_or_bonds(self, data, attribute: str):
         """
@@ -470,7 +510,7 @@ class metagraph(torch.nn.Module):
             else:
                 uids, values = zip(*item)
                 # TODO: Validate and test the conversion of uids and values to tensor
-                if attribute == 'weights':
+                if attribute == "weights":
                     data_array.append(
                         bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor(
                             len(self.neurons), uids, values
@@ -493,7 +533,7 @@ class metagraph(torch.nn.Module):
             )
         return tensor_param
 
-    def save(self) -> 'metagraph':
+    def save(self) -> "metagraph":
         """
         Save the state of the metagraph object.
 
@@ -509,7 +549,7 @@ class metagraph(torch.nn.Module):
         state_dict = torch.load(graph_file)
         return self
 
-    def load(self) -> 'metagraph':
+    def load(self) -> "metagraph":
         """
         Load the state of the metagraph object.
 
@@ -518,7 +558,7 @@ class metagraph(torch.nn.Module):
         """
         self.load_from_path(get_save_dir(self.network, self.netuid))
 
-    def load_from_path(self, dir_path: str) -> 'metagraph':
+    def load_from_path(self, dir_path: str) -> "metagraph":
         """
         Load the state of the metagraph object from the specified path.
 
@@ -530,27 +570,15 @@ class metagraph(torch.nn.Module):
         """
         graph_file = latest_block_path(dir_path)
         state_dict = torch.load(graph_file)
-        self.n = torch.nn.Parameter(
-            state_dict["n"], requires_grad=False
-        )
-        self.block = torch.nn.Parameter(
-            state_dict["block"], requires_grad=False
-        )
-        self.uids = torch.nn.Parameter(
-            state_dict["uids"], requires_grad=False
-        )
-        self.stake = torch.nn.Parameter(
-            state_dict["stake"], requires_grad=False
-        )
+        self.n = torch.nn.Parameter(state_dict["n"], requires_grad=False)
+        self.block = torch.nn.Parameter(state_dict["block"], requires_grad=False)
+        self.uids = torch.nn.Parameter(state_dict["uids"], requires_grad=False)
+        self.stake = torch.nn.Parameter(state_dict["stake"], requires_grad=False)
         self.total_stake = torch.nn.Parameter(
             state_dict["total_stake"], requires_grad=False
         )
-        self.ranks = torch.nn.Parameter(
-            state_dict["ranks"], requires_grad=False
-        )
-        self.trust = torch.nn.Parameter(
-            state_dict["trust"], requires_grad=False
-        )
+        self.ranks = torch.nn.Parameter(state_dict["ranks"], requires_grad=False)
+        self.trust = torch.nn.Parameter(state_dict["trust"], requires_grad=False)
         self.consensus = torch.nn.Parameter(
             state_dict["consensus"], requires_grad=False
         )
@@ -560,31 +588,23 @@ class metagraph(torch.nn.Module):
         self.incentive = torch.nn.Parameter(
             state_dict["incentive"], requires_grad=False
         )
-        self.emission = torch.nn.Parameter(
-            state_dict["emission"], requires_grad=False
-        )
+        self.emission = torch.nn.Parameter(state_dict["emission"], requires_grad=False)
         self.dividends = torch.nn.Parameter(
             state_dict["dividends"], requires_grad=False
         )
-        self.active = torch.nn.Parameter(
-            state_dict["active"], requires_grad=False
-        )
+        self.active = torch.nn.Parameter(state_dict["active"], requires_grad=False)
         self.last_update = torch.nn.Parameter(
             state_dict["last_update"], requires_grad=False
         )
         self.validator_permit = torch.nn.Parameter(
             state_dict["validator_permit"], requires_grad=False
         )
-        self.uids = torch.nn.Parameter(
-            state_dict["uids"], requires_grad=False
-        )
+        self.uids = torch.nn.Parameter(state_dict["uids"], requires_grad=False)
         self.axons = state_dict["axons"]
         if "weights" in state_dict:
             self.weights = torch.nn.Parameter(
                 state_dict["weights"], requires_grad=False
             )
         if "bonds" in state_dict:
-            self.bonds = torch.nn.Parameter(
-                state_dict["bonds"], requires_grad=False
-            )
+            self.bonds = torch.nn.Parameter(state_dict["bonds"], requires_grad=False)
         return self

@@ -21,12 +21,13 @@ from typing import Union
 
 import bittensor
 
+
 class Balance:
     """
     Represents the bittensor balance of the wallet, stored as rao (int).
     This class provides a way to interact with balances in two different units: rao and tao.
     It provides methods to convert between these units, as well as to perform arithmetic and comparison operations.
-    
+
     Attributes:
         unit: A string representing the symbol for the tao unit.
         rao_unit: A string representing the symbol for the rao unit.
@@ -34,8 +35,8 @@ class Balance:
         tao: A float property that gives the balance in tao units.
     """
 
-    unit: str = bittensor.__tao_symbol__ # This is the tao unit
-    rao_unit: str = bittensor.__rao_symbol__ # This is the rao unit
+    unit: str = bittensor.__tao_symbol__  # This is the tao unit
+    rao_unit: str = bittensor.__rao_symbol__  # This is the rao unit
     rao: int
     tao: float
 
@@ -43,7 +44,7 @@ class Balance:
         """
         Initialize a Balance object. If balance is an int, it's assumed to be in rao.
         If balance is a float, it's assumed to be in tao.
-        
+
         Args:
             balance: The initial balance, in either rao (if an int) or tao (if a float).
         """
@@ -135,13 +136,13 @@ class Balance:
     def __le__(self, other: Union[int, float, "Balance"]):
         try:
             return self < other or self == other
-        except (TypeError):
+        except TypeError:
             raise NotImplementedError("Unsupported type")
 
     def __ge__(self, other: Union[int, float, "Balance"]):
         try:
             return self > other or self == other
-        except (TypeError):
+        except TypeError:
             raise NotImplementedError("Unsupported type")
 
     def __add__(self, other: Union[int, float, "Balance"]):
@@ -157,19 +158,19 @@ class Balance:
     def __radd__(self, other: Union[int, float, "Balance"]):
         try:
             return self + other
-        except (TypeError):
+        except TypeError:
             raise NotImplementedError("Unsupported type")
 
     def __sub__(self, other: Union[int, float, "Balance"]):
         try:
             return self + -other
-        except (TypeError):
+        except TypeError:
             raise NotImplementedError("Unsupported type")
 
     def __rsub__(self, other: Union[int, float, "Balance"]):
         try:
             return -self + other
-        except (TypeError):
+        except TypeError:
             raise NotImplementedError("Unsupported type")
 
     def __mul__(self, other: Union[int, float, "Balance"]):
@@ -274,7 +275,7 @@ class Balance:
     def from_rao(amount: int):
         """
         Given rao (int), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
-        
+
         Args:
             amount: The amount in rao.
 

@@ -24,22 +24,24 @@ import unittest
 import unittest.mock as mock
 from unittest.mock import MagicMock
 
-def test_parse_headers_to_inputs():
 
+def test_parse_headers_to_inputs():
     class Test(bittensor.Synapse):
         key1: typing.List[int]
         key2: bittensor.Tensor
 
     # Define a mock headers dictionary to use for testing
     headers = {
-        'bt_header_axon_nonce': '111',
-        'bt_header_dendrite_ip': '12.1.1.2',
-        'bt_header_input_obj_key1': base64.b64encode(pickle.dumps([1,2,3,4])).decode('utf-8'),
-        'bt_header_tensor_key2': '[3]-torch.float32',
-        'timeout': '12',
-        'name': 'Test',
-        'header_size': '111',
-        'total_size': '111',
+        "bt_header_axon_nonce": "111",
+        "bt_header_dendrite_ip": "12.1.1.2",
+        "bt_header_input_obj_key1": base64.b64encode(pickle.dumps([1, 2, 3, 4])).decode(
+            "utf-8"
+        ),
+        "bt_header_tensor_key2": "[3]-torch.float32",
+        "timeout": "12",
+        "name": "Test",
+        "header_size": "111",
+        "total_size": "111",
     }
 
     # Run the function to test
@@ -47,15 +49,16 @@ def test_parse_headers_to_inputs():
 
     # Check the resulting dictionary
     assert inputs_dict == {
-        'axon': {'nonce': '111'}, 
-        'dendrite': {'ip': '12.1.1.2'}, 
-        'key1': [1, 2, 3, 4], 
-        'key2': bittensor.Tensor(dtype='torch.float32', shape=[3]), 
-        'timeout': '12', 
-        'name': 'Test', 
-        'header_size': '111', 
-        'total_size': '111'
+        "axon": {"nonce": "111"},
+        "dendrite": {"ip": "12.1.1.2"},
+        "key1": [1, 2, 3, 4],
+        "key2": bittensor.Tensor(dtype="torch.float32", shape=[3]),
+        "timeout": "12",
+        "name": "Test",
+        "header_size": "111",
+        "total_size": "111",
     }
+
 
 def test_from_headers():
     class Test(bittensor.Synapse):
@@ -64,14 +67,16 @@ def test_from_headers():
 
     # Define a mock headers dictionary to use for testing
     headers = {
-        'bt_header_axon_nonce': '111',
-        'bt_header_dendrite_ip': '12.1.1.2',
-        'bt_header_input_obj_key1': base64.b64encode(pickle.dumps([1,2,3,4])).decode('utf-8'),
-        'bt_header_tensor_key2': '[3]-torch.float32',
-        'timeout': '12',
-        'name': 'Test',
-        'header_size': '111',
-        'total_size': '111',
+        "bt_header_axon_nonce": "111",
+        "bt_header_dendrite_ip": "12.1.1.2",
+        "bt_header_input_obj_key1": base64.b64encode(pickle.dumps([1, 2, 3, 4])).decode(
+            "utf-8"
+        ),
+        "bt_header_tensor_key2": "[3]-torch.float32",
+        "timeout": "12",
+        "name": "Test",
+        "header_size": "111",
+        "total_size": "111",
     }
 
     # Run the function to test
@@ -83,14 +88,15 @@ def test_from_headers():
     # Check the properties of the resulting object
     # Replace with actual checks based on the structure of your class
     assert synapse.axon.nonce == 111
-    assert synapse.dendrite.ip == '12.1.1.2'
-    assert synapse.key1 == [1,2,3,4]
+    assert synapse.dendrite.ip == "12.1.1.2"
+    assert synapse.key1 == [1, 2, 3, 4]
     assert synapse.key2.shape == [3]
-    assert synapse.key2.dtype == 'torch.float32'
+    assert synapse.key2.dtype == "torch.float32"
     assert synapse.timeout == 12
-    assert synapse.name == 'Test'
+    assert synapse.name == "Test"
     assert synapse.header_size == 111
     assert synapse.total_size == 111
+
 
 def test_synapse_create():
     # Create an instance of Synapse
@@ -100,7 +106,7 @@ def test_synapse_create():
     assert isinstance(synapse, bittensor.Synapse)
 
     # Check default properties of a newly created Synapse
-    assert synapse.name == 'Synapse'
+    assert synapse.name == "Synapse"
     assert synapse.timeout == 12.0
     assert synapse.header_size == 0
     assert synapse.total_size == 0
@@ -110,48 +116,55 @@ def test_synapse_create():
 
     # Ensure the headers is a dictionary and contains the expected keys
     assert isinstance(headers, dict)
-    assert 'timeout' in headers
-    assert 'name' in headers
-    assert 'header_size' in headers
-    assert 'total_size' in headers
+    assert "timeout" in headers
+    assert "name" in headers
+    assert "header_size" in headers
+    assert "total_size" in headers
 
     # Ensure the 'name' and 'timeout' values match the Synapse's properties
-    assert headers['name'] == 'Synapse'
-    assert headers['timeout'] == '12.0'
+    assert headers["name"] == "Synapse"
+    assert headers["timeout"] == "12.0"
 
     # Create a new Synapse from the headers and check its 'timeout' property
     next_synapse = synapse.from_headers(synapse.to_headers())
     assert next_synapse.timeout == 12.0
 
-def test_custom_synapse():        
+
+def test_custom_synapse():
     # Define a custom Synapse subclass
     class Test(bittensor.Synapse):
         a: int  # Carried through because required.
         b: int = None  # Not carried through headers
         c: typing.Optional[int]  # Not carried through headers
         d: typing.Optional[typing.List[int]]  # Not carried through headers
-        e: typing.List[int] # Carried through headers
-        f: bittensor.Tensor # Carried through headers, but not buffer.
+        e: typing.List[int]  # Carried through headers
+        f: bittensor.Tensor  # Carried through headers, but not buffer.
 
     # Create an instance of the custom Synapse subclass
-    synapse = Test(a=1, c=3, d=[1,2,3,4], e=[1,2,3,4], f = bittensor.Tensor.serialize( torch.randn(10) ))
+    synapse = Test(
+        a=1,
+        c=3,
+        d=[1, 2, 3, 4],
+        e=[1, 2, 3, 4],
+        f=bittensor.Tensor.serialize(torch.randn(10)),
+    )
 
     # Ensure the instance created is of type Test and has the expected properties
     assert isinstance(synapse, Test)
-    assert synapse.name == 'Test'
+    assert synapse.name == "Test"
     assert synapse.a == 1
     assert synapse.b == None
     assert synapse.c == 3
-    assert synapse.d == [1,2,3,4]
-    assert synapse.e == [1,2,3,4]
+    assert synapse.d == [1, 2, 3, 4]
+    assert synapse.e == [1, 2, 3, 4]
     assert synapse.f.shape == [10]
 
     # Convert the Test instance to a headers dictionary
     headers = synapse.to_headers()
 
     # Ensure the headers contains 'a' but not 'b'
-    assert 'bt_header_input_obj_a' in headers
-    assert 'bt_header_input_obj_b' not in headers
+    assert "bt_header_input_obj_a" in headers
+    assert "bt_header_input_obj_b" not in headers
 
     # Create a new Test from the headers and check its properties
     next_synapse = synapse.from_headers(synapse.to_headers())
@@ -159,57 +172,69 @@ def test_custom_synapse():
     assert next_synapse.b == None
     assert next_synapse.c == None
     assert next_synapse.d == None
-    assert next_synapse.e == [1,2,3,4]
-    assert next_synapse.f.shape == [10] # Shape is passed through
-    assert next_synapse.f.dtype == 'torch.float32' # Type is passed through
-    assert next_synapse.f.buffer == None # Buffer is not passed through
+    assert next_synapse.e == [1, 2, 3, 4]
+    assert next_synapse.f.shape == [10]  # Shape is passed through
+    assert next_synapse.f.dtype == "torch.float32"  # Type is passed through
+    assert next_synapse.f.buffer == None  # Buffer is not passed through
 
 
-def test_list_tensors():        
+def test_list_tensors():
     class Test(bittensor.Synapse):
-        a: typing.List[ bittensor.Tensor ]
+        a: typing.List[bittensor.Tensor]
 
     synapse = Test(
-        a = [ bittensor.Tensor.serialize( torch.randn(10) ) ],
+        a=[bittensor.Tensor.serialize(torch.randn(10))],
     )
     headers = synapse.to_headers()
-    assert 'bt_header_list_tensor_a' in headers
-    assert headers['bt_header_list_tensor_a'] == "['[10]-torch.float32']"
+    assert "bt_header_list_tensor_a" in headers
+    assert headers["bt_header_list_tensor_a"] == "['[10]-torch.float32']"
     next_synapse = synapse.from_headers(synapse.to_headers())
-    assert next_synapse.a[0].dtype == 'torch.float32'
+    assert next_synapse.a[0].dtype == "torch.float32"
     assert next_synapse.a[0].shape == [10]
 
     class Test(bittensor.Synapse):
-        a: typing.List[ bittensor.Tensor ]
+        a: typing.List[bittensor.Tensor]
+
     synapse = Test(
-        a = [ bittensor.Tensor.serialize( torch.randn(10) ), bittensor.Tensor.serialize( torch.randn(11) ) , bittensor.Tensor.serialize( torch.randn(12) ) ],
+        a=[
+            bittensor.Tensor.serialize(torch.randn(10)),
+            bittensor.Tensor.serialize(torch.randn(11)),
+            bittensor.Tensor.serialize(torch.randn(12)),
+        ],
     )
     headers = synapse.to_headers()
-    assert 'bt_header_list_tensor_a' in headers
-    assert headers['bt_header_list_tensor_a'] == "['[10]-torch.float32', '[11]-torch.float32', '[12]-torch.float32']"
+    assert "bt_header_list_tensor_a" in headers
+    assert (
+        headers["bt_header_list_tensor_a"]
+        == "['[10]-torch.float32', '[11]-torch.float32', '[12]-torch.float32']"
+    )
     next_synapse = synapse.from_headers(synapse.to_headers())
-    assert next_synapse.a[0].dtype == 'torch.float32'
+    assert next_synapse.a[0].dtype == "torch.float32"
     assert next_synapse.a[0].shape == [10]
-    assert next_synapse.a[1].dtype == 'torch.float32'
+    assert next_synapse.a[1].dtype == "torch.float32"
     assert next_synapse.a[1].shape == [11]
-    assert next_synapse.a[2].dtype == 'torch.float32'
+    assert next_synapse.a[2].dtype == "torch.float32"
     assert next_synapse.a[2].shape == [12]
 
-def test_dict_tensors():        
+
+def test_dict_tensors():
     class Test(bittensor.Synapse):
-        a: typing.Dict[ str, bittensor.Tensor ]
+        a: typing.Dict[str, bittensor.Tensor]
 
     synapse = Test(
-        a = { 
-            'cat': bittensor.tensor( torch.randn(10) ),
-            'dog': bittensor.tensor( torch.randn(11) ),
+        a={
+            "cat": bittensor.tensor(torch.randn(10)),
+            "dog": bittensor.tensor(torch.randn(11)),
         },
     )
     headers = synapse.to_headers()
-    assert 'bt_header_dict_tensor_a' in headers
-    assert headers['bt_header_dict_tensor_a'] == "['cat-[10]-torch.float32', 'dog-[11]-torch.float32']"
+    assert "bt_header_dict_tensor_a" in headers
+    assert (
+        headers["bt_header_dict_tensor_a"]
+        == "['cat-[10]-torch.float32', 'dog-[11]-torch.float32']"
+    )
     next_synapse = synapse.from_headers(synapse.to_headers())
-    assert next_synapse.a['cat'].dtype == 'torch.float32'
-    assert next_synapse.a['cat'].shape == [10]
-    assert next_synapse.a['dog'].dtype == 'torch.float32'
-    assert next_synapse.a['dog'].shape == [11]
+    assert next_synapse.a["cat"].dtype == "torch.float32"
+    assert next_synapse.a["cat"].shape == [10]
+    assert next_synapse.a["dog"].dtype == "torch.float32"
+    assert next_synapse.a["dog"].shape == [11]

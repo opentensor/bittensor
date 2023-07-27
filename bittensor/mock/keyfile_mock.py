@@ -20,62 +20,71 @@
 
 from bittensor import serialized_keypair_to_keyfile_data, keyfile, Keypair
 
-class MockKeyfile( keyfile ):
-    """ Defines an interface to a mocked keyfile object (nothing is created on device) keypair is treated as non encrypted and the data is just the string version.
-    """
-    def __init__( self, path: str ):
-        super().__init__( path )
-        
-        self._mock_keypair = Keypair.create_from_mnemonic( mnemonic = 'arrive produce someone view end scout bargain coil slight festival excess struggle' )
-        self._mock_data = serialized_keypair_to_keyfile_data( self._mock_keypair )
+
+class MockKeyfile(keyfile):
+    """Defines an interface to a mocked keyfile object (nothing is created on device) keypair is treated as non encrypted and the data is just the string version."""
+
+    def __init__(self, path: str):
+        super().__init__(path)
+
+        self._mock_keypair = Keypair.create_from_mnemonic(
+            mnemonic="arrive produce someone view end scout bargain coil slight festival excess struggle"
+        )
+        self._mock_data = serialized_keypair_to_keyfile_data(self._mock_keypair)
 
     def __str__(self):
         if not self.exists_on_device():
-            return "Keyfile (empty, {})>".format( self.path )
+            return "Keyfile (empty, {})>".format(self.path)
         if self.is_encrypted():
-            return "Keyfile (encrypted, {})>".format( self.path )
+            return "Keyfile (encrypted, {})>".format(self.path)
         else:
-            return "Keyfile (decrypted, {})>".format( self.path )
+            return "Keyfile (decrypted, {})>".format(self.path)
 
     def __repr__(self):
         return self.__str__()
 
     @property
-    def keypair( self ) -> 'Keypair':
+    def keypair(self) -> "Keypair":
         return self._mock_keypair
 
     @property
-    def data( self ) -> bytes:
+    def data(self) -> bytes:
         return bytes(self._mock_data)
 
     @property
-    def keyfile_data( self ) -> bytes:
-        return bytes( self._mock_data)
+    def keyfile_data(self) -> bytes:
+        return bytes(self._mock_data)
 
-    def set_keypair ( self, keypair: 'Keypair', encrypt: bool = True, overwrite: bool = False, password:str = None):
+    def set_keypair(
+        self,
+        keypair: "Keypair",
+        encrypt: bool = True,
+        overwrite: bool = False,
+        password: str = None,
+    ):
         self._mock_keypair = keypair
-        self._mock_data = serialized_keypair_to_keyfile_data( self._mock_keypair )
+        self._mock_data = serialized_keypair_to_keyfile_data(self._mock_keypair)
 
-    def get_keypair(self, password: str = None) -> 'Keypair':
+    def get_keypair(self, password: str = None) -> "Keypair":
         return self._mock_keypair
 
-    def make_dirs( self ):
+    def make_dirs(self):
         return
 
-    def exists_on_device( self ) -> bool:
+    def exists_on_device(self) -> bool:
         return True
 
-    def is_readable( self ) -> bool:
+    def is_readable(self) -> bool:
         return True
 
-    def is_writable( self ) -> bool:
+    def is_writable(self) -> bool:
         return True
 
-    def is_encrypted ( self ) -> bool:
+    def is_encrypted(self) -> bool:
         return False
 
-    def encrypt( self, password: str = None):
-        raise ValueError('Cannot encrypt a mock keyfile')
+    def encrypt(self, password: str = None):
+        raise ValueError("Cannot encrypt a mock keyfile")
 
-    def decrypt( self, password: str = None):
+    def decrypt(self, password: str = None):
         return

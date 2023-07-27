@@ -56,7 +56,7 @@ custom_rpc_type_registry = {
                 ["network_connect", "Vec<[u16; 2]>"],
                 ["emission_values", "Compact<u64>"],
                 ["burn", "Compact<u64>"],
-            ]
+            ],
         },
         "DelegateInfo": {
             "type": "struct",
@@ -93,7 +93,7 @@ custom_rpc_type_registry = {
                 ["validator_permit", "bool"],
                 ["weights", "Vec<(Compact<u16>, Compact<u16>)>"],
                 ["bonds", "Vec<(Compact<u16>, Compact<u16>)>"],
-                ["pruning_score", "Compact<u16>"]
+                ["pruning_score", "Compact<u16>"],
             ],
         },
         "NeuronInfoLite": {
@@ -116,7 +116,7 @@ custom_rpc_type_registry = {
                 ["dividends", "Compact<u16>"],
                 ["last_update", "Compact<u64>"],
                 ["validator_permit", "bool"],
-                ["pruning_score", "Compact<u16>"]
+                ["pruning_score", "Compact<u16>"],
             ],
         },
         "axon_info": {
@@ -148,62 +148,74 @@ custom_rpc_type_registry = {
 
 @dataclass
 class AxonInfo:
-
     version: int
     ip: str
     port: int
     ip_type: int
     hotkey: str
     coldkey: str
-    protocol:int = 4
-    placeholder1:int = 0
-    placeholder2:int = 0
+    protocol: int = 4
+    placeholder1: int = 0
+    placeholder2: int = 0
 
     @property
     def is_serving(self) -> bool:
-        """ True if the endpoint is serving. """
-        if self.ip == '0.0.0.0': return False
-        else:return True
+        """True if the endpoint is serving."""
+        if self.ip == "0.0.0.0":
+            return False
+        else:
+            return True
 
     def ip_str(self) -> str:
-        """ Return the whole ip as string """
+        """Return the whole ip as string"""
         return net.ip__str__(self.ip_type, self.ip, self.port)
 
-    def __eq__ (self, other: 'AxonInfo'):
-        if other == None: return False
-        if self.version == other.version and self.ip == other.ip and self.port == other.port and self.ip_type == other.ip_type and self.coldkey == other.coldkey and self.hotkey == other.hotkey: return True
-        else: return False
+    def __eq__(self, other: "AxonInfo"):
+        if other == None:
+            return False
+        if (
+            self.version == other.version
+            and self.ip == other.ip
+            and self.port == other.port
+            and self.ip_type == other.ip_type
+            and self.coldkey == other.coldkey
+            and self.hotkey == other.hotkey
+        ):
+            return True
+        else:
+            return False
 
     def __str__(self):
-        return "AxonInfo( {}, {}, {}, {} )".format( str(self.ip_str()), str(self.hotkey), str(self.coldkey), self.version)
+        return "AxonInfo( {}, {}, {}, {} )".format(
+            str(self.ip_str()), str(self.hotkey), str(self.coldkey), self.version
+        )
 
     def __repr__(self):
         return self.__str__()
 
     @classmethod
-    def from_neuron_info(cls, neuron_info: dict ) -> 'AxonInfo':
-        """ Converts a dictionary to an axon_info object. """
+    def from_neuron_info(cls, neuron_info: dict) -> "AxonInfo":
+        """Converts a dictionary to an axon_info object."""
         return cls(
-            version = neuron_info['axon_info']['version'],
-            ip = net.int_to_ip(int(neuron_info['axon_info']['ip'])),
-            port = neuron_info['axon_info']['port'],
-            ip_type = neuron_info['axon_info']['ip_type'],
-            hotkey = neuron_info['hotkey'],
-            coldkey = neuron_info['coldkey'],
+            version=neuron_info["axon_info"]["version"],
+            ip=net.int_to_ip(int(neuron_info["axon_info"]["ip"])),
+            port=neuron_info["axon_info"]["port"],
+            ip_type=neuron_info["axon_info"]["ip_type"],
+            hotkey=neuron_info["hotkey"],
+            coldkey=neuron_info["coldkey"],
         )
 
-    def to_parameter_dict( self ) -> 'torch.nn.ParameterDict':
-        r""" Returns a torch tensor of the subnet info.
-        """
-        return torch.nn.ParameterDict(
-            self.__dict__
-        )
+    def to_parameter_dict(self) -> "torch.nn.ParameterDict":
+        r"""Returns a torch tensor of the subnet info."""
+        return torch.nn.ParameterDict(self.__dict__)
 
     @classmethod
-    def from_parameter_dict( cls, parameter_dict: 'torch.nn.ParameterDict' ) -> 'axon_info':
-        r""" Returns an axon_info object from a torch parameter_dict.
-        """
-        return cls( **dict(parameter_dict) )
+    def from_parameter_dict(
+        cls, parameter_dict: "torch.nn.ParameterDict"
+    ) -> "axon_info":
+        r"""Returns an axon_info object from a torch parameter_dict."""
+        return cls(**dict(parameter_dict))
+
 
 class ChainDataType(Enum):
     NeuronInfo = 1
@@ -212,12 +224,19 @@ class ChainDataType(Enum):
     NeuronInfoLite = 4
     DelegatedInfo = 5
 
+
 # Constants
 RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
-def from_scale_encoding( vec_u8: List[int], type_name: ChainDataType, is_vec: bool = False, is_option: bool = False ) -> Optional[Dict]:
+
+def from_scale_encoding(
+    vec_u8: List[int],
+    type_name: ChainDataType,
+    is_vec: bool = False,
+    is_option: bool = False,
+) -> Optional[Dict]:
     as_bytes = bytes(vec_u8)
     as_scale_bytes = ScaleBytes(as_bytes)
     rpc_runtime_config = RuntimeConfiguration()
@@ -227,18 +246,16 @@ def from_scale_encoding( vec_u8: List[int], type_name: ChainDataType, is_vec: bo
     type_string = type_name.name
     if type_name == ChainDataType.DelegatedInfo:
         # DelegatedInfo is a tuple of (DelegateInfo, Compact<u64>)
-        type_string = f'({ChainDataType.DelegateInfo.name}, Compact<u64>)'
+        type_string = f"({ChainDataType.DelegateInfo.name}, Compact<u64>)"
     if is_option:
-        type_string = f'Option<{type_string}>'
+        type_string = f"Option<{type_string}>"
     if is_vec:
-        type_string = f'Vec<{type_string}>'
+        type_string = f"Vec<{type_string}>"
 
-    obj = rpc_runtime_config.create_scale_object(
-        type_string,
-        data=as_scale_bytes
-    )
+    obj = rpc_runtime_config.create_scale_object(type_string, data=as_scale_bytes)
 
     return obj.decode()
+
 
 # Dataclasses for chain data.
 @dataclass
@@ -266,39 +283,65 @@ class NeuronInfo:
     validator_permit: bool
     weights: List[List[int]]
     bonds: List[List[int]]
-    prometheus_info: 'PrometheusInfo'
-    axon_info: 'AxonInfo'
+    prometheus_info: "PrometheusInfo"
+    axon_info: "AxonInfo"
     pruning_score: int
     is_null: bool = False
 
     @classmethod
-    def fix_decoded_values(cls, neuron_info_decoded: Any) -> 'NeuronInfo':
-        r""" Fixes the values of the NeuronInfo object.
-        """
-        neuron_info_decoded['hotkey'] = ss58_encode(neuron_info_decoded['hotkey'], bittensor.__ss58_format__)
-        neuron_info_decoded['coldkey'] = ss58_encode(neuron_info_decoded['coldkey'], bittensor.__ss58_format__)
-        stake_dict =  { ss58_encode( coldkey, bittensor.__ss58_format__): Balance.from_rao(int(stake)) for coldkey, stake in neuron_info_decoded['stake'] }
-        neuron_info_decoded['stake_dict'] = stake_dict
-        neuron_info_decoded['stake'] = sum(stake_dict.values())
-        neuron_info_decoded['total_stake'] = neuron_info_decoded['stake']
-        neuron_info_decoded['weights'] = [[int(weight[0]), int(weight[1])] for weight in neuron_info_decoded['weights']]
-        neuron_info_decoded['bonds'] = [[int(bond[0]), int(bond[1])] for bond in neuron_info_decoded['bonds']]
-        neuron_info_decoded['rank'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['rank'])
-        neuron_info_decoded['emission'] = neuron_info_decoded['emission'] / RAOPERTAO
-        neuron_info_decoded['incentive'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['incentive'])
-        neuron_info_decoded['consensus'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['consensus'])
-        neuron_info_decoded['trust'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['trust'])
-        neuron_info_decoded['validator_trust'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['validator_trust'])
-        neuron_info_decoded['dividends'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['dividends'])
-        neuron_info_decoded['prometheus_info'] = PrometheusInfo.fix_decoded_values(neuron_info_decoded['prometheus_info'])
-        neuron_info_decoded['axon_info'] = AxonInfo.from_neuron_info( neuron_info_decoded )
+    def fix_decoded_values(cls, neuron_info_decoded: Any) -> "NeuronInfo":
+        r"""Fixes the values of the NeuronInfo object."""
+        neuron_info_decoded["hotkey"] = ss58_encode(
+            neuron_info_decoded["hotkey"], bittensor.__ss58_format__
+        )
+        neuron_info_decoded["coldkey"] = ss58_encode(
+            neuron_info_decoded["coldkey"], bittensor.__ss58_format__
+        )
+        stake_dict = {
+            ss58_encode(coldkey, bittensor.__ss58_format__): Balance.from_rao(
+                int(stake)
+            )
+            for coldkey, stake in neuron_info_decoded["stake"]
+        }
+        neuron_info_decoded["stake_dict"] = stake_dict
+        neuron_info_decoded["stake"] = sum(stake_dict.values())
+        neuron_info_decoded["total_stake"] = neuron_info_decoded["stake"]
+        neuron_info_decoded["weights"] = [
+            [int(weight[0]), int(weight[1])]
+            for weight in neuron_info_decoded["weights"]
+        ]
+        neuron_info_decoded["bonds"] = [
+            [int(bond[0]), int(bond[1])] for bond in neuron_info_decoded["bonds"]
+        ]
+        neuron_info_decoded["rank"] = U16_NORMALIZED_FLOAT(neuron_info_decoded["rank"])
+        neuron_info_decoded["emission"] = neuron_info_decoded["emission"] / RAOPERTAO
+        neuron_info_decoded["incentive"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["incentive"]
+        )
+        neuron_info_decoded["consensus"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["consensus"]
+        )
+        neuron_info_decoded["trust"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["trust"]
+        )
+        neuron_info_decoded["validator_trust"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["validator_trust"]
+        )
+        neuron_info_decoded["dividends"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["dividends"]
+        )
+        neuron_info_decoded["prometheus_info"] = PrometheusInfo.fix_decoded_values(
+            neuron_info_decoded["prometheus_info"]
+        )
+        neuron_info_decoded["axon_info"] = AxonInfo.from_neuron_info(
+            neuron_info_decoded
+        )
 
         return cls(**neuron_info_decoded)
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> 'NeuronInfo':
-        r""" Returns a NeuronInfo object from a vec_u8.
-        """
+    def from_vec_u8(cls, vec_u8: List[int]) -> "NeuronInfo":
+        r"""Returns a NeuronInfo object from a vec_u8."""
         if len(vec_u8) == 0:
             return NeuronInfo._null_neuron()
 
@@ -311,63 +354,72 @@ class NeuronInfo:
         return decoded
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List['NeuronInfo']:
-        r""" Returns a list of NeuronInfo objects from a vec_u8.
-        """
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["NeuronInfo"]:
+        r"""Returns a list of NeuronInfo objects from a vec_u8."""
 
-        decoded_list = from_scale_encoding(vec_u8, ChainDataType.NeuronInfo, is_vec=True)
+        decoded_list = from_scale_encoding(
+            vec_u8, ChainDataType.NeuronInfo, is_vec=True
+        )
         if decoded_list is None:
             return []
 
-        decoded_list = [NeuronInfo.fix_decoded_values(decoded) for decoded in decoded_list]
+        decoded_list = [
+            NeuronInfo.fix_decoded_values(decoded) for decoded in decoded_list
+        ]
         return decoded_list
 
-
     @staticmethod
-    def _null_neuron() -> 'NeuronInfo':
+    def _null_neuron() -> "NeuronInfo":
         neuron = NeuronInfo(
-            uid = 0,
-            netuid = 0,
-            active =  0,
-            stake = Balance.from_rao(0),
-            stake_dict = {},
-            total_stake = Balance.from_rao(0),
-            rank = 0,
-            emission = 0,
-            incentive = 0,
-            consensus = 0,
-            trust = 0,
-            validator_trust = 0,
-            dividends = 0,
-            last_update = 0,
-            validator_permit = False,
-            weights = [],
-            bonds = [],
-            prometheus_info = None,
-            axon_info = None,
-            is_null = True,
-            coldkey = "000000000000000000000000000000000000000000000000",
-            hotkey = "000000000000000000000000000000000000000000000000",
-            pruning_score = 0,
+            uid=0,
+            netuid=0,
+            active=0,
+            stake=Balance.from_rao(0),
+            stake_dict={},
+            total_stake=Balance.from_rao(0),
+            rank=0,
+            emission=0,
+            incentive=0,
+            consensus=0,
+            trust=0,
+            validator_trust=0,
+            dividends=0,
+            last_update=0,
+            validator_permit=False,
+            weights=[],
+            bonds=[],
+            prometheus_info=None,
+            axon_info=None,
+            is_null=True,
+            coldkey="000000000000000000000000000000000000000000000000",
+            hotkey="000000000000000000000000000000000000000000000000",
+            pruning_score=0,
         )
         return neuron
-    
+
     @classmethod
-    def from_weights_bonds_and_neuron_lite( cls, neuron_lite: 'NeuronInfoLite', weights_as_dict: Dict[int, List[Tuple[int, int]]], bonds_as_dict: Dict[int, List[Tuple[int, int]]] ) -> 'NeuronInfo':
+    def from_weights_bonds_and_neuron_lite(
+        cls,
+        neuron_lite: "NeuronInfoLite",
+        weights_as_dict: Dict[int, List[Tuple[int, int]]],
+        bonds_as_dict: Dict[int, List[Tuple[int, int]]],
+    ) -> "NeuronInfo":
         n_dict = neuron_lite.__dict__
-        n_dict['weights'] = weights_as_dict.get(neuron_lite.uid, [])
-        n_dict['bonds'] = bonds_as_dict.get(neuron_lite.uid, [])
-        
-        return cls( **n_dict )
+        n_dict["weights"] = weights_as_dict.get(neuron_lite.uid, [])
+        n_dict["bonds"] = bonds_as_dict.get(neuron_lite.uid, [])
+
+        return cls(**n_dict)
 
     @staticmethod
-    def _neuron_dict_to_namespace(neuron_dict) -> 'NeuronInfo':
+    def _neuron_dict_to_namespace(neuron_dict) -> "NeuronInfo":
         # TODO: Legacy: remove?
-        if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
+        if neuron_dict["hotkey"] == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
             return NeuronInfo._null_neuron()
         else:
-            neuron = NeuronInfo( **neuron_dict )
-            neuron.stake_dict = { hk: Balance.from_rao(stake) for hk, stake in neuron.stake.items() }
+            neuron = NeuronInfo(**neuron_dict)
+            neuron.stake_dict = {
+                hk: Balance.from_rao(stake) for hk, stake in neuron.stake.items()
+            }
             neuron.stake = Balance.from_rao(neuron.total_stake)
             neuron.total_stake = neuron.stake
             neuron.rank = neuron.rank / U16_MAX
@@ -379,6 +431,7 @@ class NeuronInfo:
             neuron.emission = neuron.emission / RAOPERTAO
 
             return neuron
+
 
 @dataclass
 class NeuronInfoLite:
@@ -403,41 +456,62 @@ class NeuronInfoLite:
     dividends: float
     last_update: int
     validator_permit: bool
-    #weights: List[List[int]]
-    #bonds: List[List[int]] No weights or bonds in lite version
-    prometheus_info: 'PrometheusInfo'
-    axon_info: 'axon_info'
+    # weights: List[List[int]]
+    # bonds: List[List[int]] No weights or bonds in lite version
+    prometheus_info: "PrometheusInfo"
+    axon_info: "axon_info"
     pruning_score: int
     is_null: bool = False
 
     @classmethod
-    def fix_decoded_values(cls, neuron_info_decoded: Any) -> 'NeuronInfoLite':
-        r""" Fixes the values of the NeuronInfoLite object.
-        """
-        neuron_info_decoded['hotkey'] = ss58_encode(neuron_info_decoded['hotkey'], bittensor.__ss58_format__)
-        neuron_info_decoded['coldkey'] = ss58_encode(neuron_info_decoded['coldkey'], bittensor.__ss58_format__)
-        stake_dict =  { ss58_encode( coldkey, bittensor.__ss58_format__): Balance.from_rao(int(stake)) for coldkey, stake in neuron_info_decoded['stake'] }
-        neuron_info_decoded['stake_dict'] = stake_dict
-        neuron_info_decoded['stake'] = sum(stake_dict.values())
-        neuron_info_decoded['total_stake'] = neuron_info_decoded['stake']
+    def fix_decoded_values(cls, neuron_info_decoded: Any) -> "NeuronInfoLite":
+        r"""Fixes the values of the NeuronInfoLite object."""
+        neuron_info_decoded["hotkey"] = ss58_encode(
+            neuron_info_decoded["hotkey"], bittensor.__ss58_format__
+        )
+        neuron_info_decoded["coldkey"] = ss58_encode(
+            neuron_info_decoded["coldkey"], bittensor.__ss58_format__
+        )
+        stake_dict = {
+            ss58_encode(coldkey, bittensor.__ss58_format__): Balance.from_rao(
+                int(stake)
+            )
+            for coldkey, stake in neuron_info_decoded["stake"]
+        }
+        neuron_info_decoded["stake_dict"] = stake_dict
+        neuron_info_decoded["stake"] = sum(stake_dict.values())
+        neuron_info_decoded["total_stake"] = neuron_info_decoded["stake"]
         # Don't need weights and bonds in lite version
-        #neuron_info_decoded['weights'] = [[int(weight[0]), int(weight[1])] for weight in neuron_info_decoded['weights']]
-        #neuron_info_decoded['bonds'] = [[int(bond[0]), int(bond[1])] for bond in neuron_info_decoded['bonds']]
-        neuron_info_decoded['rank'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['rank'])
-        neuron_info_decoded['emission'] = neuron_info_decoded['emission'] / RAOPERTAO
-        neuron_info_decoded['incentive'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['incentive'])
-        neuron_info_decoded['consensus'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['consensus'])
-        neuron_info_decoded['trust'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['trust'])
-        neuron_info_decoded['validator_trust'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['validator_trust'])
-        neuron_info_decoded['dividends'] = U16_NORMALIZED_FLOAT(neuron_info_decoded['dividends'])
-        neuron_info_decoded['prometheus_info'] = PrometheusInfo.fix_decoded_values(neuron_info_decoded['prometheus_info'])
-        neuron_info_decoded['axon_info'] = AxonInfo.from_neuron_info(neuron_info_decoded)
+        # neuron_info_decoded['weights'] = [[int(weight[0]), int(weight[1])] for weight in neuron_info_decoded['weights']]
+        # neuron_info_decoded['bonds'] = [[int(bond[0]), int(bond[1])] for bond in neuron_info_decoded['bonds']]
+        neuron_info_decoded["rank"] = U16_NORMALIZED_FLOAT(neuron_info_decoded["rank"])
+        neuron_info_decoded["emission"] = neuron_info_decoded["emission"] / RAOPERTAO
+        neuron_info_decoded["incentive"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["incentive"]
+        )
+        neuron_info_decoded["consensus"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["consensus"]
+        )
+        neuron_info_decoded["trust"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["trust"]
+        )
+        neuron_info_decoded["validator_trust"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["validator_trust"]
+        )
+        neuron_info_decoded["dividends"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["dividends"]
+        )
+        neuron_info_decoded["prometheus_info"] = PrometheusInfo.fix_decoded_values(
+            neuron_info_decoded["prometheus_info"]
+        )
+        neuron_info_decoded["axon_info"] = AxonInfo.from_neuron_info(
+            neuron_info_decoded
+        )
         return cls(**neuron_info_decoded)
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> 'NeuronInfoLite':
-        r""" Returns a NeuronInfoLite object from a vec_u8.
-        """
+    def from_vec_u8(cls, vec_u8: List[int]) -> "NeuronInfoLite":
+        r"""Returns a NeuronInfoLite object from a vec_u8."""
         if len(vec_u8) == 0:
             return NeuronInfoLite._null_neuron()
 
@@ -450,56 +524,60 @@ class NeuronInfoLite:
         return decoded
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List['NeuronInfoLite']:
-        r""" Returns a list of NeuronInfoLite objects from a vec_u8.
-        """
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["NeuronInfoLite"]:
+        r"""Returns a list of NeuronInfoLite objects from a vec_u8."""
 
-        decoded_list = from_scale_encoding(vec_u8, ChainDataType.NeuronInfoLite, is_vec=True)
+        decoded_list = from_scale_encoding(
+            vec_u8, ChainDataType.NeuronInfoLite, is_vec=True
+        )
         if decoded_list is None:
             return []
 
-        decoded_list = [NeuronInfoLite.fix_decoded_values(decoded) for decoded in decoded_list]
+        decoded_list = [
+            NeuronInfoLite.fix_decoded_values(decoded) for decoded in decoded_list
+        ]
         return decoded_list
 
-
     @staticmethod
-    def _null_neuron() -> 'NeuronInfoLite':
+    def _null_neuron() -> "NeuronInfoLite":
         neuron = NeuronInfoLite(
-            uid = 0,
-            netuid = 0,
-            active =  0,
-            stake = Balance.from_rao(0),
-            stake_dict = {},
-            total_stake = Balance.from_rao(0),
-            rank = 0,
-            emission = 0,
-            incentive = 0,
-            consensus = 0,
-            trust = 0,
-            validator_trust = 0,
-            dividends = 0,
-            last_update = 0,
-            validator_permit = False,
-            #weights = [], // No weights or bonds in lite version
-            #bonds = [],
-            prometheus_info = None,
-            axon_info = None,
-            is_null = True,
-            coldkey = "000000000000000000000000000000000000000000000000",
-            hotkey = "000000000000000000000000000000000000000000000000",
-            pruning_score = 0,
+            uid=0,
+            netuid=0,
+            active=0,
+            stake=Balance.from_rao(0),
+            stake_dict={},
+            total_stake=Balance.from_rao(0),
+            rank=0,
+            emission=0,
+            incentive=0,
+            consensus=0,
+            trust=0,
+            validator_trust=0,
+            dividends=0,
+            last_update=0,
+            validator_permit=False,
+            # weights = [], // No weights or bonds in lite version
+            # bonds = [],
+            prometheus_info=None,
+            axon_info=None,
+            is_null=True,
+            coldkey="000000000000000000000000000000000000000000000000",
+            hotkey="000000000000000000000000000000000000000000000000",
+            pruning_score=0,
         )
         return neuron
 
     @staticmethod
-    def _neuron_dict_to_namespace(neuron_dict) -> 'NeuronInfoLite':
+    def _neuron_dict_to_namespace(neuron_dict) -> "NeuronInfoLite":
         # TODO: Legacy: remove?
-        if neuron_dict['hotkey'] == '5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM':
+        if neuron_dict["hotkey"] == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
             return NeuronInfoLite._null_neuron()
         else:
-            neuron = NeuronInfoLite( **neuron_dict )
+            neuron = NeuronInfoLite(**neuron_dict)
             neuron.stake = Balance.from_rao(neuron.total_stake)
-            neuron.stake_dict = { hk: Balance.from_rao(stake) for hk, stake in neuron.stake.items() }
+            neuron.stake_dict = {
+                hk: Balance.from_rao(stake) for hk, stake in neuron.stake.items()
+            }
             neuron.total_stake = neuron.stake
             neuron.rank = neuron.rank / U16_MAX
             neuron.trust = neuron.trust / U16_MAX
@@ -510,6 +588,7 @@ class NeuronInfoLite:
             neuron.emission = neuron.emission / RAOPERTAO
 
             return neuron
+
 
 @dataclass
 class PrometheusInfo:
@@ -523,51 +602,63 @@ class PrometheusInfo:
     ip_type: int
 
     @classmethod
-    def fix_decoded_values(cls, prometheus_info_decoded: Dict) -> 'PrometheusInfo':
-        r""" Returns a PrometheusInfo object from a prometheus_info_decoded dictionary.
-        """
-        prometheus_info_decoded['ip'] = net.int_to_ip(int(prometheus_info_decoded['ip']))
+    def fix_decoded_values(cls, prometheus_info_decoded: Dict) -> "PrometheusInfo":
+        r"""Returns a PrometheusInfo object from a prometheus_info_decoded dictionary."""
+        prometheus_info_decoded["ip"] = net.int_to_ip(
+            int(prometheus_info_decoded["ip"])
+        )
 
         return cls(**prometheus_info_decoded)
+
+
 @dataclass
 class DelegateInfo:
     r"""
     Dataclass for delegate info.
     """
-    hotkey_ss58: str # Hotkey of delegate
-    total_stake: Balance # Total stake of the delegate
-    nominators: List[Tuple[str, Balance]] # List of nominators of the delegate and their stake
-    owner_ss58: str # Coldkey of owner
-    take: float # Take of the delegate as a percentage
-    validator_permits: List[int] # List of subnets that the delegate is allowed to validate on
-    registrations: List[int] # List of subnets that the delegate is registered on
-    return_per_1000: Balance # Return per 1000 tao of the delegate over a day
-    total_daily_return: Balance # Total daily return of the delegate
+    hotkey_ss58: str  # Hotkey of delegate
+    total_stake: Balance  # Total stake of the delegate
+    nominators: List[
+        Tuple[str, Balance]
+    ]  # List of nominators of the delegate and their stake
+    owner_ss58: str  # Coldkey of owner
+    take: float  # Take of the delegate as a percentage
+    validator_permits: List[
+        int
+    ]  # List of subnets that the delegate is allowed to validate on
+    registrations: List[int]  # List of subnets that the delegate is registered on
+    return_per_1000: Balance  # Return per 1000 tao of the delegate over a day
+    total_daily_return: Balance  # Total daily return of the delegate
 
     @classmethod
-    def fix_decoded_values(cls, decoded: Any) -> 'DelegateInfo':
-        r""" Fixes the decoded values.
-        """
+    def fix_decoded_values(cls, decoded: Any) -> "DelegateInfo":
+        r"""Fixes the decoded values."""
 
         return cls(
-            hotkey_ss58 = ss58_encode(decoded['delegate_ss58'], bittensor.__ss58_format__),
-            owner_ss58 = ss58_encode(decoded['owner_ss58'], bittensor.__ss58_format__),
-            take = U16_NORMALIZED_FLOAT(decoded['take']),
-            nominators = [
-                (ss58_encode(nom[0], bittensor.__ss58_format__), Balance.from_rao(nom[1]))
-                for nom in decoded['nominators']
+            hotkey_ss58=ss58_encode(
+                decoded["delegate_ss58"], bittensor.__ss58_format__
+            ),
+            owner_ss58=ss58_encode(decoded["owner_ss58"], bittensor.__ss58_format__),
+            take=U16_NORMALIZED_FLOAT(decoded["take"]),
+            nominators=[
+                (
+                    ss58_encode(nom[0], bittensor.__ss58_format__),
+                    Balance.from_rao(nom[1]),
+                )
+                for nom in decoded["nominators"]
             ],
-            total_stake = Balance.from_rao(sum([nom[1] for nom in decoded['nominators']])),
-            validator_permits = decoded['validator_permits'],
-            registrations = decoded['registrations'],
-            return_per_1000 = Balance.from_rao(decoded['return_per_1000']),
-            total_daily_return = Balance.from_rao(decoded['total_daily_return']),
+            total_stake=Balance.from_rao(
+                sum([nom[1] for nom in decoded["nominators"]])
+            ),
+            validator_permits=decoded["validator_permits"],
+            registrations=decoded["registrations"],
+            return_per_1000=Balance.from_rao(decoded["return_per_1000"]),
+            total_daily_return=Balance.from_rao(decoded["total_daily_return"]),
         )
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional['DelegateInfo']:
-        r""" Returns a DelegateInfo object from a vec_u8.
-        """
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DelegateInfo"]:
+        r"""Returns a DelegateInfo object from a vec_u8."""
         if len(vec_u8) == 0:
             return None
 
@@ -581,9 +672,8 @@ class DelegateInfo:
         return decoded
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List['DelegateInfo']:
-        r""" Returns a list of DelegateInfo objects from a vec_u8.
-        """
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["DelegateInfo"]:
+        r"""Returns a list of DelegateInfo objects from a vec_u8."""
         decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfo, is_vec=True)
 
         if decoded is None:
@@ -594,8 +684,10 @@ class DelegateInfo:
         return decoded
 
     @classmethod
-    def delegated_list_from_vec_u8(cls, vec_u8: List[int]) -> List[Tuple['DelegateInfo', Balance]]:
-        r""" Returns a list of Tuples of DelegateInfo objects, and Balance, from a vec_u8.
+    def delegated_list_from_vec_u8(
+        cls, vec_u8: List[int]
+    ) -> List[Tuple["DelegateInfo", Balance]]:
+        r"""Returns a list of Tuples of DelegateInfo objects, and Balance, from a vec_u8.
         This is the list of delegates that the user has delegated to, and the amount of stake delegated.
         """
         decoded = from_scale_encoding(vec_u8, ChainDataType.DelegatedInfo, is_vec=True)
@@ -603,9 +695,13 @@ class DelegateInfo:
         if decoded is None:
             return []
 
-        decoded = [(DelegateInfo.fix_decoded_values(d), Balance.from_rao(s)) for d, s in decoded]
+        decoded = [
+            (DelegateInfo.fix_decoded_values(d), Balance.from_rao(s))
+            for d, s in decoded
+        ]
 
         return decoded
+
 
 @dataclass
 class SubnetInfo:
@@ -637,9 +733,8 @@ class SubnetInfo:
     burn: Balance
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional['SubnetInfo']:
-        r""" Returns a SubnetInfo object from a vec_u8.
-        """
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetInfo"]:
+        r"""Returns a SubnetInfo object from a vec_u8."""
         if len(vec_u8) == 0:
             return None
 
@@ -651,10 +746,11 @@ class SubnetInfo:
         return SubnetInfo.fix_decoded_values(decoded)
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List['SubnetInfo']:
-        r""" Returns a list of SubnetInfo objects from a vec_u8.
-        """
-        decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetInfo, is_vec=True, is_option=True)
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetInfo"]:
+        r"""Returns a list of SubnetInfo objects from a vec_u8."""
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.SubnetInfo, is_vec=True, is_option=True
+        )
 
         if decoded is None:
             return []
@@ -664,51 +760,50 @@ class SubnetInfo:
         return decoded
 
     @classmethod
-    def fix_decoded_values(cls, decoded: Dict) -> 'SubnetInfo':
-        r""" Returns a SubnetInfo object from a decoded SubnetInfo dictionary.
-        """
+    def fix_decoded_values(cls, decoded: Dict) -> "SubnetInfo":
+        r"""Returns a SubnetInfo object from a decoded SubnetInfo dictionary."""
         return SubnetInfo(
-            netuid = decoded['netuid'],
-            rho = decoded['rho'],
-            kappa = decoded['kappa'],
-            difficulty = decoded['difficulty'],
-            immunity_period = decoded['immunity_period'],
-            validator_batch_size = decoded['validator_batch_size'],
-            validator_sequence_length = decoded['validator_sequence_length'],
-            validator_epochs_per_reset = decoded['validator_epochs_per_reset'],
-            validator_epoch_length = decoded['validator_epoch_length'],
-            max_allowed_validators = decoded['max_allowed_validators'],
-            min_allowed_weights = decoded['min_allowed_weights'],
-            max_weight_limit = decoded['max_weights_limit'],
-            scaling_law_power = decoded['scaling_law_power'],
-            synergy_scaling_law_power= decoded['synergy_scaling_law_power'],
-            subnetwork_n = decoded['subnetwork_n'],
-            max_n = decoded['max_allowed_uids'],
-            blocks_since_epoch = decoded['blocks_since_last_step'],
-            tempo = decoded['tempo'],
-            modality = decoded['network_modality'],
-            connection_requirements = {
-                str(int(netuid)): U16_NORMALIZED_FLOAT(int(req)) for netuid, req in decoded['network_connect']
+            netuid=decoded["netuid"],
+            rho=decoded["rho"],
+            kappa=decoded["kappa"],
+            difficulty=decoded["difficulty"],
+            immunity_period=decoded["immunity_period"],
+            validator_batch_size=decoded["validator_batch_size"],
+            validator_sequence_length=decoded["validator_sequence_length"],
+            validator_epochs_per_reset=decoded["validator_epochs_per_reset"],
+            validator_epoch_length=decoded["validator_epoch_length"],
+            max_allowed_validators=decoded["max_allowed_validators"],
+            min_allowed_weights=decoded["min_allowed_weights"],
+            max_weight_limit=decoded["max_weights_limit"],
+            scaling_law_power=decoded["scaling_law_power"],
+            synergy_scaling_law_power=decoded["synergy_scaling_law_power"],
+            subnetwork_n=decoded["subnetwork_n"],
+            max_n=decoded["max_allowed_uids"],
+            blocks_since_epoch=decoded["blocks_since_last_step"],
+            tempo=decoded["tempo"],
+            modality=decoded["network_modality"],
+            connection_requirements={
+                str(int(netuid)): U16_NORMALIZED_FLOAT(int(req))
+                for netuid, req in decoded["network_connect"]
             },
-            emission_value= decoded['emission_values'],
-            burn = Balance.from_rao(decoded['burn'])
+            emission_value=decoded["emission_values"],
+            burn=Balance.from_rao(decoded["burn"]),
         )
 
-    def to_parameter_dict( self ) -> 'torch.nn.ParameterDict':
-        r""" Returns a torch tensor of the subnet info.
-        """
-        return torch.nn.ParameterDict(
-            self.__dict__
-        )
+    def to_parameter_dict(self) -> "torch.nn.ParameterDict":
+        r"""Returns a torch tensor of the subnet info."""
+        return torch.nn.ParameterDict(self.__dict__)
 
     @classmethod
-    def from_parameter_dict( cls, parameter_dict: 'torch.nn.ParameterDict' ) -> 'SubnetInfo':
-        r""" Returns a SubnetInfo object from a torch parameter_dict.
-        """
-        return cls( **dict(parameter_dict) )
+    def from_parameter_dict(
+        cls, parameter_dict: "torch.nn.ParameterDict"
+    ) -> "SubnetInfo":
+        r"""Returns a SubnetInfo object from a torch parameter_dict."""
+        return cls(**dict(parameter_dict))
 
 
 # Senate / Proposal data
+
 
 class ProposalVoteData(TypedDict):
     index: int
@@ -716,5 +811,6 @@ class ProposalVoteData(TypedDict):
     ayes: List[str]
     nays: List[str]
     end: int
+
 
 ProposalCallData = GenericCall

@@ -26,14 +26,15 @@ import msgpack_numpy
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
 TORCH_DTYPES = {
-    'torch.float16': torch.float16,
-    'torch.float32': torch.float32,
-    'torch.float64': torch.float64,
-    'torch.uint8': torch.uint8,
-    'torch.int32': torch.int32,
-    'torch.int64': torch.int64,
-    'torch.bool': torch.bool,
+    "torch.float16": torch.float16,
+    "torch.float32": torch.float32,
+    "torch.float64": torch.float64,
+    "torch.uint8": torch.uint8,
+    "torch.int32": torch.int32,
+    "torch.int64": torch.int64,
+    "torch.bool": torch.bool,
 }
+
 
 def cast_dtype(raw: Union[None, torch.dtype, str]) -> str:
     """
@@ -53,10 +54,14 @@ def cast_dtype(raw: Union[None, torch.dtype, str]) -> str:
     if isinstance(raw, torch.dtype):
         return TORCH_DTYPES[raw]
     elif isinstance(raw, str):
-        assert raw in TORCH_DTYPES, f"{str} not a valid torch type in dict {TORCH_DTYPES}"
+        assert (
+            raw in TORCH_DTYPES
+        ), f"{str} not a valid torch type in dict {TORCH_DTYPES}"
         return raw
     else:
-        raise Exception(f"{raw} of type {type(raw)} does not have a valid type in Union[None, torch.dtype, str]")
+        raise Exception(
+            f"{raw} of type {type(raw)} does not have a valid type in Union[None, torch.dtype, str]"
+        )
 
 
 def cast_shape(raw: Union[None, List[int], str]) -> str:
@@ -82,21 +87,22 @@ def cast_shape(raw: Union[None, List[int], str]) -> str:
         else:
             raise Exception(f"{raw} list elements are not of type int")
     elif isinstance(raw, str):
-        shape = list(map(int, raw.split('[')[1].split(']')[0].split(',')))
+        shape = list(map(int, raw.split("[")[1].split("]")[0].split(",")))
         return shape
     else:
-        raise Exception(f"{raw} of type {type(raw)} does not have a valid type in Union[None, List[int], str]")
+        raise Exception(
+            f"{raw} of type {type(raw)} does not have a valid type in Union[None, List[int], str]"
+        )
 
 
 class tensor:
-
-    def __new__(cls, tensor: Union[ list, numpy.ndarray, torch.Tensor ] ):
+    def __new__(cls, tensor: Union[list, numpy.ndarray, torch.Tensor]):
         if isinstance(tensor, list):
-            tensor = torch.tensor( tensor )
-        elif isinstance( tensor, numpy.ndarray ):
-            tensor = torch.tensor( tensor )
-        return Tensor.serialize( tensor = tensor )
-    
+            tensor = torch.tensor(tensor)
+        elif isinstance(tensor, numpy.ndarray):
+            tensor = torch.tensor(tensor)
+        return Tensor.serialize(tensor=tensor)
+
 
 class Tensor(pydantic.BaseModel):
     """
@@ -113,14 +119,14 @@ class Tensor(pydantic.BaseModel):
 
     def tensor(self) -> torch.Tensor:
         return self.deserialize()
-    
+
     def tolist(self) -> List[object]:
         return self.deserialize().tolist()
 
-    def numpy(self) -> 'numpy.ndarray':
+    def numpy(self) -> "numpy.ndarray":
         return self.deserialize().detach().numpy()
 
-    def deserialize(self) -> 'torch.Tensor':
+    def deserialize(self) -> "torch.Tensor":
         """
         Deserializes the Tensor object.
 
@@ -131,13 +137,15 @@ class Tensor(pydantic.BaseModel):
             Exception: If the deserialization process encounters an error.
         """
         shape = tuple(self.shape)
-        buffer_bytes = base64.b64decode(self.buffer.encode('utf-8'))
-        numpy_object = msgpack.unpackb(buffer_bytes, object_hook=msgpack_numpy.decode).copy()
+        buffer_bytes = base64.b64decode(self.buffer.encode("utf-8"))
+        numpy_object = msgpack.unpackb(
+            buffer_bytes, object_hook=msgpack_numpy.decode
+        ).copy()
         torch_object = torch.as_tensor(numpy_object).view(shape)
         return torch_object.type(TORCH_DTYPES[self.dtype])
 
     @staticmethod
-    def serialize(tensor: 'torch.Tensor') -> 'Tensor':
+    def serialize(tensor: "torch.Tensor") -> "Tensor":
         """
         Serializes the given tensor.
 
@@ -153,36 +161,37 @@ class Tensor(pydantic.BaseModel):
         dtype = str(tensor.dtype)
         shape = list(tensor.shape)
         torch_numpy = tensor.cpu().detach().numpy().copy()
-        data_buffer = base64.b64encode(msgpack.packb(torch_numpy, default=msgpack_numpy.encode)).decode('utf-8')
+        data_buffer = base64.b64encode(
+            msgpack.packb(torch_numpy, default=msgpack_numpy.encode)
+        ).decode("utf-8")
         return Tensor(
             buffer=data_buffer,
             shape=shape,
             dtype=dtype,
         )
-    
+
     buffer: Optional[str] = pydantic.Field(
-        title='buffer',
-        description='Tensor buffer data. This field stores the serialized representation of the tensor data.',
-        examples='0x321e13edqwds231231231232131',
+        title="buffer",
+        description="Tensor buffer data. This field stores the serialized representation of the tensor data.",
+        examples="0x321e13edqwds231231231232131",
         allow_mutation=False,
-        repr=False
+        repr=False,
     )  # Represents the tensor buffer data.
 
     dtype: str = pydantic.Field(
-        title='dtype',
-        description='Tensor data type. This field specifies the data type of the tensor, such as torch.float32 or torch.int64.',
-        examples='torch.float32',
+        title="dtype",
+        description="Tensor data type. This field specifies the data type of the tensor, such as torch.float32 or torch.int64.",
+        examples="torch.float32",
         allow_mutation=False,
-        repr=True
+        repr=True,
     )  # Represents the data type of the tensor.
-    _extract_dtype = pydantic.validator('dtype', pre=True, allow_reuse=True)(cast_dtype)
+    _extract_dtype = pydantic.validator("dtype", pre=True, allow_reuse=True)(cast_dtype)
 
     shape: List[int] = pydantic.Field(
-        title='shape',
-        description='Tensor shape. This field defines the dimensions of the tensor as a list of integers, such as [10, 10] for a 2D tensor with shape (10, 10).',
-        examples='[10,10]',
+        title="shape",
+        description="Tensor shape. This field defines the dimensions of the tensor as a list of integers, such as [10, 10] for a 2D tensor with shape (10, 10).",
+        examples="[10,10]",
         allow_mutation=False,
-        repr=True
+        repr=True,
     )  # Represents the shape of the tensor.
-    _extract_shape = pydantic.validator('shape', pre=True, allow_reuse=True)(cast_shape)
-
+    _extract_shape = pydantic.validator("shape", pre=True, allow_reuse=True)(cast_shape)
