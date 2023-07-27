@@ -53,7 +53,7 @@ if [[ ! -f $VERSION_FILENAME ]]; then
   exit 1
 fi
 
-CODE_VERSION=`grep '__version__\ \=\ ' $CODE_WITH_VERSION | awk '{print $3}' | sed "s/'//g"`
+CODE_VERSION=`grep '__version__\ \=\ ' $CODE_WITH_VERSION | awk '{print $3}' | sed 's/"//g'`
 VERSION=$(cat $VERSION_FILENAME)
 
 if ! [[ "$CODE_VERSION" =~ ^[0-9]+.[0-9]+.[0-9]+$ ]];then

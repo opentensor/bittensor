@@ -58,9 +58,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
         )
 
         mock_subtensor.serve_axon(
-            netuid=-1,
-            axon=mock_axon_with_external_ip_set,
-            use_upnpc=False,
+            netuid=-1, axon=mock_axon_with_external_ip_set, use_upnpc=False
         )
 
         mock_serve_axon.assert_called_once()
@@ -81,9 +79,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
         mock_serve_axon = MagicMock(return_value=True)
 
         mock_subtensor = MagicMock(
-            spec=bittensor.subtensor,
-            serve=mock_serve,
-            serve_axon=mock_serve_axon,
+            spec=bittensor.subtensor, serve=mock_serve, serve_axon=mock_serve_axon
         )
 
         mock_wallet = MagicMock(
@@ -113,9 +109,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
         ):
             # mock the get_external_ip function to return the external ip
             mock_subtensor.serve_axon(
-                netuid=-1,
-                axon=mock_axon_with_external_port_set,
-                use_upnpc=False,
+                netuid=-1, axon=mock_axon_with_external_port_set, use_upnpc=False
             )
 
         mock_serve_axon.assert_called_once()
@@ -155,9 +149,7 @@ class TestStakeMultiple(unittest.TestCase):
 
         mock_amounts = [mock_amount]  # more than 1000 RAO
 
-        mock_neuron = MagicMock(
-            is_null=False,
-        )
+        mock_neuron = MagicMock(is_null=False)
 
         mock_do_stake = MagicMock(side_effect=ExitEarly)
 

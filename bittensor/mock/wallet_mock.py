@@ -31,10 +31,7 @@ class MockWallet(bittensor.wallet):
     Mocked Version of the bittensor wallet class, meant to be used for testing
     """
 
-    def __init__(
-        self,
-        **kwargs,
-    ):
+    def __init__(self, **kwargs):
         r"""Init bittensor wallet object containing a hot and coldkey.
         Args:
             _mock (required=True, default=False):
@@ -83,11 +80,7 @@ class MockWallet(bittensor.wallet):
 def get_mock_wallet(
     coldkey: "bittensor.Keypair" = None, hotkey: "bittensor.Keypair" = None
 ):
-    wallet = MockWallet(
-        name="mock_wallet",
-        hotkey="mock",
-        path="/tmp/mock_wallet",
-    )
+    wallet = MockWallet(name="mock_wallet", hotkey="mock", path="/tmp/mock_wallet")
 
     if not coldkey:
         coldkey = bittensor.Keypair.create_from_mnemonic(

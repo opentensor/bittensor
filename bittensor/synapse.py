@@ -379,10 +379,7 @@ class Synapse(pydantic.BaseModel):
             dict: A dictionary of headers constructed from the properties of the instance.
         """
         # Initializing headers with 'name' and 'timeout'
-        headers = {
-            "name": self.name,
-            "timeout": str(self.timeout),
-        }
+        headers = {"name": self.name, "timeout": str(self.timeout)}
 
         # Adding headers for 'axon' and 'dendrite' if they are not None
         headers.update(

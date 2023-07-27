@@ -313,11 +313,7 @@ class dendrite(torch.nn.Module):
 
         return synapse
 
-    def process_server_response(
-        self,
-        server_response,
-        local_synapse: bt.Synapse,
-    ):
+    def process_server_response(self, server_response, local_synapse: bt.Synapse):
         """
         Processes the server response, updates the local synapse state with the
         server's state and merges headers set by the server.

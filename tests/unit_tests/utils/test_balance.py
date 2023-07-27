@@ -1,8 +1,7 @@
 import unittest
 
 import pytest
-from hypothesis import given
-from hypothesis import strategies as st
+from hypothesis import given, strategies as st
 from typing import Union
 
 from bittensor import Balance
@@ -505,3 +504,7 @@ class TestBalance(unittest.TestCase):
         balance_ = Balance(balance)
         with pytest.raises(NotImplementedError):
             balance_ == ""
+
+
+if __name__ == "__main__":
+    unittest.main()

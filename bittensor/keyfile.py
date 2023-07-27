@@ -115,11 +115,7 @@ def validate_password(password: str) -> bool:
     Returns:
         valid (bool): True if the password meets validity requirements.
     """
-    policy = PasswordPolicy.from_names(
-        strength=0.20,
-        entropybits=10,
-        length=6,
-    )
+    policy = PasswordPolicy.from_names(strength=0.20, entropybits=10, length=6)
     if not password:
         return False
     tested_pass = policy.password(password)

@@ -262,11 +262,7 @@ class metagraph(torch.nn.Module):
         }
 
     def __init__(
-        self,
-        netuid: int,
-        network: str = "finney",
-        lite: bool = True,
-        sync: bool = True,
+        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
     ) -> "metagraph":
         """
         Initialize the metagraph object.
