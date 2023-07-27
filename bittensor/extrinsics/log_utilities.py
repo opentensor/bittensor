@@ -321,12 +321,7 @@ class ValidatorLogger:
                     if i == len(sort) - 1:
                         print()
 
-    def print_synergy_table(
-        self,
-        stats: Dict,
-        syn_loss_diff: Dict,
-        sort_col: str,
-    ):
+    def print_synergy_table(self, stats: Dict, syn_loss_diff: Dict, sort_col: str):
         r"""
         Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal).
 
@@ -578,10 +573,7 @@ class ValidatorLogger:
         )
 
     def print_console_validator_identifier(
-        self,
-        uid: int,
-        wallet: "bittensor.wallet",
-        external_ip: str,
+        self, uid: int, wallet: "bittensor.wallet", external_ip: str
     ):
         r"""Console print for validator identifier."""
 
@@ -758,10 +750,7 @@ class ValidatorPrometheus:
         self.gauges.labels("loss").set(loss)
 
     def log_epoch_end(
-        self,
-        uid: int,
-        metagraph: "bittensor.Metagraph",
-        current_block: int,
+        self, uid: int, metagraph: "bittensor.Metagraph", current_block: int
     ):
         r"""All prometheus logging at the end of epoch."""
         self.gauges.labels("epoch").inc()

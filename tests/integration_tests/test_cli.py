@@ -1563,9 +1563,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balances: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "w0": {
-                "hk0": Balance.from_float(10.0),
-            },
+            "w0": {"hk0": Balance.from_float(10.0)},
             "w1": {"hk1": Balance.from_float(11.1)},
         }
 
@@ -1647,9 +1645,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balances: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "w0": {
-                "hk0": Balance.from_float(10.0),
-            },
+            "w0": {"hk0": Balance.from_float(10.0)},
             "w1": {"hk1": Balance.from_float(11.1)},
         }
 
@@ -1993,8 +1989,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 SimpleNamespace(
                     hotkey=_get_mock_keypair(i + 100, self.id()).ss58_address,
                     coldkey=_get_mock_keypair(i, self.id()).ss58_address,
-                    balance=Balance.from_rao(random.randint(0, 2**45)).rao,
-                    stake=Balance.from_rao(random.randint(0, 2**45)).rao,
+                    balance=Balance.from_rao(random.randint(0, 2 ** 45)).rao,
+                    stake=Balance.from_rao(random.randint(0, 2 ** 45)).rao,
                 )
             )
             uid = _subtensor_mock.force_register_neuron(

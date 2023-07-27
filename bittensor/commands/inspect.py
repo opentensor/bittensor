@@ -123,17 +123,7 @@ class InspectCommand:
             if not wallet.coldkeypub_file.exists_on_device():
                 continue
             cold_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-            table.add_row(
-                wallet.name,
-                str(cold_balance),
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-            )
+            table.add_row(wallet.name, str(cold_balance), "", "", "", "", "", "", "")
             for dele, staked in delegates:
                 if dele.hotkey_ss58 in registered_delegate_info:
                     delegate_name = registered_delegate_info[dele.hotkey_ss58].name

@@ -182,9 +182,7 @@ def test_list_tensors():
     class Test(bittensor.Synapse):
         a: typing.List[bittensor.Tensor]
 
-    synapse = Test(
-        a=[bittensor.Tensor.serialize(torch.randn(10))],
-    )
+    synapse = Test(a=[bittensor.Tensor.serialize(torch.randn(10))])
     headers = synapse.to_headers()
     assert "bt_header_list_tensor_a" in headers
     assert headers["bt_header_list_tensor_a"] == "['[10]-torch.float32']"
@@ -200,7 +198,7 @@ def test_list_tensors():
             bittensor.Tensor.serialize(torch.randn(10)),
             bittensor.Tensor.serialize(torch.randn(11)),
             bittensor.Tensor.serialize(torch.randn(12)),
-        ],
+        ]
     )
     headers = synapse.to_headers()
     assert "bt_header_list_tensor_a" in headers
@@ -225,7 +223,7 @@ def test_dict_tensors():
         a={
             "cat": bittensor.tensor(torch.randn(10)),
             "dog": bittensor.tensor(torch.randn(11)),
-        },
+        }
     )
     headers = synapse.to_headers()
     assert "bt_header_dict_tensor_a" in headers

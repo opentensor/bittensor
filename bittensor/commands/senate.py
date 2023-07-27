@@ -168,10 +168,8 @@ class ProposalsCommand:
         ] = get_delegates_details(url=bittensor.__delegates_details_url__)
 
         table = Table(show_footer=False)
-        table.title = (
-            "[white]Proposals\t\tActive Proposals: {}\t\tSenate Size: {}".format(
-                len(proposals), len(senate_members)
-            )
+        table.title = "[white]Proposals\t\tActive Proposals: {}\t\tSenate Size: {}".format(
+            len(proposals), len(senate_members)
         )
         table.add_column(
             "[overline white]HASH",

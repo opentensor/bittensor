@@ -99,11 +99,7 @@ __network_explorer_map__ = {
 }
 
 # --- Type Registry ---
-__type_registry__ = {
-    "types": {
-        "Balance": "u64",  # Need to override default u128
-    },
-}
+__type_registry__ = {"types": {"Balance": "u64"}}  # Need to override default u128
 
 
 from .errors import *

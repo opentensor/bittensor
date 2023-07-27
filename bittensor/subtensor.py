@@ -546,10 +546,7 @@ class subtensor:
         )
 
     def get_transfer_fee(
-        self,
-        wallet: "bittensor.wallet",
-        dest: str,
-        value: Union[Balance, float, int],
+        self, wallet: "bittensor.wallet", dest: str, value: Union[Balance, float, int]
     ) -> Balance:
         if isinstance(value, float):
             transfer_balance = Balance.from_tao(value)
@@ -573,9 +570,7 @@ class subtensor:
                         e
                     )
                 )
-                payment_info = {
-                    "partialFee": 2e7,  # assume  0.02 Tao
-                }
+                payment_info = {"partialFee": 2e7}  # assume  0.02 Tao
 
         fee = Balance.from_rao(payment_info["partialFee"])
         return fee
@@ -630,15 +625,10 @@ class subtensor:
             else:
                 return False, None, response.error_message
 
-    def get_existential_deposit(
-        self,
-        block: Optional[int] = None,
-    ) -> Optional[Balance]:
+    def get_existential_deposit(self, block: Optional[int] = None) -> Optional[Balance]:
         """Returns the existential deposit for the chain."""
         result = self.query_constant(
-            module_name="Balances",
-            constant_name="ExistentialDeposit",
-            block=block,
+            module_name="Balances", constant_name="ExistentialDeposit", block=block
         )
 
         if result is None:
@@ -997,20 +987,14 @@ class subtensor:
             prompt,
         )
 
-    def is_senate_member(
-        self,
-        hotkey_ss58: str,
-        block: Optional[int] = None,
-    ) -> bool:
+    def is_senate_member(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         senate_members = self.query_module(
             module="SenateMembers", name="Members", block=block
         ).serialize()
         return senate_members.count(hotkey_ss58) > 0
 
     def get_vote_data(
-        self,
-        proposal_hash: str,
-        block: Optional[int] = None,
+        self, proposal_hash: str, block: Optional[int] = None
     ) -> Optional[ProposalVoteData]:
         vote_data = self.query_module(
             module="Triumvirate", name="Voting", block=block, params=[proposal_hash]
@@ -1019,18 +1003,13 @@ class subtensor:
 
     get_proposal_vote_data = get_vote_data
 
-    def get_senate_members(
-        self,
-        block: Optional[int] = None,
-    ) -> Optional[List[str]]:
+    def get_senate_members(self, block: Optional[int] = None) -> Optional[List[str]]:
         senate_members = self.query_module("SenateMembers", "Members", block=block)
 
         return senate_members.serialize() if senate_members != None else None
 
     def get_proposal_call_data(
-        self,
-        proposal_hash: str,
-        block: Optional[int] = None,
+        self, proposal_hash: str, block: Optional[int] = None
     ) -> Optional["bittensor.ProposalCallData"]:
         proposal_data = self.query_module(
             module="Triumvirate", name="ProposalOf", block=block, params=[proposal_hash]
@@ -1038,10 +1017,7 @@ class subtensor:
 
         return proposal_data.serialize() if proposal_data != None else None
 
-    def get_proposal_hashes(
-        self,
-        block: Optional[int] = None,
-    ) -> Optional[List[str]]:
+    def get_proposal_hashes(self, block: Optional[int] = None) -> Optional[List[str]]:
         proposal_hashes = self.query_module(
             module="Triumvirate", name="Proposals", block=block
         )
@@ -1049,8 +1025,7 @@ class subtensor:
         return proposal_hashes.serialize() if proposal_hashes != None else None
 
     def get_proposals(
-        self,
-        block: Optional[int] = None,
+        self, block: Optional[int] = None
     ) -> Optional[
         Dict[str, Tuple["bittensor.ProposalCallData", "bittensor.ProposalVoteData"]]
     ]:

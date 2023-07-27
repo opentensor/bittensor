@@ -164,11 +164,7 @@ class Tensor(pydantic.BaseModel):
         data_buffer = base64.b64encode(
             msgpack.packb(torch_numpy, default=msgpack_numpy.encode)
         ).decode("utf-8")
-        return Tensor(
-            buffer=data_buffer,
-            shape=shape,
-            dtype=dtype,
-        )
+        return Tensor(buffer=data_buffer, shape=shape, dtype=dtype)
 
     buffer: Optional[str] = pydantic.Field(
         title="buffer",

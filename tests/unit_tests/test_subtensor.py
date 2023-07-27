@@ -79,9 +79,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
         mock_serve_axon = MagicMock(return_value=True)
 
         mock_subtensor = MagicMock(
-            spec=bittensor.subtensor,
-            serve=mock_serve,
-            serve_axon=mock_serve_axon,
+            spec=bittensor.subtensor, serve=mock_serve, serve_axon=mock_serve_axon
         )
 
         mock_wallet = MagicMock(
@@ -151,9 +149,7 @@ class TestStakeMultiple(unittest.TestCase):
 
         mock_amounts = [mock_amount]  # more than 1000 RAO
 
-        mock_neuron = MagicMock(
-            is_null=False,
-        )
+        mock_neuron = MagicMock(is_null=False)
 
         mock_do_stake = MagicMock(side_effect=ExitEarly)
 
