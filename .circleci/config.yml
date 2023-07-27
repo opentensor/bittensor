@@ -2,9 +2,46 @@ version: 2.1
 
 orbs:
   python: circleci/python@2.1.1
+  python-lib: dialogue/python-lib@0.1.55
   # coveralls: coveralls/coveralls@1.0.6
 
 jobs:
+  black:
+    resource_class: small
+    parameters:
+      python-version:
+        type: string
+    docker:
+      - image: cimg/python:<< parameters.python-version >>
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          name: Restore cached black venv
+          keys:
+            - v1-pypi-py-black-<< parameters.python-version >>
+
+      - run:
+          name: Update & Activate black venv
+          command: |
+            python -m venv env/
+            . env/bin/activate
+            python -m pip install --upgrade pip
+            pip install black
+
+      - save_cache:
+          name: Save cached black venv
+          paths:
+            - "env/"
+          key: v1-pypi-py-black-<< parameters.python-version >>
+
+      - run:
+          name: Black format check
+          command: |
+            . env/bin/activate
+            python -m black --exclude '(env|venv|.eggs)' --check .
+
   build-and-test:
     resource_class: medium
     parallelism: 2
@@ -168,6 +205,8 @@ jobs:
 workflows:
   pr-requirements:
     jobs:
+      - black:
+          python-version: "3.8.12"
       - build-and-test:
           matrix:
             parameters:

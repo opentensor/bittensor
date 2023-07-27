@@ -58,9 +58,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
         )
 
         mock_subtensor.serve_axon(
-            netuid=-1,
-            axon=mock_axon_with_external_ip_set,
-            use_upnpc=False,
+            netuid=-1, axon=mock_axon_with_external_ip_set, use_upnpc=False
         )
 
         mock_serve_axon.assert_called_once()
@@ -113,9 +111,7 @@ class TestSubtensorWithExternalAxon(unittest.TestCase):
         ):
             # mock the get_external_ip function to return the external ip
             mock_subtensor.serve_axon(
-                netuid=-1,
-                axon=mock_axon_with_external_port_set,
-                use_upnpc=False,
+                netuid=-1, axon=mock_axon_with_external_port_set, use_upnpc=False
             )
 
         mock_serve_axon.assert_called_once()

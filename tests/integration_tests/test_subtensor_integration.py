@@ -89,7 +89,6 @@ class TestSubtensor(unittest.TestCase):
         # Mock network calls
         with patch("substrateinterface.SubstrateInterface.connect_websocket"):
             with patch("substrateinterface.SubstrateInterface.reload_type_registry"):
-                print(bittensor.subtensor, type(bittensor.subtensor))
                 # Choose arg over config
                 sub0 = bittensor.subtensor(
                     config=config0, chain_endpoint="wss://fin.subtensor.io"
