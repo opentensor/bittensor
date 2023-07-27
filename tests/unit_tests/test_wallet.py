@@ -76,9 +76,7 @@ class TestWallet(unittest.TestCase):
             keypair: bittensor.Keypair = mock_set_coldkeypub.call_args_list[0][0][0]
             self.assertEqual("0x" + keypair.public_key.hex(), pubkey_str)
 
-        pubkey_str_bad = (
-            "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512"
-        )  # 1 character short
+        pubkey_str_bad = "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512"  # 1 character short
         with pytest.raises(ValueError):
             self.mock_wallet.regenerate_coldkeypub(
                 ss58_address=pubkey_str_bad, overwrite=True, suppress=True
@@ -135,9 +133,7 @@ class TestWallet(unittest.TestCase):
                 keypair.ss58_address, ss58_addr
             )  # Check that the ss58 address is correct
 
-        seed_str_bad = (
-            "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763"
-        )  # 1 character short
+        seed_str_bad = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763"  # 1 character short
         with pytest.raises(ValueError):
             self.mock_wallet.regenerate_coldkey(
                 seed=seed_str_bad, overwrite=True, suppress=True
@@ -167,9 +163,7 @@ class TestWallet(unittest.TestCase):
                 keypair.ss58_address, ss58_addr
             )  # Check that the ss58 address is correct
 
-        seed_str_bad = (
-            "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763"
-        )  # 1 character short
+        seed_str_bad = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763"  # 1 character short
         with pytest.raises(ValueError):
             self.mock_wallet.regenerate_hotkey(
                 seed=seed_str_bad, overwrite=True, suppress=True

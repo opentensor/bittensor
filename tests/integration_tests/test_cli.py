@@ -1989,8 +1989,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 SimpleNamespace(
                     hotkey=_get_mock_keypair(i + 100, self.id()).ss58_address,
                     coldkey=_get_mock_keypair(i, self.id()).ss58_address,
-                    balance=Balance.from_rao(random.randint(0, 2 ** 45)).rao,
-                    stake=Balance.from_rao(random.randint(0, 2 ** 45)).rao,
+                    balance=Balance.from_rao(random.randint(0, 2**45)).rao,
+                    stake=Balance.from_rao(random.randint(0, 2**45)).rao,
                 )
             )
             uid = _subtensor_mock.force_register_neuron(
