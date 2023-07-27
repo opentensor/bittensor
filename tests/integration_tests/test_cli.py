@@ -299,7 +299,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
     def test_overview_no_wallet(self, _):
         # Mock IO for wallet
         with patch(
-            "bittensor.Wallet.coldkeypub_file",
+            "bittensor.wallet.coldkeypub_file",
             MagicMock(exists_on_device=MagicMock(return_value=False)),
         ):
             bittensor.subtensor.register = MagicMock(return_value=True)
