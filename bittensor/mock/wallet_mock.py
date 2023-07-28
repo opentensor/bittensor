@@ -44,7 +44,7 @@ class MockWallet(bittensor.wallet):
         self._mocked_hotkey_keyfile = None
 
     @property
-    def hotkey_file(self) -> "bittensor.keyfile":
+    def hotkey_file(self) -> "bittensor.Keyfile":
         if self._is_mock:
             if self._mocked_hotkey_keyfile == None:
                 self._mocked_hotkey_keyfile = MockKeyfile(path="MockedHotkey")
@@ -52,10 +52,10 @@ class MockWallet(bittensor.wallet):
         else:
             wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
             hotkey_path = os.path.join(wallet_path, "hotkeys", self.hotkey_str)
-            return bittensor.keyfile(path=hotkey_path)
+            return bittensor.Keyfile(path=hotkey_path)
 
     @property
-    def coldkey_file(self) -> "bittensor.keyfile":
+    def coldkey_file(self) -> "bittensor.Keyfile":
         if self._is_mock:
             if self._mocked_coldkey_keyfile == None:
                 self._mocked_coldkey_keyfile = MockKeyfile(path="MockedColdkey")
@@ -63,10 +63,10 @@ class MockWallet(bittensor.wallet):
         else:
             wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
             coldkey_path = os.path.join(wallet_path, "coldkey")
-            return bittensor.keyfile(path=coldkey_path)
+            return bittensor.Keyfile(path=coldkey_path)
 
     @property
-    def coldkeypub_file(self) -> "bittensor.keyfile":
+    def coldkeypub_file(self) -> "bittensor.Keyfile":
         if self._is_mock:
             if self._mocked_coldkey_keyfile == None:
                 self._mocked_coldkey_keyfile = MockKeyfile(path="MockedColdkeyPub")
@@ -74,8 +74,7 @@ class MockWallet(bittensor.wallet):
         else:
             wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
             coldkeypub_path = os.path.join(wallet_path, "coldkeypub.txt")
-            return bittensor.keyfile(path=coldkeypub_path)
-
+            return bittensor.Keyfile(path=coldkeypub_path)
 
 def get_mock_wallet(
     coldkey: "bittensor.Keypair" = None, hotkey: "bittensor.Keypair" = None

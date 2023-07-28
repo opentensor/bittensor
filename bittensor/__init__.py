@@ -106,7 +106,7 @@ from .errors import *
 
 from substrateinterface import Keypair as Keypair
 from .config import *
-from .keyfile import *
+from ._wallet import Keyfile as Keyfile
 from ._wallet import *
 
 from .utils import *
