@@ -22,46 +22,61 @@ Implementation of the config class, which manages the config of different bitten
 import os
 import sys
 import yaml
-import copy
-from munch import Munch
-from typing import List, Optional
-from argparse import ArgumentParser, Namespace, SUPPRESS, _SubParsersAction
+from copy import deepcopy
+from munch import DefaultMunch
+from typing import List, Optional, Dict, Any, TypeVar, Type
+import argparse
 
 
-class config(Munch):
+class InvalidConfigFile(Exception):
+    """In place of YAMLError"""
+
+    pass
+
+
+class config(DefaultMunch):
     """
     Implementation of the config class, which manages the config of different bittensor modules.
     """
 
-    def __init__(
-        self,
-        parser: ArgumentParser = None,
-        args: Optional[List[str]] = None,
-        strict: bool = False,
-    ):
-        """
-        Initializes a new config object.
+    __is_set: Dict[str, bool]
 
+    r""" Translates the passed parser into a nested Bittensor config.
         Args:
-            parser (argparse.Parser):
+            parser (argparse.ArgumentParser):
                 Command line parser object.
-            args (list of str):
-                Command line arguments.
             strict (bool):
                 If true, the command line arguments are strictly parsed.
-        """
-        super().__init__()
+            args (list of str):
+                Command line arguments.
+            default (Optional[Any]):
+                Default value for the Config. Defaults to None.
+                This default will be returned for attributes that are undefined.
+        Returns:
+            config (bittensor.config):
+                Nested config object created from parser arguments.
+    """
 
-        # Base empty config
-        if parser is None and args is None:
-            return
+    def __init__(
+        self,
+        parser: argparse.ArgumentParser = None,
+        args: Optional[List[str]] = None,
+        strict: bool = False,
+        default: Optional[Any] = None,
+    ) -> None:
+        super().__init__(default)
+
+        self["__is_set"] = {}
+
+        if parser == None and args == None:
+            return None
 
         # Optionally add config specific arguments
         try:
             parser.add_argument(
                 "--config",
                 type=str,
-                help="If set, defaults are overridden by the passed file.",
+                help="If set, defaults are overridden by passed file.",
             )
         except:
             # this can fail if the --config has already been added.
@@ -70,7 +85,7 @@ class config(Munch):
             parser.add_argument(
                 "--strict",
                 action="store_true",
-                help="If flagged, config will check that only exact arguments have been set.",
+                help="""If flagged, config will check that only exact arguments have been set.""",
                 default=False,
             )
         except:
@@ -78,7 +93,7 @@ class config(Munch):
             pass
 
         # Get args from argv if not passed in.
-        if args is None:
+        if args == None:
             args = sys.argv[1:]
 
         # 1.1 Optionally load defaults if the --config is set.
@@ -94,11 +109,11 @@ class config(Munch):
         # Parse args not strict
         config_params = config.__parse_args__(args=args, parser=parser, strict=False)
 
-        # 2. Optionally check for --strict, if strict we will parse the args strictly.
+        # 2. Optionally check for --strict
         ## strict=True when passed in OR when --strict is set
         strict = config_params.strict or strict
 
-        if config_file_path is not None:
+        if config_file_path != None:
             config_file_path = os.path.expanduser(config_file_path)
             try:
                 with open(config_file_path) as f:
@@ -113,31 +128,14 @@ class config(Munch):
 
         _config = self
 
+        # Splits params and add to config
+        config.__split_params__(params=params, _config=_config)
+
         # Make the is_set map
         _config["__is_set"] = {}
 
-        # Splits params on dot syntax i.e neuron.axon_port
-        # The is_set map only sets True if a value is different from the default values.
-        for arg_key, arg_val in params.__dict__.items():
-            # default_val = parser.get_default(arg_key)
-            split_keys = arg_key.split(".")
-            head = _config
-            keys = split_keys
-            while len(keys) > 1:
-                if hasattr(head, keys[0]):
-                    head = getattr(head, keys[0])
-                    keys = keys[1:]
-                else:
-                    head[keys[0]] = config()
-                    head = head[keys[0]]
-                    keys = keys[1:]
-            if len(keys) == 1:
-                head[keys[0]] = arg_val
-                # if arg_val != default_val:
-                #     _config['__is_set'][arg_key] = True
-
         ## Reparse args using default of unset
-        parser_no_defaults = copy.deepcopy(parser)
+        parser_no_defaults = deepcopy(parser)
         ## Get all args by name
         default_params = parser.parse_args(
             args=[_config.get("command")]  # Only command as the arg, else no args
@@ -146,7 +144,7 @@ class config(Munch):
         )
         all_default_args = default_params.__dict__.keys() | []
         ## Make a dict with keys as args and values as argparse.SUPPRESS
-        defaults_as_suppress = {key: SUPPRESS for key in all_default_args}
+        defaults_as_suppress = {key: argparse.SUPPRESS for key in all_default_args}
         ## Set the defaults to argparse.SUPPRESS, should remove them from the namespace
         parser_no_defaults.set_defaults(**defaults_as_suppress)
         parser_no_defaults._defaults.clear()  # Needed for quirk of argparse
@@ -155,17 +153,17 @@ class config(Munch):
         if parser_no_defaults._subparsers != None:
             for action in parser_no_defaults._subparsers._actions:
                 # Should only be the "command" subparser action
-                if isinstance(action, _SubParsersAction):
+                if isinstance(action, argparse._SubParsersAction):
                     # Set the defaults to argparse.SUPPRESS, should remove them from the namespace
                     # Each choice is the keyword for a command, we need to set the defaults for each of these
                     ## Note: we also need to clear the _defaults dict for each, this is a quirk of argparse
-                    cmd_parser: ArgumentParser
+                    cmd_parser: argparse.ArgumentParser
                     for cmd_parser in action.choices.values():
                         cmd_parser.set_defaults(**defaults_as_suppress)
                         cmd_parser._defaults.clear()  # Needed for quirk of argparse
 
         ## Reparse the args, but this time with the defaults as argparse.SUPPRESS
-        params_no_defaults = self.__parse_args__(
+        params_no_defaults = config.__parse_args__(
             args=args, parser=parser_no_defaults, strict=strict
         )
 
@@ -175,18 +173,39 @@ class config(Munch):
             for arg_key in [
                 k
                 for k, _ in filter(
-                    lambda kv: kv[1] != SUPPRESS, params_no_defaults.__dict__.items()
+                    lambda kv: kv[1] != argparse.SUPPRESS,
+                    params_no_defaults.__dict__.items(),
                 )
             ]
         }
 
+        return _config
+
+    @staticmethod
+    def __split_params__(params: argparse.Namespace, _config: "config"):
+        # Splits params on dot syntax i.e neuron.axon_port and adds to _config
+        for arg_key, arg_val in params.__dict__.items():
+            split_keys = arg_key.split(".")
+            head = _config
+            keys = split_keys
+            while len(keys) > 1:
+                if (
+                    hasattr(head, keys[0]) and head[keys[0]] != None
+                ):  # Needs to be Config
+                    head = getattr(head, keys[0])
+                    keys = keys[1:]
+                else:
+                    head[keys[0]] = config()
+                    head = head[keys[0]]
+                    keys = keys[1:]
+            if len(keys) == 1:
+                head[keys[0]] = arg_val
+
     @staticmethod
     def __parse_args__(
-        args: List[str], parser: ArgumentParser = None, strict: bool = False
-    ) -> Namespace:
-        """
-        Parses the passed args using the passed parser.
-
+        args: List[str], parser: argparse.ArgumentParser = None, strict: bool = False
+    ) -> argparse.Namespace:
+        """Parses the passed args use the passed parser.
         Args:
             args (List[str]):
                 List of arguments to parse.
@@ -194,7 +213,6 @@ class config(Munch):
                 Command line parser object.
             strict (bool):
                 If true, the command line arguments are strictly parsed.
-
         Returns:
             Namespace:
                 Namespace object created from parser arguments.
@@ -206,49 +224,41 @@ class config(Munch):
 
         return params
 
+    def __deepcopy__(self, memo) -> "config":
+        _default = self.__default__
+
+        config_state = self.__getstate__()
+        config_copy = config()
+        memo[id(self)] = config_copy
+
+        config_copy.__setstate__(config_state)
+        config_copy.__default__ = _default
+
+        config_copy["__is_set"] = deepcopy(self["__is_set"], memo)
+
+        return config_copy
+
     def __repr__(self) -> str:
         return self.__str__()
 
     def __str__(self) -> str:
-        return "\n" + yaml.dump(self.toDict())
-
-    def copy(self) -> "config":
-        return copy.deepcopy(self)
+        config_dict = self.toDict()
+        config_dict.pop("__is_set")
+        return "\n" + yaml.dump(config_dict)
 
     def to_string(self, items) -> str:
-        """
-        Returns a string representation of the items.
-
-        Args:
-            items: Items to convert to a string.
-
-        Returns:
-            str: String representation of the items.
-        """
+        """Get string from items"""
         return "\n" + yaml.dump(items.toDict())
 
     def update_with_kwargs(self, kwargs):
-        """
-        Updates the config with the given keyword arguments.
-
-        Args:
-            kwargs: Keyword arguments to update the config.
-        """
+        """Add config to self"""
         for key, val in kwargs.items():
             self[key] = val
 
     @classmethod
     def _merge(cls, a, b):
-        """
-        Merge two configurations recursively.
+        """Merge two configurations recursively.
         If there is a conflict, the value from the second configuration will take precedence.
-
-        Args:
-            a: First configuration to merge.
-            b: Second configuration to merge.
-
-        Returns:
-            Merged configuration.
         """
         for key in b:
             if key in a:
@@ -296,3 +306,19 @@ class config(Munch):
             return False
         else:
             return self.get("__is_set")[param_name]
+
+
+T = TypeVar("T", bound="DefaultConfig")
+
+
+class DefaultConfig(config):
+    """
+    A Config with a set of default values.
+    """
+
+    @classmethod
+    def default(cls: Type[T]) -> T:
+        """
+        Get default config.
+        """
+        raise NotImplementedError("Function default is not implemented.")
