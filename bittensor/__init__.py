@@ -106,8 +106,12 @@ from .errors import *
 
 from substrateinterface import Keypair as Keypair
 from .config import *
-from ._wallet import Keyfile as Keyfile
-from ._wallet import *
+from ._wallet import (
+    wallet as wallet,
+    Keyfile as Keyfile,
+    WalletConfig as WalletConfig,
+    WalletConfigDefault as WalletConfigDefault,
+)
 
 from .utils import *
 from .utils.balance import Balance as Balance

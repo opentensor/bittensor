@@ -23,6 +23,13 @@ from typing import Union
 from .. import __ss58_format__
 from substrateinterface import Keypair as Keypair
 
+from .._wallet import (
+    validate_password as validate_password,
+    serialized_keypair_to_keyfile_data as serialized_keypair_to_keyfile_data,
+    ask_password_to_encrypt as ask_password_to_encrypt,
+    decrypt_keyfile_data as decrypt_keyfile_data,
+)
+
 
 def get_ss58_format(ss58_address: str) -> int:
     """Returns the ss58 format of the given ss58 address."""

@@ -317,7 +317,7 @@ class KeyPairTestCase(unittest.TestCase):
 class TestKeyFiles(unittest.TestCase):
     def setUp(self) -> None:
         self.root_path = f"/tmp/pytest{time.time()}"
-        os.makedirs(self.root_path)
+        os.makedirs(self.root_path, exist_ok=True)
 
         self.create_keyfile()
 
@@ -412,7 +412,7 @@ class TestKeyFiles(unittest.TestCase):
         )
 
     def test_validate_password(self):
-        from bittensor.Keyfile import validate_password
+        from bittensor._wallet._keyfile import validate_password
 
         assert validate_password(None) == False
         assert validate_password("passw0rd") == False
@@ -430,7 +430,7 @@ class TestKeyFiles(unittest.TestCase):
         from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-        from bittensor.Keyfile import decrypt_keyfile_data
+        from bittensor._wallet._keyfile import decrypt_keyfile_data
 
         __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
 
@@ -455,7 +455,7 @@ class TestKeyFiles(unittest.TestCase):
         assert decrypted_data == data
 
     def test_user_interface(self):
-        from bittensor.Keyfile import ask_password_to_encrypt
+        from bittensor._wallet._keyfile import ask_password_to_encrypt
 
         with mock.patch(
             "getpass.getpass",

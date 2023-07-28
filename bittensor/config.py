@@ -68,7 +68,7 @@ class config(DefaultMunch):
 
         self["__is_set"] = {}
 
-        if parser == None and args == None:
+        if parser == None:
             return None
 
         # Optionally add config specific arguments
@@ -178,7 +178,6 @@ class config(DefaultMunch):
                 )
             ]
         }
-    
 
     @staticmethod
     def __split_params__(params: argparse.Namespace, _config: "config"):
