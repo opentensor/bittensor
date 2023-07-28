@@ -178,8 +178,7 @@ class config(DefaultMunch):
                 )
             ]
         }
-
-        return _config
+    
 
     @staticmethod
     def __split_params__(params: argparse.Namespace, _config: "config"):
