@@ -6,6 +6,9 @@ The following is a set of guidelines for contributing to Bittensor, which are ho
 
 1. [I don't want to read this whole thing, I just have a question!!!](#i-dont-want-to-read-this-whole-thing-i-just-have-a-question)
 1. [What should I know before I get started?](#what-should-i-know-before-i-get-started)
+1. [Getting Started](#getting-started)
+   1. [Good First Issue Label](#good-first-issue-label)
+   1. [Beginner and Help-wanted Issues Label](#beginner-and-help-wanted-issues-label)
 1. [How Can I Contribute?](#how-can-i-contribute)
    1. [Code Contribution General Guideline](#code-contribution-general-guidelines)
    1. [Pull Request Philosophy](#pull-request-philosophy)
@@ -14,6 +17,7 @@ The following is a set of guidelines for contributing to Bittensor, which are ho
    1. [Addressing Feedback](#addressing-feedback)
    1. [Squashing Commits](#squashing-commits)
    1. [Refactoring](#refactoring)
+   1. [Peer Review](#peer-review)
  1. [Reporting Bugs](#reporting-bugs)
  1. [Suggesting Features](#suggesting-enhancements)
 
@@ -212,7 +216,7 @@ Project maintainers aim for a quick turnaround on refactoring pull requests, so 
 
 Pull requests that refactor the code should not be made by new contributors. It requires a certain level of experience to know where the code belongs to and to understand the full ramification (including rebase effort of open pull requests). Trivial pull requests or pull requests that refactor the code with no clear benefits may be immediately closed by the maintainers to reduce unnecessary workload on reviewing.
 
-### Peer Review
+#### Peer Review
 
 Anyone may participate in peer review which is expressed by comments in the pull request. Typically reviewers will review the code for obvious errors, as well as test out the patch set and opine on the technical merits of the patch. Project maintainers take into account the peer review when determining if there is consensus to merge a pull request (remember that discussions may have taken place elsewhere, not just on GitHub). The following language is used within pull-request comments:
 
