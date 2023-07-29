@@ -21,7 +21,7 @@ import asyncio
 import uuid
 import time
 import torch
-import httpx
+import aiohttp
 import bittensor as bt
 from typing import Union, Optional, List
 
@@ -69,7 +69,7 @@ class dendrite(torch.nn.Module):
         self.uuid = str(uuid.uuid1())
 
         # HTTP client for making requests
-        self.client = httpx.AsyncClient()
+        self.client = aiohttp.ClientSession()
 
         # Get the external IP
         self.external_ip = bt.utils.networking.get_external_ip()
@@ -95,7 +95,7 @@ class dendrite(torch.nn.Module):
                 returns a list of responses from all target axons.
         """
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             return loop.run_until_complete(self.forward(*args, **kwargs))
         except:
             new_loop = asyncio.new_event_loop()
@@ -156,6 +156,8 @@ class dendrite(torch.nn.Module):
                 return all_responses
             else:
                 # Here we build a list of coroutines without awaiting them.
+                # Note: all_requests contains the coroutines but hasn't been awaiting yet.
+                # This is done to be able to gather all results at the same time.
                 coroutines = [
                     self.call(
                         target_axon=target_axon,
@@ -227,9 +229,13 @@ class dendrite(torch.nn.Module):
             )
 
             # Make the HTTP POST request
-            json_response = await self.client.post(
-                url, headers=synapse.to_headers(), json=synapse.dict(), timeout=timeout
-            )
+            async with self.client.post(
+                url,
+                headers=synapse.to_headers(),
+                json=synapse.dict(),
+                timeout=timeout,
+            ) as response:
+                json_response = await response.read()
 
             # Process the server response
             self.process_server_response(json_response, synapse)
@@ -240,11 +246,11 @@ class dendrite(torch.nn.Module):
                 f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.axon.status_code} | {synapse.axon.status_message}"
             )
 
-        except httpx.ConnectError as e:
+        except aiohttp.ClientConnectorError as e:
             synapse.dendrite.status_code = "503"
             synapse.dendrite.status_message = f"Service at {synapse.axon.ip}:{str(synapse.axon.port)}/{request_name} unavailable."
 
-        except httpx.TimeoutException as e:
+        except asyncio.TimeoutError as e:
             synapse.dendrite.status_code = "406"
             synapse.dendrite.status_message = f"Timedout after {timeout} seconds."
 
@@ -326,19 +332,9 @@ class dendrite(torch.nn.Module):
             None, but errors in attribute setting are silently ignored.
         """
         # Check if the server responded with a successful status code
-        if server_response.status_code == 200:
-            # If the response is successful, overwrite local synapse state with
-            # server's state only if the protocol allows mutation. To prevent overwrites,
-            # the protocol must set allow_mutation = False
-            server_synapse = local_synapse.__class__(**server_response.json())
-            for key in local_synapse.dict().keys():
-                try:
-                    # Set the attribute in the local synapse from the corresponding
-                    # attribute in the server synapse
-                    setattr(local_synapse, key, getattr(server_synapse, key))
-                except:
-                    # Ignore errors during attribute setting
-                    pass
+        if server_response.status != 200:
+            local_synapse.dendrite.status_code = str(server_response.status)
+            local_synapse.dendrite.status_message = server_response.reason
 
         # Extract server headers and overwrite None values in local synapse headers
         server_headers = bt.Synapse.from_headers(server_response.headers)
@@ -379,4 +375,4 @@ class dendrite(torch.nn.Module):
         Returns:
             str: The string representation of the Dendrite object in the format "dendrite(<user_wallet_address>)".
         """
-        return self.__str__()
+        
