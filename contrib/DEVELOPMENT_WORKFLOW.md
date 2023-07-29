@@ -110,7 +110,7 @@ Tests
 
 - Integration Tests: Describe the purpose of each integration test. Include information about what parts of the code it tests together and what the expected results are.
 
-For more details for testing, please see [here](#)
+For more details for testing, please see [here](TESTING.md)
 
 Scripts
 --------------------
@@ -146,7 +146,7 @@ Python's official style guide is PEP 8, which provides conventions for writing c
     - Immediately before the open parenthesis that starts the argument list of a function call.
 - `Comments:` Comments should be complete sentences and should be used to clarify code and are not a substitute for poorly written code.
 
-You can see the detailed coding style at [here](#style.md/code-style)
+You can see the detailed coding style at [here](STYLE.md)
 
 
 ### 2. Naming Conventions
@@ -538,7 +538,7 @@ After the execution of the release script, verify the release by checking for:
 ### Post-release Actions
 After a Bittensor release, update [cubit](#) by updating the Dockerfile, building a new Docker image, and pushing it to Docker Hub. The generated name will be the same but with `-cubit` in its name.
 
-For more details, please see [here](#)
+For more details, please see [here](RELEASE_GUIDELINES.md)
 
 
 Notes for Logging
