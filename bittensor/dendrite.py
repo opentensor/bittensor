@@ -114,6 +114,7 @@ class dendrite(torch.nn.Module):
         timeout: float = 12,
         deserialize: bool = True,
         run_async: bool = True,
+        streaming: bool = False,
     ) -> bt.Synapse:
         """
         Makes asynchronous requests to multiple target Axons and returns the server responses.
@@ -165,6 +166,7 @@ class dendrite(torch.nn.Module):
                         synapse=synapse.copy(),
                         timeout=timeout,
                         deserialize=deserialize,
+                        streaming=streaming,
                     )
                     for target_axon in axons
                 ]
@@ -188,6 +190,7 @@ class dendrite(torch.nn.Module):
         synapse: bt.Synapse = bt.Synapse(),
         timeout: float = 12.0,
         deserialize: bool = True,
+        streaming: bool = False,
     ) -> bt.Synapse:
         """
         Makes an asynchronous request to the target Axon, processes the server
@@ -228,24 +231,24 @@ class dendrite(torch.nn.Module):
             bt.logging.debug(
                 f"dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success"
             )
-
             # Make the HTTP POST request
-            response = await self.client.post(
-                url,
-                headers=synapse.to_headers(),
-                json=synapse.dict(),
-                timeout=timeout,
-            ) 
-
-            json_response = await response.json()
-            # text_response = await response.text()
-
-            print(dir(response))
-            print("raw response:", response)
-            print("response headers:", response.headers)
-            print("response status:", response.status)
-            print("response content:", response.content)
-            # print("response text:", text_sresponse)
+            if streaming:
+                async with self.client.post(
+                    url,
+                    headers=synapse.to_headers(),
+                    json=synapse.dict(),
+                    timeout=timeout,
+                ) as response:
+                    async for json_response in synapse.parse_stream_async(response.content):
+                        pass
+            else:
+                response = await self.client.post(
+                    url,
+                    headers=synapse.to_headers(),
+                    json=synapse.dict(),
+                    timeout=timeout,
+                )
+                json_response = await response.json()
 
             # Process the server response
             self.process_server_response(response, json_response, synapse)
