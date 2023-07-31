@@ -89,17 +89,15 @@ Project Structure
 -------------------
 Typically, a project may have the following structure:
 
-- Root Directory: Contains configuration files, README, LICENSE, and other metadata files.
+- Root Directory: Contains configuration files, README, LICENSE, Dockerfile, and other metadata files. It also contains certain key Python files like setup.py.
 
-- Source Directory (src/): Contains the source code of the project.
-
-- Test Directory (tests/): Contains unit tests, integration tests, and other test code.
-
-- Docs Directory (docs/): Contains documentation files.
+- Bittensor Directory (bittensor/): This is the main source code directory of the project. It contains various subdirectories, each of which plays a distinct role.
 
 - Scripts Directory (scripts/): Contains scripts for various tasks such as building, installing, testing, etc.
 
-- Lib Directory (lib/): Contains libraries and dependencies.
+- Tests Directory (tests/): Contains unit tests, integration tests, and other test code.
+
+- Contributing Docs Directory (contrib/): Contains documentation files for contributing.
 
 - Bin Directory (bin/): Contains binary files.
 

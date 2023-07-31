@@ -42,7 +42,7 @@ Supplemental, yet necessary repositories are [openvalidators](https://github.com
 New contributors are very welcome and needed.
 Reviewing and testing is highly valued and the most effective way you can contribute as a new contributor. It also will teach you much more about the code and process than opening pull requests. 
 
-Before you start contributing, familiarize yourself with the Bittensor Core build system and tests. Refer to the documentation in the repository on how to build Bittensor core and how to run the unit tests, functional tests, and fuzz tests.
+Before you start contributing, familiarize yourself with the Bittensor Core build system and tests. Refer to the documentation in the repository on how to build Bittensor core and how to run the unit tests, functional tests.
 
 There are many open issues of varying difficulty waiting to be fixed. If you're looking for somewhere to start contributing, check out the [good first issue](https://github.com/opentensor/bittensor/labels/good%20first%20issue) list or changes that are up for grabs. Some of them might no longer be applicable. So if you are interested, but unsure, you might want to leave a comment on the issue first.
 ### Good First Issue Label
