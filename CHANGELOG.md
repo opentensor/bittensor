@@ -1,18 +1,5 @@
 # Changelog
 
-<<<<<<< HEAD
-=======
-## 5.3.3 / 2023-07-26
-
-## What's Changed
-* Remove datasets requirement by @camfairchild in 2eabf0002b01
-* Relax bittensor-* requirements by @camfairchild in da9300ba5b2
-
-
-**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.3.2...v5.3.3
-
-
->>>>>>> 9ce5bc6e48c62526282d77c9be75d9b6ed4f02e4
 ## 5.3.2 / 2023-07-25
 
 ## What's Changed
