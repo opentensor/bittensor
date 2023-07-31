@@ -1,23 +1,15 @@
-## Table of contents
+# Bittensor Development Workflow
 
-
-- [1. Introduction](#1-introduction)
-    - [What is Bittensor?](#what-is-bittensor)
-    - [What is the purpose of Bittensor?](#what-is-the-purpose-of-bittensor)
-- [2. Architecture](#2-architecture)
+## Table
+- [1. Architecture](#1-architecture)
     - [Overview of Bittensor's architecture](#overview-of-bittensors-architecture)
     - [How the different components interact?](#how-the-different-components-interact)
-- [3. Main Components](#3-main-components)
+- [2. Main Components](#2-main-components)
     - [Bittensor Protocol](#bittensor-protocol)
-    - [Wallet](#wallet)
     - [Neurons](#neurons)
     - [Subtensor](#subtensor)
     - [Metagraph](#metagraph)
-- [4. Preliminary Developer Notes](#4-preliminary-developer-notes)
-    - [Project Structure](#project-structure)
-    - [Tests](#tests)
-    - [Scripts](#scripts)
-- [5. Comprehensive Developer Notes](#5-comprehensive-developer-notes)
+- [3. Developer Notes](#3-developer-notes)
     - [Notes for Python Script Style](#notes-for-python-script-style)
         - [1. General Coding Style](#1-general-coding-style)
         - [2. Naming Conventions](#2-naming-conventions)
@@ -27,11 +19,6 @@
         - [1. Neurons](#1-neurons)
         - [2. Metagraph](#2-metagraph)
         - [3. Subtensor](#3-subtensor)
-    - [Notes for Commit](#notes-for-commit)
-        - [1. Commit Messages](#1-commit-messages)
-        - [2. Main branches](#2-main-branches)
-        - [3. Development Model](#3-development-model)
-        - [4. Git operations](#4-git-operations)
     - [Notes for Pull Request](#notes-for-pull-request)
     - [Notes for Releasing](#notes-for-releasing)
         - [Versioning Script](#versioning-script)
@@ -45,15 +32,8 @@
         - [Logging Variables](#logging-variables)
         - [Logging Exceptions](#logging-exceptions)
 
-# 1. Introduction
-### What is Bittensor?
-Bittensor is an open-source project that aims to create a decentralized network for AI model training. It allows AI models to learn from each other in a decentralized manner, improving their performance and capabilities.
 
-### What is the purpose of Bittensor?
-
-The purpose of Bittensor is to democratize AI model training. By creating a decentralized network, it allows anyone to contribute to the training of AI models and benefit from their use.
-
-# 2. Architecture
+# 1. Architecture
 ### Overview of Bittensor's architecture
 
 Bittensor's architecture consists of several key components, including the Bittensor protocol, the wallet, neurons, subtensor, and the Metagraph. These components work together to create a decentralized network for AI model training.
@@ -62,14 +42,10 @@ Bittensor's architecture consists of several key components, including the Bitte
 
 Neurons in the Bittensor network interact with the Metagraph, a decentralized ledger that keeps track of the state of the network. The wallet is used to manage the tokens that are used for incentives in the network. The subtensor is a lower-level protocol that handles communication between neurons.
 
-# 3. Main Components
+# 2. Main Components
 ### Bittensor Protocol
 
 The Bittensor protocol is the backbone of the network. It defines how neurons communicate with each other and with the Metagraph.
-
-### Wallet
-
-The wallet is used to manage the Bittensor tokens that are used as incentives in the network. It allows users to earn tokens for contributing to the training of AI models and spend tokens to use trained models.
 
 ### Neurons
 
@@ -83,40 +59,8 @@ Subtensor is a lower-level protocol that handles communication between neurons. 
 
 The Metagraph is a decentralized ledger that keeps track of the state of the Bittensor network. It records which neurons are part of the network and how they are connected.
 
-# 4. Preliminary Developer Notes
 
-Project Structure
--------------------
-Typically, a project may have the following structure:
-
-- Root Directory: Contains configuration files, README, LICENSE, Dockerfile, and other metadata files. It also contains certain key Python files like setup.py.
-
-- Bittensor Directory (bittensor/): This is the main source code directory of the project. It contains various subdirectories, each of which plays a distinct role.
-
-- Scripts Directory (scripts/): Contains scripts for various tasks such as building, installing, testing, etc.
-
-- Tests Directory (tests/): Contains unit tests, integration tests, and other test code.
-
-- Contributing Docs Directory (contrib/): Contains documentation files for contributing.
-
-- Bin Directory (bin/): Contains binary files.
-
-Tests
----------
-- Unit Tests: Describe the purpose of each unit test. Include information about what part of the code it tests and what the expected results are.
-
-- Integration Tests: Describe the purpose of each integration test. Include information about what parts of the code it tests together and what the expected results are.
-
-For more details for testing, please see [here](TESTING.md)
-
-Scripts
---------------------
-- Build Scripts: Describe how to build the software. Include information about its dependencies and build options.
-
-- Install Scripts: Describe how to install the software. Include information about its requirements and installation options.
-
-- Test Scripts: Describe how to test the software. Include information about its test suite and test options.
-# 5. Comprehensive Developer Notes
+# 3. Developer Notes
 
 
 Notes for Python Script Style
@@ -169,24 +113,6 @@ You can see the detailed coding style at [here](STYLE.md)
 
 - `Error Handling:` Use exceptions for error handling whenever possible.
 
-### 4. Documentation
-
-- `Docstrings:` Use docstrings to describe what your classes, methods, and functions do. Docstrings are a type of comment used to explain the purpose of a function, and how it should be used. Here's an example:
-
-```Python
-    def add_numbers(a, b):
-    """
-    This function adds two numbers together.
-
-    :param a: The first number.
-    :type a: int or float
-    :param b: The second number.
-    :type b: int or float
-    :return: The sum of the two numbers.
-    :rtype: int or float
-    """
-    return a + b
-```
 
 Notes for Source Coding
 -----------------------------
@@ -291,12 +217,6 @@ Key components of the script include:
 `ProposalVoteData and ProposalCallData`: These are data structures used for handling proposal data in the system. `ProposalVoteData` is a dictionary that includes information about a proposal's votes, while `ProposalCallData` is a generic call object from the `scalecodec` library.
 
 Please note that this script requires the bittensor and scalecodec libraries, which should be installed and properly configured in your environment.
-
-
-Notes for Commit
----------
-
-You can see how to commit at [here](STYLE.md)
 
 
 Notes for Pull Request
