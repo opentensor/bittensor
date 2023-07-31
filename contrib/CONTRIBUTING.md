@@ -54,7 +54,7 @@ You do not need to request permission to start working on an issue. However, you
 ### Beginner and Help-wanted Issues Label
 You can start by looking through these `beginner` and `help-wanted` issues:
 
-* Beginner issues - issues which should only require a few lines of code, and a test or two.
+* [Beginner issues](https://github.com/opentensor/bittensor/labels/beginner) - issues which should only require a few lines of code, and a test or two.
 * Help wanted issues - issues which should be a bit more involved than `beginner` issues.
 
 Both issue lists are sorted by total number of comments. While not perfect, number of comments is a reasonable proxy for impact a given change will have.
