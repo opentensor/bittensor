@@ -30,14 +30,12 @@ class MockWallet(bittensor.wallet):
     """
     Mocked Version of the bittensor wallet class, meant to be used for testing
     """
-    def __init__(
-        self,
-        **kwargs,
-    ):
-        r""" Init bittensor wallet object containing a hot and coldkey.
-            Args:
-                _mock (required=True, default=False):
-                    If true creates a mock wallet with random keys.
+
+    def __init__(self, **kwargs):
+        r"""Init bittensor wallet object containing a hot and coldkey.
+        Args:
+            _mock (required=True, default=False):
+                If true creates a mock wallet with random keys.
         """
         super().__init__(**kwargs)
         # For mocking.
@@ -46,50 +44,52 @@ class MockWallet(bittensor.wallet):
         self._mocked_hotkey_keyfile = None
 
     @property
-    def hotkey_file(self) -> 'bittensor.keyfile':
+    def hotkey_file(self) -> "bittensor.keyfile":
         if self._is_mock:
             if self._mocked_hotkey_keyfile == None:
-                self._mocked_hotkey_keyfile = MockKeyfile(path='MockedHotkey')
+                self._mocked_hotkey_keyfile = MockKeyfile(path="MockedHotkey")
             return self._mocked_hotkey_keyfile
         else:
             wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
             hotkey_path = os.path.join(wallet_path, "hotkeys", self.hotkey_str)
-            return bittensor.keyfile( path = hotkey_path )
+            return bittensor.keyfile(path=hotkey_path)
 
     @property
-    def coldkey_file(self) -> 'bittensor.keyfile':
+    def coldkey_file(self) -> "bittensor.keyfile":
         if self._is_mock:
             if self._mocked_coldkey_keyfile == None:
-                self._mocked_coldkey_keyfile = MockKeyfile(path='MockedColdkey')
+                self._mocked_coldkey_keyfile = MockKeyfile(path="MockedColdkey")
             return self._mocked_coldkey_keyfile
         else:
             wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
             coldkey_path = os.path.join(wallet_path, "coldkey")
-            return bittensor.keyfile( path = coldkey_path )
+            return bittensor.keyfile(path=coldkey_path)
 
     @property
-    def coldkeypub_file(self) -> 'bittensor.keyfile':
+    def coldkeypub_file(self) -> "bittensor.keyfile":
         if self._is_mock:
             if self._mocked_coldkey_keyfile == None:
-                self._mocked_coldkey_keyfile = MockKeyfile(path='MockedColdkeyPub')
+                self._mocked_coldkey_keyfile = MockKeyfile(path="MockedColdkeyPub")
             return self._mocked_coldkey_keyfile
         else:
             wallet_path = os.path.expanduser(os.path.join(self.path, self.name))
             coldkeypub_path = os.path.join(wallet_path, "coldkeypub.txt")
-            return bittensor.keyfile( path = coldkeypub_path )
+            return bittensor.keyfile(path=coldkeypub_path)
 
 
-def get_mock_wallet(coldkey: "bittensor.Keypair" = None, hotkey: "bittensor.Keypair" = None):
-    wallet = MockWallet(
-        name = 'mock_wallet',
-        hotkey = 'mock',
-        path = '/tmp/mock_wallet',
-    )
+def get_mock_wallet(
+    coldkey: "bittensor.Keypair" = None, hotkey: "bittensor.Keypair" = None
+):
+    wallet = MockWallet(name="mock_wallet", hotkey="mock", path="/tmp/mock_wallet")
 
     if not coldkey:
-        coldkey = bittensor.Keypair.create_from_mnemonic(bittensor.Keypair.generate_mnemonic())
+        coldkey = bittensor.Keypair.create_from_mnemonic(
+            bittensor.Keypair.generate_mnemonic()
+        )
     if not hotkey:
-        hotkey = bittensor.Keypair.create_from_mnemonic(bittensor.Keypair.generate_mnemonic())
+        hotkey = bittensor.Keypair.create_from_mnemonic(
+            bittensor.Keypair.generate_mnemonic()
+        )
 
     wallet.set_coldkey(coldkey, encrypt=False, overwrite=True)
     wallet.set_coldkeypub(coldkey, encrypt=False, overwrite=True)
@@ -97,21 +97,31 @@ def get_mock_wallet(coldkey: "bittensor.Keypair" = None, hotkey: "bittensor.Keyp
 
     return wallet
 
-def get_mock_keypair( uid: int, test_name: Optional[str] = None ) -> bittensor.Keypair:
+
+def get_mock_keypair(uid: int, test_name: Optional[str] = None) -> bittensor.Keypair:
     """
     Returns a mock keypair from a uid and optional test_name.
     If test_name is not provided, the uid is the only seed.
     If test_name is provided, the uid is hashed with the test_name to create a unique seed for the test.
     """
     if test_name is not None:
-        hashed_test_name: bytes = keccak.new(digest_bits=256, data=test_name.encode('utf-8')).digest()
-        hashed_test_name_as_int: int = int.from_bytes(hashed_test_name, byteorder='big', signed=False)
+        hashed_test_name: bytes = keccak.new(
+            digest_bits=256, data=test_name.encode("utf-8")
+        ).digest()
+        hashed_test_name_as_int: int = int.from_bytes(
+            hashed_test_name, byteorder="big", signed=False
+        )
         uid = uid + hashed_test_name_as_int
 
-    return bittensor.Keypair.create_from_seed( seed_hex = int.to_bytes(uid, 32, 'big', signed=False), ss58_format = bittensor.__ss58_format__)
+    return bittensor.Keypair.create_from_seed(
+        seed_hex=int.to_bytes(uid, 32, "big", signed=False),
+        ss58_format=bittensor.__ss58_format__,
+    )
 
-def get_mock_hotkey( uid: int ) -> str:
+
+def get_mock_hotkey(uid: int) -> str:
     return get_mock_keypair(uid).ss58_address
 
-def get_mock_coldkey( uid: int ) -> str:
+
+def get_mock_coldkey(uid: int) -> str:
     return get_mock_keypair(uid).ss58_address

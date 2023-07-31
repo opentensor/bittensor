@@ -23,11 +23,13 @@ from typing import Union
 from .. import __ss58_format__
 from substrateinterface import Keypair as Keypair
 
-def get_ss58_format( ss58_address: str ) -> int:
-    """Returns the ss58 format of the given ss58 address."""
-    return ss58.get_ss58_format( ss58_address )
 
-def is_valid_ss58_address( address: str ) -> bool:
+def get_ss58_format(ss58_address: str) -> int:
+    """Returns the ss58 format of the given ss58 address."""
+    return ss58.get_ss58_format(ss58_address)
+
+
+def is_valid_ss58_address(address: str) -> bool:
     """
     Checks if the given address is a valid ss58 address.
 
@@ -38,12 +40,16 @@ def is_valid_ss58_address( address: str ) -> bool:
         True if the address is a valid ss58 address for Bittensor, False otherwise.
     """
     try:
-        return ss58.is_valid_ss58_address( address, valid_ss58_format=__ss58_format__ ) or \
-                ss58.is_valid_ss58_address( address, valid_ss58_format=42 ) # Default substrate ss58 format (legacy)
-    except (IndexError):
+        return ss58.is_valid_ss58_address(
+            address, valid_ss58_format=__ss58_format__
+        ) or ss58.is_valid_ss58_address(
+            address, valid_ss58_format=42
+        )  # Default substrate ss58 format (legacy)
+    except IndexError:
         return False
 
-def is_valid_ed25519_pubkey( public_key: Union[str, bytes] ) -> bool:
+
+def is_valid_ed25519_pubkey(public_key: Union[str, bytes]) -> bool:
     """
     Checks if the given public_key is a valid ed25519 key.
 
@@ -55,19 +61,16 @@ def is_valid_ed25519_pubkey( public_key: Union[str, bytes] ) -> bool:
 
     """
     try:
-        if isinstance( public_key, str ):
+        if isinstance(public_key, str):
             if len(public_key) != 64 and len(public_key) != 66:
-                raise ValueError( "a public_key should be 64 or 66 characters" )
-        elif isinstance( public_key, bytes ):
+                raise ValueError("a public_key should be 64 or 66 characters")
+        elif isinstance(public_key, bytes):
             if len(public_key) != 32:
-                raise ValueError( "a public_key should be 32 bytes" )
+                raise ValueError("a public_key should be 32 bytes")
         else:
-            raise ValueError( "public_key must be a string or bytes" )
+            raise ValueError("public_key must be a string or bytes")
 
-        keypair = Keypair(
-            public_key=public_key,
-            ss58_format=__ss58_format__
-        )
+        keypair = Keypair(public_key=public_key, ss58_format=__ss58_format__)
 
         ss58_addr = keypair.ss58_address
         return ss58_addr is not None
@@ -75,7 +78,8 @@ def is_valid_ed25519_pubkey( public_key: Union[str, bytes] ) -> bool:
     except (ValueError, IndexError):
         return False
 
-def is_valid_bittensor_address_or_public_key( address: Union[str, bytes] ) -> bool:
+
+def is_valid_bittensor_address_or_public_key(address: Union[str, bytes]) -> bool:
     """
     Checks if the given address is a valid destination address.
 
@@ -85,16 +89,16 @@ def is_valid_bittensor_address_or_public_key( address: Union[str, bytes] ) -> bo
     Returns:
         True if the address is a valid destination address, False otherwise.
     """
-    if isinstance( address, str ):
+    if isinstance(address, str):
         # Check if ed25519
-        if address.startswith('0x'):
-            return is_valid_ed25519_pubkey( address )
+        if address.startswith("0x"):
+            return is_valid_ed25519_pubkey(address)
         else:
             # Assume ss58 address
-            return is_valid_ss58_address( address )
-    elif isinstance( address, bytes ):
+            return is_valid_ss58_address(address)
+    elif isinstance(address, bytes):
         # Check if ed25519
-        return is_valid_ed25519_pubkey( address )
+        return is_valid_ed25519_pubkey(address)
     else:
         # Invalid address type
         return False

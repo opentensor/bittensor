@@ -32,41 +32,32 @@ from substrateinterface.base import Keypair
 import bittensor
 from bittensor.mock import MockSubtensor
 from bittensor import Balance
-from tests.helpers import MockConsole, _get_mock_keypair, _get_mock_wallet as generate_wallet
+from tests.helpers import (
+    MockConsole,
+    _get_mock_keypair,
+    _get_mock_wallet as generate_wallet,
+)
 
 
-_subtensor_mock: MockSubtensor = MockSubtensor( )
+_subtensor_mock: MockSubtensor = MockSubtensor()
+
 
 def setUpModule():
     _subtensor_mock.reset()
 
-    _subtensor_mock.create_subnet(
-        netuid = 1
-    )
+    _subtensor_mock.create_subnet(netuid=1)
 
-    _subtensor_mock.create_subnet(
-        netuid = 2
-    )
+    _subtensor_mock.create_subnet(netuid=2)
 
-    _subtensor_mock.create_subnet(
-        netuid = 3
-    )
+    _subtensor_mock.create_subnet(netuid=3)
 
     # Set diff 0
-    _subtensor_mock.set_difficulty(
-        netuid = 1,
-        difficulty = 0
-    )
+    _subtensor_mock.set_difficulty(netuid=1, difficulty=0)
 
-    _subtensor_mock.set_difficulty(
-        netuid = 2,
-        difficulty = 0
-    )
+    _subtensor_mock.set_difficulty(netuid=2, difficulty=0)
 
-    _subtensor_mock.set_difficulty(
-        netuid = 3,
-        difficulty = 0
-    )
+    _subtensor_mock.set_difficulty(netuid=3, difficulty=0)
+
 
 def return_mock_sub(*args, **kwargs):
     return MockSubtensor
@@ -97,7 +88,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         return defaults
 
-        
     def test_overview(self, _):
         config = self.config
         config.wallet.path = "/tmp/test_cli_test_overview"
@@ -149,7 +139,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=wallet.coldkey.ss58_address,
                 hotkey=wallet.hotkey.ss58_address,
             )
-            
+
         def mock_get_wallet(*args, **kwargs):
             hk = kwargs.get("hotkey")
             name_ = kwargs.get("name")
@@ -204,7 +194,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         if wallet not in [w for _, w in mock_registrations]:
                             self.assertNotIn(wallet.hotkey_str, output_no_syntax)
 
-    
     def test_overview_not_in_first_subnet(self, _):
         config = self.config
         config.wallet.path = "/tmp/test_cli_test_overview"
@@ -242,7 +231,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Register each wallet to it's subnet
         print("Registering mock wallets to subnets...")
 
-       
         for netuid, wallet in mock_registrations:
             print(
                 "Registering wallet {} to subnet {}".format(wallet.hotkey_str, netuid)
@@ -308,7 +296,23 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         if wallet not in [w for _, w in mock_registrations]:
                             self.assertNotIn(wallet.hotkey_str, output_no_syntax)
 
-    
+    def test_overview_no_wallet(self, _):
+        # Mock IO for wallet
+        with patch(
+            "bittensor.wallet.coldkeypub_file",
+            MagicMock(exists_on_device=MagicMock(return_value=False)),
+        ):
+            bittensor.subtensor.register = MagicMock(return_value=True)
+
+            config = self.config
+            config.command = "overview"
+            config.no_prompt = True
+            config.all = False
+            config.netuid = []  # Don't set, so it tries all networks.
+
+            cli = bittensor.cli(config)
+            cli.run()
+
     def test_overview_with_hotkeys_config(self, _):
         config = self.config
         config.command = "overview"
@@ -320,7 +324,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    
     def test_overview_without_hotkeys_config(self, _):
         config = self.config
         config.command = "overview"
@@ -331,7 +334,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    
     def test_overview_with_sort_by_config(self, _):
         config = self.config
         config.command = "overview"
@@ -343,7 +345,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    
     def test_overview_with_sort_by_bad_column_name(self, _):
         config = self.config
         config.command = "overview"
@@ -355,7 +356,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    
     def test_overview_without_sort_by_config(self, _):
         config = self.config
         config.command = "overview"
@@ -366,7 +366,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    
     def test_overview_with_sort_order_config(self, _):
         config = self.config
         config.command = "overview"
@@ -378,7 +377,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    
     def test_overview_with_sort_order_config_bad_sort_type(self, _):
         config = self.config
         config.command = "overview"
@@ -390,7 +388,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    
     def test_overview_without_sort_order_config(self, _):
         config = self.config
         config.command = "overview"
@@ -402,7 +399,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    
     def test_overview_with_width_config(self, _):
         config = self.config
         config.command = "overview"
@@ -414,7 +410,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    
     def test_overview_without_width_config(self, _):
         config = self.config
         config.command = "overview"
@@ -426,7 +421,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    
     def test_overview_all(self, _):
         config = self.config
         config.command = "overview"
@@ -469,7 +463,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them stakes
 
-       
         for wallet in mock_wallets:
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
@@ -477,7 +470,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=wallet.coldkey.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,
             )
-            
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -513,7 +506,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     places=4,
                 )
 
-    
     def test_unstake_with_all_hotkeys(self, _):
         config = self.config
         config.command = "unstake"
@@ -545,7 +537,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register mock wallets and give them stakes
-       
+
         for wallet in mock_wallets:
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
@@ -553,7 +545,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=wallet.coldkey.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,
             )
-            
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -623,7 +615,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         ]
 
         # Register mock wallets and give them stakes
-       
+
         for wallet in mock_wallets:
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
@@ -631,7 +623,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=wallet.coldkey.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,
             )
-            
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -709,7 +701,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them stakes
         print("Registering mock wallets...")
-       
+
         for wallet in mock_wallets:
             print("Registering mock wallet {}".format(wallet.hotkey_str))
             _ = _subtensor_mock.force_register_neuron(
@@ -718,7 +710,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=wallet.coldkey.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,
             )
-            
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -762,8 +754,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         self.assertAlmostEqual(
                             stake.tao, mock_stakes[wallet.hotkey_str].tao, places=4
                         )
-    
-    
+
     def test_stake_with_specific_hotkeys(self, _):
         config = self.config
         config.command = "stake"
@@ -791,7 +782,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them balances
         print("Registering mock wallets...")
-       
+
         for wallet in mock_wallets:
             print("Registering mock wallet {}".format(wallet.hotkey_str))
             _ = _subtensor_mock.force_register_neuron(
@@ -799,12 +790,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkey.ss58_address,
             )
-            
+
         success, err = _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
-        
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -836,7 +826,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 )
                 self.assertAlmostEqual(stake.tao, config.amount, places=4)
 
-    
     def test_stake_with_all_hotkeys(self, _):
         config = self.config
         config.command = "stake"
@@ -866,7 +855,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them no stake
         print("Registering mock wallets...")
-       
+
         for wallet in mock_wallets:
             print("Registering mock wallet {}".format(wallet.hotkey_str))
             _ = _subtensor_mock.force_register_neuron(
@@ -874,13 +863,12 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
             )
-            
+
         # Set the coldkey balance
         success, err = _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
-        
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -964,7 +952,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them balances
         print("Registering mock wallets...")
-       
+
         for wallet in mock_wallets:
             print("Registering mock wallet {}".format(wallet.hotkey_str))
             _ = _subtensor_mock.force_register_neuron(
@@ -972,13 +960,12 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
             )
-            
+
         # Set the coldkey balance
         _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
-        
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -1070,7 +1057,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them balances
         print("Registering mock wallets...")
-       
+
         for wallet in mock_wallets:
             print("Registering mock wallet {}".format(wallet.hotkey_str))
             if wallet.hotkey_str == "hk1":
@@ -1087,12 +1074,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     hotkey=wallet.hotkey.ss58_address,
                     coldkey=wallet.coldkeypub.ss58_address,
                 )
-                
+
         _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
-        
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -1160,9 +1146,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0", "hk1", "hk2"]
         config.all_hotkeys = False
 
-        mock_balance = Balance.from_float(
-            15.0 * 2
-        )  # Not enough for all hotkeys
+        mock_balance = Balance.from_float(15.0 * 2)  # Not enough for all hotkeys
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -1179,7 +1163,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them balances
         print("Registering mock wallets...")
-       
+
         for wallet in mock_wallets:
             print("Registering mock wallet {}".format(wallet.hotkey_str))
             _ = _subtensor_mock.force_register_neuron(
@@ -1187,12 +1171,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
             )
-            
+
         _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
-        
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -1272,7 +1255,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them balances
         print("Registering mock wallets...")
-       
+
         for wallet in mock_wallets:
             print("Registering mock wallet {}".format(wallet.hotkey_str))
             _ = _subtensor_mock.force_register_neuron(
@@ -1280,12 +1263,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
             )
-            
+
         _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
-        
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -1360,19 +1342,18 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them balances
         print("Registering mock wallets...")
-       
+
         for wallet in mock_wallets:
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
                 coldkey=wallet.coldkeypub.ss58_address,
             )
-            
+
         _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
-        
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -1434,9 +1415,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balance = Balance.from_float(config.max_stake * 3)
 
-        mock_stakes: Dict[
-            str, Balance
-        ] = {  # has enough stake, more than max_stake
+        mock_stakes: Dict[str, Balance] = {  # has enough stake, more than max_stake
             "hk0": Balance.from_float(config.max_stake * 2)
         }
 
@@ -1455,7 +1434,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         # Register mock wallets and give them balances
         print("Registering mock wallets...")
-       
+
         for wallet in mock_wallets:
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
@@ -1463,12 +1442,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=wallet.coldkeypub.ss58_address,
                 stake=mock_stakes[wallet.hotkey_str].rao,  # More than max_stake
             )
-            
+
         success, err = _subtensor_mock.force_set_balance(
-            ss58_address=mock_coldkey_kp.ss58_address,
-            balance=mock_balance.rao,
+            ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
-        
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -1523,8 +1501,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 address=wallet.coldkeypub.ss58_address
             )
             self.assertAlmostEqual(balance.tao, mock_balance.tao, places=4)
-    
-    
+
     def test_nominate(self, _):
         config = self.config
         config.command = "nominate"
@@ -1549,7 +1526,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             coldkey=mock_wallet.coldkey.ss58_address,
             balance=mock_balance.rao,
         )
-        
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -1586,9 +1563,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balances: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "w0": {
-                "hk0": Balance.from_float(10.0),
-            },
+            "w0": {"hk0": Balance.from_float(10.0)},
             "w1": {"hk1": Balance.from_float(11.1)},
         }
 
@@ -1609,7 +1584,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Set hotkey to be the hotkey from the other wallet
         config.delegate_ss58key: str = mock_wallets[0].hotkey.ss58_address
 
-       
         # Register mock wallets and give them balance
         _ = _subtensor_mock.force_register_neuron(
             netuid=1,
@@ -1618,17 +1592,15 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             balance=mock_balances["w0"]["hk0"].rao,
             stake=mock_stake.rao,  # Needs set stake to be a validator
         )
-        
+
         # Give w1 some balance
         success, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallets[1].coldkey.ss58_address,
             balance=mock_balances["w1"]["hk1"].rao,
         )
-        
+
         # Make the first wallet a delegate
-        success = _subtensor_mock.nominate(
-            wallet=mock_wallets[0],
-        )
+        success = _subtensor_mock.nominate(wallet=mock_wallets[0])
         self.assertTrue(success)
 
         cli = bittensor.cli(config)
@@ -1664,7 +1636,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertAlmostEqual(stake.tao, config.amount, places=4)
 
-    
     def test_undelegate_stake(self, _):
         config = self.config
         config.command = "undelegate"
@@ -1674,9 +1645,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balances: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "w0": {
-                "hk0": Balance.from_float(10.0),
-            },
+            "w0": {"hk0": Balance.from_float(10.0)},
             "w1": {"hk1": Balance.from_float(11.1)},
         }
 
@@ -1706,17 +1675,15 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             balance=mock_balances["w0"]["hk0"].rao,
             stake=mock_stake.rao,  # Needs set stake to be a validator
         )
-        
+
         # Give w1 some balance
         success, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallets[1].coldkey.ss58_address,
             balance=mock_balances["w1"]["hk1"].rao,
         )
-        
+
         # Make the first wallet a delegate
-        success = _subtensor_mock.nominate(
-            wallet=mock_wallets[0],
-        )
+        success = _subtensor_mock.nominate(wallet=mock_wallets[0])
         self.assertTrue(success)
 
         # Stake to the delegate
@@ -1770,7 +1737,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 stake.tao, mock_delegated.tao - config.amount, places=4
             )
 
-    
     def test_transfer(self, _):
         config = self.config
         config.command = "transfer"
@@ -1796,13 +1762,13 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.dest = mock_wallets[0].coldkey.ss58_address
 
         # Give w0 and w1 balance
-       
+
         for wallet in mock_wallets:
             success, err = _subtensor_mock.force_set_balance(
                 ss58_address=wallet.coldkey.ss58_address,
                 balance=mock_balances[wallet.name].rao,
             )
-            
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -1838,7 +1804,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 balance.tao, mock_balances["w1"].tao - config.amount, places=4
             )  # no fees
 
-    
     def test_transfer_not_enough_balance(self, _):
         config = self.config
         config.command = "transfer"
@@ -1848,9 +1813,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balances: Dict[str, Balance] = {
             "w0": Balance.from_float(10.0),
-            "w1": Balance.from_float(
-                config.amount - 0.1
-            ),  # not enough balance
+            "w1": Balance.from_float(config.amount - 0.1),  # not enough balance
         }
 
         mock_wallets = []
@@ -1866,13 +1829,13 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.dest = mock_wallets[0].coldkey.ss58_address
 
         # Give w0 and w1 balance
-       
+
         for wallet in mock_wallets:
             success, err = _subtensor_mock.force_set_balance(
                 ss58_address=wallet.coldkey.ss58_address,
                 balance=mock_balances[wallet.name].rao,
             )
-            
+
         cli = bittensor.cli(config)
 
         def mock_get_wallet(*args, **kwargs):
@@ -1919,7 +1882,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 balance.tao, mock_balances["w1"].tao, places=4
             )  # did not transfer
 
-    
     def test_register(self, _):
         config = self.config
         config.command = "register"
@@ -1927,11 +1889,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.register.update_interval = 50_000
         config.no_prompt = True
 
-        mock_wallet = generate_wallet(
-            hotkey = _get_mock_keypair(
-                100, self.id()
-            )
-        )
+        mock_wallet = generate_wallet(hotkey=_get_mock_keypair(100, self.id()))
 
         class MockException(Exception):
             pass
@@ -1941,7 +1899,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 "bittensor.extrinsics.registration.POWSolution.is_stale",
                 side_effect=MockException,
             ) as mock_is_stale:
-
                 with pytest.raises(MockException):
                     cli = bittensor.cli(config)
                     cli.run()
@@ -1949,24 +1906,19 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
                 self.assertEqual(mock_is_stale.call_count, 1)
 
-    
     def test_recycle_register(self, _):
         config = self.config
         config.command = "recycle_register"
         config.no_prompt = True
 
-        mock_wallet = generate_wallet(
-            hotkey = _get_mock_keypair(
-                100, self.id()
-            )
-        )
+        mock_wallet = generate_wallet(hotkey=_get_mock_keypair(100, self.id()))
 
         # Give the wallet some balance for burning
         success, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallet.coldkeypub.ss58_address,
             balance=Balance.from_float(200.0),
         )
-        
+
         with patch("bittensor.wallet", return_value=mock_wallet) as mock_create_wallet:
             cli = bittensor.cli(config)
             cli.run()
@@ -1980,7 +1932,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
             self.assertTrue(registered)
 
-    
     def test_stake(self, _):
         amount_to_stake: Balance = Balance.from_tao(0.5)
         config = self.config
@@ -1994,11 +1945,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         subtensor = bittensor.subtensor(config)
 
-        mock_wallet = generate_wallet(
-            hotkey = _get_mock_keypair(
-                100, self.id()
-            )
-        )
+        mock_wallet = generate_wallet(hotkey=_get_mock_keypair(100, self.id()))
 
         # Register the hotkey and give it some balance
         _subtensor_mock.force_register_neuron(
@@ -2028,7 +1975,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
             self.assertGreater(new_stake, old_stake)
 
-    
     def test_metagraph(self, _):
         config = self.config
         config.wallet.name = "metagraph_testwallet"
@@ -2038,9 +1984,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Add some neurons to the metagraph
         mock_nn = []
 
-        def register_mock_neuron(
-            i: int
-        ) -> int:
+        def register_mock_neuron(i: int) -> int:
             mock_nn.append(
                 SimpleNamespace(
                     hotkey=_get_mock_keypair(i + 100, self.id()).ss58_address,
@@ -2058,14 +2002,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             return uid
 
-       
         for i in range(5):
-            _ = register_mock_neuron(
-                i
-            )
+            _ = register_mock_neuron(i)
 
         _subtensor_mock.neurons_lite(netuid=config.netuid)
-            
+
         cli = bittensor.cli(config)
 
         mock_console = MockConsole()
@@ -2086,7 +2027,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         for neuron in nn:
             self.assertIn(str(neuron.uid), output_no_syntax)
 
-    
     def test_inspect(self, _):
         config = self.config
         config.wallet.name = "inspect_testwallet"
@@ -2121,39 +2061,22 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     """
     Test the CLI by passing args directly to the bittensor.cli factory
     """
+
     def test_list_delegates(self, _):
-        cli = bittensor.cli(
-            args=[
-                "list_delegates"
-            ]
-        )
+        cli = bittensor.cli(args=["list_delegates"])
         cli.run()
 
-    
     def test_list_subnets(self, _):
-        cli = bittensor.cli(
-            args=[
-                "list_subnets"
-            ]
-        )
+        cli = bittensor.cli(args=["list_subnets"])
         cli.run()
 
     def test_delegate(self, _):
         """
         Test delegate add command
         """
-        mock_wallet = generate_wallet(
-            hotkey = _get_mock_keypair(
-                100, self.id()
-            )
-        )
-        delegate_wallet = generate_wallet(
-            hotkey = _get_mock_keypair(
-                100 + 1, self.id()
-            )
-        )
+        mock_wallet = generate_wallet(hotkey=_get_mock_keypair(100, self.id()))
+        delegate_wallet = generate_wallet(hotkey=_get_mock_keypair(100 + 1, self.id()))
 
-       
         # register the wallet
         _ = _subtensor_mock.force_register_neuron(
             netuid=1,

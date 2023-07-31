@@ -1,4 +1,3 @@
-
 import os
 import urllib
 import pytest
@@ -22,14 +21,19 @@ def test_int_to_ip_range():
     for i in range(10):
         assert utils.networking.int_to_ip(i) == f"0.0.0.{i}"
         assert utils.networking.ip_to_int(f"0.0.0.{i}") == i
-        assert utils.networking.ip__str__(4, f"0.0.0.{i}", 8888) == f"/ipv4/0.0.0.{i}:8888"
+        assert (
+            utils.networking.ip__str__(4, f"0.0.0.{i}", 8888) == f"/ipv4/0.0.0.{i}:8888"
+        )
 
 
 def test_int_to_ip4_max():
     """Test converting integer to maximum IPv4 address."""
     assert utils.networking.int_to_ip(4294967295) == "255.255.255.255"
     assert utils.networking.ip_to_int("255.255.255.255") == 4294967295
-    assert utils.networking.ip__str__(4, "255.255.255.255", 8888) == "/ipv4/255.255.255.255:8888"
+    assert (
+        utils.networking.ip__str__(4, "255.255.255.255", 8888)
+        == "/ipv4/255.255.255.255:8888"
+    )
 
 
 # Test conversion functions for IPv6
@@ -45,15 +49,24 @@ def test_int_to_ip6_range():
     for i in range(10):
         assert utils.networking.int_to_ip(4294967296 + i) == f"::1:0:{i}"
         assert utils.networking.ip_to_int(f"::1:0:{i}") == 4294967296 + i
-        assert utils.networking.ip__str__(6, f"::1:0:{i}", 8888) == f"/ipv6/::1:0:{i}:8888"
+        assert (
+            utils.networking.ip__str__(6, f"::1:0:{i}", 8888) == f"/ipv6/::1:0:{i}:8888"
+        )
 
 
 def test_int_to_ip6_max():
     """Test converting integer to maximum IPv6 address."""
     max_val = 340282366920938463463374607431768211455
-    assert utils.networking.int_to_ip(max_val) == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
-    assert utils.networking.ip_to_int('ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff') == max_val
-    assert utils.networking.ip__str__(6, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", 8888) == "/ipv6/ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff:8888"
+    assert (
+        utils.networking.int_to_ip(max_val) == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+    )
+    assert (
+        utils.networking.ip_to_int("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") == max_val
+    )
+    assert (
+        utils.networking.ip__str__(6, "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", 8888)
+        == "/ipv6/ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff:8888"
+    )
 
 
 def test_int_to_ip6_overflow():
@@ -78,6 +91,7 @@ def test_get_external_ip():
 
 def test_get_external_ip_os_broken():
     """Test getting the external IP address when os.popen is broken."""
+
     class FakeReadline:
         def readline(self):
             return 1
@@ -85,12 +99,13 @@ def test_get_external_ip_os_broken():
     def mock_call():
         return FakeReadline()
 
-    with mock.patch.object(os, 'popen', new=mock_call):
+    with mock.patch.object(os, "popen", new=mock_call):
         assert utils.networking.get_external_ip()
 
 
 def test_get_external_ip_os_request_urllib_broken():
     """Test getting the external IP address when os.popen and requests.get/urllib.request are broken."""
+
     class FakeReadline:
         def readline(self):
             return 1
@@ -109,24 +124,45 @@ def test_get_external_ip_os_request_urllib_broken():
         def urlopen(self):
             return 1
 
-    with mock.patch.object(os, 'popen', new=mock_call):
-        with mock.patch.object(requests, 'get', new=mock_call_two):
+    with mock.patch.object(os, "popen", new=mock_call):
+        with mock.patch.object(requests, "get", new=mock_call_two):
             urllib.request = MagicMock(return_value=FakeRequest())
             with pytest.raises(Exception):
                 assert utils.networking.get_external_ip()
 
 
 # Test formatting WebSocket endpoint URL
-@pytest.mark.parametrize("url, expected", [
-    ("wss://exampleendpoint:9944", "wss://exampleendpoint:9944"),
-    ("ws://exampleendpoint:9944", "ws://exampleendpoint:9944"),
-    ("exampleendpoint:9944", "ws://exampleendpoint:9944"),  # should add ws:// not wss://
-    ("ws://exampleendpoint", "ws://exampleendpoint"),  # should not add port if not specified
-    ("wss://exampleendpoint", "wss://exampleendpoint"),  # should not add port if not specified
-    ("exampleendpoint", "ws://exampleendpoint"),  # should not add port if not specified
-    ("exampleendpointwithws://:9944", "ws://exampleendpointwithws://:9944"),  # should only care about the front
-    ("exampleendpointwithwss://:9944", "ws://exampleendpointwithwss://:9944"),  # should only care about the front
-])
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        ("wss://exampleendpoint:9944", "wss://exampleendpoint:9944"),
+        ("ws://exampleendpoint:9944", "ws://exampleendpoint:9944"),
+        (
+            "exampleendpoint:9944",
+            "ws://exampleendpoint:9944",
+        ),  # should add ws:// not wss://
+        (
+            "ws://exampleendpoint",
+            "ws://exampleendpoint",
+        ),  # should not add port if not specified
+        (
+            "wss://exampleendpoint",
+            "wss://exampleendpoint",
+        ),  # should not add port if not specified
+        (
+            "exampleendpoint",
+            "ws://exampleendpoint",
+        ),  # should not add port if not specified
+        (
+            "exampleendpointwithws://:9944",
+            "ws://exampleendpointwithws://:9944",
+        ),  # should only care about the front
+        (
+            "exampleendpointwithwss://:9944",
+            "ws://exampleendpointwithwss://:9944",
+        ),  # should only care about the front
+    ],
+)
 def test_format(url: str, expected: str):
     """Test formatting WebSocket endpoint URL."""
     assert utils.networking.get_formatted_ws_endpoint_url(url) == expected

@@ -58,14 +58,21 @@ class config(Munch):
 
         # Optionally add config specific arguments
         try:
-            parser.add_argument('--config', type=str, help='If set, defaults are overridden by the passed file.')
+            parser.add_argument(
+                "--config",
+                type=str,
+                help="If set, defaults are overridden by the passed file.",
+            )
         except:
             # this can fail if the --config has already been added.
             pass
         try:
-            parser.add_argument('--strict', action='store_true',
-                                help='If flagged, config will check that only exact arguments have been set.',
-                                default=False)
+            parser.add_argument(
+                "--strict",
+                action="store_true",
+                help="If flagged, config will check that only exact arguments have been set.",
+                default=False,
+            )
         except:
             # this can fail if the --config has already been added.
             pass
@@ -76,7 +83,11 @@ class config(Munch):
 
         # 1.1 Optionally load defaults if the --config is set.
         try:
-            config_file_path = str(os.getcwd()) + '/' + vars(parser.parse_known_args(args)[0])['config']
+            config_file_path = (
+                str(os.getcwd())
+                + "/"
+                + vars(parser.parse_known_args(args)[0])["config"]
+            )
         except Exception as e:
             config_file_path = None
 
@@ -92,10 +103,10 @@ class config(Munch):
             try:
                 with open(config_file_path) as f:
                     params_config = yaml.safe_load(f)
-                    print('Loading config defaults from: {}'.format(config_file_path))
+                    print("Loading config defaults from: {}".format(config_file_path))
                     parser.set_defaults(**params_config)
             except Exception as e:
-                print('Error in loading: {} using default parser settings'.format(e))
+                print("Error in loading: {} using default parser settings".format(e))
 
         # 2. Continue with loading in params.
         params = config.__parse_args__(args=args, parser=parser, strict=strict)
@@ -103,13 +114,13 @@ class config(Munch):
         _config = self
 
         # Make the is_set map
-        _config['__is_set'] = {}
+        _config["__is_set"] = {}
 
         # Splits params on dot syntax i.e neuron.axon_port
         # The is_set map only sets True if a value is different from the default values.
         for arg_key, arg_val in params.__dict__.items():
             # default_val = parser.get_default(arg_key)
-            split_keys = arg_key.split('.')
+            split_keys = arg_key.split(".")
             head = _config
             keys = split_keys
             while len(keys) > 1:
@@ -129,18 +140,16 @@ class config(Munch):
         parser_no_defaults = copy.deepcopy(parser)
         ## Get all args by name
         default_params = parser.parse_args(
-                args=[_config.get('command')] # Only command as the arg, else no args
-                    if _config.get('command') != None
-                    else []
+            args=[_config.get("command")]  # Only command as the arg, else no args
+            if _config.get("command") != None
+            else []
         )
         all_default_args = default_params.__dict__.keys() | []
         ## Make a dict with keys as args and values as argparse.SUPPRESS
-        defaults_as_suppress = {
-            key: SUPPRESS for key in all_default_args
-        }
+        defaults_as_suppress = {key: SUPPRESS for key in all_default_args}
         ## Set the defaults to argparse.SUPPRESS, should remove them from the namespace
         parser_no_defaults.set_defaults(**defaults_as_suppress)
-        parser_no_defaults._defaults.clear() # Needed for quirk of argparse
+        parser_no_defaults._defaults.clear()  # Needed for quirk of argparse
 
         ### Check for subparsers and do the same
         if parser_no_defaults._subparsers != None:
@@ -153,20 +162,28 @@ class config(Munch):
                     cmd_parser: ArgumentParser
                     for cmd_parser in action.choices.values():
                         cmd_parser.set_defaults(**defaults_as_suppress)
-                        cmd_parser._defaults.clear() # Needed for quirk of argparse
-                
+                        cmd_parser._defaults.clear()  # Needed for quirk of argparse
+
         ## Reparse the args, but this time with the defaults as argparse.SUPPRESS
-        params_no_defaults = self.__parse_args__(args=args, parser=parser_no_defaults, strict=strict)
+        params_no_defaults = self.__parse_args__(
+            args=args, parser=parser_no_defaults, strict=strict
+        )
 
         ## Diff the params and params_no_defaults to get the is_set map
-        _config['__is_set'] = {
-            arg_key: True 
-                for arg_key in [k for k, _ in filter(lambda kv: kv[1] != SUPPRESS, params_no_defaults.__dict__.items())]
+        _config["__is_set"] = {
+            arg_key: True
+            for arg_key in [
+                k
+                for k, _ in filter(
+                    lambda kv: kv[1] != SUPPRESS, params_no_defaults.__dict__.items()
+                )
+            ]
         }
 
-
     @staticmethod
-    def __parse_args__(args: List[str], parser: ArgumentParser = None, strict: bool = False) -> Namespace:
+    def __parse_args__(
+        args: List[str], parser: ArgumentParser = None, strict: bool = False
+    ) -> Namespace:
         """
         Parses the passed args using the passed parser.
 
@@ -195,7 +212,7 @@ class config(Munch):
     def __str__(self) -> str:
         return "\n" + yaml.dump(self.toDict())
 
-    def copy(self) -> 'config':
+    def copy(self) -> "config":
         return copy.deepcopy(self)
 
     def to_string(self, items) -> str:
@@ -253,7 +270,7 @@ class config(Munch):
         self = self._merge(self, b)
 
     @classmethod
-    def merge_all(cls, configs: List['config']) -> 'config':
+    def merge_all(cls, configs: List["config"]) -> "config":
         """
         Merge all configs in the list into one config.
         If there is a conflict, the value from the last configuration in the list will take precedence.
@@ -271,13 +288,11 @@ class config(Munch):
             result.merge(cfg)
         return result
 
-
     def is_set(self, param_name: str) -> bool:
         """
         Returns a boolean indicating whether the parameter has been set or is still the default.
         """
-        if param_name not in self.get('__is_set'):
+        if param_name not in self.get("__is_set"):
             return False
         else:
-            return self.get('__is_set')[param_name]
-            
+            return self.get("__is_set")[param_name]

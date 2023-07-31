@@ -51,8 +51,9 @@ COMMANDS = {
     "proposal_votes": ShowVotesCommand,
     "senate_register": SenateRegisterCommand,
     "senate_leave": SenateLeaveCommand,
-    "senate_vote": VoteCommand
+    "senate_vote": VoteCommand,
 }
+
 
 class cli:
     """
@@ -61,10 +62,10 @@ class cli:
     """
 
     def __init__(
-            self, 
-            config: Optional['bittensor.config'] = None,
-            args: Optional[List[str]] = None,
-        ):
+        self,
+        config: Optional["bittensor.config"] = None,
+        args: Optional[List[str]] = None,
+    ):
         """
         Initializes a bittensor.CLI object.
 
@@ -75,9 +76,9 @@ class cli:
         # If no config is provided, create a new one from args.
         if config == None:
             config = cli.create_config(args)
-        
+
         self.config = config
-        
+
         # Check if the config is valid.
         cli.check_config(self.config)
 
@@ -87,10 +88,12 @@ class cli:
                 bittensor.utils.version_checking()
             except:
                 # If version checking fails, inform user with an exception.
-                raise RuntimeError("To avoid internet-based version checking, pass --no_version_checking while running the CLI.")
+                raise RuntimeError(
+                    "To avoid internet-based version checking, pass --no_version_checking while running the CLI."
+                )
 
     @staticmethod
-    def __create_parser__() -> 'argparse.ArgumentParser':
+    def __create_parser__() -> "argparse.ArgumentParser":
         """
         Creates the argument parser for the Bittensor CLI.
 
@@ -101,16 +104,17 @@ class cli:
         parser = argparse.ArgumentParser(
             description=f"bittensor cli v{bittensor.__version__}",
             usage="btcli <command> <command args>",
-            add_help=True)
+            add_help=True,
+        )
         # Add arguments for each sub-command.
-        cmd_parsers = parser.add_subparsers(dest='command')
+        cmd_parsers = parser.add_subparsers(dest="command")
         # Add argument parsers for all available commands.
         for command in COMMANDS.values():
             command.add_args(cmd_parsers)
         return parser
 
     @staticmethod
-    def create_config( args: List[str] ) -> 'bittensor.config':
+    def create_config(args: List[str]) -> "bittensor.config":
         """
         From the argument parser, add config to bittensor.executor and local config
 
@@ -130,7 +134,7 @@ class cli:
         return bittensor.config(parser, args=args)
 
     @staticmethod
-    def check_config( config: 'bittensor.config' ):
+    def check_config(config: "bittensor.config"):
         """
         Checks if the essential configuration exists under different command
 
@@ -145,7 +149,7 @@ class cli:
             console.print(f":cross_mark:[red]Unknown command: {config.command}[/red]")
             sys.exit()
 
-    def run( self ):
+    def run(self):
         """
         Executes the command from the configuration.
         """
@@ -154,5 +158,7 @@ class cli:
         if self.config.command in COMMANDS:
             COMMANDS[self.config.command].run(self)
         else:
-            console.print(f":cross_mark:[red]Unknown command: {self.config.command}[/red]")
+            console.print(
+                f":cross_mark:[red]Unknown command: {self.config.command}[/red]"
+            )
             sys.exit()
