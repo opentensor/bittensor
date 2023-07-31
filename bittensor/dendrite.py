@@ -239,7 +239,9 @@ class dendrite(torch.nn.Module):
                     json=synapse.dict(),
                     timeout=timeout,
                 ) as response:
-                    async for json_response in synapse.parse_stream_async(response.content):
+                    async for json_response in synapse.parse_stream_async(
+                        response.content
+                    ):
                         pass
             else:
                 response = await self.client.post(
@@ -332,7 +334,9 @@ class dendrite(torch.nn.Module):
 
         return synapse
 
-    def process_server_response(self, server_response, json_response, local_synapse: bt.Synapse):
+    def process_server_response(
+        self, server_response, json_response, local_synapse: bt.Synapse
+    ):
         """
         Processes the server response, updates the local synapse state with the
         server's state and merges headers set by the server.
@@ -398,4 +402,3 @@ class dendrite(torch.nn.Module):
         Returns:
             str: The string representation of the Dendrite object in the format "dendrite(<user_wallet_address>)".
         """
-        
