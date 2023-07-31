@@ -40,6 +40,7 @@ from .chain_data import (
     ProposalCallData,
 )
 from .errors import *
+from .extrinsics.network import register_subnetwork_extrinsic
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .extrinsics.serving import serve_extrinsic, serve_axon_extrinsic
@@ -200,17 +201,14 @@ class subtensor:
             self.config.subtensor.network = network
 
         # Select using config.subtensor.chain_endpoint
-        elif config.subtensor.chain_endpoint != None:
+        elif config.is_set("subtensor.chain_endpoint"):
             self.config.subtensor.chain_endpoint = config.subtensor.chain_endpoint
             self.config.subtensor.network = config.subtensor.get(
                 "network", bittensor.defaults.subtensor.network
             )
 
         # Select using config.subtensor.network
-        elif (
-            config.subtensor.get("network", bittensor.defaults.subtensor.network)
-            != None
-        ):
+        elif config.is_set("subtensor.network"):
             self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
                 config.subtensor.get("network", bittensor.defaults.subtensor.network)
             )
@@ -626,6 +624,23 @@ class subtensor:
             return None
 
         return Balance.from_rao(result.value)
+
+    #################
+    #### Network ####
+    #################
+    def register_subnetwork(
+        self,
+        wallet: "bittensor.wallet",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization = True,
+        prompt: bool = False,
+    ) -> bool: return register_subnetwork_extrinsic( 
+            self,
+            wallet = wallet, 
+            wait_for_inclusion = wait_for_inclusion,
+            wait_for_finalization = wait_for_finalization,
+            prompt = prompt,
+        )
 
     #################
     #### Serving ####
