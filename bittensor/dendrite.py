@@ -18,6 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import asyncio
+import json
 import uuid
 import time
 import torch
@@ -229,16 +230,25 @@ class dendrite(torch.nn.Module):
             )
 
             # Make the HTTP POST request
-            async with self.client.post(
+            response = await self.client.post(
                 url,
                 headers=synapse.to_headers(),
                 json=synapse.dict(),
                 timeout=timeout,
-            ) as response:
-                json_response = await response.read()
+            ) 
+
+            json_response = await response.json()
+            # text_response = await response.text()
+
+            print(dir(response))
+            print("raw response:", response)
+            print("response headers:", response.headers)
+            print("response status:", response.status)
+            print("response content:", response.content)
+            # print("response text:", text_sresponse)
 
             # Process the server response
-            self.process_server_response(json_response, synapse)
+            self.process_server_response(response, json_response, synapse)
 
             # Set process time and log the response
             synapse.dendrite.process_time = str(time.time() - start_time)
@@ -319,7 +329,7 @@ class dendrite(torch.nn.Module):
 
         return synapse
 
-    def process_server_response(self, server_response, local_synapse: bt.Synapse):
+    def process_server_response(self, server_response, json_response, local_synapse: bt.Synapse):
         """
         Processes the server response, updates the local synapse state with the
         server's state and merges headers set by the server.
@@ -332,9 +342,19 @@ class dendrite(torch.nn.Module):
             None, but errors in attribute setting are silently ignored.
         """
         # Check if the server responded with a successful status code
-        if server_response.status != 200:
-            local_synapse.dendrite.status_code = str(server_response.status)
-            local_synapse.dendrite.status_message = server_response.reason
+        if server_response.status == 200:
+            # If the response is successful, overwrite local synapse state with
+            # server's state only if the protocol allows mutation. To prevent overwrites,
+            # the protocol must set allow_mutation = False
+            server_synapse = local_synapse.__class__(**json_response)
+            for key in local_synapse.dict().keys():
+                try:
+                    # Set the attribute in the local synapse from the corresponding
+                    # attribute in the server synapse
+                    setattr(local_synapse, key, getattr(server_synapse, key))
+                except:
+                    # Ignore errors during attribute setting
+                    pass
 
         # Extract server headers and overwrite None values in local synapse headers
         server_headers = bt.Synapse.from_headers(server_response.headers)
