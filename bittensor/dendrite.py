@@ -96,7 +96,7 @@ class dendrite(torch.nn.Module):
                 returns a list of responses from all target axons.
         """
         try:
-            loop = asyncio.get_running_loop()
+            loop = asyncio.get_event_loop()
             return loop.run_until_complete(self.forward(*args, **kwargs))
         except:
             new_loop = asyncio.new_event_loop()
