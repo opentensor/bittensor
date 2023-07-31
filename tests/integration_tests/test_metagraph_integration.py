@@ -21,20 +21,16 @@ import torch
 import pytest
 from bittensor._subtensor.subtensor_mock import MockSubtensor
 
-_subtensor_mock: MockSubtensor = bittensor.subtensor( network = 'mock', _mock = True )
+_subtensor_mock: MockSubtensor = bittensor.subtensor(network="mock", _mock=True)
+
 
 def setUpModule():
     _subtensor_mock.reset()
 
-    _subtensor_mock.create_subnet(
-        netuid = 3
-    )
+    _subtensor_mock.create_subnet(netuid=3)
 
     # Set diff 0
-    _subtensor_mock.set_difficulty(
-        netuid = 3,
-        difficulty = 0
-    )
+    _subtensor_mock.set_difficulty(netuid=3, difficulty=0)
 
 
 class TestMetagraph:
@@ -63,24 +59,24 @@ class TestMetagraph:
     def test_state_dict(self):
         self.metagraph.load()
         state = self.metagraph.state_dict()
-        assert 'version' in state
-        assert 'n' in state
-        assert 'block' in state
-        assert 'stake' in state
-        assert 'total_stake' in state
-        assert 'ranks' in state
-        assert 'trust' in state
-        assert 'consensus' in state
-        assert 'validator_trust' in state
-        assert 'incentive' in state
-        assert 'emission' in state
-        assert 'dividends' in state
-        assert 'active' in state
-        assert 'last_update' in state
-        assert 'validator_permit' in state
-        assert 'weights' in state
-        assert 'bonds' in state
-        assert 'uids' in state
+        assert "version" in state
+        assert "n" in state
+        assert "block" in state
+        assert "stake" in state
+        assert "total_stake" in state
+        assert "ranks" in state
+        assert "trust" in state
+        assert "consensus" in state
+        assert "validator_trust" in state
+        assert "incentive" in state
+        assert "emission" in state
+        assert "dividends" in state
+        assert "active" in state
+        assert "last_update" in state
+        assert "validator_permit" in state
+        assert "weights" in state
+        assert "bonds" in state
+        assert "uids" in state
 
     def test_properties(self):
         metagraph = self.metagraph

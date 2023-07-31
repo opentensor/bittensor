@@ -19,79 +19,81 @@
 import bittensor
 from .commands import *
 
+
 class CLI:
     """
     Implementation of the CLI class, which handles the coldkey, hotkey and money transfer
     """
-    def __init__(self, config: 'bittensor.Config' ):
-        r""" Initialized a bittensor.CLI object.
-            Args:
-                config (:obj:`bittensor.Config`, `required`):
-                    bittensor.cli.config()
+
+    def __init__(self, config: "bittensor.Config"):
+        r"""Initialized a bittensor.CLI object.
+        Args:
+            config (:obj:`bittensor.Config`, `required`):
+                bittensor.cli.config()
         """
         # (d)efaults to True if config.no_version_checking is not set.
         if not config.get("no_version_checking", d=True):
             try:
                 bittensor.utils.version_checking()
             except:
-                raise RuntimeError("To avoid internet based version checking pass --no_version_checking while running the CLI.")
+                raise RuntimeError(
+                    "To avoid internet based version checking pass --no_version_checking while running the CLI."
+                )
         self.config = config
 
-    def run ( self ):
-        """ Execute the command from config
-        """
+    def run(self):
+        """Execute the command from config"""
         if self.config.command == "transfer":
-            TransferCommand.run( self )
+            TransferCommand.run(self)
         elif self.config.command == "register":
-            RegisterCommand.run( self )
+            RegisterCommand.run(self)
         elif self.config.command == "unstake":
-            UnStakeCommand.run( self )
+            UnStakeCommand.run(self)
         elif self.config.command == "stake":
-            StakeCommand.run( self )
+            StakeCommand.run(self)
         elif self.config.command == "overview":
-            OverviewCommand.run( self )
+            OverviewCommand.run(self)
         elif self.config.command == "list":
-            ListCommand.run( self )
+            ListCommand.run(self)
         elif self.config.command == "new_coldkey":
-            NewColdkeyCommand.run( self )
+            NewColdkeyCommand.run(self)
         elif self.config.command == "new_hotkey":
-            NewHotkeyCommand.run( self )
+            NewHotkeyCommand.run(self)
         elif self.config.command == "regen_coldkey":
-            RegenColdkeyCommand.run( self )
+            RegenColdkeyCommand.run(self)
         elif self.config.command == "regen_coldkeypub":
-            RegenColdkeypubCommand.run( self )
+            RegenColdkeypubCommand.run(self)
         elif self.config.command == "regen_hotkey":
-            RegenHotkeyCommand.run( self )
+            RegenHotkeyCommand.run(self)
         elif self.config.command == "metagraph":
-            MetagraphCommand.run( self )
+            MetagraphCommand.run(self)
         elif self.config.command == "inspect":
-            InspectCommand.run( self )
-        elif self.config.command == 'update':
-            UpdateCommand.run( self )
-        elif self.config.command == 'nominate':
-            NominateCommand.run( self )
-        elif self.config.command == 'delegate':
-            DelegateStakeCommand.run( self )
-        elif self.config.command == 'undelegate':
-            DelegateUnstakeCommand.run( self )
-        elif self.config.command == 'my_delegates':
-            MyDelegatesCommand.run( self )
-        elif self.config.command == 'list_delegates':
-            ListDelegatesCommand.run( self )
-        elif self.config.command == 'list_subnets':
-            ListSubnetsCommand.run( self )
-        elif self.config.command == 'recycle_register':
-            RecycleRegisterCommand.run( self )
+            InspectCommand.run(self)
+        elif self.config.command == "update":
+            UpdateCommand.run(self)
+        elif self.config.command == "nominate":
+            NominateCommand.run(self)
+        elif self.config.command == "delegate":
+            DelegateStakeCommand.run(self)
+        elif self.config.command == "undelegate":
+            DelegateUnstakeCommand.run(self)
+        elif self.config.command == "my_delegates":
+            MyDelegatesCommand.run(self)
+        elif self.config.command == "list_delegates":
+            ListDelegatesCommand.run(self)
+        elif self.config.command == "list_subnets":
+            ListSubnetsCommand.run(self)
+        elif self.config.command == "recycle_register":
+            RecycleRegisterCommand.run(self)
         elif self.config.command == "senate":
-            SenateCommand.run( self )
+            SenateCommand.run(self)
         elif self.config.command == "proposals":
-            ProposalsCommand.run( self )
+            ProposalsCommand.run(self)
         elif self.config.command == "proposal_votes":
-            ShowVotesCommand.run( self )
+            ShowVotesCommand.run(self)
         elif self.config.command == "senate_register":
-            SenateRegisterCommand.run( self )
+            SenateRegisterCommand.run(self)
         elif self.config.command == "senate_leave":
-            SenateLeaveCommand.run( self )
+            SenateLeaveCommand.run(self)
         elif self.config.command == "senate_vote":
-            VoteCommand.run( self )
-
+            VoteCommand.run(self)

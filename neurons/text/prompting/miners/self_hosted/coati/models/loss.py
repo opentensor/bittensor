@@ -19,7 +19,9 @@ class GPTLMLoss(nn.Module):
         shift_logits = logits[..., :-1, :].contiguous()
         shift_labels = labels[..., 1:].contiguous()
         # Flatten the tokens
-        return self.loss(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+        return self.loss(
+            shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1)
+        )
 
 
 class PolicyLoss(nn.Module):
@@ -31,11 +33,13 @@ class PolicyLoss(nn.Module):
         super().__init__()
         self.clip_eps = clip_eps
 
-    def forward(self,
-                log_probs: torch.Tensor,
-                old_log_probs: torch.Tensor,
-                advantages: torch.Tensor,
-                action_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self,
+        log_probs: torch.Tensor,
+        old_log_probs: torch.Tensor,
+        advantages: torch.Tensor,
+        action_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         ratio = (log_probs - old_log_probs).exp()
         surr1 = ratio * advantages
         surr2 = ratio.clamp(1 - self.clip_eps, 1 + self.clip_eps) * advantages
@@ -55,14 +59,18 @@ class ValueLoss(nn.Module):
         super().__init__()
         self.clip_eps = clip_eps
 
-    def forward(self,
-                values: torch.Tensor,
-                old_values: torch.Tensor,
-                reward: torch.Tensor,
-                action_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
-        values_clipped = old_values + (values - old_values).clamp(-self.clip_eps, self.clip_eps)
-        surr1 = (values_clipped - reward)**2
-        surr2 = (values - reward)**2
+    def forward(
+        self,
+        values: torch.Tensor,
+        old_values: torch.Tensor,
+        reward: torch.Tensor,
+        action_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        values_clipped = old_values + (values - old_values).clamp(
+            -self.clip_eps, self.clip_eps
+        )
+        surr1 = (values_clipped - reward) ** 2
+        surr2 = (values - reward) ** 2
         loss = torch.max(surr1, surr2)
         loss = loss.mean()
         return loss
@@ -75,20 +83,29 @@ class PPOPtxActorLoss(nn.Module):
     PPO-ptx Actor Loss
     """
 
-    def __init__(self, policy_clip_eps: float = 0.2, pretrain_coef: float = 0.0, pretrain_loss_fn=GPTLMLoss()) -> None:
+    def __init__(
+        self,
+        policy_clip_eps: float = 0.2,
+        pretrain_coef: float = 0.0,
+        pretrain_loss_fn=GPTLMLoss(),
+    ) -> None:
         super().__init__()
         self.pretrain_coef = pretrain_coef
         self.policy_loss_fn = PolicyLoss(clip_eps=policy_clip_eps)
         self.pretrain_loss_fn = pretrain_loss_fn
 
-    def forward(self,
-                log_probs: torch.Tensor,
-                old_log_probs: torch.Tensor,
-                advantages: torch.Tensor,
-                lm_logits: torch.Tensor,
-                lm_input_ids: torch.Tensor,
-                action_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
-        policy_loss = self.policy_loss_fn(log_probs, old_log_probs, advantages, action_mask=action_mask)
+    def forward(
+        self,
+        log_probs: torch.Tensor,
+        old_log_probs: torch.Tensor,
+        advantages: torch.Tensor,
+        lm_logits: torch.Tensor,
+        lm_input_ids: torch.Tensor,
+        action_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        policy_loss = self.policy_loss_fn(
+            log_probs, old_log_probs, advantages, action_mask=action_mask
+        )
         lm_loss = self.pretrain_loss_fn(lm_logits, lm_input_ids)
         return policy_loss + self.pretrain_coef * lm_loss
 
@@ -99,7 +116,9 @@ class LogSigLoss(nn.Module):
     Details: https://arxiv.org/abs/2203.02155
     """
 
-    def forward(self, chosen_reward: torch.Tensor, reject_reward: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, chosen_reward: torch.Tensor, reject_reward: torch.Tensor
+    ) -> torch.Tensor:
         probs = torch.sigmoid(chosen_reward - reject_reward)
         log_probs = torch.log(probs)
         loss = -log_probs.mean()
@@ -112,6 +131,8 @@ class LogExpLoss(nn.Module):
     Details: https://arxiv.org/abs/2204.05862
     """
 
-    def forward(self, chosen_reward: torch.Tensor, reject_reward: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, chosen_reward: torch.Tensor, reject_reward: torch.Tensor
+    ) -> torch.Tensor:
         loss = torch.log(1 + torch.exp(reject_reward - chosen_reward)).mean()
         return loss

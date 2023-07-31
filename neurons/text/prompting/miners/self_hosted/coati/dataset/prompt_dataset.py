@@ -19,7 +19,12 @@ logger = get_dist_logger()
 class PromptDataset(Dataset):
     """Dataset for supervised fine-tuning."""
 
-    def __init__(self, data_path: str, tokenizer: transformers.PreTrainedTokenizer, max_datasets_size: int = None):
+    def __init__(
+        self,
+        data_path: str,
+        tokenizer: transformers.PreTrainedTokenizer,
+        max_datasets_size: int = None,
+    ):
         super(PromptDataset, self).__init__()
         self.prompt = []
         logger.info("Loading data...")
@@ -31,12 +36,14 @@ class PromptDataset(Dataset):
             list_data_dict = list_data_dict[:max_datasets_size]
 
         for data_dict in list_data_dict:
-            token = tokenizer(data_dict["instruction"],
-                              return_tensors='pt',
-                              max_length=96,
-                              padding='max_length',
-                              truncation=True)
-            for idx in token['input_ids']:
+            token = tokenizer(
+                data_dict["instruction"],
+                return_tensors="pt",
+                max_length=96,
+                padding="max_length",
+                truncation=True,
+            )
+            for idx in token["input_ids"]:
                 self.prompt.append(idx.to(torch.cuda.current_device()))
 
     def __len__(self):

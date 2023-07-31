@@ -21,30 +21,33 @@ from typing import List, Dict
 from transformers import pipeline
 
 
-class Dolly12BMiner( bittensor.HuggingFaceMiner ):
-
+class Dolly12BMiner(bittensor.HuggingFaceMiner):
     arg_prefix: str = "dolly"
     assistant_label: str = "### Response:"
     user_label: str = "### Instruction:"
     system_label: str = ""
 
-    def load_model( self ):
-        bittensor.logging.info( 'Loading ' + str( self.config.dolly.model_name ) )
-        model = pipeline( model=self.config.dolly.model_name, torch_dtype=torch.bfloat16, trust_remote_code=True, device=0 )
-        bittensor.logging.info( 'Model loaded!' )
+    def load_model(self):
+        bittensor.logging.info("Loading " + str(self.config.dolly.model_name))
+        model = pipeline(
+            model=self.config.dolly.model_name,
+            torch_dtype=torch.bfloat16,
+            trust_remote_code=True,
+            device=0,
+        )
+        bittensor.logging.info("Model loaded!")
         return model
 
-    def load_tokenizer( self ):
+    def load_tokenizer(self):
         pass
 
     def forward(self, messages: List[Dict[str, str]]) -> str:
-
-        history = self.process_history( messages )
+        history = self.process_history(messages)
         prompt = history + self.assistant_label
-        generation = self.model( prompt )
+        generation = self.model(prompt)
 
-        bittensor.logging.debug(" Message: " + str( messages ) )
-        bittensor.logging.debug( "Generation: " + str( generation ) )
+        bittensor.logging.debug(" Message: " + str(messages))
+        bittensor.logging.debug("Generation: " + str(generation))
         return generation
 
 

@@ -21,30 +21,41 @@ import bittensor
 from typing import List, Dict
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
-class RobertMyersMiner( bittensor.HuggingFaceMiner ):
 
-    arg_prefix: str = 'robertmyers'
-    system_label: str = 'system:'
-    assistant_label: str = 'assistant:'
-    user_label: str = 'user:'
+class RobertMyersMiner(bittensor.HuggingFaceMiner):
+    arg_prefix: str = "robertmyers"
+    system_label: str = "system:"
+    assistant_label: str = "assistant:"
+    user_label: str = "user:"
 
-    def load_tokenizer( self ):
-        return AutoTokenizer.from_pretrained( self.config.robertmyers.model_name )
+    def load_tokenizer(self):
+        return AutoTokenizer.from_pretrained(self.config.robertmyers.model_name)
 
-    def load_model( self ):
-        model = AutoModelForCausalLM.from_pretrained( self.config.robertmyers.model_name, torch_dtype=torch.float16 )
-        model.to( self.config.robertmyers.device )
-        return pipeline( 
-            "text-generation", model, tokenizer=self.tokenizer, 
-            device = 0, max_new_tokens = self.config.robertmyers.max_new_tokens, 
-            temperature = self.config.robertmyers.temperature, 
-            do_sample = self.config.robertmyers.do_sample, pad_token_id = self.tokenizer.eos_token_id 
+    def load_model(self):
+        model = AutoModelForCausalLM.from_pretrained(
+            self.config.robertmyers.model_name, torch_dtype=torch.float16
+        )
+        model.to(self.config.robertmyers.device)
+        return pipeline(
+            "text-generation",
+            model,
+            tokenizer=self.tokenizer,
+            device=0,
+            max_new_tokens=self.config.robertmyers.max_new_tokens,
+            temperature=self.config.robertmyers.temperature,
+            do_sample=self.config.robertmyers.do_sample,
+            pad_token_id=self.tokenizer.eos_token_id,
         )
 
-    def forward( self, messages: List[Dict[str, str]]  ) -> str:
-        history = self.process_history( messages )
-        resp = self.model( history )[0]['generated_text'].split(':')[-1].replace( str( history ), "")
+    def forward(self, messages: List[Dict[str, str]]) -> str:
+        history = self.process_history(messages)
+        resp = (
+            self.model(history)[0]["generated_text"]
+            .split(":")[-1]
+            .replace(str(history), "")
+        )
         return resp
+
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()

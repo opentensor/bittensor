@@ -28,11 +28,22 @@ from tests.helpers import CLOSE_IN_VALUE
 """
 Test the Balance class
 """
-valid_tao_numbers_strategy = st.one_of(st.integers(max_value=21_000_000, min_value=-21_000_000), st.floats(allow_infinity=False, allow_nan=False, allow_subnormal=False, max_value=21_000_000.00, min_value=-21_000_000.00))
+valid_tao_numbers_strategy = st.one_of(
+    st.integers(max_value=21_000_000, min_value=-21_000_000),
+    st.floats(
+        allow_infinity=False,
+        allow_nan=False,
+        allow_subnormal=False,
+        max_value=21_000_000.00,
+        min_value=-21_000_000.00,
+    ),
+)
+
 
 def remove_zero_filter(x):
     """Remove zero and rounded to zero from the list of valid numbers"""
     return int(x * pow(10, 9)) != 0
+
 
 class TestBalance(unittest.TestCase):
     @given(balance=valid_tao_numbers_strategy)
@@ -63,7 +74,9 @@ class TestBalance(unittest.TestCase):
         assert CLOSE_IN_VALUE(sum_.rao, 5) == rao_ + rao2_
 
     @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
-    def test_balance_add_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
+    def test_balance_add_other_not_balance(
+        self, balance: Union[int, float], balance2: Union[int, float]
+    ):
         balance_ = Balance(balance)
         balance2_ = balance2
         rao_: int
@@ -86,10 +99,16 @@ class TestBalance(unittest.TestCase):
         # convert balance2 to rao. This assumes balance2 is a rao value
         rao2_ = int(balance_.rao)
 
-        self.assertEqual(CLOSE_IN_VALUE(rao2_, 5), balance_, msg=f"Balance {balance_} is not equal to {rao2_}")
+        self.assertEqual(
+            CLOSE_IN_VALUE(rao2_, 5),
+            balance_,
+            msg=f"Balance {balance_} is not equal to {rao2_}",
+        )
 
     @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
-    def test_balance_radd_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
+    def test_balance_radd_other_not_balance(
+        self, balance: Union[int, float], balance2: Union[int, float]
+    ):
         balance_ = Balance(balance)
         balance2_ = balance2
         rao_: int
@@ -101,7 +120,7 @@ class TestBalance(unittest.TestCase):
         # assume balance2 is a rao value
         rao2_ = int(balance2)
 
-        sum_ =  balance2_ + balance_ # This is an radd
+        sum_ = balance2_ + balance_  # This is an radd
         assert isinstance(sum_, Balance)
         assert CLOSE_IN_VALUE(sum_.rao, 5) == rao2_ + rao_
 
@@ -125,7 +144,9 @@ class TestBalance(unittest.TestCase):
         assert CLOSE_IN_VALUE(diff_.rao, 5) == rao_ - rao2_
 
     @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
-    def test_balance_sub_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
+    def test_balance_sub_other_not_balance(
+        self, balance: Union[int, float], balance2: Union[int, float]
+    ):
         balance_ = Balance(balance)
         balance2_ = balance2
         rao_: int
@@ -137,12 +158,14 @@ class TestBalance(unittest.TestCase):
         # assume balance2 is a rao value
         rao2_ = int(balance2)
 
-        diff_ =  balance_ - balance2_
+        diff_ = balance_ - balance2_
         assert isinstance(diff_, Balance)
         assert CLOSE_IN_VALUE(diff_.rao, 5) == rao_ - rao2_
 
     @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
-    def test_balance_rsub_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
+    def test_balance_rsub_other_not_balance(
+        self, balance: Union[int, float], balance2: Union[int, float]
+    ):
         balance_ = Balance(balance)
         balance2_ = balance2
         rao_: int
@@ -154,7 +177,7 @@ class TestBalance(unittest.TestCase):
         # assume balance2 is a rao value
         rao2_ = int(balance2)
 
-        diff_ =  balance2_ - balance_ # This is an rsub
+        diff_ = balance2_ - balance_  # This is an rsub
         assert isinstance(diff_, Balance)
         assert CLOSE_IN_VALUE(diff_.rao, 5) == rao2_ - rao_
 
@@ -174,10 +197,19 @@ class TestBalance(unittest.TestCase):
 
         prod_ = balance_ * balance2_
         assert isinstance(prod_, Balance)
-        self.assertAlmostEqual(prod_.rao, rao_ * rao2_, 9, msg="{} * {} == {} != {} * {} == {}".format(balance_, balance2_, prod_.rao, rao_, balance2, rao_ * balance2))
+        self.assertAlmostEqual(
+            prod_.rao,
+            rao_ * rao2_,
+            9,
+            msg="{} * {} == {} != {} * {} == {}".format(
+                balance_, balance2_, prod_.rao, rao_, balance2, rao_ * balance2
+            ),
+        )
 
     @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
-    def test_balance_mul_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
+    def test_balance_mul_other_not_balance(
+        self, balance: Union[int, float], balance2: Union[int, float]
+    ):
         balance_ = Balance(balance)
         balance2_ = balance2
         rao_: int
@@ -191,7 +223,9 @@ class TestBalance(unittest.TestCase):
         self.assertAlmostEqual(prod_.rao, int(rao_ * balance2), delta=20)
 
     @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy)
-    def test_balance_rmul_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
+    def test_balance_rmul_other_not_balance(
+        self, balance: Union[int, float], balance2: Union[int, float]
+    ):
         balance_ = Balance(balance)
         balance2_ = balance2
         rao_: int
@@ -200,12 +234,22 @@ class TestBalance(unittest.TestCase):
         elif isinstance(balance, float):
             rao_ = int(balance * pow(10, 9))
 
-        prod_ =  balance2_ * balance_ # This is an rmul
+        prod_ = balance2_ * balance_  # This is an rmul
         assert isinstance(prod_, Balance)
-        self.assertAlmostEqual(prod_.rao, int(balance2 * rao_), delta=20, msg=f"{balance2_} * {balance_} = {prod_} != {balance2} * {rao_} == {balance2 * rao_}")
+        self.assertAlmostEqual(
+            prod_.rao,
+            int(balance2 * rao_),
+            delta=20,
+            msg=f"{balance2_} * {balance_} = {prod_} != {balance2} * {rao_} == {balance2 * rao_}",
+        )
 
-    @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy.filter(remove_zero_filter)) # Avoid zero division
-    def test_balance_truediv(self, balance: Union[int, float], balance2: Union[int, float]):
+    @given(
+        balance=valid_tao_numbers_strategy,
+        balance2=valid_tao_numbers_strategy.filter(remove_zero_filter),
+    )  # Avoid zero division
+    def test_balance_truediv(
+        self, balance: Union[int, float], balance2: Union[int, float]
+    ):
         balance_ = Balance(balance)
         balance2_ = Balance(balance2)
         rao_: int
@@ -221,10 +265,20 @@ class TestBalance(unittest.TestCase):
 
         quot_ = balance_ / balance2_
         assert isinstance(quot_, Balance)
-        self.assertAlmostEqual(quot_.rao, int(rao_ / rao2_), delta=2, msg=f"{balance_} / {balance2_} = {quot_} != {rao_} / {rao2_} == {int(rao_ / rao2_)}")
+        self.assertAlmostEqual(
+            quot_.rao,
+            int(rao_ / rao2_),
+            delta=2,
+            msg=f"{balance_} / {balance2_} = {quot_} != {rao_} / {rao2_} == {int(rao_ / rao2_)}",
+        )
 
-    @given(balance=valid_tao_numbers_strategy,  balance2=valid_tao_numbers_strategy.filter(remove_zero_filter))
-    def test_balance_truediv_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
+    @given(
+        balance=valid_tao_numbers_strategy,
+        balance2=valid_tao_numbers_strategy.filter(remove_zero_filter),
+    )
+    def test_balance_truediv_other_not_balance(
+        self, balance: Union[int, float], balance2: Union[int, float]
+    ):
         balance_ = Balance(balance)
         balance2_ = balance2
         rao_: int
@@ -237,10 +291,22 @@ class TestBalance(unittest.TestCase):
         rao2_ = balance2
 
         quot_ = balance_ / balance2_
-        self.assertAlmostEqual(quot_.rao, int(rao_ / rao2_), delta=10, msg="{} / {} = {} != {}".format(balance_, balance2_, quot_.rao, int(rao_ / rao2_)))
+        self.assertAlmostEqual(
+            quot_.rao,
+            int(rao_ / rao2_),
+            delta=10,
+            msg="{} / {} = {} != {}".format(
+                balance_, balance2_, quot_.rao, int(rao_ / rao2_)
+            ),
+        )
 
-    @given(balance=valid_tao_numbers_strategy.filter(remove_zero_filter), balance2=valid_tao_numbers_strategy) # This is a filter to avoid division by zero
-    def test_balance_rtruediv_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
+    @given(
+        balance=valid_tao_numbers_strategy.filter(remove_zero_filter),
+        balance2=valid_tao_numbers_strategy,
+    )  # This is a filter to avoid division by zero
+    def test_balance_rtruediv_other_not_balance(
+        self, balance: Union[int, float], balance2: Union[int, float]
+    ):
         balance_ = Balance(balance)
         balance2_ = balance2
         rao_: int
@@ -252,12 +318,22 @@ class TestBalance(unittest.TestCase):
         # assume balance2 is a rao value
         rao2_ = balance2
 
-        quot_ =  balance2_ / balance_ # This is an rtruediv
+        quot_ = balance2_ / balance_  # This is an rtruediv
         assert isinstance(quot_, Balance)
-        self.assertAlmostEqual(quot_.rao, int(rao2_ / rao_), delta=5, msg="{} / {} = {}".format(balance2_, balance_, quot_))
+        self.assertAlmostEqual(
+            quot_.rao,
+            int(rao2_ / rao_),
+            delta=5,
+            msg="{} / {} = {}".format(balance2_, balance_, quot_),
+        )
 
-    @given(balance=valid_tao_numbers_strategy, balance2=valid_tao_numbers_strategy.filter(remove_zero_filter)) # Avoid zero division
-    def test_balance_floordiv(self, balance: Union[int, float], balance2: Union[int, float]):
+    @given(
+        balance=valid_tao_numbers_strategy,
+        balance2=valid_tao_numbers_strategy.filter(remove_zero_filter),
+    )  # Avoid zero division
+    def test_balance_floordiv(
+        self, balance: Union[int, float], balance2: Union[int, float]
+    ):
         balance_ = Balance(balance)
         balance2_ = Balance(balance2)
         rao_: int
@@ -275,8 +351,13 @@ class TestBalance(unittest.TestCase):
         assert isinstance(quot_, Balance)
         assert CLOSE_IN_VALUE(quot_.rao, 5) == rao_ // rao2_
 
-    @given(balance=valid_tao_numbers_strategy,  balance2=valid_tao_numbers_strategy.filter(remove_zero_filter))
-    def test_balance_floordiv_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
+    @given(
+        balance=valid_tao_numbers_strategy,
+        balance2=valid_tao_numbers_strategy.filter(remove_zero_filter),
+    )
+    def test_balance_floordiv_other_not_balance(
+        self, balance: Union[int, float], balance2: Union[int, float]
+    ):
         balance_ = Balance(balance)
         balance2_ = balance2
         rao_: int
@@ -290,10 +371,22 @@ class TestBalance(unittest.TestCase):
 
         quot_ = balance_ // balance2_
         assert isinstance(quot_, Balance)
-        self.assertAlmostEqual(quot_.rao, rao_ // rao2_, delta=5, msg="{} // {} = {} != {}".format(balance_, balance2_, quot_.rao, rao_ // rao2_))
+        self.assertAlmostEqual(
+            quot_.rao,
+            rao_ // rao2_,
+            delta=5,
+            msg="{} // {} = {} != {}".format(
+                balance_, balance2_, quot_.rao, rao_ // rao2_
+            ),
+        )
 
-    @given(balance=valid_tao_numbers_strategy.filter(remove_zero_filter), balance2=valid_tao_numbers_strategy) # This is a filter to avoid division by zero
-    def test_balance_rfloordiv_other_not_balance(self, balance: Union[int, float], balance2: Union[int, float]):
+    @given(
+        balance=valid_tao_numbers_strategy.filter(remove_zero_filter),
+        balance2=valid_tao_numbers_strategy,
+    )  # This is a filter to avoid division by zero
+    def test_balance_rfloordiv_other_not_balance(
+        self, balance: Union[int, float], balance2: Union[int, float]
+    ):
         balance_ = Balance(balance)
         balance2_ = balance2
         rao_: int
@@ -305,7 +398,7 @@ class TestBalance(unittest.TestCase):
         # assume balance2 is a rao value
         rao2_ = balance2
 
-        quot_ =  balance2_ // balance_ # This is an rfloordiv
+        quot_ = balance2_ // balance_  # This is an rfloordiv
         assert isinstance(quot_, Balance)
         self.assertAlmostEqual(quot_.rao, rao2_ // rao_, delta=5)
 
@@ -321,7 +414,7 @@ class TestBalance(unittest.TestCase):
 
     def test_balance_init_from_invalid_value(self):
         with pytest.raises(TypeError):
-            Balance('invalid not a number')
+            Balance("invalid not a number")
 
     @given(balance=valid_tao_numbers_strategy)
     def test_balance_add_invalid_type(self, balance: Union[int, float]):

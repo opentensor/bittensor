@@ -22,44 +22,55 @@ import bittensor
 from typing import List
 from rich.prompt import Prompt
 from rich.table import Table
+
 console = bittensor.__console__
 
 
 class UpdateCommand:
     @staticmethod
-    def run (cli):
-        if cli.config.no_prompt or cli.config.answer == 'Y':
-            os.system(' (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only )')
-            os.system('pip install -e ~/.bittensor/bittensor/')
+    def run(cli):
+        if cli.config.no_prompt or cli.config.answer == "Y":
+            os.system(
+                " (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only )"
+            )
+            os.system("pip install -e ~/.bittensor/bittensor/")
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config(config: "bittensor.Config"):
         if not config.no_prompt:
-            answer = Prompt.ask('This will update the local bittensor package', choices = ['Y','N'], default = 'Y')
+            answer = Prompt.ask(
+                "This will update the local bittensor package",
+                choices=["Y", "N"],
+                default="Y",
+            )
             config.answer = answer
 
     @staticmethod
-    def add_args( parser: argparse.ArgumentParser ):
+    def add_args(parser: argparse.ArgumentParser):
         update_parser = parser.add_parser(
-            'update',
-            add_help=False,
-            help='''Update bittensor '''
+            "update", add_help=False, help="""Update bittensor """
         )
         update_parser.add_argument(
-            '--no_prompt',
-            dest='no_prompt',
-            action='store_true',
-            help='''Set true to skip prompt from update.''',
+            "--no_prompt",
+            dest="no_prompt",
+            action="store_true",
+            help="""Set true to skip prompt from update.""",
             default=False,
         )
-        update_parser.add_argument( '--no_version_checking', action='store_true', help='''Set false to stop cli version checking''', default = False )
-        bittensor.subtensor.add_args( update_parser )
+        update_parser.add_argument(
+            "--no_version_checking",
+            action="store_true",
+            help="""Set false to stop cli version checking""",
+            default=False,
+        )
+        bittensor.subtensor.add_args(update_parser)
+
 
 class ListSubnetsCommand:
     @staticmethod
-    def run (cli):
-        r"""List all subnet netuids in the network. """
-        subtensor = bittensor.subtensor( config = cli.config )
+    def run(cli):
+        r"""List all subnet netuids in the network."""
+        subtensor = bittensor.subtensor(config=cli.config)
         subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
         rows = []
@@ -68,34 +79,61 @@ class ListSubnetsCommand:
         for subnet in subnets:
             total_neurons += subnet.max_n
             # netuid, N, Max N, difficulty, network connect, tempo, emission, burn rate
-            rows.append((
-                str(subnet.netuid),
-                str(subnet.subnetwork_n),
-                str(bittensor.utils.formatting.millify(subnet.max_n)),
-                str(bittensor.utils.formatting.millify(subnet.difficulty)),
-                str(subnet.tempo),
-                str([ f'{cr[0]}: {cr[1] * 100:.1f}%' for cr in subnet.connection_requirements.items()] if len(subnet.connection_requirements) > 0 else None ),
-                f'{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%',
-                f'{subnet.burn!s:8.8}',
-            ))
+            rows.append(
+                (
+                    str(subnet.netuid),
+                    str(subnet.subnetwork_n),
+                    str(bittensor.utils.formatting.millify(subnet.max_n)),
+                    str(bittensor.utils.formatting.millify(subnet.difficulty)),
+                    str(subnet.tempo),
+                    str(
+                        [
+                            f"{cr[0]}: {cr[1] * 100:.1f}%"
+                            for cr in subnet.connection_requirements.items()
+                        ]
+                        if len(subnet.connection_requirements) > 0
+                        else None
+                    ),
+                    f"{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%",
+                    f"{subnet.burn!s:8.8}",
+                )
+            )
 
-        table = Table(show_footer=True, width=cli.config.get('width', None), pad_edge=True, box=None, show_edge=True)
-        table.title = (
-            "[white]Subnets - {}".format(subtensor.network)
+        table = Table(
+            show_footer=True,
+            width=cli.config.get("width", None),
+            pad_edge=True,
+            box=None,
+            show_edge=True,
         )
+        table.title = "[white]Subnets - {}".format(subtensor.network)
         # netuid, N, Max N, difficulty, network connect, tempo, emission, burn rate
-        table.add_column("[overline white]NETUID",  str(len(subnets)), footer_style = "overline white", style='bold green', justify='center')
-        table.add_column("[overline white]NEURONS", str(total_neurons), footer_style = "overline white", style='white', justify='center')
-        table.add_column("[overline white]MAX_N", style='white', justify='center')
-        table.add_column("[overline white]DIFFICULTY", style='white', justify='center')
-        #table.add_column("[overline white]IMMUNITY", style='white')
-        #table.add_column("[overline white]BATCH SIZE", style='white')
-        #table.add_column("[overline white]SEQ_LEN", style='white')
-        table.add_column("[overline white]TEMPO", style='white', justify='center')
-        #table.add_column("[overline white]MODALITY", style='white')
-        table.add_column("[overline white]CON_REQ", style='white', justify='center')
-        table.add_column("[overline white]EMISSION", style='white', justify='center') # sums to 100%
-        table.add_column("[overline white]BURN(\u03C4)", style='white')
+        table.add_column(
+            "[overline white]NETUID",
+            str(len(subnets)),
+            footer_style="overline white",
+            style="bold green",
+            justify="center",
+        )
+        table.add_column(
+            "[overline white]NEURONS",
+            str(total_neurons),
+            footer_style="overline white",
+            style="white",
+            justify="center",
+        )
+        table.add_column("[overline white]MAX_N", style="white", justify="center")
+        table.add_column("[overline white]DIFFICULTY", style="white", justify="center")
+        # table.add_column("[overline white]IMMUNITY", style='white')
+        # table.add_column("[overline white]BATCH SIZE", style='white')
+        # table.add_column("[overline white]SEQ_LEN", style='white')
+        table.add_column("[overline white]TEMPO", style="white", justify="center")
+        # table.add_column("[overline white]MODALITY", style='white')
+        table.add_column("[overline white]CON_REQ", style="white", justify="center")
+        table.add_column(
+            "[overline white]EMISSION", style="white", justify="center"
+        )  # sums to 100%
+        table.add_column("[overline white]BURN(\u03C4)", style="white")
 
         for row in rows:
             table.add_row(*row)
@@ -103,20 +141,19 @@ class ListSubnetsCommand:
         bittensor.__console__.print(table)
 
     @staticmethod
-    def check_config( config: 'bittensor.Config' ):
+    def check_config(config: "bittensor.Config"):
         pass
 
     @staticmethod
-    def add_args( parser: argparse.ArgumentParser ):
+    def add_args(parser: argparse.ArgumentParser):
         list_subnets_parser = parser.add_parser(
-            'list_subnets',
-            help='''List all subnets on the network'''
+            "list_subnets", help="""List all subnets on the network"""
         )
         list_subnets_parser.add_argument(
-            '--no_prompt',
-            dest='no_prompt',
-            action='store_true',
-            help='''Set true to avoid prompting the user.''',
+            "--no_prompt",
+            dest="no_prompt",
+            action="store_true",
+            help="""Set true to avoid prompting the user.""",
             default=False,
         )
-        bittensor.subtensor.add_args( list_subnets_parser )
+        bittensor.subtensor.add_args(list_subnets_parser)

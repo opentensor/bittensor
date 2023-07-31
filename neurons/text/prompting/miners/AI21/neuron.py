@@ -17,52 +17,68 @@
 
 import argparse
 import bittensor
+from torch import FloatTensor
 
 from typing import List, Dict
 from langchain.llms import AI21
 
-class AI21Miner( bittensor.BasePromptingMiner ):
+
+class AI21Miner(bittensor.BasePromptingMiner):
+    @classmethod
+    def check_config(cls, config: "bittensor.Config"):
+        assert (
+            config.ai21.api_key != None
+        ), "the miner requires passing --ai21.api_key as an argument of the config."
 
     @classmethod
-    def check_config( cls, config: 'bittensor.Config' ):
-        assert config.ai21.api_key != None, 'the miner requires passing --ai21.api_key as an argument of the config.'
-
-    @classmethod
-    def add_args( cls, parser: argparse.ArgumentParser ):
-        parser.add_argument('--ai21.api_key', type=str, help='AI21 API key.', required=True)
-        parser.add_argument('--ai21.model_name', type=str, help='Name of the model.', default='j2-jumbo-instruct')
-        parser.add_argument('--ai21.stop', help='Stop tokens.', default=['user: ', 'bot: ', 'system: '])
-        
-    def __init__( self ):
-        super( AI21Miner, self ).__init__()
-        print ( self.config )
-
-        bittensor.logging.info( 'Loading AI21 Model...' )
-        self.model = AI21( 
-            model = self.config.ai21.model_name, 
-            ai21_api_key = self.config.ai21.api_key, 
-            stop = self.config.ai21.stop
+    def add_args(cls, parser: argparse.ArgumentParser):
+        parser.add_argument(
+            "--ai21.api_key", type=str, help="AI21 API key.", required=True
         )
-        bittensor.logging.info( 'Model loaded!' )
+        parser.add_argument(
+            "--ai21.model_name",
+            type=str,
+            help="Name of the model.",
+            default="j2-jumbo-instruct",
+        )
+        parser.add_argument(
+            "--ai21.stop", help="Stop tokens.", default=["user: ", "bot: ", "system: "]
+        )
 
-    def backward( self, messages: List[Dict[str, str]], response: str, rewards: torch.FloatTensor ) -> str: pass
+    def __init__(self):
+        super(AI21Miner, self).__init__()
+        print(self.config)
+
+        bittensor.logging.info("Loading AI21 Model...")
+        self.model = AI21(
+            model=self.config.ai21.model_name,
+            ai21_api_key=self.config.ai21.api_key,
+            stop=self.config.ai21.stop,
+        )
+        bittensor.logging.info("Model loaded!")
+
+    def backward(
+        self, messages: List[Dict[str, str]], response: str, rewards: FloatTensor
+    ) -> str:
+        pass
 
     @staticmethod
-    def _process_history( history:  List[Dict[str, str]] ) -> str:
-        processed_history = ''
+    def _process_history(history: List[Dict[str, str]]) -> str:
+        processed_history = ""
         for message in history:
-            if message['role'] == 'system':
-                processed_history += 'system: ' + message['content'] + '\n'
-            if message['role'] == 'assistant':
-                processed_history += 'assistant: ' + message['content'] + '\n'
-            if message['role'] == 'user':
-                processed_history += 'user: ' + message['content'] + '\n'
+            if message["role"] == "system":
+                processed_history += "system: " + message["content"] + "\n"
+            if message["role"] == "assistant":
+                processed_history += "assistant: " + message["content"] + "\n"
+            if message["role"] == "user":
+                processed_history += "user: " + message["content"] + "\n"
         return processed_history
 
-    def forward( self, messages: List[Dict[str, str]]  ) -> str:
+    def forward(self, messages: List[Dict[str, str]]) -> str:
         history = self._process_history(messages)
         resp = self.model(history)
         return resp
+
 
 if __name__ == "__main__":
     bittensor.utils.version_checking()
