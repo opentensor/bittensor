@@ -120,13 +120,13 @@ def test_serialize_all_types():
 
 def test_null():
     tensor = torch.tensor([])
-    tensor.item() == bittensor.tensor( tensor ).deserialize().item()
+    bittensor.tensor( tensor ).deserialize()
 
     tensor = torch.tensor([1])
-    tensor.item() == bittensor.tensor( tensor ).deserialize().item()
+    bittensor.tensor( tensor ).deserialize()
 
     tensor = torch.tensor(1)
-    tensor.item() == bittensor.tensor( tensor ).deserialize().item()
+    bittensor.tensor( tensor ).deserialize()
 
 def test_serialize_all_types_equality():
     torchtensor = torch.randn([100], dtype=torch.float16)

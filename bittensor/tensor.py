@@ -144,7 +144,9 @@ class Tensor(pydantic.BaseModel):
             buffer_bytes, object_hook=msgpack_numpy.decode
         ).copy()
         torch_object = torch.as_tensor(numpy_object)
-        if shape != [0] and shape != '[0]': torch_object.view(shape)
+        # Reshape does not work for (0) or [0]
+        if not ( len(shape) == 1 and shape[0] == 0 ): 
+            torch_object = torch_object.reshape(shape)
         return torch_object.type(TORCH_DTYPES[self.dtype])
 
     @staticmethod
