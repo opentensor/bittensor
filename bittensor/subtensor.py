@@ -398,7 +398,6 @@ class subtensor:
 
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                 return True, None
 
             # process if registration successful, try again if pow is still valid
@@ -431,7 +430,6 @@ class subtensor:
 
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                 return True
 
             # process if registration successful, try again if pow is still valid
@@ -531,7 +529,6 @@ class subtensor:
             response = substrate.submit_extrinsic( extrinsic, wait_for_inclusion = wait_for_inclusion, wait_for_finalization = wait_for_finalization )
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                 return True, None, None
 
             # Otherwise continue with finalization.

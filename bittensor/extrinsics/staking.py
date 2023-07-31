@@ -129,7 +129,6 @@ def add_stake_extrinsic(
         if staking_response == True: # If we successfully staked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                 return True
 
             bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
@@ -282,7 +281,6 @@ def add_stake_multiple_extrinsic (
                         sleep( tx_rate_limit_blocks * 12 ) # 12 seconds per block
 
                 if not wait_for_finalization and not wait_for_inclusion:
-                    bittensor.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                     old_balance -= staking_balance
                     successful_stakes += 1
                     if staking_all:
