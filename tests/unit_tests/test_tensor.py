@@ -118,6 +118,16 @@ def test_serialize_all_types():
     bittensor.tensor(torch.tensor([1], dtype=torch.int64))
     bittensor.tensor(torch.tensor([1], dtype=torch.bool))
 
+def test_null():
+    tensor = torch.tensor([])
+    tensor.item() == bittensor.tensor( tensor ).deserialize().item()
+
+    tensor = torch.tensor([1])
+    tensor.item() == bittensor.tensor( tensor ).deserialize().item()
+
+    tensor = torch.tensor(1)
+    tensor.item() == bittensor.tensor( tensor ).deserialize().item()
+
 def test_serialize_all_types_equality():
     torchtensor = torch.randn([100], dtype=torch.float16)
     assert torch.all(bittensor.tensor(torchtensor).tensor() == torchtensor)

@@ -43,13 +43,20 @@ __use_console__ = True
 # Remove overdue locals in debug training.
 install(show_locals=False)
 
-
 def turn_console_off():
+    global __use_console__
+    global __console__
     from io import StringIO
-
     __use_console__ = False
     __console__ = Console(file=StringIO(), stderr=False)
 
+def turn_console_on():
+    global __use_console__
+    global __console__
+    __use_console__ = True
+    __console__ = Console()
+
+turn_console_off()
 
 # Logging helpers.
 def trace(on: bool = True):
