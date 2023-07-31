@@ -143,7 +143,8 @@ class Tensor(pydantic.BaseModel):
         numpy_object = msgpack.unpackb(
             buffer_bytes, object_hook=msgpack_numpy.decode
         ).copy()
-        torch_object = torch.as_tensor(numpy_object).view(shape)
+        torch_object = torch.as_tensor(numpy_object)
+        if shape != [0]: torch_object.view(shape)
         return torch_object.type(TORCH_DTYPES[self.dtype])
 
     @staticmethod
