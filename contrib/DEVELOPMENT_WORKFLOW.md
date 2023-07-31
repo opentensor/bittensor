@@ -1,6 +1,5 @@
 ## Table of contents
 
-Sure, here's the generated table of contents based on your text:
 
 - [1. Introduction](#1-introduction)
     - [What is Bittensor?](#what-is-bittensor)
