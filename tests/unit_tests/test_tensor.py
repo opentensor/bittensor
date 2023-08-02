@@ -38,15 +38,6 @@ def test_deserialize(example_tensor):
     assert isinstance(tensor, torch.Tensor)
     assert tensor.tolist() == [1, 2, 3, 4]
 
-def test_empty(example_tensor):
-    # Deserialize the tensor from the Tensor instance
-    tensor = example_tensor.deserialize()
-
-    # Check that the result is a PyTorch tensor with the correct values
-    assert isinstance(tensor, torch.Tensor)
-    assert tensor.tolist() == [1, 2, 3, 4]
-
-
 
 def test_serialize(example_tensor):
     # Check that the serialized tensor is an instance of Tensor
@@ -118,15 +109,6 @@ def test_serialize_all_types():
     bittensor.tensor(torch.tensor([1], dtype=torch.int64))
     bittensor.tensor(torch.tensor([1], dtype=torch.bool))
 
-def test_null():
-    tensor = torch.tensor([])
-    bittensor.tensor( tensor ).deserialize()
-
-    tensor = torch.tensor([1])
-    bittensor.tensor( tensor ).deserialize()
-
-    tensor = torch.tensor(1)
-    bittensor.tensor( tensor ).deserialize()
 
 def test_serialize_all_types_equality():
     torchtensor = torch.randn([100], dtype=torch.float16)

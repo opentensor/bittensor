@@ -202,7 +202,9 @@ class TestAxonMiddleware(IsolatedAsyncioTestCase):
         # Create a mock axon
         self.mock_axon = MagicMock()
         self.mock_axon.uuid = "1234"
-        self.mock_axon.forward_class_types = {"request_name": bittensor.Synapse}
+        self.mock_axon.forward_class_types = {
+            "request_name": bittensor.Synapse,
+        }
         self.mock_axon.wallet.hotkey.sign.return_value = bytes.fromhex("aabbccdd")
         # Create an instance of AxonMiddleware
         self.axon_middleware = AxonMiddleware(self.mock_app, self.mock_axon)

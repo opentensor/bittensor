@@ -106,7 +106,9 @@ def select_port():
 
 def setup_subtensor(port: int):
     chain_endpoint = "localhost:{}".format(port)
-    subtensor = bittensor.subtensor(chain_endpoint=chain_endpoint)
+    subtensor = bittensor.subtensor(
+        chain_endpoint=chain_endpoint,
+    )
     return subtensor, port
 
 
@@ -175,7 +177,7 @@ class TestRegistrationHelpers(unittest.TestCase):
         subtensor.get_block_hash = MagicMock(return_value=block_hash)
         subtensor.is_hotkey_registered = MagicMock(return_value=False)
         wallet = MagicMock(
-            hotkey=Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+            hotkey=Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
         )
         num_proc: int = 1
         limit = int(math.pow(2, 256)) - 1
@@ -219,7 +221,7 @@ class TestRegistrationHelpers(unittest.TestCase):
                 side_effect=is_registered_return_values
             )
             wallet = MagicMock(
-                hotkey=Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+                hotkey=Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
             )
 
             # all arugments should return None to indicate an early return
@@ -247,7 +249,7 @@ class TestRegistrationHelpers(unittest.TestCase):
         )
         subtensor.is_hotkey_registered = MagicMock(return_value=False)
         wallet = MagicMock(
-            hotkey=Keypair.create_from_mnemonic(Keypair.generate_mnemonic())
+            hotkey=Keypair.create_from_mnemonic(Keypair.generate_mnemonic()),
         )
         num_proc: int = 1
         limit = int(math.pow(2, 256)) - 1
@@ -484,7 +486,9 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
         ]
 
         mock_curr_stats = MagicMock(
-            block_number=current_block_num, block_hash=b"", difficulty=0
+            block_number=current_block_num,
+            block_hash=b"",
+            difficulty=0,
         )
 
         self.assertEqual(
@@ -575,7 +579,9 @@ class TestGetBlockWithRetry(unittest.TestCase):
 
 class TestPOWNotStale(unittest.TestCase):
     def test_pow_not_stale_same_block_number(self):
-        mock_subtensor = MagicMock(get_current_block=MagicMock(return_value=1))
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=1),
+        )
         mock_solution = bittensor.utils.registration.POWSolution(
             block_number=1,  # 3 less than current block number
             nonce=1,
@@ -586,7 +592,9 @@ class TestPOWNotStale(unittest.TestCase):
         assert not mock_solution.is_stale(mock_subtensor)
 
     def test_pow_not_stale_diff_block_number(self):
-        mock_subtensor = MagicMock(get_current_block=MagicMock(return_value=2))
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=2),
+        )
         mock_solution = bittensor.utils.registration.POWSolution(
             block_number=1,  # 1 less than current block number
             nonce=1,
@@ -596,7 +604,9 @@ class TestPOWNotStale(unittest.TestCase):
 
         assert not mock_solution.is_stale(mock_subtensor)
 
-        mock_subtensor = MagicMock(get_current_block=MagicMock(return_value=3))
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=3),
+        )
         mock_solution = bittensor.utils.registration.POWSolution(
             block_number=1,  # 2 less than current block number
             nonce=1,
@@ -606,7 +616,9 @@ class TestPOWNotStale(unittest.TestCase):
 
         assert not mock_solution.is_stale(mock_subtensor)
 
-        mock_subtensor = MagicMock(get_current_block=MagicMock(return_value=4))
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=4),
+        )
         mock_solution = bittensor.utils.registration.POWSolution(
             block_number=1,  # 3 less than current block number
             nonce=1,
@@ -617,7 +629,9 @@ class TestPOWNotStale(unittest.TestCase):
         assert not mock_solution.is_stale(mock_subtensor)
 
     def test_pow_not_stale_diff_block_number_too_old(self):
-        mock_subtensor = MagicMock(get_current_block=MagicMock(return_value=5))
+        mock_subtensor = MagicMock(
+            get_current_block=MagicMock(return_value=5),
+        )
         mock_solution = bittensor.utils.registration.POWSolution(
             block_number=1,  # 4 less than current block number
             nonce=1,
@@ -870,7 +884,8 @@ class TestWalletReregister(unittest.TestCase):
         )
         self.assertTrue(
             self._mock_subtensor.is_hotkey_registered_on_subnet(
-                netuid=3, hotkey_ss58=mock_wallet.hotkey.ss58_address
+                netuid=3,
+                hotkey_ss58=mock_wallet.hotkey.ss58_address,
             )
         )
 
@@ -903,7 +918,8 @@ class TestWalletReregister(unittest.TestCase):
         )
         self.assertTrue(
             self._mock_subtensor.is_hotkey_registered_on_subnet(
-                netuid=3, hotkey_ss58=mock_wallet.hotkey.ss58_address
+                netuid=3,
+                hotkey_ss58=mock_wallet.hotkey.ss58_address,
             )
         )
 
