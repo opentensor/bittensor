@@ -25,6 +25,7 @@ from typing import List, Union, Optional, Dict, Tuple
 
 console = bittensor.__console__
 
+
 class RegisterSubnetworkCommand:
     @staticmethod
     def run(cli):
@@ -38,8 +39,8 @@ class RegisterSubnetworkCommand:
 
         # Call register command.
         subtensor.register_subnetwork(
-            wallet = wallet,
-            prompt = not cli.config.no_prompt,
+            wallet=wallet,
+            prompt=not cli.config.no_prompt,
         )
 
     @classmethod
@@ -51,7 +52,8 @@ class RegisterSubnetworkCommand:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         parser = parser.add_parser(
-            "register_subnet", help="""Register a new bittensor subnetwork on this chain."""
+            "register_subnet",
+            help="""Register a new bittensor subnetwork on this chain.""",
         )
         parser.add_argument(
             "--no_version_checking",

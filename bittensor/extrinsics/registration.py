@@ -89,7 +89,9 @@ def register_extrinsic(
             wallet.hotkey.ss58_address, netuid=netuid
         )
         if not neuron.is_null:
-            bittensor.logging.debug(f'Wallet {wallet} is already registered on {neuron.netuid} with {neuron.uid}')
+            bittensor.logging.debug(
+                f"Wallet {wallet} is already registered on {neuron.netuid} with {neuron.uid}"
+            )
             return True
 
     if prompt:

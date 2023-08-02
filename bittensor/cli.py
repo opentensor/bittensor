@@ -52,7 +52,7 @@ COMMANDS = {
     "senate_register": SenateRegisterCommand,
     "senate_leave": SenateLeaveCommand,
     "senate_vote": VoteCommand,
-    "register_subnet": RegisterSubnetworkCommand
+    "register_subnet": RegisterSubnetworkCommand,
 }
 
 

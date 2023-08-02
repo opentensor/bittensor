@@ -199,18 +199,24 @@ class subtensor:
                 self.config.subtensor.network = network
 
         elif network is not None:
-            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(network)
+            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
+                network
+            )
             self.config.subtensor.network = network
 
         elif self.config.subtensor.get("chain_endpoint"):
             self.config.subtensor.chain_endpoint = self.config.subtensor.chain_endpoint
 
         elif self.config.subtensor.get("network"):
-            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(self.config.subtensor.network)
+            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
+                self.config.subtensor.network
+            )
             self.config.subtensor.network = self.config.subtensor.network
 
         else:
-            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(bittensor.defaults.subtensor.network)
+            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
+                bittensor.defaults.subtensor.network
+            )
             self.config.subtensor.network = bittensor.defaults.subtensor.network
 
     def __str__(self) -> str:
@@ -609,14 +615,15 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = False,
-        wait_for_finalization = True,
+        wait_for_finalization=True,
         prompt: bool = False,
-    ) -> bool: return register_subnetwork_extrinsic( 
+    ) -> bool:
+        return register_subnetwork_extrinsic(
             self,
-            wallet = wallet, 
-            wait_for_inclusion = wait_for_inclusion,
-            wait_for_finalization = wait_for_finalization,
-            prompt = prompt,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
         )
 
     #################
