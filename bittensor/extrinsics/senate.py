@@ -75,9 +75,6 @@ def register_senate_extrinsic(
 
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Sent[/green]"
-                )
                 return True
 
             # process if registration successful
@@ -157,9 +154,6 @@ def leave_senate_extrinsic(
 
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Sent[/green]"
-                )
                 return True
 
             # process if registration successful
@@ -247,9 +241,6 @@ def vote_senate_extrinsic(
 
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Sent[/green]"
-                )
                 return True
 
             # process if vote successful

@@ -52,6 +52,7 @@ COMMANDS = {
     "senate_register": SenateRegisterCommand,
     "senate_leave": SenateLeaveCommand,
     "senate_vote": VoteCommand,
+    "register_subnet": RegisterSubnetworkCommand,
 }
 
 
@@ -73,6 +74,9 @@ class cli:
             config (bittensor.config, optional): The configuration settings for the CLI.
             args (List[str], optional): List of command line arguments.
         """
+        # Turns on console for cli.
+        bittensor.turn_console_on()
+
         # If no config is provided, create a new one from args.
         if config == None:
             config = cli.create_config(args)
