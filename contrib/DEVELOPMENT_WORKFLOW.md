@@ -1,6 +1,6 @@
 # Bittensor Development Workflow
 
-## Table
+## Table of Contents
 - [1. Architecture](#1-architecture)
     - [Overview of Bittensor's architecture](#overview-of-bittensors-architecture)
     - [How the different components interact?](#how-the-different-components-interact)
