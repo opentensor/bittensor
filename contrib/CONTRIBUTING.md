@@ -3,7 +3,7 @@
 The following is a set of guidelines for contributing to Bittensor, which are hosted in the [Opentensor Organization](https://github.com/opentensor) on GitHub. These are mostly guidelines, not rules. Use your best judgment, and feel free to propose changes to this document in a pull request.
 
 ## Table Of Contents
-
+1. [Architecture](#architecture)
 1. [I don't want to read this whole thing, I just have a question!!!](#i-dont-want-to-read-this-whole-thing-i-just-have-a-question)
 1. [What should I know before I get started?](#what-should-i-know-before-i-get-started)
 1. [Getting Started](#getting-started)
@@ -21,6 +21,14 @@ The following is a set of guidelines for contributing to Bittensor, which are ho
  1. [Reporting Bugs](#reporting-bugs)
  1. [Suggesting Features](#suggesting-enhancements)
 
+## Architecture
+### Overview of Bittensor's architecture
+
+Bittensor's architecture consists of several key components, including the Bittensor protocol, the wallet, neurons, subtensor, and the Metagraph. These components work together to create a decentralized network for AI model training.
+
+### How the different components interact?
+
+Neurons in the Bittensor network interact with the Metagraph, a decentralized ledger that keeps track of the state of the network. The wallet is used to manage the tokens that are used for incentives in the network. The subtensor is a lower-level protocol that handles communication between neurons.
 
 ## I don't want to read this whole thing I just have a question!
 
