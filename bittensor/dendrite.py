@@ -402,3 +402,4 @@ class dendrite(torch.nn.Module):
         Returns:
             str: The string representation of the Dendrite object in the format "dendrite(<user_wallet_address>)".
         """
+        return self.__str__()
