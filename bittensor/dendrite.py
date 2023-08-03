@@ -79,6 +79,8 @@ class dendrite(torch.nn.Module):
             wallet.hotkey if isinstance(wallet, bt.wallet) else wallet
         ) or bt.wallet().hotkey
 
+        self.synapse_history: list = []
+
     def query(self, *args, **kwargs):
         """
         Makes a synchronous request to multiple target Axons and returns the server responses.
@@ -258,6 +260,10 @@ class dendrite(torch.nn.Module):
             bt.logging.debug(
                 f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
             )
+
+            # Log synapse event history
+            self.synapse_history.append(bt.Synapse.from_headers(synapse.to_headers()))
+
             # Return the updated synapse object after deserializing if requested
             if deserialize:
                 return synapse.deserialize()
