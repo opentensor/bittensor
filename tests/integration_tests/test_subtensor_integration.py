@@ -108,12 +108,12 @@ class TestSubtensor(unittest.TestCase):
                     msg="Explicit network arg should override config.network",
                 )
 
-                # Choose chain_endpoint config over network config
+                # Choose network config over chain_endpoint config
                 sub2 = bittensor.subtensor(config=config0)
                 self.assertEqual(
                     sub2.chain_endpoint,
-                    config0.subtensor.chain_endpoint,
-                    msg="config.chain_endpoint should override choice derived from config.network",
+                    bittensor.__finney_entrypoint__, # Here we expect the endpoint corresponding to the network "finney"
+                    msg="config.network should override config.chain_endpoint",
                 )
 
                 sub3 = bittensor.subtensor(config=config1)

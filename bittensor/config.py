@@ -119,7 +119,7 @@ class config(Munch):
         # Splits params on dot syntax i.e neuron.axon_port
         # The is_set map only sets True if a value is different from the default values.
         for arg_key, arg_val in params.__dict__.items():
-            # default_val = parser.get_default(arg_key)
+            default_val = parser.get_default(arg_key)
             split_keys = arg_key.split(".")
             head = _config
             keys = split_keys
@@ -133,8 +133,8 @@ class config(Munch):
                     keys = keys[1:]
             if len(keys) == 1:
                 head[keys[0]] = arg_val
-                # if arg_val != default_val:
-                #     _config['__is_set'][arg_key] = True
+                if arg_val != default_val:
+                    _config['__is_set'][arg_key] = True
 
         ## Reparse args using default of unset
         parser_no_defaults = copy.deepcopy(parser)

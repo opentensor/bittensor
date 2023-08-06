@@ -161,7 +161,7 @@ class subtensor:
 
         # Determine config.subtensor.chain_endpoint and config.subtensor.network config.
         # If chain_endpoint is set, we override the network flag, otherwise, the chain_endpoint is assigned by the network.
-        # Argument importance: chain_endpoint > network > config.subtensor.chain_endpoint > config.subtensor.network
+        # Argument importance: network > chain_endpoint > config.subtensor.chain_endpoint > config.subtensor.network
         if config == None:
             config = subtensor.config()
         self.config = copy.deepcopy(config)
@@ -197,27 +197,31 @@ class subtensor:
             self.config.subtensor.chain_endpoint = chain_endpoint
             if network is not None:
                 self.config.subtensor.network = network
+            return
 
-        elif network is not None:
-            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
-                network
-            )
+        if network is not None:
+            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(network)
             self.config.subtensor.network = network
+            return
 
-        elif self.config.subtensor.get("chain_endpoint"):
+        if self.config.get("__is_set", {}).get("subtensor.chain_endpoint"):
             self.config.subtensor.chain_endpoint = self.config.subtensor.chain_endpoint
+            return
 
-        elif self.config.subtensor.get("network"):
-            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
-                self.config.subtensor.network
-            )
-            self.config.subtensor.network = self.config.subtensor.network
+        if self.config.get("__is_set", {}).get("subtensor.network"):
+            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(self.config.subtensor.network)
+            return
 
-        else:
-            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
-                bittensor.defaults.subtensor.network
-            )
-            self.config.subtensor.network = bittensor.defaults.subtensor.network
+        if self.config.subtensor.get("network"):
+            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(self.config.subtensor.network)
+            return
+
+        if self.config.subtensor.get("chain_endpoint"):
+            self.config.subtensor.chain_endpoint = self.config.subtensor.chain_endpoint
+            return
+
+        self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(bittensor.defaults.subtensor.network)
+        self.config.subtensor.network = bittensor.defaults.subtensor.network
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
