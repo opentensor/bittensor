@@ -134,7 +134,7 @@ class config(Munch):
             if len(keys) == 1:
                 head[keys[0]] = arg_val
                 if arg_val != default_val:
-                    _config['__is_set'][arg_key] = True
+                    _config["__is_set"][arg_key] = True
 
         ## Reparse args using default of unset
         parser_no_defaults = copy.deepcopy(parser)

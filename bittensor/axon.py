@@ -642,7 +642,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
             # Logs the start of the request processing
             bittensor.logging.debug(
-                f"axon     | <-- | {request.headers['content-length']} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success "
+                f"axon     | <-- | {request.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success "
             )
 
             # Call the verify function
@@ -685,7 +685,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             # Log the details of the processed synapse, including total size, name, hotkey, IP, port,
             # status code, and status message, using the debug level of the logger.
             bittensor.logging.debug(
-                f"axon     | --> | {response.headers['content-length']} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}"
+                f"axon     | --> | {response.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}"
             )
 
             # Return the response to the requester.

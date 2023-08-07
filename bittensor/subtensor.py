@@ -200,7 +200,9 @@ class subtensor:
             return
 
         if network is not None:
-            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(network)
+            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
+                network
+            )
             self.config.subtensor.network = network
             return
 
@@ -209,18 +211,24 @@ class subtensor:
             return
 
         if self.config.get("__is_set", {}).get("subtensor.network"):
-            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(self.config.subtensor.network)
+            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
+                self.config.subtensor.network
+            )
             return
 
         if self.config.subtensor.get("network"):
-            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(self.config.subtensor.network)
+            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
+                self.config.subtensor.network
+            )
             return
 
         if self.config.subtensor.get("chain_endpoint"):
             self.config.subtensor.chain_endpoint = self.config.subtensor.chain_endpoint
             return
 
-        self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(bittensor.defaults.subtensor.network)
+        self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
+            bittensor.defaults.subtensor.network
+        )
         self.config.subtensor.network = bittensor.defaults.subtensor.network
 
     def __str__(self) -> str:

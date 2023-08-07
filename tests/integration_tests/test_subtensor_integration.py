@@ -112,7 +112,7 @@ class TestSubtensor(unittest.TestCase):
                 sub2 = bittensor.subtensor(config=config0)
                 self.assertEqual(
                     sub2.chain_endpoint,
-                    bittensor.__finney_entrypoint__, # Here we expect the endpoint corresponding to the network "finney"
+                    bittensor.__finney_entrypoint__,  # Here we expect the endpoint corresponding to the network "finney"
                     msg="config.network should override config.chain_endpoint",
                 )
 
