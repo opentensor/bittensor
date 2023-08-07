@@ -60,7 +60,7 @@ You can start by looking through these `beginner` and `help-wanted` issues:
 ## Communication Channels
 Most communication about Bittensor development happens on Discord channel.
 Here's the link of Discord community.
-https://discord.com/channels/799672011265015819/799672011814862902
+[Bittensor Discord](https://discord.com/channels/799672011265015819/799672011814862902)
 
 And also here.
 https://discord.com/channels/1120750674595024897/1120799375703162950
