@@ -23,6 +23,7 @@ import os
 import uuid
 import copy
 import time
+import numpy
 import inspect
 import uvicorn
 import argparse
@@ -247,7 +248,12 @@ class axon:
         self.app.include_router(self.router)
 
         # Build ourselves as the middleware.
-        self.app.add_middleware(AxonMiddleware, axon=self)
+        # import pdb; pdb.set_trace()
+        self.metagraph = bittensor.metagraph(self.config.get("netuid", 1))
+        self.whitelist = numpy.array(self.metagraph.addresses)[
+            self.metagraph.validator_permit.numpy()
+        ].tolist()
+        self.app.add_middleware(AxonMiddleware, axon=self, whitelist=self.whitelist)
 
         # Attach default forward.
         def ping(r: bittensor.Synapse) -> bittensor.Synapse:
@@ -637,6 +643,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
         start_time = time.time()
 
         try:
+            # Ensure ip is in whitelist.
+            await self.check_whitelist(request)
+
             # Set up the synapse from its headers.
             synapse: bittensor.Synapse = await self.preprocess(request)
 
@@ -690,6 +699,17 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
             # Return the response to the requester.
             return response
+
+    async def check_whitelist(self, request):
+        """
+        Checks if the client IP is in the whitelist, which contains validator ips with active vpermits.
+
+        Args:
+            request (starlet Request): The incoming request.
+        """
+        client_ip = request.client.host
+        if client_ip not in self.whitelist:
+            raise Exception("Forbidden. IP is not whitelisted.")
 
     async def preprocess(self, request) -> bittensor.Synapse:
         """
