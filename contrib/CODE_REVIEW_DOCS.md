@@ -54,7 +54,7 @@ about:
     (because people don't assume *others* won't actually like the proposal). Don't take
     that personally, though! Instead, take another critical look at what you are suggesting
     and see if it: changes too much, is too broad, doesn't adhere to the
-    [developer notes](doc/developer-notes.md), is dangerous or insecure, is messily written, etc.
+    [developer notes](DEVELOPMENT_WORKFLOW.md), is dangerous or insecure, is messily written, etc.
     Identify and address any of the issues you find. Then ask e.g. on IRC if someone could give
     their opinion on the concept itself.
   - It may be because your code is too complex for all but a few people, and those people
