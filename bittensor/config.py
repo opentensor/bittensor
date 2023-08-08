@@ -79,8 +79,9 @@ class config(DefaultMunch):
                 help="If set, defaults are overridden by passed file.",
             )
         except:
-            # this can fail if the --config has already been added.
+            # this can fail if --config has already been added.
             pass
+
         try:
             parser.add_argument(
                 "--strict",
@@ -89,7 +90,7 @@ class config(DefaultMunch):
                 default=False,
             )
         except:
-            # this can fail if the --config has already been added.
+            # this can fail if --strict has already been added.
             pass
 
         # Get args from argv if not passed in.

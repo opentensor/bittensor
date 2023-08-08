@@ -77,7 +77,7 @@ class subtensor:
     def config() -> "bittensor.config":
         parser = argparse.ArgumentParser()
         subtensor.add_args(parser)
-        return bittensor.config(parser)
+        return bittensor.config(parser, args=[])
 
     @classmethod
     def help(cls):

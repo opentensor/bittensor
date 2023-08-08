@@ -197,7 +197,7 @@ class PriorityThreadPoolExecutor(_base.Executor):
         """
         parser = argparse.ArgumentParser()
         PriorityThreadPoolExecutor.add_args(parser)
-        return bittensor.config(parser)
+        return bittensor.config(parser, args=[])
 
     @property
     def is_empty(self):
