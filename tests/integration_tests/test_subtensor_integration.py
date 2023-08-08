@@ -89,6 +89,7 @@ class TestSubtensor(unittest.TestCase):
         # Mock network calls
         with patch("substrateinterface.SubstrateInterface.connect_websocket"):
             with patch("substrateinterface.SubstrateInterface.reload_type_registry"):
+                print(bittensor.subtensor, type(bittensor.subtensor))
                 # Choose arg over config
                 sub0 = bittensor.subtensor(
                     config=config0, chain_endpoint="wss://fin.subtensor.io"
@@ -107,12 +108,12 @@ class TestSubtensor(unittest.TestCase):
                     msg="Explicit network arg should override config.network",
                 )
 
-                # Choose chain_endpoint config over network config
+                # Choose network config over chain_endpoint config
                 sub2 = bittensor.subtensor(config=config0)
                 self.assertEqual(
                     sub2.chain_endpoint,
-                    config0.subtensor.chain_endpoint,
-                    msg="config.chain_endpoint should override choice derived from config.network",
+                    bittensor.__finney_entrypoint__,  # Here we expect the endpoint corresponding to the network "finney"
+                    msg="config.network should override config.chain_endpoint",
                 )
 
                 sub3 = bittensor.subtensor(config=config1)
@@ -257,7 +258,11 @@ class TestSubtensor(unittest.TestCase):
             return_value=self.mock_neuron
         )
         self.subtensor.get_balance = MagicMock(return_value=self.balance)
-        success = self.subtensor.transfer(self.wallet, fake_coldkey, amount=200)
+        success = self.subtensor.transfer(
+            self.wallet,
+            fake_coldkey,
+            amount=200,
+        )
         self.assertTrue(success, msg="Transfer should succeed")
 
     def test_transfer_inclusion(self):
@@ -328,7 +333,10 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor._do_set_weights = MagicMock(return_value=(True, None))
 
         success = self.subtensor.set_weights(
-            wallet=self.wallet, netuid=3, uids=[1], weights=chain_weights
+            wallet=self.wallet,
+            netuid=3,
+            uids=[1],
+            weights=chain_weights,
         )
         assert success == True
 
@@ -560,7 +568,9 @@ class TestSubtensor(unittest.TestCase):
                 return_value=MagicMock(is_null=True)
             ),  # not registered
             _do_pow_register=mock_do_pow_register,
-            substrate=MagicMock(get_block_hash=MagicMock(return_value="0x" + "0" * 64)),
+            substrate=MagicMock(
+                get_block_hash=MagicMock(return_value="0x" + "0" * 64),
+            ),
         )
 
         mock_wallet = MagicMock()

@@ -30,6 +30,8 @@ TORCH_DTYPES = {
     "torch.float32": torch.float32,
     "torch.float64": torch.float64,
     "torch.uint8": torch.uint8,
+    "torch.int16": torch.int16,
+    "torch.int8": torch.int8,
     "torch.int32": torch.int32,
     "torch.int64": torch.int64,
     "torch.bool": torch.bool,
@@ -141,7 +143,10 @@ class Tensor(pydantic.BaseModel):
         numpy_object = msgpack.unpackb(
             buffer_bytes, object_hook=msgpack_numpy.decode
         ).copy()
-        torch_object = torch.as_tensor(numpy_object).view(shape)
+        torch_object = torch.as_tensor(numpy_object)
+        # Reshape does not work for (0) or [0]
+        if not (len(shape) == 1 and shape[0] == 0):
+            torch_object = torch_object.reshape(shape)
         return torch_object.type(TORCH_DTYPES[self.dtype])
 
     @staticmethod
@@ -160,6 +165,8 @@ class Tensor(pydantic.BaseModel):
         """
         dtype = str(tensor.dtype)
         shape = list(tensor.shape)
+        if len(shape) == 0:
+            shape = [0]
         torch_numpy = tensor.cpu().detach().numpy().copy()
         data_buffer = base64.b64encode(
             msgpack.packb(torch_numpy, default=msgpack_numpy.encode)

@@ -99,9 +99,6 @@ def set_weights_extrinsic(
             )
 
             if not wait_for_finalization and not wait_for_inclusion:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Sent[/green]"
-                )
                 return True
 
             if success == True:

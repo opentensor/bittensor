@@ -78,7 +78,7 @@ def serve_extrinsic(
         "placeholder1": placeholder1,
         "placeholder2": placeholder2,
     }
-    bittensor.logging.info("Checking axon ...")
+    bittensor.logging.debug("Checking axon ...")
     neuron = subtensor.get_neuron_for_pubkey_and_subnet(
         wallet.hotkey.ss58_address, netuid=netuid
     )
@@ -98,7 +98,7 @@ def serve_extrinsic(
     output["coldkey"] = wallet.coldkeypub.ss58_address
     output["hotkey"] = wallet.hotkey.ss58_address
     if neuron_up_to_date:
-        bittensor.logging.info(
+        bittensor.logging.debug(
             f"Axon already served on: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) "
         )
         return True
@@ -114,7 +114,7 @@ def serve_extrinsic(
         ):
             return False
 
-    bittensor.logging.info(
+    bittensor.logging.debug(
         f"Serving axon with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) -> {subtensor.network}:{netuid}"
     )
     success, error_message = subtensor._do_serve_axon(
@@ -126,12 +126,12 @@ def serve_extrinsic(
 
     if wait_for_inclusion or wait_for_finalization:
         if success == True:
-            bittensor.logging.info(
+            bittensor.logging.debug(
                 f"Axon served with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) on {subtensor.network}:{netuid} "
             )
             return True
         else:
-            bittensor.logging.info(
+            bittensor.logging.debug(
                 f"Axon failed to served with error: {error_message} "
             )
             return False
