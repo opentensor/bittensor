@@ -607,18 +607,6 @@ class axon:
         self.nonces[endpoint_key] = synapse.dendrite.nonce
 
 
-class IPNotWhitelistedException(Exception):
-    """Exception raised for IPs that are not whitelisted."""
-
-    def __init__(self, ip_address, message="Forbidden. IP is not whitelisted."):
-        self.ip_address = ip_address
-        self.message = message
-        super().__init__(self.message)
-
-    def __str__(self):
-        return f"{self.ip_address} -> {self.message}"
-
-
 class AxonMiddleware(BaseHTTPMiddleware):
     """
     Class AxonMiddleware handles the entire process of the request to the Axon.
@@ -655,6 +643,8 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Records the start time of the request processing.
         start_time = time.time()
 
+        # Empty synapse to be filled in case of ip blacklist.
+        synapse = bittensor.Synapse()
         try:
             # Ensure ip is in whitelist.
             await self.check_whitelist(request)
@@ -681,10 +671,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
             # Call the postprocess function
             response = await self.postprocess(synapse, response, start_time)
-
-        except IPNotWhitelistedException as e:
-            synapse = bt.Synapse()
-            response = JSONResponse(status_code=403, content={"message": str(e)})
 
         # Start of catching all exceptions, updating the status message, and processing time.
         except Exception as e:
@@ -727,9 +713,8 @@ class AxonMiddleware(BaseHTTPMiddleware):
         Raises:
             IPNotWhitelistedException: If the IP is not in the whitelist.
         """
-        client_ip = request.client.host
-        if client_ip not in self.whitelist:
-            raise IPNotWhitelistedException(client_ip)
+        if request.client.host not in self.whitelist:
+            raise Exception("Forbidden. IP is not whitelisted.")
 
     async def preprocess(self, request) -> bittensor.Synapse:
         """
