@@ -249,7 +249,8 @@ class axon:
         self.app.include_router(self.router)
 
         # Build ourselves as the middleware.
-        if netuid is None: netuid = 1
+        if netuid is None:
+            netuid = 1
         self.metagraph = bittensor.metagraph(self.config.get("netuid") or netuid)
         self.whitelist = numpy.array(self.metagraph.addresses)[
             self.metagraph.validator_permit.numpy()
