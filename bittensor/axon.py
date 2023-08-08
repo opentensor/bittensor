@@ -607,6 +607,18 @@ class axon:
         self.nonces[endpoint_key] = synapse.dendrite.nonce
 
 
+class IPNotWhitelistedException(Exception):
+    """Exception raised for IPs that are not whitelisted."""
+
+    def __init__(self, ip_address, message="Forbidden. IP is not whitelisted."):
+        self.ip_address = ip_address
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return f"{self.ip_address} -> {self.message}"
+
+
 class AxonMiddleware(BaseHTTPMiddleware):
     """
     Class AxonMiddleware handles the entire process of the request to the Axon.
@@ -615,7 +627,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
     This class also runs the requested function and updates the headers of the response.
     """
 
-    def __init__(self, app, axon):
+    def __init__(self, app, axon, whitelist: List[str] = []):
         """
         Initialize the AxonMiddleware class.
 
@@ -625,6 +637,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         """
         super().__init__(app)
         self.axon = axon
+        self.whitelist = whitelist
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
@@ -669,6 +682,10 @@ class AxonMiddleware(BaseHTTPMiddleware):
             # Call the postprocess function
             response = await self.postprocess(synapse, response, start_time)
 
+        except IPNotWhitelistedException as e:
+            synapse = bt.Synapse()
+            response = JSONResponse(status_code=403, content={"message": str(e)})
+
         # Start of catching all exceptions, updating the status message, and processing time.
         except Exception as e:
             # Log the exception for debugging purposes.
@@ -702,14 +719,17 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
     async def check_whitelist(self, request):
         """
-        Checks if the client IP is in the whitelist, which contains validator ips with active vpermits.
+        Checks if the client IP is in the whitelist, which contains validator IPs with active permits.
 
         Args:
             request (starlet Request): The incoming request.
+
+        Raises:
+            IPNotWhitelistedException: If the IP is not in the whitelist.
         """
         client_ip = request.client.host
         if client_ip not in self.whitelist:
-            raise Exception("Forbidden. IP is not whitelisted.")
+            raise IPNotWhitelistedException(client_ip)
 
     async def preprocess(self, request) -> bittensor.Synapse:
         """
