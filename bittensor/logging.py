@@ -134,7 +134,7 @@ class logging:
         """
         parser = argparse.ArgumentParser()
         logging.add_args(parser)
-        return bittensor.config(parser)
+        return bittensor.config(parser, args=[])
 
     @classmethod
     def help(cls):

@@ -399,7 +399,7 @@ class axon:
         """
         parser = argparse.ArgumentParser()
         axon.add_args(parser)  # Add specific axon-related arguments
-        return bittensor.config(parser)
+        return bittensor.config(parser, args=[])
 
     @classmethod
     def help(cls):
