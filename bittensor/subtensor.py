@@ -1729,7 +1729,7 @@ class subtensor:
         return self.query_subtensor("ValidatorPermit", block, [netuid, uid]).value
 
     def neuron_for_wallet(
-        self, wallet: "bittensor.wallet", netuid=int, block: Optional[int] = None
+        self, wallet: "bittensor.wallet", netuid: int, block: Optional[int] = None
     ) -> Optional[NeuronInfo]:
         return self.get_neuron_for_pubkey_and_subnet(
             wallet.hotkey.ss58_address, netuid=netuid, block=block
