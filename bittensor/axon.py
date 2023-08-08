@@ -168,6 +168,7 @@ class axon:
         external_ip: Optional[str] = None,
         external_port: Optional[int] = None,
         max_workers: Optional[int] = None,
+        netuid: Optional[int] = None,
     ) -> "bittensor.axon":
         r"""Creates a new bittensor.Axon object from passed arguments.
         Args:
@@ -248,8 +249,8 @@ class axon:
         self.app.include_router(self.router)
 
         # Build ourselves as the middleware.
-        # import pdb; pdb.set_trace()
-        self.metagraph = bittensor.metagraph(self.config.get("netuid", 1))
+        if netuid is None: netuid = 1
+        self.metagraph = bittensor.metagraph(self.config.get("netuid") or netuid)
         self.whitelist = numpy.array(self.metagraph.addresses)[
             self.metagraph.validator_permit.numpy()
         ].tolist()
