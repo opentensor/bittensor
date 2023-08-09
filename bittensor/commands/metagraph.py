@@ -35,7 +35,6 @@ class MetagraphCommand:
                 cli.config.subtensor.network
             )
         )
-        print("netuid in metagraphCommand:", cli.config.netuid)
         metagraph: bittensor.metagraph = subtensor.metagraph(netuid=cli.config.netuid)
         metagraph.save()
         difficulty = subtensor.difficulty(cli.config.netuid)
