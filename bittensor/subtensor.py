@@ -44,7 +44,11 @@ from .extrinsics.network import register_subnetwork_extrinsic
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .extrinsics.serving import serve_extrinsic, serve_axon_extrinsic
-from .extrinsics.registration import register_extrinsic, burned_register_extrinsic, run_faucet_extrinsic
+from .extrinsics.registration import (
+    register_extrinsic,
+    burned_register_extrinsic,
+    run_faucet_extrinsic,
+)
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.prometheus import prometheus_extrinsic
@@ -401,7 +405,7 @@ class subtensor:
             update_interval=update_interval,
             log_verbose=log_verbose,
         )
-    
+
     def run_faucet(
         self,
         wallet: "bittensor.wallet",
@@ -1924,10 +1928,8 @@ class subtensor:
         metagraph_.sync(block=block, lite=lite, subtensor=self)
 
         return metagraph_
-    
-    def incentive(
-        self, netuid: int, block: Optional[int] = None
-    ) -> List[int]:
+
+    def incentive(self, netuid: int, block: Optional[int] = None) -> List[int]:
         """Returns a list of incentives for the subnet.
         Args:
             netuid ( int ):
@@ -1936,19 +1938,17 @@ class subtensor:
                 block to sync from, or None for latest block.
         Returns:
             i_map ( List[int] ):
-                The list of incentives for the subnet at the block, 
+                The list of incentives for the subnet at the block,
                     indexed by UID.
         """
         i_map = []
-        i_map_encoded = self.query_map_subtensor(
-            name="Incentive", block=block
-        )
+        i_map_encoded = self.query_map_subtensor(name="Incentive", block=block)
         if i_map_encoded.records:
             for netuid_, incentives_map in i_map_encoded:
                 if netuid_ == netuid:
                     i_map = incentives_map.serialize()
                     break
-            
+
         return i_map
 
     def weights(

@@ -505,7 +505,9 @@ def _solve_for_difficulty_fast(
     finished_queues = [multiprocessing.Queue() for _ in range(num_processes)]
     check_block = multiprocessing.Lock()
 
-    hotkey_bytes = wallet.coldkeypub.public_key if netuid == -1 else wallet.hotkey.public_key 
+    hotkey_bytes = (
+        wallet.coldkeypub.public_key if netuid == -1 else wallet.hotkey.public_key
+    )
     # Start consumers
     solvers = [
         _Solver(

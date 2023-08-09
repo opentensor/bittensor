@@ -375,12 +375,12 @@ def run_faucet_extrinsic(
             )
         ):
             return False
-        
+
     # Unlock coldkey
     wallet.coldkey
 
     # Get previous balance.
-    old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
+    old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
 
     # Attempt rolling registration.
     attempts = 1
@@ -418,31 +418,36 @@ def run_faucet_extrinsic(
                         log_verbose=log_verbose,
                     )
             call = subtensor.substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="faucet",
-                    call_params={
-                        "block_number": pow_result.block_number,
-                        "nonce": pow_result.nonce,
-                        "work": [int(byte_) for byte_ in pow_result.seal],
-                    },
-                )
-            extrinsic = subtensor.substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey)
-            response = subtensor.substrate.submit_extrinsic( 
+                call_module="SubtensorModule",
+                call_function="faucet",
+                call_params={
+                    "block_number": pow_result.block_number,
+                    "nonce": pow_result.nonce,
+                    "work": [int(byte_) for byte_ in pow_result.seal],
+                },
+            )
+            extrinsic = subtensor.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = subtensor.substrate.submit_extrinsic(
                 extrinsic,
-                wait_for_inclusion = wait_for_inclusion,
-                wait_for_finalization = wait_for_finalization
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
             )
 
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: Error: {response.error_message}" )
-            
+                bittensor.__console__.print(
+                    f":cross_mark: [red]Failed[/red]: Error: {response.error_message}"
+                )
+
             # Successful registration
             else:
-                new_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
-                bittensor.__console__.print( f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]" )
+                new_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+                bittensor.__console__.print(
+                    f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+                )
 
         except KeyboardInterrupt:
-            return True, 'Done'
-            
+            return True, "Done"
