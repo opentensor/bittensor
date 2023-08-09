@@ -684,6 +684,8 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
             # Log the details of the processed synapse, including total size, name, hotkey, IP, port,
             # status code, and status message, using the debug level of the logger.
+            print("axon response:", response)
+            print("axon response headers:", response.headers)
             bittensor.logging.debug(
                 f"axon     | --> | {response.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}"
             )

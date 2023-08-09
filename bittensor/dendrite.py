@@ -230,15 +230,16 @@ class dendrite(torch.nn.Module):
                 async with session.post(
                     url, headers=synapse.to_headers(), json=synapse.dict(), timeout=timeout
                 ) as response:
-                    bt.logging.debug("dendrite Received Headers:", response.headers)
-                    bt.logging.debug("response in dendrite:", response)
+                    print("dendrite Received Headers:", response.headers)
+                    print("response in dendrite:", response)
                     if response.headers.get('Content-Type', '').lower() == 'text/event-stream'.lower(): # identify streaming response
-                    # if response.headers.get('Content-Type') == 'text/event-stream': # identify streaming response
-                        bt.logging.debug("Streaming response detected")
+                        bt.logging.debug("Streaming response detected!")
+                        print("response in dendrite", response)
+                        print("response headers:", response.headers)
                         await synapse.process_streaming_response(response)  # process the entire streaming response
                         json_response = {}
                     else:
-                        bt.logging.debug("Non-streaming response detected")
+                        bt.logging.debug("Non-streaming response detected!")
                         json_response = await response.json()
                     
                     bt.logging.debug("Json response:", json_response)
