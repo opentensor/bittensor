@@ -319,3 +319,130 @@ def burned_register_extrinsic(
                 bittensor.__console__.print(
                     ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
                 )
+
+
+def run_faucet_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+    prompt: bool = False,
+    max_allowed_attempts: int = 3,
+    output_in_place: bool = True,
+    cuda: bool = False,
+    dev_id: Union[List[int], int] = 0,
+    TPB: int = 256,
+    num_processes: Optional[int] = None,
+    update_interval: Optional[int] = None,
+    log_verbose: bool = False,
+) -> bool:
+    r"""Runs a continual POW to get a faucet of TAO on the test net.
+    Args:
+        wallet (bittensor.wallet):
+            bittensor wallet object.
+        prompt (bool):
+            If true, the call waits for confirmation from the user before proceeding.
+        wait_for_inclusion (bool):
+            If set, waits for the extrinsic to enter a block before returning true,
+            or returns false if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool):
+            If set, waits for the extrinsic to be finalized on the chain before returning true,
+            or returns false if the extrinsic fails to be finalized within the timeout.
+        max_allowed_attempts (int):
+            Maximum number of attempts to register the wallet.
+        cuda (bool):
+            If true, the wallet should be registered using CUDA device(s).
+        dev_id (Union[List[int], int]):
+            The CUDA device id to use, or a list of device ids.
+        TPB (int):
+            The number of threads per block (CUDA).
+        num_processes (int):
+            The number of processes to use to register.
+        update_interval (int):
+            The number of nonces to solve between updates.
+        log_verbose (bool):
+            If true, the registration process will log more information.
+    Returns:
+        success (bool):
+            flag is true if extrinsic was finalized or uncluded in the block.
+            If we did not wait for finalization / inclusion, the response is true.
+    """
+    if prompt:
+        if not Confirm.ask(
+            "Run Faucet ?\n coldkey:    [bold white]{}[/bold white]\n network:    [bold white]{}[/bold white]".format(
+                wallet.coldkeypub.ss58_address,
+                subtensor.network,
+            )
+        ):
+            return False
+        
+    # Unlock coldkey
+    wallet.coldkey
+
+    # Get previous balance.
+    old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
+
+    # Attempt rolling registration.
+    attempts = 1
+    while True:
+        try:
+            pow_result = None
+            while pow_result == None or pow_result.is_stale(subtensor=subtensor):
+                # Solve latest POW.
+                if cuda:
+                    if not torch.cuda.is_available():
+                        if prompt:
+                            bittensor.__console__.error("CUDA is not available.")
+                        return False
+                    pow_result: Optional[POWSolution] = create_pow(
+                        subtensor,
+                        wallet,
+                        -1,
+                        output_in_place,
+                        cuda=cuda,
+                        dev_id=dev_id,
+                        TPB=TPB,
+                        num_processes=num_processes,
+                        update_interval=update_interval,
+                        log_verbose=log_verbose,
+                    )
+                else:
+                    pow_result: Optional[POWSolution] = create_pow(
+                        subtensor,
+                        wallet,
+                        -1,
+                        output_in_place,
+                        cuda=cuda,
+                        num_processes=num_processes,
+                        update_interval=update_interval,
+                        log_verbose=log_verbose,
+                    )
+            call = subtensor.substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="faucet",
+                    call_params={
+                        "block_number": pow_result.block_number,
+                        "nonce": pow_result.nonce,
+                        "work": [int(byte_) for byte_ in pow_result.seal],
+                    },
+                )
+            extrinsic = subtensor.substrate.create_signed_extrinsic( call = call, keypair = wallet.coldkey)
+            response = subtensor.substrate.submit_extrinsic( 
+                extrinsic,
+                wait_for_inclusion = wait_for_inclusion,
+                wait_for_finalization = wait_for_finalization
+            )
+
+            # process if registration successful, try again if pow is still valid
+            response.process_events()
+            if not response.is_success:
+                bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: Error: {response.error_message}" )
+            
+            # Successful registration
+            else:
+                new_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
+                bittensor.__console__.print( f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]" )
+
+        except KeyboardInterrupt:
+            return True, 'Done'
+            

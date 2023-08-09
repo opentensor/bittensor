@@ -44,7 +44,7 @@ from .extrinsics.network import register_subnetwork_extrinsic
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .extrinsics.serving import serve_extrinsic, serve_axon_extrinsic
-from .extrinsics.registration import register_extrinsic, burned_register_extrinsic
+from .extrinsics.registration import register_extrinsic, burned_register_extrinsic, run_faucet_extrinsic
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.prometheus import prometheus_extrinsic
@@ -389,6 +389,38 @@ class subtensor:
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+            max_allowed_attempts=max_allowed_attempts,
+            output_in_place=output_in_place,
+            cuda=cuda,
+            dev_id=dev_id,
+            TPB=TPB,
+            num_processes=num_processes,
+            update_interval=update_interval,
+            log_verbose=log_verbose,
+        )
+    
+    def run_faucet(
+        self,
+        wallet: "bittensor.wallet",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False,
+        max_allowed_attempts: int = 3,
+        output_in_place: bool = True,
+        cuda: bool = False,
+        dev_id: Union[List[int], int] = 0,
+        TPB: int = 256,
+        num_processes: Optional[int] = None,
+        update_interval: Optional[int] = None,
+        log_verbose: bool = False,
+    ) -> bool:
+        """Registers the wallet to chain."""
+        return run_faucet_extrinsic(
+            subtensor=self,
+            wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,

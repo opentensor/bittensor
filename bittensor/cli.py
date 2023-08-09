@@ -53,6 +53,7 @@ COMMANDS = {
     "senate_leave": SenateLeaveCommand,
     "senate_vote": VoteCommand,
     "register_subnet": RegisterSubnetworkCommand,
+    "run_faucet": RunFaucetCommand,
 }
 
 
