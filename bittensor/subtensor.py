@@ -1977,6 +1977,22 @@ class subtensor:
 
         return b_map
 
+    def get_subnet_burn_cost( self, block: Optional[int] = None ) -> int:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash( block )
+                params = []
+                if block_hash:
+                    params = params + [block_hash]
+                return substrate.rpc_request(
+                    method="subnetInfo_getBurnCost", # custom rpc method
+                    params=params
+                )
+        json_body = make_substrate_call_with_retry()
+        result = int( json_body['result'] )
+        return result
+
     ################
     ## Extrinsics ##
     ################
