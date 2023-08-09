@@ -1924,6 +1924,32 @@ class subtensor:
         metagraph_.sync(block=block, lite=lite, subtensor=self)
 
         return metagraph_
+    
+    def incentive(
+        self, netuid: int, block: Optional[int] = None
+    ) -> List[int]:
+        """Returns a list of incentives for the subnet.
+        Args:
+            netuid ( int ):
+                The network uid of the subnet to query.
+            block ( Optional[int] ):
+                block to sync from, or None for latest block.
+        Returns:
+            i_map ( List[int] ):
+                The list of incentives for the subnet at the block, 
+                    indexed by UID.
+        """
+        i_map = []
+        i_map_encoded = self.query_map_subtensor(
+            name="Incentive", block=block
+        )
+        if i_map_encoded.records:
+            for netuid_, incentives_map in i_map_encoded:
+                if netuid_ == netuid:
+                    i_map = incentives_map.serialize()
+                    break
+            
+        return i_map
 
     def weights(
         self, netuid: int, block: Optional[int] = None
