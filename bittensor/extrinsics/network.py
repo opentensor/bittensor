@@ -94,6 +94,6 @@ def register_subnetwork_extrinsic(
             # Successful registration, final check for membership
             else:
                 bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Registered subnetwork[/green]"
+                    f":white_heavy_check_mark: [green]Registered subnetwork with netuid: {response.triggered_events[1].value['event']['attributes'][0]}[/green]"
                 )
                 return True

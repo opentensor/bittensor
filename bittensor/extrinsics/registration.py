@@ -448,6 +448,7 @@ def run_faucet_extrinsic(
                 bittensor.__console__.print(
                     f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
                 )
+                old_balance = new_balance
 
         except KeyboardInterrupt:
             return True, "Done"
