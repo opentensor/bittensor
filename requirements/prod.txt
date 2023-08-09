@@ -1,6 +1,7 @@
-ansible_vault
+ansible>=7.0.0,<=8.2.0
+ansible_vault==2.1.0
 backoff
-cryptography==41.0.0
+cryptography==41.0.3
 ddt==1.6.0
 fuzzywuzzy>=0.18.0
 fastapi==0.99.1
@@ -13,6 +14,7 @@ numpy
 msgpack
 msgpack_numpy
 nest_asyncio
+pycryptodome>=3.18.0,<4.0.0
 pyyaml
 password_strength
 pydantic!=1.8,!=1.8.1,<2.0.0,>=1.7.4
