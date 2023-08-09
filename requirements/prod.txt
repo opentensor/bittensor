@@ -1,6 +1,6 @@
 ansible_vault
 backoff
-cryptography==41.0.0
+cryptography==41.0.3
 ddt==1.6.0
 fuzzywuzzy>=0.18.0
 fastapi==0.99.1
