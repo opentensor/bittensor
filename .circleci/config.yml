@@ -42,6 +42,18 @@ jobs:
             . env/bin/activate
             python -m black --exclude '(env|venv|.eggs)' --check .
 
+  check-compatibility:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Install jq
+          command: sudo apt-get update && sudo apt-get install -y jq
+      - run:
+          name: Check Python Version Compatibility
+          command: ./check_compatibility.sh
+
   build-and-test:
     resource_class: medium
     parallelism: 2
@@ -205,6 +217,7 @@ jobs:
 workflows:
   pr-requirements:
     jobs:
+      - check-compatibility
       - black:
           python-version: "3.8.12"
       - build-and-test:
