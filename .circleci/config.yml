@@ -51,6 +51,9 @@ jobs:
           name: Install jq
           command: sudo apt-get update && sudo apt-get install -y jq
       - run:
+          name: Make script executable
+          command: chmod +x ./scripts/check_compatibility.sh
+      - run:
           name: Check Python Version Compatibility
           command: ./scripts/check_compatibility.sh
 
