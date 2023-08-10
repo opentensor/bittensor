@@ -82,6 +82,6 @@ class UpdateWalletCommand:
     @staticmethod   
     def check_config( config: 'bittensor.Config' ):
         # Ask the user to specify the wallet if the wallet name is not clear. 
-        if config.all == False and config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
+        if config.get('all', d=False) == False and config.wallet.get('name') == bittensor.defaults.wallet.name and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default = bittensor.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
