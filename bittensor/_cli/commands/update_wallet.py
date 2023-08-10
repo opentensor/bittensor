@@ -49,7 +49,7 @@ class UpdateWalletCommand:
     def run( cli ):
         '''Check if any of the wallets needs an update.'''
         config = cli.config.copy()
-        if config.all == True:
+        if config.get('all', d=False) == True:
             wallets = _get_coldkey_wallets_for_path( config.wallet.path )
         else:
             wallets = [bittensor.wallet( config = config )]
