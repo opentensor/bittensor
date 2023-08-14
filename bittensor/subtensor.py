@@ -1490,8 +1490,10 @@ class subtensor:
     def total_stake(self, block: Optional[int] = None) -> "Balance":
         return Balance.from_rao(self.query_subtensor("TotalStake", block).value)
 
-    def serving_rate_limit(self, block: Optional[int] = None) -> Optional[int]:
-        return self.query_subtensor("ServingRateLimit", block).value
+    def serving_rate_limit(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
+        if not self.subnet_exists(netuid, block):
+            return None
+        return self.query_subtensor("ServingRateLimit", block=block, params=[netuid]).value
 
     def tx_rate_limit(self, block: Optional[int] = None) -> Optional[int]:
         return self.query_subtensor("TxRateLimit", block).value
