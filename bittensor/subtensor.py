@@ -1438,9 +1438,9 @@ class subtensor:
     """ Returns the axon information for this hotkey account """
 
     def get_axon_info(
-        self, hotkey_ss58: str, block: Optional[int] = None
+        self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[AxonInfo]:
-        result = self.query_subtensor("Axons", block, [hotkey_ss58])
+        result = self.query_subtensor("Axons", block, [netuid, hotkey_ss58])
         if result != None:
             return AxonInfo(
                 ip=bittensor.utils.networking.ip_from_int(result.value.ip),
@@ -1457,9 +1457,9 @@ class subtensor:
     """ Returns the prometheus information for this hotkey account """
 
     def get_prometheus_info(
-        self, hotkey_ss58: str, block: Optional[int] = None
+        self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[AxonInfo]:
-        result = self.query_subtensor("Prometheus", block, [hotkey_ss58])
+        result = self.query_subtensor("Prometheus", block, [netuid, hotkey_ss58])
         if result != None:
             return PrometheusInfo(
                 ip=bittensor.utils.networking.ip_from_int(result.value.ip),
