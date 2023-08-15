@@ -47,17 +47,21 @@ def register_subnetwork_extrinsic(
             flag is true if extrinsic was finalized or included in the block.
             If we did not wait for finalization / inclusion, the response is true.
     """
-    your_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
-    burn_cost = bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost())
+    your_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+    burn_cost = bittensor.utils.balance.Balance(subtensor.get_subnet_burn_cost())
     if burn_cost > your_balance:
-        bittensor.__console__.print( f"Your balance of: [green]{your_balance}[/green] is not enough to pay the subnet burn cost of: [green]{burn_cost}[/green]" )
+        bittensor.__console__.print(
+            f"Your balance of: [green]{your_balance}[/green] is not enough to pay the subnet burn cost of: [green]{burn_cost}[/green]"
+        )
         return False
-    
+
     if prompt:
-        bittensor.__console__.print(f"Your balance is: [green]{your_balance}[/green]" )
-        if not Confirm.ask(f"Do you want to register a subnet for [green]{ burn_cost }[/green]?"):
+        bittensor.__console__.print(f"Your balance is: [green]{your_balance}[/green]")
+        if not Confirm.ask(
+            f"Do you want to register a subnet for [green]{ burn_cost }[/green]?"
+        ):
             return False
-        
+
     wallet.coldkey  # unlock coldkey
 
     with bittensor.__console__.status(":satellite: Registering subnet..."):

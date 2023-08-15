@@ -23,6 +23,7 @@ from rich.prompt import Prompt
 
 console = bittensor.__console__
 
+
 class RegisterSubnetworkCommand:
     @staticmethod
     def run(cli):
@@ -70,11 +71,13 @@ class GetSubnetBurnCostCommand:
     def run(cli):
         r"""Register a subnetwork"""
         config = cli.config.copy()
-        subtensor: bittensor.subtensor = bittensor.subtensor( config = config )
+        subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
         while True:
-            try: 
-                bittensor.__console__.print(f"Subnet burn cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]")
-                time.sleep( bittensor.__blocktime__ )
+            try:
+                bittensor.__console__.print(
+                    f"Subnet burn cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]"
+                )
+                time.sleep(bittensor.__blocktime__)
             except KeyboardInterrupt:
                 break
 

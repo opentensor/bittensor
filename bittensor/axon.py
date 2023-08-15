@@ -23,6 +23,7 @@ import os
 import uuid
 import copy
 import time
+import asyncio
 import inspect
 import uvicorn
 import argparse
@@ -826,28 +827,36 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # to the request's name (synapse name).
         priority_fn = self.axon.priority_fns[synapse.name]
 
+        async def submit_task(executor, priority):
+            """
+            Submits the given priority function to the specified executor for asynchronous execution.
+            The function will run in the provided executor and return the priority value along with the result.
+
+            Args:
+                executor: The executor in which the priority function will be run.
+                priority: The priority function to be executed.
+
+            Returns:
+                tuple: A tuple containing the priority value and the result of the priority function execution.
+            """
+            loop = asyncio.get_event_loop()
+            future = loop.run_in_executor(executor, lambda: priority)
+            result = await future
+            return priority, result
+
         # If a priority function exists for the request's name
         if priority_fn:
             try:
-                # We create a threading Event object to synchronize the execution of the priority function.
-                event = threading.Event()
-
-                # Define a helper function that sets the event when called.
-                def set_event() -> bool:
-                    event.set()
-
-                # Submit the priority function to the thread pool for execution.
-                # The result is not used, but it allows us to set a timeout on the function execution.
+                # Execute the priority function and get the priority value.
                 priority = (
                     await priority_fn(synapse)
                     if inspect.iscoroutinefunction(priority_fn)
                     else priority_fn(synapse)
                 )
-                future = self.axon.thread_pool.submit(set_event, priority=priority)
 
-                # Wait for the event to be set with a specified timeout.
-                future.result(timeout=float(synapse.timeout))
-                event.wait()
+                # Submit the task to the thread pool for execution with the given priority.
+                # The submit_task function will handle the execution and return the result.
+                _, result = await submit_task(self.axon.thread_pool, priority)
 
             except TimeoutError as e:
                 # If the execution of the priority function exceeds the timeout,

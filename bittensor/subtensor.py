@@ -1443,13 +1443,13 @@ class subtensor:
         result = self.query_subtensor("Axons", block, [netuid, hotkey_ss58])
         if result != None:
             return AxonInfo(
-                ip=bittensor.utils.networking.int_to_ip(result.value['ip']),
-                ip_type=result.value['ip_type'],
-                port=result.value['port'],
-                protocol=result.value['protocol'],
-                version=result.value['version'],
-                placeholder1=result.value['placeholder1'],
-                placeholder2=result.value['placeholder2'],
+                ip=bittensor.utils.networking.int_to_ip(result.value["ip"]),
+                ip_type=result.value["ip_type"],
+                port=result.value["port"],
+                protocol=result.value["protocol"],
+                version=result.value["version"],
+                placeholder1=result.value["placeholder1"],
+                placeholder2=result.value["placeholder2"],
             )
         else:
             return None
@@ -1462,11 +1462,11 @@ class subtensor:
         result = self.query_subtensor("Prometheus", block, [netuid, hotkey_ss58])
         if result != None:
             return PrometheusInfo(
-                ip=bittensor.utils.networking.int_to_ip(result.value['ip']),
-                ip_type=result.value['ip_type'],
-                port=result.value['port'],
-                version=result.value['version'],
-                block=result.value['block'],
+                ip=bittensor.utils.networking.int_to_ip(result.value["ip"]),
+                ip_type=result.value["ip_type"],
+                port=result.value["port"],
+                version=result.value["version"],
+                block=result.value["block"],
             )
         else:
             return None
@@ -1490,10 +1490,14 @@ class subtensor:
     def total_stake(self, block: Optional[int] = None) -> "Balance":
         return Balance.from_rao(self.query_subtensor("TotalStake", block).value)
 
-    def serving_rate_limit(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
+    def serving_rate_limit(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("ServingRateLimit", block=block, params=[netuid]).value
+        return self.query_subtensor(
+            "ServingRateLimit", block=block, params=[netuid]
+        ).value
 
     def tx_rate_limit(self, block: Optional[int] = None) -> Optional[int]:
         return self.query_subtensor("TxRateLimit", block).value
@@ -1979,20 +1983,20 @@ class subtensor:
 
         return b_map
 
-    def get_subnet_burn_cost( self, block: Optional[int] = None ) -> int:
+    def get_subnet_burn_cost(self, block: Optional[int] = None) -> int:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash( block )
+                block_hash = None if block == None else substrate.get_block_hash(block)
                 params = []
                 if block_hash:
                     params = params + [block_hash]
                 return substrate.rpc_request(
-                    method="subnetInfo_getBurnCost", # custom rpc method
-                    params=params
+                    method="subnetInfo_getBurnCost", params=params  # custom rpc method
                 )
+
         json_body = make_substrate_call_with_retry()
-        result = int( json_body['result'] )
+        result = int(json_body["result"])
         return result
 
     ################
