@@ -188,30 +188,7 @@ def serve_axon_extrinsic(
     """
     axon.wallet.hotkey
     axon.wallet.coldkeypub
-
-    # ---- Setup UPNPC ----
-    if use_upnpc:
-        if prompt:
-            if not Confirm.ask("Attempt port forwarding with upnpc?"):
-                return False
-        try:
-            external_port = net.upnpc_create_port_map(port=axon.port)
-            bittensor.__console__.print(
-                ":white_heavy_check_mark: [green]Forwarded port: {}[/green]".format(
-                    axon.port
-                )
-            )
-            bittensor.logging.success(
-                prefix="Forwarded port", sufix="<blue>{}</blue>".format(axon.port)
-            )
-        except net.UPNPCException as upnpc_exception:
-            raise RuntimeError(
-                "Failed to hole-punch with upnpc with exception {}".format(
-                    upnpc_exception
-                )
-            ) from upnpc_exception
-    else:
-        external_port = axon.external_port
+    external_port = axon.external_port
 
     # ---- Get external ip ----
     if axon.external_ip == None:
