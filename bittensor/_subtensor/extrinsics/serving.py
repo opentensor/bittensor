@@ -159,7 +159,6 @@ def serve_axon_extrinsic(
     subtensor: "bittensor.Subtensor",
     netuid: int,
     axon: "bittensor.Axon",
-    use_upnpc: bool = False,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     prompt: bool = False,
@@ -170,9 +169,6 @@ def serve_axon_extrinsic(
             The netuid being served on.
         axon (bittensor.Axon):
             Axon to serve.
-        use_upnpc (:type:bool, `optional`):
-            If true, the axon attempts port forward through your router before
-            subscribing.
         wait_for_inclusion (bool):
             If set, waits for the extrinsic to enter a block before returning true,
             or returns false if the extrinsic fails to enter the block within the timeout.
