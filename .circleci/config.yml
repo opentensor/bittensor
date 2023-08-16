@@ -46,8 +46,8 @@ jobs:
     parameters:
       python_version:
         type: string
-    docker:
-      - image: circleci/python:<< parameters.python_version >>
+     docker:
+       - image: cimg/python:3.10
     steps:
       - checkout
       - run:
