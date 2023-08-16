@@ -767,7 +767,7 @@ class IPInfo:
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["IPInfo"]:
         r"""Returns a list of IPInfo objects from a vec_u8."""
         decoded = from_scale_encoding(
-            vec_u8, ChainDataType.IPInfo, is_vec=True, is_option=True
+            vec_u8, ChainDataType.IPInfo, is_vec=True
         )
 
         if decoded is None:
