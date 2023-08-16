@@ -1369,17 +1369,10 @@ class MockSubtensor(subtensor):
             kappa=query_subnet_info(name="Kappa"),
             difficulty=query_subnet_info(name="Difficulty"),
             immunity_period=query_subnet_info(name="ImmunityPeriod"),
-            validator_batch_size=query_subnet_info(name="ValidatorBatchSize"),
-            validator_sequence_length=query_subnet_info(name="ValidatorSequenceLength"),
-            validator_epochs_per_reset=query_subnet_info(
-                name="ValidatorEpochsPerReset"
-            ),
-            validator_epoch_length=query_subnet_info(name="ValidatorEpochLength"),
             max_allowed_validators=query_subnet_info(name="MaxAllowedValidators"),
             min_allowed_weights=query_subnet_info(name="MinAllowedWeights"),
             max_weight_limit=query_subnet_info(name="MaxWeightLimit"),
             scaling_law_power=query_subnet_info(name="ScalingLawPower"),
-            synergy_scaling_law_power=query_subnet_info(name="SynergyScalingLawPower"),
             subnetwork_n=query_subnet_info(name="SubnetworkN"),
             max_n=query_subnet_info(name="MaxAllowedUids"),
             blocks_since_epoch=query_subnet_info(name="BlocksSinceLastStep"),
