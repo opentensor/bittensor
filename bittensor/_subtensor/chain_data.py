@@ -139,6 +139,13 @@ custom_rpc_type_registry = {
                 ["ip_type", "u8"],
             ],
         },
+        "IPInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["ip", "Compact<u128>"],
+                ["ip_type_and_protocol", "Compact<u8>"],
+            ],
+        },
     }
 }
 
@@ -149,6 +156,7 @@ class ChainDataType(Enum):
     DelegateInfo = 3
     NeuronInfoLite = 4
     DelegatedInfo = 5
+    IPInfo = 6
 
 
 # Constants
@@ -731,6 +739,62 @@ class SubnetInfo:
         cls, parameter_dict: "torch.nn.ParameterDict"
     ) -> "SubnetInfo":
         r"""Returns a SubnetInfo object from a torch parameter_dict."""
+        return cls(**dict(parameter_dict))
+    
+@dataclass
+class IPInfo:
+    r"""
+    Dataclass for associated IP Info.
+    """
+    ip: str
+    ip_type: int
+    protocol: int
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["IPInfo"]:
+        r"""Returns a IPInfo object from a vec_u8."""
+        if len(vec_u8) == 0:
+            return None
+
+        decoded = from_scale_encoding(vec_u8, ChainDataType.IPInfo)
+
+        if decoded is None:
+            return None
+
+        return IPInfo.fix_decoded_values(decoded)
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["IPInfo"]:
+        r"""Returns a list of IPInfo objects from a vec_u8."""
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.IPInfo, is_vec=True, is_option=True
+        )
+
+        if decoded is None:
+            return []
+
+        decoded = [IPInfo.fix_decoded_values(d) for d in decoded]
+
+        return decoded
+
+    @classmethod
+    def fix_decoded_values(cls, decoded: Dict) -> "IPInfo":
+        r"""Returns a SubnetInfo object from a decoded IPInfo dictionary."""
+        return IPInfo(
+            ip=bittensor.utils.networking.int_to_ip(decoded["ip"]),
+            ip_type=decoded["ip_type_and_protocol"] >> 4,
+            protocol=decoded["ip_type_and_protocol"] & 0xF,
+        )
+
+    def to_parameter_dict(self) -> "torch.nn.ParameterDict":
+        r"""Returns a torch tensor of the subnet info."""
+        return torch.nn.ParameterDict(self.__dict__)
+
+    @classmethod
+    def from_parameter_dict(
+        cls, parameter_dict: "torch.nn.ParameterDict"
+    ) -> "IPInfo":
+        r"""Returns a IPInfo object from a torch parameter_dict."""
         return cls(**dict(parameter_dict))
 
 
