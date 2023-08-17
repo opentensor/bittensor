@@ -237,7 +237,7 @@ class dendrite(torch.nn.Module):
                         print("response in dendrite", response)
                         print("response headers:", response.headers)
                         await synapse.process_streaming_response(response)  # process the entire streaming response
-                        json_response = local_synapse.extract_response_json(server_response)
+                        json_response = synapse.extract_response_json(response)
                     else:
                         bt.logging.debug("Non-streaming response detected!")
                         json_response = await response.json()
