@@ -202,6 +202,7 @@ from bittensor._subtensor.chain_data import DelegateInfo as DelegateInfo
 from bittensor_wallet import Wallet as Wallet
 from bittensor_wallet import Keyfile as Keyfile
 from bittensor_wallet import Keypair as Keypair
+from bittensor._subtensor.chain_data import IPInfo as IPInfo
 from bittensor._subtensor.chain_data import NeuronInfo as NeuronInfo
 from bittensor._subtensor.chain_data import NeuronInfoLite as NeuronInfoLite
 from bittensor._subtensor.chain_data import PrometheusInfo as PrometheusInfo
