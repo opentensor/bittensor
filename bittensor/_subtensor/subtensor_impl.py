@@ -632,6 +632,57 @@ class Subtensor:
                     return False, response.error_message
             else:
                 return True, None
+            
+    def _do_associate_ips(
+        self,
+        wallet: "bittensor.wallet",
+        ip_info_list: List[IPInfo],
+        netuid: int,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        """
+        Sends an associate IPs extrinsic to the chain.
+
+        Args:
+            wallet (:obj:`bittensor.wallet`): Wallet object.
+            ip_info_list (:obj:`List[IPInfo]`): List of IPInfo objects.
+            netuid (:obj:`int`): Netuid to associate IPs to.
+            wait_for_inclusion (:obj:`bool`): If true, waits for inclusion.
+            wait_for_finalization (:obj:`bool`): If true, waits for finalization.
+        
+        Returns:
+            success (:obj:`bool`): True if associate IPs was successful.
+            error (:obj:`Optional[str]`): Error message if associate IPs failed, None otherwise.
+        """
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="associate_ips",
+                call_params={
+                    "ip_info_list": [
+                        ip_info.encode() for ip_info in ip_info_list
+                    ],
+                    "netuid": netuid,
+                },
+            )
+            extrinsic = substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.hotkey
+            )
+            response = substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            if wait_for_inclusion or wait_for_finalization:
+                response.process_events()
+                if response.is_success:
+                    return True, None
+                else:
+                    return False, response.error_message
+            else:
+                return True, None
+
 
     #################
     #### Staking ####
