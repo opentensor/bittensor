@@ -1663,7 +1663,14 @@ class Subtensor:
     def neuron_has_validator_permit(
         self, uid: int, netuid: int, block: Optional[int] = None
     ) -> Optional[bool]:
-        return self.query_subtensor("ValidatorPermit", block, [netuid, uid]).value
+        result = self.query_subtensor("ValidatorPermit", block, [netuid])
+        if result != None:
+            if len(result.value) > uid:
+                return result.value[uid]
+            else:
+                return False
+        else:
+            return None
 
     def neuron_for_wallet(
         self, wallet: "bittensor.Wallet", netuid=int, block: Optional[int] = None
