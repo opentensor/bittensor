@@ -505,7 +505,9 @@ def _solve_for_difficulty_fast(
     finished_queues = [multiprocessing.Queue() for _ in range(num_processes)]
     check_block = multiprocessing.Lock()
 
-    hotkey_bytes = wallet.hotkey.public_key
+    hotkey_bytes = (
+        wallet.coldkeypub.public_key if netuid == -1 else wallet.hotkey.public_key
+    )
     # Start consumers
     solvers = [
         _Solver(
@@ -576,7 +578,7 @@ def _solve_for_difficulty_fast(
     hash_rates = [0] * n_samples  # The last n true hash_rates
     weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
 
-    while not subtensor.is_hotkey_registered(
+    while netuid == -1 or not subtensor.is_hotkey_registered(
         netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
     ):
         # Wait until a solver finds a solution
@@ -683,7 +685,7 @@ def _get_block_with_retry(
         ValueError: If the difficulty is None.
     """
     block_number = subtensor.get_current_block()
-    difficulty = subtensor.difficulty(netuid=netuid)
+    difficulty = 1_000_000 if netuid == -1 else subtensor.difficulty(netuid=netuid)
     block_hash = subtensor.get_block_hash(block_number)
     if block_hash is None:
         raise Exception(
@@ -923,7 +925,7 @@ def _solve_for_difficulty_fast_cuda(
         weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
 
         solution = None
-        while not subtensor.is_hotkey_registered(
+        while netuid == -1 or not subtensor.is_hotkey_registered(
             netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
         ):
             # Wait until a solver finds a solution
@@ -1058,8 +1060,9 @@ def create_pow(
     Raises:
         :obj:`ValueError`: If the subnet does not exist.
     """
-    if not subtensor.subnet_exists(netuid=netuid):
-        raise ValueError(f"Subnet {netuid} does not exist")
+    if netuid != -1:
+        if not subtensor.subnet_exists(netuid=netuid):
+            raise ValueError(f"Subnet {netuid} does not exist")
 
     if cuda:
         solution: Optional[POWSolution] = _solve_for_difficulty_fast_cuda(

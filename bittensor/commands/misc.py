@@ -130,6 +130,7 @@ class ListSubnetsCommand:
         table.add_column("[overline white]TEMPO", style="white", justify="center")
         # table.add_column("[overline white]MODALITY", style='white')
         table.add_column("[overline white]CON_REQ", style="white", justify="center")
+        # table.add_column("[overline white]STAKE", style="green", justify="center")
         table.add_column(
             "[overline white]EMISSION", style="white", justify="center"
         )  # sums to 100%

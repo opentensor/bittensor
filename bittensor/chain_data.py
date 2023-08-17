@@ -39,15 +39,10 @@ custom_rpc_type_registry = {
                 ["kappa", "Compact<u16>"],
                 ["difficulty", "Compact<u64>"],
                 ["immunity_period", "Compact<u16>"],
-                ["validator_batch_size", "Compact<u16>"],
-                ["validator_sequence_length", "Compact<u16>"],
-                ["validator_epochs_per_reset", "Compact<u16>"],
-                ["validator_epoch_length", "Compact<u16>"],
                 ["max_allowed_validators", "Compact<u16>"],
                 ["min_allowed_weights", "Compact<u16>"],
                 ["max_weights_limit", "Compact<u16>"],
                 ["scaling_law_power", "Compact<u16>"],
-                ["synergy_scaling_law_power", "Compact<u16>"],
                 ["subnetwork_n", "Compact<u16>"],
                 ["max_allowed_uids", "Compact<u16>"],
                 ["blocks_since_last_step", "Compact<u64>"],
@@ -713,15 +708,10 @@ class SubnetInfo:
     kappa: int
     difficulty: int
     immunity_period: int
-    validator_batch_size: int
-    validator_sequence_length: int
-    validator_epochs_per_reset: int
-    validator_epoch_length: int
     max_allowed_validators: int
     min_allowed_weights: int
     max_weight_limit: float
     scaling_law_power: float
-    synergy_scaling_law_power: float
     subnetwork_n: int
     max_n: int
     blocks_since_epoch: int
@@ -768,15 +758,10 @@ class SubnetInfo:
             kappa=decoded["kappa"],
             difficulty=decoded["difficulty"],
             immunity_period=decoded["immunity_period"],
-            validator_batch_size=decoded["validator_batch_size"],
-            validator_sequence_length=decoded["validator_sequence_length"],
-            validator_epochs_per_reset=decoded["validator_epochs_per_reset"],
-            validator_epoch_length=decoded["validator_epoch_length"],
             max_allowed_validators=decoded["max_allowed_validators"],
             min_allowed_weights=decoded["min_allowed_weights"],
             max_weight_limit=decoded["max_weights_limit"],
             scaling_law_power=decoded["scaling_law_power"],
-            synergy_scaling_law_power=decoded["synergy_scaling_law_power"],
             subnetwork_n=decoded["subnetwork_n"],
             max_n=decoded["max_allowed_uids"],
             blocks_since_epoch=decoded["blocks_since_last_step"],

@@ -44,7 +44,11 @@ from .extrinsics.network import register_subnetwork_extrinsic
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .extrinsics.serving import serve_extrinsic, serve_axon_extrinsic
-from .extrinsics.registration import register_extrinsic, burned_register_extrinsic
+from .extrinsics.registration import (
+    register_extrinsic,
+    burned_register_extrinsic,
+    run_faucet_extrinsic,
+)
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.prometheus import prometheus_extrinsic
@@ -389,6 +393,38 @@ class subtensor:
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+            max_allowed_attempts=max_allowed_attempts,
+            output_in_place=output_in_place,
+            cuda=cuda,
+            dev_id=dev_id,
+            TPB=TPB,
+            num_processes=num_processes,
+            update_interval=update_interval,
+            log_verbose=log_verbose,
+        )
+
+    def run_faucet(
+        self,
+        wallet: "bittensor.wallet",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False,
+        max_allowed_attempts: int = 3,
+        output_in_place: bool = True,
+        cuda: bool = False,
+        dev_id: Union[List[int], int] = 0,
+        TPB: int = 256,
+        num_processes: Optional[int] = None,
+        update_interval: Optional[int] = None,
+        log_verbose: bool = False,
+    ) -> bool:
+        """Registers the wallet to chain."""
+        return run_faucet_extrinsic(
+            subtensor=self,
+            wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
@@ -1402,18 +1438,18 @@ class subtensor:
     """ Returns the axon information for this hotkey account """
 
     def get_axon_info(
-        self, hotkey_ss58: str, block: Optional[int] = None
+        self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[AxonInfo]:
-        result = self.query_subtensor("Axons", block, [hotkey_ss58])
+        result = self.query_subtensor("Axons", block, [netuid, hotkey_ss58])
         if result != None:
             return AxonInfo(
-                ip=bittensor.utils.networking.ip_from_int(result.value.ip),
-                ip_type=result.value.ip_type,
-                port=result.value.port,
-                protocol=result.value.protocol,
-                version=result.value.version,
-                placeholder1=result.value.placeholder1,
-                placeholder2=result.value.placeholder2,
+                ip=bittensor.utils.networking.int_to_ip(result.value["ip"]),
+                ip_type=result.value["ip_type"],
+                port=result.value["port"],
+                protocol=result.value["protocol"],
+                version=result.value["version"],
+                placeholder1=result.value["placeholder1"],
+                placeholder2=result.value["placeholder2"],
             )
         else:
             return None
@@ -1421,16 +1457,16 @@ class subtensor:
     """ Returns the prometheus information for this hotkey account """
 
     def get_prometheus_info(
-        self, hotkey_ss58: str, block: Optional[int] = None
+        self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[AxonInfo]:
-        result = self.query_subtensor("Prometheus", block, [hotkey_ss58])
+        result = self.query_subtensor("Prometheus", block, [netuid, hotkey_ss58])
         if result != None:
             return PrometheusInfo(
-                ip=bittensor.utils.networking.ip_from_int(result.value.ip),
-                ip_type=result.value.ip_type,
-                port=result.value.port,
-                version=result.value.version,
-                block=result.value.block,
+                ip=bittensor.utils.networking.int_to_ip(result.value["ip"]),
+                ip_type=result.value["ip_type"],
+                port=result.value["port"],
+                version=result.value["version"],
+                block=result.value["block"],
             )
         else:
             return None
@@ -1454,8 +1490,14 @@ class subtensor:
     def total_stake(self, block: Optional[int] = None) -> "Balance":
         return Balance.from_rao(self.query_subtensor("TotalStake", block).value)
 
-    def serving_rate_limit(self, block: Optional[int] = None) -> Optional[int]:
-        return self.query_subtensor("ServingRateLimit", block).value
+    def serving_rate_limit(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
+        if not self.subnet_exists(netuid, block):
+            return None
+        return self.query_subtensor(
+            "ServingRateLimit", block=block, params=[netuid]
+        ).value
 
     def tx_rate_limit(self, block: Optional[int] = None) -> Optional[int]:
         return self.query_subtensor("TxRateLimit", block).value
@@ -1729,7 +1771,7 @@ class subtensor:
         return self.query_subtensor("ValidatorPermit", block, [netuid, uid]).value
 
     def neuron_for_wallet(
-        self, wallet: "bittensor.wallet", netuid=int, block: Optional[int] = None
+        self, wallet: "bittensor.wallet", netuid: int, block: Optional[int] = None
     ) -> Optional[NeuronInfo]:
         return self.get_neuron_for_pubkey_and_subnet(
             wallet.hotkey.ss58_address, netuid=netuid, block=block
@@ -1893,6 +1935,28 @@ class subtensor:
 
         return metagraph_
 
+    def incentive(self, netuid: int, block: Optional[int] = None) -> List[int]:
+        """Returns a list of incentives for the subnet.
+        Args:
+            netuid ( int ):
+                The network uid of the subnet to query.
+            block ( Optional[int] ):
+                block to sync from, or None for latest block.
+        Returns:
+            i_map ( List[int] ):
+                The list of incentives for the subnet at the block,
+                    indexed by UID.
+        """
+        i_map = []
+        i_map_encoded = self.query_map_subtensor(name="Incentive", block=block)
+        if i_map_encoded.records:
+            for netuid_, incentives_map in i_map_encoded:
+                if netuid_ == netuid:
+                    i_map = incentives_map.serialize()
+                    break
+
+        return i_map
+
     def weights(
         self, netuid: int, block: Optional[int] = None
     ) -> List[Tuple[int, List[Tuple[int, int]]]]:
@@ -1918,6 +1982,22 @@ class subtensor:
                 b_map.append((uid.serialize(), b.serialize()))
 
         return b_map
+
+    def get_subnet_burn_cost(self, block: Optional[int] = None) -> int:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash(block)
+                params = []
+                if block_hash:
+                    params = params + [block_hash]
+                return substrate.rpc_request(
+                    method="subnetInfo_getBurnCost", params=params  # custom rpc method
+                )
+
+        json_body = make_substrate_call_with_retry()
+        result = int(json_body["result"])
+        return result
 
     ################
     ## Extrinsics ##

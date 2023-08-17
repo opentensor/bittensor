@@ -15,13 +15,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
+import time
 import argparse
 import bittensor
 from . import defaults
-from rich.table import Table
-from rich.prompt import Prompt, Confirm
-from typing import List, Union, Optional, Dict, Tuple
+from rich.prompt import Prompt
 
 console = bittensor.__console__
 
@@ -33,10 +31,6 @@ class RegisterSubnetworkCommand:
         config = cli.config.copy()
         wallet = bittensor.wallet(config=cli.config)
         subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
-
-        # Unlock the wallet.
-        wallet.coldkey
-
         # Call register command.
         subtensor.register_subnetwork(
             wallet=wallet,
@@ -69,4 +63,45 @@ class RegisterSubnetworkCommand:
             default=False,
         )
         bittensor.wallet.add_args(parser)
+        bittensor.subtensor.add_args(parser)
+
+
+class GetSubnetBurnCostCommand:
+    @staticmethod
+    def run(cli):
+        r"""Register a subnetwork"""
+        config = cli.config.copy()
+        subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
+        while True:
+            try:
+                bittensor.__console__.print(
+                    f"Subnet burn cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]"
+                )
+                time.sleep(bittensor.__blocktime__)
+            except KeyboardInterrupt:
+                break
+
+    @classmethod
+    def check_config(cls, config: "bittensor.config"):
+        pass
+
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser):
+        parser = parser.add_parser(
+            "get_subnet_burn_cost",
+            help="""Return the price to register a subnet""",
+        )
+        parser.add_argument(
+            "--no_version_checking",
+            action="store_true",
+            help="""Set false to stop cli version checking""",
+            default=False,
+        )
+        parser.add_argument(
+            "--no_prompt",
+            dest="no_prompt",
+            action="store_true",
+            help="""Set true to avoid prompting the user.""",
+            default=False,
+        )
         bittensor.subtensor.add_args(parser)
