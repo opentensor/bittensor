@@ -53,13 +53,15 @@ jobs:
           name: Check if requirements files have changed
           command: ./scripts/check_requirements_changes.sh
       - run:
-          name: Install dependencies
+          name: Install dependencies and Check compatibility
           command: |
-            sudo apt-get update
-            sudo apt-get install -y jq curl
-      - run:
-          name: Check compatibility
-          command: ./scripts/check_compatibility.sh << parameters.python_version >>
+            if [ "$REQUIREMENTS_CHANGED" == "true" ]; then
+              sudo apt-get update
+              sudo apt-get install -y jq curl
+              ./scripts/check_compatibility.sh << parameters.python_version >>
+            else
+              echo "Skipping compatibility checks..."
+            fi
 
   build-and-test:
     resource_class: medium
