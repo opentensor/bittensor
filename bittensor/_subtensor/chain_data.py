@@ -740,7 +740,8 @@ class SubnetInfo:
     ) -> "SubnetInfo":
         r"""Returns a SubnetInfo object from a torch parameter_dict."""
         return cls(**dict(parameter_dict))
-    
+
+
 @dataclass
 class IPInfo:
     r"""
@@ -753,7 +754,9 @@ class IPInfo:
     def encode(self) -> Dict[str, Any]:
         r"""Returns a dictionary of the IPInfo object that can be encoded."""
         return {
-            "ip": net.ip_to_int(self.ip), # IP type and protocol are encoded together as a u8
+            "ip": net.ip_to_int(
+                self.ip
+            ),  # IP type and protocol are encoded together as a u8
             "ip_type_and_protocol": ((self.ip_type << 4) + self.protocol) & 0xFF,
         }
 
