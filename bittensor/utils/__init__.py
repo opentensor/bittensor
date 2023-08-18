@@ -70,6 +70,7 @@ def unbiased_topk(values, k, dim=0, sorted=True, largest=True):
 
 def version_checking(timeout: int = 15):
     try:
+        bittensor.logging.info(f"Checking latest Bittensor version at: {bittensor.__pipaddress__}")
         response = requests.get(bittensor.__pipaddress__, timeout=timeout)
         latest_version = response.json()["info"]["version"]
         version_split = latest_version.split(".")
