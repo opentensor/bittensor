@@ -804,7 +804,7 @@ class subtensor:
                     return False, response.error_message
             else:
                 return True, None
-            
+
     def _do_associate_ips(
         self,
         wallet: "bittensor.wallet",
@@ -822,7 +822,7 @@ class subtensor:
             netuid (:obj:`int`): Netuid to associate IPs to.
             wait_for_inclusion (:obj:`bool`): If true, waits for inclusion.
             wait_for_finalization (:obj:`bool`): If true, waits for finalization.
-        
+
         Returns:
             success (:obj:`bool`): True if associate IPs was successful.
             error (:obj:`Optional[str]`): Error message if associate IPs failed, None otherwise.
@@ -832,9 +832,7 @@ class subtensor:
                 call_module="SubtensorModule",
                 call_function="associate_ips",
                 call_params={
-                    "ip_info_list": [
-                        ip_info.encode() for ip_info in ip_info_list
-                    ],
+                    "ip_info_list": [ip_info.encode() for ip_info in ip_info_list],
                     "netuid": netuid,
                 },
             )
@@ -854,7 +852,6 @@ class subtensor:
                     return False, response.error_message
             else:
                 return True, None
-
 
     #################
     #### Staking ####
@@ -2034,24 +2031,25 @@ class subtensor:
                 b_map.append((uid.serialize(), b.serialize()))
 
         return b_map
-    
+
     def associated_validator_ip_info(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[List[IPInfo]]:
-        """ Returns the list of all validator IPs associated with this subnet.
+        """Returns the list of all validator IPs associated with this subnet.
 
         Args:
             netuid (int):
                 The network uid of the subnet to query.
             block ( Optional[int] ):
                 block to sync from, or None for latest block.
-        
+
         Returns:
             validator_ip_info (Optional[List[IPInfo]]):
                 List of validator IP info objects for subnet.
-                  or None if no validator IPs are associated with this subnet, 
+                  or None if no validator IPs are associated with this subnet,
                   e.g. if the subnet does not exist.
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
