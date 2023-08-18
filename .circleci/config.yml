@@ -51,6 +51,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Check if requirements files have changed
+          command: ./scripts/check_requirements_changes.sh
+      - run:
           name: Install dependencies
           command: |
             sudo apt-get update
