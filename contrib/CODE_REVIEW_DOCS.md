@@ -34,7 +34,7 @@ mistakes could be very costly to the wider community. This includes refactoring
 of consensus-critical code.
 
 Where a patch set proposes to change the Bittensor consensus, it must have been
-discussed extensively on the mailing list and IRC, be accompanied by a widely
+discussed extensively on the discord server and other channels, be accompanied by a widely
 discussed BIP and have a generally widely perceived technical consensus of being
 a worthwhile change based on the judgement of the maintainers.
 
