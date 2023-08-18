@@ -20,6 +20,7 @@ following language is used within pull request comments:
   - "I have not tested the code, but I have reviewed it and it looks
     OK, I agree it can be merged";
   - A "nit" refers to a trivial, often non-blocking issue.
+
 ### Code Review
 Project maintainers reserve the right to weigh the opinions of peer reviewers
 using common sense judgement and may also weigh based on merit. Reviewers that
