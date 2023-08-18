@@ -50,6 +50,7 @@ The purpose of the good first issue label is to highlight which issues are suita
 However, good first issues can be solved by anyone. If they remain unsolved for a longer time, a frequent contributor might address them.
 
 You do not need to request permission to start working on an issue. However, you are encouraged to leave a comment if you are planning to work on it. This will help other contributors monitor which issues are actively being addressed and is also an effective way to request assistance if and when you need it.
+
 ### Beginner and Help-wanted Issues Label
 You can start by looking through these `beginner` and `help-wanted` issues:
 
