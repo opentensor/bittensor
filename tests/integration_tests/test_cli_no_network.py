@@ -365,6 +365,7 @@ class TestCLINoNetwork(unittest.TestCase):
 def return_mock_sub_2(*args, **kwargs):
     return MagicMock(
         return_value=MagicMock(
+            get_subnet_burn_cost=MagicMock(return_value=0.1),
             get_subnets=MagicMock(return_value=[1]),  # Need to pass check config
             get_delegates=MagicMock(
                 return_value=[
