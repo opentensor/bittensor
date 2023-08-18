@@ -773,9 +773,7 @@ class IPInfo:
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["IPInfo"]:
         r"""Returns a list of IPInfo objects from a vec_u8."""
-        decoded = from_scale_encoding(
-            vec_u8, ChainDataType.IPInfo, is_vec=True
-        )
+        decoded = from_scale_encoding(vec_u8, ChainDataType.IPInfo, is_vec=True)
 
         if decoded is None:
             return []
@@ -798,9 +796,7 @@ class IPInfo:
         return torch.nn.ParameterDict(self.__dict__)
 
     @classmethod
-    def from_parameter_dict(
-        cls, parameter_dict: "torch.nn.ParameterDict"
-    ) -> "IPInfo":
+    def from_parameter_dict(cls, parameter_dict: "torch.nn.ParameterDict") -> "IPInfo":
         r"""Returns a IPInfo object from a torch parameter_dict."""
         return cls(**dict(parameter_dict))
 
