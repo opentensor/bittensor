@@ -66,7 +66,7 @@ class RegisterSubnetworkCommand:
         bittensor.subtensor.add_args(parser)
 
 
-class GetSubnetBurnCostCommand:
+class SubnetBurnCostCommand:
     @staticmethod
     def run(cli):
         r"""Register a subnetwork"""
@@ -88,8 +88,8 @@ class GetSubnetBurnCostCommand:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         parser = parser.add_parser(
-            "get_subnet_burn_cost",
-            help="""Return the price to register a subnet""",
+            "subnet_burn_cost",
+            help=""" Return the price to register a subnet""",
         )
         parser.add_argument(
             "--no_version_checking",
