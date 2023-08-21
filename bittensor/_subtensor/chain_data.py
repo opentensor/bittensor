@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from dataclasses import dataclass
-from typing import List, Tuple, Dict, Optional, Any, TypedDict
+from typing import List, Tuple, Dict, Optional, Any, TypedDict, overload, Union
 import bittensor
 from bittensor import Balance, axon_info
 import torch
@@ -156,15 +156,52 @@ RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
-
+@overload
 def from_scale_encoding(
-    vec_u8: List[int],
+    input: List[int],
     type_name: ChainDataType,
     is_vec: bool = False,
     is_option: bool = False,
 ) -> Optional[Dict]:
-    as_bytes = bytes(vec_u8)
-    as_scale_bytes = ScaleBytes(as_bytes)
+    ...
+
+@overload
+def from_scale_encoding(
+    input: bytes,
+    type_name: ChainDataType,
+    is_vec: bool = False,
+    is_option: bool = False,
+) -> Optional[Dict]:
+    ...
+
+@overload
+def from_scale_encoding(
+    input: ScaleBytes,
+    type_name: ChainDataType,
+    is_vec: bool = False,
+    is_option: bool = False,
+) -> Optional[Dict]:
+    ...
+
+def from_scale_encoding(
+    input: Union[List[int], bytes, ScaleBytes],
+    type_name: ChainDataType,
+    is_vec: bool = False,
+    is_option: bool = False,
+) -> Optional[Dict]:
+    if isinstance(input, ScaleBytes):
+        as_scale_bytes = input
+    else:
+        if isinstance(input, list) and all([isinstance(i, int) for i in input]):
+            vec_u8 = input
+            as_bytes = bytes(vec_u8)
+        elif isinstance(input, bytes):
+            as_bytes = input
+        else:
+            raise TypeError("input must be a List[int], bytes, or ScaleBytes")
+        
+        as_scale_bytes = ScaleBytes(as_bytes)
+
     rpc_runtime_config = RuntimeConfiguration()
     rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
     rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
