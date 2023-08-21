@@ -1933,26 +1933,24 @@ class subtensor:
             neuron (List[NeuronInfoLite]):
                 List of neuron lite metadata objects.
         """
+        hex_scale_bytes_result = self.query_runtime_api(
+            runtime_api="NeuronInfoRuntimeApi",
+            method="get_neurons_lite",
+            params=self.substrate.encode_scale(
+                'u16', value=netuid, block_hash=self.substrate.get_block_hash(block) if block is not None else None
+            ).data,
+            block=block,
+        )
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
-                params = [netuid]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="neuronInfo_getNeuronsLite",  # custom rpc method
-                    params=params,
-                )
+        if hex_scale_bytes_result == None:
+            return None
+        
+        hex_bytes_result = self.substrate.decode_scale(
+            'Bytes<Vec<u8>>', hex_scale_bytes_result
+        )
+        bytes_result = bytes.fromhex(hex_bytes_result[2:])
 
-        json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
-
-        if result in (None, []):
-            return []
-
-        return NeuronInfoLite.list_from_vec_u8(result)
+        return NeuronInfoLite.list_from_vec_u8(bytes_result)
 
     def metagraph(
         self, netuid: int, lite: bool = True, block: Optional[int] = None
