@@ -1930,10 +1930,10 @@ class Subtensor:
         if hex_scale_bytes_result == None:
             return None
         
-        hex_bytes_result = bytes.from_hex(self.substrate.decode_scale(
+        hex_bytes_result = self.substrate.decode_scale(
             'Bytes<Vec<u8>>', hex_scale_bytes_result
-        ))
-        bytes_result = bytes(hex_bytes_result)
+        )
+        bytes_result = bytes.fromhex(hex_bytes_result[2:])
 
         return IPInfo.list_from_vec_u8(bytes_result)
 
