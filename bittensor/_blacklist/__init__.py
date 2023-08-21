@@ -113,7 +113,10 @@ class blacklist:
             and is_registered
         ):
             uid = metagraph.hotkeys.index(src_hotkey)
-            return metagraph.neurons[uid].validator_permit
+            # Return False (pass) if there is a permit, and True (fail) if there isn't.
+            if metagraph.neurons[uid].validator_permit:
+                return False, "has vpermit"
+            return True, "no vpermit"
 
         # All checks passed.
         return False, "passed blacklist"

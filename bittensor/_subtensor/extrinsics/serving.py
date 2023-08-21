@@ -159,7 +159,6 @@ def serve_axon_extrinsic(
     subtensor: "bittensor.Subtensor",
     netuid: int,
     axon: "bittensor.Axon",
-    use_upnpc: bool = False,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     prompt: bool = False,
@@ -170,9 +169,6 @@ def serve_axon_extrinsic(
             The netuid being served on.
         axon (bittensor.Axon):
             Axon to serve.
-        use_upnpc (:type:bool, `optional`):
-            If true, the axon attempts port forward through your router before
-            subscribing.
         wait_for_inclusion (bool):
             If set, waits for the extrinsic to enter a block before returning true,
             or returns false if the extrinsic fails to enter the block within the timeout.
@@ -188,30 +184,7 @@ def serve_axon_extrinsic(
     """
     axon.wallet.hotkey
     axon.wallet.coldkeypub
-
-    # ---- Setup UPNPC ----
-    if use_upnpc:
-        if prompt:
-            if not Confirm.ask("Attempt port forwarding with upnpc?"):
-                return False
-        try:
-            external_port = net.upnpc_create_port_map(port=axon.port)
-            bittensor.__console__.print(
-                ":white_heavy_check_mark: [green]Forwarded port: {}[/green]".format(
-                    axon.port
-                )
-            )
-            bittensor.logging.success(
-                prefix="Forwarded port", sufix="<blue>{}</blue>".format(axon.port)
-            )
-        except net.UPNPCException as upnpc_exception:
-            raise RuntimeError(
-                "Failed to hole-punch with upnpc with exception {}".format(
-                    upnpc_exception
-                )
-            ) from upnpc_exception
-    else:
-        external_port = axon.external_port
+    external_port = axon.external_port
 
     # ---- Get external ip ----
     if axon.external_ip == None:
