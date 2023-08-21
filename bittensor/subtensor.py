@@ -2090,26 +2090,24 @@ class subtensor:
                   or None if no validator IPs are associated with this subnet,
                   e.g. if the subnet does not exist.
         """
+        hex_scale_bytes_result = self.query_runtime_api(
+            runtime_api="ValidatorIPRuntimeApi",
+            method="get_associated_validator_ip_info_for_subnet",
+            params=self.substrate.encode_scale(
+                'u16', value=netuid, block_hash=self.substrate.get_block_hash(block) if block is not None else None
+            ).data,
+            block=block,
+        )
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
-                params = [netuid]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="validatorIP_getAssociatedValidatorIPInfoForSubnet",  # custom rpc method
-                    params=params,
-                )
+        if hex_scale_bytes_result == None:
+            return None
+        
+        hex_bytes_result = bytes.from_hex(self.substrate.decode_scale(
+            'Bytes<Vec<u8>>', hex_scale_bytes_result
+        ))
+        bytes_result = bytes(hex_bytes_result)
 
-        json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
-
-        if result in (None, []):
-            return result
-
-        return IPInfo.list_from_vec_u8(result)
+        return IPInfo.list_from_vec_u8(bytes_result)
 
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> int:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
