@@ -113,6 +113,7 @@ class config(Munch):
         params = config.__parse_args__(args=args, parser=parser, strict=strict)
 
         _config = self
+        _config["__parser"] = parser
 
         # Make the is_set map
         _config["__is_set"] = {}

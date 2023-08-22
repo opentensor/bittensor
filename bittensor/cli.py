@@ -49,8 +49,6 @@ COMMANDS = {
     "senate": SenateCommand,
     "proposals": ProposalsCommand,
     "proposal_votes": ShowVotesCommand,
-    "senate_register": SenateRegisterCommand,
-    "senate_leave": SenateLeaveCommand,
     "senate_vote": VoteCommand,
     "run_faucet": RunFaucetCommand,
     "subnet": {
@@ -58,7 +56,69 @@ COMMANDS = {
         "help": "Subnet commands",
         "commands": {
             "create": RegisterSubnetworkCommand,
-            "burn_cost": SubnetBurnCostCommand
+            "burn_cost": SubnetBurnCostCommand,
+            #"overview": None,
+            "metagraph": MetagraphCommand,
+            #"hyperparameters": None,
+            #"owner": None,
+            "register": RegisterCommand,
+            "recycle_register": RecycleRegisterCommand,
+            "list": ListSubnetsCommand,
+            #"emission": None,
+        }
+    },
+    "root": {
+        "name": "root",
+        "help": "Root commands",
+        "commands": {
+            #"view": None,
+            #"register": None,
+            #"weights": None,
+            "vote": VoteCommand,
+            "proposals": ProposalsCommand,
+        }
+    },
+    "wallet": {
+        "name": "wallet",
+        "help": "Wallet commands",
+        "commands": {
+            "overview": OverviewCommand,
+            "transfer": TransferCommand,
+            "inspect": InspectCommand,
+            #"balance": None,
+            #"create": None,
+            "new_hotkey": NewHotkeyCommand,
+            "new_coldkey": NewColdkeyCommand,
+            "list": ListCommand,
+            "regen_coldkey": RegenColdkeyCommand,
+            "regen_coldkeypub": RegenColdkeypubCommand,
+            "regen_hotkey": RegenHotkeyCommand
+        }
+    },
+    "staking": {
+        "name": "staking",
+        "help": "Staking commands",
+        "commands": {
+            "add": StakeCommand,
+            "remove": UnStakeCommand,
+        }
+    },
+    "delegation": {
+        "name": "delegation",
+        "help": "Delegation commands",
+        "commands": {
+            "nominate": NominateCommand,
+            "add": DelegateStakeCommand,
+            "remove": DelegateUnstakeCommand,
+            "my_delegates": MyDelegatesCommand,
+        }
+    },
+    "misc": {
+        "name": "misc",
+        "help": "Miscellaneous commands",
+        "commands": {
+            "update": UpdateCommand,
+            "run_faucet": RunFaucetCommand,
         }
     }
 }
@@ -169,8 +229,11 @@ class cli:
             
             if isinstance(command_data, dict):
                 if config[command] == None:
-                    console.print(f":cross_mark:[red]Unknown command: {config.command} {config['command']}[/red]")
-                    sys.exit()
+                    # This probably isn't the best solution, refactor
+                    for action in config["__parser"]._subparsers._actions:
+                        if action.dest == "command" and action.choices[command]:
+                            action.choices[command].print_help()
+                            sys.exit()
                     
                 command_data["commands"][config[command]].check_config(config)
             else:
