@@ -52,9 +52,15 @@ COMMANDS = {
     "senate_register": SenateRegisterCommand,
     "senate_leave": SenateLeaveCommand,
     "senate_vote": VoteCommand,
-    "register_subnet": RegisterSubnetworkCommand,
     "run_faucet": RunFaucetCommand,
-    "subnet_burn_cost": SubnetBurnCostCommand,
+    "subnet": {
+        "name": "subnet", 
+        "help": "Subnet commands",
+        "commands": {
+            "create": RegisterSubnetworkCommand,
+            "burn_cost": SubnetBurnCostCommand
+        }
+    }
 }
 
 
@@ -116,7 +122,15 @@ class cli:
         cmd_parsers = parser.add_subparsers(dest="command")
         # Add argument parsers for all available commands.
         for command in COMMANDS.values():
-            command.add_args(cmd_parsers)
+            if isinstance(command, dict):
+                subcmd_parser = cmd_parsers.add_parser(name=command["name"], help=command["help"])
+                subparser = subcmd_parser.add_subparsers(help=command["help"], dest=command["name"])
+
+                for subcommand in command["commands"].values():
+                    subcommand.add_args(subparser)
+            else:
+                command.add_args(cmd_parsers)
+
         return parser
 
     @staticmethod
@@ -150,7 +164,17 @@ class cli:
         # Check if command exists, if so, run the corresponding check_config.
         # If command doesn't exist, inform user and exit the program.
         if config.command in COMMANDS:
-            COMMANDS[config.command].check_config(config)
+            command = config.command
+            command_data = COMMANDS[command]
+            
+            if isinstance(command_data, dict):
+                if config[command] == None:
+                    console.print(f":cross_mark:[red]Unknown command: {config.command} {config['command']}[/red]")
+                    sys.exit()
+                    
+                command_data["commands"][config[command]].check_config(config)
+            else:
+                command_data.check_config(config)
         else:
             console.print(f":cross_mark:[red]Unknown command: {config.command}[/red]")
             sys.exit()
@@ -161,8 +185,14 @@ class cli:
         """
         # Check if command exists, if so, run the corresponding method.
         # If command doesn't exist, inform user and exit the program.
-        if self.config.command in COMMANDS:
-            COMMANDS[self.config.command].run(self)
+        command = self.config.command
+        if command in COMMANDS:
+            command_data = COMMANDS[command]
+
+            if isinstance(command_data, dict):
+                command_data["commands"][self.config[command]].run(self)
+            else:
+                command_data.run(self)
         else:
             console.print(
                 f":cross_mark:[red]Unknown command: {self.config.command}[/red]"

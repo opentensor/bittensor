@@ -23,7 +23,6 @@ from rich.prompt import Prompt
 
 console = bittensor.__console__
 
-
 class RegisterSubnetworkCommand:
     @staticmethod
     def run(cli):
@@ -46,8 +45,8 @@ class RegisterSubnetworkCommand:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         parser = parser.add_parser(
-            "register_subnet",
-            help="""Register a new bittensor subnetwork on this chain.""",
+            "create",
+            help="""Create a new bittensor subnetwork on this chain.""",
         )
         parser.add_argument(
             "--no_version_checking",
@@ -90,7 +89,7 @@ class SubnetBurnCostCommand:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         parser = parser.add_parser(
-            "subnet_burn_cost",
+            "burn_cost",
             help=""" Return the price to register a subnet""",
         )
         parser.add_argument(
