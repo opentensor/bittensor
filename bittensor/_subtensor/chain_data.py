@@ -206,6 +206,7 @@ def from_scale_encoding_using_type_string(input: Union[List[int], bytes, ScaleBy
     return obj.decode()
 
 
+
 # Dataclasses for chain data.
 @dataclass
 class NeuronInfo:
@@ -691,6 +692,25 @@ class StakeInfo:
         decoded = StakeInfo.fix_decoded_values(decoded)
 
         return decoded
+    
+    @classmethod
+    def list_of_tuple_from_vec_u8(cls, vec_u8: List[int]) -> Dict[str, List["StakeInfo"]]:
+        r"""Returns a list of StakeInfo objects from a vec_u8."""
+        decoded: Optional[List[Tuple(str, List[object])]] = from_scale_encoding_using_type_string(
+            input=vec_u8, 
+            type_string="Vec<(AccountId, Vec<StakeInfo>)>"
+        )
+
+        if decoded is None:
+            return {}
+
+        stake_map = {
+            ss58_encode(address=account_id, ss58_format=bittensor.__ss58_format__): [
+                StakeInfo.fix_decoded_values(d) for d in stake_info
+            ] for account_id, stake_info in decoded
+        }
+
+        return stake_map
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["StakeInfo"]:

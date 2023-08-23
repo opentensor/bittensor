@@ -1677,7 +1677,7 @@ class Subtensor:
         else:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
-        return StakeInfo.list_from_vec_u8(bytes_result)
+        return StakeInfo.list_of_tuple_from_vec_u8(bytes_result)
 
     ########################################
     #### Neuron information per subnet ####
