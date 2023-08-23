@@ -16,6 +16,7 @@ RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
+
 def ss58_to_vec_u8(ss58_address: str) -> List[int]:
     ss58_bytes: bytes = bittensor.utils.ss58_address_to_bytes(ss58_address)
     encoded_address: List[int] = [int(byte) for byte in ss58_bytes]
