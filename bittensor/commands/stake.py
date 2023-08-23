@@ -214,12 +214,6 @@ class StakeCommand:
         stake_parser = parser.add_parser(
             "stake", help="""Stake to your hotkey accounts."""
         )
-        stake_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
         stake_parser.add_argument("--all", dest="stake_all", action="store_true")
         stake_parser.add_argument("--uid", dest="uid", type=int, required=False)
         stake_parser.add_argument("--amount", dest="amount", type=float, required=False)
@@ -231,13 +225,6 @@ class StakeCommand:
             action="store",
             default=None,
             help="""Specify the maximum amount of Tao to have staked in each hotkey.""",
-        )
-        stake_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         stake_parser.add_argument(
             "--hotkeys",

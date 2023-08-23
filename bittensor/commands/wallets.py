@@ -78,12 +78,6 @@ class RegenColdkeyCommand:
             "regen_coldkey", help="""Regenerates a coldkey from a passed value"""
         )
         regen_coldkey_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        regen_coldkey_parser.add_argument(
             "--mnemonic",
             required=False,
             nargs="+",
@@ -119,13 +113,6 @@ class RegenColdkeyCommand:
             dest="use_password",
             action="store_false",
             help="""Set off protects the generated bittensor key with a password.""",
-        )
-        regen_coldkey_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         regen_coldkey_parser.add_argument(
             "--overwrite_coldkey",
@@ -174,12 +161,6 @@ class RegenColdkeypubCommand:
             help="""Regenerates a coldkeypub from the public part of the coldkey.""",
         )
         regen_coldkeypub_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        regen_coldkeypub_parser.add_argument(
             "--public_key",
             "--pubkey",
             dest="public_key_hex",
@@ -197,13 +178,6 @@ class RegenColdkeypubCommand:
             default=None,
             type=str,
             help="The ss58 address of the coldkey to regen e.g. 5ABCD ...",
-        )
-        regen_coldkeypub_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         regen_coldkeypub_parser.add_argument(
             "--overwrite_coldkeypub",
@@ -273,12 +247,6 @@ class RegenHotkeyCommand:
             "regen_hotkey", help="""Regenerates a hotkey from a passed mnemonic"""
         )
         regen_hotkey_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        regen_hotkey_parser.add_argument(
             "--mnemonic",
             required=False,
             nargs="+",
@@ -314,13 +282,6 @@ class RegenHotkeyCommand:
             dest="use_password",
             action="store_false",
             help="""Set off protects the generated bittensor key with a password.""",
-        )
-        regen_hotkey_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         regen_hotkey_parser.add_argument(
             "--overwrite_hotkey",
@@ -360,12 +321,6 @@ class NewHotkeyCommand:
             help="""Creates a new hotkey (for running a miner) under the specified path.""",
         )
         new_hotkey_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        new_hotkey_parser.add_argument(
             "--n_words",
             type=int,
             choices=[12, 15, 18, 21, 24],
@@ -384,13 +339,6 @@ class NewHotkeyCommand:
             dest="use_password",
             action="store_false",
             help="""Set off protects the generated bittensor key with a password.""",
-        )
-        new_hotkey_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         new_hotkey_parser.add_argument(
             "--overwrite_hotkey",
@@ -425,12 +373,6 @@ class NewColdkeyCommand:
             help="""Creates a new coldkey (for containing balance) under the specified path. """,
         )
         new_coldkey_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        new_coldkey_parser.add_argument(
             "--n_words",
             type=int,
             choices=[12, 15, 18, 21, 24],
@@ -449,13 +391,6 @@ class NewColdkeyCommand:
             dest="use_password",
             action="store_false",
             help="""Set off protects the generated bittensor key with a password.""",
-        )
-        new_coldkey_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         new_coldkey_parser.add_argument(
             "--overwrite_coldkey",
