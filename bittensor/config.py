@@ -163,12 +163,17 @@ class config(Munch):
 
         ## Reparse args using default of unset
         parser_no_defaults = copy.deepcopy(parser)
+
+        # Only command as the arg, else no args
+        default_param_args = [_config.get("command")] if _config.get("command") != None and _config.get("subcommand") == None else []
+        if _config.get("command") != None and _config.get("subcommand") != None:
+            default_param_args = [_config.get("command"), _config.get("subcommand")]
+
         ## Get all args by name
         default_params = parser.parse_args(
-            args=[_config.get("command")]  # Only command as the arg, else no args
-            if _config.get("command") != None
-            else []
+            args=default_param_args
         )
+ 
         all_default_args = default_params.__dict__.keys() | []
         ## Make a dict with keys as args and values as argparse.SUPPRESS
         defaults_as_suppress = {key: SUPPRESS for key in all_default_args}
@@ -186,8 +191,18 @@ class config(Munch):
                     ## Note: we also need to clear the _defaults dict for each, this is a quirk of argparse
                     cmd_parser: ArgumentParser
                     for cmd_parser in action.choices.values():
-                        cmd_parser.set_defaults(**defaults_as_suppress)
-                        cmd_parser._defaults.clear()  # Needed for quirk of argparse
+                        # If this choice is also a subparser, set defaults recursively
+                        if cmd_parser._subparsers:
+                            for action in cmd_parser._subparsers._actions:
+                                # Should only be the "command" subparser action
+                                if isinstance(action, _SubParsersAction):
+                                    cmd_parser: ArgumentParser
+                                    for cmd_parser in action.choices.values():
+                                        cmd_parser.set_defaults(**defaults_as_suppress)
+                                        cmd_parser._defaults.clear()  # Needed for quirk of argparse
+                        else:
+                            cmd_parser.set_defaults(**defaults_as_suppress)
+                            cmd_parser._defaults.clear()  # Needed for quirk of argparse
 
         ## Reparse the args, but this time with the defaults as argparse.SUPPRESS
         params_no_defaults = self.__parse_args__(
