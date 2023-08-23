@@ -1957,7 +1957,10 @@ class subtensor:
         if hex_bytes_result == None:
             return NeuronInfoLite._null_neuron()
         
-        bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
 
         return NeuronInfoLite.from_vec_u8(bytes_result)
 
@@ -1984,7 +1987,10 @@ class subtensor:
         if hex_bytes_result == None:
             return None
         
-        bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
 
         return NeuronInfoLite.list_from_vec_u8(bytes_result)
 
