@@ -25,8 +25,10 @@ import scalecodec
 
 from retry import retry
 from loguru import logger
-from typing import List, Dict, Union, Optional, Tuple
+from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 from substrateinterface.base import QueryMapResult, SubstrateInterface
+from scalecodec.base import RuntimeConfiguration
+from scalecodec.type_registry import load_type_registry_preset
 
 # Local imports.
 from .chain_data import (
@@ -38,6 +40,7 @@ from .chain_data import (
     AxonInfo,
     ProposalVoteData,
     ProposalCallData,
+    custom_rpc_type_registry,
 )
 from .errors import *
 from .extrinsics.network import register_subnetwork_extrinsic
@@ -68,6 +71,10 @@ from .utils.balance import Balance
 from .utils.registration import POWSolution
 
 logger = logger.opt(colors=True)
+
+class ParamWithTypes(TypedDict):
+    name: str # Name of the parameter.
+    type: str # ScaleType string of the parameter.
 
 
 class subtensor:
@@ -1214,22 +1221,59 @@ class subtensor:
         self,
         runtime_api: str,
         method: str,
-        params: Optional[Union[bytearray, str]] = '0x',
+        params: Optional[List[ParamWithTypes]],
         block: Optional[int] = None,
     ) -> Optional[bytes]:
         """
         Returns a Scale Bytes type that should be decoded. 
         """
+        call_definition = bittensor.__type_registry__['runtime_api'][runtime_api]['methods'][method]
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
-            data='0x' if params is None else params.hex() if isinstance(params, bytearray) else params,
+            data='0x' if params is None else self._encode_params(
+                call_definition=call_definition,
+                params=params
+            ),
             block=block
         )
 
         if json_result is None:
             return None
         
-        return json_result["result"]
+        return_type = call_definition['type']
+
+        as_scale_bytes = scalecodec.ScaleBytes( json_result['result'] )
+
+        rpc_runtime_config = RuntimeConfiguration()
+        rpc_runtime_config.update_type_registry(load_type_registry_preset('legacy'))
+        rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
+
+        obj = rpc_runtime_config.create_scale_object(return_type)
+
+        return obj.decode(as_scale_bytes)
+        
+    
+    def _encode_params(
+        self,
+        call_definition: List[ParamWithTypes],
+        params: Union[List[Any], Dict[str, str]],
+    ) -> str:
+        """
+        Returns a hex encoded string of the params using their types.
+        """
+        param_data = scalecodec.ScaleBytes(b'')
+
+        for i, param in enumerate(call_definition['params']):
+            scale_obj = self.substrate.create_scale_object(param['type'])
+            if type(params) is list:
+                param_data += scale_obj.encode(params[i])
+            else:
+                if param['name'] not in params:
+                    raise ValueError(f"Missing param {param['name']} in params dict.")
+
+                param_data += scale_obj.encode(params[param['name']])
+
+        return param_data.to_hex()
 
     #####################################
     #### Hyper parameter calls. ####
