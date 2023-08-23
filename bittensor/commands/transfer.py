@@ -46,7 +46,7 @@ class TransferCommand:
             config.wallet.name = str(wallet_name)
 
         # Get destination.
-        if not config.dest:
+        if not config.dest and not config.no_prompt:
             dest = Prompt.ask("Enter destination public key: (ss58 or ed2519)")
             if not bittensor.utils.is_valid_bittensor_address_or_public_key(dest):
                 sys.exit()
