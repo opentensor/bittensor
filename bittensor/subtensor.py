@@ -36,6 +36,7 @@ from .chain_data import (
     DelegateInfo,
     PrometheusInfo,
     SubnetInfo,
+    StakeInfo,
     NeuronInfoLite,
     AxonInfo,
     ProposalVoteData,
@@ -1782,6 +1783,57 @@ class subtensor:
 
         return DelegateInfo.delegated_list_from_vec_u8(result)
 
+    ###########################
+    #### Stake Information ####
+    ###########################
+
+    def get_stake_info_for_colkey(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> List[Tuple[DelegateInfo, Balance]]:
+        """Returns the list of StakeInfo objects for this coldkey"""
+
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)        
+
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_coldkey",
+            params=[encoded_coldkey],
+            block=block,
+        )
+
+        if hex_bytes_result == None:
+            return None
+        
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+            
+        return StakeInfo.list_from_vec_u8(bytes_result)
+    
+    def get_stake_info_for_colkeys(
+        self, coldkey_ss58_list: List[str], block: Optional[int] = None
+    ) -> List[Tuple[DelegateInfo, Balance]]:
+        """Returns the list of StakeInfo objects for all coldkeys in the list."""
+        encoded_coldkeys = [ss58_to_vec_u8(coldkey_ss58) for coldkey_ss58 in coldkey_ss58_list]
+
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_coldkey",
+            params=[encoded_coldkeys],
+            block=block,
+        )
+
+        if hex_bytes_result == None:
+            return None
+        
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+            
+        return StakeInfo.list_from_vec_u8(bytes_result)
+    
     ########################################
     #### Neuron information per subnet ####
     ########################################
