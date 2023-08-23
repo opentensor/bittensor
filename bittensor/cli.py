@@ -27,8 +27,6 @@ console = bittensor.__console__
 COMMANDS = {
     "transfer": TransferCommand,
     "register": RegisterCommand,
-    "unstake": UnStakeCommand,
-    "stake": StakeCommand,
     "overview": OverviewCommand,
     "list": ListCommand,
     "new_coldkey": NewColdkeyCommand,
@@ -56,14 +54,11 @@ COMMANDS = {
         "help": "Subnet commands",
         "commands": {
             "create": RegisterSubnetworkCommand,
-            "burn_cost": SubnetBurnCostCommand,
-            #"overview": None,
-            "metagraph": MetagraphCommand,
+            "lock_cost": SubnetLockCostCommand,
+            #"list": None,
+            "overview": MetagraphCommand,
             #"hyperparameters": None,
             #"owner": None,
-            "register": RegisterCommand,
-            "recycle_register": RecycleRegisterCommand,
-            "list": ListSubnetsCommand,
             #"emission": None,
         }
     },
@@ -71,11 +66,13 @@ COMMANDS = {
         "name": "root",
         "help": "Root commands",
         "commands": {
-            #"view": None,
+            #"list": None,
             #"register": None,
             #"weights": None,
             "vote": VoteCommand,
             "proposals": ProposalsCommand,
+            "stake": DelegateStakeCommand,
+            "unstake": DelegateUnstakeCommand,
         }
     },
     "wallet": {
@@ -92,25 +89,18 @@ COMMANDS = {
             "list": ListCommand,
             "regen_coldkey": RegenColdkeyCommand,
             "regen_coldkeypub": RegenColdkeypubCommand,
-            "regen_hotkey": RegenHotkeyCommand
+            "regen_hotkey": RegenHotkeyCommand,
+            "register": RegisterCommand,
+            "recycle_register": RecycleRegisterCommand,
+            "delegates": MyDelegatesCommand,
         }
     },
-    "staking": {
-        "name": "staking",
+    "stake": {
+        "name": "stake",
         "help": "Staking commands",
         "commands": {
             "add": StakeCommand,
             "remove": UnStakeCommand,
-        }
-    },
-    "delegation": {
-        "name": "delegation",
-        "help": "Delegation commands",
-        "commands": {
-            "nominate": NominateCommand,
-            "add": DelegateStakeCommand,
-            "remove": DelegateUnstakeCommand,
-            "my_delegates": MyDelegatesCommand,
         }
     },
     "misc": {
