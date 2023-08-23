@@ -227,9 +227,6 @@ workflows:
   compatibility_checks:
     jobs:
       - check_compatibility:
-          python_version: "3.8"
-          name: check-compatibility-3.8
-      - check_compatibility:
           python_version: "3.9"
           name: check-compatibility-3.9
       - check_compatibility:
