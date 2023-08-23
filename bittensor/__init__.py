@@ -111,8 +111,39 @@ __network_explorer_map__ = {
 }
 
 # --- Type Registry ---
-__type_registry__ = {"types": {"Balance": "u64"}}  # Need to override default u128
-
+__type_registry__ = {
+    "types": {
+        "Balance": "u64",  # Need to override default u128
+    },
+    "runtime_api": {
+        "NeuronInfoRuntimeApi": {
+            "methods": {
+                "get_neuron_lite": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                        {
+                            "name": "uid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_neurons_lite": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            }
+        },
+    },
+}
 
 from .errors import *
 
