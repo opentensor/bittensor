@@ -54,7 +54,7 @@ COMMANDS = {
     "senate_vote": VoteCommand,
     "register_subnet": RegisterSubnetworkCommand,
     "run_faucet": RunFaucetCommand,
-    "get_subnet_burn_cost": GetSubnetBurnCostCommand,
+    "subnet_burn_cost": SubnetBurnCostCommand,
 }
 
 
