@@ -139,6 +139,14 @@ custom_rpc_type_registry = {
                 ["ip_type", "u8"],
             ],
         },
+        "StakeInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["hotkey", "AccountId"],
+                ["coldkey", "AccountId"],
+                ["stake", "Compact<u64>"],
+            ],
+        },
     }
 }
 
