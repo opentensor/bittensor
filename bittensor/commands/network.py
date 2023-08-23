@@ -53,7 +53,7 @@ class RegisterSubnetworkCommand:
         bittensor.subtensor.add_args(parser)
 
 
-class SubnetBurnCostCommand:
+class SubnetLockCostCommand:
     @staticmethod
     def run(cli):
         r"""Register a subnetwork"""
@@ -61,12 +61,12 @@ class SubnetBurnCostCommand:
         subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
         try:
             bittensor.__console__.print(
-                f"Subnet burn cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]"
+                f"Subnet lock cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]"
             )
             time.sleep(bittensor.__blocktime__)
         except Exception as e:
             bittensor.__console__.print(
-                f"Subnet burn cost: [red]Failed to get subnet burn cost[/red]"
+                f"Subnet lock cost: [red]Failed to get subnet lock cost[/red]"
                 f"Error: {e}"
             )
 
@@ -77,7 +77,7 @@ class SubnetBurnCostCommand:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         parser = parser.add_parser(
-            "burn_cost",
+            "lock_cost",
             help=""" Return the price to register a subnet""",
         )
 
