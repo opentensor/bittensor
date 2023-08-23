@@ -66,7 +66,7 @@ from .extrinsics.senate import (
     vote_senate_extrinsic,
 )
 from .types import AxonServeCallParams, PrometheusServeCallParams
-from .utils import U16_NORMALIZED_FLOAT
+from .utils import U16_NORMALIZED_FLOAT, ss58_to_vec_u8
 from .utils.balance import Balance
 from .utils.registration import POWSolution
 
@@ -1726,8 +1726,7 @@ class subtensor:
                     params=params,
                 )
 
-        hotkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes(hotkey_ss58)
-        encoded_hotkey: List[int] = [int(byte) for byte in hotkey_bytes]
+        encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_hotkey)
         result = json_body["result"]
 
@@ -1774,8 +1773,7 @@ class subtensor:
                     params=params,
                 )
 
-        coldkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes(coldkey_ss58)
-        encoded_coldkey: List[int] = [int(byte) for byte in coldkey_bytes]
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_coldkey)
         result = json_body["result"]
 
