@@ -25,7 +25,6 @@ from rich.prompt import Prompt
 from rich.prompt import Confirm
 from rich.console import Text
 from tqdm import tqdm
-from substrateinterface.exceptions import SubstrateRequestException
 from .utils import get_delegates_details, DelegatesDetails
 from . import defaults
 
@@ -56,9 +55,8 @@ def show_delegates(
     """Pretty prints a table of delegates sorted by total stake."""
     delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
     prev_delegates_dict = {}
-    if prev_delegates is not None:
-        for prev_delegate in prev_delegates:
-            prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
+    for prev_delegate in prev_delegates:
+        prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
 
     registered_delegate_info: Optional[
         Dict[str, DelegatesDetails]
