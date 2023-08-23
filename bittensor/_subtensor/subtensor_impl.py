@@ -28,7 +28,7 @@ from scalecodec.type_registry import load_type_registry_preset
 
 from bittensor._subtensor.chain_data import custom_rpc_type_registry
 from bittensor.utils.balance import Balance
-from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
+from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX, ss58_to_vec_u8
 from bittensor.utils.registration import POWSolution
 
 # Local imports.
@@ -1569,8 +1569,7 @@ class Subtensor:
                     params=params,
                 )
 
-        hotkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes(hotkey_ss58)
-        encoded_hotkey: List[int] = [int(byte) for byte in hotkey_bytes]
+        encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_hotkey)
         result = json_body["result"]
 
@@ -1617,8 +1616,7 @@ class Subtensor:
                     params=params,
                 )
 
-        coldkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes(coldkey_ss58)
-        encoded_coldkey: List[int] = [int(byte) for byte in coldkey_bytes]
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_coldkey)
         result = json_body["result"]
 
