@@ -1664,7 +1664,7 @@ class Subtensor:
 
         hex_bytes_result = self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
-            method="get_stake_info_for_coldkey",
+            method="get_stake_info_for_coldkeys",
             params=[encoded_coldkeys],
             block=block,
         )
