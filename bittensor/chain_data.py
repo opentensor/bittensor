@@ -225,6 +225,7 @@ RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
+
 def from_scale_encoding(
     input: Union[List[int], bytes, ScaleBytes],
     type_name: ChainDataType,
@@ -241,7 +242,7 @@ def from_scale_encoding(
             as_bytes = input
         else:
             raise TypeError("input must be a List[int], bytes, or ScaleBytes")
-        
+
         as_scale_bytes = ScaleBytes(as_bytes)
 
     rpc_runtime_config = RuntimeConfiguration()

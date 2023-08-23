@@ -72,9 +72,10 @@ from .utils.registration import POWSolution
 
 logger = logger.opt(colors=True)
 
+
 class ParamWithTypes(TypedDict):
-    name: str # Name of the parameter.
-    type: str # ScaleType string of the parameter.
+    name: str  # Name of the parameter.
+    type: str  # ScaleType string of the parameter.
 
 
 class subtensor:
@@ -1196,7 +1197,7 @@ class subtensor:
                 )
 
         return make_substrate_call_with_retry()
-    
+
     def state_call(
         self,
         method: str,
@@ -1210,13 +1211,10 @@ class subtensor:
                 params = [method, data]
                 if block_hash:
                     params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="state_call",
-                    params=params
-                )
+                return substrate.rpc_request(method="state_call", params=params)
 
         return make_substrate_call_with_retry()
-    
+
     def query_runtime_api(
         self,
         runtime_api: str,
@@ -1225,34 +1223,34 @@ class subtensor:
         block: Optional[int] = None,
     ) -> Optional[bytes]:
         """
-        Returns a Scale Bytes type that should be decoded. 
+        Returns a Scale Bytes type that should be decoded.
         """
-        call_definition = bittensor.__type_registry__['runtime_api'][runtime_api]['methods'][method]
+        call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][
+            "methods"
+        ][method]
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
-            data='0x' if params is None else self._encode_params(
-                call_definition=call_definition,
-                params=params
-            ),
-            block=block
+            data="0x"
+            if params is None
+            else self._encode_params(call_definition=call_definition, params=params),
+            block=block,
         )
 
         if json_result is None:
             return None
-        
-        return_type = call_definition['type']
 
-        as_scale_bytes = scalecodec.ScaleBytes( json_result['result'] )
+        return_type = call_definition["type"]
+
+        as_scale_bytes = scalecodec.ScaleBytes(json_result["result"])
 
         rpc_runtime_config = RuntimeConfiguration()
-        rpc_runtime_config.update_type_registry(load_type_registry_preset('legacy'))
+        rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
         rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
 
         obj = rpc_runtime_config.create_scale_object(return_type)
 
         return obj.decode(as_scale_bytes)
-        
-    
+
     def _encode_params(
         self,
         call_definition: List[ParamWithTypes],
@@ -1261,17 +1259,17 @@ class subtensor:
         """
         Returns a hex encoded string of the params using their types.
         """
-        param_data = scalecodec.ScaleBytes(b'')
+        param_data = scalecodec.ScaleBytes(b"")
 
-        for i, param in enumerate(call_definition['params']):
-            scale_obj = self.substrate.create_scale_object(param['type'])
+        for i, param in enumerate(call_definition["params"]):
+            scale_obj = self.substrate.create_scale_object(param["type"])
             if type(params) is list:
                 param_data += scale_obj.encode(params[i])
             else:
-                if param['name'] not in params:
+                if param["name"] not in params:
                     raise ValueError(f"Missing param {param['name']} in params dict.")
 
-                param_data += scale_obj.encode(params[param['name']])
+                param_data += scale_obj.encode(params[param["name"]])
 
         return param_data.to_hex()
 
@@ -1943,11 +1941,11 @@ class subtensor:
         """
         if uid == None:
             return NeuronInfoLite._null_neuron()
-        
+
         hex_bytes_result = self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
             method="get_neuron_lite",
-            params={ 
+            params={
                 "netuid": netuid,
                 "uid": uid,
             },
@@ -1956,7 +1954,7 @@ class subtensor:
 
         if hex_bytes_result == None:
             return NeuronInfoLite._null_neuron()
-        
+
         if hex_bytes_result.startswith("0x"):
             bytes_result = bytes.fromhex(hex_bytes_result[2:])
         else:
@@ -1986,7 +1984,7 @@ class subtensor:
 
         if hex_bytes_result == None:
             return None
-        
+
         if hex_bytes_result.startswith("0x"):
             bytes_result = bytes.fromhex(hex_bytes_result[2:])
         else:

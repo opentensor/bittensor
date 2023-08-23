@@ -119,11 +119,11 @@ __type_registry__ = {
         "NeuronInfoRuntimeApi": {
             "methods": {
                 "get_neuron_lite": {
-                    'params': [
+                    "params": [
                         {
                             "name": "netuid",
                             "type": "u16",
-                        }, 
+                        },
                         {
                             "name": "uid",
                             "type": "u16",
@@ -132,7 +132,7 @@ __type_registry__ = {
                     "type": "Vec<u8>",
                 },
                 "get_neurons_lite": {
-                    'params': [
+                    "params": [
                         {
                             "name": "netuid",
                             "type": "u16",
@@ -142,7 +142,7 @@ __type_registry__ = {
                 },
             }
         },
-    }
+    },
 }
 
 from .errors import *
