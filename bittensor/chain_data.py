@@ -716,7 +716,8 @@ class DelegateInfo:
         ]
 
         return decoded
-    
+
+
 @dataclass
 class StakeInfo:
     r"""
@@ -731,13 +732,9 @@ class StakeInfo:
         r"""Fixes the decoded values."""
 
         return cls(
-            hotkey_ss58=ss58_encode(
-                decoded["hotkey"], bittensor.__ss58_format__
-            ),
+            hotkey_ss58=ss58_encode(decoded["hotkey"], bittensor.__ss58_format__),
             coldkey_ss58=ss58_encode(decoded["coldkey"], bittensor.__ss58_format__),
-            stake=Balance.from_rao(
-                decoded["stake"]
-            ),
+            stake=Balance.from_rao(decoded["stake"]),
         )
 
     @classmethod
