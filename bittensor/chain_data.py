@@ -241,6 +241,18 @@ def from_scale_encoding(
     is_vec: bool = False,
     is_option: bool = False,
 ) -> Optional[Dict]:
+    type_string = type_name.name
+    if type_name == ChainDataType.DelegatedInfo:
+        # DelegatedInfo is a tuple of (DelegateInfo, Compact<u64>)
+        type_string = f"({ChainDataType.DelegateInfo.name}, Compact<u64>)"
+    if is_option:
+        type_string = f"Option<{type_string}>"
+    if is_vec:
+        type_string = f"Vec<{type_string}>"
+
+    return from_scale_encoding_using_type_string(input, type_string)
+
+def from_scale_encoding_using_type_string(input: Union[List[int], bytes, ScaleBytes], type_string: str) -> Optional[Dict]:
     if isinstance(input, ScaleBytes):
         as_scale_bytes = input
     else:
@@ -257,15 +269,6 @@ def from_scale_encoding(
     rpc_runtime_config = RuntimeConfiguration()
     rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
     rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
-
-    type_string = type_name.name
-    if type_name == ChainDataType.DelegatedInfo:
-        # DelegatedInfo is a tuple of (DelegateInfo, Compact<u64>)
-        type_string = f"({ChainDataType.DelegateInfo.name}, Compact<u64>)"
-    if is_option:
-        type_string = f"Option<{type_string}>"
-    if is_vec:
-        type_string = f"Vec<{type_string}>"
 
     obj = rpc_runtime_config.create_scale_object(type_string, data=as_scale_bytes)
 
