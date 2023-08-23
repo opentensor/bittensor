@@ -45,6 +45,7 @@ from bittensor.utils.registration import _CUDASolver, _SolverBase
 
 from tests.helpers import _get_mock_wallet as _generate_wallet, _get_mock_keypair
 
+
 def construct_config():
     parser = bittensor.cli.__create_parser__()
     defaults = bittensor.config(parser=parser, args=[])
