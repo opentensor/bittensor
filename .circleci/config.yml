@@ -242,11 +242,11 @@ workflows:
   pr-requirements:
     jobs:
       - black:
-          python-version: "3.8.12"
+          python-version: "3.9.13"
       - build-and-test:
           matrix:
             parameters:
-              python-version: ["3.8.14", "3.9.13", "3.10.6", "3.11.4"]
+              python-version: ["3.9.13", "3.10.6", "3.11.4"]
       - unit-tests-all-python-versions:
           requires:
             - build-and-test
