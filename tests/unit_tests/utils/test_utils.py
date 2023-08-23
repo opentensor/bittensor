@@ -428,7 +428,7 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
         self.assertEqual(
             bittensor.utils.registration._check_for_newest_block_and_update(
                 subtensor,
-                -1,  # netuid
+                -2,  # netuid
                 MagicMock(),
                 mock_hotkey_bytes,
                 MagicMock(),
