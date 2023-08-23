@@ -24,6 +24,7 @@ class BTStreamingResponseModel(BaseModel):
             The token streamer callable, which takes a send function (provided by the ASGI server) and returns an awaitable.
             It is responsible for generating the content of the streaming response.
     """
+
     token_streamer: Callable[[Send], Awaitable[None]]
 
 
@@ -74,11 +75,13 @@ class StreamingSynapse(bittensor.Synapse, ABC):
             bittensor.logging.trace("Streaming response.")
 
             headers = [(b"content-type", b"text/event-stream")] + self.raw_headers
-            
-            await send({"type": "http.response.start", "status": 200, "headers": headers})
-            
+
+            await send(
+                {"type": "http.response.start", "status": 200, "headers": headers}
+            )
+
             await self.token_streamer(send)
-            
+
             await send({"type": "http.response.body", "body": b"", "more_body": False})
 
         async def __call__(self, scope, receive, send):
@@ -132,7 +135,9 @@ class StreamingSynapse(bittensor.Synapse, ABC):
         """
         ...
 
-    def create_streaming_response(self, token_streamer: Callable[[Send], Awaitable[None]]):
+    def create_streaming_response(
+        self, token_streamer: Callable[[Send], Awaitable[None]]
+    ):
         """
         Creates a streaming response using the provided token streamer.
         This method can be used by the subclass to create a response object that can be sent back to the client.
@@ -148,5 +153,5 @@ class StreamingSynapse(bittensor.Synapse, ABC):
         bittensor.logging.trace("Creating streaming response.")
 
         model_instance = BTStreamingResponseModel(token_streamer=token_streamer)
-        
+
         return self.BTStreamingResponse(model_instance)

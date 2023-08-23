@@ -228,16 +228,24 @@ class dendrite(torch.nn.Module):
 
                 # Make the HTTP POST request
                 async with session.post(
-                    url, headers=synapse.to_headers(), json=synapse.dict(), timeout=timeout
+                    url,
+                    headers=synapse.to_headers(),
+                    json=synapse.dict(),
+                    timeout=timeout,
                 ) as response:
-                    if response.headers.get('Content-Type', '').lower() == 'text/event-stream'.lower(): # identify streaming response
+                    if (
+                        response.headers.get("Content-Type", "").lower()
+                        == "text/event-stream".lower()
+                    ):  # identify streaming response
                         bt.logging.debug("Streaming response detected!")
-                        await synapse.process_streaming_response(response)  # process the entire streaming response
+                        await synapse.process_streaming_response(
+                            response
+                        )  # process the entire streaming response
                         json_response = synapse.extract_response_json(response)
                     else:
                         bt.logging.debug("Non-streaming response detected!")
                         json_response = await response.json()
-                    
+
                     bt.logging.debug("Json response:", json_response)
                     # Process the server response
                     self.process_server_response(response, json_response, synapse)
@@ -268,7 +276,9 @@ class dendrite(torch.nn.Module):
                 )
 
                 # Log synapse event history
-                self.synapse_history.append(bt.Synapse.from_headers(synapse.to_headers()))
+                self.synapse_history.append(
+                    bt.Synapse.from_headers(synapse.to_headers())
+                )
 
                 # Return the updated synapse object after deserializing if requested
                 if deserialize:
@@ -325,7 +335,9 @@ class dendrite(torch.nn.Module):
 
         return synapse
 
-    def process_server_response(self, server_response, json_response, local_synapse: bt.Synapse):
+    def process_server_response(
+        self, server_response, json_response, local_synapse: bt.Synapse
+    ):
         """
         Processes the server response, updates the local synapse state with the
         server's state and merges headers set by the server.
