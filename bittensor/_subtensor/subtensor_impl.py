@@ -21,9 +21,12 @@ import torch
 import bittensor
 import scalecodec
 from retry import retry
-from typing import List, Dict, Union, Optional, Tuple
+from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 from substrateinterface.base import QueryMapResult, SubstrateInterface
+from scalecodec.base import RuntimeConfiguration
+from scalecodec.type_registry import load_type_registry_preset
 
+from bittensor._subtensor.chain_data import custom_rpc_type_registry
 from bittensor.utils.balance import Balance
 from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX
 from bittensor.utils.registration import POWSolution
@@ -63,6 +66,11 @@ from .types import AxonServeCallParams, PrometheusServeCallParams
 from loguru import logger
 
 logger = logger.opt(colors=True)
+
+
+class ParamWithTypes(TypedDict):
+    name: str  # Name of the parameter.
+    type: str  # ScaleType string of the parameter.
 
 
 class Subtensor:
@@ -1031,6 +1039,81 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
+    def state_call(
+        self,
+        method: str,
+        data: str,
+        block: Optional[int] = None,
+    ) -> Optional[object]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash(block)
+                params = [method, data]
+                if block_hash:
+                    params = params + [block_hash]
+                return substrate.rpc_request(method="state_call", params=params)
+
+        return make_substrate_call_with_retry()
+
+    def query_runtime_api(
+        self,
+        runtime_api: str,
+        method: str,
+        params: Optional[List[ParamWithTypes]],
+        block: Optional[int] = None,
+    ) -> Optional[bytes]:
+        """
+        Returns a Scale Bytes type that should be decoded.
+        """
+        call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][
+            "methods"
+        ][method]
+        json_result = self.state_call(
+            method=f"{runtime_api}_{method}",
+            data="0x"
+            if params is None
+            else self._encode_params(call_definition=call_definition, params=params),
+            block=block,
+        )
+
+        if json_result is None:
+            return None
+
+        return_type = call_definition["type"]
+
+        as_scale_bytes = scalecodec.ScaleBytes(json_result["result"])
+
+        rpc_runtime_config = RuntimeConfiguration()
+        rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
+        rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
+
+        obj = rpc_runtime_config.create_scale_object(return_type)
+
+        return obj.decode(as_scale_bytes)
+
+    def _encode_params(
+        self,
+        call_definition: List[ParamWithTypes],
+        params: Union[List[Any], Dict[str, str]],
+    ) -> str:
+        """
+        Returns a hex encoded string of the params using their types.
+        """
+        param_data = scalecodec.ScaleBytes(b"")
+
+        for i, param in enumerate(call_definition["params"]):
+            scale_obj = self.substrate.create_scale_object(param["type"])
+            if type(params) is list:
+                param_data += scale_obj.encode(params[i])
+            else:
+                if param["name"] not in params:
+                    raise ValueError(f"Missing param {param['name']} in params dict.")
+
+                param_data += scale_obj.encode(params[param["name"]])
+
+        return param_data.to_hex()
+
     #####################################
     #### Hyper parameter calls. ####
     #####################################
@@ -1702,25 +1785,25 @@ class Subtensor:
         if uid == None:
             return NeuronInfoLite._null_neuron()
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
-                params = [netuid, uid]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="neuronInfo_getNeuronLite",  # custom rpc method
-                    params=params,
-                )
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="NeuronInfoRuntimeApi",
+            method="get_neuron_lite",
+            params={
+                "netuid": netuid,
+                "uid": uid,
+            },
+            block=block,
+        )
 
-        json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
-
-        if result in (None, []):
+        if hex_bytes_result == None:
             return NeuronInfoLite._null_neuron()
 
-        return NeuronInfoLite.from_vec_u8(result)
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        return NeuronInfoLite.from_vec_u8(bytes_result)
 
     def neurons_lite(
         self, netuid: int, block: Optional[int] = None
@@ -1735,26 +1818,22 @@ class Subtensor:
             neuron (List[NeuronInfoLite]):
                 List of neuron lite metadata objects.
         """
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="NeuronInfoRuntimeApi",
+            method="get_neurons_lite",
+            params=[netuid],
+            block=block,
+        )
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
-                params = [netuid]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="neuronInfo_getNeuronsLite",  # custom rpc method
-                    params=params,
-                )
+        if hex_bytes_result == None:
+            return None
 
-        json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
 
-        if result in (None, []):
-            return []
-
-        return NeuronInfoLite.list_from_vec_u8(result)
+        return NeuronInfoLite.list_from_vec_u8(bytes_result)
 
     def metagraph(
         self, netuid: int, lite: bool = True, block: Optional[int] = None
