@@ -184,7 +184,7 @@ class cli:
         for command in COMMANDS.values():
             if isinstance(command, dict):
                 subcmd_parser = cmd_parsers.add_parser(name=command["name"], help=command["help"])
-                subparser = subcmd_parser.add_subparsers(help=command["help"], dest=command["name"])
+                subparser = subcmd_parser.add_subparsers(help=command["help"], dest="subcommand")
 
                 for subcommand in command["commands"].values():
                     subcommand.add_args(subparser)
@@ -228,14 +228,14 @@ class cli:
             command_data = COMMANDS[command]
             
             if isinstance(command_data, dict):
-                if config[command] == None:
+                if config["subcommand"] == None:
                     # This probably isn't the best solution, refactor
                     for action in config["__parser"]._subparsers._actions:
                         if action.dest == "command" and action.choices[command]:
                             action.choices[command].print_help()
                             sys.exit()
                     
-                command_data["commands"][config[command]].check_config(config)
+                command_data["commands"][config["subcommand"]].check_config(config)
             else:
                 command_data.check_config(config)
         else:
@@ -253,7 +253,7 @@ class cli:
             command_data = COMMANDS[command]
 
             if isinstance(command_data, dict):
-                command_data["commands"][self.config[command]].run(self)
+                command_data["commands"][self.config["subcommand"]].run(self)
             else:
                 command_data.run(self)
         else:
