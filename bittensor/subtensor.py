@@ -707,13 +707,12 @@ class subtensor:
         self,
         netuid: int,
         axon: "bittensor.Axon",
-        use_upnpc: bool = False,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False,
     ) -> bool:
         return serve_axon_extrinsic(
-            self, netuid, axon, use_upnpc, wait_for_inclusion, wait_for_finalization
+            self, netuid, axon, wait_for_inclusion, wait_for_finalization
         )
 
     def _do_serve_axon(

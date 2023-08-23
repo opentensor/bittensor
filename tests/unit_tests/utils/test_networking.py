@@ -5,7 +5,6 @@ import requests
 import unittest.mock as mock
 from bittensor import utils
 from unittest.mock import MagicMock, PropertyMock
-from bittensor.utils.networking import UPNPCException, upnpc_create_port_map
 
 
 # Test conversion functions for IPv4
