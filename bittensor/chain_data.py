@@ -226,6 +226,7 @@ class ChainDataType(Enum):
     DelegateInfo = 3
     NeuronInfoLite = 4
     DelegatedInfo = 5
+    StakeInfo = 6
 
 
 # Constants
@@ -713,6 +714,56 @@ class DelegateInfo:
             (DelegateInfo.fix_decoded_values(d), Balance.from_rao(s))
             for d, s in decoded
         ]
+
+        return decoded
+    
+@dataclass
+class StakeInfo:
+    r"""
+    Dataclass for stake info.
+    """
+    hotkey_ss58: str  # Hotkey address
+    coldkey_ss58: str  # Coldkey address
+    stake: Balance  # Stake for the hotkey-coldkey pair
+
+    @classmethod
+    def fix_decoded_values(cls, decoded: Any) -> "StakeInfo":
+        r"""Fixes the decoded values."""
+
+        return cls(
+            hotkey_ss58=ss58_encode(
+                decoded["hotkey"], bittensor.__ss58_format__
+            ),
+            coldkey_ss58=ss58_encode(decoded["coldkey"], bittensor.__ss58_format__),
+            stake=Balance.from_rao(
+                decoded["stake"]
+            ),
+        )
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["StakeInfo"]:
+        r"""Returns a StakeInfo object from a vec_u8."""
+        if len(vec_u8) == 0:
+            return None
+
+        decoded = from_scale_encoding(vec_u8, ChainDataType.StakeInfo)
+
+        if decoded is None:
+            return None
+
+        decoded = StakeInfo.fix_decoded_values(decoded)
+
+        return decoded
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["StakeInfo"]:
+        r"""Returns a list of StakeInfo objects from a vec_u8."""
+        decoded = from_scale_encoding(vec_u8, ChainDataType.StakeInfo, is_vec=True)
+
+        if decoded is None:
+            return []
+
+        decoded = [StakeInfo.fix_decoded_values(d) for d in decoded]
 
         return decoded
 
