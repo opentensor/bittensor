@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from dataclasses import dataclass
-from typing import List, Tuple, Dict, Optional, Any, TypedDict, overload, Union
+from typing import List, Tuple, Dict, Optional, Any, TypedDict, Union
 import bittensor
 from bittensor import Balance, axon_info
 import torch
@@ -155,33 +155,6 @@ class ChainDataType(Enum):
 RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
-
-@overload
-def from_scale_encoding(
-    input: List[int],
-    type_name: ChainDataType,
-    is_vec: bool = False,
-    is_option: bool = False,
-) -> Optional[Dict]:
-    ...
-
-@overload
-def from_scale_encoding(
-    input: bytes,
-    type_name: ChainDataType,
-    is_vec: bool = False,
-    is_option: bool = False,
-) -> Optional[Dict]:
-    ...
-
-@overload
-def from_scale_encoding(
-    input: ScaleBytes,
-    type_name: ChainDataType,
-    is_vec: bool = False,
-    is_option: bool = False,
-) -> Optional[Dict]:
-    ...
 
 def from_scale_encoding(
     input: Union[List[int], bytes, ScaleBytes],
