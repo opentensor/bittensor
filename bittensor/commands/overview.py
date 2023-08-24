@@ -18,11 +18,12 @@
 import argparse
 import bittensor
 from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor
 from fuzzywuzzy import fuzz
 from rich.align import Align
 from rich.table import Table
 from rich.prompt import Prompt
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 from .utils import (
     get_hotkey_wallets_for_wallet,
     get_coldkey_wallets_for_path,
@@ -95,7 +96,7 @@ class OverviewCommand:
             return
 
         # Pull neuron info for all keys.
-        neurons: Dict[str, List[bittensor.NeuronInfoLite, bittensor.wallet]] = {}
+        neurons: Dict[str, List[bittensor.NeuronInfoLite]] = {}
         block = subtensor.block
 
         netuids = subtensor.get_all_subnet_netuids()
@@ -103,28 +104,136 @@ class OverviewCommand:
             netuids = [netuid for netuid in netuids if netuid in cli.config.netuid]
         for netuid in netuids:
             neurons[str(netuid)] = []
-        netuids_copy = netuids.copy()
+
+        all_wallet_names = set([wallet.name for wallet in all_hotkeys])
+        all_coldkey_wallets = [
+            bittensor.wallet(name=wallet_name) for wallet_name in all_wallet_names
+        ]
+
+        hotkey_coldkey_to_hotkey_wallet = {}
+        for hotkey_wallet in all_hotkeys:
+            if hotkey_wallet.hotkey.ss58_address not in hotkey_coldkey_to_hotkey_wallet:
+                hotkey_coldkey_to_hotkey_wallet[hotkey_wallet.hotkey.ss58_address] = {}
+
+            hotkey_coldkey_to_hotkey_wallet[hotkey_wallet.hotkey.ss58_address][
+                hotkey_wallet.coldkeypub.ss58_address
+            ] = hotkey_wallet
+
+        all_hotkey_addresses = list(hotkey_coldkey_to_hotkey_wallet.keys())
 
         with console.status(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
-                cli.config.subtensor.get("network", defaults.subtensor.network)
+                cli.config.subtensor.get(
+                    "network", bittensor.defaults.subtensor.network
+                )
             )
         ):
-            for netuid in tqdm(netuids_copy, desc="Checking each subnet"):
-                all_neurons: List[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
-                    netuid=netuid
+            # Pull neuron info for all keys.
+            ## Max len(netuids) or 5 threads.
+            with ProcessPoolExecutor(max_workers=max(len(netuids), 5)) as executor:
+                results = executor.map(
+                    OverviewCommand._get_neurons_for_netuid,
+                    [(cli.config, netuid, all_hotkey_addresses) for netuid in netuids],
                 )
-                # Map the hotkeys to uids
-                hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
-                for hot_wallet in all_hotkeys:
-                    uid = hotkey_to_neurons.get(hot_wallet.hotkey.ss58_address)
-                    if uid is not None:
-                        nn = all_neurons[uid]
-                        neurons[str(netuid)].append((nn, hot_wallet))
+                executor.shutdown(wait=True)  # wait for all complete
 
-                if len(neurons[str(netuid)]) == 0:
-                    # Remove netuid from overview if no neurons are found.
-                    netuids.remove(netuid)
+                for result in results:
+                    netuid, neurons_result, err_msg = result
+                    if err_msg is not None:
+                        console.print(err_msg)
+
+                    if len(neurons_result) == 0:
+                        # Remove netuid from overview if no neurons are found.
+                        netuids.remove(netuid)
+                        del neurons[str(netuid)]
+                    else:
+                        # Add neurons to overview.
+                        neurons[str(netuid)] = neurons_result
+
+            total_coldkey_stake_from_metagraph = {
+                coldkey_wallet.coldkeypub.ss58_address: bittensor.Balance(0.0)
+            }
+            for neuron_list in neurons.values():
+                for neuron in neuron_list:
+                    total_coldkey_stake_from_metagraph[
+                        neuron.coldkey
+                    ] += neuron.stake_dict[neuron.coldkey]
+
+            all_staked_hotkeys = []
+            coldkeys_to_check = []
+            for coldkey_wallet in all_coldkey_wallets:
+                # Check if we have any stake with hotkeys that are not registered.
+                total_coldkey_stake_from_chain = subtensor.get_total_stake_for_coldkey(
+                    ss58_address=coldkey_wallet.coldkeypub.ss58_address
+                )
+                difference = (
+                    total_coldkey_stake_from_chain
+                    - total_coldkey_stake_from_metagraph[
+                        coldkey_wallet.coldkeypub.ss58_address
+                    ]
+                )
+                if difference == 0:
+                    continue  # We have all our stake registered.
+
+                coldkeys_to_check.append(coldkey_wallet)
+                print(
+                    "Foud {} stake with coldkey {} that is not registered.".format(
+                        difference, coldkey_wallet.coldkeypub.ss58_address
+                    )
+                )
+
+            if len(coldkeys_to_check) > 0:
+                # We have some stake that is not with a registered hotkey.
+                if "-1" not in neurons:
+                    neurons["-1"] = []
+
+            # Use process pool to check each coldkey wallet for de-registered stake.
+            with ProcessPoolExecutor(
+                max_workers=max(len(coldkeys_to_check), 5)
+            ) as executor:
+                results = executor.map(
+                    OverviewCommand._get_de_registered_stake_for_coldkey_wallet,
+                    [
+                        (cli.config, all_hotkey_addresses, coldkey_wallet)
+                        for coldkey_wallet in coldkeys_to_check
+                    ],
+                )
+                executor.shutdown(wait=True)  # wait for all complete
+
+                for result in results:
+                    coldkey_wallet, de_registered_stake, err_msg = result
+                    if err_msg is not None:
+                        console.print(err_msg)
+
+                    if len(de_registered_stake) == 0:
+                        continue  # We have no de-registered stake with this coldkey.
+
+                    de_registered_neurons = []
+                    for hotkey_addr, our_stake in de_registered_stake:
+                        # Make a neuron info lite for this hotkey and coldkey.
+                        de_registered_neuron = bittensor.NeuronInfoLite._null_neuron()
+                        de_registered_neuron.hotkey = hotkey_addr
+                        de_registered_neuron.coldkey = (
+                            coldkey_wallet.coldkeypub.ss58_address
+                        )
+                        de_registered_neuron.total_stake = bittensor.Balance(our_stake)
+
+                        de_registered_neurons.append(de_registered_neuron)
+
+                        # Add this hotkey to the wallets dict
+                        wallet_ = bittensor.Wallet(
+                            name=wallet,
+                        )
+                        wallet_.hotkey = hotkey_addr
+                        wallet.hotkey_str = hotkey_addr[
+                            :5
+                        ]  # Max length of 5 characters
+                        hotkey_coldkey_to_hotkey_wallet[hotkey_addr][
+                            coldkey_wallet.coldkeypub.ss58_address
+                        ] = wallet_
+
+                    # Add neurons to overview.
+                    neurons["-1"].extend(de_registered_neurons)
 
         # Setup outer table.
         grid = Table.grid(pad_edge=False)
@@ -156,7 +265,8 @@ class OverviewCommand:
             total_dividends = 0.0
             total_emission = 0
 
-            for nn, hotwallet in neurons[str(netuid)]:
+            for nn in neurons[str(netuid)]:
+                hotwallet = hotkey_coldkey_to_hotkey_wallet[nn.hotkey][nn.coldkey]
                 nn: bittensor.NeuronInfoLite
                 uid = nn.uid
                 active = nn.active
@@ -201,15 +311,22 @@ class OverviewCommand:
                 total_emission += emission
                 total_validator_trust += validator_trust
 
-                if not nn.hotkey in hotkeys_seen:
-                    # Don't double count hotkeys or stake.
-                    hotkeys_seen.add(nn.hotkey)
+                if not (nn.hotkey, nn.coldkey) in hotkeys_seen:
+                    # Don't double count stake on hotkey-coldkey pairs.
+                    hotkeys_seen.add((nn.hotkey, nn.coldkey))
                     total_stake += stake
+
+                # netuid -1 are neurons that are de-registered.
+                if netuid != "-1":
                     total_neurons += 1
+
                 TABLE_DATA.append(row)
 
             # Add subnet header
-            grid.add_row(f"Subnet: [bold white]{netuid}[/bold white]")
+            if netuid == "-1":
+                grid.add_row(f"Deregistered Neurons")
+            else:
+                grid.add_row(f"Subnet: [bold white]{netuid}[/bold white]")
 
             table = Table(
                 show_footer=False,
@@ -372,6 +489,73 @@ class OverviewCommand:
 
         # Print the entire table/grid
         console.print(grid, width=cli.config.get("width", None))
+
+    @staticmethod
+    def _get_neurons_for_netuid(
+        args_tuple: Tuple["bittensor.Config", int, List[str]]
+    ) -> Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]:
+        subtensor_config, netuid, hot_wallets = args_tuple
+
+        result: List["bittensor.NeuronInfoLite"] = []
+
+        try:
+            subtensor = bittensor.subtensor(config=subtensor_config)
+
+            all_neurons: List["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
+                netuid=netuid
+            )
+            # Map the hotkeys to uids
+            hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
+            for hot_wallet_addr in hot_wallets:
+                uid = hotkey_to_neurons.get(hot_wallet_addr)
+                if uid is not None:
+                    nn = all_neurons[uid]
+                    result.append(nn)
+        except Exception as e:
+            return netuid, [], "Error: {}".format(e)
+
+        return netuid, result, None
+
+    @staticmethod
+    def _get_de_registered_stake_for_coldkey_wallet(
+        args_tuple,
+    ) -> Tuple[
+        "bittensor.Wallet", List[Tuple[str, "bittensor.Balance"]], Optional[str]
+    ]:
+        subtensor_config, all_hotkey_addresses, coldkey_wallet = args_tuple
+
+        # List of (hotkey_addr, our_stake) tuples.
+        result: List[Tuple[str, "bittensor.Balance"]] = []
+
+        try:
+            subtensor = bittensor.subtensor(config=subtensor_config)
+
+            # Pull all stake for our coldkey
+            all_stake_info_for_coldkey = subtensor.get_stake_info_for_colkey(
+                coldkey_ss58=coldkey_wallet.coldkeypub.ss58_address
+            )
+
+            ## Filter out hotkeys that are in our wallets
+            ## Filter out hotkeys that are delegates.
+            def _filter_stake_info(stake_info: "bittensor.StakeInfo") -> bool:
+                hotkey_addr, our_stake = stake_info
+
+                if our_stake == 0:
+                    return False  # Skip hotkeys that we have no stake with.
+                if hotkey_addr in all_hotkey_addresses:
+                    return False  # Skip hotkeys that are in our wallets.
+                if subtensor.is_hotkey_delegate(hotkey_ss58=hotkey_addr):
+                    return False  # Skip hotkeys that are delegates, they show up in btcli my_delegates table.
+                
+                return True
+
+            all_staked_hotkeys = filter(_filter_stake_info, all_stake_info_for_coldkey)
+            result = [(stake_info.hotkey, stake_info.stake) for stake_info in all_staked_hotkeys]
+
+        except Exception as e:
+            return coldkey_wallet, [], "Error: {}".format(e)
+
+        return coldkey_wallet, result, None
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
