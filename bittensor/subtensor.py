@@ -1787,7 +1787,7 @@ class subtensor:
     #### Stake Information ####
     ###########################
 
-    def get_stake_info_for_colkey(
+    def get_stake_info_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
     ) -> List[StakeInfo]:
         """Returns the list of StakeInfo objects for this coldkey"""
@@ -1811,7 +1811,7 @@ class subtensor:
 
         return StakeInfo.list_from_vec_u8(bytes_result)
 
-    def get_stake_info_for_colkeys(
+    def get_stake_info_for_coldkeys(
         self, coldkey_ss58_list: List[str], block: Optional[int] = None
     ) -> Dict[str, List[StakeInfo]]:
         """Returns the list of StakeInfo objects for all coldkeys in the list."""
