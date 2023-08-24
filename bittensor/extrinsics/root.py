@@ -48,6 +48,15 @@ def root_register_extrinsic(
 
     wallet.coldkey  # unlock coldkey
 
+    is_registered = subtensor.is_hotkey_registered(
+        netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
+    )
+    if is_registered:
+        bittensor.__console__.print(
+            f":white_heavy_check_mark: [green]Already registered on root network.[/green]"
+        )
+        return True
+
     if prompt:
         # Prompt user for confirmation.
         if not Confirm.ask(f"Register to root network?"):
