@@ -142,6 +142,28 @@ __type_registry__ = {
                 },
             }
         },
+        "StakeInfoRuntimeApi": {
+            "methods": {
+                "get_stake_info_for_coldkey": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_stake_info_for_coldkeys": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vecs",
+                            "type": "Vec<Vec<u8>>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            },
+        },
     },
 }
 
