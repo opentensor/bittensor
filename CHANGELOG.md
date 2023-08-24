@@ -1,5 +1,17 @@
 # Changelog
 
+## 5.3.4 / 2023-08-16
+
+# What's Changed
+* Removes miniupnpc by @ifrit98 (completely unused and requires a sudo install)
+* Fixes blacklist vpermit_required by @inquinim e80d3d5
+* Add try/except and timeout to version checking with exception handles by @ifrit98 a6a89fd
+* Further updates CONTRIBUTING.md and DEVELOPMENT_WORKFLOW.md by @gitphantomman 3fefdbb
+* Adds automatic compatibility checks to circleci for all major python3 supported versions. add checks by @ifrit98 #1484
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.3.3...v5.3.4
+
+
 ## 5.3.3 / 2023-07-26
 
 ## What's Changed

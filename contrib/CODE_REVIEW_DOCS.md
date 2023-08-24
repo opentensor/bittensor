@@ -20,6 +20,7 @@ following language is used within pull request comments:
   - "I have not tested the code, but I have reviewed it and it looks
     OK, I agree it can be merged";
   - A "nit" refers to a trivial, often non-blocking issue.
+
 ### Code Review
 Project maintainers reserve the right to weigh the opinions of peer reviewers
 using common sense judgement and may also weigh based on merit. Reviewers that
@@ -33,7 +34,7 @@ mistakes could be very costly to the wider community. This includes refactoring
 of consensus-critical code.
 
 Where a patch set proposes to change the Bittensor consensus, it must have been
-discussed extensively on the mailing list and IRC, be accompanied by a widely
+discussed extensively on the discord server and other channels, be accompanied by a widely
 discussed BIP and have a generally widely perceived technical consensus of being
 a worthwhile change based on the judgement of the maintainers.
 

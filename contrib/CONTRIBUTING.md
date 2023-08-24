@@ -50,12 +50,12 @@ The purpose of the good first issue label is to highlight which issues are suita
 However, good first issues can be solved by anyone. If they remain unsolved for a longer time, a frequent contributor might address them.
 
 You do not need to request permission to start working on an issue. However, you are encouraged to leave a comment if you are planning to work on it. This will help other contributors monitor which issues are actively being addressed and is also an effective way to request assistance if and when you need it.
+
 ### Beginner and Help-wanted Issues Label
 You can start by looking through these `beginner` and `help-wanted` issues:
 
 * [Beginner issues](https://github.com/opentensor/bittensor/labels/beginner) - issues which should only require a few lines of code, and a test or two.
 * [Help wanted issues](https://github.com/opentensor/bittensor/labels/help%20wanted) - issues which should be a bit more involved than `beginner` issues.
-
 
 ## Communication Channels
 Most communication about Bittensor development happens on Discord channel.
@@ -64,7 +64,6 @@ Here's the link of Discord community.
 
 And also here.
 [Bittensor Community Discord](https://discord.com/channels/1120750674595024897/1120799375703162950)
-
 
 ## How Can I Contribute?
 
@@ -96,7 +95,6 @@ Here is a high-level summary:
 
 If you're looking to contribute to Bittensor but unsure where to start, please join our community [discord](https://discord.gg/bittensor), a developer-friendly Bittensor town square. Start with [#development](https://discord.com/channels/799672011265015819/799678806159392768) and [#bounties](https://discord.com/channels/799672011265015819/1095684873810890883) to see what issues are currently posted. For a greater understanding of Bittensor's usage and development, check the [Bittensor Documentation](https://bittensor.com/docs).
 
-
 #### Pull Request Philosophy
 
 Patchsets and enhancements should always be focused. A pull request could add a feature, fix a bug, or refactor code, but it should not contain a mixture of these. Please also avoid 'super' pull requests which attempt to do too much, are overly large, or overly complex as this makes review difficult. 
@@ -111,7 +109,6 @@ Specifically, pull requests must adhere to the following criteria:
 - If your changes are extensive, consider breaking your PR into smaller, related PRs. This makes your contributions easier to understand and review.
 - Be active in the discussion about your PR. Respond promptly to comments and questions to help reviewers understand your changes and speed up the acceptance process.
 
-
 Generally, all pull requests must:
 
   - Have a clear use case, fix a demonstrable bug or serve the greater good of the project (e.g. refactoring for modularisation).
@@ -124,7 +121,6 @@ Generally, all pull requests must:
 #### Pull Request Process
 
 Please follow these steps to have your contribution considered by the maintainers:
-
 
 *Before* creating the PR:
 1. Read the [development workflow](./DEVELOPMENT_WORKFLOW.md) defined for this repository to understand our workflow.
@@ -176,7 +172,6 @@ Here is a quick summary:
 - **Continuous Integration**: Bittensor uses GitHub Actions for continuous integration. Tests are automatically run every time you push changes to the repository. Check the "Actions" tab of the Bittensor GitHub repository to view the results.
 
 Remember, testing is crucial for maintaining code health, catching issues early, and facilitating the addition of new features or refactoring of existing code.
-
 
 #### Addressing Feedback
 
