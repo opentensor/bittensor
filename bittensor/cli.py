@@ -25,33 +25,9 @@ from .commands import *
 console = bittensor.__console__
 
 COMMANDS = {
-    "transfer": TransferCommand,
-    "register": RegisterCommand,
-    "overview": OverviewCommand,
-    "list": ListCommand,
-    "new_coldkey": NewColdkeyCommand,
-    "new_hotkey": NewHotkeyCommand,
-    "regen_coldkey": RegenColdkeyCommand,
-    "regen_coldkeypub": RegenColdkeypubCommand,
-    "regen_hotkey": RegenHotkeyCommand,
-    "metagraph": MetagraphCommand,
-    "inspect": InspectCommand,
-    "update": UpdateCommand,
-    "nominate": NominateCommand,
-    "delegate": DelegateStakeCommand,
-    "undelegate": DelegateUnstakeCommand,
-    "my_delegates": MyDelegatesCommand,
-    "list_delegates": ListDelegatesCommand,
-    "list_subnets": ListSubnetsCommand,
-    "recycle_register": RecycleRegisterCommand,
-    "senate": SenateCommand,
-    "proposals": ProposalsCommand,
-    "proposal_votes": ShowVotesCommand,
-    "senate_vote": VoteCommand,
-    "run_faucet": RunFaucetCommand,
     "subnet": {
         "name": "subnet", 
-        "help": "Subnet commands",
+        "help": "Commands for managing and viewing subnetworks.",
         "commands": {
             "create": RegisterSubnetworkCommand,
             "lock_cost": SubnetLockCostCommand,
@@ -64,7 +40,7 @@ COMMANDS = {
     },
     "root": {
         "name": "root",
-        "help": "Root commands",
+        "help": "Commands for managing and viewing the root network.",
         "commands": {
             #"list": None,
             "register": RootRegisterCommand,
@@ -77,7 +53,7 @@ COMMANDS = {
     },
     "wallet": {
         "name": "wallet",
-        "help": "Wallet commands",
+        "help": "Commands for managing and viewing wallets.",
         "commands": {
             "overview": OverviewCommand,
             "transfer": TransferCommand,
@@ -97,7 +73,7 @@ COMMANDS = {
     },
     "stake": {
         "name": "stake",
-        "help": "Staking commands",
+        "help": "Commands for staking and removing stake from hotkey accounts.",
         "commands": {
             "add": StakeCommand,
             "remove": UnStakeCommand,
@@ -105,7 +81,7 @@ COMMANDS = {
     },
     "misc": {
         "name": "misc",
-        "help": "Miscellaneous commands",
+        "help": "Miscellaneous commands.",
         "commands": {
             "update": UpdateCommand,
             "run_faucet": RunFaucetCommand,

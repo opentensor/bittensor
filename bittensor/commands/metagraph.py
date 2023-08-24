@@ -192,7 +192,7 @@ class MetagraphCommand:
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        metagraph_parser = parser.add_parser("metagraph", help="""Metagraph commands""")
+        metagraph_parser = parser.add_parser("metagraph", help="""View a subnet metagraph information.""")
         metagraph_parser.add_argument(
             "--netuid",
             dest="netuid",

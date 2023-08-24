@@ -81,7 +81,7 @@ class SubnetLockCostCommand:
     def add_args(cls, parser: argparse.ArgumentParser):
         parser = parser.add_parser(
             "lock_cost",
-            help=""" Return the price to register a subnet""",
+            help=""" Return the lock cost to register a subnet""",
         )
 
         bittensor.subtensor.add_args(parser)

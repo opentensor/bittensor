@@ -212,7 +212,7 @@ class StakeCommand:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         stake_parser = parser.add_parser(
-            "stake", help="""Stake to your hotkey accounts."""
+            "add", help="""Add stake to your hotkey accounts from your coldkey."""
         )
         stake_parser.add_argument("--all", dest="stake_all", action="store_true")
         stake_parser.add_argument("--uid", dest="uid", type=int, required=False)
