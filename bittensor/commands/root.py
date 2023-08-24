@@ -18,6 +18,7 @@
 import sys
 import argparse
 import bittensor
+import typing
 from rich.prompt import Prompt, Confirm
 
 from . import defaults
@@ -46,7 +47,7 @@ class RootRegisterCommand:
 
     @staticmethod
     def check_config(config: "bittensor.config"):
-        if not config.is_set("subtensor.network") and not config.no_prompt:
+        if not config.is_set("subtensor.network") and not config.is_set("subtensor.chain_endpoint") and not config.no_prompt:
             config.subtensor.network = Prompt.ask(
                 "Enter subtensor network",
                 choices=bittensor.__networks__,
@@ -60,3 +61,28 @@ class RootRegisterCommand:
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
+
+
+class RootList:
+    @staticmethod
+    def run(cli):
+        r"""List the root network"""
+        subtensor = bittensor.subtensor(config=cli.config)
+        root_neurons: typing.List[bittensor.NeuronInfoLite] = subtensor.neurons_lite( netuid=0 )
+        print (root_neurons)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser = parser.add_parser(
+            "list", help="""List the root network"""
+        )
+        bittensor.subtensor.add_args(parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("subtensor.network") and not config.is_set("subtensor.chain_endpoint") and not config.no_prompt:
+            config.subtensor.network = Prompt.ask(
+                "Enter subtensor network",
+                choices=bittensor.__networks__,
+                default=defaults.subtensor.network,
+            )

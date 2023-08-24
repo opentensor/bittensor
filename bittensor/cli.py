@@ -42,7 +42,7 @@ COMMANDS = {
         "name": "root",
         "help": "Commands for managing and viewing the root network.",
         "commands": {
-            #"list": None,
+            "list": RootList,
             "register": RootRegisterCommand,
             #"weights": None,
             "vote": VoteCommand,
