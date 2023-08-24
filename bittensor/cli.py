@@ -55,7 +55,7 @@ COMMANDS = {
         "commands": {
             "create": RegisterSubnetworkCommand,
             "lock_cost": SubnetLockCostCommand,
-            #"list": None,
+            "list": SubnetListCommand,
             "overview": MetagraphCommand,
             #"hyperparameters": None,
             #"owner": None,
@@ -67,7 +67,7 @@ COMMANDS = {
         "help": "Root commands",
         "commands": {
             #"list": None,
-            #"register": None,
+            "register": RootRegisterCommand,
             #"weights": None,
             "vote": VoteCommand,
             "proposals": ProposalsCommand,

@@ -51,6 +51,7 @@ custom_rpc_type_registry = {
                 ["network_connect", "Vec<[u16; 2]>"],
                 ["emission_values", "Compact<u64>"],
                 ["burn", "Compact<u64>"],
+                ["owner", "AccountId"]
             ],
         },
         "DelegateInfo": {
@@ -721,6 +722,7 @@ class SubnetInfo:
     connection_requirements: Dict[str, float]
     emission_value: float
     burn: Balance
+    owner_ss58: str
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetInfo"]:
@@ -773,6 +775,7 @@ class SubnetInfo:
             },
             emission_value=decoded["emission_values"],
             burn=Balance.from_rao(decoded["burn"]),
+            owner_ss58=ss58_encode(decoded["owner"], bittensor.__ss58_format__),
         )
 
     def to_parameter_dict(self) -> "torch.nn.ParameterDict":

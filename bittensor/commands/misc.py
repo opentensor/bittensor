@@ -84,6 +84,7 @@ class ListSubnetsCommand:
                     ),
                     f"{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%",
                     f"{subnet.burn!s:8.8}",
+                    f"{subnet.owner_ss58}"
                 )
             )
 
@@ -123,6 +124,7 @@ class ListSubnetsCommand:
             "[overline white]EMISSION", style="white", justify="center"
         )  # sums to 100%
         table.add_column("[overline white]BURN(\u03C4)", style="white")
+        table.add_column("[overline white]OWNER(\u03C4)", style="white")
 
         for row in rows:
             table.add_row(*row)

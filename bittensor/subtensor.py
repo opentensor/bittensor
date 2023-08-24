@@ -62,6 +62,7 @@ from .extrinsics.senate import (
     leave_senate_extrinsic,
     vote_senate_extrinsic,
 )
+from .extrinsics.root import root_register_extrinsic
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import U16_NORMALIZED_FLOAT
 from .utils.balance import Balance
@@ -1077,6 +1078,60 @@ class subtensor:
             )
 
         return proposals
+    
+    ##############
+    #### Root ####
+    ##############
+
+    def root_register(
+        self,
+        wallet: "bittensor.wallet",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False,
+    ) -> bool:
+        """Registers the wallet to root network."""
+        return root_register_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+    
+    def _do_root_register(
+        self,
+        wallet: "bittensor.wallet",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        with self.substrate as substrate:
+            # create extrinsic call
+            call = substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="root_register",
+                call_params={"hotkey": wallet.hotkey.ss58_address},
+            )
+            extrinsic = substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
+
+            # process if registration successful, try again if pow is still valid
+            response.process_events()
+            if not response.is_success:
+                return False, response.error_message
+            # Successful registration
+            else:
+                return True, None
 
     ########################
     #### Standard Calls ####
@@ -1603,6 +1658,9 @@ class subtensor:
             return None
 
         return SubnetInfo.from_vec_u8(result)
+    
+    def get_subnet_owner(self, netuid: int, block: Optional[int] = None) -> Optional[str]:
+        return self.query_subtensor("SubnetOwner", block, [netuid]).value
 
     ####################
     #### Nomination ####
