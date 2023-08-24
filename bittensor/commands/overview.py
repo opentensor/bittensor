@@ -531,7 +531,7 @@ class OverviewCommand:
             subtensor = bittensor.subtensor(config=subtensor_config)
 
             # Pull all stake for our coldkey
-            all_stake_info_for_coldkey = subtensor.get_stake_info_for_colkey(
+            all_stake_info_for_coldkey = subtensor.get_stake_info_for_coldkey(
                 coldkey_ss58=coldkey_wallet.coldkeypub.ss58_address
             )
 
