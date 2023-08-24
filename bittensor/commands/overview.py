@@ -112,8 +112,8 @@ class OverviewCommand:
             )
         ):
             hotkey_addr_to_wallet = {
-                 hotkey.hotkey.ss58_address: hotkey for hotkey in all_hotkeys
-             }
+                hotkey.hotkey.ss58_address: hotkey for hotkey in all_hotkeys
+            }
             all_hotkey_addresses = list(hotkey_addr_to_wallet.keys())
 
             # Pull neuron info for all keys.
