@@ -59,7 +59,7 @@ COMMANDS = {
             "transfer": TransferCommand,
             "inspect": InspectCommand,
             #"balance": None,
-            #"create": None,
+            "create": WalletCreateCommand,
             "new_hotkey": NewHotkeyCommand,
             "new_coldkey": NewColdkeyCommand,
             "list": ListCommand,
