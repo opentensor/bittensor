@@ -36,6 +36,7 @@ from .chain_data import (
     DelegateInfo,
     PrometheusInfo,
     SubnetInfo,
+    StakeInfo,
     NeuronInfoLite,
     AxonInfo,
     ProposalVoteData,
@@ -66,7 +67,7 @@ from .extrinsics.senate import (
     vote_senate_extrinsic,
 )
 from .types import AxonServeCallParams, PrometheusServeCallParams
-from .utils import U16_NORMALIZED_FLOAT
+from .utils import U16_NORMALIZED_FLOAT, ss58_to_vec_u8
 from .utils.balance import Balance
 from .utils.registration import POWSolution
 
@@ -1726,8 +1727,7 @@ class subtensor:
                     params=params,
                 )
 
-        hotkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes(hotkey_ss58)
-        encoded_hotkey: List[int] = [int(byte) for byte in hotkey_bytes]
+        encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_hotkey)
         result = json_body["result"]
 
@@ -1774,8 +1774,7 @@ class subtensor:
                     params=params,
                 )
 
-        coldkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes(coldkey_ss58)
-        encoded_coldkey: List[int] = [int(byte) for byte in coldkey_bytes]
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_coldkey)
         result = json_body["result"]
 
@@ -1783,6 +1782,59 @@ class subtensor:
             return []
 
         return DelegateInfo.delegated_list_from_vec_u8(result)
+
+    ###########################
+    #### Stake Information ####
+    ###########################
+
+    def get_stake_info_for_coldkey(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> List[StakeInfo]:
+        """Returns the list of StakeInfo objects for this coldkey"""
+
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_coldkey",
+            params=[encoded_coldkey],
+            block=block,
+        )
+
+        if hex_bytes_result == None:
+            return None
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        return StakeInfo.list_from_vec_u8(bytes_result)
+
+    def get_stake_info_for_coldkeys(
+        self, coldkey_ss58_list: List[str], block: Optional[int] = None
+    ) -> Dict[str, List[StakeInfo]]:
+        """Returns the list of StakeInfo objects for all coldkeys in the list."""
+        encoded_coldkeys = [
+            ss58_to_vec_u8(coldkey_ss58) for coldkey_ss58 in coldkey_ss58_list
+        ]
+
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_coldkeys",
+            params=[encoded_coldkeys],
+            block=block,
+        )
+
+        if hex_bytes_result == None:
+            return None
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        return StakeInfo.list_of_tuple_from_vec_u8(bytes_result)
 
     ########################################
     #### Neuron information per subnet ####

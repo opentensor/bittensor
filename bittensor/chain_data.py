@@ -137,6 +137,14 @@ custom_rpc_type_registry = {
                 ["ip_type", "u8"],
             ],
         },
+        "StakeInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["hotkey", "AccountId"],
+                ["coldkey", "AccountId"],
+                ["stake", "Compact<u64>"],
+            ],
+        },
     }
 }
 
@@ -218,6 +226,7 @@ class ChainDataType(Enum):
     DelegateInfo = 3
     NeuronInfoLite = 4
     DelegatedInfo = 5
+    StakeInfo = 6
 
 
 # Constants
@@ -231,6 +240,21 @@ def from_scale_encoding(
     type_name: ChainDataType,
     is_vec: bool = False,
     is_option: bool = False,
+) -> Optional[Dict]:
+    type_string = type_name.name
+    if type_name == ChainDataType.DelegatedInfo:
+        # DelegatedInfo is a tuple of (DelegateInfo, Compact<u64>)
+        type_string = f"({ChainDataType.DelegateInfo.name}, Compact<u64>)"
+    if is_option:
+        type_string = f"Option<{type_string}>"
+    if is_vec:
+        type_string = f"Vec<{type_string}>"
+
+    return from_scale_encoding_using_type_string(input, type_string)
+
+
+def from_scale_encoding_using_type_string(
+    input: Union[List[int], bytes, ScaleBytes], type_string: str
 ) -> Optional[Dict]:
     if isinstance(input, ScaleBytes):
         as_scale_bytes = input
@@ -248,15 +272,6 @@ def from_scale_encoding(
     rpc_runtime_config = RuntimeConfiguration()
     rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
     rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
-
-    type_string = type_name.name
-    if type_name == ChainDataType.DelegatedInfo:
-        # DelegatedInfo is a tuple of (DelegateInfo, Compact<u64>)
-        type_string = f"({ChainDataType.DelegateInfo.name}, Compact<u64>)"
-    if is_option:
-        type_string = f"Option<{type_string}>"
-    if is_vec:
-        type_string = f"Vec<{type_string}>"
 
     obj = rpc_runtime_config.create_scale_object(type_string, data=as_scale_bytes)
 
@@ -705,6 +720,76 @@ class DelegateInfo:
             (DelegateInfo.fix_decoded_values(d), Balance.from_rao(s))
             for d, s in decoded
         ]
+
+        return decoded
+
+
+@dataclass
+class StakeInfo:
+    r"""
+    Dataclass for stake info.
+    """
+    hotkey_ss58: str  # Hotkey address
+    coldkey_ss58: str  # Coldkey address
+    stake: Balance  # Stake for the hotkey-coldkey pair
+
+    @classmethod
+    def fix_decoded_values(cls, decoded: Any) -> "StakeInfo":
+        r"""Fixes the decoded values."""
+
+        return cls(
+            hotkey_ss58=ss58_encode(decoded["hotkey"], bittensor.__ss58_format__),
+            coldkey_ss58=ss58_encode(decoded["coldkey"], bittensor.__ss58_format__),
+            stake=Balance.from_rao(decoded["stake"]),
+        )
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["StakeInfo"]:
+        r"""Returns a StakeInfo object from a vec_u8."""
+        if len(vec_u8) == 0:
+            return None
+
+        decoded = from_scale_encoding(vec_u8, ChainDataType.StakeInfo)
+
+        if decoded is None:
+            return None
+
+        decoded = StakeInfo.fix_decoded_values(decoded)
+
+        return decoded
+
+    @classmethod
+    def list_of_tuple_from_vec_u8(
+        cls, vec_u8: List[int]
+    ) -> Dict[str, List["StakeInfo"]]:
+        r"""Returns a list of StakeInfo objects from a vec_u8."""
+        decoded: Optional[
+            List[Tuple(str, List[object])]
+        ] = from_scale_encoding_using_type_string(
+            input=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
+        )
+
+        if decoded is None:
+            return {}
+
+        stake_map = {
+            ss58_encode(address=account_id, ss58_format=bittensor.__ss58_format__): [
+                StakeInfo.fix_decoded_values(d) for d in stake_info
+            ]
+            for account_id, stake_info in decoded
+        }
+
+        return stake_map
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["StakeInfo"]:
+        r"""Returns a list of StakeInfo objects from a vec_u8."""
+        decoded = from_scale_encoding(vec_u8, ChainDataType.StakeInfo, is_vec=True)
+
+        if decoded is None:
+            return []
+
+        decoded = [StakeInfo.fix_decoded_values(d) for d in decoded]
 
         return decoded
 
