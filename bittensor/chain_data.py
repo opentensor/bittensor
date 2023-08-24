@@ -252,7 +252,10 @@ def from_scale_encoding(
 
     return from_scale_encoding_using_type_string(input, type_string)
 
-def from_scale_encoding_using_type_string(input: Union[List[int], bytes, ScaleBytes], type_string: str) -> Optional[Dict]:
+
+def from_scale_encoding_using_type_string(
+    input: Union[List[int], bytes, ScaleBytes], type_string: str
+) -> Optional[Dict]:
     if isinstance(input, ScaleBytes):
         as_scale_bytes = input
     else:
@@ -273,7 +276,6 @@ def from_scale_encoding_using_type_string(input: Union[List[int], bytes, ScaleBy
     obj = rpc_runtime_config.create_scale_object(type_string, data=as_scale_bytes)
 
     return obj.decode()
-
 
 
 # Dataclasses for chain data.
@@ -755,13 +757,16 @@ class StakeInfo:
         decoded = StakeInfo.fix_decoded_values(decoded)
 
         return decoded
-    
+
     @classmethod
-    def list_of_tuple_from_vec_u8(cls, vec_u8: List[int]) -> Dict[str, List["StakeInfo"]]:
+    def list_of_tuple_from_vec_u8(
+        cls, vec_u8: List[int]
+    ) -> Dict[str, List["StakeInfo"]]:
         r"""Returns a list of StakeInfo objects from a vec_u8."""
-        decoded: Optional[List[Tuple(str, List[object])]] = from_scale_encoding_using_type_string(
-            input=vec_u8, 
-            type_string="Vec<(AccountId, Vec<StakeInfo>)>"
+        decoded: Optional[
+            List[Tuple(str, List[object])]
+        ] = from_scale_encoding_using_type_string(
+            input=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
         )
 
         if decoded is None:
@@ -770,7 +775,8 @@ class StakeInfo:
         stake_map = {
             ss58_encode(address=account_id, ss58_format=bittensor.__ss58_format__): [
                 StakeInfo.fix_decoded_values(d) for d in stake_info
-            ] for account_id, stake_info in decoded
+            ]
+            for account_id, stake_info in decoded
         }
 
         return stake_map
