@@ -86,7 +86,8 @@ class InspectCommand:
 
         neuron_state_dict = {}
         for netuid in tqdm(netuids):
-            neuron_state_dict[netuid] = subtensor.neurons_lite(netuid)
+            neurons = subtensor.neurons_lite(netuid)
+            neuron_state_dict[netuid] = neurons if neurons != None else []
 
         table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
         table.add_column(

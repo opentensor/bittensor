@@ -1284,6 +1284,7 @@ class subtensor:
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][
             "methods"
         ][method]
+
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
             data="0x"
@@ -1304,6 +1305,8 @@ class subtensor:
         rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
 
         obj = rpc_runtime_config.create_scale_object(return_type)
+        if obj.data == scalecodec.ScaleBytes("0x"):
+            return None
 
         return obj.decode(as_scale_bytes)
 
