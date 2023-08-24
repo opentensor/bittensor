@@ -111,8 +111,61 @@ __network_explorer_map__ = {
 }
 
 # --- Type Registry ---
-__type_registry__ = {"types": {"Balance": "u64"}}  # Need to override default u128
-
+__type_registry__ = {
+    "types": {
+        "Balance": "u64",  # Need to override default u128
+    },
+    "runtime_api": {
+        "NeuronInfoRuntimeApi": {
+            "methods": {
+                "get_neuron_lite": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                        {
+                            "name": "uid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_neurons_lite": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            }
+        },
+        "StakeInfoRuntimeApi": {
+            "methods": {
+                "get_stake_info_for_coldkey": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_stake_info_for_coldkeys": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vecs",
+                            "type": "Vec<Vec<u8>>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            },
+        },
+    },
+}
 
 from .errors import *
 

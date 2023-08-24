@@ -46,72 +46,6 @@ from bittensor.utils.registration import _CUDASolver, _SolverBase
 from tests.helpers import _get_mock_wallet as _generate_wallet, _get_mock_keypair
 
 
-@fixture(scope="function")
-def setup_chain():
-    operating_system = "OSX" if platform == "darwin" else "Linux"
-    path = "./bin/chain/{}/node-subtensor".format(operating_system)
-    logger.info(path)
-    if not path:
-        logger.error(
-            "make sure the NODE_SUBTENSOR_BIN env var is set and points to the node-subtensor binary"
-        )
-        sys.exit()
-
-    # Select a port
-    port = select_port()
-
-    # Delete existing wallets
-    # subprocess.Popen(["rm", '-r', '~/.bittensor/wallets/*testwallet'], close_fds=True, shell=False)
-
-    # Purge chain first
-    subprocess.Popen([path, "purge-chain", "--dev", "-y"], close_fds=True, shell=False)
-    proc = subprocess.Popen(
-        [
-            path,
-            "--dev",
-            "--port",
-            str(port + 1),
-            "--ws-port",
-            str(port),
-            "--rpc-port",
-            str(port + 2),
-            "--tmp",
-        ],
-        close_fds=True,
-        shell=False,
-    )
-
-    # Wait 4 seconds for the node to come up
-    time.sleep(4)
-
-    yield port
-
-    # Wait 4 seconds for the node to come up
-    time.sleep(4)
-
-    # Kill process
-    os.system("kill %i" % proc.pid)
-
-
-@pytest.fixture(scope="session", autouse=True)
-def initialize_tests():
-    # Kill any running process before running tests
-    os.system("pkill node-subtensor")
-
-
-def select_port():
-    port = random.randrange(1000, 65536, 5)
-    return port
-
-
-def setup_subtensor(port: int):
-    chain_endpoint = "localhost:{}".format(port)
-    subtensor = bittensor.subtensor(
-        chain_endpoint=chain_endpoint,
-    )
-    return subtensor, port
-
-
 def construct_config():
     parser = bittensor.cli.__create_parser__()
     defaults = bittensor.config(parser=parser, args=[])
@@ -191,7 +125,7 @@ class TestRegistrationHelpers(unittest.TestCase):
 
         subtensor.difficulty = MagicMock(return_value=10)
         solution = bittensor.utils.registration._solve_for_difficulty_fast(
-            subtensor, wallet, netuid=-1, num_processes=num_proc
+            subtensor, wallet, netuid=-2, num_processes=num_proc
         )
         seal = solution.seal
         assert bittensor.utils.registration._seal_meets_difficulty(seal, 10, limit)
@@ -213,7 +147,7 @@ class TestRegistrationHelpers(unittest.TestCase):
             subtensor = MagicMock()
             subtensor.get_current_block = MagicMock(return_value=1)
             subtensor.difficulty = MagicMock(
-                return_value=int(1e10)
+                return_value=int(1e20)
             )  # set high to make solving take a long time
             subtensor.substrate = MagicMock()
             subtensor.get_block_hash = MagicMock(return_value=block_hash)
@@ -226,7 +160,7 @@ class TestRegistrationHelpers(unittest.TestCase):
 
             # all arugments should return None to indicate an early return
             solution = bittensor.utils.registration._solve_for_difficulty_fast(
-                subtensor, wallet, netuid=-1, num_processes=1, update_interval=1000
+                subtensor, wallet, netuid=-2, num_processes=1, update_interval=1000
             )
 
             assert solution is None
@@ -261,7 +195,7 @@ class TestRegistrationHelpers(unittest.TestCase):
         assert bittensor.utils.registration._seal_meets_difficulty(seal, 1, limit)
         subtensor.difficulty = MagicMock(return_value=10)
         solution = bittensor.utils.registration._solve_for_difficulty_fast(
-            subtensor, wallet, netuid=-1, num_processes=num_proc
+            subtensor, wallet, netuid=-2, num_processes=num_proc
         )
         seal = solution.seal
         assert bittensor.utils.registration._seal_meets_difficulty(seal, 10, limit)
@@ -494,7 +428,7 @@ class TestUpdateCurrentBlockDuringRegistration(unittest.TestCase):
         self.assertEqual(
             bittensor.utils.registration._check_for_newest_block_and_update(
                 subtensor,
-                -1,  # netuid
+                -2,  # netuid
                 MagicMock(),
                 mock_hotkey_bytes,
                 MagicMock(),
