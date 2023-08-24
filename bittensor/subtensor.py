@@ -1789,7 +1789,7 @@ class subtensor:
 
     def get_stake_info_for_colkey(
         self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> List[Tuple[DelegateInfo, Balance]]:
+    ) -> List[StakeInfo]:
         """Returns the list of StakeInfo objects for this coldkey"""
 
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
@@ -1813,7 +1813,7 @@ class subtensor:
 
     def get_stake_info_for_colkeys(
         self, coldkey_ss58_list: List[str], block: Optional[int] = None
-    ) -> List[Tuple[DelegateInfo, Balance]]:
+    ) -> Dict[str, List[StakeInfo]]:
         """Returns the list of StakeInfo objects for all coldkeys in the list."""
         encoded_coldkeys = [
             ss58_to_vec_u8(coldkey_ss58) for coldkey_ss58 in coldkey_ss58_list
