@@ -100,16 +100,6 @@ class StreamingSynapse(bittensor.Synapse, ABC):
             await self.stream_response(send)
 
     @abstractmethod
-    def deserialize(self):
-        """
-        Abstract method that must be implemented by the subclass.
-        This method should provide logic to deserialize the response into a format suitable for further processing.
-        It is called after the response has been streamed and processed, and is responsible for converting the raw data
-        into a structured format that can be used by the application.
-        """
-        ...
-
-    @abstractmethod
     async def process_streaming_response(self, response):
         """
         Abstract method that must be implemented by the subclass.

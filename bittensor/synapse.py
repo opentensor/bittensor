@@ -209,6 +209,20 @@ class Synapse(pydantic.BaseModel):
         validate_assignment = True
 
     def deserialize(self) -> "Synapse":
+        """
+        Deserializes the Synapse object.
+
+        This method is intended to be overridden by subclasses for custom deserialization logic.
+        In the context of the Synapse superclass, this method simply returns the instance itself.
+        When inheriting from this class, subclasses should provide their own implementation for
+        deserialization if specific deserialization behavior is desired.
+
+        By default, if a subclass does not provide its own implementation of this method, the
+        Synapse's deserialize method will be used, returning the object instance as-is.
+
+        Returns:
+            Synapse: The deserialized Synapse object. In this default implementation, it returns the object itself.
+        """
         return self
 
     @pydantic.root_validator(pre=True)
