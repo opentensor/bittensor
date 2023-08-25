@@ -2184,7 +2184,7 @@ class subtensor:
                 if block_hash:
                     params = params + [block_hash]
                 return substrate.rpc_request(
-                    method="subnetInfo_getBurnCost", params=params  # custom rpc method
+                    method="subnetInfo_getLockCost", params=params  # custom rpc method
                 )
 
         json_body = make_substrate_call_with_retry()
