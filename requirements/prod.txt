@@ -6,6 +6,7 @@ ddt==1.6.0
 fuzzywuzzy>=0.18.0
 fastapi==0.99.1
 httpx==0.24.1
+jsons==1.6.3
 loguru==0.7.0
 miniupnpc==2.0.2
 munch==2.5.0

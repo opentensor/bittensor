@@ -19,7 +19,7 @@
 import ast
 import sys
 import torch
-import pickle
+import jsons
 import base64
 import typing
 import pydantic
@@ -437,9 +437,12 @@ class Synapse(pydantic.BaseModel):
                 headers[f"bt_header_dict_tensor_{field}"] = str(serialized_dict_tensor)
 
             elif required and field in required:
-                serialized_value = pickle.dumps(value)
-                encoded_value = base64.b64encode(serialized_value).decode("utf-8")
-                headers[f"bt_header_input_obj_{field}"] = encoded_value
+                try:
+                    serialized_value = jsons.dumps(value)
+                    encoded_value = base64.b64encode(serialized_value.encode()).decode("utf-8")
+                    headers[f"bt_header_input_obj_{field}"] = encoded_value
+                except jsons.exceptions.SerializationError as e:
+                    raise ValueError(f"Error serializing {field} with value {value}. Objects must be jsons serializable.") from e
 
         # Adding the size of the headers and the total size to the headers
         headers["header_size"] = str(sys.getsizeof(headers))
@@ -539,9 +542,14 @@ class Synapse(pydantic.BaseModel):
                     if new_key in inputs_dict:
                         continue
                     # Decode and load the serialized object
-                    inputs_dict[new_key] = pickle.loads(
-                        base64.b64decode(value.encode("utf-8"))
+                    inputs_dict[new_key] = jsons.loads(
+                        base64.b64decode(value.encode()).decode("utf-8")
                     )
+                except jsons.exceptions.JSONDecodeError as e:
+                    bittensor.logging.error(
+                        f"Error while jsons decoding 'input_obj' header {key}: {e}"
+                    )
+                    continue
                 except Exception as e:
                     bittensor.logging.error(
                         f"Error while parsing 'input_obj' header {key}: {e}"
