@@ -136,33 +136,44 @@ def set_root_weights_extrinsic(
         netuids = torch.tensor(netuids, dtype=torch.int64)
     if isinstance(weights, list):
         weights = torch.tensor(weights, dtype=torch.float32)
+    
+    # Get weight restrictions.
+    min_allowed_weights = subtensor.min_allowed_weights( netuid = 0 )
+    max_weight_limit = subtensor.max_weight_limit( netuid = 0 )
 
-    # Reformat and normalize.
-    weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
-        netuids, weights
-    )
+    # Get non zero values.
+    non_zero_weight_idx = torch.argwhere(weights > 0).squeeze(dim=1)
+    non_zero_weight_uids = netuids[non_zero_weight_idx]
+    non_zero_weights = weights[non_zero_weight_idx]
+    if non_zero_weights.numel() < min_allowed_weights:
+        raise ValueError(
+            "The minimum number of weights required to set weights is {}, got {}".format(
+                min_allowed_weights, non_zero_weights.numel()
+            )
+        )
 
+    # Normalize the weights to max value.
+    formatted_weights = bittensor.utils.weight_utils.normalize_max_weight( x = weights, limit = max_weight_limit )
+    bittensor.__console__.print(f"\nNormalized weights: \n\t{weights} -> {formatted_weights}\n")
+    
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
-            "Do you want to set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]?".format(
-                [float(v / 65535) for v in weight_vals], weight_uids
+            "Do you want to set the following root weights?:\n[bold white]  weights: {}\n  uids: {}[/bold white ]?".format(
+                formatted_weights, netuids
             )
         ):
             return False
 
-    bittensor.__console__.print("With sending weights prompt")
-
     with bittensor.__console__.status(
-        ":satellite: Setting weights on root network of [white]{}[/white] ...".format(subtensor.network)
+        ":satellite: Setting root weights on [white]{}[/white] ...".format(subtensor.network)
     ):
         try:
-            bittensor.__console__.print("inside try block")
             success, error_message = subtensor._do_set_weights(
                 wallet=wallet,
                 netuid=0,
-                uids=weight_uids,
-                vals=weight_vals,
+                uids=netuids.tolist(),
+                vals=formatted_weights.tolist(),
                 version_key=version_key,
                 wait_for_finalization=wait_for_finalization,
                 wait_for_inclusion=wait_for_inclusion,

@@ -16,6 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import sys
+import re
+import torch
 import argparse
 import bittensor
 from typing import List
@@ -93,15 +95,30 @@ class RootSetWeightsCommand:
         r"""Set weights for root network."""
         wallet = bittensor.wallet(config=cli.config)
         subtensor = bittensor.subtensor(config=cli.config)
+        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
+        # Get values if not set.
+        if not cli.config.is_set("netuids"):
+            example = ", ".join(map(str, [subnet.netuid for subnet in subnets][:3]))  + ' ...'
+            cli.config.netuids = Prompt.ask(f"Enter netuids (e.g. {example})")
+
+        if not cli.config.is_set("weights"):
+            example = ", ".join(map(str, [ "{:.2f}".format( float(1/len(subnets)) ) for subnet in subnets][:3])) + ' ...'
+            cli.config.weights = Prompt.ask(f"Enter weights (e.g. {example})")
+
+        # Parse from string
+        netuids = torch.tensor( list(map(int, re.split(r'[ ,]+', cli.config.netuids))), dtype = torch.long )
+        weights = torch.tensor( list(map(float, re.split(r'[ ,]+', cli.config.weights))), dtype = torch.float32 )
+      
+        # Run the set weights operation.
         subtensor.root_set_weights(
-            wallet=wallet,
-            netuids=cli.config.netuids,
-            weights=cli.config.weights,
-            version_key=0,
-            prompt=not cli.config.no_prompt,
-            wait_for_finalization=True,
-            wait_for_inclusion=True
+            wallet = wallet,
+            netuids = netuids,
+            weights = weights,
+            version_key = 0,
+            prompt = not cli.config.no_prompt,
+            wait_for_finalization = True,
+            wait_for_inclusion = True
         )
 
     @staticmethod
@@ -110,10 +127,10 @@ class RootSetWeightsCommand:
             "weights", help="""Set weights for root network."""
         )
         parser.add_argument(
-            "--netuids", dest="netuids", nargs="+", type=int, required=False
+            "--netuids", dest="netuids", type=str, required=False
         )
         parser.add_argument(
-            "--weights", dest="weights", nargs="+", type=int, required=False
+            "--weights", dest="weights", type=str, required=False
         )
 
         bittensor.wallet.add_args(parser)
