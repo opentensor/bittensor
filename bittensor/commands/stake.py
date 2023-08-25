@@ -302,7 +302,7 @@ def _get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
     return hotkey_wallets
 
 
-class StakeList:
+class StakeShow:
     @staticmethod
     def run(cli):
         r"""Show all stake accounts."""
@@ -351,11 +351,12 @@ class StakeList:
             hotkeys = get_hotkey_wallets_for_wallet(wallet)
             stakes = {}
             for hot in hotkeys:
+                emission = sum([ n.emission for n in subtensor.get_all_neurons_for_pubkey( hot.hotkey.ss58_address ) ])
                 hotkey_stake = subtensor.get_stake_for_coldkey_and_hotkey(
                     hotkey_ss58=hot.hotkey.ss58_address,
                     coldkey_ss58=wallet.coldkeypub.ss58_address
                 )
-                stakes[hot.hotkey.ss58_address] = {'name': hot.hotkey_str, 'stake': hotkey_stake}
+                stakes[hot.hotkey.ss58_address] = {'name': hot.hotkey_str, 'stake': hotkey_stake, 'rate': emission }
             return stakes
 
         def get_stakes_from_delegates(subtensor, wallet) -> Dict[str, Dict[str, Union[str, Balance]]]:
@@ -373,7 +374,7 @@ class StakeList:
                 for nom in dele.nominators:
                     if nom[0] == wallet.coldkeypub.ss58_address:
                         delegate_name = registered_delegate_info[dele.hotkey_ss58].name if dele.hotkey_ss58 in registered_delegate_info else dele.hotkey_ss58
-                        stakes[dele.hotkey_ss58] = {'name': delegate_name, 'stake': nom[1]}
+                        stakes[dele.hotkey_ss58] = {'name': delegate_name, 'stake': nom[1], 'rate': dele.total_daily_return.tao * (nom[1] / dele.total_stake.tao)}
             return stakes
 
         def get_all_wallet_accounts(wallets) -> List[Dict[str, Dict[str, Union[str, Balance]]]]:
@@ -401,11 +402,13 @@ class StakeList:
 
         total_stake = 0
         total_balance = 0
+        total_rate = 0
         for acc in accounts:
             total_balance += acc['balance'].tao
             for key, value in acc['accounts'].items():
                 total_stake += value['stake'].tao
-        table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
+                total_rate += float(value['rate'])
+        table = Table(show_footer=True, pad_edge=False, box=None, expand=False)
         table.add_column(
             "[overline white]Coldkey", footer_style="overline white", style="bold white"
         )
@@ -418,10 +421,13 @@ class StakeList:
         table.add_column(
             "[overline white]Stake", "\u03C4{:.5f}".format(total_stake), footer_style="overline white", style="green"
         )
+        table.add_column(
+            "[overline white]Rate", "\u03C4{:.5f}/d".format(total_rate), footer_style="overline white", style="green"
+        )
         for acc in accounts:
             table.add_row( acc['name'], acc['balance'], "", "")
             for key, value in acc['accounts'].items():
-                table.add_row( "", "", value['name'], value['stake'])
+                table.add_row( "", "", value['name'], value['stake'], str(value['rate']) + '/d')
         bittensor.__console__.print(table)
 
 
@@ -438,7 +444,7 @@ class StakeList:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         list_parser = parser.add_parser(
-            "list", help="""List all stake accounts for wallet."""
+            "show", help="""List all stake accounts for wallet."""
         )
         list_parser.add_argument(
             "--all",

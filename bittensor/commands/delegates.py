@@ -403,7 +403,7 @@ class ListDelegatesCommand:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         list_delegates_parser = parser.add_parser(
-            "list_delegates", help="""List all delegates on the network"""
+            "list", help="""List all delegates on the network"""
         )
         bittensor.subtensor.add_args(list_delegates_parser)
 

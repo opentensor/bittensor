@@ -29,10 +29,11 @@ COMMANDS = {
         "name": "subnets", 
         "help": "Commands for managing and viewing subnetworks.",
         "commands": {
-            "create": RegisterSubnetworkCommand,
-            "cost": SubnetLockCostCommand,
             "list": SubnetListCommand,
-            "overview": MetagraphCommand,
+            "cost": SubnetLockCostCommand,
+            "create": RegisterSubnetworkCommand,
+            "register": RegisterCommand,
+            "recycle_register": RecycleRegisterCommand,
             #"hyperparameters": None,
             #"owner": None,
             #"emission": None,
@@ -42,13 +43,13 @@ COMMANDS = {
         "name": "root",
         "help": "Commands for managing and viewing the root network.",
         "commands": {
-            "list": RootList,
-            "register": RootRegisterCommand,
+            "list": ListDelegatesCommand,
             #"weights": None,
             "vote": VoteCommand,
+            "register": RootRegisterCommand,
             "proposals": ProposalsCommand,
-            "stake": DelegateStakeCommand,
-            "unstake": DelegateUnstakeCommand,
+            "delegate": DelegateStakeCommand,
+            "undelegate": DelegateUnstakeCommand,
         }
     },
     "wallet": {
@@ -66,21 +67,20 @@ COMMANDS = {
             "regen_coldkey": RegenColdkeyCommand,
             "regen_coldkeypub": RegenColdkeypubCommand,
             "regen_hotkey": RegenHotkeyCommand,
-            "register": RegisterCommand,
-            "recycle_register": RecycleRegisterCommand,
-            "delegates": MyDelegatesCommand,
+            "my_delegates": MyDelegatesCommand,
+            "faucet": RunFaucetCommand,
         }
     },
     "stake": {
         "name": "stake",
         "help": "Commands for staking and removing stake from hotkey accounts.",
         "commands": {
-            "list": StakeList,
+            "show": StakeShow,
             "add": StakeCommand,
             "remove": UnStakeCommand,
         }
     },
-    "misc": {
+    "legacy": {
         "name": "misc",
         "help": "Miscellaneous commands.",
         "commands": {
