@@ -439,10 +439,14 @@ class Synapse(pydantic.BaseModel):
             elif required and field in required:
                 try:
                     serialized_value = jsons.dumps(value)
-                    encoded_value = base64.b64encode(serialized_value.encode()).decode("utf-8")
+                    encoded_value = base64.b64encode(serialized_value.encode()).decode(
+                        "utf-8"
+                    )
                     headers[f"bt_header_input_obj_{field}"] = encoded_value
                 except jsons.exceptions.SerializationError as e:
-                    raise ValueError(f"Error serializing {field} with value {value}. Objects must be jsons serializable.") from e
+                    raise ValueError(
+                        f"Error serializing {field} with value {value}. Objects must be jsons serializable."
+                    ) from e
 
         # Adding the size of the headers and the total size to the headers
         headers["header_size"] = str(sys.getsizeof(headers))
