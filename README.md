@@ -32,7 +32,7 @@ $ pip3 install bittensor
 ```
 3. From source:
 ```bash
-$ git clone https://github.com/opentensor/bittensor.git
+$ git clone --recurse-submodules https://github.com/opentensor/bittensor.git
 $ python3 -m pip install -e bittensor/
 ```
 4. Using Conda (recommended for **Apple M1**):
