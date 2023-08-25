@@ -74,6 +74,8 @@ jobs:
 
     steps:
       - checkout
+      - run: git submodule sync
+      - run: git submodule update --init # For wallet submoudle
 
       - restore_cache:
           name: Restore cached venv

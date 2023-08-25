@@ -24,7 +24,7 @@ from abc import abstractclassmethod
 from collections.abc import Mapping
 
 from hashlib import sha256
-from ..wallet import wallet
+from .._wallet import wallet
 
 from ..chain_data import (
     NeuronInfo,
