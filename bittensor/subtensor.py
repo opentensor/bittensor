@@ -66,7 +66,7 @@ from .extrinsics.senate import (
     leave_senate_extrinsic,
     vote_senate_extrinsic,
 )
-from .extrinsics.root import root_register_extrinsic
+from .extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import U16_NORMALIZED_FLOAT, ss58_to_vec_u8
 from .utils.balance import Balance
@@ -1141,6 +1141,28 @@ class subtensor:
             # Successful registration
             else:
                 return True, None
+            
+    def root_set_weights(
+        self,
+        wallet: "bittensor.wallet",
+        netuids: Union[torch.LongTensor, list],
+        weights: Union[torch.FloatTensor, list],
+        version_key: int = 0,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        """Sets weights for the root network."""
+        return set_root_weights_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuids=netuids,
+            weights=weights,
+            version_key=version_key,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
 
     ########################
     #### Standard Calls ####

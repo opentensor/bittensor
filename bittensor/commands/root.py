@@ -18,7 +18,7 @@
 import sys
 import argparse
 import bittensor
-import typing
+from typing import List
 from rich.prompt import Prompt, Confirm
 
 from . import defaults
@@ -86,3 +86,52 @@ class RootList:
                 choices=bittensor.__networks__,
                 default=defaults.subtensor.network,
             )
+
+class RootSetWeightsCommand:
+    @staticmethod
+    def run(cli):
+        r"""Set weights for root network."""
+        wallet = bittensor.wallet(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config)
+
+        subtensor.root_set_weights(
+            wallet=wallet,
+            netuids=cli.config.netuids,
+            weights=cli.config.weights,
+            version_key=0,
+            prompt=not cli.config.no_prompt,
+            wait_for_finalization=True,
+            wait_for_inclusion=True
+        )
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser = parser.add_parser(
+            "weights", help="""Set weights for root network."""
+        )
+        parser.add_argument(
+            "--netuids", dest="netuids", nargs="+", type=int, required=False
+        )
+        parser.add_argument(
+            "--weights", dest="weights", nargs="+", type=int, required=False
+        )
+
+        bittensor.wallet.add_args(parser)
+        bittensor.subtensor.add_args(parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("subtensor.network") and not config.is_set("subtensor.chain_endpoint") and not config.no_prompt:
+            config.subtensor.network = Prompt.ask(
+                "Enter subtensor network",
+                choices=bittensor.__networks__,
+                default=defaults.subtensor.network,
+            )
+
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
