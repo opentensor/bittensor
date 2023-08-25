@@ -141,25 +141,25 @@ class SubnetListCommand:
             justify="center",
         )
         table.add_column(
-            "[overline white]NEURONS",
+            "[overline white]N",
             str(total_neurons),
             footer_style="overline white",
             style="white",
             justify="center",
         )
         table.add_column("[overline white]MAX_N", style="white", justify="center")
-        table.add_column("[overline white]DIFFICULTY", style="white", justify="center")
+        # table.add_column("[overline white]DIFFICULTY", style="white", justify="center")
         # table.add_column("[overline white]IMMUNITY", style='white')
         # table.add_column("[overline white]BATCH SIZE", style='white')
         # table.add_column("[overline white]SEQ_LEN", style='white')
-        table.add_column("[overline white]TEMPO", style="white", justify="center")
+        # table.add_column("[overline white]TEMPO", style="white", justify="center")
         # table.add_column("[overline white]MODALITY", style='white')
-        table.add_column("[overline white]CON_REQ", style="white", justify="center")
+        # table.add_column("[overline white]CON_REQ", style="white", justify="center")
         # table.add_column("[overline white]STAKE", style="green", justify="center")
         table.add_column(
             "[overline white]EMISSION", style="white", justify="center"
         )  # sums to 100%
-        table.add_column("[overline white]BURN(\u03C4)", style="white")
+        # table.add_column("[overline white]BURN(\u03C4)", style="white")
         table.add_column("[overline white]OWNER(\u03C4)", style="white")
 
         for row in rows:

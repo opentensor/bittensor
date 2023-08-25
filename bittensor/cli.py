@@ -25,12 +25,12 @@ from .commands import *
 console = bittensor.__console__
 
 COMMANDS = {
-    "subnet": {
-        "name": "subnet", 
+    "subnets": {
+        "name": "subnets", 
         "help": "Commands for managing and viewing subnetworks.",
         "commands": {
             "create": RegisterSubnetworkCommand,
-            "lock_cost": SubnetLockCostCommand,
+            "cost": SubnetLockCostCommand,
             "list": SubnetListCommand,
             "overview": MetagraphCommand,
             #"hyperparameters": None,
@@ -55,6 +55,7 @@ COMMANDS = {
         "name": "wallet",
         "help": "Commands for managing and viewing wallets.",
         "commands": {
+            "list": ListCommand,
             "overview": OverviewCommand,
             "transfer": TransferCommand,
             "inspect": InspectCommand,
@@ -62,7 +63,6 @@ COMMANDS = {
             "create": WalletCreateCommand,
             "new_hotkey": NewHotkeyCommand,
             "new_coldkey": NewColdkeyCommand,
-            "list": ListCommand,
             "regen_coldkey": RegenColdkeyCommand,
             "regen_coldkeypub": RegenColdkeypubCommand,
             "regen_hotkey": RegenHotkeyCommand,
@@ -75,6 +75,7 @@ COMMANDS = {
         "name": "stake",
         "help": "Commands for staking and removing stake from hotkey accounts.",
         "commands": {
+            "list": StakeList,
             "add": StakeCommand,
             "remove": UnStakeCommand,
         }
@@ -84,7 +85,7 @@ COMMANDS = {
         "help": "Miscellaneous commands.",
         "commands": {
             "update": UpdateCommand,
-            "run_faucet": RunFaucetCommand,
+            "faucet": RunFaucetCommand,
         }
     }
 }
