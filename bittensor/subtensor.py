@@ -141,21 +141,45 @@ class subtensor:
             pass
 
     @staticmethod
-    def determine_chain_endpoint(network: str):
-        if network == "finney":
-            # Kiru Finney stagin network.
-            return bittensor.__finney_entrypoint__
-        elif network == "local":
-            return bittensor.__local_entrypoint__
-        elif network == "test":
-            return bittensor.__finney_test_entrypoint__
+    def determine_chain_endpoint_and_network(network: str):
+        """ Determines the chain endpoint and network from the passed network or chain_endpoint.
+        Args:
+            network (str): The network flag. The likely choices are:
+                    -- finney (main network)
+                    -- local (local running network)
+                    -- test (test network)
+            chain_endpoint (str): The chain endpoint flag. If set, overrides the network argument.
+        Returns:
+            network (str): The network flag. The likely choices are:
+            chain_endpoint (str): The chain endpoint flag. If set, overrides the network argument.
+        """
+        if network == None:
+            return None, None
+        if network in ['finney', 'local', 'test']:
+            if network == "finney":
+                # Kiru Finney stagin network.
+                return network, bittensor.__finney_entrypoint__
+            elif network == "local":
+                return network, bittensor.__local_entrypoint__
+            elif network == "test":
+                return network, bittensor.__finney_test_entrypoint__
         else:
-            return bittensor.__local_entrypoint__
+            if network == bittensor.__finney_entrypoint__:
+                return 'finney', network
+            elif '127.0.0.1' in network or 'localhost' in network:
+                return 'local', network
+            elif network == bittensor.__finney_test_entrypoint__:
+                return 'test', network
+            else:
+                raise ValueError(
+                    "Invalid network: {} Must be one of: {} or valid endpoint".format(
+                        network, bittensor.__networks__
+                    )
+                )
 
     def __init__(
         self,
         network: str = None,
-        chain_endpoint: str = None,
         config: "bittensor.config" = None,
         _mock: bool = False,
     ) -> None:
@@ -163,14 +187,11 @@ class subtensor:
         Args:
             config (:obj:`bittensor.config`, `optional`):
                 bittensor.subtensor.config()
-            network (default='local', type=str)
+            network (default='local or ws://127.0.0.1:9946', type=str)
                 The subtensor network flag. The likely choices are:
                         -- local (local running network)
                         -- finney (main network)
-                If this option is set it overloads subtensor.chain_endpoint with
-                an entry point node from that network.
-            chain_endpoint (default=None, type=str)
-                The subtensor endpoint flag. If set, overrides the network argument.
+                or subtensor endpoint flag. If set, overrides the network argument.
         """
 
         # Determine config.subtensor.chain_endpoint and config.subtensor.network config.
@@ -181,6 +202,7 @@ class subtensor:
         self.config = copy.deepcopy(config)
 
         # Setup config.subtensor.network and config.subtensor.chain_endpoint
+        network, chain_endpoint = self.determine_chain_endpoint_and_network(network)
         self.setup_config(network, chain_endpoint)
 
         # Returns a mocked connection with a background chain connection.
@@ -214,7 +236,7 @@ class subtensor:
             return
 
         if network is not None:
-            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
+            _, self.config.subtensor.chain_endpoint = self.determine_chain_endpoint_and_network(
                 network
             )
             self.config.subtensor.network = network
@@ -225,22 +247,22 @@ class subtensor:
             return
 
         if self.config.get("__is_set", {}).get("subtensor.network"):
-            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
+            _, self.config.subtensor.chain_endpoint = self.determine_chain_endpoint_and_network(
                 self.config.subtensor.network
             )
             return
 
         if self.config.subtensor.get("network"):
-            self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
+            _, self.config.subtensor.chain_endpoint = self.determine_chain_endpoint_and_network(
                 self.config.subtensor.network
             )
             return
 
         if self.config.subtensor.get("chain_endpoint"):
-            self.config.subtensor.chain_endpoint = self.config.subtensor.chain_endpoint
+            _, self.config.subtensor.chain_endpoint = self.config.subtensor.chain_endpoint
             return
 
-        self.config.subtensor.chain_endpoint = subtensor.determine_chain_endpoint(
+        _, self.config.subtensor.chain_endpoint = self.determine_chain_endpoint_and_network(
             bittensor.defaults.subtensor.network
         )
         self.config.subtensor.network = bittensor.defaults.subtensor.network
