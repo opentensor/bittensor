@@ -28,5 +28,5 @@ substrate-interface==1.5.0
 termcolor
 torch>=1.13.1
 tqdm
-uvicorn==0.22.0
+uvicorn[standard]==0.22.0 # also install uvloop
 wheel
