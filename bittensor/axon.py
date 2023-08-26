@@ -24,6 +24,7 @@ import uuid
 import copy
 import time
 import asyncio
+import uvloop
 import inspect
 import uvicorn
 import argparse
@@ -36,9 +37,12 @@ from inspect import signature, Signature, Parameter
 from fastapi.responses import JSONResponse
 from substrateinterface import Keypair
 from fastapi import FastAPI, APIRouter, Request
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
+# Force asyncio to use the uvloop created event loop. (Much faster)
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 """ FastAPI server that runs in a thread. 
 """
@@ -250,6 +254,7 @@ class axon:
 
         # Build ourselves as the middleware.
         self.app.add_middleware(AxonMiddleware, axon=self)
+        self.app.add_middleware(HTTPSRedirectMiddleware)
 
         # Attach default forward.
         def ping(r: bittensor.Synapse) -> bittensor.Synapse:
