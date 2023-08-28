@@ -24,6 +24,7 @@ import uuid
 import copy
 import time
 import asyncio
+import hashlib
 import inspect
 import uvicorn
 import argparse
@@ -583,7 +584,7 @@ class axon:
         keypair = Keypair(ss58_address=synapse.dendrite.hotkey)
 
         # Build the signature messages.
-        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}"
+        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}{synapse.body_hash}"
 
         # Build the unique endpoint key.
         endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
