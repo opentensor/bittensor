@@ -41,7 +41,6 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
 
-
 """ FastAPI server that runs in a thread. 
 """
 

@@ -85,7 +85,6 @@ class dendrite(torch.nn.Module):
         # Force asyncio to use the uvloop created event loop. (Much faster)
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-
     def query(self, *args, **kwargs):
         """
         Makes a synchronous request to multiple target Axons and returns the server responses.
