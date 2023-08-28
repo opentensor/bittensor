@@ -40,8 +40,6 @@ from fastapi import FastAPI, APIRouter, Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
-# Force asyncio to use the uvloop created event loop. (Much faster)
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 """ FastAPI server that runs in a thread. 
@@ -228,6 +226,9 @@ class axon:
         )
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
         self.started = False
+
+        # Force asyncio to use the uvloop created event loop. (Much faster)
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
         # Build middleware
         self.thread_pool = bittensor.PriorityThreadPoolExecutor(

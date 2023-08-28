@@ -26,9 +26,6 @@ import httpx
 import bittensor as bt
 from typing import Union, Optional, List
 
-# Force asyncio to use the uvloop created event loop. (Much faster)
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-
 
 class dendrite(torch.nn.Module):
     """
@@ -84,6 +81,10 @@ class dendrite(torch.nn.Module):
         ) or bt.wallet().hotkey
 
         self.synapse_history: list = []
+
+        # Force asyncio to use the uvloop created event loop. (Much faster)
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
 
     def query(self, *args, **kwargs):
         """
