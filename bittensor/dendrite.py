@@ -314,7 +314,7 @@ class dendrite(torch.nn.Module):
         )
 
         # Sign the request using the dendrite and axon information
-        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.dendrite.uuid}{synapse.body_hash}"
+        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.dendrite.uuid}.{synapse.body_hash}"
         synapse.dendrite.signature = f"0x{self.keypair.sign(message).hex()}"
 
         return synapse
