@@ -29,6 +29,7 @@ from typing import Union, Optional, List
 # Force asyncio to use the uvloop created event loop. (Much faster)
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
+
 class dendrite(torch.nn.Module):
     """
     The Dendrite class, inheriting from PyTorch's Module class, represents the abstracted
