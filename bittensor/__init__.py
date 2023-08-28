@@ -20,11 +20,6 @@
 from rich.console import Console
 from rich.traceback import install
 
-# Install and apply nest asyncio to allow the async functions
-# to run in a .ipynb
-import nest_asyncio
-
-nest_asyncio.apply()
 
 # Bittensor code and protocol version.
 __version__ = "6.0.0"

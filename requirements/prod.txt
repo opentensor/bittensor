@@ -12,7 +12,6 @@ netaddr
 numpy
 msgpack
 msgpack_numpy
-nest_asyncio
 pycryptodome>=3.18.0,<4.0.0
 pyyaml
 password_strength
