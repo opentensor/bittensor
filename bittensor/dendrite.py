@@ -18,6 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import asyncio
+import uvloop
 import uuid
 import time
 import torch
@@ -25,6 +26,8 @@ import httpx
 import bittensor as bt
 from typing import Union, Optional, List
 
+# Force asyncio to use the uvloop created event loop. (Much faster)
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 class dendrite(torch.nn.Module):
     """
@@ -100,7 +103,7 @@ class dendrite(torch.nn.Module):
             loop = asyncio.get_event_loop()
             return loop.run_until_complete(self.forward(*args, **kwargs))
         except:
-            new_loop = asyncio.new_event_loop()
+            new_loop = uvloop.new_event_loop()
             asyncio.set_event_loop(new_loop)
             result = loop.run_until_complete(self.forward(*args, **kwargs))
             new_loop.close()

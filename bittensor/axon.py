@@ -25,6 +25,7 @@ import copy
 import time
 import asyncio
 import inspect
+import uvloop
 import uvicorn
 import argparse
 import traceback
@@ -38,6 +39,9 @@ from substrateinterface import Keypair
 from fastapi import FastAPI, APIRouter, Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from typing import Dict, Optional, Tuple, Union, List, Callable
+
+# Force asyncio to use the uvloop created event loop. (Much faster)
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 """ FastAPI server that runs in a thread. 
