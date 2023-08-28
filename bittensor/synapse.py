@@ -18,7 +18,6 @@
 
 import ast
 import sys
-import torch
 import pickle
 import base64
 import typing
@@ -26,10 +25,7 @@ import hashlib
 import pydantic
 from pydantic.schema import schema
 import bittensor
-from abc import abstractmethod
-from fastapi.responses import Response
-from fastapi import Request
-from typing import Dict, Optional, Tuple, Union, List, Callable, Any
+from typing import Optional, List, Any
 
 
 def get_size(obj, seen=None):
