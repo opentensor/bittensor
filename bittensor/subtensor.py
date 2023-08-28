@@ -1348,11 +1348,11 @@ class subtensor:
         rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
         rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
 
-        obj = rpc_runtime_config.create_scale_object(return_type)
-        if obj.data == scalecodec.ScaleBytes("0x"):
+        obj = rpc_runtime_config.create_scale_object(return_type, as_scale_bytes)
+        if obj.data.to_hex() == "0x0400": # RPC returned None result
             return None
 
-        return obj.decode(as_scale_bytes)
+        return obj.decode()
 
     def _encode_params(
         self,
@@ -2140,7 +2140,7 @@ class subtensor:
         )
 
         if hex_bytes_result == None:
-            return None
+            return []
 
         if hex_bytes_result.startswith("0x"):
             bytes_result = bytes.fromhex(hex_bytes_result[2:])

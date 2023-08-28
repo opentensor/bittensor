@@ -30,6 +30,7 @@ COMMANDS = {
         "help": "Commands for managing and viewing subnetworks.",
         "commands": {
             "list": SubnetListCommand,
+            "metagraph": MetagraphCommand,
             "cost": SubnetLockCostCommand,
             "create": RegisterSubnetworkCommand,
             "register": RegisterCommand,
