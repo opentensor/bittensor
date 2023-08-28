@@ -90,5 +90,15 @@ Remember, while high test coverage is a good goal, it's also important to write 
 
 Bittensor uses CircleCI for continuous integration. This means that every time you push changes to the repository, all tests are automatically run. If any tests fail, you'll be notified so you can fix the issue before merging your changes.
 
+## Running jupyter notebooks
+If testing async code in jupyter notebooks, be aware that without nest_asyncio (removed in bittensor==6.0.0) which would allow coroutines to be executed within a running loop, you must now call coroutines with `asyncio.create_task()`
+
+```python
+# Original code that errors with `current event loop is aleady running`:
+loop.run_until_complete(main())
+
+# Becomes...
+asyncio.create_task(main())
+```
 
 Remember, tests are an important part of maintaining the health of a codebase. They help catch issues early and make it easier to add new features or refactor existing code. Happy testing!
