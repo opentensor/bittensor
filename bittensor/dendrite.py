@@ -22,7 +22,6 @@ import uuid
 import time
 import torch
 import httpx
-import hashlib
 import bittensor as bt
 from typing import Union, Optional, List
 
