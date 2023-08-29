@@ -41,6 +41,16 @@ $ conda env create -f ~/.bittensor/bittensor/scripts/environments/apple_m1_envir
 $ conda activate bittensor
 ```
 
+To sync the submodules bittensor-wallet and bittensor-config:
+```bash
+cd bittensor/
+
+git submodule sync && git submodule update --init
+
+# Reinstall with updated submodules
+python3 -m pip install -e .
+```
+
 To test your installation, type:
 ```bash
 $ btcli --help
