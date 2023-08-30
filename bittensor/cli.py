@@ -81,6 +81,14 @@ COMMANDS = {
             "remove": UnStakeCommand,
         }
     },
+    "sudo": {
+        "name": "sudo",
+        "help": "Commands for subnet management",
+        "commands": {
+            #"dissolve": None,
+            "set": SubnetSudoCommand
+        }
+    },
     "legacy": {
         "name": "misc",
         "help": "Miscellaneous commands.",

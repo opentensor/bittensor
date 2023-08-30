@@ -44,7 +44,7 @@ from .chain_data import (
     custom_rpc_type_registry,
 )
 from .errors import *
-from .extrinsics.network import register_subnetwork_extrinsic
+from .extrinsics.network import register_subnetwork_extrinsic, set_hyperparameter_extrinsic
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .extrinsics.serving import serve_extrinsic, serve_axon_extrinsic
@@ -701,6 +701,27 @@ class subtensor:
         return register_subnetwork_extrinsic(
             self,
             wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+    
+    def set_hyperparameter(
+        self,
+        wallet: "bittensor.wallet",
+        netuid: int,
+        parameter: str,
+        value,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization=True,
+        prompt: bool = False,
+    ) -> bool:
+        return set_hyperparameter_extrinsic(
+            self,
+            wallet=wallet,
+            netuid=netuid,
+            parameter=parameter,
+            value=value,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,

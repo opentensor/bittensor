@@ -22,7 +22,7 @@ from . import defaults
 from rich.prompt import Prompt
 from rich.table import Table
 from typing import List, Optional, Dict
-from .utils import get_delegates_details, DelegatesDetails
+from .utils import get_delegates_details, DelegatesDetails, check_netuid_set
 
 console = bittensor.__console__
 
@@ -152,3 +152,73 @@ class SubnetListCommand:
     def add_args(parser: argparse.ArgumentParser):
         list_subnets_parser = parser.add_parser("list", help="""List all subnets on the network""")
         bittensor.subtensor.add_args(list_subnets_parser)
+
+HYPERPARAMS = {
+    "serving_rate_limit": "sudo_set_serving_rate_limit",
+    "min_difficulty": "sudo_set_min_difficulty",
+    "max_difficulty": "sudo_set_max_difficulty",
+    "weights_version": "sudo_set_weights_version_key",
+    "weights_rate_Limit": "sudo_set_weights_set_rate_limit",
+    "adjustment_interval": "sudo_set_adjustment_interval",
+    "max_weight_limit": "sudo_set_max_weight_limit",
+    "immunity_period": "sudo_set_immunity_period",
+    "min_allowed_weights": "sudo_set_min_allowed_weights",
+    "kappa": "sudo_set_kappa",
+    "rho": "sudo_set_rho",
+    "activity_cutoff": "sudo_set_activity_cutoff",
+    "registration_allowed": "sudo_set_network_registration_allowed",
+    "target_regs_per_interval": "sudo_set_target_registrations_per_interval",
+    "min_burn": "sudo_set_min_burn",
+    "max_burn": "sudo_set_max_burn",
+    "bonds_moving_avg": "sudo_set_bonds_moving_average",
+    "max_regs_per_block": "sudo_set_max_registrations_per_block",
+}
+
+class SubnetSudoCommand:
+    @staticmethod
+    def run(cli):
+        r"""Set subnet hyperparameters."""
+        config = cli.config.copy()
+        wallet = bittensor.wallet(config=cli.config)
+        subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
+
+        subtensor.set_hyperparameter(
+            wallet, 
+            netuid=cli.config.netuid, 
+            parameter=cli.config.param, 
+            value=cli.config.value, 
+            prompt=not cli.config.no_prompt
+        )
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set("netuid") and not config.no_prompt:
+            check_netuid_set(config, bittensor.subtensor(config=config))
+
+        if not config.is_set("param") and not config.no_prompt:
+            param = Prompt.ask("Enter hyperparameter", choices=HYPERPARAMS)
+            config.param = str(param)
+
+        if not config.is_set("value") and not config.no_prompt:
+            value = Prompt.ask("Enter new value")
+            config.value = value
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser = parser.add_parser("set", help="""Set hyperparameters for a subnet""")
+        parser.add_argument(
+            "--netuid", dest="netuid", type=int, required=False, default=False
+        )
+        parser.add_argument(
+            "--param", dest="param", type=str, required=False
+        )
+        parser.add_argument(
+            "--value", dest="value", type=str, required=False
+        )
+
+        bittensor.wallet.add_args(parser)
+        bittensor.subtensor.add_args(parser)
