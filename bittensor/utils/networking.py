@@ -26,6 +26,7 @@ import netaddr
 import requests
 
 from loguru import logger
+from retry import retry
 
 
 def int_to_ip(int_val: int) -> str:
@@ -88,6 +89,7 @@ class ExternalIPNotFound(Exception):
     """Raised if we cannot attain your external ip from CURL/URLLIB/IPIFY/AWS"""
 
 
+@retry(delay=2, tries=3, backoff=2, max_delay=4, exceptions=(TimeoutException, Exception))
 def get_external_ip() -> str:
     r"""Checks CURL/URLLIB/IPIFY/AWS for your external ip.
     Returns:
@@ -100,56 +102,62 @@ def get_external_ip() -> str:
     """
     # --- Try AWS
     try:
-        external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
+        with timeout(10, "AWS"):
+            external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
+            assert isinstance(ip_to_int(external_ip), int)
+            return str(external_ip)
+    except (TimeoutException, Exception):
         pass
 
     # --- Try ipconfig.
     try:
-        process = os.popen("curl -s ifconfig.me")
-        external_ip = process.readline()
-        process.close()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
+        with timeout(10, "ipconfig"):
+            process = os.popen("curl -s ifconfig.me")
+            external_ip = process.readline()
+            process.close()
+            assert isinstance(ip_to_int(external_ip), int)
+            return str(external_ip)
+    except (TimeoutException, Exception):
         pass
 
     # --- Try ipinfo.
     try:
-        process = os.popen("curl -s https://ipinfo.io")
-        external_ip = json.loads(process.read())["ip"]
-        process.close()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
+        with timeout(10, "ipinfo"):
+            process = os.popen("curl -s https://ipinfo.io")
+            external_ip = json.loads(process.read())["ip"]
+            process.close()
+            assert isinstance(ip_to_int(external_ip), int)
+            return str(external_ip)
+    except (TimeoutException, Exception):
         pass
 
     # --- Try myip.dnsomatic
     try:
-        process = os.popen("curl -s myip.dnsomatic.com")
-        external_ip = process.readline()
-        process.close()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
+        with timeout(10, "myip.dnsomatic"):
+            process = os.popen("curl -s myip.dnsomatic.com")
+            external_ip = process.readline()
+            process.close()
+            assert isinstance(ip_to_int(external_ip), int)
+            return str(external_ip)
+    except (TimeoutException, Exception):
         pass
 
     # --- Try urllib ipv6
     try:
-        external_ip = urllib.request.urlopen("https://ident.me").read().decode("utf8")
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
+        with timeout(10, "urllib ipv6"):
+            external_ip = urllib.request.urlopen("https://ident.me").read().decode("utf8")
+            assert isinstance(ip_to_int(external_ip), int)
+            return str(external_ip)
+    except (TimeoutException, Exception):
         pass
 
     # --- Try Wikipedia
     try:
-        external_ip = requests.get("https://www.wikipedia.org").headers["X-Client-IP"]
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
+        with timeout(10, "Wikipedia"):
+            external_ip = requests.get("https://www.wikipedia.org").headers["X-Client-IP"]
+            assert isinstance(ip_to_int(external_ip), int)
+            return str(external_ip)
+    except (TimeoutException, Exception):
         pass
 
     raise ExternalIPNotFound

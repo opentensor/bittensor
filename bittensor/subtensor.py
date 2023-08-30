@@ -349,16 +349,18 @@ class subtensor:
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
         with self.substrate as substrate:
-            call = substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="set_weights",
-                call_params={
-                    "dests": uids,
-                    "weights": vals,
-                    "netuid": netuid,
-                    "version_key": version_key,
-                },
-            )
+            try:
+                with bittensor.timeout(12, "set_weights", locals()):
+                    call = substrate.compose_call(
+                        call_module="SubtensorModule",
+                        call_function="set_weights",
+                        call_params={
+                            "dests": uids,
+                            "weights": vals,
+                            "netuid": netuid,
+                            "version_key": version_key,
+                        },
+                    )
             # Period dictates how long the extrinsic will stay as part of waiting pool
             extrinsic = substrate.create_signed_extrinsic(
                 call=call, keypair=wallet.hotkey, era={"period": 100}
@@ -377,6 +379,9 @@ class subtensor:
                 return True, None
             else:
                 return False, response.error_message
+
+            except bittensor.TimeoutException as e:
+                return False, str(e)
 
     ######################
     #### Registration ####
