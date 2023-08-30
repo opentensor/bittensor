@@ -35,16 +35,14 @@ COMMANDS = {
             "create": RegisterSubnetworkCommand,
             "register": RegisterCommand,
             "recycle_register": RecycleRegisterCommand,
-            #"hyperparameters": None,
-            #"owner": None,
-            #"emission": None,
+            "hyperparameters": SubnetHyperparamsCommand,
         }
     },
     "root": {
         "name": "root",
         "help": "Commands for managing and viewing the root network.",
         "commands": {
-            "list": ListDelegatesCommand,
+            "list": RootList,
             "weights": RootSetWeightsCommand,
             "vote": VoteCommand,
             "register": RootRegisterCommand,

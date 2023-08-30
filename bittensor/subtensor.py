@@ -36,6 +36,7 @@ from .chain_data import (
     DelegateInfo,
     PrometheusInfo,
     SubnetInfo,
+    SubnetHyperparameters,
     StakeInfo,
     NeuronInfoLite,
     AxonInfo,
@@ -1810,6 +1811,29 @@ class subtensor:
             return None
 
         return SubnetInfo.from_vec_u8(result)
+    
+    def get_subnet_hyperparameters(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[SubnetInfo]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash(block)
+                params = [netuid]
+                if block_hash:
+                    params = params + [block_hash]
+                return substrate.rpc_request(
+                    method="subnetInfo_getSubnetHyperparams",  # custom rpc method
+                    params=params,
+                )
+
+        json_body = make_substrate_call_with_retry()
+        result = json_body["result"]
+
+        if result in (None, []):
+            return None
+
+        return SubnetHyperparameters.from_vec_u8(result)
     
     def get_subnet_owner(self, netuid: int, block: Optional[int] = None) -> Optional[str]:
         return self.query_subtensor("SubnetOwner", block, [netuid]).value

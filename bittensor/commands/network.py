@@ -59,7 +59,7 @@ class RegisterSubnetworkCommand:
 class SubnetLockCostCommand:
     @staticmethod
     def run(cli):
-        r"""Register a subnetwork"""
+        r"""View locking cost of creating a new subnetwork"""
         config = cli.config.copy()
         subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
         try:
@@ -221,4 +221,40 @@ class SubnetSudoCommand:
         )
 
         bittensor.wallet.add_args(parser)
+        bittensor.subtensor.add_args(parser)
+
+class SubnetHyperparamsCommand:
+    @staticmethod
+    def run(cli):
+        r"""View hyperparameters of a subnetwork."""
+        subtensor = bittensor.subtensor(config=cli.config)
+        subnet: bittensor.SubnetInfo = subtensor.get_subnet_hyperparameters(cli.config.netuid)
+        
+        table = Table(
+            show_footer=True,
+            width=cli.config.get("width", None),
+            pad_edge=True,
+            box=None,
+            show_edge=True,
+        )
+        table.title = "[white]Subnet Hyperparameters - NETUID: {} - {}".format(cli.config.netuid, subtensor.network)
+        table.add_column("[overline white]HYPERPARAMETER", style="white")
+        table.add_column("[overline white]VALUE", style="white")
+
+        for param in subnet.__dict__:
+            table.add_row(param, str(subnet.__dict__[param]))
+        
+        bittensor.__console__.print(table)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("netuid") and not config.no_prompt:
+            check_netuid_set(config, bittensor.subtensor(config=config))
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser = parser.add_parser("hyperparameters", help="""View subnet hyperparameters""")
+        parser.add_argument(
+            "--netuid", dest="netuid", type=int, required=False, default=False
+        )
         bittensor.subtensor.add_args(parser)
