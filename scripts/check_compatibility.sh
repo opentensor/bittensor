@@ -17,6 +17,11 @@ check_compatibility() {
     all_supported=0
 
     while read -r requirement; do
+        # Skip lines starting with git+
+        if [[ "$requirement" == git+* ]]; then
+            continue
+        fi
+
         package_name=$(echo "$requirement" | awk -F'[!=<>]' '{print $1}' | awk -F'[' '{print $1}') # Strip off brackets
         echo -n "Checking $package_name... "
 
