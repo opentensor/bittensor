@@ -157,7 +157,7 @@ class ChainDataType(Enum):
     DelegateInfo = 3
     NeuronInfoLite = 4
     DelegatedInfo = 5
-    StakeInfo = 6
+    StakeInfo = 7
 
 
 # Constants
