@@ -28,7 +28,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = "5.3.3"
+__version__ = "5.3.4"
 version_split = __version__.split(".")
 __version_as_int__ = (
     (100 * int(version_split[0]))
@@ -126,6 +126,34 @@ __network_explorer_map__ = {
 __type_registry__ = {
     "types": {
         "Balance": "u64",  # Need to override default u128
+    },
+    "runtime_api": {
+        "NeuronInfoRuntimeApi": {
+            "methods": {
+                "get_neuron_lite": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                        {
+                            "name": "uid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_neurons_lite": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            }
+        },
     },
 }
 

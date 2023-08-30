@@ -42,6 +42,28 @@ jobs:
             . env/bin/activate
             python -m black --exclude '(env|venv|.eggs)' --check .
 
+  check_compatibility:
+    parameters:
+      python_version:
+        type: string
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Check if requirements files have changed
+          command: ./scripts/check_requirements_changes.sh
+      - run:
+          name: Install dependencies and Check compatibility
+          command: |
+            if [ "$REQUIREMENTS_CHANGED" == "true" ]; then
+              sudo apt-get update
+              sudo apt-get install -y jq curl
+              ./scripts/check_compatibility.sh << parameters.python_version >>
+            else
+              echo "Skipping compatibility checks..."
+            fi
+
   build-and-test:
     resource_class: medium
     parallelism: 2
@@ -203,6 +225,21 @@ jobs:
 
 
 workflows:
+  compatibility_checks:
+    jobs:
+      - check_compatibility:
+          python_version: "3.8"
+          name: check-compatibility-3.8
+      - check_compatibility:
+          python_version: "3.9"
+          name: check-compatibility-3.9
+      - check_compatibility:
+          python_version: "3.10"
+          name: check-compatibility-3.10
+      - check_compatibility:
+          python_version: "3.11"
+          name: check-compatibility-3.11
+  
   pr-requirements:
     jobs:
       - black:

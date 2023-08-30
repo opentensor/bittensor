@@ -184,7 +184,6 @@ dependencies:
       - markupsafe==2.0.1
       - marshmallow==3.19.0
       - marshmallow-enum==1.5.1
-      - miniupnpc==2.0.2
       - more-itertools==9.1.0
       - msgpack==1.0.4
       - msgpack-numpy==0.4.7.1
