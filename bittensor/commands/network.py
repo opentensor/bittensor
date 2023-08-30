@@ -66,20 +66,22 @@ class RegisterSubnetworkCommand:
         bittensor.subtensor.add_args(parser)
 
 
-class GetSubnetBurnCostCommand:
+class SubnetBurnCostCommand:
     @staticmethod
     def run(cli):
         r"""Register a subnetwork"""
         config = cli.config.copy()
         subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
-        while True:
-            try:
-                bittensor.__console__.print(
-                    f"Subnet burn cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]"
-                )
-                time.sleep(bittensor.__blocktime__)
-            except KeyboardInterrupt:
-                break
+        try:
+            bittensor.__console__.print(
+                f"Subnet burn cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]"
+            )
+            time.sleep(bittensor.__blocktime__)
+        except Exception as e:
+            bittensor.__console__.print(
+                f"Subnet burn cost: [red]Failed to get subnet burn cost[/red]"
+                f"Error: {e}"
+            )
 
     @classmethod
     def check_config(cls, config: "bittensor.config"):
@@ -88,8 +90,8 @@ class GetSubnetBurnCostCommand:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         parser = parser.add_parser(
-            "get_subnet_burn_cost",
-            help="""Return the price to register a subnet""",
+            "subnet_burn_cost",
+            help=""" Return the price to register a subnet""",
         )
         parser.add_argument(
             "--no_version_checking",

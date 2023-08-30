@@ -25,8 +25,10 @@ import scalecodec
 
 from retry import retry
 from loguru import logger
-from typing import List, Dict, Union, Optional, Tuple
+from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 from substrateinterface.base import QueryMapResult, SubstrateInterface
+from scalecodec.base import RuntimeConfiguration
+from scalecodec.type_registry import load_type_registry_preset
 
 # Local imports.
 from .chain_data import (
@@ -34,11 +36,13 @@ from .chain_data import (
     DelegateInfo,
     PrometheusInfo,
     SubnetInfo,
+    StakeInfo,
     NeuronInfoLite,
     AxonInfo,
     ProposalVoteData,
     ProposalCallData,
     IPInfo,
+    custom_rpc_type_registry,
 )
 from .errors import *
 from .extrinsics.network import register_subnetwork_extrinsic
@@ -64,11 +68,16 @@ from .extrinsics.senate import (
     vote_senate_extrinsic,
 )
 from .types import AxonServeCallParams, PrometheusServeCallParams
-from .utils import U16_NORMALIZED_FLOAT
+from .utils import U16_NORMALIZED_FLOAT, ss58_to_vec_u8
 from .utils.balance import Balance
 from .utils.registration import POWSolution
 
 logger = logger.opt(colors=True)
+
+
+class ParamWithTypes(TypedDict):
+    name: str  # Name of the parameter.
+    type: str  # ScaleType string of the parameter.
 
 
 class subtensor:
@@ -708,13 +717,12 @@ class subtensor:
         self,
         netuid: int,
         axon: "bittensor.Axon",
-        use_upnpc: bool = False,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False,
     ) -> bool:
         return serve_axon_extrinsic(
-            self, netuid, axon, use_upnpc, wait_for_inclusion, wait_for_finalization
+            self, netuid, axon, wait_for_inclusion, wait_for_finalization
         )
 
     def _do_serve_axon(
@@ -1280,6 +1288,81 @@ class subtensor:
         
         return json_result["result"]
 
+    def state_call(
+        self,
+        method: str,
+        data: str,
+        block: Optional[int] = None,
+    ) -> Optional[object]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash(block)
+                params = [method, data]
+                if block_hash:
+                    params = params + [block_hash]
+                return substrate.rpc_request(method="state_call", params=params)
+
+        return make_substrate_call_with_retry()
+
+    def query_runtime_api(
+        self,
+        runtime_api: str,
+        method: str,
+        params: Optional[List[ParamWithTypes]],
+        block: Optional[int] = None,
+    ) -> Optional[bytes]:
+        """
+        Returns a Scale Bytes type that should be decoded.
+        """
+        call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][
+            "methods"
+        ][method]
+        json_result = self.state_call(
+            method=f"{runtime_api}_{method}",
+            data="0x"
+            if params is None
+            else self._encode_params(call_definition=call_definition, params=params),
+            block=block,
+        )
+
+        if json_result is None:
+            return None
+
+        return_type = call_definition["type"]
+
+        as_scale_bytes = scalecodec.ScaleBytes(json_result["result"])
+
+        rpc_runtime_config = RuntimeConfiguration()
+        rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
+        rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
+
+        obj = rpc_runtime_config.create_scale_object(return_type)
+
+        return obj.decode(as_scale_bytes)
+
+    def _encode_params(
+        self,
+        call_definition: List[ParamWithTypes],
+        params: Union[List[Any], Dict[str, str]],
+    ) -> str:
+        """
+        Returns a hex encoded string of the params using their types.
+        """
+        param_data = scalecodec.ScaleBytes(b"")
+
+        for i, param in enumerate(call_definition["params"]):
+            scale_obj = self.substrate.create_scale_object(param["type"])
+            if type(params) is list:
+                param_data += scale_obj.encode(params[i])
+            else:
+                if param["name"] not in params:
+                    raise ValueError(f"Missing param {param['name']} in params dict.")
+
+                param_data += scale_obj.encode(params[param["name"]])
+
+        return param_data.to_hex()
+
     #####################################
     #### Hyper parameter calls. ####
     #####################################
@@ -1733,8 +1816,7 @@ class subtensor:
                     params=params,
                 )
 
-        hotkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes(hotkey_ss58)
-        encoded_hotkey: List[int] = [int(byte) for byte in hotkey_bytes]
+        encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_hotkey)
         result = json_body["result"]
 
@@ -1781,8 +1863,7 @@ class subtensor:
                     params=params,
                 )
 
-        coldkey_bytes: bytes = bittensor.utils.ss58_address_to_bytes(coldkey_ss58)
-        encoded_coldkey: List[int] = [int(byte) for byte in coldkey_bytes]
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_coldkey)
         result = json_body["result"]
 
@@ -1790,6 +1871,59 @@ class subtensor:
             return []
 
         return DelegateInfo.delegated_list_from_vec_u8(result)
+
+    ###########################
+    #### Stake Information ####
+    ###########################
+
+    def get_stake_info_for_coldkey(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> List[StakeInfo]:
+        """Returns the list of StakeInfo objects for this coldkey"""
+
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_coldkey",
+            params=[encoded_coldkey],
+            block=block,
+        )
+
+        if hex_bytes_result == None:
+            return None
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        return StakeInfo.list_from_vec_u8(bytes_result)
+
+    def get_stake_info_for_coldkeys(
+        self, coldkey_ss58_list: List[str], block: Optional[int] = None
+    ) -> Dict[str, List[StakeInfo]]:
+        """Returns the list of StakeInfo objects for all coldkeys in the list."""
+        encoded_coldkeys = [
+            ss58_to_vec_u8(coldkey_ss58) for coldkey_ss58 in coldkey_ss58_list
+        ]
+
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_coldkeys",
+            params=[encoded_coldkeys],
+            block=block,
+        )
+
+        if hex_bytes_result == None:
+            return None
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        return StakeInfo.list_of_tuple_from_vec_u8(bytes_result)
 
     ########################################
     #### Neuron information per subnet ####
@@ -1949,25 +2083,25 @@ class subtensor:
         if uid == None:
             return NeuronInfoLite._null_neuron()
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
-                params = [netuid, uid]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="neuronInfo_getNeuronLite",  # custom rpc method
-                    params=params,
-                )
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="NeuronInfoRuntimeApi",
+            method="get_neuron_lite",
+            params={
+                "netuid": netuid,
+                "uid": uid,
+            },
+            block=block,
+        )
 
-        json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
-
-        if result in (None, []):
+        if hex_bytes_result == None:
             return NeuronInfoLite._null_neuron()
 
-        return NeuronInfoLite.from_vec_u8(result)
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        return NeuronInfoLite.from_vec_u8(bytes_result)
 
     def neurons_lite(
         self, netuid: int, block: Optional[int] = None
@@ -1982,26 +2116,22 @@ class subtensor:
             neuron (List[NeuronInfoLite]):
                 List of neuron lite metadata objects.
         """
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="NeuronInfoRuntimeApi",
+            method="get_neurons_lite",
+            params=[netuid],
+            block=block,
+        )
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
-                params = [netuid]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="neuronInfo_getNeuronsLite",  # custom rpc method
-                    params=params,
-                )
+        if hex_bytes_result == None:
+            return None
 
-        json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
 
-        if result in (None, []):
-            return []
-
-        return NeuronInfoLite.list_from_vec_u8(result)
+        return NeuronInfoLite.list_from_vec_u8(bytes_result)
 
     def metagraph(
         self, netuid: int, lite: bool = True, block: Optional[int] = None
@@ -2219,32 +2349,6 @@ class subtensor:
                 return True
             else:
                 raise NominationError(response.error_message)
-
-    def weights(
-        self, netuid: int, block: Optional[int] = None
-    ) -> List[Tuple[int, List[Tuple[int, int]]]]:
-        w_map = []
-        w_map_encoded = self.query_map_subtensor(
-            name="Weights", block=block, params=[netuid]
-        )
-        if w_map_encoded.records:
-            for uid, w in w_map_encoded:
-                w_map.append((uid.serialize(), w.serialize()))
-
-        return w_map
-
-    def bonds(
-        self, netuid: int, block: Optional[int] = None
-    ) -> List[Tuple[int, List[Tuple[int, int]]]]:
-        b_map = []
-        b_map_encoded = self.query_map_subtensor(
-            name="Bonds", block=block, params=[netuid]
-        )
-        if b_map_encoded.records:
-            for uid, b in b_map_encoded:
-                b_map.append((uid.serialize(), b.serialize()))
-
-        return b_map
 
     ################
     #### Legacy ####

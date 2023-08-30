@@ -6,21 +6,58 @@ Most programming languages have well-established conventions as to what constitu
 
 # Table of Contents
 1. [Code Style](#code-style)
-2. [Git Commit Style](#git-commit-style)
-3. [The Six Rules of a Great Commit](#the-six-rules-of-a-great-commit)
+2. [Naming Conventions](#naming-conventions)
+3. [Git Commit Style](#git-commit-style)
+4. [The Six Rules of a Great Commit](#the-six-rules-of-a-great-commit)
    - [1. Atomic Commits](#1-atomic-commits)
    - [2. Separate Subject from Body with a Blank Line](#2-separate-subject-from-body-with-a-blank-line)
    - [3. Limit the Subject Line to 50 Characters](#3-limit-the-subject-line-to-50-characters)
    - [4. Use the Imperative Mood in the Subject Line](#4-use-the-imperative-mood-in-the-subject-line)
    - [5. Wrap the Body at 72 Characters](#5-wrap-the-body-at-72-characters)
    - [6. Use the Body to Explain What and Why vs. How](#6-use-the-body-to-explain-what-and-why-vs-how)
-4. [Tools Worth Mentioning](#tools-worth-mentioning)
+5. [Tools Worth Mentioning](#tools-worth-mentioning)
    - [Using `--fixup`](#using---fixup)
    - [Interactive Rebase](#interactive-rebase)
-5. [Pull Request and Squashing Commits Caveats](#pull-request-and-squashing-commits-caveats)
+6. [Pull Request and Squashing Commits Caveats](#pull-request-and-squashing-commits-caveats)
 
 
 ### Code style
+
+#### General Style
+Python's official style guide is PEP 8, which provides conventions for writing code for the main Python distribution. Here are some key points:
+
+- `Indentation:` Use 4 spaces per indentation level.
+
+- `Line Length:` Limit all lines to a maximum of 79 characters.
+
+- `Blank Lines:` Surround top-level function and class definitions with two blank lines. Method definitions inside a class are surrounded by a single blank line.
+
+- `Imports:` Imports should usually be on separate lines and should be grouped in the following order:
+
+    - Standard library imports.
+    - Related third party imports.
+    - Local application/library specific imports.
+- `Whitespace:` Avoid extraneous whitespace in the following situations:
+
+    - Immediately inside parentheses, brackets or braces.
+    - Immediately before a comma, semicolon, or colon.
+    - Immediately before the open parenthesis that starts the argument list of a function call.
+- `Comments:` Comments should be complete sentences and should be used to clarify code and are not a substitute for poorly written code.
+
+#### For Python
+
+- `List Comprehensions:` Use list comprehensions for concise and readable creation of lists.
+
+- `Generators:` Use generators when dealing with large amounts of data to save memory.
+
+- `Context Managers:` Use context managers (with statement) for resource management.
+
+- `String Formatting:` Use f-strings for formatting strings in Python 3.6 and above.
+
+- `Error Handling:` Use exceptions for error handling whenever possible.
+
+#### More details
+
 Use `black` to format your python code before commiting for consistency across such a large pool of contributors. Black's code [style](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html#code-style) ensures consistent and opinionated code formatting. It automatically formats your Python code according to the Black style guide, enhancing code readability and maintainability.
 
 Key Features of Black:
@@ -30,6 +67,18 @@ Key Features of Black:
     Readability: By applying a standard formatting style, Black improves code readability, making it easier to understand and collaborate on projects.
 
     Automation: Black automates the code formatting process, saving time and effort. It eliminates the need for manual formatting and reduces the likelihood of inconsistencies.
+
+### Naming Conventions
+
+- `Classes:` Class names should normally use the CapWords Convention.
+- `Functions and Variables:` Function names should be lowercase, with words separated by underscores as necessary to improve readability. Variable names follow the same convention as function names.
+
+- `Constants:` Constants are usually defined on a module level and written in all capital letters with underscores separating words.
+
+- `Non-public Methods and Instance Variables:` Use a single leading underscore (_). This is a weak "internal use" indicator.
+
+- `Strongly "private" methods and variables:` Use a double leading underscore (__). This triggers name mangling in Python.
+
 
 ### Git commit style
 

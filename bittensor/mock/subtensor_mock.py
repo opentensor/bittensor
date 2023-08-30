@@ -24,7 +24,7 @@ from abc import abstractclassmethod
 from collections.abc import Mapping
 
 from hashlib import sha256
-from ..wallet import wallet
+from .._wallet import wallet
 
 from ..chain_data import (
     NeuronInfo,
@@ -671,7 +671,7 @@ class MockSubtensor(subtensor):
             if state_at_block is not None:
                 return SimpleNamespace(value=state_at_block)
 
-            return state_at_block  # Can be None
+            return state_at_block["data"]["free"]  # Can be None
         else:
             return None
 

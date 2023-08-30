@@ -111,15 +111,72 @@ __network_explorer_map__ = {
 }
 
 # --- Type Registry ---
-__type_registry__ = {"types": {"Balance": "u64"}}  # Need to override default u128
-
+__type_registry__ = {
+    "types": {
+        "Balance": "u64",  # Need to override default u128
+    },
+    "runtime_api": {
+        "NeuronInfoRuntimeApi": {
+            "methods": {
+                "get_neuron_lite": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                        {
+                            "name": "uid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_neurons_lite": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            }
+        },
+        "StakeInfoRuntimeApi": {
+            "methods": {
+                "get_stake_info_for_coldkey": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_stake_info_for_coldkeys": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vecs",
+                            "type": "Vec<Vec<u8>>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            },
+        },
+    },
+}
 
 from .errors import *
 
 from substrateinterface import Keypair as Keypair
 from .config import *
-from .keyfile import *
-from .wallet import *
+from ._wallet import (
+    wallet as wallet,
+    Keyfile as Keyfile,
+    WalletConfig as WalletConfig,
+    WalletConfigDefault as WalletConfigDefault,
+)
 
 from .utils import *
 from .utils.balance import Balance as Balance

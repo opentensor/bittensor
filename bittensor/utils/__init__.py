@@ -32,6 +32,12 @@ U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
 
+def ss58_to_vec_u8(ss58_address: str) -> List[int]:
+    ss58_bytes: bytes = bittensor.utils.ss58_address_to_bytes(ss58_address)
+    encoded_address: List[int] = [int(byte) for byte in ss58_bytes]
+    return encoded_address
+
+
 def unbiased_topk(values, k, dim=0, sorted=True, largest=True):
     r"""Selects topk as in torch.topk but does not bias lower indices when values are equal.
     Args:
@@ -54,22 +60,31 @@ def unbiased_topk(values, k, dim=0, sorted=True, largest=True):
     return topk, permutation[indices]
 
 
-def version_checking():
-    response = requests.get(bittensor.__pipaddress__)
-    latest_version = response.json()["info"]["version"]
-    version_split = latest_version.split(".")
-    latest_version_as_int = (
-        (100 * int(version_split[0]))
-        + (10 * int(version_split[1]))
-        + (1 * int(version_split[2]))
-    )
-
-    if latest_version_as_int > bittensor.__version_as_int__:
-        print(
-            "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience\u001b[0m".format(
-                bittensor.__version__, latest_version
-            )
+def version_checking(timeout: int = 15):
+    try:
+        bittensor.logging.info(
+            f"Checking latest Bittensor version at: {bittensor.__pipaddress__}"
         )
+        response = requests.get(bittensor.__pipaddress__, timeout=timeout)
+        latest_version = response.json()["info"]["version"]
+        version_split = latest_version.split(".")
+        latest_version_as_int = (
+            (100 * int(version_split[0]))
+            + (10 * int(version_split[1]))
+            + (1 * int(version_split[2]))
+        )
+
+        if latest_version_as_int > bittensor.__version_as_int__:
+            print(
+                "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience\u001b[0m".format(
+                    bittensor.__version__, latest_version
+                )
+            )
+
+    except requests.exceptions.Timeout:
+        bittensor.logging.error("Version check failed due to timeout")
+    except requests.exceptions.RequestException as e:
+        bittensor.logging.error(f"Version check failed due to request failure: {e}")
 
 
 def strtobool_with_default(

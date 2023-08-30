@@ -3,9 +3,11 @@
 The following is a set of guidelines for contributing to Bittensor, which are hosted in the [Opentensor Organization](https://github.com/opentensor) on GitHub. These are mostly guidelines, not rules. Use your best judgment, and feel free to propose changes to this document in a pull request.
 
 ## Table Of Contents
-
 1. [I don't want to read this whole thing, I just have a question!!!](#i-dont-want-to-read-this-whole-thing-i-just-have-a-question)
 1. [What should I know before I get started?](#what-should-i-know-before-i-get-started)
+1. [Getting Started](#getting-started)
+   1. [Good First Issue Label](#good-first-issue-label)
+   1. [Beginner and Help-wanted Issues Label](#beginner-and-help-wanted-issues-label)
 1. [How Can I Contribute?](#how-can-i-contribute)
    1. [Code Contribution General Guideline](#code-contribution-general-guidelines)
    1. [Pull Request Philosophy](#pull-request-philosophy)
@@ -14,6 +16,7 @@ The following is a set of guidelines for contributing to Bittensor, which are ho
    1. [Addressing Feedback](#addressing-feedback)
    1. [Squashing Commits](#squashing-commits)
    1. [Refactoring](#refactoring)
+   1. [Peer Review](#peer-review)
  1. [Reporting Bugs](#reporting-bugs)
  1. [Suggesting Features](#suggesting-enhancements)
 
@@ -34,6 +37,33 @@ Additionally, note that the core implementation of Bittensor consists of two sep
 
 Supplemental, yet necessary repositories are [openvalidators](https://github.com/opentensor/validators) and [openminers](https://github.com/opentensor/miners) which contain Bittensor Validators and Miners (respectively) designed by the OpenTensor Foundation team and open-sourced for the community to use.
 
+## Getting Started
+New contributors are very welcome and needed.
+Reviewing and testing is highly valued and the most effective way you can contribute as a new contributor. It also will teach you much more about the code and process than opening pull requests. 
+
+Before you start contributing, familiarize yourself with the Bittensor Core build system and tests. Refer to the documentation in the repository on how to build Bittensor core and how to run the unit tests, functional tests.
+
+There are many open issues of varying difficulty waiting to be fixed. If you're looking for somewhere to start contributing, check out the [good first issue](https://github.com/opentensor/bittensor/labels/good%20first%20issue) list or changes that are up for grabs. Some of them might no longer be applicable. So if you are interested, but unsure, you might want to leave a comment on the issue first.
+### Good First Issue Label
+The purpose of the good first issue label is to highlight which issues are suitable for a new contributor without a deep understanding of the codebase.
+
+However, good first issues can be solved by anyone. If they remain unsolved for a longer time, a frequent contributor might address them.
+
+You do not need to request permission to start working on an issue. However, you are encouraged to leave a comment if you are planning to work on it. This will help other contributors monitor which issues are actively being addressed and is also an effective way to request assistance if and when you need it.
+
+### Beginner and Help-wanted Issues Label
+You can start by looking through these `beginner` and `help-wanted` issues:
+
+* [Beginner issues](https://github.com/opentensor/bittensor/labels/beginner) - issues which should only require a few lines of code, and a test or two.
+* [Help wanted issues](https://github.com/opentensor/bittensor/labels/help%20wanted) - issues which should be a bit more involved than `beginner` issues.
+
+## Communication Channels
+Most communication about Bittensor development happens on Discord channel.
+Here's the link of Discord community.
+[Bittensor Discord](https://discord.com/channels/799672011265015819/799672011814862902)
+
+And also here.
+[Bittensor Community Discord](https://discord.com/channels/1120750674595024897/1120799375703162950)
 
 ## How Can I Contribute?
 
@@ -65,7 +95,6 @@ Here is a high-level summary:
 
 If you're looking to contribute to Bittensor but unsure where to start, please join our community [discord](https://discord.gg/bittensor), a developer-friendly Bittensor town square. Start with [#development](https://discord.com/channels/799672011265015819/799678806159392768) and [#bounties](https://discord.com/channels/799672011265015819/1095684873810890883) to see what issues are currently posted. For a greater understanding of Bittensor's usage and development, check the [Bittensor Documentation](https://bittensor.com/docs).
 
-
 #### Pull Request Philosophy
 
 Patchsets and enhancements should always be focused. A pull request could add a feature, fix a bug, or refactor code, but it should not contain a mixture of these. Please also avoid 'super' pull requests which attempt to do too much, are overly large, or overly complex as this makes review difficult. 
@@ -80,7 +109,6 @@ Specifically, pull requests must adhere to the following criteria:
 - If your changes are extensive, consider breaking your PR into smaller, related PRs. This makes your contributions easier to understand and review.
 - Be active in the discussion about your PR. Respond promptly to comments and questions to help reviewers understand your changes and speed up the acceptance process.
 
-
 Generally, all pull requests must:
 
   - Have a clear use case, fix a demonstrable bug or serve the greater good of the project (e.g. refactoring for modularisation).
@@ -93,7 +121,6 @@ Generally, all pull requests must:
 #### Pull Request Process
 
 Please follow these steps to have your contribution considered by the maintainers:
-
 
 *Before* creating the PR:
 1. Read the [development workflow](./DEVELOPMENT_WORKFLOW.md) defined for this repository to understand our workflow.
@@ -146,7 +173,6 @@ Here is a quick summary:
 
 Remember, testing is crucial for maintaining code health, catching issues early, and facilitating the addition of new features or refactoring of existing code.
 
-
 #### Addressing Feedback
 
 After submitting your pull request, expect comments and reviews from other contributors. You can add more commits to your pull request by committing them locally and pushing to your fork.
@@ -183,6 +209,21 @@ Project maintainers aim for a quick turnaround on refactoring pull requests, so 
 
 Pull requests that refactor the code should not be made by new contributors. It requires a certain level of experience to know where the code belongs to and to understand the full ramification (including rebase effort of open pull requests). Trivial pull requests or pull requests that refactor the code with no clear benefits may be immediately closed by the maintainers to reduce unnecessary workload on reviewing.
 
+#### Peer Review
+
+Anyone may participate in peer review which is expressed by comments in the pull request. Typically reviewers will review the code for obvious errors, as well as test out the patch set and opine on the technical merits of the patch. Project maintainers take into account the peer review when determining if there is consensus to merge a pull request (remember that discussions may have taken place elsewhere, not just on GitHub). The following language is used within pull-request comments:
+
+- ACK means "I have tested the code and I agree it should be merged";
+- NACK means "I disagree this should be merged", and must be accompanied by sound technical justification. NACKs without accompanying reasoning may be disregarded;
+- utACK means "I have not tested the code, but I have reviewed it and it looks OK, I agree it can be merged";
+- Concept ACK means "I agree in the general principle of this pull request";
+- Nit refers to trivial, often non-blocking issues.
+
+Reviewers should include the commit(s) they have reviewed in their comments. This can be done by copying the commit SHA1 hash.
+
+A pull request that changes consensus-critical code is considerably more involved than a pull request that adds a feature to the wallet, for example. Such patches must be reviewed and thoroughly tested by several reviewers who are knowledgeable about the changed subsystems. Where new features are proposed, it is helpful for reviewers to try out the patch set on a test network and indicate that they have done so in their review. Project maintainers will take this into consideration when merging changes.
+
+For a more detailed description of the review process, see the [Code Review Guidelines](CODE_REVIEW_DOCS.md).
 
 ### Reporting Bugs
 
