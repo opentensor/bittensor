@@ -1087,47 +1087,6 @@ class Subtensor:
                 )
 
         return make_substrate_call_with_retry()
-    
-    def state_call(
-        self,
-        method: str,
-        data: str,
-        block: Optional[int] = None,
-    ) -> Optional[object]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
-                params = [method, data]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="state_call",
-                    params=params
-                )
-
-        return make_substrate_call_with_retry()
-    
-    def query_runtime_api(
-        self,
-        runtime_api: str,
-        method: str,
-        params: Optional[Union[bytearray, str]] = '0x',
-        block: Optional[int] = None,
-    ) -> Optional[bytes]:
-        """
-        Returns a Scale Bytes type that should be decoded. 
-        """
-        json_result = self.state_call(
-            method=f"{runtime_api}_{method}",
-            data='0x' if params is None else params.hex() if isinstance(params, bytearray) else params,
-            block=block
-        )
-
-        if json_result is None:
-            return None
-        
-        return json_result["result"]
 
     def state_call(
         self,
@@ -2001,16 +1960,20 @@ class Subtensor:
             runtime_api="ValidatorIPRuntimeApi",
             method="get_associated_validator_ip_info_for_subnet",
             params=self.substrate.encode_scale(
-                'u16', value=netuid, block_hash=self.substrate.get_block_hash(block) if block is not None else None
+                "u16",
+                value=netuid,
+                block_hash=self.substrate.get_block_hash(block)
+                if block is not None
+                else None,
             ).data,
             block=block,
         )
 
         if hex_scale_bytes_result == None:
             return None
-        
+
         hex_bytes_result = self.substrate.decode_scale(
-            'Bytes<Vec<u8>>', hex_scale_bytes_result
+            "Bytes<Vec<u8>>", hex_scale_bytes_result
         )
         bytes_result = bytes.fromhex(hex_bytes_result[2:])
 
