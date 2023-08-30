@@ -28,7 +28,13 @@ from scalecodec.type_registry import load_type_registry_preset
 
 from bittensor._subtensor.chain_data import custom_rpc_type_registry
 from bittensor.utils.balance import Balance
-from bittensor.utils import U16_NORMALIZED_FLOAT, U64_MAX, RAOPERTAO, U16_MAX, ss58_to_vec_u8
+from bittensor.utils import (
+    U16_NORMALIZED_FLOAT,
+    U64_MAX,
+    RAOPERTAO,
+    U16_MAX,
+    ss58_to_vec_u8,
+)
 from bittensor.utils.registration import POWSolution
 
 # Local imports.

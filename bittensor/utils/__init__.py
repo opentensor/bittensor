@@ -22,6 +22,7 @@ def ss58_to_vec_u8(ss58_address: str) -> List[int]:
     encoded_address: List[int] = [int(byte) for byte in ss58_bytes]
     return encoded_address
 
+
 def indexed_values_to_dataframe(
     prefix: Union[str, int],
     index: Union[list, torch.LongTensor],
