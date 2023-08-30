@@ -1246,7 +1246,7 @@ class subtensor:
                 )
 
         return make_substrate_call_with_retry()
-    
+
     def state_call(
         self,
         method: str,
@@ -1260,10 +1260,7 @@ class subtensor:
                 params = [method, data]
                 if block_hash:
                     params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="state_call",
-                    params=params
-                )
+                return substrate.rpc_request(method="state_call", params=params)
 
         return make_substrate_call_with_retry()
 

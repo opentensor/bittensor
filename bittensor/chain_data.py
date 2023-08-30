@@ -242,6 +242,7 @@ RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
+
 def from_scale_encoding(
     input: Union[List[int], bytes, ScaleBytes],
     type_name: ChainDataType,
