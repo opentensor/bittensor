@@ -164,6 +164,19 @@ __type_registry__ = {
                 },
             },
         },
+        "ValidatorIPRuntimeApi": {
+            "methods": {
+                "get_associated_validator_ip_info_for_subnet": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            },
+        },
     },
 }
 
@@ -171,8 +184,12 @@ from .errors import *
 
 from substrateinterface import Keypair as Keypair
 from .config import *
-from .keyfile import *
-from .wallet import *
+from ._wallet import (
+    wallet as wallet,
+    Keyfile as Keyfile,
+    WalletConfig as WalletConfig,
+    WalletConfigDefault as WalletConfigDefault,
+)
 
 from .utils import *
 from .utils.balance import Balance as Balance

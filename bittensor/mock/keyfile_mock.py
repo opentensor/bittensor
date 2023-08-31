@@ -18,10 +18,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from bittensor import serialized_keypair_to_keyfile_data, keyfile, Keypair
+from .._wallet import serialized_keypair_to_keyfile_data, Keyfile, Keypair
 
 
-class MockKeyfile(keyfile):
+class MockKeyfile(Keyfile):
     """Defines an interface to a mocked keyfile object (nothing is created on device) keypair is treated as non encrypted and the data is just the string version."""
 
     def __init__(self, path: str):

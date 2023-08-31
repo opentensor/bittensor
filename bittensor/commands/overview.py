@@ -18,11 +18,12 @@
 import argparse
 import bittensor
 from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor
 from fuzzywuzzy import fuzz
 from rich.align import Align
 from rich.table import Table
 from rich.prompt import Prompt
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 from .utils import (
     get_hotkey_wallets_for_wallet,
     get_coldkey_wallets_for_path,
@@ -95,7 +96,7 @@ class OverviewCommand:
             return
 
         # Pull neuron info for all keys.
-        neurons: Dict[str, List[bittensor.NeuronInfoLite, bittensor.wallet]] = {}
+        neurons: Dict[str, List[bittensor.NeuronInfoLite, str]] = {}
         block = subtensor.block
 
         netuids = subtensor.get_all_subnet_netuids()
@@ -110,21 +111,32 @@ class OverviewCommand:
                 cli.config.subtensor.get("network", defaults.subtensor.network)
             )
         ):
-            for netuid in tqdm(netuids_copy, desc="Checking each subnet"):
-                all_neurons: List[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
-                    netuid=netuid
-                )
-                # Map the hotkeys to uids
-                hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
-                for hot_wallet in all_hotkeys:
-                    uid = hotkey_to_neurons.get(hot_wallet.hotkey.ss58_address)
-                    if uid is not None:
-                        nn = all_neurons[uid]
-                        neurons[str(netuid)].append((nn, hot_wallet))
+            hotkey_addr_to_wallet = {
+                hotkey.hotkey.ss58_address: hotkey for hotkey in all_hotkeys
+            }
+            all_hotkey_addresses = list(hotkey_addr_to_wallet.keys())
 
-                if len(neurons[str(netuid)]) == 0:
-                    # Remove netuid from overview if no neurons are found.
-                    netuids.remove(netuid)
+            # Pull neuron info for all keys.
+            ## Max len(netuids) or 5 threads.
+            with ProcessPoolExecutor(max_workers=max(len(netuids), 5)) as executor:
+                results = executor.map(
+                    OverviewCommand._get_neurons_for_netuid,
+                    [(cli.config, netuid, all_hotkey_addresses) for netuid in netuids],
+                )
+                executor.shutdown(wait=True)  # wait for all complete
+
+                for result in results:
+                    netuid, neurons_result, err_msg = result
+                    if err_msg is not None:
+                        console.print(err_msg)
+
+                    if len(neurons_result) == 0:
+                        # Remove netuid from overview if no neurons are found.
+                        netuids.remove(netuid)
+                        del neurons[str(netuid)]
+                    else:
+                        # Add neurons to overview.
+                        neurons[str(netuid)] = neurons_result
 
         # Setup outer table.
         grid = Table.grid(pad_edge=False)
@@ -156,7 +168,8 @@ class OverviewCommand:
             total_dividends = 0.0
             total_emission = 0
 
-            for nn, hotwallet in neurons[str(netuid)]:
+            for nn, hotwallet_addr in neurons[str(netuid)]:
+                hotwallet = hotkey_addr_to_wallet[hotwallet_addr]
                 nn: bittensor.NeuronInfoLite
                 uid = nn.uid
                 active = nn.active
@@ -372,6 +385,32 @@ class OverviewCommand:
 
         # Print the entire table/grid
         console.print(grid, width=cli.config.get("width", None))
+
+    @staticmethod
+    def _get_neurons_for_netuid(
+        args_tuple: Tuple["bittensor.Config", int, List[str]]
+    ) -> Tuple[int, List[Tuple["bittensor.NeuronInfoLite", str]], Optional[str]]:
+        subtensor_config, netuid, hot_wallets = args_tuple
+
+        result: List[Tuple["bittensor.NeuronInfoLite", str]] = []
+
+        try:
+            subtensor = bittensor.subtensor(config=subtensor_config)
+
+            all_neurons: List["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
+                netuid=netuid
+            )
+            # Map the hotkeys to uids
+            hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
+            for hot_wallet_addr in hot_wallets:
+                uid = hotkey_to_neurons.get(hot_wallet_addr)
+                if uid is not None:
+                    nn = all_neurons[uid]
+                    result.append((nn, hot_wallet_addr))
+        except Exception as e:
+            return netuid, [], "Error: {}".format(e)
+
+        return netuid, result, None
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
