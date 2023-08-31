@@ -27,6 +27,7 @@ console = bittensor.__console__
 COMMANDS = {
     "subnets": {
         "name": "subnets", 
+        "aliases": ["s", "subnet"],
         "help": "Commands for managing and viewing subnetworks.",
         "commands": {
             "list": SubnetListCommand,
@@ -40,6 +41,7 @@ COMMANDS = {
     },
     "root": {
         "name": "root",
+        "aliases": ["r", "roots"],
         "help": "Commands for managing and viewing the root network.",
         "commands": {
             "list": RootList,
@@ -53,6 +55,7 @@ COMMANDS = {
     },
     "wallet": {
         "name": "wallet",
+        "aliases": ["w", "wallets"],
         "help": "Commands for managing and viewing wallets.",
         "commands": {
             "list": ListCommand,
@@ -72,6 +75,7 @@ COMMANDS = {
     },
     "stake": {
         "name": "stake",
+        "aliases": ["s", "stakes"],
         "help": "Commands for staking and removing stake from hotkey accounts.",
         "commands": {
             "show": StakeShow,
@@ -81,6 +85,7 @@ COMMANDS = {
     },
     "sudo": {
         "name": "sudo",
+        "aliases": ["su", "sudos"],
         "help": "Commands for subnet management",
         "commands": {
             #"dissolve": None,
@@ -89,6 +94,7 @@ COMMANDS = {
     },
     "legacy": {
         "name": "misc",
+        "aliases": ["l"],
         "help": "Miscellaneous commands.",
         "commands": {
             "update": UpdateCommand,
@@ -157,7 +163,7 @@ class cli:
         # Add argument parsers for all available commands.
         for command in COMMANDS.values():
             if isinstance(command, dict):
-                subcmd_parser = cmd_parsers.add_parser(name=command["name"], help=command["help"])
+                subcmd_parser = cmd_parsers.add_parser(name=command["name"], aliases = command['aliases'], help=command["help"])
                 subparser = subcmd_parser.add_subparsers(help=command["help"], dest="subcommand")
 
                 for subcommand in command["commands"].values():
