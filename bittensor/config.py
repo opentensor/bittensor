@@ -22,6 +22,7 @@ Implementation of the config class, which manages the config of different bitten
 import os
 import sys
 import yaml
+import copy
 from copy import deepcopy
 from munch import DefaultMunch
 from typing import List, Optional, Dict, Any, TypeVar, Type
@@ -93,6 +94,29 @@ class config(DefaultMunch):
             # this can fail if --strict has already been added.
             pass
 
+        try:
+            parser.add_argument(
+                "--no_version_checking",
+                action="store_true",
+                help="Set true to stop cli version checking.",
+                default=False,
+            )
+        except:
+            # this can fail if --no_version_checking has already been added.
+            pass
+
+        try:
+            parser.add_argument(
+                "--no_prompt",
+                dest="no_prompt",
+                action="store_true",
+                help="Set true to stop cli from prompting the user.",
+                default=False,
+            )
+        except:
+            # this can fail if --no_version_checking has already been added.
+            pass
+
         # Get args from argv if not passed in.
         if args == None:
             args = sys.argv[1:]
@@ -128,6 +152,7 @@ class config(DefaultMunch):
         params = config.__parse_args__(args=args, parser=parser, strict=strict)
 
         _config = self
+        _config["__parser"] = parser
 
         # Splits params and add to config
         config.__split_params__(params=params, _config=_config)
@@ -136,13 +161,18 @@ class config(DefaultMunch):
         _config["__is_set"] = {}
 
         ## Reparse args using default of unset
-        parser_no_defaults = deepcopy(parser)
+        parser_no_defaults = copy.deepcopy(parser)
+
+        # Only command as the arg, else no args
+        default_param_args = [_config.get("command")] if _config.get("command") != None and _config.get("subcommand") == None else []
+        if _config.get("command") != None and _config.get("subcommand") != None:
+            default_param_args = [_config.get("command"), _config.get("subcommand")]
+
         ## Get all args by name
         default_params = parser.parse_args(
-            args=[_config.get("command")]  # Only command as the arg, else no args
-            if _config.get("command") != None
-            else []
+            args=default_param_args
         )
+ 
         all_default_args = default_params.__dict__.keys() | []
         ## Make a dict with keys as args and values as argparse.SUPPRESS
         defaults_as_suppress = {key: argparse.SUPPRESS for key in all_default_args}
@@ -160,8 +190,18 @@ class config(DefaultMunch):
                     ## Note: we also need to clear the _defaults dict for each, this is a quirk of argparse
                     cmd_parser: argparse.ArgumentParser
                     for cmd_parser in action.choices.values():
-                        cmd_parser.set_defaults(**defaults_as_suppress)
-                        cmd_parser._defaults.clear()  # Needed for quirk of argparse
+                        # If this choice is also a subparser, set defaults recursively
+                        if cmd_parser._subparsers:
+                            for action in cmd_parser._subparsers._actions:
+                                # Should only be the "command" subparser action
+                                if isinstance(action, argparse._SubParsersAction):
+                                    cmd_parser: ArgumentParser
+                                    for cmd_parser in action.choices.values():
+                                        cmd_parser.set_defaults(**defaults_as_suppress)
+                                        cmd_parser._defaults.clear()  # Needed for quirk of argparse
+                        else:
+                            cmd_parser.set_defaults(**defaults_as_suppress)
+                            cmd_parser._defaults.clear()  # Needed for quirk of argparse
 
         ## Reparse the args, but this time with the defaults as argparse.SUPPRESS
         params_no_defaults = config.__parse_args__(
@@ -241,9 +281,14 @@ class config(DefaultMunch):
         return self.__str__()
 
     def __str__(self) -> str:
-        config_dict = self.toDict()
-        config_dict.pop("__is_set")
-        return "\n" + yaml.dump(config_dict)
+        # remove the parser and is_set map from the visible config
+        visible = self.toDict()
+        visible.pop("__parser", None)
+        visible.pop("__is_set", None)
+        return "\n" + yaml.dump(visible)
+
+    def copy(self) -> "config":
+        return copy.deepcopy(self)
 
     def to_string(self, items) -> str:
         """Get string from items"""

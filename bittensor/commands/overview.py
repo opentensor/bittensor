@@ -418,13 +418,6 @@ class OverviewCommand:
             "overview", help="""Show registered account overview."""
         )
         overview_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
-        overview_parser.add_argument(
             "--all",
             dest="all",
             action="store_true",
@@ -486,12 +479,6 @@ class OverviewCommand:
             nargs="*",
             help="""Set the netuid(s) to filter by.""",
             default=[],
-        )
-        overview_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
         )
         bittensor.wallet.add_args(overview_parser)
         bittensor.subtensor.add_args(overview_parser)

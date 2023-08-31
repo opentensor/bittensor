@@ -78,13 +78,7 @@ class UnStakeCommand:
     @staticmethod
     def add_args(command_parser):
         unstake_parser = command_parser.add_parser(
-            "unstake", help="""Unstake from hotkey accounts."""
-        )
-        unstake_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
+            "remove", help="""Remove stake from your hotkey accounts into their coldkey accounts."""
         )
         unstake_parser.add_argument(
             "--all", dest="unstake_all", action="store_true", default=False
@@ -103,13 +97,6 @@ class UnStakeCommand:
             action="store",
             default=None,
             help="""Specify the maximum amount of Tao to have staked in each hotkey.""",
-        )
-        unstake_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         unstake_parser.add_argument(
             "--hotkeys",

@@ -46,7 +46,7 @@ class TransferCommand:
             config.wallet.name = str(wallet_name)
 
         # Get destination.
-        if not config.dest:
+        if not config.dest and not config.no_prompt:
             dest = Prompt.ask("Enter destination public key: (ss58 or ed2519)")
             if not bittensor.utils.is_valid_bittensor_address_or_public_key(dest):
                 sys.exit()
@@ -89,22 +89,10 @@ class TransferCommand:
         transfer_parser = parser.add_parser(
             "transfer", help="""Transfer Tao between accounts."""
         )
-        transfer_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
         transfer_parser.add_argument("--dest", dest="dest", type=str, required=False)
         transfer_parser.add_argument(
             "--amount", dest="amount", type=float, required=False
         )
-        transfer_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
+
         bittensor.wallet.add_args(transfer_parser)
         bittensor.subtensor.add_args(transfer_parser)

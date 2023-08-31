@@ -202,12 +202,6 @@ class DelegateStakeCommand:
             "delegate", help="""Delegate Stake to an account."""
         )
         delegate_stake_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        delegate_stake_parser.add_argument(
             "--delegate_ss58key",
             "--delegate_ss58",
             dest="delegate_ss58key",
@@ -220,13 +214,6 @@ class DelegateStakeCommand:
         )
         delegate_stake_parser.add_argument(
             "--amount", dest="amount", type=float, required=False
-        )
-        delegate_stake_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         bittensor.wallet.add_args(delegate_stake_parser)
         bittensor.subtensor.add_args(delegate_stake_parser)
@@ -312,12 +299,6 @@ class DelegateUnstakeCommand:
             "undelegate", help="""Undelegate Stake from an account."""
         )
         undelegate_stake_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        undelegate_stake_parser.add_argument(
             "--delegate_ss58key",
             "--delegate_ss58",
             dest="delegate_ss58key",
@@ -330,13 +311,6 @@ class DelegateUnstakeCommand:
         )
         undelegate_stake_parser.add_argument(
             "--amount", dest="amount", type=float, required=False
-        )
-        undelegate_stake_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         bittensor.wallet.add_args(undelegate_stake_parser)
         bittensor.subtensor.add_args(undelegate_stake_parser)
@@ -429,14 +403,7 @@ class ListDelegatesCommand:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         list_delegates_parser = parser.add_parser(
-            "list_delegates", help="""List all delegates on the network"""
-        )
-        list_delegates_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
+            "list", help="""List all delegates on the network"""
         )
         bittensor.subtensor.add_args(list_delegates_parser)
 
@@ -492,13 +459,6 @@ class NominateCommand:
     def add_args(parser: argparse.ArgumentParser):
         nominate_parser = parser.add_parser(
             "nominate", help="""Become a delegate on the network"""
-        )
-        nominate_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         bittensor.wallet.add_args(nominate_parser)
         bittensor.subtensor.add_args(nominate_parser)
@@ -650,22 +610,9 @@ class MyDelegatesCommand:
             help="""Show all delegates where I am delegating a positive amount of stake""",
         )
         delegate_stake_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        delegate_stake_parser.add_argument(
             "--all",
             action="store_true",
             help="""Check all coldkey wallets.""",
-            default=False,
-        )
-        delegate_stake_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
             default=False,
         )
         bittensor.wallet.add_args(delegate_stake_parser)
