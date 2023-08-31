@@ -78,6 +78,19 @@ class dendrite(torch.nn.Module):
 
         self.synapse_history: list = []
 
+        self._session: aiohttp.ClientSession = None
+
+    @property
+    async def session(self) -> aiohttp.ClientSession:
+        if self._session is None:
+            self._session = aiohttp.ClientSession()
+        return self._session
+
+    async def close_session(self):
+        if self._session:
+            await self._session.close()
+            self._session = None
+
     def query(self, *args, **kwargs):
         """
         Makes a synchronous request to multiple target Axons and returns the server responses.
@@ -219,71 +232,70 @@ class dendrite(torch.nn.Module):
         # Preprocess synapse for making a request
         synapse = self.preprocess_synapse_for_request(target_axon, synapse, timeout)
 
-        async with aiohttp.ClientSession() as session:
-            try:
-                # Log outgoing request
-                bt.logging.debug(
-                    f"dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success"
-                )
+        try:
+            # Log outgoing request
+            bt.logging.debug(
+                f"dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success"
+            )
 
-                # Make the HTTP POST request
-                async with session.post(
-                    url,
-                    headers=synapse.to_headers(),
-                    json=synapse.dict(),
-                    timeout=timeout,
-                ) as response:
-                    if (
-                        response.headers.get("Content-Type", "").lower()
-                        == "text/event-stream".lower()
-                    ):  # identify streaming response
-                        bt.logging.trace("Streaming response detected.")
-                        await synapse.process_streaming_response(
-                            response
-                        )  # process the entire streaming response
-                        json_response = synapse.extract_response_json(response)
-                    else:
-                        bt.logging.trace("Non-streaming response detected.")
-                        json_response = await response.json()
-
-                    # Process the server response
-                    self.process_server_response(response, json_response, synapse)
-
-                # Set process time and log the response
-                synapse.dendrite.process_time = str(time.time() - start_time)
-                bt.logging.debug(
-                    f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.axon.status_code} | {synapse.axon.status_message}"
-                )
-
-            except aiohttp.ClientConnectorError as e:
-                synapse.dendrite.status_code = "503"
-                synapse.dendrite.status_message = f"Service at {synapse.axon.ip}:{str(synapse.axon.port)}/{request_name} unavailable."
-
-            except asyncio.TimeoutError as e:
-                synapse.dendrite.status_code = "406"
-                synapse.dendrite.status_message = f"Timedout after {timeout} seconds."
-
-            except Exception as e:
-                synapse.dendrite.status_code = "422"
-                synapse.dendrite.status_message = (
-                    f"Failed to parse response object with error: {str(e)}"
-                )
-
-            finally:
-                bt.logging.debug(
-                    f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
-                )
-
-                # Log synapse event history
-                self.synapse_history.append(
-                    bt.Synapse.from_headers(synapse.to_headers())
-                )
-
-                # Return the updated synapse object after deserializing if requested
-                if deserialize:
-                    return synapse.deserialize()
+            # Make the HTTP POST request
+            async with (await self.session).post(
+                url,
+                headers=synapse.to_headers(),
+                json=synapse.dict(),
+                timeout=timeout,
+            ) as response:
+                if (
+                    response.headers.get("Content-Type", "").lower()
+                    == "text/event-stream".lower()
+                ):  # identify streaming response
+                    bt.logging.trace("Streaming response detected.")
+                    await synapse.process_streaming_response(
+                        response
+                    )  # process the entire streaming response
+                    json_response = synapse.extract_response_json(response)
                 else:
-                    return synapse
+                    bt.logging.trace("Non-streaming response detected.")
+                    json_response = await response.json()
+
+                # Process the server response
+                self.process_server_response(response, json_response, synapse)
+
+            # Set process time and log the response
+            synapse.dendrite.process_time = str(time.time() - start_time)
+            bt.logging.debug(
+                f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.axon.status_code} | {synapse.axon.status_message}"
+            )
+
+        except aiohttp.ClientConnectorError as e:
+            synapse.dendrite.status_code = "503"
+            synapse.dendrite.status_message = f"Service at {synapse.axon.ip}:{str(synapse.axon.port)}/{request_name} unavailable."
+
+        except asyncio.TimeoutError as e:
+            synapse.dendrite.status_code = "408"
+            synapse.dendrite.status_message = f"Timedout after {timeout} seconds."
+
+        except Exception as e:
+            synapse.dendrite.status_code = "422"
+            synapse.dendrite.status_message = (
+                f"Failed to parse response object with error: {str(e)}"
+            )
+
+        finally:
+            bt.logging.debug(
+                f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
+            )
+
+            # Log synapse event history
+            self.synapse_history.append(
+                bt.Synapse.from_headers(synapse.to_headers())
+            )
+
+            # Return the updated synapse object after deserializing if requested
+            if deserialize:
+                return synapse.deserialize()
+            else:
+                return synapse
 
     def preprocess_synapse_for_request(
         self,
