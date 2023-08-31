@@ -194,7 +194,7 @@ class config(DefaultMunch):
                         if cmd_parser._subparsers:
                             for action in cmd_parser._subparsers._actions:
                                 # Should only be the "command" subparser action
-                                if isinstance(action, _SubParsersAction):
+                                if isinstance(action, argparse._SubParsersAction):
                                     cmd_parser: ArgumentParser
                                     for cmd_parser in action.choices.values():
                                         cmd_parser.set_defaults(**defaults_as_suppress)
