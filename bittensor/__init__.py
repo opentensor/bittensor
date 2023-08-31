@@ -164,6 +164,19 @@ __type_registry__ = {
                 },
             },
         },
+        "ValidatorIPRuntimeApi": {
+            "methods": {
+                "get_associated_validator_ip_info_for_subnet": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            },
+        },
     },
 }
 
