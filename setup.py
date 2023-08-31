@@ -26,6 +26,9 @@ import pathlib
 import subprocess
 
 
+class SubmoduleSyncError(Exception):
+    pass
+
 def sync_and_update_submodules():
     try:
         print("Synchronizing and updating submodules...")
@@ -33,9 +36,12 @@ def sync_and_update_submodules():
         subprocess.check_call(['git', 'submodule', 'update', '--init'])
     except subprocess.CalledProcessError:
         print("Error synchronizing or updating submodules. Please ensure you have git installed and are in the root directory of the repository.")
-        raise
+        raise SubmoduleSyncError("An error occurred while synchronizing or updating submodules.")
 
-sync_and_update_submodules()
+try:
+    sync_and_update_submodules()
+except SubmoduleSyncError as e:
+    print(f"Submodule synchronization error: {e}")
 
 def read_requirements(path):
     requirements = []
