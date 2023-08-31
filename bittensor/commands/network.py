@@ -159,7 +159,6 @@ HYPERPARAMS = {
     "max_difficulty": "sudo_set_max_difficulty",
     "weights_version": "sudo_set_weights_version_key",
     "weights_rate_Limit": "sudo_set_weights_set_rate_limit",
-    "adjustment_interval": "sudo_set_adjustment_interval",
     "max_weight_limit": "sudo_set_max_weight_limit",
     "immunity_period": "sudo_set_immunity_period",
     "min_allowed_weights": "sudo_set_min_allowed_weights",
