@@ -151,7 +151,7 @@ class OverviewCommand:
                         # Add neurons to overview.
                         neurons[str(netuid)] = neurons_result
 
-            total_coldkey_stake_from_metagraph = defaultdict(bittensor.Balance(0.0))
+            total_coldkey_stake_from_metagraph = defaultdict(lambda _: bittensor.Balance(0.0))
             for neuron_list in neurons.values():
                 for neuron in neuron_list:
                     total_coldkey_stake_from_metagraph[
