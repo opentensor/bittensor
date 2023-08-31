@@ -51,7 +51,7 @@ custom_rpc_type_registry = {
                 ["network_connect", "Vec<[u16; 2]>"],
                 ["emission_values", "Compact<u64>"],
                 ["burn", "Compact<u64>"],
-                ["owner", "AccountId"]
+                ["owner", "AccountId"],
             ],
         },
         "DelegateInfo": {
@@ -173,11 +173,12 @@ custom_rpc_type_registry = {
                 ["min_burn", "Compact<u64>"],
                 ["max_burn", "Compact<u64>"],
                 ["bonds_moving_avg", "Compact<u64>"],
-                ["max_regs_per_block", "Compact<u16>"]
-            ]
-        }
+                ["max_regs_per_block", "Compact<u16>"],
+            ],
+        },
     }
 }
+
 
 @dataclass
 class AxonInfo:
@@ -259,6 +260,7 @@ class ChainDataType(Enum):
     StakeInfo = 6
     IPInfo = 7
     SubnetHyperparameters = 8
+
 
 # Constants
 RAOPERTAO = 1e9
@@ -915,6 +917,7 @@ class SubnetInfo:
         r"""Returns a SubnetInfo object from a torch parameter_dict."""
         return cls(**dict(parameter_dict))
 
+
 @dataclass
 class SubnetHyperparameters:
     r"""
@@ -938,7 +941,7 @@ class SubnetHyperparameters:
     max_burn: int
     bonds_moving_avg: int
     max_regs_per_block: int
-    
+
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetHyperparameters"]:
         r"""Returns a SubnetHyperparameters object from a vec_u8."""
@@ -987,7 +990,7 @@ class SubnetHyperparameters:
             min_burn=decoded["min_burn"],
             max_burn=decoded["max_burn"],
             bonds_moving_avg=decoded["bonds_moving_avg"],
-            max_regs_per_block=decoded["max_regs_per_block"]
+            max_regs_per_block=decoded["max_regs_per_block"],
         )
 
     def to_parameter_dict(self) -> "torch.nn.ParameterDict":
@@ -1000,6 +1003,7 @@ class SubnetHyperparameters:
     ) -> "SubnetInfo":
         r"""Returns a SubnetHyperparameters object from a torch parameter_dict."""
         return cls(**dict(parameter_dict))
+
 
 @dataclass
 class IPInfo:
@@ -1064,6 +1068,7 @@ class IPInfo:
 
 
 # Senate / Proposal data
+
 
 class ProposalVoteData(TypedDict):
     index: int

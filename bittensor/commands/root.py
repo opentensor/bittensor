@@ -27,6 +27,7 @@ from . import defaults
 
 console = bittensor.__console__
 
+
 class RootRegisterCommand:
     @staticmethod
     def run(cli):
@@ -34,9 +35,7 @@ class RootRegisterCommand:
         wallet = bittensor.wallet(config=cli.config)
         subtensor = bittensor.subtensor(config=cli.config)
 
-        subtensor.root_register(
-            wallet=wallet, prompt=not cli.config.no_prompt
-        )
+        subtensor.root_register(wallet=wallet, prompt=not cli.config.no_prompt)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -49,7 +48,11 @@ class RootRegisterCommand:
 
     @staticmethod
     def check_config(config: "bittensor.config"):
-        if not config.is_set("subtensor.network") and not config.is_set("subtensor.chain_endpoint") and not config.no_prompt:
+        if (
+            not config.is_set("subtensor.network")
+            and not config.is_set("subtensor.chain_endpoint")
+            and not config.no_prompt
+        ):
             config.subtensor.network = Prompt.ask(
                 "Enter subtensor network",
                 choices=bittensor.__networks__,
@@ -70,24 +73,29 @@ class RootList:
     def run(cli):
         r"""List the root network"""
         subtensor = bittensor.subtensor(config=cli.config)
-        root_neurons: typing.List[bittensor.NeuronInfoLite] = subtensor.neurons_lite( netuid=0 )
-        print (root_neurons)
+        root_neurons: typing.List[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
+            netuid=0
+        )
+        print(root_neurons)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        parser = parser.add_parser(
-            "list", help="""List the root network"""
-        )
+        parser = parser.add_parser("list", help="""List the root network""")
         bittensor.subtensor.add_args(parser)
 
     @staticmethod
     def check_config(config: "bittensor.config"):
-        if not config.is_set("subtensor.network") and not config.is_set("subtensor.chain_endpoint") and not config.no_prompt:
+        if (
+            not config.is_set("subtensor.network")
+            and not config.is_set("subtensor.chain_endpoint")
+            and not config.no_prompt
+        ):
             config.subtensor.network = Prompt.ask(
                 "Enter subtensor network",
                 choices=bittensor.__networks__,
                 default=defaults.subtensor.network,
             )
+
 
 class RootSetWeightsCommand:
     @staticmethod
@@ -99,46 +107,62 @@ class RootSetWeightsCommand:
 
         # Get values if not set.
         if not cli.config.is_set("netuids"):
-            example = ", ".join(map(str, [subnet.netuid for subnet in subnets][:3]))  + ' ...'
+            example = (
+                ", ".join(map(str, [subnet.netuid for subnet in subnets][:3])) + " ..."
+            )
             cli.config.netuids = Prompt.ask(f"Enter netuids (e.g. {example})")
 
         if not cli.config.is_set("weights"):
-            example = ", ".join(map(str, [ "{:.2f}".format( float(1/len(subnets)) ) for subnet in subnets][:3])) + ' ...'
+            example = (
+                ", ".join(
+                    map(
+                        str,
+                        [
+                            "{:.2f}".format(float(1 / len(subnets)))
+                            for subnet in subnets
+                        ][:3],
+                    )
+                )
+                + " ..."
+            )
             cli.config.weights = Prompt.ask(f"Enter weights (e.g. {example})")
 
         # Parse from string
-        netuids = torch.tensor( list(map(int, re.split(r'[ ,]+', cli.config.netuids))), dtype = torch.long )
-        weights = torch.tensor( list(map(float, re.split(r'[ ,]+', cli.config.weights))), dtype = torch.float32 )
-      
+        netuids = torch.tensor(
+            list(map(int, re.split(r"[ ,]+", cli.config.netuids))), dtype=torch.long
+        )
+        weights = torch.tensor(
+            list(map(float, re.split(r"[ ,]+", cli.config.weights))),
+            dtype=torch.float32,
+        )
+
         # Run the set weights operation.
         subtensor.root_set_weights(
-            wallet = wallet,
-            netuids = netuids,
-            weights = weights,
-            version_key = 0,
-            prompt = not cli.config.no_prompt,
-            wait_for_finalization = True,
-            wait_for_inclusion = True
+            wallet=wallet,
+            netuids=netuids,
+            weights=weights,
+            version_key=0,
+            prompt=not cli.config.no_prompt,
+            wait_for_finalization=True,
+            wait_for_inclusion=True,
         )
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        parser = parser.add_parser(
-            "weights", help="""Set weights for root network."""
-        )
-        parser.add_argument(
-            "--netuids", dest="netuids", type=str, required=False
-        )
-        parser.add_argument(
-            "--weights", dest="weights", type=str, required=False
-        )
+        parser = parser.add_parser("weights", help="""Set weights for root network.""")
+        parser.add_argument("--netuids", dest="netuids", type=str, required=False)
+        parser.add_argument("--weights", dest="weights", type=str, required=False)
 
         bittensor.wallet.add_args(parser)
         bittensor.subtensor.add_args(parser)
 
     @staticmethod
     def check_config(config: "bittensor.config"):
-        if not config.is_set("subtensor.network") and not config.is_set("subtensor.chain_endpoint") and not config.no_prompt:
+        if (
+            not config.is_set("subtensor.network")
+            and not config.is_set("subtensor.chain_endpoint")
+            and not config.no_prompt
+        ):
             config.subtensor.network = Prompt.ask(
                 "Enter subtensor network",
                 choices=bittensor.__networks__,

@@ -402,7 +402,6 @@ class NewColdkeyCommand:
         bittensor.subtensor.add_args(new_coldkey_parser)
 
 
-
 class WalletCreateCommand:
     def run(cli):
         r"""Creates a new coldkey and hotkey under this wallet."""

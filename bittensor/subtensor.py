@@ -46,7 +46,10 @@ from .chain_data import (
     custom_rpc_type_registry,
 )
 from .errors import *
-from .extrinsics.network import register_subnetwork_extrinsic, set_hyperparameter_extrinsic
+from .extrinsics.network import (
+    register_subnetwork_extrinsic,
+    set_hyperparameter_extrinsic,
+)
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .extrinsics.serving import serve_extrinsic, serve_axon_extrinsic
@@ -144,7 +147,7 @@ class subtensor:
 
     @staticmethod
     def determine_chain_endpoint_and_network(network: str):
-        """ Determines the chain endpoint and network from the passed network or chain_endpoint.
+        """Determines the chain endpoint and network from the passed network or chain_endpoint.
         Args:
             network (str): The network flag. The likely choices are:
                     -- finney (main network)
@@ -157,7 +160,7 @@ class subtensor:
         """
         if network == None:
             return None, None
-        if network in ['finney', 'local', 'test']:
+        if network in ["finney", "local", "test"]:
             if network == "finney":
                 # Kiru Finney stagin network.
                 return network, bittensor.__finney_entrypoint__
@@ -167,11 +170,11 @@ class subtensor:
                 return network, bittensor.__finney_test_entrypoint__
         else:
             if network == bittensor.__finney_entrypoint__:
-                return 'finney', network
-            elif '127.0.0.1' in network or 'localhost' in network:
-                return 'local', network
+                return "finney", network
+            elif "127.0.0.1" in network or "localhost" in network:
+                return "local", network
             elif network == bittensor.__finney_test_entrypoint__:
-                return 'test', network
+                return "test", network
             else:
                 raise ValueError(
                     "Invalid network: {} Must be one of: {} or valid endpoint".format(
@@ -238,9 +241,10 @@ class subtensor:
             return
 
         if network is not None:
-            _, self.config.subtensor.chain_endpoint = self.determine_chain_endpoint_and_network(
-                network
-            )
+            (
+                _,
+                self.config.subtensor.chain_endpoint,
+            ) = self.determine_chain_endpoint_and_network(network)
             self.config.subtensor.network = network
             return
 
@@ -249,22 +253,30 @@ class subtensor:
             return
 
         if self.config.get("__is_set", {}).get("subtensor.network"):
-            _, self.config.subtensor.chain_endpoint = self.determine_chain_endpoint_and_network(
-                self.config.subtensor.network
-            )
+            (
+                _,
+                self.config.subtensor.chain_endpoint,
+            ) = self.determine_chain_endpoint_and_network(self.config.subtensor.network)
             return
 
         if self.config.subtensor.get("network"):
-            _, self.config.subtensor.chain_endpoint = self.determine_chain_endpoint_and_network(
-                self.config.subtensor.network
-            )
+            (
+                _,
+                self.config.subtensor.chain_endpoint,
+            ) = self.determine_chain_endpoint_and_network(self.config.subtensor.network)
             return
 
         if self.config.subtensor.get("chain_endpoint"):
-            _, self.config.subtensor.chain_endpoint = self.config.subtensor.chain_endpoint
+            (
+                _,
+                self.config.subtensor.chain_endpoint,
+            ) = self.config.subtensor.chain_endpoint
             return
 
-        _, self.config.subtensor.chain_endpoint = self.determine_chain_endpoint_and_network(
+        (
+            _,
+            self.config.subtensor.chain_endpoint,
+        ) = self.determine_chain_endpoint_and_network(
             bittensor.defaults.subtensor.network
         )
         self.config.subtensor.network = bittensor.defaults.subtensor.network
@@ -707,7 +719,7 @@ class subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
-    
+
     def set_hyperparameter(
         self,
         wallet: "bittensor.wallet",
@@ -1179,7 +1191,7 @@ class subtensor:
             )
 
         return proposals
-    
+
     ##############
     #### Root ####
     ##############
@@ -1199,7 +1211,7 @@ class subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
-    
+
     def _do_root_register(
         self,
         wallet: "bittensor.wallet",
@@ -1233,7 +1245,7 @@ class subtensor:
             # Successful registration
             else:
                 return True, None
-            
+
     def root_set_weights(
         self,
         wallet: "bittensor.wallet",
@@ -1419,7 +1431,7 @@ class subtensor:
         rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
 
         obj = rpc_runtime_config.create_scale_object(return_type, as_scale_bytes)
-        if obj.data.to_hex() == "0x0400": # RPC returned None result
+        if obj.data.to_hex() == "0x0400":  # RPC returned None result
             return None
 
         return obj.decode()
@@ -1859,7 +1871,7 @@ class subtensor:
             return None
 
         return SubnetInfo.from_vec_u8(result)
-    
+
     def get_subnet_hyperparameters(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[SubnetInfo]:
@@ -1882,8 +1894,10 @@ class subtensor:
             return None
 
         return SubnetHyperparameters.from_vec_u8(result)
-    
-    def get_subnet_owner(self, netuid: int, block: Optional[int] = None) -> Optional[str]:
+
+    def get_subnet_owner(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[str]:
         return self.query_subtensor("SubnetOwner", block, [netuid]).value
 
     ####################

@@ -17,6 +17,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from __future__ import annotations
+
 import asyncio
 import uuid
 import time
@@ -53,7 +55,7 @@ class dendrite(torch.nn.Module):
         >>> d( bt.axon(), bt.Synapse )
     """
 
-    def __init__(self, wallet: Optional[Union["bt.wallet", "bt.keypair"]] = None):
+    def __init__(self, wallet: Optional[Union[bt.wallet, bt.keypair]] = None):
         """
         Initializes the Dendrite object, setting up essential properties.
 
@@ -118,9 +120,7 @@ class dendrite(torch.nn.Module):
 
     async def forward(
         self,
-        axons: Union[
-            List[Union["bt.AxonInfo", "bt.axon"]], Union["bt.AxonInfo", "bt.axon"]
-        ],
+        axons: Union[List[Union[bt.AxonInfo, bt.axon]], Union[bt.AxonInfo, bt.axon]],
         synapse: bt.Synapse = bt.Synapse(),
         timeout: float = 12,
         deserialize: bool = True,
@@ -193,7 +193,7 @@ class dendrite(torch.nn.Module):
 
     async def call(
         self,
-        target_axon: Union["bt.AxonInfo", "bt.axon"],
+        target_axon: Union[bt.AxonInfo, bt.axon],
         synapse: bt.Synapse = bt.Synapse(),
         timeout: float = 12.0,
         deserialize: bool = True,
@@ -287,9 +287,7 @@ class dendrite(torch.nn.Module):
             )
 
             # Log synapse event history
-            self.synapse_history.append(
-                bt.Synapse.from_headers(synapse.to_headers())
-            )
+            self.synapse_history.append(bt.Synapse.from_headers(synapse.to_headers()))
 
             # Return the updated synapse object after deserializing if requested
             if deserialize:
@@ -299,7 +297,7 @@ class dendrite(torch.nn.Module):
 
     def preprocess_synapse_for_request(
         self,
-        target_axon_info: "bt.AxonInfo",
+        target_axon_info: bt.AxonInfo,
         synapse: bt.Synapse,
         timeout: float = 12.0,
     ) -> bt.Synapse:

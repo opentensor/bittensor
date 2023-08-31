@@ -102,7 +102,9 @@ def register_subnetwork_extrinsic(
                 )
                 return True
 
+
 from ..commands.network import HYPERPARAMS
+
 
 def set_hyperparameter_extrinsic(
     subtensor: "bittensor.subtensor",
@@ -138,20 +140,30 @@ def set_hyperparameter_extrinsic(
             If we did not wait for finalization / inclusion, the response is true.
     """
     if subtensor.get_subnet_owner(netuid) != wallet.coldkeypub.ss58_address:
-        bittensor.__console__.print(":cross_mark: [red]This wallet doesn't own the specified subnet.[/red]")
+        bittensor.__console__.print(
+            ":cross_mark: [red]This wallet doesn't own the specified subnet.[/red]"
+        )
         return False
 
     wallet.coldkey  # unlock coldkey
 
     extrinsic = HYPERPARAMS.get(parameter)
     if extrinsic == None:
-        bittensor.__console__.print(":cross_mark: [red]Invalid hyperparameter specified.[/red]")
+        bittensor.__console__.print(
+            ":cross_mark: [red]Invalid hyperparameter specified.[/red]"
+        )
         return False
 
-    with bittensor.__console__.status(f":satellite: Setting hyperparameter {parameter} to {value}..."):
+    with bittensor.__console__.status(
+        f":satellite: Setting hyperparameter {parameter} to {value}..."
+    ):
         with subtensor.substrate as substrate:
-            extrinsic_params = substrate.get_metadata_call_function("SubtensorModule", extrinsic)
-            value_argument = extrinsic_params["fields"][len(extrinsic_params["fields"]) - 1]
+            extrinsic_params = substrate.get_metadata_call_function(
+                "SubtensorModule", extrinsic
+            )
+            value_argument = extrinsic_params["fields"][
+                len(extrinsic_params["fields"]) - 1
+            ]
 
             # create extrinsic call
             call = substrate.compose_call(

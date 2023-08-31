@@ -26,7 +26,7 @@ console = bittensor.__console__
 
 COMMANDS = {
     "subnets": {
-        "name": "subnets", 
+        "name": "subnets",
         "help": "Commands for managing and viewing subnetworks.",
         "commands": {
             "list": SubnetListCommand,
@@ -36,7 +36,7 @@ COMMANDS = {
             "register": RegisterCommand,
             "recycle_register": RecycleRegisterCommand,
             "hyperparameters": SubnetHyperparamsCommand,
-        }
+        },
     },
     "root": {
         "name": "root",
@@ -49,7 +49,7 @@ COMMANDS = {
             "proposals": ProposalsCommand,
             "delegate": DelegateStakeCommand,
             "undelegate": DelegateUnstakeCommand,
-        }
+        },
     },
     "wallet": {
         "name": "wallet",
@@ -59,7 +59,7 @@ COMMANDS = {
             "overview": OverviewCommand,
             "transfer": TransferCommand,
             "inspect": InspectCommand,
-            #"balance": None,
+            # "balance": None,
             "create": WalletCreateCommand,
             "new_hotkey": NewHotkeyCommand,
             "new_coldkey": NewColdkeyCommand,
@@ -68,7 +68,7 @@ COMMANDS = {
             "regen_hotkey": RegenHotkeyCommand,
             "my_delegates": MyDelegatesCommand,
             "faucet": RunFaucetCommand,
-        }
+        },
     },
     "stake": {
         "name": "stake",
@@ -77,15 +77,15 @@ COMMANDS = {
             "show": StakeShow,
             "add": StakeCommand,
             "remove": UnStakeCommand,
-        }
+        },
     },
     "sudo": {
         "name": "sudo",
         "help": "Commands for subnet management",
         "commands": {
-            #"dissolve": None,
+            # "dissolve": None,
             "set": SubnetSudoCommand
-        }
+        },
     },
     "legacy": {
         "name": "misc",
@@ -93,8 +93,8 @@ COMMANDS = {
         "commands": {
             "update": UpdateCommand,
             "faucet": RunFaucetCommand,
-        }
-    }
+        },
+    },
 }
 
 
@@ -157,8 +157,12 @@ class cli:
         # Add argument parsers for all available commands.
         for command in COMMANDS.values():
             if isinstance(command, dict):
-                subcmd_parser = cmd_parsers.add_parser(name=command["name"], help=command["help"])
-                subparser = subcmd_parser.add_subparsers(help=command["help"], dest="subcommand")
+                subcmd_parser = cmd_parsers.add_parser(
+                    name=command["name"], help=command["help"]
+                )
+                subparser = subcmd_parser.add_subparsers(
+                    help=command["help"], dest="subcommand"
+                )
 
                 for subcommand in command["commands"].values():
                     subcommand.add_args(subparser)
@@ -200,7 +204,7 @@ class cli:
         if config.command in COMMANDS:
             command = config.command
             command_data = COMMANDS[command]
-            
+
             if isinstance(command_data, dict):
                 if config["subcommand"] == None:
                     # This probably isn't the best solution, refactor
@@ -208,7 +212,7 @@ class cli:
                         if action.dest == "command" and action.choices[command]:
                             action.choices[command].print_help()
                             sys.exit()
-                    
+
                 command_data["commands"][config["subcommand"]].check_config(config)
             else:
                 command_data.check_config(config)
