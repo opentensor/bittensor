@@ -188,11 +188,12 @@ class SubnetSudoCommand:
         if not config.is_set("value") and not config.no_prompt:
             value = Prompt.ask("Enter new value")
             config.value = value
+
         subtensor.set_hyperparameter(
             wallet, 
             netuid=cli.config.netuid, 
-            parameter=cli.config.param, 
-            value=cli.config.value, 
+            parameter=config.param,
+            value=config.value,
             prompt=not cli.config.no_prompt
         )
 
