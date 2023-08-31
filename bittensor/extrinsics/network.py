@@ -148,7 +148,7 @@ def set_hyperparameter_extrinsic(
         bittensor.__console__.print(":cross_mark: [red]Invalid hyperparameter specified.[/red]")
         return False
 
-    with bittensor.__console__.status(f":satellite: Setting hyperparameter {parameter} to {value}..."):
+    with bittensor.__console__.status(f":satellite: Setting hyperparameter {parameter} to {value} on subnet: {netuid} ..."):
         with subtensor.substrate as substrate:
             extrinsic_params = substrate.get_metadata_call_function("SubtensorModule", extrinsic)
             value_argument = extrinsic_params["fields"][len(extrinsic_params["fields"]) - 1]

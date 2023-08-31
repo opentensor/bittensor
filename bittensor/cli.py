@@ -31,13 +31,13 @@ ALIAS_TO_COMMAND = {
     "stake": "stake",
     "sudo": "sudo",
     "legacy": "legacy",
-    "s": "subnet",
+    "s": "subnets",
     "r": "root",
     "w": "wallet",
     "st": "stake",
     "su": "sudo",
     "l": "legacy",
-    "subnet": "subnet",
+    "subnet": "subnets",
     "roots": "root",
     "wallets": "wallet",
     "stakes": "stake",
@@ -108,7 +108,8 @@ COMMANDS = {
         "help": "Commands for subnet management",
         "commands": {
             #"dissolve": None,
-            "set": SubnetSudoCommand
+            "set": SubnetSudoCommand,
+            "get": SubnetGetHyperparamsCommand
         }
     },
     "legacy": {
