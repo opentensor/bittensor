@@ -19,6 +19,7 @@ import argparse
 import bittensor
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
+from collections import defaultdict
 from fuzzywuzzy import fuzz
 from rich.align import Align
 from rich.table import Table
@@ -150,16 +151,13 @@ class OverviewCommand:
                         # Add neurons to overview.
                         neurons[str(netuid)] = neurons_result
 
-            total_coldkey_stake_from_metagraph = {
-                coldkey_wallet.coldkeypub.ss58_address: bittensor.Balance(0.0)
-            }
+            total_coldkey_stake_from_metagraph = defaultdict(bittensor.Balance(0.0))
             for neuron_list in neurons.values():
                 for neuron in neuron_list:
                     total_coldkey_stake_from_metagraph[
                         neuron.coldkey
                     ] += neuron.stake_dict[neuron.coldkey]
 
-            all_staked_hotkeys = []
             coldkeys_to_check = []
             for coldkey_wallet in all_coldkey_wallets:
                 # Check if we have any stake with hotkeys that are not registered.
@@ -546,11 +544,14 @@ class OverviewCommand:
                     return False  # Skip hotkeys that are in our wallets.
                 if subtensor.is_hotkey_delegate(hotkey_ss58=hotkey_addr):
                     return False  # Skip hotkeys that are delegates, they show up in btcli my_delegates table.
-                
+
                 return True
 
             all_staked_hotkeys = filter(_filter_stake_info, all_stake_info_for_coldkey)
-            result = [(stake_info.hotkey, stake_info.stake) for stake_info in all_staked_hotkeys]
+            result = [
+                (stake_info.hotkey, stake_info.stake)
+                for stake_info in all_staked_hotkeys
+            ]
 
         except Exception as e:
             return coldkey_wallet, [], "Error: {}".format(e)
