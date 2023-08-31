@@ -24,6 +24,25 @@ from .commands import *
 # Create a console instance for CLI display.
 console = bittensor.__console__
 
+ALIAS_TO_COMMAND = {
+    "subnets": "subnets",
+    "root": "root",
+    "wallet": "wallet",
+    "stake": "stake",
+    "sudo": "sudo",
+    "legacy": "legacy",
+    "s": "subnet",
+    "r": "root",
+    "w": "wallet",
+    "st": "stake",
+    "su": "sudo",
+    "l": "legacy",
+    "subnet": "subnet",
+    "roots": "root",
+    "wallets": "wallet",
+    "stakes": "stake",
+    "sudos": "sudo",
+}
 COMMANDS = {
     "subnets": {
         "name": "subnets", 
@@ -75,7 +94,7 @@ COMMANDS = {
     },
     "stake": {
         "name": "stake",
-        "aliases": ["s", "stakes"],
+        "aliases": ["st", "stakes"],
         "help": "Commands for staking and removing stake from hotkey accounts.",
         "commands": {
             "show": StakeShow,
@@ -130,6 +149,11 @@ class cli:
             config = cli.create_config(args)
 
         self.config = config
+        if self.config.command in ALIAS_TO_COMMAND:
+            self.config.command = ALIAS_TO_COMMAND[ self.config.command ]
+        else:
+            console.print(f":cross_mark:[red]Unknown command: {self.config.command}[/red]")
+            sys.exit()
 
         # Check if the config is valid.
         cli.check_config(self.config)
