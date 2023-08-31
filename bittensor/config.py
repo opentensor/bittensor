@@ -250,7 +250,11 @@ class config(Munch):
         return self.__str__()
 
     def __str__(self) -> str:
-        return "\n" + yaml.dump(self.toDict())
+        # remove the parser and is_set map from the visible config
+        visible = self.toDict()
+        visible.pop("__parser", None)
+        visible.pop("__is_set", None)
+        return "\n" + yaml.dump(visible)
 
     def copy(self) -> "config":
         return copy.deepcopy(self)
