@@ -55,8 +55,8 @@ class TransferCommand:
 
         # Get current balance and print to user.
         if not config.no_prompt:
-            wallet = bittensor.wallet(config)
-            subtensor = bittensor.subtensor(config)
+            wallet = bittensor.wallet(config = config)
+            subtensor = bittensor.subtensor(config = config)
             with bittensor.__console__.status(":satellite: Checking Balance..."):
                 account_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
                 bittensor.__console__.print(

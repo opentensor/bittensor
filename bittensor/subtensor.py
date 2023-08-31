@@ -178,7 +178,6 @@ class subtensor:
             
     @staticmethod
     def setup_config( network: str, config: bittensor.config ):
-
         if network != None:
             evaluated_network, evaluated_endpoint = subtensor.determine_chain_endpoint_and_network( network )
         else:
