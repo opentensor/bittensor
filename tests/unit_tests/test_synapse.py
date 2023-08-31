@@ -14,7 +14,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import jsons
+import json
 import torch
 import base64
 import typing
@@ -32,7 +32,7 @@ def test_parse_headers_to_inputs():
         "bt_header_axon_nonce": "111",
         "bt_header_dendrite_ip": "12.1.1.2",
         "bt_header_input_obj_key1": base64.b64encode(
-            jsons.dumps([1, 2, 3, 4]).encode("utf-8")
+            json.dumps([1, 2, 3, 4]).encode("utf-8")
         ).decode("utf-8"),
         "bt_header_tensor_key2": "[3]-torch.float32",
         "timeout": "12",
@@ -67,7 +67,7 @@ def test_from_headers():
         "bt_header_axon_nonce": "111",
         "bt_header_dendrite_ip": "12.1.1.2",
         "bt_header_input_obj_key1": base64.b64encode(
-            jsons.dumps([1, 2, 3, 4]).encode("utf-8")
+            json.dumps([1, 2, 3, 4]).encode("utf-8")
         ).decode("utf-8"),
         "bt_header_tensor_key2": "[3]-torch.float32",
         "timeout": "12",
