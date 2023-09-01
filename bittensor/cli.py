@@ -45,7 +45,7 @@ ALIAS_TO_COMMAND = {
 }
 COMMANDS = {
     "subnets": {
-        "name": "subnets", 
+        "name": "subnets",
         "aliases": ["s", "subnet"],
         "help": "Commands for managing and viewing subnetworks.",
         "commands": {
@@ -107,10 +107,10 @@ COMMANDS = {
         "aliases": ["su", "sudos"],
         "help": "Commands for subnet management",
         "commands": {
-            #"dissolve": None,
+            # "dissolve": None,
             "set": SubnetSudoCommand,
-            "get": SubnetGetHyperparamsCommand
-        }
+            "get": SubnetGetHyperparamsCommand,
+        },
     },
     "legacy": {
         "name": "misc",
@@ -151,9 +151,11 @@ class cli:
 
         self.config = config
         if self.config.command in ALIAS_TO_COMMAND:
-            self.config.command = ALIAS_TO_COMMAND[ self.config.command ]
+            self.config.command = ALIAS_TO_COMMAND[self.config.command]
         else:
-            console.print(f":cross_mark:[red]Unknown command: {self.config.command}[/red]")
+            console.print(
+                f":cross_mark:[red]Unknown command: {self.config.command}[/red]"
+            )
             sys.exit()
 
         # Check if the config is valid.
@@ -188,8 +190,14 @@ class cli:
         # Add argument parsers for all available commands.
         for command in COMMANDS.values():
             if isinstance(command, dict):
-                subcmd_parser = cmd_parsers.add_parser(name=command["name"], aliases = command['aliases'], help=command["help"])
-                subparser = subcmd_parser.add_subparsers(help=command["help"], dest="subcommand")
+                subcmd_parser = cmd_parsers.add_parser(
+                    name=command["name"],
+                    aliases=command["aliases"],
+                    help=command["help"],
+                )
+                subparser = subcmd_parser.add_subparsers(
+                    help=command["help"], dest="subcommand"
+                )
 
                 for subcommand in command["commands"].values():
                     subcommand.add_args(subparser)
