@@ -237,6 +237,20 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
         validate_assignment = True
 
     def deserialize(self) -> "Synapse":
+        """
+        Deserializes the Synapse object.
+
+        This method is intended to be overridden by subclasses for custom deserialization logic.
+        In the context of the Synapse superclass, this method simply returns the instance itself.
+        When inheriting from this class, subclasses should provide their own implementation for
+        deserialization if specific deserialization behavior is desired.
+
+        By default, if a subclass does not provide its own implementation of this method, the
+        Synapse's deserialize method will be used, returning the object instance as-is.
+
+        Returns:
+            Synapse: The deserialized Synapse object. In this default implementation, it returns the object itself.
+        """
         return self
 
     @pydantic.root_validator(pre=True)
@@ -552,7 +566,6 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
                 headers[f"bt_header_dict_tensor_{field}"] = str(serialized_dict_tensor)
 
             elif required and field in required:
-                bittensor.logging.trace(f"Serializing {field} with json...")
                 try:
                     serialized_value = json.dumps(value)
                     encoded_value = base64.b64encode(serialized_value.encode()).decode(
@@ -656,7 +669,6 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
                     continue
             # Handle 'input_obj' headers
             elif "bt_header_input_obj" in key:
-                bittensor.logging.trace(f"Deserializing {key} with json...")
                 try:
                     new_key = key.split("bt_header_input_obj_")[1]
                     # Skip if the key already exists in the dictionary

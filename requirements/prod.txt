@@ -1,3 +1,4 @@
+aiohttp==3.8.5
 ansible>=7.0.0,<=8.2.0
 ansible_vault==2.1.0
 backoff
@@ -5,7 +6,6 @@ cryptography==41.0.3
 ddt==1.6.0
 fuzzywuzzy>=0.18.0
 fastapi==0.99.1
-httpx==0.24.1
 loguru==0.7.0
 munch==2.5.0
 netaddr
