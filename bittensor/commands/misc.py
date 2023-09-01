@@ -84,7 +84,7 @@ class ListSubnetsCommand:
                     ),
                     f"{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%",
                     f"{subnet.burn!s:8.8}",
-                    f"{subnet.owner_ss58}"
+                    f"{subnet.owner_ss58}",
                 )
             )
 

@@ -28,6 +28,7 @@ from loguru import logger
 
 logger = logger.opt(colors=True)
 
+
 def root_register_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
@@ -98,6 +99,7 @@ def root_register_extrinsic(
                     ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
                 )
 
+
 def set_root_weights_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
@@ -136,10 +138,10 @@ def set_root_weights_extrinsic(
         netuids = torch.tensor(netuids, dtype=torch.int64)
     if isinstance(weights, list):
         weights = torch.tensor(weights, dtype=torch.float32)
-    
+
     # Get weight restrictions.
-    min_allowed_weights = subtensor.min_allowed_weights( netuid = 0 )
-    max_weight_limit = subtensor.max_weight_limit( netuid = 0 )
+    min_allowed_weights = subtensor.min_allowed_weights(netuid=0)
+    max_weight_limit = subtensor.max_weight_limit(netuid=0)
 
     # Get non zero values.
     non_zero_weight_idx = torch.argwhere(weights > 0).squeeze(dim=1)
@@ -153,9 +155,13 @@ def set_root_weights_extrinsic(
         )
 
     # Normalize the weights to max value.
-    formatted_weights = bittensor.utils.weight_utils.normalize_max_weight( x = weights, limit = max_weight_limit )
-    bittensor.__console__.print(f"\nNormalized weights: \n\t{weights} -> {formatted_weights}\n")
-    
+    formatted_weights = bittensor.utils.weight_utils.normalize_max_weight(
+        x=weights, limit=max_weight_limit
+    )
+    bittensor.__console__.print(
+        f"\nNormalized weights: \n\t{weights} -> {formatted_weights}\n"
+    )
+
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
@@ -166,7 +172,9 @@ def set_root_weights_extrinsic(
             return False
 
     with bittensor.__console__.status(
-        ":satellite: Setting root weights on [white]{}[/white] ...".format(subtensor.network)
+        ":satellite: Setting root weights on [white]{}[/white] ...".format(
+            subtensor.network
+        )
     ):
         try:
             success, error_message = subtensor._do_set_weights(
