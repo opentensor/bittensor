@@ -217,7 +217,11 @@ class RecycleRegisterCommand:
 
     @staticmethod
     def check_config(config: "bittensor.config"):
-        if not config.is_set("subtensor.network") and not config.is_set("subtensor.chain_endpoint") and not config.no_prompt:
+        if (
+            not config.is_set("subtensor.network")
+            and not config.is_set("subtensor.chain_endpoint")
+            and not config.no_prompt
+        ):
             config.subtensor.network = Prompt.ask(
                 "Enter subtensor network",
                 choices=bittensor.__networks__,

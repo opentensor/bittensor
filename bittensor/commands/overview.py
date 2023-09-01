@@ -36,7 +36,7 @@ console = bittensor.__console__
 
 class OverviewCommand:
     @staticmethod
-    def run(cli):
+    def run(cli: 'bittensor.cli'):
         r"""Prints an overview for the wallet's colkey."""
         console = bittensor.__console__
         wallet = bittensor.wallet(config=cli.config)

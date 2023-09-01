@@ -45,7 +45,7 @@ ALIAS_TO_COMMAND = {
 }
 COMMANDS = {
     "subnets": {
-        "name": "subnets", 
+        "name": "subnets",
         "aliases": ["s", "subnet"],
         "help": "Commands for managing and viewing subnetworks.",
         "commands": {
@@ -56,7 +56,7 @@ COMMANDS = {
             "register": RegisterCommand,
             "recycle_register": RecycleRegisterCommand,
             "hyperparameters": SubnetHyperparamsCommand,
-        }
+        },
     },
     "root": {
         "name": "root",
@@ -82,7 +82,7 @@ COMMANDS = {
             "overview": OverviewCommand,
             "transfer": TransferCommand,
             "inspect": InspectCommand,
-            #"balance": None,
+            # "balance": None,
             "create": WalletCreateCommand,
             "new_hotkey": NewHotkeyCommand,
             "new_coldkey": NewColdkeyCommand,
@@ -90,7 +90,7 @@ COMMANDS = {
             "regen_coldkeypub": RegenColdkeypubCommand,
             "regen_hotkey": RegenHotkeyCommand,
             "faucet": RunFaucetCommand,
-        }
+        },
     },
     "stake": {
         "name": "stake",
@@ -100,17 +100,17 @@ COMMANDS = {
             "show": StakeShow,
             "add": StakeCommand,
             "remove": UnStakeCommand,
-        }
+        },
     },
     "sudo": {
         "name": "sudo",
         "aliases": ["su", "sudos"],
         "help": "Commands for subnet management",
         "commands": {
-            #"dissolve": None,
+            # "dissolve": None,
             "set": SubnetSudoCommand,
-            "get": SubnetGetHyperparamsCommand
-        }
+            "get": SubnetGetHyperparamsCommand,
+        },
     },
     "legacy": {
         "name": "misc",
@@ -119,8 +119,8 @@ COMMANDS = {
         "commands": {
             "update": UpdateCommand,
             "faucet": RunFaucetCommand,
-        }
-    }
+        },
+    },
 }
 
 
@@ -151,9 +151,11 @@ class cli:
 
         self.config = config
         if self.config.command in ALIAS_TO_COMMAND:
-            self.config.command = ALIAS_TO_COMMAND[ self.config.command ]
+            self.config.command = ALIAS_TO_COMMAND[self.config.command]
         else:
-            console.print(f":cross_mark:[red]Unknown command: {self.config.command}[/red]")
+            console.print(
+                f":cross_mark:[red]Unknown command: {self.config.command}[/red]"
+            )
             sys.exit()
 
         # Check if the config is valid.
@@ -188,8 +190,14 @@ class cli:
         # Add argument parsers for all available commands.
         for command in COMMANDS.values():
             if isinstance(command, dict):
-                subcmd_parser = cmd_parsers.add_parser(name=command["name"], aliases = command['aliases'], help=command["help"])
-                subparser = subcmd_parser.add_subparsers(help=command["help"], dest="subcommand")
+                subcmd_parser = cmd_parsers.add_parser(
+                    name=command["name"],
+                    aliases=command["aliases"],
+                    help=command["help"],
+                )
+                subparser = subcmd_parser.add_subparsers(
+                    help=command["help"], dest="subcommand"
+                )
 
                 for subcommand in command["commands"].values():
                     subcommand.add_args(subparser)
@@ -231,7 +239,7 @@ class cli:
         if config.command in COMMANDS:
             command = config.command
             command_data = COMMANDS[command]
-            
+
             if isinstance(command_data, dict):
                 if config["subcommand"] == None:
                     # This probably isn't the best solution, refactor
@@ -239,7 +247,7 @@ class cli:
                         if action.dest == "command" and action.choices[command]:
                             action.choices[command].print_help()
                             sys.exit()
-                    
+
                 command_data["commands"][config["subcommand"]].check_config(config)
             else:
                 command_data.check_config(config)

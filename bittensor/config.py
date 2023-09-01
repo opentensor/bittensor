@@ -164,15 +164,17 @@ class config(DefaultMunch):
         parser_no_defaults = copy.deepcopy(parser)
 
         # Only command as the arg, else no args
-        default_param_args = [_config.get("command")] if _config.get("command") != None and _config.get("subcommand") == None else []
+        default_param_args = (
+            [_config.get("command")]
+            if _config.get("command") != None and _config.get("subcommand") == None
+            else []
+        )
         if _config.get("command") != None and _config.get("subcommand") != None:
             default_param_args = [_config.get("command"), _config.get("subcommand")]
 
         ## Get all args by name
-        default_params = parser.parse_args(
-            args=default_param_args
-        )
- 
+        default_params = parser.parse_args(args=default_param_args)
+
         all_default_args = default_params.__dict__.keys() | []
         ## Make a dict with keys as args and values as argparse.SUPPRESS
         defaults_as_suppress = {key: argparse.SUPPRESS for key in all_default_args}

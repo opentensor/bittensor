@@ -46,7 +46,10 @@ from .chain_data import (
     custom_rpc_type_registry,
 )
 from .errors import *
-from .extrinsics.network import register_subnetwork_extrinsic, set_hyperparameter_extrinsic
+from .extrinsics.network import (
+    register_subnetwork_extrinsic,
+    set_hyperparameter_extrinsic,
+)
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .extrinsics.serving import serve_extrinsic, serve_axon_extrinsic
@@ -144,7 +147,7 @@ class subtensor:
 
     @staticmethod
     def determine_chain_endpoint_and_network(network: str):
-        """ Determines the chain endpoint and network from the passed network or chain_endpoint.
+        """Determines the chain endpoint and network from the passed network or chain_endpoint.
         Args:
             network (str): The network flag. The likely choices are:
                     -- finney (main network)
@@ -157,7 +160,7 @@ class subtensor:
         """
         if network == None:
             return None, None
-        if network in ['finney', 'local', 'test']:
+        if network in ["finney", "local", "test"]:
             if network == "finney":
                 # Kiru Finney stagin network.
                 return network, bittensor.__finney_entrypoint__
@@ -166,37 +169,75 @@ class subtensor:
             elif network == "test":
                 return network, bittensor.__finney_test_entrypoint__
         else:
-            if network == bittensor.__finney_entrypoint__ or 'entrypoint-finney.opentensor.ai' in network: 
-                return 'finney', bittensor.__finney_entrypoint__
-            elif network == bittensor.__finney_test_entrypoint__ or 'test.finney.opentensor.ai' in network:
-                return 'test', bittensor.__finney_test_entrypoint__
-            elif '127.0.0.1' in network or 'localhost' in network:
-                return 'local', network
+            if (
+                network == bittensor.__finney_entrypoint__
+                or "entrypoint-finney.opentensor.ai" in network
+            ):
+                return "finney", bittensor.__finney_entrypoint__
+            elif (
+                network == bittensor.__finney_test_entrypoint__
+                or "test.finney.opentensor.ai" in network
+            ):
+                return "test", bittensor.__finney_test_entrypoint__
+            elif "127.0.0.1" in network or "localhost" in network:
+                return "local", network
             else:
-                return 'unknown', network
+                return "unknown", network
 
-            
     @staticmethod
-    def setup_config( network: str, config: bittensor.config ):
+    def setup_config(network: str, config: bittensor.config):
         if network != None:
-            evaluated_network, evaluated_endpoint = subtensor.determine_chain_endpoint_and_network( network )
+            (
+                evaluated_network,
+                evaluated_endpoint,
+            ) = subtensor.determine_chain_endpoint_and_network(network)
         else:
             if config.get("__is_set", {}).get("subtensor.chain_endpoint"):
-                evaluated_network, evaluated_endpoint = subtensor.determine_chain_endpoint_and_network( config.subtensor.chain_endpoint )
+                (
+                    evaluated_network,
+                    evaluated_endpoint,
+                ) = subtensor.determine_chain_endpoint_and_network(
+                    config.subtensor.chain_endpoint
+                )
 
             elif config.get("__is_set", {}).get("subtensor.network"):
-                evaluated_network, evaluated_endpoint = subtensor.determine_chain_endpoint_and_network( config.subtensor.network )
+                (
+                    evaluated_network,
+                    evaluated_endpoint,
+                ) = subtensor.determine_chain_endpoint_and_network(
+                    config.subtensor.network
+                )
 
             elif config.subtensor.get("chain_endpoint"):
-                evaluated_network, evaluated_endpoint = subtensor.determine_chain_endpoint_and_network( config.subtensor.chain_endpoint )
+                (
+                    evaluated_network,
+                    evaluated_endpoint,
+                ) = subtensor.determine_chain_endpoint_and_network(
+                    config.subtensor.chain_endpoint
+                )
 
             elif config.subtensor.get("network"):
-                evaluated_network, evaluated_endpoint = subtensor.determine_chain_endpoint_and_network( config.subtensor.network )
+                (
+                    evaluated_network,
+                    evaluated_endpoint,
+                ) = subtensor.determine_chain_endpoint_and_network(
+                    config.subtensor.network
+                )
 
             else:
-                evaluated_network, evaluated_endpoint = subtensor.determine_chain_endpoint_and_network( bittensor.defaults.subtensor.network )
+                (
+                    evaluated_network,
+                    evaluated_endpoint,
+                ) = subtensor.determine_chain_endpoint_and_network(
+                    bittensor.defaults.subtensor.network
+                )
 
-        return bittensor.utils.networking.get_formatted_ws_endpoint_url( evaluated_endpoint ), evaluated_network
+        return (
+            bittensor.utils.networking.get_formatted_ws_endpoint_url(
+                evaluated_endpoint
+            ),
+            evaluated_network,
+        )
 
     def __init__(
         self,
@@ -223,7 +264,7 @@ class subtensor:
         self.config = copy.deepcopy(config)
 
         # Setup config.subtensor.network and config.subtensor.chain_endpoint
-        self.chain_endpoint, self.network = subtensor.setup_config( network, config )
+        self.chain_endpoint, self.network = subtensor.setup_config(network, config)
 
         # Returns a mocked connection with a background chain connection.
         self.config.subtensor._mock = (
@@ -242,7 +283,6 @@ class subtensor:
             url=self.chain_endpoint,
             type_registry=bittensor.__type_registry__,
         )
-
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
@@ -682,7 +722,7 @@ class subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
-    
+
     def set_hyperparameter(
         self,
         wallet: "bittensor.wallet",
@@ -1154,7 +1194,7 @@ class subtensor:
             )
 
         return proposals
-    
+
     ##############
     #### Root ####
     ##############
@@ -1174,7 +1214,7 @@ class subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
-    
+
     def _do_root_register(
         self,
         wallet: "bittensor.wallet",
@@ -1208,7 +1248,7 @@ class subtensor:
             # Successful registration
             else:
                 return True, None
-            
+
     def root_set_weights(
         self,
         wallet: "bittensor.wallet",
@@ -1394,7 +1434,7 @@ class subtensor:
         rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
 
         obj = rpc_runtime_config.create_scale_object(return_type, as_scale_bytes)
-        if obj.data.to_hex() == "0x0400": # RPC returned None result
+        if obj.data.to_hex() == "0x0400":  # RPC returned None result
             return None
 
         return obj.decode()
@@ -1834,7 +1874,7 @@ class subtensor:
             return None
 
         return SubnetInfo.from_vec_u8(result)
-    
+
     def get_subnet_hyperparameters(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[SubnetInfo]:
@@ -1857,8 +1897,10 @@ class subtensor:
             return None
 
         return SubnetHyperparameters.from_vec_u8(result)
-    
-    def get_subnet_owner(self, netuid: int, block: Optional[int] = None) -> Optional[str]:
+
+    def get_subnet_owner(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[str]:
         return self.query_subtensor("SubnetOwner", block, [netuid]).value
 
     ####################

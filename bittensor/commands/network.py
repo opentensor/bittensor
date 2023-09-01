@@ -26,6 +26,7 @@ from .utils import get_delegates_details, DelegatesDetails, check_netuid_set
 
 console = bittensor.__console__
 
+
 class RegisterSubnetworkCommand:
     @staticmethod
     def run(cli):
@@ -86,6 +87,7 @@ class SubnetLockCostCommand:
 
         bittensor.subtensor.add_args(parser)
 
+
 class SubnetListCommand:
     @staticmethod
     def run(cli):
@@ -95,10 +97,10 @@ class SubnetListCommand:
 
         rows = []
         total_neurons = 0
-        delegate_info: Optional[
-            Dict[str, DelegatesDetails]
-        ] = get_delegates_details(url=bittensor.__delegates_details_url__)
-        
+        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
+            url=bittensor.__delegates_details_url__
+        )
+
         for subnet in subnets:
             total_neurons += subnet.max_n
             rows.append(
@@ -110,7 +112,7 @@ class SubnetListCommand:
                     str(subnet.tempo),
                     f"{subnet.burn!s:8.8}",
                     str(bittensor.utils.formatting.millify(subnet.difficulty)),
-                    f"{delegate_info[subnet.owner_ss58].name if subnet.owner_ss58 in delegate_info else subnet.owner_ss58}"
+                    f"{delegate_info[subnet.owner_ss58].name if subnet.owner_ss58 in delegate_info else subnet.owner_ss58}",
                 )
             )
         table = Table(
@@ -146,12 +148,16 @@ class SubnetListCommand:
         bittensor.__console__.print(table)
 
     @staticmethod
-    def check_config(config: "bittensor.config"): pass
+    def check_config(config: "bittensor.config"):
+        pass
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        list_subnets_parser = parser.add_parser("list", help="""List all subnets on the network""")
+        list_subnets_parser = parser.add_parser(
+            "list", help="""List all subnets on the network"""
+        )
         bittensor.subtensor.add_args(list_subnets_parser)
+
 
 HYPERPARAMS = {
     "serving_rate_limit": "sudo_set_serving_rate_limit",
@@ -173,6 +179,7 @@ HYPERPARAMS = {
     "max_regs_per_block": "sudo_set_max_registrations_per_block",
 }
 
+
 class SubnetSudoCommand:
     @staticmethod
     def run(cli):
@@ -180,7 +187,7 @@ class SubnetSudoCommand:
         config = cli.config.copy()
         wallet = bittensor.wallet(config=cli.config)
         subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
-        print ('\n')
+        print("\n")
         SubnetHyperparamsCommand.run(cli)
         if not config.is_set("param") and not config.no_prompt:
             param = Prompt.ask("Enter hyperparameter", choices=HYPERPARAMS)
@@ -190,11 +197,11 @@ class SubnetSudoCommand:
             config.value = value
 
         subtensor.set_hyperparameter(
-            wallet, 
-            netuid=cli.config.netuid, 
+            wallet,
+            netuid=cli.config.netuid,
             parameter=config.param,
             value=config.value,
-            prompt=not cli.config.no_prompt
+            prompt=not cli.config.no_prompt,
         )
 
     @staticmethod
@@ -206,30 +213,28 @@ class SubnetSudoCommand:
         if not config.is_set("netuid") and not config.no_prompt:
             check_netuid_set(config, bittensor.subtensor(config=config))
 
-
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         parser = parser.add_parser("set", help="""Set hyperparameters for a subnet""")
         parser.add_argument(
             "--netuid", dest="netuid", type=int, required=False, default=False
         )
-        parser.add_argument(
-            "--param", dest="param", type=str, required=False
-        )
-        parser.add_argument(
-            "--value", dest="value", type=str, required=False
-        )
+        parser.add_argument("--param", dest="param", type=str, required=False)
+        parser.add_argument("--value", dest="value", type=str, required=False)
 
         bittensor.wallet.add_args(parser)
         bittensor.subtensor.add_args(parser)
+
 
 class SubnetHyperparamsCommand:
     @staticmethod
     def run(cli):
         r"""View hyperparameters of a subnetwork."""
         subtensor = bittensor.subtensor(config=cli.config)
-        subnet: bittensor.SubnetInfo = subtensor.get_subnet_hyperparameters(cli.config.netuid)
-        
+        subnet: bittensor.SubnetInfo = subtensor.get_subnet_hyperparameters(
+            cli.config.netuid
+        )
+
         table = Table(
             show_footer=True,
             width=cli.config.get("width", None),
@@ -237,13 +242,15 @@ class SubnetHyperparamsCommand:
             box=None,
             show_edge=True,
         )
-        table.title = "[white]Subnet Hyperparameters - NETUID: {} - {}".format(cli.config.netuid, subtensor.network)
+        table.title = "[white]Subnet Hyperparameters - NETUID: {} - {}".format(
+            cli.config.netuid, subtensor.network
+        )
         table.add_column("[overline white]HYPERPARAMETER", style="bold white")
         table.add_column("[overline white]VALUE", style="green")
 
         for param in subnet.__dict__:
             table.add_row("  " + param, str(subnet.__dict__[param]))
-        
+
         bittensor.__console__.print(table)
 
     @staticmethod
@@ -253,7 +260,9 @@ class SubnetHyperparamsCommand:
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        parser = parser.add_parser("hyperparameters", help="""View subnet hyperparameters""")
+        parser = parser.add_parser(
+            "hyperparameters", help="""View subnet hyperparameters"""
+        )
         parser.add_argument(
             "--netuid", dest="netuid", type=int, required=False, default=False
         )
@@ -265,8 +274,10 @@ class SubnetGetHyperparamsCommand:
     def run(cli):
         r"""View hyperparameters of a subnetwork."""
         subtensor = bittensor.subtensor(config=cli.config)
-        subnet: bittensor.SubnetInfo = subtensor.get_subnet_hyperparameters(cli.config.netuid)
-        
+        subnet: bittensor.SubnetInfo = subtensor.get_subnet_hyperparameters(
+            cli.config.netuid
+        )
+
         table = Table(
             show_footer=True,
             width=cli.config.get("width", None),
@@ -274,13 +285,15 @@ class SubnetGetHyperparamsCommand:
             box=None,
             show_edge=True,
         )
-        table.title = "[white]Subnet Hyperparameters - NETUID: {} - {}".format(cli.config.netuid, subtensor.network)
+        table.title = "[white]Subnet Hyperparameters - NETUID: {} - {}".format(
+            cli.config.netuid, subtensor.network
+        )
         table.add_column("[overline white]HYPERPARAMETER", style="white")
         table.add_column("[overline white]VALUE", style="green")
 
         for param in subnet.__dict__:
             table.add_row(param, str(subnet.__dict__[param]))
-        
+
         bittensor.__console__.print(table)
 
     @staticmethod

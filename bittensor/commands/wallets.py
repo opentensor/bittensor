@@ -402,7 +402,6 @@ class NewColdkeyCommand:
         bittensor.subtensor.add_args(new_coldkey_parser)
 
 
-
 class WalletCreateCommand:
     def run(cli):
         r"""Creates a new coldkey and hotkey under this wallet."""
@@ -413,9 +412,9 @@ class WalletCreateCommand:
             overwrite=cli.config.overwrite_coldkey,
         )
         wallet.create_new_hotkey(
-            n_words = cli.config.n_words,
-            use_password = False,
-            overwrite = cli.config.overwrite_hotkey,
+            n_words=cli.config.n_words,
+            use_password=False,
+            overwrite=cli.config.overwrite_hotkey,
         )
 
     @staticmethod
