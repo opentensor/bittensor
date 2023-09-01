@@ -566,7 +566,6 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
                 headers[f"bt_header_dict_tensor_{field}"] = str(serialized_dict_tensor)
 
             elif required and field in required:
-                bittensor.logging.trace(f"Serializing {field} with json...")
                 try:
                     serialized_value = json.dumps(value)
                     encoded_value = base64.b64encode(serialized_value.encode()).decode(
@@ -670,7 +669,6 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
                     continue
             # Handle 'input_obj' headers
             elif "bt_header_input_obj" in key:
-                bittensor.logging.trace(f"Deserializing {key} with json...")
                 try:
                     new_key = key.split("bt_header_input_obj_")[1]
                     # Skip if the key already exists in the dictionary
