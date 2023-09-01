@@ -36,7 +36,7 @@ console = bittensor.__console__
 
 class OverviewCommand:
     @staticmethod
-    def run(cli):
+    def run(cli: 'bittensor.cli'):
         r"""Prints an overview for the wallet's colkey."""
         console = bittensor.__console__
         wallet = bittensor.wallet(config=cli.config)
@@ -116,12 +116,18 @@ class OverviewCommand:
             }
             all_hotkey_addresses = list(hotkey_addr_to_wallet.keys())
 
+            # Create a copy of the config without the parser and formatter_class.
+            ## This is needed to pass to the ProcessPoolExecutor, which cannot pickle the parser.
+            copy_config = cli.config.copy()
+            copy_config['__parser'] = None
+            copy_config['formatter_class'] = None
+
             # Pull neuron info for all keys.
             ## Max len(netuids) or 5 threads.
             with ProcessPoolExecutor(max_workers=max(len(netuids), 5)) as executor:
                 results = executor.map(
                     OverviewCommand._get_neurons_for_netuid,
-                    [(cli.config, netuid, all_hotkey_addresses) for netuid in netuids],
+                    [(copy_config, netuid, all_hotkey_addresses) for netuid in netuids],
                 )
                 executor.shutdown(wait=True)  # wait for all complete
 
@@ -418,13 +424,6 @@ class OverviewCommand:
             "overview", help="""Show registered account overview."""
         )
         overview_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
-        overview_parser.add_argument(
             "--all",
             dest="all",
             action="store_true",
@@ -486,12 +485,6 @@ class OverviewCommand:
             nargs="*",
             help="""Set the netuid(s) to filter by.""",
             default=[],
-        )
-        overview_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
         )
         bittensor.wallet.add_args(overview_parser)
         bittensor.subtensor.add_args(overview_parser)

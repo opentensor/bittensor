@@ -32,23 +32,13 @@ $ pip3 install bittensor
 ```
 3. From source:
 ```bash
-$ git clone --recurse-submodules https://github.com/opentensor/bittensor.git
+$ git clone https://github.com/opentensor/bittensor.git
 $ python3 -m pip install -e bittensor/
 ```
 4. Using Conda (recommended for **Apple M1**):
 ```bash
 $ conda env create -f ~/.bittensor/bittensor/scripts/environments/apple_m1_environment.yml
 $ conda activate bittensor
-```
-
-To sync the submodules bittensor-wallet and bittensor-config:
-```bash
-cd bittensor/
-
-git submodule sync && git submodule update --init
-
-# Reinstall with updated submodules
-python3 -m pip install -e .
 ```
 
 To test your installation, type:
