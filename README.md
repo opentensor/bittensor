@@ -50,10 +50,6 @@ or using python
 import bittensor as bt
 ```
 
-> Note: If you see a `DeprecationWarning: pkg_resources is deprecated as an API` warning when calling `btcli`, this is due to an issue with pip internally calling a deprecated codepath for editable `-e` installs.
-To make this warning disappear, install `bittensor` with the `use-pip517` argument:
-`python3 -m pip install -e bittensor/ --use-pep517`
-
 # Wallets 
 
 Wallets are the core ownership and identity technology around which all functions on Bittensor are carried out. Bittensor wallets consists of a coldkey and hotkey where the coldkey may contain many hotkeys, while each hotkey can only belong to a single coldkey. Coldkeys store funds securely, and operate functions such as transfers and staking, while hotkeys are used for all online operations such as signing queries, running miners and validating. 
