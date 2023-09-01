@@ -71,7 +71,7 @@ COMMANDS = {
             "delegate": DelegateStakeCommand,
             "undelegate": DelegateUnstakeCommand,
             "my_delegates": MyDelegatesCommand,
-        }
+        },
     },
     "wallet": {
         "name": "wallet",

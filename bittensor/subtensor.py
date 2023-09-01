@@ -16,6 +16,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import time
 import os
 import copy
 import torch
@@ -388,9 +389,9 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
-        with self.substrate as substrate:
-            try:
-                with bittensor.timeout(12, "set_weights", locals()):
+        try:
+            with bittensor.timeout(20):
+                with self.substrate as substrate:
                     call = substrate.compose_call(
                         call_module="SubtensorModule",
                         call_function="set_weights",
@@ -420,8 +421,11 @@ class subtensor:
                 else:
                     return False, response.error_message
 
-            except bittensor.TimeoutException as e:
-                return False, str(e)
+        except TimeoutError:
+            return False, "Substrate set_weights call timeout."
+
+        except Exception as e:
+            return False, str(e)
 
     ######################
     #### Registration ####
