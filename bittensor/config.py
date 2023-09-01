@@ -152,7 +152,6 @@ class config(DefaultMunch):
         params = config.__parse_args__(args=args, parser=parser, strict=strict)
 
         _config = self
-        _config["__parser"] = parser
 
         # Splits params and add to config
         config.__split_params__(params=params, _config=_config)
@@ -197,7 +196,7 @@ class config(DefaultMunch):
                             for action in cmd_parser._subparsers._actions:
                                 # Should only be the "command" subparser action
                                 if isinstance(action, argparse._SubParsersAction):
-                                    cmd_parser: ArgumentParser
+                                    cmd_parser: argparse.ArgumentParser
                                     for cmd_parser in action.choices.values():
                                         cmd_parser.set_defaults(**defaults_as_suppress)
                                         cmd_parser._defaults.clear()  # Needed for quirk of argparse

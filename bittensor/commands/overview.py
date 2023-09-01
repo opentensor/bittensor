@@ -36,7 +36,7 @@ console = bittensor.__console__
 
 class OverviewCommand:
     @staticmethod
-    def run(cli):
+    def run(cli: 'bittensor.cli'):
         r"""Prints an overview for the wallet's colkey."""
         console = bittensor.__console__
         wallet = bittensor.wallet(config=cli.config)
@@ -116,12 +116,18 @@ class OverviewCommand:
             }
             all_hotkey_addresses = list(hotkey_addr_to_wallet.keys())
 
+            # Create a copy of the config without the parser and formatter_class.
+            ## This is needed to pass to the ProcessPoolExecutor, which cannot pickle the parser.
+            copy_config = cli.config.copy()
+            copy_config['__parser'] = None
+            copy_config['formatter_class'] = None
+
             # Pull neuron info for all keys.
             ## Max len(netuids) or 5 threads.
             with ProcessPoolExecutor(max_workers=max(len(netuids), 5)) as executor:
                 results = executor.map(
                     OverviewCommand._get_neurons_for_netuid,
-                    [(cli.config, netuid, all_hotkey_addresses) for netuid in netuids],
+                    [(copy_config, netuid, all_hotkey_addresses) for netuid in netuids],
                 )
                 executor.shutdown(wait=True)  # wait for all complete
 

@@ -70,7 +70,8 @@ COMMANDS = {
             "proposals": ProposalsCommand,
             "delegate": DelegateStakeCommand,
             "undelegate": DelegateUnstakeCommand,
-        },
+            "my_delegates": MyDelegatesCommand,
+        }
     },
     "wallet": {
         "name": "wallet",
@@ -88,7 +89,6 @@ COMMANDS = {
             "regen_coldkey": RegenColdkeyCommand,
             "regen_coldkeypub": RegenColdkeypubCommand,
             "regen_hotkey": RegenHotkeyCommand,
-            "my_delegates": MyDelegatesCommand,
             "faucet": RunFaucetCommand,
         },
     },
@@ -196,7 +196,7 @@ class cli:
                     help=command["help"],
                 )
                 subparser = subcmd_parser.add_subparsers(
-                    help=command["help"], dest="subcommand"
+                    help=command["help"], dest="subcommand", required=True
                 )
 
                 for subcommand in command["commands"].values():
@@ -241,19 +241,18 @@ class cli:
             command_data = COMMANDS[command]
 
             if isinstance(command_data, dict):
-                if config["subcommand"] == None:
-                    # This probably isn't the best solution, refactor
-                    for action in config["__parser"]._subparsers._actions:
-                        if action.dest == "command" and action.choices[command]:
-                            action.choices[command].print_help()
-                            sys.exit()
-
-                command_data["commands"][config["subcommand"]].check_config(config)
+                if config["subcommand"] != None:
+                    command_data["commands"][config["subcommand"]].check_config(config)
+                else:
+                    console.print(
+                        f":cross_mark:[red]Missing subcommand for: {config.command}[/red]"
+                    )
+                    sys.exit(1)
             else:
                 command_data.check_config(config)
         else:
             console.print(f":cross_mark:[red]Unknown command: {config.command}[/red]")
-            sys.exit()
+            sys.exit(1)
 
     def run(self):
         """
