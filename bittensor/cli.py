@@ -243,8 +243,11 @@ class cli:
             if isinstance(command_data, dict):
                 if config["subcommand"] != None:
                     command_data["commands"][config["subcommand"]].check_config(config)
+                    return
             else:
                 command_data.check_config(config)
+                return
+
         console.print(f":cross_mark:[red]Unknown command: {config.command}[/red]")
         sys.exit(1)
 
