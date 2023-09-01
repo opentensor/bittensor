@@ -152,7 +152,6 @@ class config(DefaultMunch):
         params = config.__parse_args__(args=args, parser=parser, strict=strict)
 
         _config = self
-        _config["__parser"] = parser
 
         # Splits params and add to config
         config.__split_params__(params=params, _config=_config)
