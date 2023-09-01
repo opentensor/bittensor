@@ -11,7 +11,7 @@ munch==2.5.0
 netaddr
 numpy
 msgpack
-msgpack_numpy
+git+https://github.com/opentensor/msgpack-numpy.git#egg=msgpack-numpy
 nest_asyncio
 pycryptodome>=3.18.0,<4.0.0
 pyyaml

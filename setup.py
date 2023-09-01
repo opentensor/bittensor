@@ -26,22 +26,46 @@ import pathlib
 import subprocess
 
 
+class SubmoduleSyncError(Exception):
+    pass
+
+
 def sync_and_update_submodules():
     try:
         print("Synchronizing and updating submodules...")
-        subprocess.check_call(['git', 'submodule', 'sync'])
-        subprocess.check_call(['git', 'submodule', 'update', '--init'])
+        subprocess.check_call(["git", "submodule", "sync"])
+        subprocess.check_call(["git", "submodule", "update", "--init"])
     except subprocess.CalledProcessError:
-        print("Error synchronizing or updating submodules. Please ensure you have git installed and are in the root directory of the repository.")
-        raise
+        print(
+            "Error synchronizing or updating submodules. Please ensure you have git installed and are in the root directory of the repository."
+        )
+        raise SubmoduleSyncError(
+            "An error occurred while synchronizing or updating submodules."
+        )
 
-sync_and_update_submodules()
+
+try:
+    sync_and_update_submodules()
+except SubmoduleSyncError as e:
+    print(f"Submodule synchronization error: {e}")
+
 
 def read_requirements(path):
+    requirements = []
+    git_requirements = []
+
     with pathlib.Path(path).open() as requirements_txt:
-        return [
-            str(requirement) for requirement in parse_requirements(requirements_txt)
-        ]
+        for line in requirements_txt:
+            if line.startswith("git+"):
+                git_requirements.append(line.strip())
+            else:
+                requirements.append(line.strip())
+
+    # Install git dependencies
+    for git_req in git_requirements:
+        subprocess.check_call(["pip", "install", git_req])
+
+    return requirements
 
 
 requirements = read_requirements("requirements/prod.txt")
