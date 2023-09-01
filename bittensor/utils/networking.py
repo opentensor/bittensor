@@ -28,6 +28,8 @@ import requests
 from loguru import logger
 from retry import retry
 
+from .timeout import timeout, TimeoutException
+
 
 def int_to_ip(int_val: int) -> str:
     r"""Maps an integer to a unique ip-string

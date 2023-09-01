@@ -401,24 +401,24 @@ class subtensor:
                             "version_key": version_key,
                         },
                     )
-            # Period dictates how long the extrinsic will stay as part of waiting pool
-            extrinsic = substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.hotkey, era={"period": 100}
-            )
-            response = substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True, None
+                # Period dictates how long the extrinsic will stay as part of waiting pool
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.hotkey, era={"period": 100}
+                )
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True, None
 
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
+                response.process_events()
+                if response.is_success:
+                    return True, None
+                else:
+                    return False, response.error_message
 
             except bittensor.TimeoutException as e:
                 return False, str(e)
