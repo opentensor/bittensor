@@ -70,6 +70,7 @@ COMMANDS = {
             "proposals": ProposalsCommand,
             "delegate": DelegateStakeCommand,
             "undelegate": DelegateUnstakeCommand,
+            "my_delegates": MyDelegatesCommand,
         }
     },
     "wallet": {
@@ -88,7 +89,6 @@ COMMANDS = {
             "regen_coldkey": RegenColdkeyCommand,
             "regen_coldkeypub": RegenColdkeypubCommand,
             "regen_hotkey": RegenHotkeyCommand,
-            "my_delegates": MyDelegatesCommand,
             "faucet": RunFaucetCommand,
         }
     },
