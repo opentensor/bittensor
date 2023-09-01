@@ -24,9 +24,29 @@ from .commands import *
 # Create a console instance for CLI display.
 console = bittensor.__console__
 
+ALIAS_TO_COMMAND = {
+    "subnets": "subnets",
+    "root": "root",
+    "wallet": "wallet",
+    "stake": "stake",
+    "sudo": "sudo",
+    "legacy": "legacy",
+    "s": "subnets",
+    "r": "root",
+    "w": "wallet",
+    "st": "stake",
+    "su": "sudo",
+    "l": "legacy",
+    "subnet": "subnets",
+    "roots": "root",
+    "wallets": "wallet",
+    "stakes": "stake",
+    "sudos": "sudo",
+}
 COMMANDS = {
     "subnets": {
-        "name": "subnets",
+        "name": "subnets", 
+        "aliases": ["s", "subnet"],
         "help": "Commands for managing and viewing subnetworks.",
         "commands": {
             "list": SubnetListCommand,
@@ -40,6 +60,7 @@ COMMANDS = {
     },
     "root": {
         "name": "root",
+        "aliases": ["r", "roots"],
         "help": "Commands for managing and viewing the root network.",
         "commands": {
             "list": RootList,
@@ -53,6 +74,7 @@ COMMANDS = {
     },
     "wallet": {
         "name": "wallet",
+        "aliases": ["w", "wallets"],
         "help": "Commands for managing and viewing wallets.",
         "commands": {
             "list": ListCommand,
@@ -72,6 +94,7 @@ COMMANDS = {
     },
     "stake": {
         "name": "stake",
+        "aliases": ["st", "stakes"],
         "help": "Commands for staking and removing stake from hotkey accounts.",
         "commands": {
             "show": StakeShow,
@@ -81,14 +104,17 @@ COMMANDS = {
     },
     "sudo": {
         "name": "sudo",
+        "aliases": ["su", "sudos"],
         "help": "Commands for subnet management",
         "commands": {
-            # "dissolve": None,
-            "set": SubnetSudoCommand
-        },
+            #"dissolve": None,
+            "set": SubnetSudoCommand,
+            "get": SubnetGetHyperparamsCommand
+        }
     },
     "legacy": {
         "name": "misc",
+        "aliases": ["l"],
         "help": "Miscellaneous commands.",
         "commands": {
             "update": UpdateCommand,
@@ -124,6 +150,11 @@ class cli:
             config = cli.create_config(args)
 
         self.config = config
+        if self.config.command in ALIAS_TO_COMMAND:
+            self.config.command = ALIAS_TO_COMMAND[ self.config.command ]
+        else:
+            console.print(f":cross_mark:[red]Unknown command: {self.config.command}[/red]")
+            sys.exit()
 
         # Check if the config is valid.
         cli.check_config(self.config)
@@ -157,12 +188,8 @@ class cli:
         # Add argument parsers for all available commands.
         for command in COMMANDS.values():
             if isinstance(command, dict):
-                subcmd_parser = cmd_parsers.add_parser(
-                    name=command["name"], help=command["help"]
-                )
-                subparser = subcmd_parser.add_subparsers(
-                    help=command["help"], dest="subcommand"
-                )
+                subcmd_parser = cmd_parsers.add_parser(name=command["name"], aliases = command['aliases'], help=command["help"])
+                subparser = subcmd_parser.add_subparsers(help=command["help"], dest="subcommand")
 
                 for subcommand in command["commands"].values():
                     subcommand.add_args(subparser)

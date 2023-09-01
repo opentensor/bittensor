@@ -18,6 +18,7 @@
 import sys
 import re
 import torch
+import typing
 import argparse
 import bittensor
 from typing import List
@@ -48,17 +49,6 @@ class RootRegisterCommand:
 
     @staticmethod
     def check_config(config: "bittensor.config"):
-        if (
-            not config.is_set("subtensor.network")
-            and not config.is_set("subtensor.chain_endpoint")
-            and not config.no_prompt
-        ):
-            config.subtensor.network = Prompt.ask(
-                "Enter subtensor network",
-                choices=bittensor.__networks__,
-                default=defaults.subtensor.network,
-            )
-
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -85,16 +75,7 @@ class RootList:
 
     @staticmethod
     def check_config(config: "bittensor.config"):
-        if (
-            not config.is_set("subtensor.network")
-            and not config.is_set("subtensor.chain_endpoint")
-            and not config.no_prompt
-        ):
-            config.subtensor.network = Prompt.ask(
-                "Enter subtensor network",
-                choices=bittensor.__networks__,
-                default=defaults.subtensor.network,
-            )
+        pass
 
 
 class RootSetWeightsCommand:
@@ -158,17 +139,6 @@ class RootSetWeightsCommand:
 
     @staticmethod
     def check_config(config: "bittensor.config"):
-        if (
-            not config.is_set("subtensor.network")
-            and not config.is_set("subtensor.chain_endpoint")
-            and not config.no_prompt
-        ):
-            config.subtensor.network = Prompt.ask(
-                "Enter subtensor network",
-                choices=bittensor.__networks__,
-                default=defaults.subtensor.network,
-            )
-
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)

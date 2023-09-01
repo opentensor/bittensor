@@ -94,11 +94,5 @@ from .senate import (
     SenateLeaveCommand,
     VoteCommand,
 )
-from .network import (
-    RegisterSubnetworkCommand,
-    SubnetLockCostCommand,
-    SubnetListCommand,
-    SubnetSudoCommand,
-    SubnetHyperparamsCommand,
-)
+from .network import RegisterSubnetworkCommand, SubnetLockCostCommand, SubnetListCommand, SubnetSudoCommand, SubnetHyperparamsCommand, SubnetGetHyperparamsCommand
 from .root import RootRegisterCommand, RootList, RootSetWeightsCommand

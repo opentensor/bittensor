@@ -412,9 +412,9 @@ class WalletCreateCommand:
             overwrite=cli.config.overwrite_coldkey,
         )
         wallet.create_new_hotkey(
-            n_words=cli.config.n_words,
-            use_password=cli.config.use_password,
-            overwrite=cli.config.overwrite_hotkey,
+            n_words = cli.config.n_words,
+            use_password = False,
+            overwrite = cli.config.overwrite_hotkey,
         )
 
     @staticmethod
