@@ -413,7 +413,7 @@ class WalletCreateCommand:
         )
         wallet.create_new_hotkey(
             n_words=cli.config.n_words,
-            use_password=cli.config.use_password,
+            use_password=False,
             overwrite=cli.config.overwrite_hotkey,
         )
 

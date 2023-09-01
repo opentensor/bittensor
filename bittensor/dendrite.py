@@ -314,6 +314,7 @@ class dendrite(torch.nn.Module):
         Returns:
             bt.Synapse: The preprocessed synapse.
         """
+        bt.logging.trace("Pre-process synapse for request")
 
         # Set the timeout for the synapse
         synapse.timeout = str(timeout)
@@ -359,6 +360,8 @@ class dendrite(torch.nn.Module):
         Raises:
             None, but errors in attribute setting are silently ignored.
         """
+        bt.logging.trace("Postprocess server response")
+
         # Check if the server responded with a successful status code
         if server_response.status == 200:
             # If the response is successful, overwrite local synapse state with

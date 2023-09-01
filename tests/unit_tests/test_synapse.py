@@ -14,8 +14,8 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import json
 import torch
-import pickle
 import base64
 import typing
 import pytest
@@ -31,9 +31,9 @@ def test_parse_headers_to_inputs():
     headers = {
         "bt_header_axon_nonce": "111",
         "bt_header_dendrite_ip": "12.1.1.2",
-        "bt_header_input_obj_key1": base64.b64encode(pickle.dumps([1, 2, 3, 4])).decode(
-            "utf-8"
-        ),
+        "bt_header_input_obj_key1": base64.b64encode(
+            json.dumps([1, 2, 3, 4]).encode("utf-8")
+        ).decode("utf-8"),
         "bt_header_tensor_key2": "[3]-torch.float32",
         "timeout": "12",
         "name": "Test",
@@ -66,9 +66,9 @@ def test_from_headers():
     headers = {
         "bt_header_axon_nonce": "111",
         "bt_header_dendrite_ip": "12.1.1.2",
-        "bt_header_input_obj_key1": base64.b64encode(pickle.dumps([1, 2, 3, 4])).decode(
-            "utf-8"
-        ),
+        "bt_header_input_obj_key1": base64.b64encode(
+            json.dumps([1, 2, 3, 4]).encode("utf-8")
+        ).decode("utf-8"),
         "bt_header_tensor_key2": "[3]-torch.float32",
         "timeout": "12",
         "name": "Test",

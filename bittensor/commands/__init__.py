@@ -100,5 +100,6 @@ from .network import (
     SubnetListCommand,
     SubnetSudoCommand,
     SubnetHyperparamsCommand,
+    SubnetGetHyperparamsCommand,
 )
 from .root import RootRegisterCommand, RootList, RootSetWeightsCommand

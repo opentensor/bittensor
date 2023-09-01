@@ -18,7 +18,8 @@
 
 import ast
 import sys
-import pickle
+import torch
+import json
 import base64
 import typing
 import hashlib
@@ -565,9 +566,17 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
                 headers[f"bt_header_dict_tensor_{field}"] = str(serialized_dict_tensor)
 
             elif required and field in required:
-                serialized_value = pickle.dumps(value)
-                encoded_value = base64.b64encode(serialized_value).decode("utf-8")
-                headers[f"bt_header_input_obj_{field}"] = encoded_value
+                bittensor.logging.trace(f"Serializing {field} with json...")
+                try:
+                    serialized_value = json.dumps(value)
+                    encoded_value = base64.b64encode(serialized_value.encode()).decode(
+                        "utf-8"
+                    )
+                    headers[f"bt_header_input_obj_{field}"] = encoded_value
+                except TypeError as e:
+                    raise ValueError(
+                        f"Error serializing {field} with value {value}. Objects must be json serializable."
+                    ) from e
 
         # Adding the size of the headers and the total size to the headers
         headers["header_size"] = str(sys.getsizeof(headers))
@@ -661,15 +670,21 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
                     continue
             # Handle 'input_obj' headers
             elif "bt_header_input_obj" in key:
+                bittensor.logging.trace(f"Deserializing {key} with json...")
                 try:
                     new_key = key.split("bt_header_input_obj_")[1]
                     # Skip if the key already exists in the dictionary
                     if new_key in inputs_dict:
                         continue
                     # Decode and load the serialized object
-                    inputs_dict[new_key] = pickle.loads(
-                        base64.b64decode(value.encode("utf-8"))
+                    inputs_dict[new_key] = json.loads(
+                        base64.b64decode(value.encode()).decode("utf-8")
                     )
+                except json.JSONDecodeError as e:
+                    bittensor.logging.error(
+                        f"Error while json decoding 'input_obj' header {key}: {e}"
+                    )
+                    continue
                 except Exception as e:
                     bittensor.logging.error(
                         f"Error while parsing 'input_obj' header {key}: {e}"
