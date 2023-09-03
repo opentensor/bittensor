@@ -26,6 +26,7 @@ import hashlib
 import pydantic
 from pydantic.schema import schema
 import bittensor
+from abc import abstractproperty
 from typing import Optional, List, Any
 
 
@@ -335,7 +336,25 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
             raise AttributeError(
                 "body_hash property is read-only and cannot be overridden."
             )
+        if name == "required_hash_fields":
+            raise AttributeError(
+                "required_hash_fields property is read-only and cannot be overridden."
+            )
         super().__setattr__(name, value)
+
+    @property
+    def required_hash_fields(self) -> List[str]:
+        """
+        Get the list of required fields for the Synapse instance.
+
+        This method retrieves the list of required fields for the Synapse instance
+        by looking up the schema definition for the current class and returning the
+        list of required fields.
+
+        Returns:
+            List[str]: A list of required fields for the Synapse instance.
+        """
+        return []
 
     def get_total_size(self) -> int:
         """
@@ -373,23 +392,8 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
 
         # Iterating over the fields of the instance
         for field, value in instance_fields.items():
-            # If the object is not optional and non-null, add to the list of returned body fields
-            required = schema([self.__class__])["definitions"][self.name].get(
-                "required"
-            )
-            if (
-                required
-                and value != None
-                and field
-                not in [
-                    "name",
-                    "timeout",
-                    "total_size",
-                    "header_size",
-                    "dendrite",
-                    "axon",
-                ]
-            ):
+            # If the field is required in the subclass schema, add it.
+            if field in self.required_hash_fields:
                 fields.append(value)
 
         return fields
