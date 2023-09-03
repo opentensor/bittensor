@@ -192,7 +192,9 @@ class MetagraphCommand:
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        metagraph_parser = parser.add_parser("metagraph", help="""Metagraph commands""")
+        metagraph_parser = parser.add_parser(
+            "metagraph", help="""View a subnet metagraph information."""
+        )
         metagraph_parser.add_argument(
             "--netuid",
             dest="netuid",
@@ -200,17 +202,5 @@ class MetagraphCommand:
             help="""Set the netuid to get the metagraph of""",
             default=False,
         )
-        metagraph_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
-        metagraph_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
+
         bittensor.subtensor.add_args(metagraph_parser)

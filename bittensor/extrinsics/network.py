@@ -30,7 +30,7 @@ def register_subnetwork_extrinsic(
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
-    r"""Removes the wallet from chain for senate voting.
+    r"""Registers a new subnetwork
     Args:
         wallet (bittensor.wallet):
             bittensor wallet object.
@@ -99,5 +99,104 @@ def register_subnetwork_extrinsic(
             else:
                 bittensor.__console__.print(
                     f":white_heavy_check_mark: [green]Registered subnetwork with netuid: {response.triggered_events[1].value['event']['attributes'][0]}[/green]"
+                )
+                return True
+
+
+from ..commands.network import HYPERPARAMS
+
+
+def set_hyperparameter_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    netuid: int,
+    parameter: str,
+    value,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+    prompt: bool = False,
+) -> bool:
+    r"""Sets a hyperparameter for a specific subnetwork.
+    Args:
+        wallet (bittensor.wallet):
+            bittensor wallet object.
+        netuid (int):
+            Subnetwork uid.
+        parameter (str):
+            Hyperparameter name.
+        value (any):
+            New hyperparameter value.
+        wait_for_inclusion (bool):
+            If set, waits for the extrinsic to enter a block before returning true,
+            or returns false if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool):
+            If set, waits for the extrinsic to be finalized on the chain before returning true,
+            or returns false if the extrinsic fails to be finalized within the timeout.
+        prompt (bool):
+            If true, the call waits for confirmation from the user before proceeding.
+    Returns:
+        success (bool):
+            flag is true if extrinsic was finalized or included in the block.
+            If we did not wait for finalization / inclusion, the response is true.
+    """
+    if subtensor.get_subnet_owner(netuid) != wallet.coldkeypub.ss58_address:
+        bittensor.__console__.print(
+            ":cross_mark: [red]This wallet doesn't own the specified subnet.[/red]"
+        )
+        return False
+
+    wallet.coldkey  # unlock coldkey
+
+    extrinsic = HYPERPARAMS.get(parameter)
+    if extrinsic == None:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Invalid hyperparameter specified.[/red]"
+        )
+        return False
+
+    with bittensor.__console__.status(
+        f":satellite: Setting hyperparameter {parameter} to {value} on subnet: {netuid} ..."
+    ):
+        with subtensor.substrate as substrate:
+            extrinsic_params = substrate.get_metadata_call_function(
+                "SubtensorModule", extrinsic
+            )
+            value_argument = extrinsic_params["fields"][
+                len(extrinsic_params["fields"]) - 1
+            ]
+
+            # create extrinsic call
+            call = substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function=extrinsic,
+                call_params={"netuid": netuid, str(value_argument["name"]): value},
+            )
+            extrinsic = substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
+
+            # process if registration successful
+            response.process_events()
+            if not response.is_success:
+                bittensor.__console__.print(
+                    ":cross_mark: [red]Failed[/red]: error:{}".format(
+                        response.error_message
+                    )
+                )
+                time.sleep(0.5)
+
+            # Successful registration, final check for membership
+            else:
+                bittensor.__console__.print(
+                    f":white_heavy_check_mark: [green]Hyper parameter {parameter} changed to {value}[/green]"
                 )
                 return True

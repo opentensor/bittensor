@@ -17,12 +17,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from __future__ import annotations
+
 import asyncio
 import uvloop
 import uuid
 import time
 import torch
-import httpx
+import aiohttp
 import bittensor as bt
 from typing import Union, Optional, List
 
@@ -54,7 +56,7 @@ class dendrite(torch.nn.Module):
         >>> d( bt.axon(), bt.Synapse )
     """
 
-    def __init__(self, wallet: Optional[Union["bt.wallet", "bt.keypair"]] = None):
+    def __init__(self, wallet: Optional[Union[bt.wallet, bt.keypair]] = None):
         """
         Initializes the Dendrite object, setting up essential properties.
 
@@ -69,9 +71,6 @@ class dendrite(torch.nn.Module):
         # Unique identifier for the instance
         self.uuid = str(uuid.uuid1())
 
-        # HTTP client for making requests
-        self.client = httpx.AsyncClient()
-
         # Get the external IP
         self.external_ip = bt.utils.networking.get_external_ip()
 
@@ -82,8 +81,20 @@ class dendrite(torch.nn.Module):
 
         self.synapse_history: list = []
 
+        self._session: aiohttp.ClientSession = None
         # Force asyncio to use the uvloop created event loop. (Much faster)
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
+    @property
+    async def session(self) -> aiohttp.ClientSession:
+        if self._session is None:
+            self._session = aiohttp.ClientSession()
+        return self._session
+
+    async def close_session(self):
+        if self._session:
+            await self._session.close()
+            self._session = None
 
     def query(self, *args, **kwargs):
         """
@@ -112,9 +123,7 @@ class dendrite(torch.nn.Module):
 
     async def forward(
         self,
-        axons: Union[
-            List[Union["bt.AxonInfo", "bt.axon"]], Union["bt.AxonInfo", "bt.axon"]
-        ],
+        axons: Union[List[Union[bt.AxonInfo, bt.axon]], Union[bt.AxonInfo, bt.axon]],
         synapse: bt.Synapse = bt.Synapse(),
         timeout: float = 12,
         deserialize: bool = True,
@@ -187,7 +196,7 @@ class dendrite(torch.nn.Module):
 
     async def call(
         self,
-        target_axon: Union["bt.AxonInfo", "bt.axon"],
+        target_axon: Union[bt.AxonInfo, bt.axon],
         synapse: bt.Synapse = bt.Synapse(),
         timeout: float = 12.0,
         deserialize: bool = True,
@@ -233,12 +242,27 @@ class dendrite(torch.nn.Module):
             )
 
             # Make the HTTP POST request
-            json_response = await self.client.post(
-                url, headers=synapse.to_headers(), json=synapse.dict(), timeout=timeout
-            )
+            async with (await self.session).post(
+                url,
+                headers=synapse.to_headers(),
+                json=synapse.dict(),
+                timeout=timeout,
+            ) as response:
+                if (
+                    response.headers.get("Content-Type", "").lower()
+                    == "text/event-stream".lower()
+                ):  # identify streaming response
+                    bt.logging.trace("Streaming response detected.")
+                    await synapse.process_streaming_response(
+                        response
+                    )  # process the entire streaming response
+                    json_response = synapse.extract_response_json(response)
+                else:
+                    bt.logging.trace("Non-streaming response detected.")
+                    json_response = await response.json()
 
-            # Process the server response
-            self.process_server_response(json_response, synapse)
+                # Process the server response
+                self.process_server_response(response, json_response, synapse)
 
             # Set process time and log the response
             synapse.dendrite.process_time = str(time.time() - start_time)
@@ -246,12 +270,12 @@ class dendrite(torch.nn.Module):
                 f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.axon.status_code} | {synapse.axon.status_message}"
             )
 
-        except httpx.ConnectError as e:
+        except aiohttp.ClientConnectorError as e:
             synapse.dendrite.status_code = "503"
             synapse.dendrite.status_message = f"Service at {synapse.axon.ip}:{str(synapse.axon.port)}/{request_name} unavailable."
 
-        except httpx.TimeoutException as e:
-            synapse.dendrite.status_code = "406"
+        except asyncio.TimeoutError as e:
+            synapse.dendrite.status_code = "408"
             synapse.dendrite.status_message = f"Timedout after {timeout} seconds."
 
         except Exception as e:
@@ -276,7 +300,7 @@ class dendrite(torch.nn.Module):
 
     def preprocess_synapse_for_request(
         self,
-        target_axon_info: "bt.AxonInfo",
+        target_axon_info: bt.AxonInfo,
         synapse: bt.Synapse,
         timeout: float = 12.0,
     ) -> bt.Synapse:
@@ -293,6 +317,7 @@ class dendrite(torch.nn.Module):
         Returns:
             bt.Synapse: The preprocessed synapse.
         """
+        bt.logging.trace("Pre-process synapse for request")
 
         # Set the timeout for the synapse
         synapse.timeout = str(timeout)
@@ -323,24 +348,29 @@ class dendrite(torch.nn.Module):
 
         return synapse
 
-    def process_server_response(self, server_response, local_synapse: bt.Synapse):
+    def process_server_response(
+        self, server_response, json_response, local_synapse: bt.Synapse
+    ):
         """
         Processes the server response, updates the local synapse state with the
         server's state and merges headers set by the server.
 
         Args:
-            server_response (object): The response object from the server.
+            server_response (object): The aiohttp response object from the server.
+            json_response (dict): The parsed JSON response from the server.
             local_synapse (bt.Synapse): The local synapse object to be updated.
 
         Raises:
             None, but errors in attribute setting are silently ignored.
         """
+        bt.logging.trace("Postprocess server response")
+
         # Check if the server responded with a successful status code
-        if server_response.status_code == 200:
+        if server_response.status == 200:
             # If the response is successful, overwrite local synapse state with
             # server's state only if the protocol allows mutation. To prevent overwrites,
             # the protocol must set allow_mutation = False
-            server_synapse = local_synapse.__class__(**server_response.json())
+            server_synapse = local_synapse.__class__(**json_response)
             for key in local_synapse.dict().keys():
                 try:
                     # Set the attribute in the local synapse from the corresponding

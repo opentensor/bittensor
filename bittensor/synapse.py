@@ -18,7 +18,8 @@
 
 import ast
 import sys
-import pickle
+import torch
+import json
 import base64
 import typing
 import hashlib
@@ -236,6 +237,20 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
         validate_assignment = True
 
     def deserialize(self) -> "Synapse":
+        """
+        Deserializes the Synapse object.
+
+        This method is intended to be overridden by subclasses for custom deserialization logic.
+        In the context of the Synapse superclass, this method simply returns the instance itself.
+        When inheriting from this class, subclasses should provide their own implementation for
+        deserialization if specific deserialization behavior is desired.
+
+        By default, if a subclass does not provide its own implementation of this method, the
+        Synapse's deserialize method will be used, returning the object instance as-is.
+
+        Returns:
+            Synapse: The deserialized Synapse object. In this default implementation, it returns the object itself.
+        """
         return self
 
     @pydantic.root_validator(pre=True)
@@ -551,9 +566,16 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
                 headers[f"bt_header_dict_tensor_{field}"] = str(serialized_dict_tensor)
 
             elif required and field in required:
-                serialized_value = pickle.dumps(value)
-                encoded_value = base64.b64encode(serialized_value).decode("utf-8")
-                headers[f"bt_header_input_obj_{field}"] = encoded_value
+                try:
+                    serialized_value = json.dumps(value)
+                    encoded_value = base64.b64encode(serialized_value.encode()).decode(
+                        "utf-8"
+                    )
+                    headers[f"bt_header_input_obj_{field}"] = encoded_value
+                except TypeError as e:
+                    raise ValueError(
+                        f"Error serializing {field} with value {value}. Objects must be json serializable."
+                    ) from e
 
         # Adding the size of the headers and the total size to the headers
         headers["header_size"] = str(sys.getsizeof(headers))
@@ -653,9 +675,14 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
                     if new_key in inputs_dict:
                         continue
                     # Decode and load the serialized object
-                    inputs_dict[new_key] = pickle.loads(
-                        base64.b64decode(value.encode("utf-8"))
+                    inputs_dict[new_key] = json.loads(
+                        base64.b64decode(value.encode()).decode("utf-8")
                     )
+                except json.JSONDecodeError as e:
+                    bittensor.logging.error(
+                        f"Error while json decoding 'input_obj' header {key}: {e}"
+                    )
+                    continue
                 except Exception as e:
                     bittensor.logging.error(
                         f"Error while parsing 'input_obj' header {key}: {e}"
