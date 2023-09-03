@@ -113,11 +113,11 @@ class dendrite(torch.nn.Module):
         """
         try:
             loop = asyncio.get_event_loop()
-            return loop.run_until_complete(self.forward(*args, **kwargs))
+            return asyncio.create_task(self.forward(*args, **kwargs))
         except:
             new_loop = uvloop.new_event_loop()
             asyncio.set_event_loop(new_loop)
-            result = loop.run_until_complete(self.forward(*args, **kwargs))
+            result = asyncio.create_task(self.forward(*args, **kwargs))
             new_loop.close()
             return result
 
