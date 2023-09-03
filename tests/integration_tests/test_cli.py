@@ -76,7 +76,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
     @staticmethod
     def construct_config():
         parser = bittensor.cli.__create_parser__()
-        defaults = bittensor.config(parser=parser, args=["metagraph"])
+        defaults = bittensor.config(parser=parser)
         for command in bittensor.ALL_COMMANDS:
             defaults.merge(bittensor.config(parser=parser, args=[command]))
 
