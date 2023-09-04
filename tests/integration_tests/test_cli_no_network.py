@@ -302,10 +302,12 @@ class TestCLINoNetwork(unittest.TestCase):
 
     def test_btcli_help(self, _, __):
         with pytest.raises(SystemExit) as pytest_wrapped_e:
-            with patch("argparse.ArgumentParser._print_message", return_value=None) as mock_print_message:
+            with patch(
+                "argparse.ArgumentParser._print_message", return_value=None
+            ) as mock_print_message:
                 args = ["--help"]
                 bittensor.cli(args=args).run()
-        
+
         mock_print_message.assert_called_once()
 
         call_args = mock_print_message.call_args
@@ -316,7 +318,9 @@ class TestCLINoNetwork(unittest.TestCase):
         assert "positional arguments:" in help_out
 
         # Extract commands from the help text.
-        commands_section = re.search(r"positional arguments:.*?{(.+?)}", help_out, re.DOTALL).group(1)
+        commands_section = re.search(
+            r"positional arguments:.*?{(.+?)}", help_out, re.DOTALL
+        ).group(1)
         extracted_commands = [cmd.strip() for cmd in commands_section.split(",")]
 
         # Get expected commands
@@ -325,11 +329,14 @@ class TestCLINoNetwork(unittest.TestCase):
 
         # Validate each expected command is in extracted commands
         for command in expected_commands:
-            assert command in extracted_commands, f"Command {command} not found in help output"
+            assert (
+                command in extracted_commands
+            ), f"Command {command} not found in help output"
 
         # Check for duplicates
-        assert len(extracted_commands) == len(set(extracted_commands)), "Duplicate commands found in help output"
-
+        assert len(extracted_commands) == len(
+            set(extracted_commands)
+        ), "Duplicate commands found in help output"
 
     @unittest.skip
     @patch("torch.cuda.is_available", return_value=True)
@@ -408,6 +415,7 @@ class TestEmptyArgs(unittest.TestCase):
     """
     Test that the CLI doesn't crash when no args are passed
     """
+
     @unittest.skip
     @patch("rich.prompt.PromptBase.ask", side_effect=MockException)
     def test_command_no_args(self, _, __, patched_prompt_ask):
@@ -551,6 +559,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
+
     @unittest.skip
     def test_stake_prompt_wallet_name_and_hotkey_name(self, _):
         base_args = [
