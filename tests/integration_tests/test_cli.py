@@ -79,9 +79,14 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         defaults = bittensor.config(parser=parser, args=[])
         # Parse commands and subcommands
         for command in bittensor.ALL_COMMANDS:
-            if command in bittensor.ALL_COMMANDS and 'commands' in bittensor.ALL_COMMANDS[command]:
-                for subcommand in bittensor.ALL_COMMANDS[command]['commands']:
-                    defaults.merge(bittensor.config(parser=parser, args=[command, subcommand]))
+            if (
+                command in bittensor.ALL_COMMANDS
+                and "commands" in bittensor.ALL_COMMANDS[command]
+            ):
+                for subcommand in bittensor.ALL_COMMANDS[command]["commands"]:
+                    defaults.merge(
+                        bittensor.config(parser=parser, args=[command, subcommand])
+                    )
             else:
                 defaults.merge(bittensor.config(parser=parser, args=[command]))
 
