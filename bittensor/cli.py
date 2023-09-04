@@ -51,7 +51,7 @@ COMMANDS = {
         "commands": {
             "list": SubnetListCommand,
             "metagraph": MetagraphCommand,
-            "cost": SubnetLockCostCommand,
+            "lock_cost": SubnetLockCostCommand,
             "create": RegisterSubnetworkCommand,
             "register": RegisterCommand,
             "recycle_register": RecycleRegisterCommand,
@@ -65,12 +65,14 @@ COMMANDS = {
         "commands": {
             "list": RootList,
             "weights": RootSetWeightsCommand,
-            "vote": VoteCommand,
+            "senate_vote": VoteCommand,
             "register": RootRegisterCommand,
             "proposals": ProposalsCommand,
             "delegate": DelegateStakeCommand,
             "undelegate": DelegateUnstakeCommand,
             "my_delegates": MyDelegatesCommand,
+            # "list_delegates": ListDelegatesCommand,
+            "nominate": NominateCommand,
         },
     },
     "wallet": {
@@ -113,7 +115,7 @@ COMMANDS = {
         },
     },
     "legacy": {
-        "name": "misc",
+        "name": "legacy",
         "aliases": ["l"],
         "help": "Miscellaneous commands.",
         "commands": {
