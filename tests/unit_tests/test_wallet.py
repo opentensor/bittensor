@@ -71,7 +71,9 @@ class TestWalletUpdate(unittest.TestCase):
 
         # encrypt and decrypt with nacl
         encrypted_message = bittensor.encrypt_keyfile_data(message, "password")
-        decrypted_message = bittensor.decrypt_keyfile_data(encrypted_message, "password")
+        decrypted_message = bittensor.decrypt_keyfile_data(
+            encrypted_message, "password"
+        )
         assert decrypted_message == message
         print(message, decrypted_message)
         assert bittensor.keyfile_data_is_encrypted(encrypted_message)
@@ -83,7 +85,9 @@ class TestWalletUpdate(unittest.TestCase):
         encrypted_message = TestWalletUpdate.legacy_encrypt_keyfile_data(
             message, "password"
         )
-        decrypted_message = bittensor.decrypt_keyfile_data(encrypted_message, "password")
+        decrypted_message = bittensor.decrypt_keyfile_data(
+            encrypted_message, "password"
+        )
         assert decrypted_message == message
         print(message, decrypted_message)
         assert bittensor.keyfile_data_is_encrypted(encrypted_message)
@@ -127,12 +131,8 @@ class TestWalletUpdate(unittest.TestCase):
         )
         new_path = self.legacy_wallet.coldkey_file.path
 
-        assert bittensor.keyfile_data_is_encrypted_ansible(
-            old_keyfile_data
-        )
-        assert bittensor.keyfile_data_is_encrypted_nacl(
-            new_keyfile_data
-        )
+        assert bittensor.keyfile_data_is_encrypted_ansible(old_keyfile_data)
+        assert bittensor.keyfile_data_is_encrypted_nacl(new_keyfile_data)
         assert old_decrypted_keyfile_data == new_decrypted_keyfile_data
         assert new_path == old_path
 
