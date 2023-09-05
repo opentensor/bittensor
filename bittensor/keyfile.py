@@ -223,7 +223,7 @@ def encrypt_keyfile_data(keyfile_data: bytes, password: str = None) -> bytes:
     Returns:
         encrypted_data (bytes): The encrypted data.
     """
-    password = ask_password_to_encrypt() if password is None else password
+    password = bittensor.ask_password_to_encrypt() if password is None else password
     password = bytes(password, "utf-8")
     kdf = pwhash.argon2i.kdf
     key = kdf(
@@ -397,7 +397,7 @@ class keyfile:
         self.make_dirs()
         keyfile_data = serialized_keypair_to_keyfile_data(keypair)
         if encrypt:
-            keyfile_data = encrypt_keyfile_data(keyfile_data, password)
+            keyfile_data = bittensor.encrypt_keyfile_data(keyfile_data, password)
         self._write_keyfile_data_to_file(keyfile_data, overwrite=overwrite)
 
     def get_keypair(self, password: str = None) -> "bittensor.Keypair":

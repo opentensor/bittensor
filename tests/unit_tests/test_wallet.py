@@ -86,7 +86,7 @@ class TestWalletUpdate(unittest.TestCase):
         decrypted_message = bittensor.decrypt_keyfile_data(encrypted_message, "password")
         assert decrypted_message == message
         print(message, decrypted_message)
-        assert bittensor.yfile_data_is_encrypted(encrypted_message)
+        assert bittensor.keyfile_data_is_encrypted(encrypted_message)
         assert not bittensor.keyfile_data_is_encrypted(decrypted_message)
         assert not bittensor.keyfile_data_is_encrypted_nacl(decrypted_message)
         assert bittensor.keyfile_data_is_encrypted_ansible(encrypted_message)
