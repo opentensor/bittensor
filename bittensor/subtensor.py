@@ -30,6 +30,7 @@ from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 from substrateinterface.base import QueryMapResult, SubstrateInterface
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
+from websocket import WebSocketTimeoutException
 
 # Local imports.
 from .chain_data import (
@@ -611,7 +612,7 @@ class subtensor:
                     # Successful registration
                     else:
                         return True, None
-        except TimeoutError:
+        except (TimeoutError, WebSocketTimeoutException):
             return False, "Substrate burn register call timeout."
 
     ##################
