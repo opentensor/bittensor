@@ -1,16 +1,18 @@
-import signal
+import threading
+import _thread
+import time
 from contextlib import contextmanager
 
 
 @contextmanager
-def timeout(seconds):
-    def raise_timeout(signum, frame):
-        raise TimeoutError
-
-    signal.signal(signal.SIGALRM, raise_timeout)
-    signal.alarm(seconds)
+def timeout(timeout):
+    timer = threading.Timer(timeout, _thread.interrupt_main)
+    timer.start()
 
     try:
         yield
+    except KeyboardInterrupt as e:
+        print(f"timeout exception {e} after {timeout} seconds")
+        raise TimeoutError
     finally:
-        signal.alarm(0)
+        timer.cancel()
