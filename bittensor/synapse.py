@@ -26,7 +26,6 @@ import hashlib
 import pydantic
 from pydantic.schema import schema
 import bittensor
-from abc import abstractproperty
 from typing import Optional, List, Any
 
 
