@@ -586,7 +586,10 @@ class subtensor:
                     call = substrate.compose_call(
                         call_module="SubtensorModule",
                         call_function="burned_register",
-                        call_params={"netuid": netuid, "hotkey": wallet.hotkey.ss58_address},
+                        call_params={
+                            "netuid": netuid,
+                            "hotkey": wallet.hotkey.ss58_address,
+                        },
                     )
                     extrinsic = substrate.create_signed_extrinsic(
                         call=call, keypair=wallet.coldkey
@@ -661,10 +664,15 @@ class subtensor:
                                 e
                             )
                         )
-                        payment_info = {"partialFee": 2e7}  # assume  0.02 Tao
+                        payment_info = {"partialFee": 2e-7}  # assume  0.02 Tao
 
         except TimeoutError:
-            payment_info = {"partialFee": 2e7}
+            payment_info = {"partialFee": 2e-7}
+            bittensor.__console__.print(
+                ":hourglass: [yellow]Timeout fetching transfer fee[/yellow]. \nDefaulting to:[bold white] {}[/bold white]".format(
+                    payment_info["partialFee"]
+                )
+            )
 
         fee = Balance.from_rao(payment_info["partialFee"])
         return fee
@@ -818,7 +826,6 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-
         try:
             with bittensor.timeout(20):
                 with self.substrate as substrate:
@@ -937,7 +944,9 @@ class subtensor:
                         call_module="SubtensorModule",
                         call_function="associate_ips",
                         call_params={
-                            "ip_info_list": [ip_info.encode() for ip_info in ip_info_list],
+                            "ip_info_list": [
+                                ip_info.encode() for ip_info in ip_info_list
+                            ],
                             "netuid": netuid,
                         },
                     )
@@ -1029,7 +1038,10 @@ class subtensor:
                     call = substrate.compose_call(
                         call_module="SubtensorModule",
                         call_function="add_stake",
-                        call_params={"hotkey": hotkey_ss58, "amount_staked": amount.rao},
+                        call_params={
+                            "hotkey": hotkey_ss58,
+                            "amount_staked": amount.rao,
+                        },
                     )
                     extrinsic = substrate.create_signed_extrinsic(
                         call=call, keypair=wallet.coldkey
@@ -1049,7 +1061,9 @@ class subtensor:
                     else:
                         raise StakeError(response.error_message)
         except TimeoutError:
-            raise StakeError("Substrate add stake call timeout.")
+            bittensor.__console__.print(
+                ":hourglass: [yellow]Timeout add stake call.[/yellow]"
+            )
 
     ###################
     #### Unstaking ####
@@ -1115,12 +1129,15 @@ class subtensor:
             StakeError: If the extrinsic failed.
         """
         try:
-            with bittensor.timeout(20):        
+            with bittensor.timeout(20):
                 with self.substrate as substrate:
                     call = substrate.compose_call(
                         call_module="SubtensorModule",
                         call_function="remove_stake",
-                        call_params={"hotkey": hotkey_ss58, "amount_unstaked": amount.rao},
+                        call_params={
+                            "hotkey": hotkey_ss58,
+                            "amount_unstaked": amount.rao,
+                        },
                     )
                     extrinsic = substrate.create_signed_extrinsic(
                         call=call, keypair=wallet.coldkey
@@ -1140,7 +1157,9 @@ class subtensor:
                     else:
                         raise StakeError(response.error_message)
         except TimeoutError:
-            raise StakeError("Substrate remove stake call timeout.")
+            bittensor.__console__.print(
+                ":hourglass: [yellow]Timeout remove stake call.[/yellow]"
+            )
 
     ################
     #### Senate ####
@@ -2448,7 +2467,10 @@ class subtensor:
                     call = substrate.compose_call(
                         call_module="SubtensorModule",
                         call_function="add_stake",
-                        call_params={"hotkey": delegate_ss58, "amount_staked": amount.rao},
+                        call_params={
+                            "hotkey": delegate_ss58,
+                            "amount_staked": amount.rao,
+                        },
                     )
                     extrinsic = substrate.create_signed_extrinsic(
                         call=call, keypair=wallet.coldkey
@@ -2467,7 +2489,9 @@ class subtensor:
                     else:
                         raise StakeError(response.error_message)
         except TimeoutError:
-            raise StakeError("Delegation timeout.")
+            bittensor.__console__.print(
+                ":hourglass: [yellow]Timeout delegate call.[/yellow]"
+            )
 
     def _do_undelegation(
         self,
@@ -2483,7 +2507,10 @@ class subtensor:
                     call = substrate.compose_call(
                         call_module="SubtensorModule",
                         call_function="remove_stake",
-                        call_params={"hotkey": delegate_ss58, "amount_unstaked": amount.rao},
+                        call_params={
+                            "hotkey": delegate_ss58,
+                            "amount_unstaked": amount.rao,
+                        },
                     )
                     extrinsic = substrate.create_signed_extrinsic(
                         call=call, keypair=wallet.coldkey
@@ -2502,7 +2529,9 @@ class subtensor:
                     else:
                         raise StakeError(response.error_message)
         except TimeoutError:
-            raise StakeError("Undelegation timeout.")
+            bittensor.__console__.print(
+                ":hourglass: [yellow]Timeout undelegate call.[/yellow]"
+            )
 
     def _do_nominate(
         self,
@@ -2535,7 +2564,9 @@ class subtensor:
                     else:
                         raise NominationError(response.error_message)
         except TimeoutError:
-            raise NominationError("Nomination timeout.")
+            bittensor.__console__.print(
+                ":hourglass: [yellow]Timeout nominate call.[/yellow]"
+            )
 
     ################
     #### Legacy ####
