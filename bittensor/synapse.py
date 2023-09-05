@@ -335,7 +335,54 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
             raise AttributeError(
                 "body_hash property is read-only and cannot be overridden."
             )
+        if name == "required_hash_fields":
+            raise AttributeError(
+                "required_hash_fields property is read-only and cannot be overridden."
+            )
         super().__setattr__(name, value)
+
+    @property
+    def required_hash_fields(self) -> List[str]:
+        """
+        Retrieve the list of non-optional fields of the Synapse instance.
+
+        This default method identifies and returns the names of non-optional attributes of the Synapse
+        instance that have non-null values, excluding specific attributes such as `name`, `timeout`,
+        `total_size`, `header_size`, `dendrite`, and `axon`. The determination of whether a field is
+        optional or not is based on the schema definition for the Synapse class.
+
+        Subclasses are encouraged to override this method to provide their own implementation for
+        determining required fields. If not overridden, the default implementation provided by the
+        Synapse superclass will be used, which returns the fields based on the schema definition.
+
+        Returns:
+            List[str]: A list of names of the non-optional fields of the Synapse instance.
+        """
+        fields = []
+        # Getting the fields of the instance
+        instance_fields = self.__dict__
+
+        # Iterating over the fields of the instance
+        for field, value in instance_fields.items():
+            # If the object is not optional and non-null, add to the list of returned body fields
+            required = schema([self.__class__])["definitions"][self.name].get(
+                "required"
+            )
+            if (
+                required
+                and value != None
+                and field
+                not in [
+                    "name",
+                    "timeout",
+                    "total_size",
+                    "header_size",
+                    "dendrite",
+                    "axon",
+                ]
+            ):
+                fields.append(field)
+        return fields
 
     def get_total_size(self) -> int:
         """
@@ -373,23 +420,8 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
 
         # Iterating over the fields of the instance
         for field, value in instance_fields.items():
-            # If the object is not optional and non-null, add to the list of returned body fields
-            required = schema([self.__class__])["definitions"][self.name].get(
-                "required"
-            )
-            if (
-                required
-                and value != None
-                and field
-                not in [
-                    "name",
-                    "timeout",
-                    "total_size",
-                    "header_size",
-                    "dendrite",
-                    "axon",
-                ]
-            ):
+            # If the field is required in the subclass schema, add it.
+            if field in self.required_hash_fields:
                 fields.append(value)
 
         return fields
