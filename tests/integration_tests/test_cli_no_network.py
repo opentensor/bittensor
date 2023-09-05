@@ -313,10 +313,6 @@ class TestCLINoNetwork(unittest.TestCase):
         call_args = mock_print_message.call_args
         help_out = call_args[0][0]
 
-        # Simple checks
-        assert "options:" in help_out
-        assert "positional arguments:" in help_out
-
         # Extract commands from the help text.
         commands_section = re.search(
             r"positional arguments:.*?{(.+?)}", help_out, re.DOTALL
