@@ -1386,6 +1386,7 @@ class MockSubtensor(subtensor):
             },
             emission_value=query_subnet_info(name="EmissionValues"),
             burn=query_subnet_info(name="Burn"),
+            owner_ss58=query_subnet_info(name="SubnetOwner"),
         )
 
         return info
