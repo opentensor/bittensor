@@ -671,7 +671,7 @@ class MockSubtensor(subtensor):
             if state_at_block is not None:
                 return SimpleNamespace(value=state_at_block)
 
-            return state_at_block  # Can be None
+            return state_at_block["data"]["free"]  # Can be None
         else:
             return None
 
@@ -1386,6 +1386,7 @@ class MockSubtensor(subtensor):
             },
             emission_value=query_subnet_info(name="EmissionValues"),
             burn=query_subnet_info(name="Burn"),
+            owner_ss58=query_subnet_info(name="SubnetOwner"),
         )
 
         return info

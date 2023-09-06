@@ -19,16 +19,14 @@
 import ast
 import sys
 import torch
-import pickle
+import json
 import base64
 import typing
+import hashlib
 import pydantic
 from pydantic.schema import schema
 import bittensor
-from abc import abstractmethod
-from fastapi.responses import Response
-from fastapi import Request
-from typing import Dict, Optional, Tuple, Union, List, Callable
+from typing import Optional, List, Any
 
 
 def get_size(obj, seen=None):
@@ -204,11 +202,55 @@ class TerminalInfo(pydantic.BaseModel):
     )
 
 
-class Synapse(pydantic.BaseModel):
+class ProtectOverride(type):
+    """
+    Metaclass to prevent subclasses from overriding specified methods or attributes.
+
+    When a subclass attempts to override a protected attribute or method, a `TypeError` is raised.
+    The current implementation specifically checks for overriding the 'body_hash' attribute.
+
+    Overriding `protected_method` in a subclass of `MyClass` will raise a TypeError.
+    """
+
+    def __new__(cls, name, bases, class_dict):
+        # Check if the derived class tries to override the 'body_hash' method or attribute.
+        if (
+            any(base for base in bases if hasattr(base, "body_hash"))
+            and "body_hash" in class_dict
+        ):
+            raise TypeError("You can't override the body_hash attribute!")
+        return super(ProtectOverride, cls).__new__(cls, name, bases, class_dict)
+
+
+class CombinedMeta(ProtectOverride, type(pydantic.BaseModel)):
+    """
+    Metaclass combining functionality of ProtectOverride and BaseModel's metaclass.
+
+    Inherits the attributes and methods from both parent metaclasses to provide combined behavior.
+    """
+
+    pass
+
+
+class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
     class Config:
         validate_assignment = True
 
     def deserialize(self) -> "Synapse":
+        """
+        Deserializes the Synapse object.
+
+        This method is intended to be overridden by subclasses for custom deserialization logic.
+        In the context of the Synapse superclass, this method simply returns the instance itself.
+        When inheriting from this class, subclasses should provide their own implementation for
+        deserialization if specific deserialization behavior is desired.
+
+        By default, if a subclass does not provide its own implementation of this method, the
+        Synapse's deserialize method will be used, returning the object instance as-is.
+
+        Returns:
+            Synapse: The deserialized Synapse object. In this default implementation, it returns the object itself.
+        """
         return self
 
     @pydantic.root_validator(pre=True)
@@ -285,6 +327,63 @@ class Synapse(pydantic.BaseModel):
         repr=False,
     )
 
+    def __setattr__(self, name, value):
+        """
+        Override the __setattr__ method to make the body_hash property read-only.
+        """
+        if name == "body_hash":
+            raise AttributeError(
+                "body_hash property is read-only and cannot be overridden."
+            )
+        if name == "required_hash_fields":
+            raise AttributeError(
+                "required_hash_fields property is read-only and cannot be overridden."
+            )
+        super().__setattr__(name, value)
+
+    @property
+    def required_hash_fields(self) -> List[str]:
+        """
+        Retrieve the list of non-optional fields of the Synapse instance.
+
+        This default method identifies and returns the names of non-optional attributes of the Synapse
+        instance that have non-null values, excluding specific attributes such as `name`, `timeout`,
+        `total_size`, `header_size`, `dendrite`, and `axon`. The determination of whether a field is
+        optional or not is based on the schema definition for the Synapse class.
+
+        Subclasses are encouraged to override this method to provide their own implementation for
+        determining required fields. If not overridden, the default implementation provided by the
+        Synapse superclass will be used, which returns the fields based on the schema definition.
+
+        Returns:
+            List[str]: A list of names of the non-optional fields of the Synapse instance.
+        """
+        fields = []
+        # Getting the fields of the instance
+        instance_fields = self.__dict__
+
+        # Iterating over the fields of the instance
+        for field, value in instance_fields.items():
+            # If the object is not optional and non-null, add to the list of returned body fields
+            required = schema([self.__class__])["definitions"][self.name].get(
+                "required"
+            )
+            if (
+                required
+                and value != None
+                and field
+                not in [
+                    "name",
+                    "timeout",
+                    "total_size",
+                    "header_size",
+                    "dendrite",
+                    "axon",
+                ]
+            ):
+                fields.append(field)
+        return fields
+
     def get_total_size(self) -> int:
         """
         Get the total size of the current object.
@@ -297,6 +396,68 @@ class Synapse(pydantic.BaseModel):
         """
         self.total_size = get_size(self)
         return self.total_size
+
+    def get_body(self) -> List[Any]:
+        """
+        Retrieve the serialized and encoded non-optional fields of the Synapse instance.
+
+        This method filters through the fields of the Synapse instance and identifies
+        non-optional attributes that have non-null values, excluding specific attributes
+        such as `name`, `timeout`, `total_size`, `header_size`, `dendrite`, and `axon`.
+        It returns a list containing these selected field values.
+
+        Returns:
+            List[Any]: A list of values from the non-optional fields of the Synapse instance.
+
+        Note:
+            The determination of whether a field is optional or not is based on the
+            schema definition for the Synapse class.
+        """
+        fields = []
+
+        # Getting the fields of the instance
+        instance_fields = self.__dict__
+
+        # Iterating over the fields of the instance
+        for field, value in instance_fields.items():
+            # If the field is required in the subclass schema, add it.
+            if field in self.required_hash_fields:
+                fields.append(value)
+
+        return fields
+
+    @property
+    def body_hash(self) -> str:
+        """
+        Compute a SHA-256 hash of the serialized body of the Synapse instance.
+
+        The body of the Synapse instance comprises its serialized and encoded
+        non-optional fields. This property retrieves these fields using the
+        `get_body` method, then concatenates their string representations, and
+        finally computes a SHA-256 hash of the resulting string.
+
+        Note:
+            This property is intended to be read-only. Any attempts to override
+            or set its value will raise an AttributeError due to the protections
+            set in the __setattr__ method.
+
+        Returns:
+            str: The hexadecimal representation of the SHA-256 hash of the instance's body.
+        """
+        # Hash the body for verification
+        body = self.get_body()
+
+        # Convert elements to string and concatenate
+        concat = "".join(map(str, body))
+
+        # Create a SHA-256 hash object
+        sha256 = hashlib.sha256()
+
+        # Update the hash object with the concatenated string
+        sha256.update(concat.encode("utf-8"))
+
+        # Produce the hash
+        return sha256.hexdigest()
 
     @property
     def is_success(self) -> bool:
@@ -437,9 +598,16 @@ class Synapse(pydantic.BaseModel):
                 headers[f"bt_header_dict_tensor_{field}"] = str(serialized_dict_tensor)
 
             elif required and field in required:
-                serialized_value = pickle.dumps(value)
-                encoded_value = base64.b64encode(serialized_value).decode("utf-8")
-                headers[f"bt_header_input_obj_{field}"] = encoded_value
+                try:
+                    serialized_value = json.dumps(value)
+                    encoded_value = base64.b64encode(serialized_value.encode()).decode(
+                        "utf-8"
+                    )
+                    headers[f"bt_header_input_obj_{field}"] = encoded_value
+                except TypeError as e:
+                    raise ValueError(
+                        f"Error serializing {field} with value {value}. Objects must be json serializable."
+                    ) from e
 
         # Adding the size of the headers and the total size to the headers
         headers["header_size"] = str(sys.getsizeof(headers))
@@ -539,9 +707,14 @@ class Synapse(pydantic.BaseModel):
                     if new_key in inputs_dict:
                         continue
                     # Decode and load the serialized object
-                    inputs_dict[new_key] = pickle.loads(
-                        base64.b64decode(value.encode("utf-8"))
+                    inputs_dict[new_key] = json.loads(
+                        base64.b64decode(value.encode()).decode("utf-8")
                     )
+                except json.JSONDecodeError as e:
+                    bittensor.logging.error(
+                        f"Error while json decoding 'input_obj' header {key}: {e}"
+                    )
+                    continue
                 except Exception as e:
                     bittensor.logging.error(
                         f"Error while parsing 'input_obj' header {key}: {e}"

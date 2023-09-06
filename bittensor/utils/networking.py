@@ -24,9 +24,11 @@ import urllib
 import json
 import netaddr
 import requests
-import miniupnpc
 
 from loguru import logger
+from retry import retry
+
+from .timeout import timeout
 
 
 def int_to_ip(int_val: int) -> str:
@@ -89,6 +91,7 @@ class ExternalIPNotFound(Exception):
     """Raised if we cannot attain your external ip from CURL/URLLIB/IPIFY/AWS"""
 
 
+@retry(delay=2, tries=3, backoff=2, max_delay=4, exceptions=(TimeoutError, Exception))
 def get_external_ip() -> str:
     r"""Checks CURL/URLLIB/IPIFY/AWS for your external ip.
     Returns:
@@ -101,126 +104,69 @@ def get_external_ip() -> str:
     """
     # --- Try AWS
     try:
-        external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
+        with timeout(10):
+            external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
+            assert isinstance(ip_to_int(external_ip), int)
+            return str(external_ip)
+    except (TimeoutError, Exception) as e:
         pass
 
     # --- Try ipconfig.
     try:
-        process = os.popen("curl -s ifconfig.me")
-        external_ip = process.readline()
-        process.close()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
+        with timeout(10):
+            process = os.popen("curl -s ifconfig.me")
+            external_ip = process.readline()
+            process.close()
+            assert isinstance(ip_to_int(external_ip), int)
+            return str(external_ip)
+    except (TimeoutError, Exception):
         pass
 
     # --- Try ipinfo.
     try:
-        process = os.popen("curl -s https://ipinfo.io")
-        external_ip = json.loads(process.read())["ip"]
-        process.close()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
+        with timeout(10):
+            process = os.popen("curl -s https://ipinfo.io")
+            external_ip = json.loads(process.read())["ip"]
+            process.close()
+            assert isinstance(ip_to_int(external_ip), int)
+            return str(external_ip)
+    except (TimeoutError, Exception):
         pass
 
     # --- Try myip.dnsomatic
     try:
-        process = os.popen("curl -s myip.dnsomatic.com")
-        external_ip = process.readline()
-        process.close()
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
+        with timeout(10):
+            process = os.popen("curl -s myip.dnsomatic.com")
+            external_ip = process.readline()
+            process.close()
+            assert isinstance(ip_to_int(external_ip), int)
+            return str(external_ip)
+    except (TimeoutError, Exception):
         pass
 
     # --- Try urllib ipv6
     try:
-        external_ip = urllib.request.urlopen("https://ident.me").read().decode("utf8")
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
+        with timeout(10):
+            external_ip = (
+                urllib.request.urlopen("https://ident.me").read().decode("utf8")
+            )
+            assert isinstance(ip_to_int(external_ip), int)
+            return str(external_ip)
+    except (TimeoutError, Exception):
         pass
 
     # --- Try Wikipedia
     try:
-        external_ip = requests.get("https://www.wikipedia.org").headers["X-Client-IP"]
-        assert isinstance(ip_to_int(external_ip), int)
-        return str(external_ip)
-    except Exception:
+        with timeout(10):
+            external_ip = requests.get("https://www.wikipedia.org").headers[
+                "X-Client-IP"
+            ]
+            assert isinstance(ip_to_int(external_ip), int)
+            return str(external_ip)
+    except (TimeoutError, Exception):
         pass
 
     raise ExternalIPNotFound
-
-
-class UPNPCException(Exception):
-    """Raised when trying to perform a port mapping on your router."""
-
-
-def upnpc_create_port_map(port: int):
-    r"""Creates a upnpc port map on your router from passed external_port to local port.
-
-    Args:
-        port (int, `required`):
-            The local machine port to map from your external port.
-
-    Return:
-        external_port (int, `required`):
-            The external port mapped to the local port on your machine.
-
-    Raises:
-        UPNPCException (Exception):
-            Raised if UPNPC port mapping fails, for instance, if upnpc is not enabled on your router.
-    """
-    try:
-        upnp = miniupnpc.UPnP()
-        upnp.discoverdelay = 200
-        logger.debug("UPNPC: Using UPnP to open a port on your router ...")
-        logger.debug("UPNPC: Discovering... delay={}ms", upnp.discoverdelay)
-        ndevices = upnp.discover()
-        upnp.selectigd()
-        logger.debug("UPNPC: " + str(ndevices) + " device(s) detected")
-
-        ip = upnp.lanaddr
-        external_ip = upnp.externalipaddress()
-
-        logger.debug("UPNPC: your local ip address: " + str(ip))
-        logger.debug("UPNPC: your external ip address: " + str(external_ip))
-        logger.debug(
-            "UPNPC: status = "
-            + str(upnp.statusinfo())
-            + " connection type = "
-            + str(upnp.connectiontype())
-        )
-
-        # find a free port for the redirection
-        external_port = port
-        rc = upnp.getspecificportmapping(external_port, "TCP")
-        while rc != None and external_port < 65536:
-            external_port += 1
-            rc = upnp.getspecificportmapping(external_port, "TCP")
-        if rc != None:
-            raise UPNPCException("UPNPC: No available external ports for port mapping.")
-
-        logger.info(
-            "UPNPC: trying to redirect remote: {}:{} => local: {}:{} over TCP",
-            external_ip,
-            external_port,
-            ip,
-            port,
-        )
-        upnp.addportmapping(
-            external_port, "TCP", ip, port, "Bittensor: %u" % external_port, ""
-        )
-        logger.info("UPNPC: Create Success")
-
-        return external_port
-
-    except Exception as e:
-        raise UPNPCException(e) from e
 
 
 def get_formatted_ws_endpoint_url(endpoint_url: str) -> str:

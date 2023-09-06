@@ -20,6 +20,9 @@ import argparse
 import bittensor
 from . import defaults
 from rich.prompt import Prompt
+from rich.table import Table
+from typing import List, Optional, Dict
+from .utils import get_delegates_details, DelegatesDetails, check_netuid_set
 
 console = bittensor.__console__
 
@@ -46,40 +49,27 @@ class RegisterSubnetworkCommand:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         parser = parser.add_parser(
-            "register_subnet",
-            help="""Register a new bittensor subnetwork on this chain.""",
+            "create",
+            help="""Create a new bittensor subnetwork on this chain.""",
         )
-        parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
+
         bittensor.wallet.add_args(parser)
         bittensor.subtensor.add_args(parser)
 
 
-class SubnetBurnCostCommand:
+class SubnetLockCostCommand:
     @staticmethod
     def run(cli):
-        r"""Register a subnetwork"""
+        r"""View locking cost of creating a new subnetwork"""
         config = cli.config.copy()
         subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
         try:
             bittensor.__console__.print(
-                f"Subnet burn cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]"
+                f"Subnet lock cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]"
             )
-            time.sleep(bittensor.__blocktime__)
         except Exception as e:
             bittensor.__console__.print(
-                f"Subnet burn cost: [red]Failed to get subnet burn cost[/red]"
+                f"Subnet lock cost: [red]Failed to get subnet lock cost[/red]"
                 f"Error: {e}"
             )
 
@@ -90,20 +80,230 @@ class SubnetBurnCostCommand:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         parser = parser.add_parser(
-            "subnet_burn_cost",
-            help=""" Return the price to register a subnet""",
+            "lock_cost",
+            help=""" Return the lock cost to register a subnet""",
+        )
+
+        bittensor.subtensor.add_args(parser)
+
+
+class SubnetListCommand:
+    @staticmethod
+    def run(cli):
+        r"""List all subnet netuids in the network."""
+        subtensor = bittensor.subtensor(config=cli.config)
+        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
+
+        rows = []
+        total_neurons = 0
+        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
+            url=bittensor.__delegates_details_url__
+        )
+
+        for subnet in subnets:
+            total_neurons += subnet.max_n
+            rows.append(
+                (
+                    str(subnet.netuid),
+                    str(subnet.subnetwork_n),
+                    str(bittensor.utils.formatting.millify(subnet.max_n)),
+                    f"{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%",
+                    str(subnet.tempo),
+                    f"{subnet.burn!s:8.8}",
+                    str(bittensor.utils.formatting.millify(subnet.difficulty)),
+                    f"{delegate_info[subnet.owner_ss58].name if subnet.owner_ss58 in delegate_info else subnet.owner_ss58}",
+                )
+            )
+        table = Table(
+            show_footer=True,
+            width=cli.config.get("width", None),
+            pad_edge=True,
+            box=None,
+            show_edge=True,
+        )
+        table.title = "[white]Subnets - {}".format(subtensor.network)
+        table.add_column(
+            "[overline white]NETUID",
+            str(len(subnets)),
+            footer_style="overline white",
+            style="bold green",
+            justify="center",
+        )
+        table.add_column(
+            "[overline white]N",
+            str(total_neurons),
+            footer_style="overline white",
+            style="green",
+            justify="center",
+        )
+        table.add_column("[overline white]MAX_N", style="white", justify="center")
+        table.add_column("[overline white]EMISSION", style="white", justify="center")
+        table.add_column("[overline white]TEMPO", style="white", justify="center")
+        table.add_column("[overline white]BURN", style="white", justify="center")
+        table.add_column("[overline white]POW", style="white", justify="center")
+        table.add_column("[overline white]SUDO", style="white")
+        for row in rows:
+            table.add_row(*row)
+        bittensor.__console__.print(table)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        pass
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        list_subnets_parser = parser.add_parser(
+            "list", help="""List all subnets on the network"""
+        )
+        bittensor.subtensor.add_args(list_subnets_parser)
+
+
+HYPERPARAMS = {
+    "serving_rate_limit": "sudo_set_serving_rate_limit",
+    "min_difficulty": "sudo_set_min_difficulty",
+    "max_difficulty": "sudo_set_max_difficulty",
+    "weights_version": "sudo_set_weights_version_key",
+    "weights_rate_Limit": "sudo_set_weights_set_rate_limit",
+    "max_weight_limit": "sudo_set_max_weight_limit",
+    "immunity_period": "sudo_set_immunity_period",
+    "min_allowed_weights": "sudo_set_min_allowed_weights",
+    "kappa": "sudo_set_kappa",
+    "rho": "sudo_set_rho",
+    "activity_cutoff": "sudo_set_activity_cutoff",
+    "registration_allowed": "sudo_set_network_registration_allowed",
+    "target_regs_per_interval": "sudo_set_target_registrations_per_interval",
+    "min_burn": "sudo_set_min_burn",
+    "max_burn": "sudo_set_max_burn",
+    "bonds_moving_avg": "sudo_set_bonds_moving_average",
+    "max_regs_per_block": "sudo_set_max_registrations_per_block",
+}
+
+
+class SubnetSudoCommand:
+    @staticmethod
+    def run(cli):
+        r"""Set subnet hyperparameters."""
+        config = cli.config.copy()
+        wallet = bittensor.wallet(config=cli.config)
+        subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
+        print("\n")
+        SubnetHyperparamsCommand.run(cli)
+        if not config.is_set("param") and not config.no_prompt:
+            param = Prompt.ask("Enter hyperparameter", choices=HYPERPARAMS)
+            config.param = str(param)
+        if not config.is_set("value") and not config.no_prompt:
+            value = Prompt.ask("Enter new value")
+            config.value = value
+
+        subtensor.set_hyperparameter(
+            wallet,
+            netuid=cli.config.netuid,
+            parameter=config.param,
+            value=config.value,
+            prompt=not cli.config.no_prompt,
+        )
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set("netuid") and not config.no_prompt:
+            check_netuid_set(config, bittensor.subtensor(config=config))
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser = parser.add_parser("set", help="""Set hyperparameters for a subnet""")
+        parser.add_argument(
+            "--netuid", dest="netuid", type=int, required=False, default=False
+        )
+        parser.add_argument("--param", dest="param", type=str, required=False)
+        parser.add_argument("--value", dest="value", type=str, required=False)
+
+        bittensor.wallet.add_args(parser)
+        bittensor.subtensor.add_args(parser)
+
+
+class SubnetHyperparamsCommand:
+    @staticmethod
+    def run(cli):
+        r"""View hyperparameters of a subnetwork."""
+        subtensor = bittensor.subtensor(config=cli.config)
+        subnet: bittensor.SubnetInfo = subtensor.get_subnet_hyperparameters(
+            cli.config.netuid
+        )
+
+        table = Table(
+            show_footer=True,
+            width=cli.config.get("width", None),
+            pad_edge=True,
+            box=None,
+            show_edge=True,
+        )
+        table.title = "[white]Subnet Hyperparameters - NETUID: {} - {}".format(
+            cli.config.netuid, subtensor.network
+        )
+        table.add_column("[overline white]HYPERPARAMETER", style="bold white")
+        table.add_column("[overline white]VALUE", style="green")
+
+        for param in subnet.__dict__:
+            table.add_row("  " + param, str(subnet.__dict__[param]))
+
+        bittensor.__console__.print(table)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("netuid") and not config.no_prompt:
+            check_netuid_set(config, bittensor.subtensor(config=config))
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser = parser.add_parser(
+            "hyperparameters", help="""View subnet hyperparameters"""
         )
         parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
+            "--netuid", dest="netuid", type=int, required=False, default=False
         )
+        bittensor.subtensor.add_args(parser)
+
+
+class SubnetGetHyperparamsCommand:
+    @staticmethod
+    def run(cli):
+        r"""View hyperparameters of a subnetwork."""
+        subtensor = bittensor.subtensor(config=cli.config)
+        subnet: bittensor.SubnetInfo = subtensor.get_subnet_hyperparameters(
+            cli.config.netuid
+        )
+
+        table = Table(
+            show_footer=True,
+            width=cli.config.get("width", None),
+            pad_edge=True,
+            box=None,
+            show_edge=True,
+        )
+        table.title = "[white]Subnet Hyperparameters - NETUID: {} - {}".format(
+            cli.config.netuid, subtensor.network
+        )
+        table.add_column("[overline white]HYPERPARAMETER", style="white")
+        table.add_column("[overline white]VALUE", style="green")
+
+        for param in subnet.__dict__:
+            table.add_row(param, str(subnet.__dict__[param]))
+
+        bittensor.__console__.print(table)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("netuid") and not config.no_prompt:
+            check_netuid_set(config, bittensor.subtensor(config=config))
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser = parser.add_parser("get", help="""View subnet hyperparameters""")
         parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
+            "--netuid", dest="netuid", type=int, required=False, default=False
         )
         bittensor.subtensor.add_args(parser)

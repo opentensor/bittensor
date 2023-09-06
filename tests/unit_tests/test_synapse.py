@@ -14,15 +14,12 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import json
 import torch
-import pickle
 import base64
 import typing
 import pytest
 import bittensor
-import unittest
-import unittest.mock as mock
-from unittest.mock import MagicMock
 
 
 def test_parse_headers_to_inputs():
@@ -34,9 +31,9 @@ def test_parse_headers_to_inputs():
     headers = {
         "bt_header_axon_nonce": "111",
         "bt_header_dendrite_ip": "12.1.1.2",
-        "bt_header_input_obj_key1": base64.b64encode(pickle.dumps([1, 2, 3, 4])).decode(
-            "utf-8"
-        ),
+        "bt_header_input_obj_key1": base64.b64encode(
+            json.dumps([1, 2, 3, 4]).encode("utf-8")
+        ).decode("utf-8"),
         "bt_header_tensor_key2": "[3]-torch.float32",
         "timeout": "12",
         "name": "Test",
@@ -69,9 +66,9 @@ def test_from_headers():
     headers = {
         "bt_header_axon_nonce": "111",
         "bt_header_dendrite_ip": "12.1.1.2",
-        "bt_header_input_obj_key1": base64.b64encode(pickle.dumps([1, 2, 3, 4])).decode(
-            "utf-8"
-        ),
+        "bt_header_input_obj_key1": base64.b64encode(
+            json.dumps([1, 2, 3, 4]).encode("utf-8")
+        ).decode("utf-8"),
         "bt_header_tensor_key2": "[3]-torch.float32",
         "timeout": "12",
         "name": "Test",
@@ -238,3 +235,24 @@ def test_dict_tensors():
     assert next_synapse.a["cat"].shape == [10]
     assert next_synapse.a["dog"].dtype == "torch.float32"
     assert next_synapse.a["dog"].shape == [11]
+
+
+def test_override_protection():
+    with pytest.raises(TypeError, match="You can't override the body_hash attribute!"):
+
+        class DerivedModel(bittensor.Synapse):
+            @property
+            def body_hash(self):
+                return "new_value"
+
+
+def test_body_hash_override():
+    # Create a Synapse instance
+    synapse_instance = bittensor.Synapse()
+
+    # Try to set the body_hash property and expect an AttributeError
+    with pytest.raises(
+        AttributeError,
+        match="body_hash property is read-only and cannot be overridden.",
+    ):
+        synapse_instance.body_hash = "some_value"

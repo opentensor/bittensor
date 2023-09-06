@@ -77,12 +77,6 @@ class RegenColdkeyCommand:
             "regen_coldkey", help="""Regenerates a coldkey from a passed value"""
         )
         regen_coldkey_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        regen_coldkey_parser.add_argument(
             "--mnemonic",
             required=False,
             nargs="+",
@@ -118,13 +112,6 @@ class RegenColdkeyCommand:
             dest="use_password",
             action="store_false",
             help="""Set off protects the generated bittensor key with a password.""",
-        )
-        regen_coldkey_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         regen_coldkey_parser.add_argument(
             "--overwrite_coldkey",
@@ -173,12 +160,6 @@ class RegenColdkeypubCommand:
             help="""Regenerates a coldkeypub from the public part of the coldkey.""",
         )
         regen_coldkeypub_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        regen_coldkeypub_parser.add_argument(
             "--public_key",
             "--pubkey",
             dest="public_key_hex",
@@ -196,13 +177,6 @@ class RegenColdkeypubCommand:
             default=None,
             type=str,
             help="The ss58 address of the coldkey to regen e.g. 5ABCD ...",
-        )
-        regen_coldkeypub_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         regen_coldkeypub_parser.add_argument(
             "--overwrite_coldkeypub",
@@ -272,12 +246,6 @@ class RegenHotkeyCommand:
             "regen_hotkey", help="""Regenerates a hotkey from a passed mnemonic"""
         )
         regen_hotkey_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        regen_hotkey_parser.add_argument(
             "--mnemonic",
             required=False,
             nargs="+",
@@ -313,13 +281,6 @@ class RegenHotkeyCommand:
             dest="use_password",
             action="store_false",
             help="""Set off protects the generated bittensor key with a password.""",
-        )
-        regen_hotkey_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         regen_hotkey_parser.add_argument(
             "--overwrite_hotkey",
@@ -359,12 +320,6 @@ class NewHotkeyCommand:
             help="""Creates a new hotkey (for running a miner) under the specified path.""",
         )
         new_hotkey_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        new_hotkey_parser.add_argument(
             "--n_words",
             type=int,
             choices=[12, 15, 18, 21, 24],
@@ -383,13 +338,6 @@ class NewHotkeyCommand:
             dest="use_password",
             action="store_false",
             help="""Set off protects the generated bittensor key with a password.""",
-        )
-        new_hotkey_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         new_hotkey_parser.add_argument(
             "--overwrite_hotkey",
@@ -424,10 +372,64 @@ class NewColdkeyCommand:
             help="""Creates a new coldkey (for containing balance) under the specified path. """,
         )
         new_coldkey_parser.add_argument(
-            "--no_version_checking",
+            "--n_words",
+            type=int,
+            choices=[12, 15, 18, 21, 24],
+            default=12,
+            help="""The number of words representing the mnemonic. i.e. horse cart dog ... x 24""",
+        )
+        new_coldkey_parser.add_argument(
+            "--use_password",
+            dest="use_password",
             action="store_true",
-            help="""Set false to stop cli version checking""",
+            help="""Set true to protect the generated bittensor key with a password.""",
+            default=True,
+        )
+        new_coldkey_parser.add_argument(
+            "--no_password",
+            dest="use_password",
+            action="store_false",
+            help="""Set off protects the generated bittensor key with a password.""",
+        )
+        new_coldkey_parser.add_argument(
+            "--overwrite_coldkey",
+            action="store_false",
             default=False,
+            help="""Overwrite the old coldkey with the newly generated coldkey""",
+        )
+        bittensor.wallet.add_args(new_coldkey_parser)
+        bittensor.subtensor.add_args(new_coldkey_parser)
+
+
+class WalletCreateCommand:
+    def run(cli):
+        r"""Creates a new coldkey and hotkey under this wallet."""
+        wallet = bittensor.wallet(config=cli.config)
+        wallet.create_new_coldkey(
+            n_words=cli.config.n_words,
+            use_password=cli.config.use_password,
+            overwrite=cli.config.overwrite_coldkey,
+        )
+        wallet.create_new_hotkey(
+            n_words=cli.config.n_words,
+            use_password=False,
+            overwrite=cli.config.overwrite_hotkey,
+        )
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        new_coldkey_parser = parser.add_parser(
+            "create",
+            help="""Creates a new coldkey (for containing balance) under the specified path. """,
         )
         new_coldkey_parser.add_argument(
             "--n_words",
@@ -450,17 +452,16 @@ class NewColdkeyCommand:
             help="""Set off protects the generated bittensor key with a password.""",
         )
         new_coldkey_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
-        new_coldkey_parser.add_argument(
             "--overwrite_coldkey",
             action="store_false",
             default=False,
             help="""Overwrite the old coldkey with the newly generated coldkey""",
+        )
+        new_coldkey_parser.add_argument(
+            "--overwrite_hotkey",
+            action="store_false",
+            default=False,
+            help="""Overwrite the old hotkey with the newly generated hotkey""",
         )
         bittensor.wallet.add_args(new_coldkey_parser)
         bittensor.subtensor.add_args(new_coldkey_parser)

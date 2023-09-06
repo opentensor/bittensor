@@ -24,38 +24,106 @@ from .commands import *
 # Create a console instance for CLI display.
 console = bittensor.__console__
 
+ALIAS_TO_COMMAND = {
+    "subnets": "subnets",
+    "root": "root",
+    "wallet": "wallet",
+    "stake": "stake",
+    "sudo": "sudo",
+    "legacy": "legacy",
+    "s": "subnets",
+    "r": "root",
+    "w": "wallet",
+    "st": "stake",
+    "su": "sudo",
+    "l": "legacy",
+    "subnet": "subnets",
+    "roots": "root",
+    "wallets": "wallet",
+    "stakes": "stake",
+    "sudos": "sudo",
+}
 COMMANDS = {
-    "transfer": TransferCommand,
-    "register": RegisterCommand,
-    "unstake": UnStakeCommand,
-    "stake": StakeCommand,
-    "overview": OverviewCommand,
-    "list": ListCommand,
-    "new_coldkey": NewColdkeyCommand,
-    "new_hotkey": NewHotkeyCommand,
-    "regen_coldkey": RegenColdkeyCommand,
-    "regen_coldkeypub": RegenColdkeypubCommand,
-    "regen_hotkey": RegenHotkeyCommand,
-    "metagraph": MetagraphCommand,
-    "inspect": InspectCommand,
-    "update": UpdateCommand,
-    "nominate": NominateCommand,
-    "delegate": DelegateStakeCommand,
-    "undelegate": DelegateUnstakeCommand,
-    "my_delegates": MyDelegatesCommand,
-    "list_delegates": ListDelegatesCommand,
-    "list_subnets": ListSubnetsCommand,
-    "recycle_register": RecycleRegisterCommand,
-    "senate": SenateCommand,
-    "proposals": ProposalsCommand,
-    "proposal_votes": ShowVotesCommand,
-    "senate_register": SenateRegisterCommand,
-    "senate_leave": SenateLeaveCommand,
-    "senate_vote": VoteCommand,
-    "register_subnet": RegisterSubnetworkCommand,
-    "run_faucet": RunFaucetCommand,
-    "subnet_burn_cost": SubnetBurnCostCommand,
-    "update_wallet": UpdateWalletCommand,
+    "subnets": {
+        "name": "subnets",
+        "aliases": ["s", "subnet"],
+        "help": "Commands for managing and viewing subnetworks.",
+        "commands": {
+            "list": SubnetListCommand,
+            "metagraph": MetagraphCommand,
+            "lock_cost": SubnetLockCostCommand,
+            "create": RegisterSubnetworkCommand,
+            "register": RegisterCommand,
+            "recycle_register": RecycleRegisterCommand,
+            "hyperparameters": SubnetHyperparamsCommand,
+        },
+    },
+    "root": {
+        "name": "root",
+        "aliases": ["r", "roots"],
+        "help": "Commands for managing and viewing the root network.",
+        "commands": {
+            "list": RootList,
+            "weights": RootSetWeightsCommand,
+            "senate_vote": VoteCommand,
+            "register": RootRegisterCommand,
+            "proposals": ProposalsCommand,
+            "delegate": DelegateStakeCommand,
+            "undelegate": DelegateUnstakeCommand,
+            "my_delegates": MyDelegatesCommand,
+            # "list_delegates": ListDelegatesCommand,
+            "nominate": NominateCommand,
+        },
+    },
+    "wallet": {
+        "name": "wallet",
+        "aliases": ["w", "wallets"],
+        "help": "Commands for managing and viewing wallets.",
+        "commands": {
+            "list": ListCommand,
+            "overview": OverviewCommand,
+            "transfer": TransferCommand,
+            "inspect": InspectCommand,
+            # "balance": None,
+            "create": WalletCreateCommand,
+            "new_hotkey": NewHotkeyCommand,
+            "new_coldkey": NewColdkeyCommand,
+            "regen_coldkey": RegenColdkeyCommand,
+            "regen_coldkeypub": RegenColdkeypubCommand,
+            "regen_hotkey": RegenHotkeyCommand,
+            "faucet": RunFaucetCommand,
+            "update_wallet": UpdateWalletCommand,
+        },
+    },
+    "stake": {
+        "name": "stake",
+        "aliases": ["st", "stakes"],
+        "help": "Commands for staking and removing stake from hotkey accounts.",
+        "commands": {
+            "show": StakeShow,
+            "add": StakeCommand,
+            "remove": UnStakeCommand,
+        },
+    },
+    "sudo": {
+        "name": "sudo",
+        "aliases": ["su", "sudos"],
+        "help": "Commands for subnet management",
+        "commands": {
+            # "dissolve": None,
+            "set": SubnetSudoCommand,
+            "get": SubnetGetHyperparamsCommand,
+        },
+    },
+    "legacy": {
+        "name": "legacy",
+        "aliases": ["l"],
+        "help": "Miscellaneous commands.",
+        "commands": {
+            "update": UpdateCommand,
+            "faucet": RunFaucetCommand,
+        },
+    },
 }
 
 
@@ -85,6 +153,13 @@ class cli:
             config = cli.create_config(args)
 
         self.config = config
+        if self.config.command in ALIAS_TO_COMMAND:
+            self.config.command = ALIAS_TO_COMMAND[self.config.command]
+        else:
+            console.print(
+                f":cross_mark:[red]Unknown command: {self.config.command}[/red]"
+            )
+            sys.exit()
 
         # Check if the config is valid.
         cli.check_config(self.config)
@@ -117,7 +192,21 @@ class cli:
         cmd_parsers = parser.add_subparsers(dest="command")
         # Add argument parsers for all available commands.
         for command in COMMANDS.values():
-            command.add_args(cmd_parsers)
+            if isinstance(command, dict):
+                subcmd_parser = cmd_parsers.add_parser(
+                    name=command["name"],
+                    aliases=command["aliases"],
+                    help=command["help"],
+                )
+                subparser = subcmd_parser.add_subparsers(
+                    help=command["help"], dest="subcommand", required=True
+                )
+
+                for subcommand in command["commands"].values():
+                    subcommand.add_args(subparser)
+            else:
+                command.add_args(cmd_parsers)
+
         return parser
 
     @staticmethod
@@ -151,10 +240,22 @@ class cli:
         # Check if command exists, if so, run the corresponding check_config.
         # If command doesn't exist, inform user and exit the program.
         if config.command in COMMANDS:
-            COMMANDS[config.command].check_config(config)
+            command = config.command
+            command_data = COMMANDS[command]
+
+            if isinstance(command_data, dict):
+                if config["subcommand"] != None:
+                    command_data["commands"][config["subcommand"]].check_config(config)
+                else:
+                    console.print(
+                        f":cross_mark:[red]Missing subcommand for: {config.command}[/red]"
+                    )
+                    sys.exit(1)
+            else:
+                command_data.check_config(config)
         else:
             console.print(f":cross_mark:[red]Unknown command: {config.command}[/red]")
-            sys.exit()
+            sys.exit(1)
 
     def run(self):
         """
@@ -162,8 +263,14 @@ class cli:
         """
         # Check if command exists, if so, run the corresponding method.
         # If command doesn't exist, inform user and exit the program.
-        if self.config.command in COMMANDS:
-            COMMANDS[self.config.command].run(self)
+        command = self.config.command
+        if command in COMMANDS:
+            command_data = COMMANDS[command]
+
+            if isinstance(command_data, dict):
+                command_data["commands"][self.config["subcommand"]].run(self)
+            else:
+                command_data.run(self)
         else:
             console.print(
                 f":cross_mark:[red]Unknown command: {self.config.command}[/red]"
