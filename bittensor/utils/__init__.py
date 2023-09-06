@@ -26,6 +26,7 @@ from substrateinterface.utils import ss58 as ss58
 
 from .wallet_utils import *
 from .registration import create_pow as create_pow, __reregister_wallet as reregister
+from .timeout import timeout
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
