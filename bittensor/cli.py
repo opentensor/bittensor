@@ -55,6 +55,7 @@ COMMANDS = {
     "register_subnet": RegisterSubnetworkCommand,
     "run_faucet": RunFaucetCommand,
     "subnet_burn_cost": SubnetBurnCostCommand,
+    "update_wallet": UpdateWalletCommand,
 }
 
 

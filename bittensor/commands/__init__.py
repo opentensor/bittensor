@@ -79,6 +79,7 @@ from .wallets import (
     RegenColdkeyCommand,
     RegenColdkeypubCommand,
     RegenHotkeyCommand,
+    UpdateWalletCommand
 )
 from .transfer import TransferCommand
 from .inspect import InspectCommand

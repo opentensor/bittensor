@@ -20,9 +20,8 @@ import bittensor
 import os
 import sys
 from rich.prompt import Prompt
-from typing import Optional
+from typing import Optional, List
 from . import defaults
-
 
 class RegenColdkeyCommand:
     def run(cli):
@@ -465,3 +464,54 @@ class NewColdkeyCommand:
         )
         bittensor.wallet.add_args(new_coldkey_parser)
         bittensor.subtensor.add_args(new_coldkey_parser)
+
+def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
+    """Get all coldkey wallet names from path."""
+    try:
+        wallet_names = next(os.walk(os.path.expanduser(path)))[1]
+        return [bittensor.wallet(path=path, name=name) for name in wallet_names]
+    except StopIteration:
+        # No wallet files found.
+        wallets = []
+    return wallets
+
+class UpdateWalletCommand:
+    @staticmethod
+    def run(cli):
+        """Check if any of the wallets needs an update."""
+        config = cli.config.copy()
+        if config.get("all", d=False) == True:
+            wallets = _get_coldkey_wallets_for_path(config.wallet.path)
+        else:
+            wallets = [bittensor.wallet(config=config)]
+
+        for wallet in wallets:
+            print("\n===== ", wallet, " =====")
+            wallet.coldkey_file.check_and_update_encryption()
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        update_wallet_parser = parser.add_parser(
+            "update_wallet", help="""Delegate Stake to an account."""
+        )
+        update_wallet_parser.add_argument("--all", action="store_true")
+        update_wallet_parser.add_argument(
+            "--no_prompt",
+            dest="no_prompt",
+            action="store_true",
+            help="""Set true to avoid prompting the user.""",
+            default=False,
+        )
+        bittensor.wallet.add_args(update_wallet_parser)
+        bittensor.subtensor.add_args(update_wallet_parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.Config"):
+        # Ask the user to specify the wallet if the wallet name is not clear.
+        if (
+            config.get("all", d=False) == False
+            and config.wallet.get("name") == bittensor.defaults.wallet.name
+            and not config.no_prompt
+        ):
+            wallet_name = Prompt.ask("Enter wallet name", default=bittensor.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
