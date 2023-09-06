@@ -62,7 +62,7 @@ defaults: Munch = munchify(
     }
 )
 
-from .stake import StakeCommand
+from .stake import StakeCommand, StakeShow
 from .unstake import UnStakeCommand
 from .overview import OverviewCommand
 from .register import RegisterCommand, RecycleRegisterCommand, RunFaucetCommand
@@ -80,6 +80,7 @@ from .wallets import (
     RegenColdkeypubCommand,
     RegenHotkeyCommand,
     UpdateWalletCommand
+    WalletCreateCommand,
 )
 from .transfer import TransferCommand
 from .inspect import InspectCommand
@@ -94,4 +95,12 @@ from .senate import (
     SenateLeaveCommand,
     VoteCommand,
 )
-from .network import RegisterSubnetworkCommand, SubnetBurnCostCommand
+from .network import (
+    RegisterSubnetworkCommand,
+    SubnetLockCostCommand,
+    SubnetListCommand,
+    SubnetSudoCommand,
+    SubnetHyperparamsCommand,
+    SubnetGetHyperparamsCommand,
+)
+from .root import RootRegisterCommand, RootList, RootSetWeightsCommand

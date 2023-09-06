@@ -317,7 +317,7 @@ class KeyPairTestCase(unittest.TestCase):
 class TestKeyFiles(unittest.TestCase):
     def setUp(self) -> None:
         self.root_path = f"/tmp/pytest{time.time()}"
-        os.makedirs(self.root_path)
+        os.makedirs(self.root_path, exist_ok=True)
 
         self.create_keyfile()
 

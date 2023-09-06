@@ -18,9 +18,10 @@
 
 import bittensor
 
+import time
 import torch
 from rich.prompt import Confirm
-from typing import Union
+from typing import Union, List
 import bittensor.utils.weight_utils as weight_utils
 
 from loguru import logger
@@ -28,11 +29,81 @@ from loguru import logger
 logger = logger.opt(colors=True)
 
 
-def set_weights_extrinsic(
+def root_register_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
-    netuid: int,
-    uids: Union[torch.LongTensor, list],
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+    prompt: bool = False,
+) -> bool:
+    r"""Registers the wallet to root network.
+    Args:
+        wallet (bittensor.wallet):
+            bittensor wallet object.
+        wait_for_inclusion (bool):
+            If set, waits for the extrinsic to enter a block before returning true,
+            or returns false if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool):
+            If set, waits for the extrinsic to be finalized on the chain before returning true,
+            or returns false if the extrinsic fails to be finalized within the timeout.
+        prompt (bool):
+            If true, the call waits for confirmation from the user before proceeding.
+    Returns:
+        success (bool):
+            flag is true if extrinsic was finalized or uncluded in the block.
+            If we did not wait for finalization / inclusion, the response is true.
+    """
+
+    wallet.coldkey  # unlock coldkey
+
+    is_registered = subtensor.is_hotkey_registered(
+        netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
+    )
+    if is_registered:
+        bittensor.__console__.print(
+            f":white_heavy_check_mark: [green]Already registered on root network.[/green]"
+        )
+        return True
+
+    if prompt:
+        # Prompt user for confirmation.
+        if not Confirm.ask(f"Register to root network?"):
+            return False
+
+    with bittensor.__console__.status(":satellite: Registering to root network..."):
+        success, err_msg = subtensor._do_root_register(
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if success != True or success == False:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
+            )
+            time.sleep(0.5)
+
+        # Successful registration, final check for neuron and pubkey
+        else:
+            is_registered = subtensor.is_hotkey_registered(
+                netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
+            )
+            if is_registered:
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Registered[/green]"
+                )
+                return True
+            else:
+                # neuron not found, try again
+                bittensor.__console__.print(
+                    ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
+                )
+
+
+def set_root_weights_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    netuids: Union[torch.LongTensor, list],
     weights: Union[torch.FloatTensor, list],
     version_key: int = 0,
     wait_for_inclusion: bool = False,
@@ -43,10 +114,8 @@ def set_weights_extrinsic(
     Args:
         wallet (bittensor.wallet):
             bittensor wallet object.
-        netuid (int):
+        netuids (List[int]):
             netuid of the subent to set weights for.
-        uids (Union[torch.LongTensor, list]):
-            uint64 uids of destination neurons.
         weights ( Union[torch.FloatTensor, list]):
             weights to set which must floats and correspond to the passed uids.
         version_key (int):
@@ -65,42 +134,65 @@ def set_weights_extrinsic(
             If we did not wait for finalization / inclusion, the response is true.
     """
     # First convert types.
-    if isinstance(uids, list):
-        uids = torch.tensor(uids, dtype=torch.int64)
+    if isinstance(netuids, list):
+        netuids = torch.tensor(netuids, dtype=torch.int64)
     if isinstance(weights, list):
         weights = torch.tensor(weights, dtype=torch.float32)
 
-    # Reformat and normalize.
-    weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
-        uids, weights
+    # Get weight restrictions.
+    min_allowed_weights = subtensor.min_allowed_weights(netuid=0)
+    max_weight_limit = subtensor.max_weight_limit(netuid=0)
+
+    # Get non zero values.
+    non_zero_weight_idx = torch.argwhere(weights > 0).squeeze(dim=1)
+    non_zero_weight_uids = netuids[non_zero_weight_idx]
+    non_zero_weights = weights[non_zero_weight_idx]
+    if non_zero_weights.numel() < min_allowed_weights:
+        raise ValueError(
+            "The minimum number of weights required to set weights is {}, got {}".format(
+                min_allowed_weights, non_zero_weights.numel()
+            )
+        )
+
+    # Normalize the weights to max value.
+    formatted_weights = bittensor.utils.weight_utils.normalize_max_weight(
+        x=weights, limit=max_weight_limit
+    )
+    bittensor.__console__.print(
+        f"\nNormalized weights: \n\t{weights} -> {formatted_weights}\n"
     )
 
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
-            "Do you want to set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]?".format(
-                [float(v / 65535) for v in weight_vals], weight_uids
+            "Do you want to set the following root weights?:\n[bold white]  weights: {}\n  uids: {}[/bold white ]?".format(
+                formatted_weights, netuids
             )
         ):
             return False
 
     with bittensor.__console__.status(
-        ":satellite: Setting weights on [white]{}[/white] ...".format(subtensor.network)
+        ":satellite: Setting root weights on [white]{}[/white] ...".format(
+            subtensor.network
+        )
     ):
         try:
             success, error_message = subtensor._do_set_weights(
                 wallet=wallet,
-                netuid=netuid,
-                uids=weight_uids,
-                vals=weight_vals,
+                netuid=0,
+                uids=netuids.tolist(),
+                vals=formatted_weights.tolist(),
                 version_key=version_key,
                 wait_for_finalization=wait_for_finalization,
                 wait_for_inclusion=wait_for_inclusion,
             )
-            if success == True:
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
 
+            bittensor.__console__.print(success, error_message)
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
+
+            if success == True:
                 bittensor.__console__.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )

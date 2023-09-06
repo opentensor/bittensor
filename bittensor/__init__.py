@@ -164,6 +164,40 @@ __type_registry__ = {
                 },
             },
         },
+        "ValidatorIPRuntimeApi": {
+            "methods": {
+                "get_associated_validator_ip_info_for_subnet": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            },
+        },
+        "SubnetInfoRuntimeApi": {
+            "methods": {
+                "get_subnet_hyperparams": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>"
+                }
+            }
+        },
+        "SubnetRegistrationRuntimeApi": {
+            "methods": {
+                "get_network_registration_cost": {
+                    "params": [],
+                    "type": "u64"
+                }
+            }
+        }
     },
 }
 
@@ -184,6 +218,7 @@ from .metagraph import metagraph as metagraph
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
 from .synapse import *
+from .stream import *
 from .tensor import *
 from .axon import axon as axon
 from .dendrite import dendrite as dendrite
