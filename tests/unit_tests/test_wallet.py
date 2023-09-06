@@ -87,7 +87,9 @@ class TestWalletUpdate(unittest.TestCase):
 
         # encrypt and decrypt with nacl
         encrypted_message = bittensor.encrypt_keyfile_data(message, "password")
-        decrypted_message = bittensor.decrypt_keyfile_data(encrypted_message, "password")
+        decrypted_message = bittensor.decrypt_keyfile_data(
+            encrypted_message, "password"
+        )
         assert decrypted_message == message
         print(message, decrypted_message)
         assert bittensor.keyfile_data_is_encrypted(encrypted_message)
@@ -213,9 +215,6 @@ class TestWalletUpdate(unittest.TestCase):
     # [no need] try to read from the new file path 
     # [tick] test the old and new encrypted is not the same 
     # [tick] test that the hotkeys are not affected
-
-
-
 
 class TestWallet(unittest.TestCase):
     def setUp(self):
