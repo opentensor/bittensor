@@ -21,6 +21,7 @@ import json
 import stat
 import getpass
 import bittensor
+from bittensor.errors import KeyFileError
 from typing import Optional
 from pathlib import Path
 
