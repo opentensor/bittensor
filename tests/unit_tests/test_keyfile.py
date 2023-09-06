@@ -317,7 +317,7 @@ class KeyPairTestCase(unittest.TestCase):
 class TestKeyFiles(unittest.TestCase):
     def setUp(self) -> None:
         self.root_path = f"/tmp/pytest{time.time()}"
-        os.makedirs(self.root_path, exist_ok=True)
+        os.makedirs(self.root_path)
 
         self.create_keyfile()
 
@@ -325,94 +325,94 @@ class TestKeyFiles(unittest.TestCase):
         shutil.rmtree(self.root_path)
 
     def create_keyfile(self):
-        Keyfile = bittensor.Keyfile(path=os.path.join(self.root_path, "Keyfile"))
+        keyfile = bittensor.keyfile(path=os.path.join(self.root_path, "keyfile"))
 
         mnemonic = bittensor.Keypair.generate_mnemonic(12)
         alice = bittensor.Keypair.create_from_mnemonic(mnemonic)
-        Keyfile.set_keypair(
+        keyfile.set_keypair(
             alice, encrypt=True, overwrite=True, password="thisisafakepassword"
         )
 
         bob = bittensor.Keypair.create_from_uri("/Bob")
-        Keyfile.set_keypair(
+        keyfile.set_keypair(
             bob, encrypt=True, overwrite=True, password="thisisafakepassword"
         )
 
-        return Keyfile
+        return keyfile
 
     def test_create(self):
-        Keyfile = bittensor.Keyfile(path=os.path.join(self.root_path, "Keyfile"))
+        keyfile = bittensor.keyfile(path=os.path.join(self.root_path, "keyfile"))
 
         mnemonic = bittensor.Keypair.generate_mnemonic(12)
         alice = bittensor.Keypair.create_from_mnemonic(mnemonic)
-        Keyfile.set_keypair(
+        keyfile.set_keypair(
             alice, encrypt=True, overwrite=True, password="thisisafakepassword"
         )
-        assert Keyfile.is_readable()
-        assert Keyfile.is_writable()
-        assert Keyfile.is_encrypted()
-        Keyfile.decrypt(password="thisisafakepassword")
-        assert not Keyfile.is_encrypted()
-        Keyfile.encrypt(password="thisisafakepassword")
-        assert Keyfile.is_encrypted()
-        str(Keyfile)
-        Keyfile.decrypt(password="thisisafakepassword")
-        assert not Keyfile.is_encrypted()
-        str(Keyfile)
+        assert keyfile.is_readable()
+        assert keyfile.is_writable()
+        assert keyfile.is_encrypted()
+        keyfile.decrypt(password="thisisafakepassword")
+        assert not keyfile.is_encrypted()
+        keyfile.encrypt(password="thisisafakepassword")
+        assert keyfile.is_encrypted()
+        str(keyfile)
+        keyfile.decrypt(password="thisisafakepassword")
+        assert not keyfile.is_encrypted()
+        str(keyfile)
 
         assert (
-            Keyfile.get_keypair(password="thisisafakepassword").ss58_address
+            keyfile.get_keypair(password="thisisafakepassword").ss58_address
             == alice.ss58_address
         )
         assert (
-            Keyfile.get_keypair(password="thisisafakepassword").private_key
+            keyfile.get_keypair(password="thisisafakepassword").private_key
             == alice.private_key
         )
         assert (
-            Keyfile.get_keypair(password="thisisafakepassword").public_key
+            keyfile.get_keypair(password="thisisafakepassword").public_key
             == alice.public_key
         )
 
         bob = bittensor.Keypair.create_from_uri("/Bob")
-        Keyfile.set_keypair(
+        keyfile.set_keypair(
             bob, encrypt=True, overwrite=True, password="thisisafakepassword"
         )
         assert (
-            Keyfile.get_keypair(password="thisisafakepassword").ss58_address
+            keyfile.get_keypair(password="thisisafakepassword").ss58_address
             == bob.ss58_address
         )
         assert (
-            Keyfile.get_keypair(password="thisisafakepassword").public_key
+            keyfile.get_keypair(password="thisisafakepassword").public_key
             == bob.public_key
         )
 
-        repr(Keyfile)
+        repr(keyfile)
 
     def test_legacy_coldkey(self):
         legacy_filename = os.path.join(self.root_path, "coldlegacy_keyfile")
-        Keyfile = bittensor.Keyfile(path=legacy_filename)
-        Keyfile.make_dirs()
+        keyfile = bittensor.keyfile(path=legacy_filename)
+        keyfile.make_dirs()
         keyfile_data = (
             b"0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f"
         )
         with open(legacy_filename, "wb") as keyfile_obj:
             keyfile_obj.write(keyfile_data)
-        assert Keyfile.keyfile_data == keyfile_data
-        Keyfile.encrypt(password="this is the fake password")
-        Keyfile.decrypt(password="this is the fake password")
+        assert keyfile.keyfile_data == keyfile_data
+        keyfile.encrypt(password="this is the fake password")
+        keyfile.decrypt(password="this is the fake password")
         keypair_bytes = b'{"accountId": "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f", "publicKey": "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f", "secretPhrase": null, "secretSeed": null, "ss58Address": "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"}'
-        assert Keyfile.keyfile_data == keypair_bytes
+        assert keyfile.keyfile_data == keypair_bytes
         assert (
-            Keyfile.get_keypair().ss58_address
+            keyfile.get_keypair().ss58_address
             == "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
         )
         assert (
-            "0x" + Keyfile.get_keypair().public_key.hex()
+            "0x" + keyfile.get_keypair().public_key.hex()
             == "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f"
         )
 
     def test_validate_password(self):
-        from bittensor._wallet._keyfile import validate_password
+        from bittensor.keyfile import validate_password
 
         assert validate_password(None) == False
         assert validate_password("passw0rd") == False
@@ -430,7 +430,7 @@ class TestKeyFiles(unittest.TestCase):
         from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-        from bittensor._wallet._keyfile import decrypt_keyfile_data
+        from bittensor.keyfile import decrypt_keyfile_data
 
         __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
 
@@ -455,7 +455,7 @@ class TestKeyFiles(unittest.TestCase):
         assert decrypted_data == data
 
     def test_user_interface(self):
-        from bittensor._wallet._keyfile import ask_password_to_encrypt
+        from bittensor.keyfile import ask_password_to_encrypt
 
         with mock.patch(
             "getpass.getpass",
@@ -464,15 +464,15 @@ class TestKeyFiles(unittest.TestCase):
             assert ask_password_to_encrypt() == "asdury3294y"
 
     def test_overwriting(self):
-        Keyfile = bittensor.Keyfile(path=os.path.join(self.root_path, "Keyfile"))
+        keyfile = bittensor.keyfile(path=os.path.join(self.root_path, "keyfile"))
         alice = bittensor.Keypair.create_from_uri("/Alice")
-        Keyfile.set_keypair(
+        keyfile.set_keypair(
             alice, encrypt=True, overwrite=True, password="thisisafakepassword"
         )
         bob = bittensor.Keypair.create_from_uri("/Bob")
 
         with pytest.raises(bittensor.KeyFileError) as pytest_wrapped_e:
             with mock.patch("builtins.input", return_value="n"):
-                Keyfile.set_keypair(
+                keyfile.set_keypair(
                     bob, encrypt=True, overwrite=False, password="thisisafakepassword"
                 )
