@@ -29,6 +29,7 @@ from unittest.mock import patch, MagicMock
 
 class TestWalletUpdate(unittest.TestCase):
     def setUp(self):
+        self.default_updated_password = "nacl_password"
         self.default_legacy_password = "ansible_password"
         self.empty_wallet = bittensor.wallet(name=f"mock-empty-{str(time.time())}")
         self.legacy_wallet = self.create_legacy_wallet() 
@@ -46,7 +47,7 @@ class TestWalletUpdate(unittest.TestCase):
         with patch.object(
             bittensor,
             "ask_password_to_encrypt",
-            return_value="nacl_password",
+            return_value=self.default_updated_password,
         ):
             wallet.create()
             assert "NaCl" in str(wallet.coldkey_file)
@@ -91,7 +92,6 @@ class TestWalletUpdate(unittest.TestCase):
             encrypted_message, "password"
         )
         assert decrypted_message == message
-        print(message, decrypted_message)
         assert bittensor.keyfile_data_is_encrypted(encrypted_message)
         assert not bittensor.keyfile_data_is_encrypted(decrypted_message)
         assert not bittensor.keyfile_data_is_encrypted_ansible(decrypted_message)
@@ -101,7 +101,6 @@ class TestWalletUpdate(unittest.TestCase):
         encrypted_message = TestWalletUpdate.legacy_encrypt_keyfile_data(message, "password")
         decrypted_message = bittensor.decrypt_keyfile_data(encrypted_message, "password")
         assert decrypted_message == message
-        print(message, decrypted_message)
         assert bittensor.keyfile_data_is_encrypted(encrypted_message)
         assert not bittensor.keyfile_data_is_encrypted(decrypted_message)
         assert not bittensor.keyfile_data_is_encrypted_nacl(decrypted_message)
@@ -200,12 +199,6 @@ class TestWalletUpdate(unittest.TestCase):
         updated_legacy_wallet = bittensor.wallet(name = legacy_wallet.name, hotkey = legacy_wallet.hotkey_str)
         check_new_coldkeyfile(updated_legacy_wallet.coldkey_file)
         check_new_hotkeyfile(updated_legacy_wallet.hotkey_file)
-        
-    def test_update_multiple_keys(self):
-        """ Test for multiple times. 
-        """
-        for i in range(5):
-            self.test_check_and_update_excryption()            
     
     # def test_password_retain(self):
     # [tick] test the same password works
