@@ -509,7 +509,7 @@ class keyfile:
             # If the key is not nacl encrypted.
             if keyfile_data_is_encrypted(keyfile_data) and not keyfile_data_is_encrypted_nacl(keyfile_data):
                 bittensor.__console__.print(
-                    f":exclamation_mark:You may update the keyfile to improve the security for storing your keys. \nWhile the key and the password stays the same, it would require providing your password once. \n:key: {self}"
+                    f"You may update the keyfile to improve the security for storing your keys. \nWhile the key and the password stays the same, it would require providing your password once. \n:key: {self}"
                 )
                 update_keyfile = Confirm.ask("Update keyfile?")
                 if update_keyfile:
@@ -522,6 +522,7 @@ class keyfile:
                             decrypted_keyfile_data = decrypt_keyfile_data(
                                 keyfile_data, coldkey_name=self.name, password=password
                             )
+                            print("\n")
                         except KeyFileError:
                             if not Confirm.ask(
                                 "Invalid password, retry and continue this keyfile update?"
@@ -546,7 +547,7 @@ class keyfile:
             elif keyfile_data_is_encrypted_nacl(keyfile_data):
                 if print_result:
                     bittensor.__console__.print(
-                        f":white_heavy_check_mark: Keyfile is already updated. \n:key: {self}"
+                        f":white_heavy_check_mark: Keyfile is updated. \n:key: {self}"
                     )
                 return True
             else:

@@ -19,7 +19,7 @@ import argparse
 import bittensor
 import os
 import sys
-from rich.prompt import Prompt
+from rich.prompt import Prompt, Confirm
 from typing import Optional, List
 from . import defaults
 
@@ -507,6 +507,10 @@ class UpdateWalletCommand:
 
     @staticmethod
     def check_config(config: "bittensor.Config"):
+        if config.get("all", d=False) == False:
+            if Confirm.ask("Do you want to update all legacy wallets?"):
+                config['all'] = True
+
         # Ask the user to specify the wallet if the wallet name is not clear.
         if (
             config.get("all", d=False) == False
