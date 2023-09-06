@@ -67,7 +67,6 @@ class SubnetLockCostCommand:
             bittensor.__console__.print(
                 f"Subnet lock cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]"
             )
-            time.sleep(bittensor.__blocktime__)
         except Exception as e:
             bittensor.__console__.print(
                 f"Subnet lock cost: [red]Failed to get subnet lock cost[/red]"
