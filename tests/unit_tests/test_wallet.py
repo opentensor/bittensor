@@ -29,37 +29,45 @@ from unittest.mock import patch, MagicMock
 
 class TestWalletUpdate(unittest.TestCase):
     def setUp(self):
-        test_id = random.randint(0, 10000)
-        self.wallet = bittensor.wallet(name=f"updated_wallet_{test_id}")
-        self.empty_wallet = bittensor.wallet(name=f"empty_wallet_{test_id}")
-        self.legacy_wallet = bittensor.wallet(name=f"legacy_wallet_{test_id}")
-        self.create_wallet()
+        self.default_legacy_password = "ansible_password"
+        self.wallet = bittensor.wallet(name=f"mock-{str(time.time())}")
+        self.empty_wallet = bittensor.wallet(name=f"mock-empty-{str(time.time())}")
+        self.legacy_wallet = bittensor.wallet(name=f"mock-legacy-{str(time.time())}")
+        self.create_wallet(self.wallet, self.legacy_wallet)
 
     def legacy_encrypt_keyfile_data(keyfile_data: bytes, password: str = None) -> bytes:
-        password = "ansible_password" if password == None else password
         console = bittensor.__console__
         with console.status(":locked_with_key: Encrypting key..."):
             vault = Vault(password)
         return vault.vault.encrypt(keyfile_data)
+    
+    def create_wallet(self, wallet, legacy_wallet, legacy_password = None):
+        def _legacy_encrypt_keyfile_data(*args, **kwargs):
+            args = {k:v for k, v in zip(self.legacy_encrypt_keyfile_data.__code__.co_varnames[:len(args)], args)}
+            kwargs = {**args, **kwargs}
+            kwargs['password'] = legacy_password
+            return TestWalletUpdate.legacy_encrypt_keyfile_data(**kwargs)
 
-    def create_wallet(self):
+        legacy_password = self.default_legacy_password if legacy_password == None else legacy_password
+        
         # create an nacl wallet
         with patch.object(
             bittensor,
             "ask_password_to_encrypt",
             return_value="nacl_password",
         ):
-            self.wallet.create()
-            assert "NaCl" in str(self.wallet.coldkey_file)
+            wallet.create()
+            assert "NaCl" in str(wallet.coldkey_file)
 
         # create a legacy ansible wallet
         with patch.object(
             bittensor,
             "encrypt_keyfile_data",
-            new=TestWalletUpdate.legacy_encrypt_keyfile_data,
+            new = _legacy_encrypt_keyfile_data,
+            # new = TestWalletUpdate.legacy_encrypt_keyfile_data,
         ):
-            self.legacy_wallet.create()
-            assert "Ansible" in str(self.legacy_wallet.coldkey_file)
+            legacy_wallet.create()
+            assert "Ansible" in str(legacy_wallet.coldkey_file)
 
     def test_encrypt_and_decrypt(self):
         json_data = {
@@ -80,9 +88,7 @@ class TestWalletUpdate(unittest.TestCase):
         assert bittensor.keyfile_data_is_encrypted_nacl(encrypted_message)
 
         # encrypt and decrypt with legacy ansible
-        encrypted_message = TestWalletUpdate.legacy_encrypt_keyfile_data(
-            message, "password"
-        )
+        encrypted_message = TestWalletUpdate.legacy_encrypt_keyfile_data(message, "password")
         decrypted_message = bittensor.decrypt_keyfile_data(encrypted_message, "password")
         assert decrypted_message == message
         print(message, decrypted_message)
@@ -109,26 +115,61 @@ class TestWalletUpdate(unittest.TestCase):
             # no renewal has been done in this test.
             assert not encrypt.called
 
-    def test_check_and_update_excryption(self):
+    def test_check_and_update_excryption(self, legacy_wallet = None):
+        
+        def check_new_keyfile(keyfile):
+            new_keyfile_data = keyfile._read_keyfile_data_from_file()
+            new_decrypted_keyfile_data = bittensor.decrypt_keyfile_data(new_keyfile_data, legacy_password)
+            new_path = legacy_wallet.coldkey_file.path
+
+            assert bittensor.keyfile_data_is_encrypted_ansible(old_keyfile_data)
+            assert bittensor.keyfile_data_is_encrypted_nacl(new_keyfile_data)
+            assert old_decrypted_keyfile_data == new_decrypted_keyfile_data
+            assert new_path == old_path
+
+        if legacy_wallet == None:
+            legacy_password = f"PASSword-{random.randint(0, 10000)}"
+            wallet = bittensor.wallet(name=f"mock-{str(time.time())}")
+            legacy_wallet = bittensor.wallet(name=f"mock-legacy-{str(time.time())}")
+            self.create_wallet(wallet, legacy_wallet, legacy_password=legacy_password)
+        
+        else:
+            legacy_password = self.default_legacy_password
+        
         # get old keyfile data
-        old_keyfile_data = self.legacy_wallet.coldkey_file._read_keyfile_data_from_file()
-        old_decrypted_keyfile_data = bittensor.decrypt_keyfile_data(old_keyfile_data, "ansible_password")
-        old_path = self.legacy_wallet.coldkey_file.path
+        old_keyfile_data = legacy_wallet.coldkey_file._read_keyfile_data_from_file()
+        old_decrypted_keyfile_data = bittensor.decrypt_keyfile_data(old_keyfile_data, legacy_password)
+        old_path = legacy_wallet.coldkey_file.path
 
         # update legacy_wallet from ansible to nacl
-        with patch("getpass.getpass", return_value="ansible_password"), patch.object(Confirm, "ask", return_value=True):
-            self.legacy_wallet.coldkey_file.check_and_update_encryption()
+        with patch("getpass.getpass", return_value=legacy_password), patch.object(Confirm, "ask", return_value=True):
+            legacy_wallet.coldkey_file.check_and_update_encryption()
 
-        # get new keyfile data
-        new_keyfile_data = self.legacy_wallet.coldkey_file._read_keyfile_data_from_file()
+        # get new keyfile data from the same legacy wallet
+        check_new_keyfile(legacy_wallet.coldkey_file)
+
+        # get new keyfile data from wallet name
+        updated_legacy_wallet = bittensor.wallet(name = legacy_wallet.name, hotkey = legacy_wallet.hotkey_str)
+        check_new_keyfile(updated_legacy_wallet.coldkey_file)
+        print('legacy password', legacy_password)
         
-        new_decrypted_keyfile_data = bittensor.decrypt_keyfile_data(new_keyfile_data, "ansible_password")
-        new_path = self.legacy_wallet.coldkey_file.path
+    def test_update_multiple_keys(self):
+        for i in range(5):
+            self.test_check_and_update_excryption()            
+        assert False
+    
 
-        assert bittensor.keyfile_data_is_encrypted_ansible(old_keyfile_data)
-        assert bittensor.keyfile_data_is_encrypted_nacl(new_keyfile_data)
-        assert old_decrypted_keyfile_data == new_decrypted_keyfile_data
-        assert new_path == old_path
+    
+    # def test_password_retain(self):
+    # [tick] test the same password works
+    # [tick] try to read using the same hotkey/coldkey name
+    # [tick] test the same keyfile data could be retained  
+    # [] test what if a wrong password was inserted
+    # [] try to read from the new file path 
+    # [] test the old and new encrypted is not the same 
+    # [] test that the hotkeys are not affected
+
+
 
 
 class TestWallet(unittest.TestCase):
