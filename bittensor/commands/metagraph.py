@@ -41,7 +41,7 @@ class MetagraphCommand:
         subnet_emission = bittensor.Balance.from_tao(
             subtensor.get_emission_value_by_subnet(cli.config.netuid)
         )
-        total_issuance = bittensor.Balance.from_tao(subtensor.total_issuance())
+        total_issuance = bittensor.Balance.from_rao(subtensor.total_issuance().rao)
 
         TABLE_DATA = []
         total_stake = 0.0
