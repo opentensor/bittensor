@@ -44,7 +44,7 @@ class TestWallet(unittest.TestCase):
         ss58_address = "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
         with patch.object(self.mock_wallet, "set_coldkeypub") as mock_set_coldkeypub:
             self.mock_wallet.regenerate_coldkeypub(
-                ss58_address=ss58_address, overwrite=True
+                ss58_address=ss58_address, overwrite=True, suppress=True
             )
 
             mock_set_coldkeypub.assert_called_once()
@@ -56,7 +56,7 @@ class TestWallet(unittest.TestCase):
         )
         with pytest.raises(ValueError):
             self.mock_wallet.regenerate_coldkeypub(
-                ss58_address=ss58_address_bad, overwrite=True
+                ss58_address=ss58_address_bad, overwrite=True, suppress=True
             )
 
     def test_regen_coldkeypub_from_hex_pubkey_str(self):
@@ -69,7 +69,7 @@ class TestWallet(unittest.TestCase):
         )
         with patch.object(self.mock_wallet, "set_coldkeypub") as mock_set_coldkeypub:
             self.mock_wallet.regenerate_coldkeypub(
-                public_key=pubkey_str, overwrite=True
+                public_key=pubkey_str, overwrite=True, suppress=True
             )
 
             mock_set_coldkeypub.assert_called_once()
@@ -79,7 +79,7 @@ class TestWallet(unittest.TestCase):
         pubkey_str_bad = "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512"  # 1 character short
         with pytest.raises(ValueError):
             self.mock_wallet.regenerate_coldkeypub(
-                ss58_address=pubkey_str_bad, overwrite=True
+                ss58_address=pubkey_str_bad, overwrite=True, suppress=True
             )
 
     def test_regen_coldkeypub_from_hex_pubkey_bytes(self):
@@ -92,7 +92,7 @@ class TestWallet(unittest.TestCase):
         pubkey_bytes = bytes.fromhex(pubkey_str[2:])  # Remove 0x from beginning
         with patch.object(self.mock_wallet, "set_coldkeypub") as mock_set_coldkeypub:
             self.mock_wallet.regenerate_coldkeypub(
-                public_key=pubkey_bytes, overwrite=True
+                public_key=pubkey_bytes, overwrite=True, suppress=True
             )
 
             mock_set_coldkeypub.assert_called_once()
@@ -106,7 +106,7 @@ class TestWallet(unittest.TestCase):
         with pytest.raises(ValueError):
             # Must provide either public_key or ss58_address
             self.mock_wallet.regenerate_coldkeypub(
-                ss58_address=None, public_key=None, overwrite=True
+                ss58_address=None, public_key=None, overwrite=True, suppress=True
             )
 
     def test_regen_coldkey_from_hex_seed_str(self):
