@@ -127,10 +127,10 @@ class TestWalletUpdate(unittest.TestCase):
             # legacy wallet cannot be updated without asking for password form prompt.
             assert not self.legacy_wallet.coldkey_file.check_and_update_encryption(no_prompt=True)
 
-            # # Wrong password
-            # legacy_wallet = self.create_legacy_wallet()
-            # with patch("getpass.getpass", return_value="wrong_password"), patch.object(Confirm, "ask", return_value=True):
-            #     assert not legacy_wallet.coldkey_file.check_and_update_encryption()
+            # Wrong password
+            legacy_wallet = self.create_legacy_wallet()
+            with patch("getpass.getpass", return_value="wrong_password"), patch.object(Confirm, "ask", return_value=False):
+                assert not legacy_wallet.coldkey_file.check_and_update_encryption()
 
             # no renewal has been done in this test.
             assert not encrypt.called
@@ -204,6 +204,7 @@ class TestWalletUpdate(unittest.TestCase):
         """
         for i in range(5):
             self.test_check_and_update_excryption()            
+    
     # def test_password_retain(self):
     # [tick] test the same password works
     # [tick] try to read using the same hotkey/coldkey name
