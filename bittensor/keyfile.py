@@ -512,7 +512,7 @@ class keyfile:
 
             # If the key is not nacl encrypted.
             if keyfile_data_is_encrypted(keyfile_data) and not keyfile_data_is_encrypted_nacl(keyfile_data):
-                bittensor.__console__.print(f"You may update the keyfile to improve the security for storing your keys.\n\nWhile the key and the password stays the same, it would require providing your password once.\n\n:key:{self}\n\n")
+                bittensor.__console__.print(f"You may update the keyfile to improve the security for storing your keys.\nWhile the key and the password stays the same, it would require providing your password once.\n:key:{self}\n")
                 bittensor.__console__.print(f"Please make sure you have the mnemonic stored.", style="white on red")
                 update_keyfile = Confirm.ask("Update keyfile?")
                 if update_keyfile:
