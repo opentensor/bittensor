@@ -177,6 +177,27 @@ __type_registry__ = {
                 },
             },
         },
+        "SubnetInfoRuntimeApi": {
+            "methods": {
+                "get_subnet_hyperparams": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>"
+                }
+            }
+        },
+        "SubnetRegistrationRuntimeApi": {
+            "methods": {
+                "get_network_registration_cost": {
+                    "params": [],
+                    "type": "u64"
+                }
+            }
+        }
     },
 }
 

@@ -2435,20 +2435,17 @@ class subtensor:
         return IPInfo.list_from_vec_u8(bytes_result)
 
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> int:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
-                params = []
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="subnetInfo_getLockCost", params=params  # custom rpc method
-                )
+        lock_cost = self.query_runtime_api(
+            runtime_api="SubnetRegistrationRuntimeApi",
+            method="get_network_registration_cost",
+            params=[],
+            block=block,
+        )
 
-        json_body = make_substrate_call_with_retry()
-        result = int(json_body["result"])
-        return result
+        if lock_cost == None:
+            return None
+
+        return lock_cost
 
     ################
     ## Extrinsics ##
