@@ -30,10 +30,9 @@ from unittest.mock import patch, MagicMock
 class TestWalletUpdate(unittest.TestCase):
     def setUp(self):
         self.default_legacy_password = "ansible_password"
-        self.wallet = bittensor.wallet(name=f"mock-{str(time.time())}")
         self.empty_wallet = bittensor.wallet(name=f"mock-empty-{str(time.time())}")
-        self.legacy_wallet = bittensor.wallet(name=f"mock-legacy-{str(time.time())}")
-        self.create_wallet(self.wallet, self.legacy_wallet)
+        self.legacy_wallet = self.create_legacy_wallet() 
+        self.wallet = self.create_wallet()
 
     def legacy_encrypt_keyfile_data(keyfile_data: bytes, password: str = None) -> bytes:
         console = bittensor.__console__
@@ -41,16 +40,9 @@ class TestWalletUpdate(unittest.TestCase):
             vault = Vault(password)
         return vault.vault.encrypt(keyfile_data)
     
-    def create_wallet(self, wallet, legacy_wallet, legacy_password = None):
-        def _legacy_encrypt_keyfile_data(*args, **kwargs):
-            args = {k:v for k, v in zip(self.legacy_encrypt_keyfile_data.__code__.co_varnames[:len(args)], args)}
-            kwargs = {**args, **kwargs}
-            kwargs['password'] = legacy_password
-            return TestWalletUpdate.legacy_encrypt_keyfile_data(**kwargs)
-
-        legacy_password = self.default_legacy_password if legacy_password == None else legacy_password
-        
+    def create_wallet(self):      
         # create an nacl wallet
+        wallet = bittensor.wallet(name=f"mock-{str(time.time())}")  
         with patch.object(
             bittensor,
             "ask_password_to_encrypt",
@@ -58,6 +50,18 @@ class TestWalletUpdate(unittest.TestCase):
         ):
             wallet.create()
             assert "NaCl" in str(wallet.coldkey_file)
+
+        return wallet 
+    
+    def create_legacy_wallet(self, legacy_password = None):
+        def _legacy_encrypt_keyfile_data(*args, **kwargs):
+            args = {k:v for k, v in zip(self.legacy_encrypt_keyfile_data.__code__.co_varnames[:len(args)], args)}
+            kwargs = {**args, **kwargs}
+            kwargs['password'] = legacy_password
+            return TestWalletUpdate.legacy_encrypt_keyfile_data(**kwargs)
+
+        legacy_wallet = bittensor.wallet(name=f"mock-legacy-{str(time.time())}")
+        legacy_password = self.default_legacy_password if legacy_password == None else legacy_password
 
         # create a legacy ansible wallet
         with patch.object(
@@ -69,6 +73,8 @@ class TestWalletUpdate(unittest.TestCase):
             legacy_wallet.create()
             assert "Ansible" in str(legacy_wallet.coldkey_file)
 
+        return legacy_wallet
+    
     def test_encrypt_and_decrypt(self):
         json_data = {
             "address": "This is the address.",
@@ -129,9 +135,7 @@ class TestWalletUpdate(unittest.TestCase):
 
         if legacy_wallet == None:
             legacy_password = f"PASSword-{random.randint(0, 10000)}"
-            wallet = bittensor.wallet(name=f"mock-{str(time.time())}")
-            legacy_wallet = bittensor.wallet(name=f"mock-legacy-{str(time.time())}")
-            self.create_wallet(wallet, legacy_wallet, legacy_password=legacy_password)
+            legacy_wallet = self.create_legacy_wallet(legacy_password=legacy_password)
         
         else:
             legacy_password = self.default_legacy_password
