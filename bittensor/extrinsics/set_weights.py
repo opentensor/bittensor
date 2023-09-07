@@ -97,10 +97,11 @@ def set_weights_extrinsic(
                 wait_for_finalization=wait_for_finalization,
                 wait_for_inclusion=wait_for_inclusion,
             )
-            if success == True:
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
 
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
+
+            if success == True:
                 bittensor.__console__.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )
