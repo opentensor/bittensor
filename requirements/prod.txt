@@ -12,6 +12,7 @@ netaddr
 numpy
 msgpack
 git+https://github.com/opentensor/msgpack-numpy.git#egg=msgpack-numpy
+PyNaCl>=1.3.0
 nest_asyncio
 pycryptodome>=3.18.0,<4.0.0
 pyyaml
