@@ -23,6 +23,7 @@ from rich.prompt import Prompt, Confirm
 from typing import Optional, List
 from . import defaults
 
+
 class RegenColdkeyCommand:
     def run(cli):
         r"""Creates a new coldkey under this wallet."""
@@ -466,6 +467,7 @@ class WalletCreateCommand:
         bittensor.wallet.add_args(new_coldkey_parser)
         bittensor.subtensor.add_args(new_coldkey_parser)
 
+
 def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     """Get all coldkey wallet names from path."""
     try:
@@ -475,6 +477,7 @@ def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
         # No wallet files found.
         wallets = []
     return wallets
+
 
 class UpdateWalletCommand:
     @staticmethod
@@ -510,7 +513,7 @@ class UpdateWalletCommand:
     def check_config(config: "bittensor.Config"):
         if config.get("all", d=False) == False:
             if Confirm.ask("Do you want to update all legacy wallets?"):
-                config['all'] = True
+                config["all"] = True
 
         # Ask the user to specify the wallet if the wallet name is not clear.
         if (
@@ -518,5 +521,7 @@ class UpdateWalletCommand:
             and config.wallet.get("name") == bittensor.defaults.wallet.name
             and not config.no_prompt
         ):
-            wallet_name = Prompt.ask("Enter wallet name", default=bittensor.defaults.wallet.name)
+            wallet_name = Prompt.ask(
+                "Enter wallet name", default=bittensor.defaults.wallet.name
+            )
             config.wallet.name = str(wallet_name)
