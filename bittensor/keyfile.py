@@ -512,36 +512,45 @@ class keyfile:
 
             # If the key is not nacl encrypted.
             if keyfile_data_is_encrypted(keyfile_data) and not keyfile_data_is_encrypted_nacl(keyfile_data):
+                terminate = False
                 bittensor.__console__.print(f"You may update the keyfile to improve the security for storing your keys.\nWhile the key and the password stays the same, it would require providing your password once.\n:key:{self}\n")
-                bittensor.__console__.print(f"Please make sure you have the mnemonic stored.", style="white on red")
                 update_keyfile = Confirm.ask("Update keyfile?")
-                if update_keyfile:
+                if update_keyfile:        
+                    stored_mnemonic = False
+                    while not stored_mnemonic:
+                        bittensor.__console__.print(f"\nPlease make sure you have the mnemonic stored in case an error occurs during the transfer.", style="white on red")
+                        stored_mnemonic = Confirm.ask("Have you stored the mnemonic?")
+                        if not stored_mnemonic and not Confirm.ask("You must proceed with a stored mnemonic, retry and continue this keyfile update?"):
+                            terminate = True
+                            break
+                    
                     decrypted_keyfile_data = None
-                    while decrypted_keyfile_data == None:
+                    while decrypted_keyfile_data == None and not terminate:
                         try:
-                            password = getpass.getpass("Enter password to update keyfile: ")
+                            password = getpass.getpass("\nEnter password to update keyfile: ")
                             decrypted_keyfile_data = decrypt_keyfile_data(keyfile_data, coldkey_name=self.name, password=password)
-                            print("\n")
                         except KeyFileError:
                             if not Confirm.ask("Invalid password, retry and continue this keyfile update?"):
-                                return False
-
-                    encrypted_keyfile_data = encrypt_keyfile_data(decrypted_keyfile_data, password=password)
-                    self._write_keyfile_data_to_file(encrypted_keyfile_data, overwrite=True)
+                                terminate = True
+                                break
+                    
+                    if not terminate:
+                        encrypted_keyfile_data = encrypt_keyfile_data(decrypted_keyfile_data, password=password)
+                        self._write_keyfile_data_to_file(encrypted_keyfile_data, overwrite=True)
 
         if print_result or update_keyfile:
             keyfile_data = self._read_keyfile_data_from_file()
             if not keyfile_data_is_encrypted(keyfile_data):
                 if print_result:
-                    bittensor.__console__.print(f"Keyfile is not encrypted. \n:key: {self}")
+                    bittensor.__console__.print(f"\nKeyfile is not encrypted. \n:key: {self}")
                 return False
             elif keyfile_data_is_encrypted_nacl(keyfile_data):
                 if print_result:
-                    bittensor.__console__.print(f":white_heavy_check_mark: Keyfile is updated. \n:key: {self}")
+                    bittensor.__console__.print(f"\n:white_heavy_check_mark: Keyfile is updated. \n:key: {self}")
                 return True
             else:
                 if print_result:
-                    bittensor.__console__.print(f':cross_mark: Keyfile is outdated, please update with "btcli update_wallet" \n:key: {self}')
+                    bittensor.__console__.print(f'\n:cross_mark: Keyfile is outdated, please update with "btcli wallet update_wallet" \n:key: {self}')
                 return False
         return False
 
