@@ -2113,9 +2113,8 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         cli = bittensor.cli(args=["root", "list_delegates"])
         cli.run()
 
-    @unittest.skip
     def test_list_subnets(self, _):
-        cli = bittensor.cli(args=["subnets", "list"])
+        cli = bittensor.cli(args=["subnets", "list", "--subtensor.chain_endpoint", "wss://test.finney.opentensor.ai:443"])
         cli.run()
 
     @unittest.skip
