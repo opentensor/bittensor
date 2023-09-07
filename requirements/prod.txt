@@ -2,6 +2,7 @@ aiohttp==3.8.5
 ansible>=7.0.0,<=8.2.0
 ansible_vault==2.1.0
 backoff
+black==23.7.0
 cryptography==41.0.3
 ddt==1.6.0
 fuzzywuzzy>=0.18.0
