@@ -580,7 +580,7 @@ class keyfile:
             else:
                 if print_result:
                     bittensor.__console__.print(
-                        f'\n:cross_mark: Keyfile is outdated, please update with "btcli wallet update_wallet" \n:key: {self}'
+                        f'\n:cross_mark: Keyfile is outdated, please update with "btcli wallet update" \n:key: {self}'
                     )
                 return False
         return False
