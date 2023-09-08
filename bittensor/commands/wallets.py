@@ -496,7 +496,7 @@ class UpdateWalletCommand:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         update_wallet_parser = parser.add_parser(
-            "update_wallet", help="""Delegate Stake to an account."""
+            "update", help="""Delegate Stake to an account."""
         )
         update_wallet_parser.add_argument("--all", action="store_true")
         update_wallet_parser.add_argument(
