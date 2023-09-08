@@ -39,7 +39,7 @@ def read_requirements(path):
 
     # Install git dependencies
     for git_req in git_requirements:
-        subprocess.check_call(["pip", "install", git_req])
+        subprocess.check_call(["python", "-m", "pip", "install", git_req])
 
     return requirements
 
