@@ -419,6 +419,7 @@ class subtensor:
                     return True, None
                 else:
                     return False, response.error_message
+
         return make_substrate_call_with_retry()
 
     ######################
@@ -527,6 +528,7 @@ class subtensor:
             success (bool): True if the extrinsic was included in a block.
             error (Optional[str]): None on success or not waiting for inclusion/finalization, otherwise the error message.
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
@@ -563,6 +565,7 @@ class subtensor:
                 # Successful registration
                 else:
                     return True, None
+
         return make_substrate_call_with_retry()
 
     def _do_burned_register(
@@ -572,7 +575,6 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
@@ -580,7 +582,10 @@ class subtensor:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
                     call_function="burned_register",
-                    call_params={"netuid": netuid, "hotkey": wallet.hotkey.ss58_address},
+                    call_params={
+                        "netuid": netuid,
+                        "hotkey": wallet.hotkey.ss58_address,
+                    },
                 )
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call, keypair=wallet.coldkey
@@ -602,6 +607,7 @@ class subtensor:
                 # Successful registration
                 else:
                     return True, None
+
         return make_substrate_call_with_retry()
 
     ##################
@@ -678,6 +684,7 @@ class subtensor:
                 (On success and if wait_for_ finalization/inclusion is True)
             error (:obj:`str`): Error message if transfer failed.
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
@@ -705,6 +712,7 @@ class subtensor:
                     return True, block_hash, None
                 else:
                     return False, None, response.error_message
+
         return make_substrate_call_with_retry()
 
     def get_existential_deposit(self, block: Optional[int] = None) -> Optional[Balance]:
@@ -829,6 +837,7 @@ class subtensor:
                         return False, response.error_message
                 else:
                     return True, None
+
         return make_substrate_call_with_retry()
 
     def serve_prometheus(
@@ -866,6 +875,7 @@ class subtensor:
             success (:obj:`bool`): True if serve prometheus was successful.
             error (:obj:`Optional[str]`): Error message if serve prometheus failed, None otherwise.
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
@@ -890,6 +900,7 @@ class subtensor:
                         return False, response.error_message
                 else:
                     return True, None
+
         return make_substrate_call_with_retry()
 
     def _do_associate_ips(
@@ -914,6 +925,7 @@ class subtensor:
             success (:obj:`bool`): True if associate IPs was successful.
             error (:obj:`Optional[str]`): Error message if associate IPs failed, None otherwise.
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
@@ -941,6 +953,7 @@ class subtensor:
                         return False, response.error_message
                 else:
                     return True, None
+
         return make_substrate_call_with_retry()
 
     #################
@@ -1006,6 +1019,7 @@ class subtensor:
         Raises:
             StakeError: If the extrinsic failed.
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
@@ -1031,6 +1045,7 @@ class subtensor:
                     return True
                 else:
                     raise StakeError(response.error_message)
+
         return make_substrate_call_with_retry()
 
     ###################
@@ -1096,6 +1111,7 @@ class subtensor:
         Raises:
             StakeError: If the extrinsic failed.
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
@@ -1121,6 +1137,7 @@ class subtensor:
                     return True
                 else:
                     raise StakeError(response.error_message)
+
         return make_substrate_call_with_retry()
 
     ################
@@ -1278,6 +1295,7 @@ class subtensor:
                 # Successful registration
                 else:
                     return True, None
+
         return make_substrate_call_with_retry()
 
     def root_set_weights(
@@ -2443,6 +2461,7 @@ class subtensor:
                     return True
                 else:
                     raise StakeError(response.error_message)
+
         return make_substrate_call_with_retry()
 
     def _do_undelegation(
@@ -2459,7 +2478,10 @@ class subtensor:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
                     call_function="remove_stake",
-                    call_params={"hotkey": delegate_ss58, "amount_unstaked": amount.rao},
+                    call_params={
+                        "hotkey": delegate_ss58,
+                        "amount_unstaked": amount.rao,
+                    },
                 )
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call, keypair=wallet.coldkey
@@ -2477,6 +2499,7 @@ class subtensor:
                     return True
                 else:
                     raise StakeError(response.error_message)
+
         return make_substrate_call_with_retry()
 
     def _do_nominate(
@@ -2509,6 +2532,7 @@ class subtensor:
                     return True
                 else:
                     raise NominationError(response.error_message)
+
         return make_substrate_call_with_retry()
 
     ################
