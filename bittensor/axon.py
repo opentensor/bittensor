@@ -794,14 +794,14 @@ class AxonMiddleware(BaseHTTPMiddleware):
         if blacklist_fn:
             # We execute the blacklist checking function using the synapse instance as input.
             # If the function returns True, it means that the key or identifier is blacklisted.
-            blacklisted = (
+            blacklisted, reason = (
                 await blacklist_fn(synapse)
                 if inspect.iscoroutinefunction(blacklist_fn)
                 else blacklist_fn(synapse)
             )
             if blacklisted:
                 # We log that the key or identifier is blacklisted.
-                bittensor.logging.trace(f"Blacklisted")
+                bittensor.logging.trace(f"Blacklisted", blacklisted)
 
                 # We set the status code of the synapse to "403" which indicates a forbidden access.
                 synapse.axon.status_code = "403"
