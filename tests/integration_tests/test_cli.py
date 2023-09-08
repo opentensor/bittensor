@@ -2109,14 +2109,17 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     Test the CLI by passing args directly to the bittensor.cli factory
     """
 
-    @unittest.skip
     def test_list_delegates(self, _):
         cli = bittensor.cli(args=["root", "list_delegates"])
         cli.run()
 
-    @unittest.skip
     def test_list_subnets(self, _):
-        cli = bittensor.cli(args=["subnets", "list"])
+        cli = bittensor.cli(
+            args=[
+                "subnets",
+                "list",
+            ]
+        )
         cli.run()
 
     @unittest.skip

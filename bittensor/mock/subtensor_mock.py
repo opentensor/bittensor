@@ -262,6 +262,7 @@ class MockSubtensor(subtensor):
                     "Delegates": {},
                     "Axons": {},
                     "Prometheus": {},
+                    "SubnetOwner": {},
                 },
             }
 
