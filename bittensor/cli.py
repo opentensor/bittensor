@@ -92,6 +92,7 @@ COMMANDS = {
             "regen_coldkeypub": RegenColdkeypubCommand,
             "regen_hotkey": RegenHotkeyCommand,
             "faucet": RunFaucetCommand,
+            "update": UpdateWalletCommand,
         },
     },
     "stake": {

@@ -21,6 +21,7 @@ import json
 import stat
 import getpass
 import bittensor
+from bittensor.errors import KeyFileError
 from typing import Optional
 from pathlib import Path
 
@@ -31,9 +32,14 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from nacl import pwhash, secret
 from password_strength import PasswordPolicy
 from substrateinterface.utils.ss58 import ss58_encode
 from termcolor import colored
+from rich.prompt import Confirm
+
+
+NACL_SALT = b"\x13q\x83\xdf\xf1Z\t\xbc\x9c\x90\xb5Q\x879\xe9\xb1"
 
 
 def serialized_keypair_to_keyfile_data(keypair: "bittensor.Keypair") -> bytes:
@@ -146,6 +152,18 @@ def ask_password_to_encrypt() -> str:
     return password
 
 
+def keyfile_data_is_encrypted_nacl(keyfile_data: bytes) -> bool:
+    """Returns true if the keyfile data is NaCl encrypted.
+    Args:
+        keyfile_data ( bytes, required ):
+            Bytes to validate
+    Returns:
+        is_nacl (bool):
+            True if data is ansible encrypted.
+    """
+    return keyfile_data[: len("$NACL")] == b"$NACL"
+
+
 def keyfile_data_is_encrypted_ansible(keyfile_data: bytes) -> bool:
     """Returns true if the keyfile data is ansible encrypted.
     Args:
@@ -173,9 +191,39 @@ def keyfile_data_is_encrypted(keyfile_data: bytes) -> bool:
     Returns:
         is_encrypted (bool): True if the data is encrypted.
     """
-    return keyfile_data_is_encrypted_ansible(
-        keyfile_data
-    ) or keyfile_data_is_encrypted_legacy(keyfile_data)
+    return (
+        keyfile_data_is_encrypted_nacl(keyfile_data)
+        or keyfile_data_is_encrypted_ansible(keyfile_data)
+        or keyfile_data_is_encrypted_legacy(keyfile_data)
+    )
+
+
+def keyfile_data_encryption_method(keyfile_data: bytes) -> bool:
+    """Returns true if the keyfile data is encrypted.
+    Args:
+        keyfile_data ( bytes, required ):
+            Bytes to validate
+    Returns:
+        encryption_method (bool):
+            True if data is encrypted.
+    """
+
+    if keyfile_data_is_encrypted_nacl(keyfile_data):
+        return "NaCl"
+    elif keyfile_data_is_encrypted_ansible(keyfile_data):
+        return "Ansible Vault"
+    elif keyfile_data_is_encrypted_legacy(keyfile_data):
+        return "legacy"
+
+
+def legacy_encrypt_keyfile_data(keyfile_data: bytes, password: str = None) -> bytes:
+    password = ask_password_to_encrypt() if password is None else password
+    console = bittensor.__console__
+    with console.status(
+        ":exclamation_mark: Encrypting key with legacy encrpytion method..."
+    ):
+        vault = Vault(password)
+    return vault.vault.encrypt(keyfile_data)
 
 
 def encrypt_keyfile_data(keyfile_data: bytes, password: str = None) -> bytes:
@@ -186,11 +234,19 @@ def encrypt_keyfile_data(keyfile_data: bytes, password: str = None) -> bytes:
     Returns:
         encrypted_data (bytes): The encrypted data.
     """
-    password = ask_password_to_encrypt() if password is None else password
-    console = bittensor.__console__
-    with console.status(":locked_with_key: Encrypting key..."):
-        vault = Vault(password)
-    return vault.vault.encrypt(keyfile_data)
+    password = bittensor.ask_password_to_encrypt() if password is None else password
+    password = bytes(password, "utf-8")
+    kdf = pwhash.argon2i.kdf
+    key = kdf(
+        secret.SecretBox.KEY_SIZE,
+        password,
+        NACL_SALT,
+        opslimit=pwhash.argon2i.OPSLIMIT_SENSITIVE,
+        memlimit=pwhash.argon2i.MEMLIMIT_SENSITIVE,
+    )
+    box = secret.SecretBox(key)
+    encrypted = box.encrypt(keyfile_data)
+    return b"$NACL" + encrypted
 
 
 def get_coldkey_password_from_environment(coldkey_name: str) -> Optional[str]:
@@ -233,8 +289,21 @@ def decrypt_keyfile_data(
         )
         console = bittensor.__console__
         with console.status(":key: Decrypting key..."):
+            # NaCl SecretBox decrypt.
+            if keyfile_data_is_encrypted_nacl(keyfile_data):
+                password = bytes(password, "utf-8")
+                kdf = pwhash.argon2i.kdf
+                key = kdf(
+                    secret.SecretBox.KEY_SIZE,
+                    password,
+                    NACL_SALT,
+                    opslimit=pwhash.argon2i.OPSLIMIT_SENSITIVE,
+                    memlimit=pwhash.argon2i.MEMLIMIT_SENSITIVE,
+                )
+                box = secret.SecretBox(key)
+                decrypted_keyfile_data = box.decrypt(keyfile_data[len("$NACL") :])
             # Ansible decrypt.
-            if keyfile_data_is_encrypted_ansible(keyfile_data):
+            elif keyfile_data_is_encrypted_ansible(keyfile_data):
                 vault = Vault(password)
                 try:
                     decrypted_keyfile_data = vault.load(keyfile_data)
@@ -280,7 +349,10 @@ class keyfile:
         if not self.exists_on_device():
             return "keyfile (empty, {})>".format(self.path)
         if self.is_encrypted():
-            return "keyfile (encrypted, {})>".format(self.path)
+            return "Keyfile ({} encrypted, {})>".format(
+                keyfile_data_encryption_method(self._read_keyfile_data_from_file()),
+                self.path,
+            )
         else:
             return "keyfile (decrypted, {})>".format(self.path)
 
@@ -336,7 +408,7 @@ class keyfile:
         self.make_dirs()
         keyfile_data = serialized_keypair_to_keyfile_data(keypair)
         if encrypt:
-            keyfile_data = encrypt_keyfile_data(keyfile_data, password)
+            keyfile_data = bittensor.encrypt_keyfile_data(keyfile_data, password)
         self._write_keyfile_data_to_file(keyfile_data, overwrite=overwrite)
 
     def get_keypair(self, password: str = None) -> "bittensor.Keypair":
@@ -350,10 +422,12 @@ class keyfile:
         """
         keyfile_data = self._read_keyfile_data_from_file()
         if keyfile_data_is_encrypted(keyfile_data):
-            keyfile_data = decrypt_keyfile_data(
+            decrypted_keyfile_data = decrypt_keyfile_data(
                 keyfile_data, password, coldkey_name=self.name
             )
-        return deserialize_keypair_from_keyfile_data(keyfile_data)
+        else:
+            decrypted_keyfile_data = keyfile_data
+        return deserialize_keypair_from_keyfile_data(decrypted_keyfile_data)
 
     def make_dirs(self):
         """Creates directories for the path if they do not exist."""
@@ -408,6 +482,108 @@ class keyfile:
         """
         choice = input("File {} already exists. Overwrite? (y/N) ".format(self.path))
         return choice == "y"
+
+    def check_and_update_encryption(
+        self, print_result: bool = True, no_prompt: bool = False
+    ):
+        """Check the version of keyfile and update if needed.
+        Args:
+            print_result (bool):
+                Print the checking result or not.
+            no_prompt (bool):
+                Skip if no prompt.
+        Raises:
+            KeyFileError:
+                Raised if the file does not exists, is not readable, writable.
+        Returns:
+            result (bool):
+                return True if the keyfile is the most updated with nacl, else False.
+        """
+        if not self.exists_on_device():
+            if print_result:
+                bittensor.__console__.print(f"Keyfile does not exist. {self.path}")
+            return False
+        if not self.is_readable():
+            if print_result:
+                bittensor.__console__.print(f"Keyfile is not redable. {self.path}")
+            return False
+        if not self.is_writable():
+            if print_result:
+                bittensor.__console__.print(f"Keyfile is not writable. {self.path}")
+            return False
+
+        update_keyfile = False
+        if not no_prompt:
+            keyfile_data = self._read_keyfile_data_from_file()
+
+            # If the key is not nacl encrypted.
+            if keyfile_data_is_encrypted(
+                keyfile_data
+            ) and not keyfile_data_is_encrypted_nacl(keyfile_data):
+                terminate = False
+                bittensor.__console__.print(
+                    f"You may update the keyfile to improve the security for storing your keys.\nWhile the key and the password stays the same, it would require providing your password once.\n:key:{self}\n"
+                )
+                update_keyfile = Confirm.ask("Update keyfile?")
+                if update_keyfile:
+                    stored_mnemonic = False
+                    while not stored_mnemonic:
+                        bittensor.__console__.print(
+                            f"\nPlease make sure you have the mnemonic stored in case an error occurs during the transfer.",
+                            style="white on red",
+                        )
+                        stored_mnemonic = Confirm.ask("Have you stored the mnemonic?")
+                        if not stored_mnemonic and not Confirm.ask(
+                            "You must proceed with a stored mnemonic, retry and continue this keyfile update?"
+                        ):
+                            terminate = True
+                            break
+
+                    decrypted_keyfile_data = None
+                    while decrypted_keyfile_data == None and not terminate:
+                        try:
+                            password = getpass.getpass(
+                                "\nEnter password to update keyfile: "
+                            )
+                            decrypted_keyfile_data = decrypt_keyfile_data(
+                                keyfile_data, coldkey_name=self.name, password=password
+                            )
+                        except KeyFileError:
+                            if not Confirm.ask(
+                                "Invalid password, retry and continue this keyfile update?"
+                            ):
+                                terminate = True
+                                break
+
+                    if not terminate:
+                        encrypted_keyfile_data = encrypt_keyfile_data(
+                            decrypted_keyfile_data, password=password
+                        )
+                        self._write_keyfile_data_to_file(
+                            encrypted_keyfile_data, overwrite=True
+                        )
+
+        if print_result or update_keyfile:
+            keyfile_data = self._read_keyfile_data_from_file()
+            if not keyfile_data_is_encrypted(keyfile_data):
+                if print_result:
+                    bittensor.__console__.print(
+                        f"\nKeyfile is not encrypted. \n:key: {self}"
+                    )
+                return False
+            elif keyfile_data_is_encrypted_nacl(keyfile_data):
+                if print_result:
+                    bittensor.__console__.print(
+                        f"\n:white_heavy_check_mark: Keyfile is updated. \n:key: {self}"
+                    )
+                return True
+            else:
+                if print_result:
+                    bittensor.__console__.print(
+                        f'\n:cross_mark: Keyfile is outdated, please update with "btcli wallet update" \n:key: {self}'
+                    )
+                return False
+        return False
 
     def encrypt(self, password: str = None):
         """Encrypts the file under the path.
@@ -650,3 +826,6 @@ class Mockkeyfile:
             password (str, optional): Ignored in this context. Defaults to None.
         """
         pass
+
+    def check_and_update_encryption(self, no_prompt=None, print_result=False):
+        return
