@@ -26,30 +26,6 @@ import pathlib
 import subprocess
 
 
-class SubmoduleSyncError(Exception):
-    pass
-
-
-def sync_and_update_submodules():
-    try:
-        print("Synchronizing and updating submodules...")
-        subprocess.check_call(["git", "submodule", "sync"])
-        subprocess.check_call(["git", "submodule", "update", "--init"])
-    except subprocess.CalledProcessError:
-        print(
-            "Error synchronizing or updating submodules. Please ensure you have git installed and are in the root directory of the repository."
-        )
-        raise SubmoduleSyncError(
-            "An error occurred while synchronizing or updating submodules."
-        )
-
-
-try:
-    sync_and_update_submodules()
-except SubmoduleSyncError as e:
-    print(f"Submodule synchronization error: {e}")
-
-
 def read_requirements(path):
     requirements = []
     git_requirements = []
@@ -63,7 +39,7 @@ def read_requirements(path):
 
     # Install git dependencies
     for git_req in git_requirements:
-        subprocess.check_call(["pip", "install", git_req])
+        subprocess.check_call(["python", "-m", "pip", "install", git_req])
 
     return requirements
 
@@ -110,6 +86,7 @@ setup(
         # Pick your license as you wish
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
