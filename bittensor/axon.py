@@ -331,7 +331,7 @@ class axon:
                     ].annotation,
                 )
             ],
-            return_annotation=bool,
+            return_annotation=Tuple[bool, str],
         )
         priority_sig = Signature(
             [
