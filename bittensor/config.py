@@ -182,9 +182,13 @@ class config(DefaultMunch):
         default_param_args = []
         for arg in required_args:
             if arg_name in args:
-                default_param_args.extend([arg_name, str(args[args.index('--' + arg) + 1])])
+                default_param_args.extend(
+                    [arg_name, str(args[args.index("--" + arg) + 1])]
+                )
             else:
-                raise ValueError(f"The required argument {arg_name} was not provided in the command line arguments.")
+                raise ValueError(
+                    f"The required argument {arg_name} was not provided in the command line arguments."
+                )
 
         # Parse the arguments with the new list
         default_params = parser.parse_args(args=default_param_args)
