@@ -171,7 +171,22 @@ class config(DefaultMunch):
         if _config.get("command") != None and _config.get("subcommand") != None:
             default_param_args = [_config.get("command"), _config.get("subcommand")]
 
-        ## Get all args by name
+        ## Get all args by name and ensure required arguments are filled if present
+        # Create a list of all required arguments
+        required_args = []
+        for action in parser._actions:
+            if action.required:
+                required_args.append(action.dest)
+
+        # Check each required argument in the args list
+        default_param_args = []
+        for arg in required_args:
+            if arg_name in args:
+                default_param_args.extend([arg_name, str(args[args.index('--' + arg) + 1])])
+            else:
+                raise ValueError(f"The required argument {arg_name} was not provided in the command line arguments.")
+
+        # Parse the arguments with the new list
         default_params = parser.parse_args(args=default_param_args)
 
         all_default_args = default_params.__dict__.keys() | []
