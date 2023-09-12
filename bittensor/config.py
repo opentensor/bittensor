@@ -181,9 +181,10 @@ class config(DefaultMunch):
         # Check each required argument in the args list
         default_param_args = []
         for arg in required_args:
+            arg_name = "--" + arg
             if arg_name in args:
                 default_param_args.extend(
-                    [arg_name, str(args[args.index("--" + arg) + 1])]
+                    [arg_name, str(args[args.index(arg_name) + 1])]
                 )
             else:
                 raise ValueError(
