@@ -1926,26 +1926,24 @@ class subtensor:
 
     def get_subnet_hyperparameters(
         self, netuid: int, block: Optional[int] = None
-    ) -> Optional[SubnetInfo]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
-                params = [netuid]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="subnetInfo_getSubnetHyperparams",  # custom rpc method
-                    params=params,
-                )
+    ) -> Optional[SubnetHyperparameters]:
+    
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="SubnetInfoRuntimeApi",
+            method="get_subnet_hyperparams",
+            params=[netuid],
+            block=block,
+        )
 
-        json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
+        if hex_bytes_result == None:
+            return []
 
-        if result in (None, []):
-            return None
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
 
-        return SubnetHyperparameters.from_vec_u8(result)
+        return SubnetHyperparameters.from_vec_u8(bytes_result)
 
     def get_subnet_owner(
         self, netuid: int, block: Optional[int] = None

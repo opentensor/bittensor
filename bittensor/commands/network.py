@@ -230,7 +230,7 @@ class SubnetHyperparamsCommand:
     def run(cli):
         r"""View hyperparameters of a subnetwork."""
         subtensor = bittensor.subtensor(config=cli.config)
-        subnet: bittensor.SubnetInfo = subtensor.get_subnet_hyperparameters(
+        subnet: bittensor.SubnetHyperparameters = subtensor.get_subnet_hyperparameters(
             cli.config.netuid
         )
 
@@ -273,7 +273,7 @@ class SubnetGetHyperparamsCommand:
     def run(cli):
         r"""View hyperparameters of a subnetwork."""
         subtensor = bittensor.subtensor(config=cli.config)
-        subnet: bittensor.SubnetInfo = subtensor.get_subnet_hyperparameters(
+        subnet: bittensor.SubnetHyperparameters = subtensor.get_subnet_hyperparameters(
             cli.config.netuid
         )
 
