@@ -1927,7 +1927,6 @@ class subtensor:
     def get_subnet_hyperparameters(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[SubnetHyperparameters]:
-    
         hex_bytes_result = self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
             method="get_subnet_hyperparams",

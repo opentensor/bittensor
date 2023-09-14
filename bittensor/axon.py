@@ -363,7 +363,6 @@ class axon:
             assert (
                 signature(blacklist_fn) == blacklist_sig
             ), "The blacklist_fn function must have the signature: blacklist( synapse: {} ) -> Tuple[bool, str]".format(
-
                 request_name
             )
         if priority_fn:
