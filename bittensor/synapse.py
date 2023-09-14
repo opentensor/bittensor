@@ -29,16 +29,6 @@ import bittensor
 from typing import Optional, List, Any
 
 
-def hash(content):
-    sha256 = hashlib.sha256()
-
-    # Update the hash object with the concatenated string
-    sha256.update(content.encode("utf-8"))
-
-    # Produce the hash
-    return sha256.hexdigest()
-
-
 def get_size(obj, seen=None):
     """
     Recursively finds size of objects.
@@ -518,7 +508,7 @@ class Synapse(pydantic.BaseModel):
                     # Create an empty (dummy) instance of type(value) to pass pydantic validation on the axon side
                     serialized_value = json.dumps(value.__class__.__call__())
                     # Create a hash of the original data so we can verify on the axon side
-                    hash_value = hash(str(value))
+                    hash_value = bittensor.utils.hash(str(value))
                     encoded_value = base64.b64encode(serialized_value.encode()).decode(
                         "utf-8"
                     )

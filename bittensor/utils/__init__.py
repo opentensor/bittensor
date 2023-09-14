@@ -19,6 +19,7 @@
 from typing import Callable, Union, List, Optional, Dict, Literal, Type, Any
 
 import bittensor
+import hashlib
 import requests
 import torch
 import scalecodec
@@ -197,3 +198,13 @@ def u8_key_to_ss58(u8_key: List[int]) -> str:
     """
     # First byte is length, then 32 bytes of key.
     return scalecodec.ss58_encode(bytes(u8_key).hex(), bittensor.__ss58_format__)
+
+
+def hash(content):
+    sha256 = hashlib.sha256()
+
+    # Update the hash object with the concatenated string
+    sha256.update(content.encode("utf-8"))
+
+    # Produce the hash
+    return sha256.hexdigest()

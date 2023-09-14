@@ -24,18 +24,8 @@ import uuid
 import time
 import torch
 import aiohttp
-import hashlib
 import bittensor as bt
 from typing import Union, Optional, List
-
-
-def hash(content: str) -> str:
-    # Update the hash object with the concatenated bytestring
-    sha256 = hashlib.sha256()
-    sha256.update(content.encode("utf-8"))
-
-    # Produce and return the hash
-    return sha256.hexdigest()
 
 
 class dendrite(torch.nn.Module):
@@ -380,7 +370,7 @@ class dendrite(torch.nn.Module):
         for field, value in instance_fields.items():
             # If the field is required in the subclass schema, add it.
             if field in synapse.required_hash_fields:
-                hashes.append(hash(str(value)))
+                hashes.append(bt.utils.hash(str(value)))
 
         return hashes
 
