@@ -211,11 +211,7 @@ class TerminalInfo(pydantic.BaseModel):
     )
 
 
-<<<<<<< HEAD
 class Synapse(pydantic.BaseModel):
-=======
-class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
->>>>>>> 4cc71407a6253ace658e1c85766b2e34035d81da
     class Config:
         validate_assignment = True
 
