@@ -211,37 +211,7 @@ class TerminalInfo(pydantic.BaseModel):
     )
 
 
-class ProtectOverride(type):
-    """
-    Metaclass to prevent subclasses from overriding specified methods or attributes.
-
-    When a subclass attempts to override a protected attribute or method, a `TypeError` is raised.
-    The current implementation specifically checks for overriding the 'body_hash' attribute.
-
-    Overriding `protected_method` in a subclass of `MyClass` will raise a TypeError.
-    """
-
-    def __new__(cls, name, bases, class_dict):
-        # Check if the derived class tries to override the 'body_hash' method or attribute.
-        if (
-            any(base for base in bases if hasattr(base, "body_hash"))
-            and "body_hash" in class_dict
-        ):
-            raise TypeError("You can't override the body_hash attribute!")
-        return super(ProtectOverride, cls).__new__(cls, name, bases, class_dict)
-
-
-class CombinedMeta(ProtectOverride, type(pydantic.BaseModel)):
-    """
-    Metaclass combining functionality of ProtectOverride and BaseModel's metaclass.
-
-    Inherits the attributes and methods from both parent metaclasses to provide combined behavior.
-    """
-
-    pass
-
-
-class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
+class Synapse(pydantic.BaseModel):
     class Config:
         validate_assignment = True
 
@@ -338,12 +308,8 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
 
     def __setattr__(self, name, value):
         """
-        Override the __setattr__ method to make the body_hash property read-only.
+        Override the __setattr__ method to make the `required_hash_fields` property read-only.
         """
-        if name == "body_hash":
-            raise AttributeError(
-                "body_hash property is read-only and cannot be overridden."
-            )
         if name == "required_hash_fields":
             raise AttributeError(
                 "required_hash_fields property is read-only and cannot be overridden."
@@ -712,7 +678,6 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
 
         # Get the inputs dictionary from the headers
         input_dict = cls.parse_headers_to_inputs(headers)
-        bittensor.logging.debug(f"input_dict: {input_dict}")
 
         # Use the dictionary unpacking operator to pass the inputs to the class constructor
         synapse = cls(**input_dict)
