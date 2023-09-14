@@ -583,15 +583,12 @@ class axon:
         # Build the keypair from the dendrite_hotkey
         keypair = Keypair(ss58_address=synapse.dendrite.hotkey)
 
+        # Pull body hashes from synapse recieved with request.
         body_hashes = [getattr(synapse, field + "_hash") for field in synapse.required_hash_fields]
 
         # Ensure header hashes match body hashes.
-        bittensor.logging.debug(f"(AXON) REQUIRED_HASH_FIELDS: {synapse.required_hash_fields}")
-        print("HEADERS RAW:", headers.raw)
         for field in synapse.required_hash_fields:
             key = f"bt_header_input_hash_{field}"
-            print("KEY:", key)
-            print("VALUE:", headers.get(key))
             if getattr(synapse, field + "_hash") != headers.get(key):
                 raise Exception(f"Header hash mismatch with {getattr(synapse, field + '_hash')} and {headers.get(key)}")
 
