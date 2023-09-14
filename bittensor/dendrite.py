@@ -254,7 +254,6 @@ class dendrite(torch.nn.Module):
                 json=synapse.dict(),
                 timeout=timeout,
             ) as response:
-                print("RESPONSE ACHIEVED.")
                 if (
                     response.headers.get("Content-Type", "").lower()
                     == "text/event-stream".lower()
@@ -266,9 +265,7 @@ class dendrite(torch.nn.Module):
                     json_response = synapse.extract_response_json(response)
                 else:
                     bt.logging.trace("Non-streaming response detected.")
-                    print("TRYING response.json()...")
                     json_response = await response.json()
-                    print("AFTER response.json()")
 
                 # Process the server response
                 self.process_server_response(response, json_response, synapse)
@@ -351,7 +348,7 @@ class dendrite(torch.nn.Module):
             }
         )
 
-        # Sign the request using the dendrite, axon info, and the synapse body
+        # Sign the request using the dendrite, axon info, and the synapse body hashes
         body_hashes = self.hash_synapse_body(synapse)
 
         message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.dendrite.uuid}.{body_hashes}"
@@ -368,11 +365,6 @@ class dendrite(torch.nn.Module):
         non-optional fields. This property retrieves these fields using the
         `get_body` method, then concatenates their string representations, and
         finally computes a SHA-256 hash of the resulting string.
-
-        Note:
-            This property is intended to be read-only. Any attempts to override
-            or set its value will raise an AttributeError due to the protections
-            set in the __setattr__ method.
 
         Returns:
             str: The hexadecimal representation of the SHA-256 hash of the instance's body.

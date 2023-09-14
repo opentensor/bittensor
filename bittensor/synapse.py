@@ -547,19 +547,13 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
 
             elif required and field in required:
                 try:
-                    # Create an empty instance of type(value) to pass pydantic validation on the axon side
+                    # Create an empty (dummy) instance of type(value) to pass pydantic validation on the axon side
                     serialized_value = json.dumps(value.__class__.__call__())
                     # Create a hash of the original data so we can verify on the axon side
                     hash_value = hash(str(value))
-                    # serialized_hash_value = json.dumps(hash_value)
-                    bittensor.logging.debug(f"hash_value: {hash_value}")
-                    # bittensor.logging.debug(f"serialized_hash_value: {serialized_hash_value}")
                     encoded_value = base64.b64encode(serialized_value.encode()).decode(
                         "utf-8"
                     )
-                    # encoded_hash_value = base64.b64encode(serialized_hash_value.encode()).decode(
-                    #     "utf-8"
-                    # )
                     headers[f"bt_header_input_obj_{field}"] = encoded_value
                     headers[f"bt_header_input_hash_{field}"] = hash_value
                 except TypeError as e:
@@ -683,18 +677,11 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
             elif "bt_header_input_hash" in key:
                 try:
                     new_key = key.split("bt_header_input_hash_")[1] + "_hash"
-                    bittensor.logging.debug(f"new hash key: {new_key}")
                     # Skip if the key already exists in the dictionary
                     if new_key in inputs_dict:
                         continue
                     # Decode and load the serialized object
                     inputs_dict[new_key] = value
-                    bittensor.logging.debug(f"value found: {value}")
-                except json.JSONDecodeError as e:
-                    bittensor.logging.error(
-                        f"Error while json decoding 'input_hash' header {key}: {e}"
-                    )
-                    continue
                 except Exception as e:
                     bittensor.logging.error(
                         f"Error while parsing 'input_hash' header {key}: {e}"
