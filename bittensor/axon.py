@@ -37,6 +37,7 @@ from fastapi.responses import JSONResponse
 from substrateinterface import Keypair
 from fastapi import FastAPI, APIRouter, Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.datastructures import Headers
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
 
@@ -559,7 +560,7 @@ class axon:
         subtensor.serve_axon(netuid=netuid, axon=self)
         return self
 
-    def default_verify(self, synapse: bittensor.Synapse, headers) -> Request:
+    def default_verify(self, synapse: bittensor.Synapse, headers: Headers) -> Request:
         """
         This method is used to verify the authenticity of a received message using a digital signature.
         It ensures that the message was not tampered with and was sent by the expected sender.
@@ -747,7 +748,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Return the setup synapse.
         return synapse
 
-    async def verify(self, synapse: bittensor.Synapse, headers):
+    async def verify(self, synapse: bittensor.Synapse, headers: Headers):
         """
         Verify the request.
 
