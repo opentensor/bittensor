@@ -550,15 +550,18 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
                     # Create an empty instance of type(value) to pass pydantic validation on the axon side
                     serialized_value = json.dumps(value.__class__.__call__())
                     # Create a hash of the original data so we can verify on the axon side
-                    serialized_hash_value = json.dumps(hash(str(value)))
+                    hash_value = hash(str(value))
+                    # serialized_hash_value = json.dumps(hash_value)
+                    bittensor.logging.debug(f"hash_value: {hash_value}")
+                    # bittensor.logging.debug(f"serialized_hash_value: {serialized_hash_value}")
                     encoded_value = base64.b64encode(serialized_value.encode()).decode(
                         "utf-8"
                     )
-                    encoded_hash_value = base64.b64encode(serialized_hash_value.encode()).decode(
-                        "utf-8"
-                    )
+                    # encoded_hash_value = base64.b64encode(serialized_hash_value.encode()).decode(
+                    #     "utf-8"
+                    # )
                     headers[f"bt_header_input_obj_{field}"] = encoded_value
-                    headers[f"bt_header_input_hash_{field}"] = encoded_hash_value
+                    headers[f"bt_header_input_hash_{field}"] = hash_value
                 except TypeError as e:
                     raise ValueError(
                         f"Error serializing {field} with value {value}. Objects must be json serializable."
@@ -685,9 +688,7 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
                     if new_key in inputs_dict:
                         continue
                     # Decode and load the serialized object
-                    inputs_dict[new_key] = json.loads(
-                        base64.b64decode(value.encode()).decode("utf-8")
-                    )
+                    inputs_dict[new_key] = value
                     bittensor.logging.debug(f"value found: {value}")
                 except json.JSONDecodeError as e:
                     bittensor.logging.error(
