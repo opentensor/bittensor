@@ -613,7 +613,6 @@ class Synapse(pydantic.BaseModel):
             elif "bt_header_input_obj" in key:
                 try:
                     new_key = key.split("bt_header_input_obj_")[1]
-                    bittensor.logging.debug(f"new key: {new_key}")
                     # Skip if the key already exists in the dictionary
                     if new_key in inputs_dict:
                         continue
@@ -621,7 +620,6 @@ class Synapse(pydantic.BaseModel):
                     inputs_dict[new_key] = json.loads(
                         base64.b64decode(value.encode()).decode("utf-8")
                     )
-                    bittensor.logging.debug(f"value found: {value}")
                 except json.JSONDecodeError as e:
                     bittensor.logging.error(
                         f"Error while json decoding 'input_obj' header {key}: {e}"
