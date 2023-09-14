@@ -37,6 +37,7 @@ def hash(content: str) -> str:
     # Produce and return the hash
     return sha256.hexdigest()
 
+
 class dendrite(torch.nn.Module):
     """
     The Dendrite class, inheriting from PyTorch's Module class, represents the abstracted

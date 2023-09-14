@@ -363,7 +363,6 @@ class axon:
             assert (
                 signature(blacklist_fn) == blacklist_sig
             ), "The blacklist_fn function must have the signature: blacklist( synapse: {} ) -> Tuple[bool, str]".format(
-
                 request_name
             )
         if priority_fn:
@@ -584,13 +583,17 @@ class axon:
         keypair = Keypair(ss58_address=synapse.dendrite.hotkey)
 
         # Pull body hashes from synapse recieved with request.
-        body_hashes = [getattr(synapse, field + "_hash") for field in synapse.required_hash_fields]
+        body_hashes = [
+            getattr(synapse, field + "_hash") for field in synapse.required_hash_fields
+        ]
 
         # Ensure header hashes match body hashes.
         for field in synapse.required_hash_fields:
             key = f"bt_header_input_hash_{field}"
             if getattr(synapse, field + "_hash") != headers.get(key):
-                raise Exception(f"Header hash mismatch with {getattr(synapse, field + '_hash')} and {headers.get(key)}")
+                raise Exception(
+                    f"Header hash mismatch with {getattr(synapse, field + '_hash')} and {headers.get(key)}"
+                )
 
         # Build the signature messages.
         message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}.{body_hashes}"

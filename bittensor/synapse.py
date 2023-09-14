@@ -38,6 +38,7 @@ def hash(content):
     # Produce the hash
     return sha256.hexdigest()
 
+
 def get_size(obj, seen=None):
     """
     Recursively finds size of objects.
@@ -355,7 +356,8 @@ class Synapse(pydantic.BaseModel):
                     "header_size",
                     "dendrite",
                     "axon",
-                ] and "_hash" not in field
+                ]
+                and "_hash" not in field
             ):
                 fields.append(field)
         return fields
