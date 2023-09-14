@@ -24,9 +24,18 @@ import uuid
 import time
 import torch
 import aiohttp
+import hashlib
 import bittensor as bt
 from typing import Union, Optional, List
 
+
+def hash(content: str) -> str:
+    # Update the hash object with the concatenated bytestring
+    sha256 = hashlib.sha256()
+    sha256.update(content.encode("utf-8"))
+
+    # Produce and return the hash
+    return sha256.hexdigest()
 
 class dendrite(torch.nn.Module):
     """
@@ -245,6 +254,7 @@ class dendrite(torch.nn.Module):
                 json=synapse.dict(),
                 timeout=timeout,
             ) as response:
+                print("RESPONSE ACHIEVED.")
                 if (
                     response.headers.get("Content-Type", "").lower()
                     == "text/event-stream".lower()
@@ -256,7 +266,9 @@ class dendrite(torch.nn.Module):
                     json_response = synapse.extract_response_json(response)
                 else:
                     bt.logging.trace("Non-streaming response detected.")
+                    print("TRYING response.json()...")
                     json_response = await response.json()
+                    print("AFTER response.json()")
 
                 # Process the server response
                 self.process_server_response(response, json_response, synapse)
@@ -339,11 +351,45 @@ class dendrite(torch.nn.Module):
             }
         )
 
-        # Sign the request using the dendrite and axon information
-        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.dendrite.uuid}.{synapse.body_hash}"
+        # Sign the request using the dendrite, axon info, and the synapse body
+        body_hashes = self.hash_synapse_body(synapse)
+
+        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.dendrite.uuid}.{body_hashes}"
         synapse.dendrite.signature = f"0x{self.keypair.sign(message).hex()}"
 
         return synapse
+
+    @staticmethod
+    def hash_synapse_body(synapse: bt.Synapse) -> str:
+        """
+        Compute a SHA-256 hash of the serialized body of the Synapse instance.
+
+        The body of the Synapse instance comprises its serialized and encoded
+        non-optional fields. This property retrieves these fields using the
+        `get_body` method, then concatenates their string representations, and
+        finally computes a SHA-256 hash of the resulting string.
+
+        Note:
+            This property is intended to be read-only. Any attempts to override
+            or set its value will raise an AttributeError due to the protections
+            set in the __setattr__ method.
+
+        Returns:
+            str: The hexadecimal representation of the SHA-256 hash of the instance's body.
+        """
+        # Hash the body for verification
+        hashes = []
+
+        # Getting the fields of the instance
+        instance_fields = synapse.__dict__
+
+        # Iterating over the fields of the instance
+        for field, value in instance_fields.items():
+            # If the field is required in the subclass schema, add it.
+            if field in synapse.required_hash_fields:
+                hashes.append(hash(str(value)))
+
+        return hashes
 
     def process_server_response(
         self, server_response, json_response, local_synapse: bt.Synapse

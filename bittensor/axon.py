@@ -560,7 +560,7 @@ class axon:
         subtensor.serve_axon(netuid=netuid, axon=self)
         return self
 
-    def default_verify(self, synapse: bittensor.Synapse) -> Request:
+    def default_verify(self, synapse: bittensor.Synapse, headers) -> Request:
         """
         This method is used to verify the authenticity of a received message using a digital signature.
         It ensures that the message was not tampered with and was sent by the expected sender.
@@ -583,8 +583,20 @@ class axon:
         # Build the keypair from the dendrite_hotkey
         keypair = Keypair(ss58_address=synapse.dendrite.hotkey)
 
+        body_hashes = [getattr(synapse, field + "_hash") for field in synapse.required_hash_fields]
+
+        # Ensure header hashes match body hashes.
+        bittensor.logging.debug(f"(AXON) REQUIRED_HASH_FIELDS: {synapse.required_hash_fields}")
+        print("HEADERS RAW:", headers.raw)
+        for field in synapse.required_hash_fields:
+            key = f"bt_header_input_hash_{field}"
+            print("KEY:", key)
+            print("VALUE:", headers.get(key))
+            if getattr(synapse, field + "_hash") != headers.get(key):
+                raise Exception(f"Header hash mismatch with {getattr(synapse, field + '_hash')} and {headers.get(key)}")
+
         # Build the signature messages.
-        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}.{synapse.body_hash}"
+        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}.{body_hashes}"
 
         # Build the unique endpoint key.
         endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
@@ -649,7 +661,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             )
 
             # Call the verify function
-            await self.verify(synapse)
+            await self.verify(synapse, request.headers)
 
             # Call the blacklist function
             await self.blacklist(synapse)
@@ -709,6 +721,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         synapse = self.axon.forward_class_types[request_name].from_headers(
             request.headers
         )
+        bittensor.logging.trace(f"request.headers {request.headers}")
         synapse.name = request_name
 
         # Fills the local axon information into the synapse.
@@ -734,7 +747,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Return the setup synapse.
         return synapse
 
-    async def verify(self, synapse: bittensor.Synapse):
+    async def verify(self, synapse: bittensor.Synapse, headers):
         """
         Verify the request.
 
@@ -758,9 +771,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 # We attempt to run the verification function using the synapse instance
                 # created from the request. If this function runs without throwing an exception,
                 # it means that the verification was successful.
-                await verify_fn(synapse) if inspect.iscoroutinefunction(
+                await verify_fn(synapse, headers) if inspect.iscoroutinefunction(
                     verify_fn
-                ) else verify_fn(synapse)
+                ) else verify_fn(synapse, headers)
             except Exception as e:
                 # If there was an exception during the verification process, we log that
                 # there was a verification exception.
