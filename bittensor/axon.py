@@ -22,6 +22,7 @@
 import os
 import uuid
 import copy
+import json
 import time
 import asyncio
 import inspect
@@ -38,6 +39,7 @@ from substrateinterface import Keypair
 from fastapi import FastAPI, APIRouter, Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.datastructures import Headers
+from starlette.types import Scope, Message
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
 
@@ -560,7 +562,7 @@ class axon:
         subtensor.serve_axon(netuid=netuid, axon=self)
         return self
 
-    def default_verify(self, synapse: bittensor.Synapse, headers: Headers) -> Request:
+    def default_verify(self, synapse: bittensor.Synapse, request_body: bytes):
         """
         This method is used to verify the authenticity of a received message using a digital signature.
         It ensures that the message was not tampered with and was sent by the expected sender.
@@ -583,18 +585,21 @@ class axon:
         # Build the keypair from the dendrite_hotkey
         keypair = Keypair(ss58_address=synapse.dendrite.hotkey)
 
+        # Call the verify function
+        bittensor.logging.debug("loading body to json")
+        body_dict = json.loads(request_body)
+        for required_field in synapse.required_hash_fields:
+            field_hash = bittensor.utils.hash(str(body_dict[required_field]))
+            bittensor.logging.debug(f"Checking {required_field}")
+            if field_hash != getattr(synapse, required_field + "_hash"):
+                raise Exception(
+                    f"Hash mismatch with {field_hash} and {getattr(synapse, required_field + '_hash')}"
+                )
+
         # Pull body hashes from synapse recieved with request.
         body_hashes = [
             getattr(synapse, field + "_hash") for field in synapse.required_hash_fields
         ]
-
-        # Ensure header hashes match body hashes.
-        for field in synapse.required_hash_fields:
-            key = f"bt_header_input_hash_{field}"
-            if getattr(synapse, field + "_hash") != headers.get(key):
-                raise Exception(
-                    f"Header hash mismatch with {getattr(synapse, field + '_hash')} and {headers.get(key)}"
-                )
 
         # Build the signature messages.
         message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}.{body_hashes}"
@@ -615,6 +620,20 @@ class axon:
 
         # Success
         self.nonces[endpoint_key] = synapse.dendrite.nonce
+
+
+class RequestWithBody(Request):
+    def __init__(self, scope: Scope, body: bytes) -> None:
+        super().__init__(scope, self._receive)
+        self._body = body
+        self._body_returned = False
+
+    async def _receive(self) -> Message:
+        if self._body_returned:
+            return {"type": "http.disconnect"}
+        else:
+            self._body_returned = True
+            return {"type": "http.request", "body": self._body, "more_body": False}
 
 
 class AxonMiddleware(BaseHTTPMiddleware):
@@ -661,8 +680,15 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 f"axon     | <-- | {request.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success "
             )
 
-            # Call the verify function
-            await self.verify(synapse, request.headers)
+            # Remove the body for inspection
+            request_body = await request.body()
+
+            # Call verify and return the verified request
+            await self.verify(synapse, request_body)
+
+            # Repackage the request so we can pass it along
+            request = RequestWithBody(request.scope, request_body)
+            del request_body
 
             # Call the blacklist function
             await self.blacklist(synapse)
