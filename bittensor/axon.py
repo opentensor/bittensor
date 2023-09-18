@@ -623,12 +623,46 @@ class axon:
 
 
 class RequestWithBody(Request):
+    """
+    A specialized HTTP request wrapper that includes a pre-defined request body.
+
+    In ASGI-based applications, once a request body has been read (awaited), it cannot be read again in subsequent 
+    middleware layers or endpoint handlers. This poses a challenge when a middleware layer needs to read the request 
+    body (e.g., for logging, validation, or transformation purposes) and then pass the request with its body intact 
+    to subsequent processing layers.
+
+    The `RequestWithBody` class addresses this limitation by allowing the creation of a new Request object with a 
+    specified body. This enables middleware to read and process the request body while still preserving the ability 
+    for subsequent layers to access the original or modified body without the need to make additional I/O calls or 
+    manage state complexities.
+
+    Attributes:
+        _body (bytes): The pre-defined request body in bytes.
+        _body_returned (bool): A flag to track whether the body has been provided on data reception.
+
+    Methods:
+        _receive() -> Message: An asynchronous method that returns the pre-defined request body upon the 
+                               first call and indicates an HTTP disconnect on subsequent calls.
+
+    Args:
+        scope (Scope): The ASGI scope, which provides details about the incoming request.
+        body (bytes): The pre-defined request body to be associated with this request.
+    """
     def __init__(self, scope: Scope, body: bytes) -> None:
         super().__init__(scope, self._receive)
         self._body = body
         self._body_returned = False
 
     async def _receive(self) -> Message:
+        """
+        An asynchronous method that handles data reception for this request.
+
+        On its first call, it returns the pre-defined request body, and on subsequent calls, 
+        it indicates an HTTP disconnect.
+
+        Returns:
+            Message: A dictionary containing the type of message and associated data.
+        """
         if self._body_returned:
             return {"type": "http.disconnect"}
         else:
@@ -680,6 +714,12 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 f"axon     | <-- | {request.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success "
             )
 
+            # Call the blacklist function
+            await self.blacklist(synapse)
+
+            # Call the priority function
+            await self.priority(synapse)
+
             # Remove the body for inspection
             request_body = await request.body()
 
@@ -689,12 +729,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
             # Repackage the request so we can pass it along
             request = RequestWithBody(request.scope, request_body)
             del request_body
-
-            # Call the blacklist function
-            await self.blacklist(synapse)
-
-            # Call the priority function
-            await self.priority(synapse)
 
             # Call the run function
             response = await self.run(synapse, call_next, request)
