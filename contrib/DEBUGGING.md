@@ -42,14 +42,14 @@ at the top of your script or source file to enable more verbose output logs.
 You can also write your own in the code simply:
 ```python
 # Bittensor's wallet maintenance class.
-wallet = bt.wallet()
+wallet = bittensor.wallet()
 
 bittensor.logging.debug( f"wallet keypair: {wallet.hotkey}" )
 
 ...
 
 # Bittensor's chain state object.
-metagraph = bt.metagraph(netuid=1)
+metagraph = bittensor.metagraph(netuid=1)
 
 bittensor.logging.trace( f"metagraph created! netuid {metagraph.netuid}" )
 ```
@@ -60,11 +60,11 @@ bittensor.logging.trace( f"metagraph created! netuid {metagraph.netuid}" )
 Ensure you can query the Bittensor network using the Python API. If something is broken with your installation or the chain, this won't work out of the box. Here's an example of how to do this:
 
 ```python
-import bittensor as bt
-bt.trace()
+import bittensor
+bittensor.trace()
 
 # Attempt to query through the foundation endpoint.
-print(bt.prompt("Heraclitus was a "))
+print(bittensor.prompt("Heraclitus was a "))
 ```
 
 ## Debugging Miners
@@ -100,19 +100,19 @@ The Bittensor package contains data structures for interacting with the Bittenso
 Try to use the Bittensor package to create a wallet, connect to the axon running on slot 10, and send a prompt to this endpoint and see where things are breaking along this typical codepath:
 
 ```python
-import bittensor as bt
+import bittensor
 
 # Bittensor's wallet maintenance class.
-wallet = bt.wallet()
+wallet = bittensor.wallet()
 
 # Bittensor's chain interface.
-subtensor = bt.subtensor()
+subtensor = bittensor.subtensor()
 
 # Bittensor's chain state object.
-metagraph = bt.metagraph(netuid=1)
+metagraph = bittensor.metagraph(netuid=1)
 
 # Instantiate a Bittensor endpoint.
-axon = bt.axon(wallet=wallet, metagraph=metagraph)
+axon = bittensor.axon(wallet=wallet, metagraph=metagraph)
 
 # Start servicing messages on the wire.
 axon.start()
@@ -121,7 +121,7 @@ axon.start()
 subtensor.serve_axon(netuid=1, axon=axon)
 
 # Connect to the axon running on slot 10, use the wallet to sign messages.
-dendrite = bt.text_prompting(keypair=wallet.hotkey, axon=metagraph.axons[10])
+dendrite = bittensor.text_prompting(keypair=wallet.hotkey, axon=metagraph.axons[10])
 
 # Send a prompt to this endpoint
 dendrite.forward(roles=['user'], messages=['Who is Rick James?'])

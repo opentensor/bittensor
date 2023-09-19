@@ -29,7 +29,7 @@ import bittensor
 from typing import Optional, List, Any
 
 
-def get_size(obj, seen=None):
+def get_size(obj, seen=None) -> int:
     """
     Recursively finds size of objects.
 
@@ -254,7 +254,7 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
         return self
 
     @pydantic.root_validator(pre=True)
-    def set_name_type(cls, values):
+    def set_name_type(cls, values) -> dict:
         values["name"] = cls.__name__
         return values
 
@@ -327,7 +327,7 @@ class Synapse(pydantic.BaseModel, metaclass=CombinedMeta):
         repr=False,
     )
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any):
         """
         Override the __setattr__ method to make the body_hash property read-only.
         """
