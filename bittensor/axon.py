@@ -827,7 +827,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # to the request's name (synapse name).
         priority_fn = self.axon.priority_fns[synapse.name]
 
-        async def submit_task(executor: bittensor.threadpool, priority: float) -> Tuple[float, Any]:
+        async def submit_task(
+            executor: bittensor.threadpool, priority: float
+        ) -> Tuple[float, Any]:
             """
             Submits the given priority function to the specified executor for asynchronous execution.
             The function will run in the provided executor and return the priority value along with the result.
@@ -869,7 +871,12 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 # Raise an exception to stop the process and return an appropriate error message to the requester.
                 raise Exception(f"Response timeout after: {synapse.timeout}s")
 
-    async def run(self, synapse: bittensor.Synapse, call_next: RequestResponseEndpoint, request: Request) -> Response:
+    async def run(
+        self,
+        synapse: bittensor.Synapse,
+        call_next: RequestResponseEndpoint,
+        request: Request,
+    ) -> Response:
         """
         Execute the requested function.
 

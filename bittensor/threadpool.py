@@ -17,6 +17,7 @@ import itertools
 import threading
 
 from loguru import logger
+from typing import Callable
 from concurrent.futures import _base
 
 # Workers are created as daemon threads. This is done to allow the interpreter

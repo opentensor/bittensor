@@ -96,7 +96,9 @@ class dendrite(torch.nn.Module):
             await self._session.close()
             self._session = None
 
-    def query(self, *args, **kwargs) -> Union[bittensor.Synapse, List[bittensor.Synapse]]:
+    def query(
+        self, *args, **kwargs
+    ) -> Union[bittensor.Synapse, List[bittensor.Synapse]]:
         """
         Makes a synchronous request to multiple target Axons and returns the server responses.
 
@@ -356,7 +358,10 @@ class dendrite(torch.nn.Module):
         return synapse
 
     def process_server_response(
-        self, server_response: Response, json_response: dict, local_synapse: bittensor.Synapse
+        self,
+        server_response: Response,
+        json_response: dict,
+        local_synapse: bittensor.Synapse,
     ):
         """
         Processes the server response, updates the local synapse state with the
