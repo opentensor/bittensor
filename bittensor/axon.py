@@ -39,7 +39,7 @@ from fastapi import FastAPI, APIRouter, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 from starlette.requests import Request
-from typing import Dict, Optional, Tuple, Union, List, Callable
+from typing import Dict, Optional, Tuple, Union, List, Callable, Any
 
 
 """ FastAPI server that runs in a thread. 
@@ -613,7 +613,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
     This class also runs the requested function and updates the headers of the response.
     """
 
-    def __init__(self, app: AxonMiddleware, axon: bittensor.axon):
+    def __init__(self, app: "AxonMiddleware", axon: "bittensor.axon"):
         """
         Initialize the AxonMiddleware class.
 
