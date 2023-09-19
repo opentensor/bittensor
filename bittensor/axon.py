@@ -626,14 +626,14 @@ class RequestWithBody(Request):
     """
     A specialized HTTP request wrapper that includes a pre-defined request body.
 
-    In ASGI-based applications, once a request body has been read (awaited), it cannot be read again in subsequent 
-    middleware layers or endpoint handlers. This poses a challenge when a middleware layer needs to read the request 
-    body (e.g., for logging, validation, or transformation purposes) and then pass the request with its body intact 
+    In ASGI-based applications, once a request body has been read (awaited), it cannot be read again in subsequent
+    middleware layers or endpoint handlers. This poses a challenge when a middleware layer needs to read the request
+    body (e.g., for logging, validation, or transformation purposes) and then pass the request with its body intact
     to subsequent processing layers.
 
-    The `RequestWithBody` class addresses this limitation by allowing the creation of a new Request object with a 
-    specified body. This enables middleware to read and process the request body while still preserving the ability 
-    for subsequent layers to access the original or modified body without the need to make additional I/O calls or 
+    The `RequestWithBody` class addresses this limitation by allowing the creation of a new Request object with a
+    specified body. This enables middleware to read and process the request body while still preserving the ability
+    for subsequent layers to access the original or modified body without the need to make additional I/O calls or
     manage state complexities.
 
     Attributes:
@@ -641,13 +641,14 @@ class RequestWithBody(Request):
         _body_returned (bool): A flag to track whether the body has been provided on data reception.
 
     Methods:
-        _receive() -> Message: An asynchronous method that returns the pre-defined request body upon the 
+        _receive() -> Message: An asynchronous method that returns the pre-defined request body upon the
                                first call and indicates an HTTP disconnect on subsequent calls.
 
     Args:
         scope (Scope): The ASGI scope, which provides details about the incoming request.
         body (bytes): The pre-defined request body to be associated with this request.
     """
+
     def __init__(self, scope: Scope, body: bytes) -> None:
         super().__init__(scope, self._receive)
         self._body = body
@@ -657,7 +658,7 @@ class RequestWithBody(Request):
         """
         An asynchronous method that handles data reception for this request.
 
-        On its first call, it returns the pre-defined request body, and on subsequent calls, 
+        On its first call, it returns the pre-defined request body, and on subsequent calls,
         it indicates an HTTP disconnect.
 
         Returns:
@@ -808,7 +809,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Return the setup synapse.
         return synapse
 
-    async def verify(self, synapse: bittensor.Synapse, headers: Headers):
+    async def verify(self, synapse: bittensor.Synapse, body: bytes):
         """
         Verify the request.
 
@@ -832,9 +833,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 # We attempt to run the verification function using the synapse instance
                 # created from the request. If this function runs without throwing an exception,
                 # it means that the verification was successful.
-                await verify_fn(synapse, headers) if inspect.iscoroutinefunction(
+                await verify_fn(synapse, body) if inspect.iscoroutinefunction(
                     verify_fn
-                ) else verify_fn(synapse, headers)
+                ) else verify_fn(synapse, body)
             except Exception as e:
                 # If there was an exception during the verification process, we log that
                 # there was a verification exception.
