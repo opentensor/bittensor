@@ -681,9 +681,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         # Logs the end of request processing and returns the response
         finally:
-            # Log that we have reached the end of the processing.
-            bittensor.logging.trace("Finally")
-
             # Log the details of the processed synapse, including total size, name, hotkey, IP, port,
             # status code, and status message, using the debug level of the logger.
             bittensor.logging.debug(
@@ -745,8 +742,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
         """
         # Start of the verification process. Verification is the process where we ensure that
         # the incoming request is from a trusted source or fulfills certain requirements.
-        bittensor.logging.trace("Check verification")
-
         # We get a specific verification function from 'verify_fns' dictionary that corresponds
         # to our request's name. Each request name (synapse name) has its unique verification function.
         verify_fn = self.axon.verify_fns[synapse.name]
@@ -763,7 +758,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             except Exception as e:
                 # If there was an exception during the verification process, we log that
                 # there was a verification exception.
-                bittensor.logging.trace(f"Verify exception")
+                bittensor.logging.trace(f"Verify exception {str(e)}")
 
                 # We set the status code of the synapse to "401" which denotes an unauthorized access.
                 synapse.axon.status_code = "401"
@@ -782,10 +777,8 @@ class AxonMiddleware(BaseHTTPMiddleware):
         Raises:
             Exception: If the request is blacklisted.
         """
-        # Start of the blacklist check process. A blacklist is a list of keys or identifiers
+        # A blacklist is a list of keys or identifiers
         # that are prohibited from accessing certain resources.
-        bittensor.logging.trace("Check Blacklist")
-
         # We retrieve the blacklist checking function from the 'blacklist_fns' dictionary
         # that corresponds to the request's name (synapse name).
         blacklist_fn = self.axon.blacklist_fns[synapse.name]
@@ -813,16 +806,13 @@ class AxonMiddleware(BaseHTTPMiddleware):
         """
         Execute the priority function for the request.
 
+        A priority function is a function that determines the priority or urgency of processing the request compared to other requests.
         Args:
             synapse (bittensor.Synapse): The synapse instance representing the request.
 
         Raises:
             Exception: If the priority function times out.
         """
-        # Start of the priority function execution. A priority function is a function that determines
-        # the priority or urgency of processing the request compared to other requests.
-        bittensor.logging.trace("Run priority")
-
         # Retrieve the priority function from the 'priority_fns' dictionary that corresponds
         # to the request's name (synapse name).
         priority_fn = self.axon.priority_fns[synapse.name]
@@ -881,10 +871,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
         Returns:
             response (starlet Response): The processed request.
         """
-
-        # Start of the execution of the requested function.
-        bittensor.logging.trace("Run forward")
-
         try:
             # The requested function is executed by calling the 'call_next' function,
             # passing the original request as an argument. This function processes the request
@@ -921,9 +907,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
         Returns:
             response (starlet Response): The processed request with updated headers.
         """
-        # Start of filling the response headers on success.
-        bittensor.logging.trace("Fill successful response")
-
         # Set the status code of the synapse to "200" which indicates a successful response.
         synapse.axon.status_code = "200"
 
