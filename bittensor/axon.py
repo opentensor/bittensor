@@ -37,6 +37,8 @@ from fastapi.responses import JSONResponse
 from substrateinterface import Keypair
 from fastapi import FastAPI, APIRouter, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.responses import Response
+from starlette.requests import Request
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
 
@@ -629,11 +631,11 @@ class AxonMiddleware(BaseHTTPMiddleware):
         Processes incoming requests.
 
         Args:
-            request(starlet Request): The incoming request.
-            call_next(starlet RequestResponseEndpoint): The function to call after processing the request.
+            request(starlette: Request): The incoming request.
+            call_next(starlette: RequestResponseEndpoint): The function to call after processing the request.
 
         Returns:
-            response (starlet Response): The processed request.
+            response (starlette: Response): The processed request.
         """
         # Records the start time of the request processing.
         start_time = time.time()
