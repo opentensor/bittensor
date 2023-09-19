@@ -98,9 +98,9 @@ class axon:
     ### Example usage:
 
     ```python
-    import bittensor as bt
+    import bittensor
 
-    class MySyanpse( bt.Synapse ):
+    class MySyanpse( bittensor.Synapse ):
         input: int = 1
         output: int = None
 
@@ -126,7 +126,7 @@ class axon:
         return 1.0
 
     # Initialize Axon object with a custom configuration
-    my_axon = bt.axon(config=my_config, wallet=my_wallet, port=9090, ip="192.0.2.0", external_ip="203.0.113.0", external_port=7070)
+    my_axon = bittensor.axon(config=my_config, wallet=my_wallet, port=9090, ip="192.0.2.0", external_ip="203.0.113.0", external_port=7070)
 
     # Attach the endpoint with the specified verification and forwarding functions
     my_axon.attach(

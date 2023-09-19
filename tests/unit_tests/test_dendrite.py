@@ -18,21 +18,21 @@
 # DEALINGS IN THE SOFTWARE.
 
 import pytest
-import bittensor as bt
+import bittensor
 from unittest.mock import MagicMock, Mock, patch
 from tests.helpers import _get_mock_wallet
 
 
 @pytest.fixture
 def setup_dendrite():
-    user_wallet = _get_mock_wallet()  # assuming bt.wallet() returns a wallet object
-    dendrite_obj = bt.dendrite(user_wallet)
+    user_wallet = _get_mock_wallet()  # assuming bittensor.wallet() returns a wallet object
+    dendrite_obj = bittensor.dendrite(user_wallet)
     return dendrite_obj
 
 
 def test_init(setup_dendrite):
     dendrite_obj = setup_dendrite
-    assert isinstance(dendrite_obj, bt.dendrite)
+    assert isinstance(dendrite_obj, bittensor.dendrite)
     assert dendrite_obj.keypair == setup_dendrite.keypair
 
 
@@ -62,16 +62,16 @@ class AsyncMock(Mock):
 
 
 def test_dendrite_create_wallet():
-    d = bt.dendrite(_get_mock_wallet())
-    d = bt.dendrite(_get_mock_wallet().hotkey)
-    d = bt.dendrite(_get_mock_wallet().coldkeypub)
+    d = bittensor.dendrite(_get_mock_wallet())
+    d = bittensor.dendrite(_get_mock_wallet().hotkey)
+    d = bittensor.dendrite(_get_mock_wallet().coldkeypub)
     assert d.__str__() == d.__repr__()
 
 
 @pytest.mark.asyncio
 async def test_forward_many():
     n = 10
-    d = bt.dendrite(wallet=_get_mock_wallet())
+    d = bittensor.dendrite(wallet=_get_mock_wallet())
     d.call = AsyncMock()
     axons = [MagicMock() for _ in range(n)]
 
@@ -87,10 +87,10 @@ async def test_forward_many():
 
 
 def test_pre_process_synapse():
-    d = bt.dendrite(wallet=_get_mock_wallet())
-    s = bt.Synapse()
+    d = bittensor.dendrite(wallet=_get_mock_wallet())
+    s = bittensor.Synapse()
     synapse = d.preprocess_synapse_for_request(
-        target_axon_info=bt.axon(wallet=_get_mock_wallet()).info(),
+        target_axon_info=bittensor.axon(wallet=_get_mock_wallet()).info(),
         synapse=s,
         timeout=12,
     )
