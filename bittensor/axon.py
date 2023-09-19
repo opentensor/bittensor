@@ -35,7 +35,7 @@ import contextlib
 from inspect import signature, Signature, Parameter
 from fastapi.responses import JSONResponse
 from substrateinterface import Keypair
-from fastapi import FastAPI, APIRouter, Request
+from fastapi import FastAPI, APIRouter, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
@@ -265,7 +265,7 @@ class axon:
         blacklist_fn: Callable = None,
         priority_fn: Callable = None,
         verify_fn: Callable = None,
-    ):
+    ) -> "bittensor.axon":
         """
         Registers an API endpoint to the FastAPI application router.
         It uses the name of the first argument of the 'forward_fn' function as the endpoint name.
@@ -611,7 +611,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
     This class also runs the requested function and updates the headers of the response.
     """
 
-    def __init__(self, app, axon):
+    def __init__(self, app: AxonMiddleware, axon: bittensor.axon):
         """
         Initialize the AxonMiddleware class.
 
@@ -693,7 +693,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             # Return the response to the requester.
             return response
 
-    async def preprocess(self, request) -> bittensor.Synapse:
+    async def preprocess(self, request: Request) -> bittensor.Synapse:
         """
         Perform preprocess operations for the request and generate the synapse state object.
 
@@ -827,7 +827,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # to the request's name (synapse name).
         priority_fn = self.axon.priority_fns[synapse.name]
 
-        async def submit_task(executor, priority):
+        async def submit_task(executor: bittensor.threadpool, priority: float) -> Tuple[float, Any]:
             """
             Submits the given priority function to the specified executor for asynchronous execution.
             The function will run in the provided executor and return the priority value along with the result.
@@ -869,7 +869,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 # Raise an exception to stop the process and return an appropriate error message to the requester.
                 raise Exception(f"Response timeout after: {synapse.timeout}s")
 
-    async def run(self, synapse: bittensor.Synapse, call_next, request):
+    async def run(self, synapse: bittensor.Synapse, call_next: RequestResponseEndpoint, request: Request) -> Response:
         """
         Execute the requested function.
 
@@ -908,8 +908,8 @@ class AxonMiddleware(BaseHTTPMiddleware):
         return response
 
     async def postprocess(
-        self, synapse: bittensor.Synapse, response, start_time: float
-    ):
+        self, synapse: bittensor.Synapse, response: Response, start_time: float
+    ) -> Response:
         """
         Perform post-processing operations on the request.
 

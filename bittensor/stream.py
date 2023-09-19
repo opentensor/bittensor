@@ -1,7 +1,7 @@
 import bittensor
 
 from starlette.responses import StreamingResponse as _StreamingResponse
-from starlette.types import Send
+from starlette.types import Send, Receive, Scope
 from typing import Callable, Awaitable, List
 from pydantic import BaseModel
 from abc import ABC, abstractmethod
@@ -49,7 +49,7 @@ class StreamingSynapse(bittensor.Synapse, ABC):
         provided by the subclass.
         """
 
-        def __init__(self, model: BTStreamingResponseModel, **kwargs) -> None:
+        def __init__(self, model: BTStreamingResponseModel, **kwargs):
             """
             Initializes the BTStreamingResponse with the given token streamer model.
 
@@ -61,7 +61,7 @@ class StreamingSynapse(bittensor.Synapse, ABC):
             super().__init__(content=iter(()), **kwargs)
             self.token_streamer = model.token_streamer
 
-        async def stream_response(self, send: Send) -> None:
+        async def stream_response(self, send: Send):
             """
             Asynchronously streams the response by sending headers and calling the token streamer.
 
@@ -84,7 +84,7 @@ class StreamingSynapse(bittensor.Synapse, ABC):
 
             await send({"type": "http.response.body", "body": b"", "more_body": False})
 
-        async def __call__(self, scope, receive, send):
+        async def __call__(self, scope: Scope, receive: Receive, send: Send):
             """
             Asynchronously calls the stream_response method, allowing the BTStreamingResponse object to be used as an ASGI
             application.
@@ -100,7 +100,7 @@ class StreamingSynapse(bittensor.Synapse, ABC):
             await self.stream_response(send)
 
     @abstractmethod
-    async def process_streaming_response(self, response):
+    async def process_streaming_response(self, response: Response):
         """
         Abstract method that must be implemented by the subclass.
         This method should provide logic to handle the streaming response, such as parsing and accumulating data.
@@ -113,7 +113,7 @@ class StreamingSynapse(bittensor.Synapse, ABC):
         ...
 
     @abstractmethod
-    def extract_response_json(self, response):
+    def extract_response_json(self, response: Response) -> dict:
         """
         Abstract method that must be implemented by the subclass.
         This method should provide logic to extract JSON data from the response, including headers and content.
@@ -127,7 +127,7 @@ class StreamingSynapse(bittensor.Synapse, ABC):
 
     def create_streaming_response(
         self, token_streamer: Callable[[Send], Awaitable[None]]
-    ):
+    ) -> BTStreamingResponse:
         """
         Creates a streaming response using the provided token streamer.
         This method can be used by the subclass to create a response object that can be sent back to the client.

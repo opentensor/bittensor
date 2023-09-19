@@ -25,7 +25,8 @@ import time
 import torch
 import aiohttp
 import bittensor
-from typing import Union, Optional, List
+from fastapi import Response
+from typing import Union, Optional, List, Union
 
 
 class dendrite(torch.nn.Module):
@@ -95,7 +96,7 @@ class dendrite(torch.nn.Module):
             await self._session.close()
             self._session = None
 
-    def query(self, *args, **kwargs):
+    def query(self, *args, **kwargs) -> Union[bittensor.Synapse, List[bittensor.Synapse]]:
         """
         Makes a synchronous request to multiple target Axons and returns the server responses.
 
@@ -153,7 +154,7 @@ class dendrite(torch.nn.Module):
             axons = [axons]
 
         # This asynchronous function is used to send queries to all axons.
-        async def query_all_axons():
+        async def query_all_axons() -> List[bittensor.Synapse]:
             # If the 'run_async' flag is not set, the code runs synchronously.
             if not run_async:
                 # Create an empty list to hold the responses from all axons.
@@ -355,7 +356,7 @@ class dendrite(torch.nn.Module):
         return synapse
 
     def process_server_response(
-        self, server_response, json_response, local_synapse: bittensor.Synapse
+        self, server_response: Response, json_response: dict, local_synapse: bittensor.Synapse
     ):
         """
         Processes the server response, updates the local synapse state with the
