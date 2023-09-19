@@ -55,7 +55,9 @@ class dendrite(torch.nn.Module):
         >>> d( bittensor.axon(), bittensor.Synapse )
     """
 
-    def __init__(self, wallet: Optional[Union[bittensor.wallet, bittensor.keypair]] = None):
+    def __init__(
+        self, wallet: Optional[Union[bittensor.wallet, bittensor.keypair]] = None
+    ):
         """
         Initializes the Dendrite object, setting up essential properties.
 
@@ -120,7 +122,10 @@ class dendrite(torch.nn.Module):
 
     async def forward(
         self,
-        axons: Union[List[Union[bittensor.AxonInfo, bittensor.axon]], Union[bittensor.AxonInfo, bittensor.axon]],
+        axons: Union[
+            List[Union[bittensor.AxonInfo, bittensor.axon]],
+            Union[bittensor.AxonInfo, bittensor.axon],
+        ],
         synapse: bittensor.Synapse = bittensor.Synapse(),
         timeout: float = 12,
         deserialize: bool = True,
@@ -217,7 +222,9 @@ class dendrite(torch.nn.Module):
         # Record start time
         start_time = time.time()
         target_axon = (
-            target_axon.info() if isinstance(target_axon, bittensor.axon) else target_axon
+            target_axon.info()
+            if isinstance(target_axon, bittensor.axon)
+            else target_axon
         )
 
         # Build request endpoint from the synapse class
@@ -287,7 +294,9 @@ class dendrite(torch.nn.Module):
             )
 
             # Log synapse event history
-            self.synapse_history.append(bittensor.Synapse.from_headers(synapse.to_headers()))
+            self.synapse_history.append(
+                bittensor.Synapse.from_headers(synapse.to_headers())
+            )
 
             # Return the updated synapse object after deserializing if requested
             if deserialize:

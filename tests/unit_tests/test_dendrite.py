@@ -25,7 +25,9 @@ from tests.helpers import _get_mock_wallet
 
 @pytest.fixture
 def setup_dendrite():
-    user_wallet = _get_mock_wallet()  # assuming bittensor.wallet() returns a wallet object
+    user_wallet = (
+        _get_mock_wallet()
+    )  # assuming bittensor.wallet() returns a wallet object
     dendrite_obj = bittensor.dendrite(user_wallet)
     return dendrite_obj
 
