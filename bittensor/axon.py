@@ -884,7 +884,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 synapse.axon.status_code = "403"
 
                 # We raise an exception to halt the process and return the error message to the requester.
-                raise Exception("Forbidden. Key is blacklisted.")
+                raise Exception(f"Forbidden. Key is blacklisted: {reason}.")
 
     async def priority(self, synapse: bittensor.Synapse):
         """
