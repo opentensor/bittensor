@@ -165,11 +165,11 @@ def test_custom_synapse():
 
     # Create a new Test from the headers and check its properties
     next_synapse = synapse.from_headers(synapse.to_headers())
-    assert next_synapse.a == 0 # Default value is 0
+    assert next_synapse.a == 0  # Default value is 0
     assert next_synapse.b == None
     assert next_synapse.c == None
     assert next_synapse.d == None
-    assert next_synapse.e == [] # Empty list is default for list types
+    assert next_synapse.e == []  # Empty list is default for list types
     assert next_synapse.f.shape == [10]  # Shape is passed through
     assert next_synapse.f.dtype == "torch.float32"  # Type is passed through
     assert next_synapse.f.buffer == None  # Buffer is not passed through
