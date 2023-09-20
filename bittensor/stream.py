@@ -73,8 +73,6 @@ class StreamingSynapse(bittensor.Synapse, ABC):
             Args:
                 send: A callable to send the response, provided by the ASGI server.
             """
-            bittensor.logging.trace("Streaming response.")
-
             headers = [(b"content-type", b"text/event-stream")] + self.raw_headers
 
             await send(
@@ -141,8 +139,6 @@ class StreamingSynapse(bittensor.Synapse, ABC):
         Returns:
             BTStreamingResponse: The streaming response object, ready to be sent to the client.
         """
-        bittensor.logging.trace("Creating streaming response.")
-
         model_instance = BTStreamingResponseModel(token_streamer=token_streamer)
 
         return self.BTStreamingResponse(model_instance)

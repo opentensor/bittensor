@@ -259,13 +259,11 @@ class dendrite(torch.nn.Module):
                     response.headers.get("Content-Type", "").lower()
                     == "text/event-stream".lower()
                 ):  # identify streaming response
-                    bittensor.logging.trace("Streaming response detected.")
                     await synapse.process_streaming_response(
                         response
                     )  # process the entire streaming response
                     json_response = synapse.extract_response_json(response)
                 else:
-                    bittensor.logging.trace("Non-streaming response detected.")
                     json_response = await response.json()
 
                 # Process the server response
@@ -326,8 +324,6 @@ class dendrite(torch.nn.Module):
         Returns:
             bittensor.Synapse: The preprocessed synapse.
         """
-        bittensor.logging.trace("Pre-process synapse for request")
-
         # Set the timeout for the synapse
         synapse.timeout = str(timeout)
 
@@ -375,8 +371,6 @@ class dendrite(torch.nn.Module):
         Raises:
             None, but errors in attribute setting are silently ignored.
         """
-        bittensor.logging.trace("Postprocess server response")
-
         # Check if the server responded with a successful status code
         if server_response.status == 200:
             # If the response is successful, overwrite local synapse state with
