@@ -281,7 +281,7 @@ class Synapse(pydantic.BaseModel):
     dendrite: Optional[TerminalInfo] = pydantic.Field(
         title="dendrite",
         description="Dendrite Terminal Information",
-        examples="bt.TerminalInfo",
+        examples="bittensor.TerminalInfo",
         default=TerminalInfo(),
         allow_mutation=True,
         repr=False,
@@ -291,7 +291,7 @@ class Synapse(pydantic.BaseModel):
     axon: Optional[TerminalInfo] = pydantic.Field(
         title="axon",
         description="Axon Terminal Information",
-        examples="bt.TerminalInfo",
+        examples="bittensor.TerminalInfo",
         default=TerminalInfo(),
         allow_mutation=True,
         repr=False,
