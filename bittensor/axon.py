@@ -796,7 +796,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             )
             if blacklisted:
                 # We log that the key or identifier is blacklisted.
-                bittensor.logging.trace(f"Blacklisted", blacklisted)
+                bittensor.logging.trace(f"Blacklisted: {blacklisted}, {reason}")
 
                 # We set the status code of the synapse to "403" which indicates a forbidden access.
                 synapse.axon.status_code = "403"
