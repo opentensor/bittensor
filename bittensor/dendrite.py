@@ -360,7 +360,7 @@ class dendrite(torch.nn.Module):
         return synapse
 
     @staticmethod
-    def hash_synapse_body(synapse: bt.Synapse) -> str:
+    def hash_synapse_body(synapse: bittensor.Synapse) -> str:
         """
         Compute a SHA-256 hash of the serialized body of the Synapse instance.
 
@@ -382,7 +382,7 @@ class dendrite(torch.nn.Module):
         for field, value in instance_fields.items():
             # If the field is required in the subclass schema, add it.
             if field in synapse.required_hash_fields:
-                hashes.append(bt.utils.hash(str(value)))
+                hashes.append(bittensor.utils.hash(str(value)))
 
         return hashes
 
