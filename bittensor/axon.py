@@ -36,7 +36,7 @@ import contextlib
 from inspect import signature, Signature, Parameter
 from fastapi.responses import JSONResponse
 from substrateinterface import Keypair
-from fastapi import FastAPI, APIRouter, Request, Response
+from fastapi import FastAPI, APIRouter, Request, Response, Depends
 from starlette.types import Scope, Message
 from starlette.responses import Response
 from starlette.requests import Request
@@ -320,7 +320,10 @@ class axon:
 
         # Add the endpoint to the router, making it available on both GET and POST methods
         self.router.add_api_route(
-            f"/{request_name}", forward_fn, methods=["GET", "POST"]
+            f"/{request_name}",
+            forward_fn,
+            methods=["GET", "POST"],
+            dependencies=[Depends(self.verify_body_integrity)],
         )
         self.app.include_router(self.router)
 
@@ -477,6 +480,61 @@ class axon:
             # Exception handling for re-parsing arguments
             pass
 
+    @staticmethod
+    async def verify_body_integrity(request: Request):
+        """
+        Asynchronously verifies the integrity of the body of a request by comparing the hash of required fields
+        with the corresponding hashes provided in the request headers. This method is critical for ensuring
+        that the incoming request payload has not been altered or tampered with during transmission, establishing
+        a level of trust and security between the sender and receiver in the network.
+
+        Args:
+            request (Request): The incoming FastAPI request object containing both headers and the request body.
+
+        Returns:
+            dict: Returns the parsed body of the request as a dictionary if all the hash comparisons match,
+                indicating that the body is intact and has not been tampered with.
+
+        Raises:
+            JSONResponse: Raises a JSONResponse with a 400 status code if any of the hash comparisons fail,
+                        indicating a potential integrity issue with the incoming request payload.
+                        The response includes the detailed error message specifying which field has a hash mismatch.
+
+        Example:
+            Assuming this method is set as a dependency in a route:
+
+            @app.post("/some_endpoint")
+            async def some_endpoint(body_dict: dict = Depends(verify_body_integrity)):
+                # body_dict is the parsed body of the request and is available for use in the route function.
+                # The function only executes if the body integrity verification is successful.
+                ...
+        """
+        # Extract keys and values that end with '_hash'
+        hash_headers = {k: v for k, v in request.headers.items() if "_hash_" in k}
+        hash_headers = {k.split("_")[-1]: v for k, v in hash_headers.items()}
+
+        # Await and load the request body so we can inspect it
+        body = await request.body()
+        request_body = body.decode() if isinstance(body, bytes) else body
+
+        # Load the body dict and check if all required field hashes match
+        body_dict = json.loads(request_body)
+        for required_field in list(hash_headers):
+            # Hash the field in the body to compare against the header hashes
+            field_hash = bittensor.utils.hash(str(body_dict[required_field]))
+
+            # If any hashes fail to match up, return a 400 error as the body is invalid
+            if field_hash != hash_headers[required_field]:
+                return JSONResponse(
+                    content={
+                        "error": f"Hash mismatch with {field_hash} and {getattr(synapse, required_field + '_hash')}"
+                    },
+                    status_code=400,
+                )
+
+        # If body is good, return the parsed body so that it can be injected into the route function
+        return body_dict
+
     @classmethod
     def check_config(cls, config: "bittensor.config"):
         """
@@ -563,7 +621,7 @@ class axon:
         subtensor.serve_axon(netuid=netuid, axon=self)
         return self
 
-    def default_verify(self, synapse: bittensor.Synapse, request_body: bytes):
+    def default_verify(self, synapse: bittensor.Synapse):
         """
         This method is used to verify the authenticity of a received message using a digital signature.
         It ensures that the message was not tampered with and was sent by the expected sender.
@@ -585,17 +643,6 @@ class axon:
         """
         # Build the keypair from the dendrite_hotkey
         keypair = Keypair(ss58_address=synapse.dendrite.hotkey)
-
-        # Call the verify function
-        bittensor.logging.debug("loading body to json")
-        body_dict = json.loads(request_body)
-        for required_field in synapse.required_hash_fields:
-            field_hash = bittensor.utils.hash(str(body_dict[required_field]))
-            bittensor.logging.debug(f"Checking {required_field}")
-            if field_hash != getattr(synapse, required_field + "_hash"):
-                raise Exception(
-                    f"Hash mismatch with {field_hash} and {getattr(synapse, required_field + '_hash')}"
-                )
 
         # Pull body hashes from synapse recieved with request.
         body_hashes = [
@@ -621,55 +668,6 @@ class axon:
 
         # Success
         self.nonces[endpoint_key] = synapse.dendrite.nonce
-
-
-class RequestWithBody(Request):
-    """
-    A specialized HTTP request wrapper that includes a pre-defined request body.
-
-    In ASGI-based applications, once a request body has been read (awaited), it cannot be read again in subsequent
-    middleware layers or endpoint handlers. This poses a challenge when a middleware layer needs to read the request
-    body (e.g., for logging, validation, or transformation purposes) and then pass the request with its body intact
-    to subsequent processing layers.
-
-    The `RequestWithBody` class addresses this limitation by allowing the creation of a new Request object with a
-    specified body. This enables middleware to read and process the request body while still preserving the ability
-    for subsequent layers to access the original or modified body without the need to make additional I/O calls or
-    manage state complexities.
-
-    Attributes:
-        _body (bytes): The pre-defined request body in bytes.
-        _body_returned (bool): A flag to track whether the body has been provided on data reception.
-
-    Methods:
-        _receive() -> Message: An asynchronous method that returns the pre-defined request body upon the
-                               first call and indicates an HTTP disconnect on subsequent calls.
-
-    Args:
-        scope (Scope): The ASGI scope, which provides details about the incoming request.
-        body (bytes): The pre-defined request body to be associated with this request.
-    """
-
-    def __init__(self, scope: Scope, body: bytes) -> None:
-        super().__init__(scope, self._receive)
-        self._body = body
-        self._body_returned = False
-
-    async def _receive(self) -> Message:
-        """
-        An asynchronous method that handles data reception for this request.
-
-        On its first call, it returns the pre-defined request body, and on subsequent calls,
-        it indicates an HTTP disconnect.
-
-        Returns:
-            Message: A dictionary containing the type of message and associated data.
-        """
-        if self._body_returned:
-            return {"type": "http.disconnect"}
-        else:
-            self._body_returned = True
-            return {"type": "http.request", "body": self._body, "more_body": False}
 
 
 class AxonMiddleware(BaseHTTPMiddleware):
@@ -719,18 +717,11 @@ class AxonMiddleware(BaseHTTPMiddleware):
             # Call the blacklist function
             await self.blacklist(synapse)
 
+            # Call verify and return the verified request
+            await self.verify(synapse)
+
             # Call the priority function
             await self.priority(synapse)
-
-            # Remove the body for inspection
-            request_body = await request.body()
-
-            # Call verify and return the verified request
-            await self.verify(synapse, request_body)
-
-            # Repackage the request so we can pass it along
-            request = RequestWithBody(request.scope, request_body)
-            del request_body
 
             # Call the run function
             response = await self.run(synapse, call_next, request)
@@ -810,7 +801,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Return the setup synapse.
         return synapse
 
-    async def verify(self, synapse: bittensor.Synapse, body: bytes):
+    async def verify(self, synapse: bittensor.Synapse):
         """
         Verify the request.
 
@@ -834,9 +825,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 # We attempt to run the verification function using the synapse instance
                 # created from the request. If this function runs without throwing an exception,
                 # it means that the verification was successful.
-                await verify_fn(synapse, body) if inspect.iscoroutinefunction(
+                await verify_fn(synapse) if inspect.iscoroutinefunction(
                     verify_fn
-                ) else verify_fn(synapse, body)
+                ) else verify_fn(synapse)
             except Exception as e:
                 # If there was an exception during the verification process, we log that
                 # there was a verification exception.
