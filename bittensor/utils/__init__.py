@@ -200,11 +200,11 @@ def u8_key_to_ss58(u8_key: List[int]) -> str:
     return scalecodec.ss58_encode(bytes(u8_key).hex(), bittensor.__ss58_format__)
 
 
-def hash(content):
-    sha256 = hashlib.sha256()
+def hash(content, hash_type="md5", encoding="utf-8"):
+    algo = hashlib.md5() if hash_type == "md5" else hashlib.sha256()
 
     # Update the hash object with the concatenated string
-    sha256.update(content.encode("utf-8"))
+    algo.update(content.encode(encoding))
 
     # Produce the hash
-    return sha256.hexdigest()
+    return algo.hexdigest()
