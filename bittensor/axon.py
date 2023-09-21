@@ -775,7 +775,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
         synapse = self.axon.forward_class_types[request_name].from_headers(
             request.headers
         )
-        bittensor.logging.trace(f"request.headers {request.headers}")
         synapse.name = request_name
 
         # Fills the local axon information into the synapse.
