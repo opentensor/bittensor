@@ -122,11 +122,11 @@ class SynapseMock(bittensor.Synapse):
     pass
 
 
-def verify_fn_pass(synapse, body):
+def verify_fn_pass(synapse):
     pass
 
 
-def verify_fn_fail(synapse, body):
+def verify_fn_fail(synapse):
     raise Exception("Verification failed")
 
 
@@ -156,19 +156,17 @@ def middleware():
 @pytest.mark.asyncio
 async def test_verify_pass(middleware):
     synapse = SynapseMock()
-    body = synapse.dict()
     middleware.axon.verify_fns = {"SynapseMock": verify_fn_pass}
-    await middleware.verify(synapse, body)
+    await middleware.verify(synapse)
     assert synapse.axon.status_code != 401
 
 
 @pytest.mark.asyncio
 async def test_verify_fail(middleware):
     synapse = SynapseMock()
-    body = synapse.dict()
     middleware.axon.verify_fns = {"SynapseMock": verify_fn_fail}
     with pytest.raises(Exception):
-        await middleware.verify(synapse, body)
+        await middleware.verify(synapse)
     assert synapse.axon.status_code == 401
 
 
