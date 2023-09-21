@@ -165,11 +165,11 @@ def test_custom_synapse():
 
     # Create a new Test from the headers and check its properties
     next_synapse = synapse.from_headers(synapse.to_headers())
-    assert next_synapse.a == 1
+    assert next_synapse.a == 0  # Default value is 0
     assert next_synapse.b == None
     assert next_synapse.c == None
     assert next_synapse.d == None
-    assert next_synapse.e == [1, 2, 3, 4]
+    assert next_synapse.e == []  # Empty list is default for list types
     assert next_synapse.f.shape == [10]  # Shape is passed through
     assert next_synapse.f.dtype == "torch.float32"  # Type is passed through
     assert next_synapse.f.buffer == None  # Buffer is not passed through
@@ -237,15 +237,6 @@ def test_dict_tensors():
     assert next_synapse.a["dog"].shape == [11]
 
 
-def test_override_protection():
-    with pytest.raises(TypeError, match="You can't override the body_hash attribute!"):
-
-        class DerivedModel(bittensor.Synapse):
-            @property
-            def body_hash(self):
-                return "new_value"
-
-
 def test_body_hash_override():
     # Create a Synapse instance
     synapse_instance = bittensor.Synapse()
@@ -253,6 +244,6 @@ def test_body_hash_override():
     # Try to set the body_hash property and expect an AttributeError
     with pytest.raises(
         AttributeError,
-        match="body_hash property is read-only and cannot be overridden.",
+        match="required_hash_fields property is read-only and cannot be overridden.",
     ):
-        synapse_instance.body_hash = "some_value"
+        synapse_instance.required_hash_fields = []

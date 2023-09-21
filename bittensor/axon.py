@@ -22,6 +22,7 @@
 import os
 import uuid
 import copy
+import json
 import time
 import asyncio
 import inspect
@@ -35,10 +36,11 @@ import contextlib
 from inspect import signature, Signature, Parameter
 from fastapi.responses import JSONResponse
 from substrateinterface import Keypair
-from fastapi import FastAPI, APIRouter, Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from fastapi import FastAPI, APIRouter, Request, Response, Depends
+from starlette.types import Scope, Message
 from starlette.responses import Response
 from starlette.requests import Request
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from typing import Dict, Optional, Tuple, Union, List, Callable, Any
 
 
@@ -318,7 +320,10 @@ class axon:
 
         # Add the endpoint to the router, making it available on both GET and POST methods
         self.router.add_api_route(
-            f"/{request_name}", forward_fn, methods=["GET", "POST"]
+            f"/{request_name}",
+            forward_fn,
+            methods=["GET", "POST"],
+            dependencies=[Depends(self.verify_body_integrity)],
         )
         self.app.include_router(self.router)
 
@@ -475,6 +480,61 @@ class axon:
             # Exception handling for re-parsing arguments
             pass
 
+    @staticmethod
+    async def verify_body_integrity(request: Request):
+        """
+        Asynchronously verifies the integrity of the body of a request by comparing the hash of required fields
+        with the corresponding hashes provided in the request headers. This method is critical for ensuring
+        that the incoming request payload has not been altered or tampered with during transmission, establishing
+        a level of trust and security between the sender and receiver in the network.
+
+        Args:
+            request (Request): The incoming FastAPI request object containing both headers and the request body.
+
+        Returns:
+            dict: Returns the parsed body of the request as a dictionary if all the hash comparisons match,
+                indicating that the body is intact and has not been tampered with.
+
+        Raises:
+            JSONResponse: Raises a JSONResponse with a 400 status code if any of the hash comparisons fail,
+                        indicating a potential integrity issue with the incoming request payload.
+                        The response includes the detailed error message specifying which field has a hash mismatch.
+
+        Example:
+            Assuming this method is set as a dependency in a route:
+
+            @app.post("/some_endpoint")
+            async def some_endpoint(body_dict: dict = Depends(verify_body_integrity)):
+                # body_dict is the parsed body of the request and is available for use in the route function.
+                # The function only executes if the body integrity verification is successful.
+                ...
+        """
+        # Extract keys and values that end with '_hash'
+        hash_headers = {k: v for k, v in request.headers.items() if "_hash_" in k}
+        hash_headers = {k.split("_")[-1]: v for k, v in hash_headers.items()}
+
+        # Await and load the request body so we can inspect it
+        body = await request.body()
+        request_body = body.decode() if isinstance(body, bytes) else body
+
+        # Load the body dict and check if all required field hashes match
+        body_dict = json.loads(request_body)
+        for required_field in list(hash_headers):
+            # Hash the field in the body to compare against the header hashes
+            field_hash = bittensor.utils.hash(str(body_dict[required_field]))
+
+            # If any hashes fail to match up, return a 400 error as the body is invalid
+            if field_hash != hash_headers[required_field]:
+                return JSONResponse(
+                    content={
+                        "error": f"Hash mismatch with {field_hash} and {getattr(synapse, required_field + '_hash')}"
+                    },
+                    status_code=400,
+                )
+
+        # If body is good, return the parsed body so that it can be injected into the route function
+        return body_dict
+
     @classmethod
     def check_config(cls, config: "bittensor.config"):
         """
@@ -561,7 +621,7 @@ class axon:
         subtensor.serve_axon(netuid=netuid, axon=self)
         return self
 
-    def default_verify(self, synapse: bittensor.Synapse) -> Request:
+    def default_verify(self, synapse: bittensor.Synapse):
         """
         This method is used to verify the authenticity of a received message using a digital signature.
         It ensures that the message was not tampered with and was sent by the expected sender.
@@ -584,8 +644,13 @@ class axon:
         # Build the keypair from the dendrite_hotkey
         keypair = Keypair(ss58_address=synapse.dendrite.hotkey)
 
+        # Pull body hashes from synapse recieved with request.
+        body_hashes = [
+            getattr(synapse, field + "_hash") for field in synapse.required_hash_fields
+        ]
+
         # Build the signature messages.
-        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}.{synapse.body_hash}"
+        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}.{body_hashes}"
 
         # Build the unique endpoint key.
         endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
@@ -649,11 +714,11 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 f"axon     | <-- | {request.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success "
             )
 
-            # Call the verify function
-            await self.verify(synapse)
-
             # Call the blacklist function
             await self.blacklist(synapse)
+
+            # Call verify and return the verified request
+            await self.verify(synapse)
 
             # Call the priority function
             await self.priority(synapse)
@@ -802,7 +867,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 synapse.axon.status_code = "403"
 
                 # We raise an exception to halt the process and return the error message to the requester.
-                raise Exception("Forbidden. Key is blacklisted.")
+                raise Exception(f"Forbidden. Key is blacklisted: {reason}.")
 
     async def priority(self, synapse: bittensor.Synapse):
         """

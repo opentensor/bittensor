@@ -347,11 +347,40 @@ class dendrite(torch.nn.Module):
             }
         )
 
-        # Sign the request using the dendrite and axon information
-        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.dendrite.uuid}.{synapse.body_hash}"
+        # Sign the request using the dendrite, axon info, and the synapse body hashes
+        body_hashes = self.hash_synapse_body(synapse)
+
+        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.dendrite.uuid}.{body_hashes}"
         synapse.dendrite.signature = f"0x{self.keypair.sign(message).hex()}"
 
         return synapse
+
+    @staticmethod
+    def hash_synapse_body(synapse: bittensor.Synapse) -> str:
+        """
+        Compute a SHA-256 hash of the serialized body of the Synapse instance.
+
+        The body of the Synapse instance comprises its serialized and encoded
+        non-optional fields. This property retrieves these fields using the
+        `get_body` method, then concatenates their string representations, and
+        finally computes a SHA-256 hash of the resulting string.
+
+        Returns:
+            str: The hexadecimal representation of the SHA-256 hash of the instance's body.
+        """
+        # Hash the body for verification
+        hashes = []
+
+        # Getting the fields of the instance
+        instance_fields = synapse.__dict__
+
+        # Iterating over the fields of the instance
+        for field, value in instance_fields.items():
+            # If the field is required in the subclass schema, add it.
+            if field in synapse.required_hash_fields:
+                hashes.append(bittensor.utils.hash(str(value)))
+
+        return hashes
 
     def process_server_response(
         self,
