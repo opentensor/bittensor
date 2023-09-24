@@ -511,7 +511,7 @@ class axon:
         """
         # Extract keys and values that end with '_hash'
         hash_headers = {k: v for k, v in request.headers.items() if "_hash_" in k}
-        hash_headers = {k.split("_")[-1]: v for k, v in hash_headers.items()}
+        hash_headers = {k.split("_hash_")[-1]: v for k, v in hash_headers.items()}
 
         # Await and load the request body so we can inspect it
         body = await request.body()
