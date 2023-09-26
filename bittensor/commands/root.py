@@ -121,8 +121,10 @@ class RootList:
                 if neuron_data.hotkey in delegate_info
                 else "",
                 neuron_data.hotkey,
-                "{:.5f}".format(float(subtensor.get_total_stake_for_hotkey(neuron_data.hotkey))),
-                "Yes" if neuron_data.hotkey in senate_members else "No"
+                "{:.5f}".format(
+                    float(subtensor.get_total_stake_for_hotkey(neuron_data.hotkey))
+                ),
+                "Yes" if neuron_data.hotkey in senate_members else "No",
             )
 
         table.box = None
