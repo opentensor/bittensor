@@ -24,6 +24,7 @@ import uuid
 import copy
 import json
 import time
+import base64
 import asyncio
 import inspect
 import uvicorn
@@ -509,39 +510,36 @@ class axon:
                 # The function only executes if the body integrity verification is successful.
                 ...
         """
-        # Properly extract keys and values that have 'hash'
-        hash_headers = {
-            "_".join(k.split("_")[k.split("_").index("hash") + 1 :]): v
-            for k, v in request.headers.items()
-            if "_hash_" in k
-        }
-
         # Await and load the request body so we can inspect it
         body = await request.body()
         request_body = body.decode() if isinstance(body, bytes) else body
 
+        # Gather the required field names from the headers of the request
+        required_hash_fields = json.loads(
+            base64.b64decode(request.headers.get("hash_fields", "").encode()).decode(
+                "utf-8"
+            )
+        )
+
         # Load the body dict and check if all required field hashes match
         body_dict = json.loads(request_body)
-        for required_field in list(hash_headers):
+        field_hashes = []
+        for required_field in required_hash_fields:
             # Hash the field in the body to compare against the header hashes
             body_value = body_dict.get(required_field, None)
             if body_value == None:
-                return JSONResponse(
-                    content={"error": f"Missing required field {required_field}"},
-                    status_code=400,
-                )
+                raise ValueError(f"Missing required field {required_field}")
             field_hash = bittensor.utils.hash(str(body_value))
+            field_hashes.append(field_hash)
 
-            # If any hashes fail to match up, return a 400 error as the body is invalid
-            if field_hash != hash_headers[required_field]:
-                return JSONResponse(
-                    content={
-                        "error": f"Hash mismatch with {field_hash} and {getattr(synapse, required_field + '_hash')}"
-                    },
-                    status_code=400,
-                )
+        parsed_body_hash = bittensor.utils.hash("".join(field_hashes))
+        body_hash = request.headers.get("computed_body_hash", "")
+        if parsed_body_hash != body_hash:
+            raise ValueError(
+                f"Hash mismatch between header body hash {body_hash} and parsed body hash {parsed_body_hash}"
+            )
 
-        # If body is good, return the parsed body so that it can be injected into the route function
+        # If body is good, return the parsed body so that it can be passed onto the route function
         return body_dict
 
     @classmethod
@@ -653,13 +651,8 @@ class axon:
         # Build the keypair from the dendrite_hotkey
         keypair = Keypair(ss58_address=synapse.dendrite.hotkey)
 
-        # Pull body hashes from synapse recieved with request.
-        body_hashes = [
-            getattr(synapse, field + "_hash") for field in synapse.required_hash_fields
-        ]
-
         # Build the signature messages.
-        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}.{body_hashes}"
+        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}.{synapse.computed_body_hash}"
 
         # Build the unique endpoint key.
         endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
