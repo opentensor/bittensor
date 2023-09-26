@@ -21,8 +21,10 @@ import torch
 import typing
 import argparse
 import bittensor
-from typing import List
+from typing import List, Optional, Dict
 from rich.prompt import Prompt, Confirm
+from rich.table import Table
+from .utils import get_delegates_details, DelegatesDetails
 
 from . import defaults
 
@@ -63,10 +65,70 @@ class RootList:
     def run(cli):
         r"""List the root network"""
         subtensor = bittensor.subtensor(config=cli.config)
+        console.print(
+            ":satellite: Syncing with chain: [white]{}[/white] ...".format(
+                cli.config.subtensor.network
+            )
+        )
+
+        senate_members = subtensor.get_senate_members()
         root_neurons: typing.List[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
             netuid=0
         )
-        print(root_neurons)
+        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
+            url=bittensor.__delegates_details_url__
+        )
+
+        table = Table(show_footer=False)
+        table.title = "[white]Root Network"
+        table.add_column(
+            "[overline white]UID",
+            footer_style="overline white",
+            style="rgb(50,163,219)",
+            no_wrap=True,
+        )
+        table.add_column(
+            "[overline white]NAME",
+            footer_style="overline white",
+            style="rgb(50,163,219)",
+            no_wrap=True,
+        )
+        table.add_column(
+            "[overline white]ADDRESS",
+            footer_style="overline white",
+            style="yellow",
+            no_wrap=True,
+        )
+        table.add_column(
+            "[overline white]STAKE(\u03C4)",
+            footer_style="overline white",
+            justify="right",
+            style="green",
+            no_wrap=True,
+        )
+        table.add_column(
+            "[overline white]SENATOR",
+            footer_style="overline white",
+            style="green",
+            no_wrap=True,
+        )
+        table.show_footer = True
+
+        for neuron_data in root_neurons:
+            table.add_row(
+                str(neuron_data.uid),
+                delegate_info[neuron_data.hotkey].name
+                if neuron_data.hotkey in delegate_info
+                else "",
+                neuron_data.hotkey,
+                "{:.5f}".format(float(subtensor.get_total_stake_for_hotkey(neuron_data.hotkey))),
+                "Yes" if neuron_data.hotkey in senate_members else "No"
+            )
+
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        bittensor.__console__.print(table)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
