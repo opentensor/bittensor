@@ -323,6 +323,10 @@ class Synapse(pydantic.BaseModel):
             raise AttributeError(
                 "required_hash_fields property is read-only and cannot be overridden."
             )
+        if name == "body_hash":
+            raise AttributeError(
+                "body_hash property is read-only and cannot be overridden."
+            )
         super().__setattr__(name, value)
 
     @property
