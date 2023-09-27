@@ -690,7 +690,9 @@ class Synapse(pydantic.BaseModel):
         inputs_dict["total_size"] = headers.get("total_size", None)
         inputs_dict["computed_body_hash"] = headers.get("computed_body_hash", None)
         inputs_dict["hash_fields"] = json.loads(
-            base64.b64decode(headers.get("hash_fields", "W10=").encode()).decode("utf-8")
+            base64.b64decode(headers.get("hash_fields", "W10=").encode()).decode(
+                "utf-8"
+            )
         )
 
         return inputs_dict
