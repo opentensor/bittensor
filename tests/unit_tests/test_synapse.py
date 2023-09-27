@@ -39,11 +39,16 @@ def test_parse_headers_to_inputs():
         "name": "Test",
         "header_size": "111",
         "total_size": "111",
+        "computed_body_hash": "0xabcdef",
+        "hash_fields": base64.b64encode(
+            json.dumps(["key1", "key2"]).encode("utf-8")
+        ).decode("utf-8"),
     }
+    print(headers)
 
     # Run the function to test
     inputs_dict = Test.parse_headers_to_inputs(headers)
-
+    print(inputs_dict)
     # Check the resulting dictionary
     assert inputs_dict == {
         "axon": {"nonce": "111"},
@@ -54,6 +59,8 @@ def test_parse_headers_to_inputs():
         "name": "Test",
         "header_size": "111",
         "total_size": "111",
+        "computed_body_hash": "0xabcdef",
+        "hash_fields": ["key1", "key2"],
     }
 
 
@@ -74,6 +81,10 @@ def test_from_headers():
         "name": "Test",
         "header_size": "111",
         "total_size": "111",
+        "computed_body_hash": "0xabcdef",
+        "hash_fields": base64.b64encode(
+            json.dumps(["key1", "key2"]).encode("utf-8")
+        ).decode("utf-8"),
     }
 
     # Run the function to test
@@ -238,6 +249,18 @@ def test_dict_tensors():
 
 
 def test_body_hash_override():
+    # Create a Synapse instance
+    synapse_instance = bittensor.Synapse()
+
+    # Try to set the body_hash property and expect an AttributeError
+    with pytest.raises(
+        AttributeError,
+        match="body_hash property is read-only and cannot be overridden.",
+    ):
+        synapse_instance.body_hash = []
+
+
+def test_required_fields_override():
     # Create a Synapse instance
     synapse_instance = bittensor.Synapse()
 
