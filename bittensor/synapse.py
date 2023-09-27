@@ -542,6 +542,7 @@ class Synapse(pydantic.BaseModel):
         headers["header_size"] = str(sys.getsizeof(headers))
         headers["total_size"] = str(self.get_total_size())
         headers["computed_body_hash"] = self.body_hash
+        print("required_hash_fields", self.required_hash_fields)
         headers["hash_fields"] = base64.b64encode(
             json.dumps(self.required_hash_fields).encode()
         ).decode("utf-8")
@@ -690,7 +691,7 @@ class Synapse(pydantic.BaseModel):
         inputs_dict["total_size"] = headers.get("total_size", None)
         inputs_dict["computed_body_hash"] = headers.get("computed_body_hash", None)
         inputs_dict["hash_fields"] = json.loads(
-            base64.b64decode(headers.get("hash_fields", "").encode()).decode("utf-8")
+            base64.b64decode(headers.get("hash_fields", "W10=").encode()).decode("utf-8")
         )
 
         return inputs_dict
