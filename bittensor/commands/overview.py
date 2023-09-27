@@ -185,9 +185,11 @@ class OverviewCommand:
                     continue  # We have all our stake registered.
 
                 coldkeys_to_check.append(coldkey_wallet)
-                alerts_table.add_row("Found {} stake with coldkey {} that is not registered.".format(
-                    difference, coldkey_wallet.coldkeypub.ss58_address
-                ))
+                alerts_table.add_row(
+                    "Found {} stake with coldkey {} that is not registered.".format(
+                        difference, coldkey_wallet.coldkeypub.ss58_address
+                    )
+                )
 
             if len(coldkeys_to_check) > 0:
                 # We have some stake that is not with a registered hotkey.
