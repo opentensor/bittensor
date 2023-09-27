@@ -86,18 +86,6 @@ class ListCommand:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         list_parser = parser.add_parser("list", help="""List wallets""")
-        list_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
-        list_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
+
         bittensor.wallet.add_args(list_parser)
         bittensor.subtensor.add_args(list_parser)

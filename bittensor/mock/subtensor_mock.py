@@ -24,7 +24,7 @@ from abc import abstractclassmethod
 from collections.abc import Mapping
 
 from hashlib import sha256
-from .._wallet import wallet
+from ..wallet import wallet
 
 from ..chain_data import (
     NeuronInfo,
@@ -262,6 +262,7 @@ class MockSubtensor(subtensor):
                     "Delegates": {},
                     "Axons": {},
                     "Prometheus": {},
+                    "SubnetOwner": {},
                 },
             }
 
@@ -1386,6 +1387,7 @@ class MockSubtensor(subtensor):
             },
             emission_value=query_subnet_info(name="EmissionValues"),
             burn=query_subnet_info(name="Burn"),
+            owner_ss58=query_subnet_info(name="SubnetOwner"),
         )
 
         return info

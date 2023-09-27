@@ -50,19 +50,7 @@ class UpdateCommand:
         update_parser = parser.add_parser(
             "update", add_help=False, help="""Update bittensor """
         )
-        update_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to skip prompt from update.""",
-            default=False,
-        )
-        update_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
+
         bittensor.subtensor.add_args(update_parser)
 
 
@@ -96,6 +84,7 @@ class ListSubnetsCommand:
                     ),
                     f"{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%",
                     f"{subnet.burn!s:8.8}",
+                    f"{subnet.owner_ss58}",
                 )
             )
 
@@ -135,6 +124,7 @@ class ListSubnetsCommand:
             "[overline white]EMISSION", style="white", justify="center"
         )  # sums to 100%
         table.add_column("[overline white]BURN(\u03C4)", style="white")
+        table.add_column("[overline white]OWNER(\u03C4)", style="white")
 
         for row in rows:
             table.add_row(*row)
@@ -150,11 +140,5 @@ class ListSubnetsCommand:
         list_subnets_parser = parser.add_parser(
             "list_subnets", help="""List all subnets on the network"""
         )
-        list_subnets_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
+
         bittensor.subtensor.add_args(list_subnets_parser)

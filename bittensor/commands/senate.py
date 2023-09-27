@@ -83,19 +83,7 @@ class SenateCommand:
         senate_parser = parser.add_parser(
             "senate", help="""View senate and it's members"""
         )
-        senate_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        senate_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
+
         bittensor.wallet.add_args(senate_parser)
         bittensor.subtensor.add_args(senate_parser)
 
@@ -228,19 +216,7 @@ class ProposalsCommand:
         proposals_parser = parser.add_parser(
             "proposals", help="""View active triumvirate proposals and their status"""
         )
-        proposals_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        proposals_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
+
         bittensor.wallet.add_args(proposals_parser)
         bittensor.subtensor.add_args(proposals_parser)
 
@@ -309,19 +285,6 @@ class ShowVotesCommand:
             "proposal_votes", help="""View an active proposal's votes by address."""
         )
         show_votes_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        show_votes_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
-        show_votes_parser.add_argument(
             "--proposal",
             dest="proposal_hash",
             type=str,
@@ -380,19 +343,7 @@ class SenateRegisterCommand:
             "senate_register",
             help="""Register as a senate member to participate in proposals""",
         )
-        senate_register_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        senate_register_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
+
         bittensor.wallet.add_args(senate_register_parser)
         bittensor.subtensor.add_args(senate_register_parser)
 
@@ -435,19 +386,7 @@ class SenateLeaveCommand:
             "senate_leave",
             help="""Discard senate membership in the governance protocol""",
         )
-        senate_leave_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        senate_leave_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
+
         bittensor.wallet.add_args(senate_leave_parser)
         bittensor.subtensor.add_args(senate_leave_parser)
 
@@ -511,19 +450,6 @@ class VoteCommand:
     def add_args(cls, parser: argparse.ArgumentParser):
         vote_parser = parser.add_parser(
             "senate_vote", help="""Vote on an active proposal by hash."""
-        )
-        vote_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        vote_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         vote_parser.add_argument(
             "--proposal",

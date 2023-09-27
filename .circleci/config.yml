@@ -74,8 +74,6 @@ jobs:
 
     steps:
       - checkout
-      - run: git submodule sync
-      - run: git submodule update --init # For wallet submoudle
 
       - restore_cache:
           name: Restore cached venv
@@ -89,7 +87,7 @@ jobs:
             python -m venv env/
             . env/bin/activate
             python -m pip install --upgrade pip
-            pip install '.[dev]'
+            python -m pip install '.[dev]'
 
       - save_cache:
           name: Save cached venv
@@ -228,6 +226,9 @@ jobs:
 workflows:
   compatibility_checks:
     jobs:
+      - check_compatibility:
+          python_version: "3.8"
+          name: check-compatibility-3.8
       - check_compatibility:
           python_version: "3.9"
           name: check-compatibility-3.9

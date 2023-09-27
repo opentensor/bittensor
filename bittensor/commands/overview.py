@@ -37,7 +37,7 @@ console = bittensor.__console__
 
 class OverviewCommand:
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
         r"""Prints an overview for the wallet's colkey."""
         console = bittensor.__console__
         wallet = bittensor.wallet(config=cli.config)
@@ -129,12 +129,18 @@ class OverviewCommand:
                 )
             )
         ):
+            # Create a copy of the config without the parser and formatter_class.
+            ## This is needed to pass to the ProcessPoolExecutor, which cannot pickle the parser.
+            copy_config = cli.config.copy()
+            copy_config["__parser"] = None
+            copy_config["formatter_class"] = None
+
             # Pull neuron info for all keys.
             ## Max len(netuids) or 5 threads.
             with ProcessPoolExecutor(max_workers=max(len(netuids), 5)) as executor:
                 results = executor.map(
                     OverviewCommand._get_neurons_for_netuid,
-                    [(cli.config, netuid, all_hotkey_addresses) for netuid in netuids],
+                    [(copy_config, netuid, all_hotkey_addresses) for netuid in netuids],
                 )
                 executor.shutdown(wait=True)  # wait for all complete
 
@@ -160,6 +166,9 @@ class OverviewCommand:
                         neuron.coldkey
                     ] += neuron.stake_dict[neuron.coldkey]
 
+            alerts_table = Table(show_header=True, header_style="bold magenta")
+            alerts_table.add_column("🥩 alert!")
+
             coldkeys_to_check = []
             for coldkey_wallet in all_coldkey_wallets:
                 # Check if we have any stake with hotkeys that are not registered.
@@ -176,11 +185,9 @@ class OverviewCommand:
                     continue  # We have all our stake registered.
 
                 coldkeys_to_check.append(coldkey_wallet)
-                print(
-                    "Foud {} stake with coldkey {} that is not registered.".format(
-                        difference, coldkey_wallet.coldkeypub.ss58_address
-                    )
-                )
+                alerts_table.add_row("Found {} stake with coldkey {} that is not registered.".format(
+                    difference, coldkey_wallet.coldkeypub.ss58_address
+                ))
 
             if len(coldkeys_to_check) > 0:
                 # We have some stake that is not with a registered hotkey.
@@ -237,6 +244,10 @@ class OverviewCommand:
 
         # Setup outer table.
         grid = Table.grid(pad_edge=False)
+
+        # If there are any alerts, add them to the grid
+        if len(alerts_table.rows) > 0:
+            grid.add_row(alerts_table)
 
         title: str = ""
         if not cli.config.get("all", d=None):
@@ -566,13 +577,6 @@ class OverviewCommand:
             "overview", help="""Show registered account overview."""
         )
         overview_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
-        overview_parser.add_argument(
             "--all",
             dest="all",
             action="store_true",
@@ -634,12 +638,6 @@ class OverviewCommand:
             nargs="*",
             help="""Set the netuid(s) to filter by.""",
             default=[],
-        )
-        overview_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
         )
         bittensor.wallet.add_args(overview_parser)
         bittensor.subtensor.add_args(overview_parser)

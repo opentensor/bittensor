@@ -63,19 +63,6 @@ class RegisterCommand:
             "register", help="""Register a wallet to a network."""
         )
         register_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        register_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
-        register_parser.add_argument(
             "--netuid",
             type=int,
             help="netuid for subnet to serve this neuron on",
@@ -219,19 +206,6 @@ class RecycleRegisterCommand:
             "recycle_register", help="""Register a wallet to a network."""
         )
         recycle_register_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        recycle_register_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
-        recycle_register_parser.add_argument(
             "--netuid",
             type=int,
             help="netuid for subnet to serve this neuron on",
@@ -243,7 +217,11 @@ class RecycleRegisterCommand:
 
     @staticmethod
     def check_config(config: "bittensor.config"):
-        if not config.is_set("subtensor.network") and not config.no_prompt:
+        if (
+            not config.is_set("subtensor.network")
+            and not config.is_set("subtensor.chain_endpoint")
+            and not config.no_prompt
+        ):
             config.subtensor.network = Prompt.ask(
                 "Enter subtensor network",
                 choices=bittensor.__networks__,
@@ -286,20 +264,7 @@ class RunFaucetCommand:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         run_faucet_parser = parser.add_parser(
-            "run_faucet", help="""Register a wallet to a network."""
-        )
-        run_faucet_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
-        run_faucet_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
+            "faucet", help="""Register a wallet to a network."""
         )
         run_faucet_parser.add_argument(
             "--register.num_processes",

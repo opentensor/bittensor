@@ -51,6 +51,7 @@ custom_rpc_type_registry = {
                 ["network_connect", "Vec<[u16; 2]>"],
                 ["emission_values", "Compact<u64>"],
                 ["burn", "Compact<u64>"],
+                ["owner", "AccountId"],
             ],
         },
         "DelegateInfo": {
@@ -152,6 +153,29 @@ custom_rpc_type_registry = {
                 ["stake", "Compact<u64>"],
             ],
         },
+        "SubnetHyperparameters": {
+            "type": "struct",
+            "type_mapping": [
+                ["rho", "Compact<u16>"],
+                ["kappa", "Compact<u16>"],
+                ["immunity_period", "Compact<u16>"],
+                ["min_allowed_weights", "Compact<u16>"],
+                ["max_weights_limit", "Compact<u16>"],
+                ["tempo", "Compact<u16>"],
+                ["min_difficulty", "Compact<u64>"],
+                ["max_difficulty", "Compact<u64>"],
+                ["weights_version", "Compact<u64>"],
+                ["weights_rate_limit", "Compact<u64>"],
+                ["adjustment_interval", "Compact<u16>"],
+                ["activity_cutoff", "Compact<u16>"],
+                ["registration_allowed", "bool"],
+                ["target_regs_per_interval", "Compact<u16>"],
+                ["min_burn", "Compact<u64>"],
+                ["max_burn", "Compact<u64>"],
+                ["bonds_moving_avg", "Compact<u64>"],
+                ["max_regs_per_block", "Compact<u16>"],
+            ],
+        },
     }
 }
 
@@ -233,8 +257,9 @@ class ChainDataType(Enum):
     DelegateInfo = 3
     NeuronInfoLite = 4
     DelegatedInfo = 5
-    IPInfo = 6
-    StakeInfo = 7
+    StakeInfo = 6
+    IPInfo = 7
+    SubnetHyperparameters = 8
 
 
 # Constants
@@ -825,6 +850,7 @@ class SubnetInfo:
     connection_requirements: Dict[str, float]
     emission_value: float
     burn: Balance
+    owner_ss58: str
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetInfo"]:
@@ -877,6 +903,7 @@ class SubnetInfo:
             },
             emission_value=decoded["emission_values"],
             burn=Balance.from_rao(decoded["burn"]),
+            owner_ss58=ss58_encode(decoded["owner"], bittensor.__ss58_format__),
         )
 
     def to_parameter_dict(self) -> "torch.nn.ParameterDict":
@@ -888,6 +915,93 @@ class SubnetInfo:
         cls, parameter_dict: "torch.nn.ParameterDict"
     ) -> "SubnetInfo":
         r"""Returns a SubnetInfo object from a torch parameter_dict."""
+        return cls(**dict(parameter_dict))
+
+
+@dataclass
+class SubnetHyperparameters:
+    r"""
+    Dataclass for subnet hyperparameters.
+    """
+    rho: int
+    kappa: int
+    immunity_period: int
+    min_allowed_weights: int
+    max_weight_limit: float
+    tempo: int
+    min_difficulty: int
+    max_difficulty: int
+    weights_version: int
+    weights_rate_limit: int
+    adjustment_interval: int
+    activity_cutoff: int
+    registration_allowed: bool
+    target_regs_per_interval: int
+    min_burn: int
+    max_burn: int
+    bonds_moving_avg: int
+    max_regs_per_block: int
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetHyperparameters"]:
+        r"""Returns a SubnetHyperparameters object from a vec_u8."""
+        if len(vec_u8) == 0:
+            return None
+
+        decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetHyperparameters)
+
+        if decoded is None:
+            return None
+
+        return SubnetHyperparameters.fix_decoded_values(decoded)
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetHyperparameters"]:
+        r"""Returns a list of SubnetHyperparameters objects from a vec_u8."""
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.SubnetHyperparameters, is_vec=True, is_option=True
+        )
+
+        if decoded is None:
+            return []
+
+        decoded = [SubnetHyperparameters.fix_decoded_values(d) for d in decoded]
+
+        return decoded
+
+    @classmethod
+    def fix_decoded_values(cls, decoded: Dict) -> "SubnetHyperparameters":
+        r"""Returns a SubnetInfo object from a decoded SubnetInfo dictionary."""
+        return SubnetHyperparameters(
+            rho=decoded["rho"],
+            kappa=decoded["kappa"],
+            immunity_period=decoded["immunity_period"],
+            min_allowed_weights=decoded["min_allowed_weights"],
+            max_weight_limit=decoded["max_weights_limit"],
+            tempo=decoded["tempo"],
+            min_difficulty=decoded["min_difficulty"],
+            max_difficulty=decoded["max_difficulty"],
+            weights_version=decoded["weights_version"],
+            weights_rate_limit=decoded["weights_rate_limit"],
+            adjustment_interval=decoded["adjustment_interval"],
+            activity_cutoff=decoded["activity_cutoff"],
+            registration_allowed=decoded["registration_allowed"],
+            target_regs_per_interval=decoded["target_regs_per_interval"],
+            min_burn=decoded["min_burn"],
+            max_burn=decoded["max_burn"],
+            bonds_moving_avg=decoded["bonds_moving_avg"],
+            max_regs_per_block=decoded["max_regs_per_block"],
+        )
+
+    def to_parameter_dict(self) -> "torch.nn.ParameterDict":
+        r"""Returns a torch tensor of the subnet hyperparameters."""
+        return torch.nn.ParameterDict(self.__dict__)
+
+    @classmethod
+    def from_parameter_dict(
+        cls, parameter_dict: "torch.nn.ParameterDict"
+    ) -> "SubnetInfo":
+        r"""Returns a SubnetHyperparameters object from a torch parameter_dict."""
         return cls(**dict(parameter_dict))
 
 

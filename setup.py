@@ -23,13 +23,25 @@ import codecs
 import re
 import os
 import pathlib
+import subprocess
 
 
 def read_requirements(path):
+    requirements = []
+    git_requirements = []
+
     with pathlib.Path(path).open() as requirements_txt:
-        return [
-            str(requirement) for requirement in parse_requirements(requirements_txt)
-        ]
+        for line in requirements_txt:
+            if line.startswith("git+"):
+                git_requirements.append(line.strip())
+            else:
+                requirements.append(line.strip())
+
+    # Install git dependencies
+    for git_req in git_requirements:
+        subprocess.check_call(["python", "-m", "pip", "install", git_req])
+
+    return requirements
 
 
 requirements = read_requirements("requirements/prod.txt")
@@ -63,7 +75,7 @@ setup(
     include_package_data=True,
     author_email="",
     license="MIT",
-    python_requires=">=3.9",
+    python_requires=">=3.8",
     install_requires=requirements,
     extras_require={"dev": extra_requirements_dev},
     scripts=["bin/btcli"],
@@ -74,6 +86,7 @@ setup(
         # Pick your license as you wish
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",

@@ -86,7 +86,8 @@ class InspectCommand:
 
         neuron_state_dict = {}
         for netuid in tqdm(netuids):
-            neuron_state_dict[netuid] = subtensor.neurons_lite(netuid)
+            neurons = subtensor.neurons_lite(netuid)
+            neuron_state_dict[netuid] = neurons if neurons != None else []
 
         table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
         table.add_column(
@@ -196,18 +197,6 @@ class InspectCommand:
             help="""Check all coldkey wallets.""",
             default=False,
         )
-        inspect_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
-        inspect_parser.add_argument(
-            "--no_version_checking",
-            action="store_true",
-            help="""Set false to stop cli version checking""",
-            default=False,
-        )
+
         bittensor.wallet.add_args(inspect_parser)
         bittensor.subtensor.add_args(inspect_parser)

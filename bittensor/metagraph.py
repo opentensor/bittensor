@@ -459,7 +459,7 @@ class metagraph(torch.nn.Module):
         )
         self.axons = [n.axon_info for n in self.neurons]
 
-    def _create_tensor(self, data, dtype):
+    def _create_tensor(self, data, dtype) -> torch.nn.Parameter:
         """
         Creates a tensor parameter with the given data and dtype.
 
@@ -488,7 +488,7 @@ class metagraph(torch.nn.Module):
             [neuron.bonds for neuron in self.neurons], "bonds"
         )
 
-    def _process_weights_or_bonds(self, data, attribute: str):
+    def _process_weights_or_bonds(self, data, attribute: str) -> torch.nn.Parameter:
         """
         Processes weights or bonds based on the given attribute.
 

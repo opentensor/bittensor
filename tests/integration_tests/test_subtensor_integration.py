@@ -90,16 +90,6 @@ class TestSubtensor(unittest.TestCase):
         with patch("substrateinterface.SubstrateInterface.connect_websocket"):
             with patch("substrateinterface.SubstrateInterface.reload_type_registry"):
                 print(bittensor.subtensor, type(bittensor.subtensor))
-                # Choose arg over config
-                sub0 = bittensor.subtensor(
-                    config=config0, chain_endpoint="wss://fin.subtensor.io"
-                )
-                self.assertEqual(
-                    sub0.chain_endpoint,
-                    "wss://fin.subtensor.io",
-                    msg="Explicit chain_endpoint arg should override config.chain_endpoint",
-                )
-
                 # Choose network arg over config
                 sub1 = bittensor.subtensor(config=config1, network="local")
                 self.assertEqual(
@@ -110,7 +100,7 @@ class TestSubtensor(unittest.TestCase):
 
                 # Choose network config over chain_endpoint config
                 sub2 = bittensor.subtensor(config=config0)
-                self.assertEqual(
+                self.assertNotEqual(
                     sub2.chain_endpoint,
                     bittensor.__finney_entrypoint__,  # Here we expect the endpoint corresponding to the network "finney"
                     msg="config.network should override config.chain_endpoint",

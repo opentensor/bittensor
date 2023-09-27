@@ -32,7 +32,7 @@ $ pip3 install bittensor
 ```
 3. From source:
 ```bash
-$ git clone --recurse-submodules https://github.com/opentensor/bittensor.git
+$ git clone https://github.com/opentensor/bittensor.git
 $ python3 -m pip install -e bittensor/
 ```
 4. Using Conda (recommended for **Apple M1**):
@@ -41,23 +41,13 @@ $ conda env create -f ~/.bittensor/bittensor/scripts/environments/apple_m1_envir
 $ conda activate bittensor
 ```
 
-To sync the submodules bittensor-wallet and bittensor-config:
-```bash
-cd bittensor/
-
-git submodule sync && git submodule update --init
-
-# Reinstall with updated submodules
-python3 -m pip install -e .
-```
-
 To test your installation, type:
 ```bash
 $ btcli --help
 ```
 or using python
 ```python
-import bittensor as bt
+import bittensor
 ```
 
 # Wallets 
@@ -67,8 +57,8 @@ Wallets are the core ownership and identity technology around which all function
 Wallets can be created in two ways.
 1. Using the python-api
 ```python
-import bittensor as bt
-wallet = bt.wallet()
+import bittensor
+wallet = bittensor.wallet()
 wallet.create_new_coldkey()
 wallet.create_new_hotkey()
 print (wallet)
@@ -194,9 +184,9 @@ The bittensor package contains data structures for interacting with the bittenso
 
 Wallet: Interface over locally stored bittensor hot + coldkey styled wallets. 
 ```python
-import bittensor as bt
+import bittensor
 # Bittensor's wallet maintenance class.
-wallet = bt.wallet() 
+wallet = bittensor.wallet() 
 # Access the hotkey
 wallet.hotkey 
 # Access the coldkey
@@ -208,9 +198,9 @@ wallet.coldkey.sign( data )
 
 Subtensor: Interfaces with bittensor's blockchain and can perform operations like extracting state information or sending transactions.
 ```python
-import bittensor as bt
+import bittensor
 # Bittensor's chain interface.
-subtensor = bt.subtensor() 
+subtensor = bittensor.subtensor() 
 # Get the chain block
 subtensor.get_current_block()
 # Transfer Tao to a destination address.
@@ -221,9 +211,9 @@ subtensor.register( wallet = wallet, netuid = 1 )
 
 Metagraph: Encapsulates the chain state of a particular subnetwork at a specific block.
 ```python
-import bittensor as bt
+import bittensor
 # Bittensor's chain state object.
-metagraph = bt.metagraph( netuid = 1 ) 
+metagraph = bittensor.metagraph( netuid = 1 ) 
 # Resync the graph with the most recent chain state
 metagraph.sync()
 # Get the list of stake values
@@ -242,28 +232,28 @@ metagraph.load()
 
 Synapse: Responsible for defining the protocol definition betwee axon servers and dendrite clients
 ```python
-class Topk( bt.Synapse ):
+class Topk( bittensor.Synapse ):
     topk: int = 2  # Number of "top" elements to select
-    input: bt.Tensor = pydantic.Field(..., allow_mutation=False)  # Ensure that input cannot be set on the server side. 
-    v: bt.Tensor = None
-    i: bt.Tensor = None
+    input: bittensor.Tensor = pydantic.Field(..., allow_mutation=False)  # Ensure that input cannot be set on the server side. 
+    v: bittensor.Tensor = None
+    i: bittensor.Tensor = None
 
 def topk( synapse: Topk ) -> Topk:
     v, i = torch.topk( synapse.input.deserialize(), k = synapse.topk ) 
-    synapse.v = bt.Tensor.serialize( v )
-    synapse.i = bt.Tensor.serialize( i )
+    synapse.v = bittensor.Tensor.serialize( v )
+    synapse.i = bittensor.Tensor.serialize( i )
     return synapse
 
 # Attach the forward function to the axon and start.
-axon = bt.axon().attach( topk ).start()
+axon = bittensor.axon().attach( topk ).start()
 ```
 
 Axon: Serves Synapse protocols with custom blacklist, priority and verify functions.
 
 ```python
-import bittensor as bt
+import bittensor
 
-class MySyanpse( bt.Synapse ):
+class MySyanpse( bittensor.Synapse ):
     input: int = 1
     output: int = None
 
@@ -289,7 +279,7 @@ def prioritize_my_synape( synapse: MySyanpse ) -> float:
     return 1.0 
 
 # Initialize Axon object with a custom configuration
-my_axon = bt.axon(config=my_config, wallet=my_wallet, port=9090, ip="192.0.2.0", external_ip="203.0.113.0", external_port=7070)
+my_axon = bittensor.axon(config=my_config, wallet=my_wallet, port=9090, ip="192.0.2.0", external_ip="203.0.113.0", external_port=7070)
 
 # Attach the endpoint with the specified verification and forwarding functions  
 my_axon.attach(
@@ -304,15 +294,15 @@ Dendrite: Inheriting from PyTorch's Module class, represents the abstracted impl
 to send requests to those endpoint to recieve inputs.
 Example:
 ```python
-dendrite_obj = dendrite( wallet = bt.wallet() )
+dendrite_obj = dendrite( wallet = bittensor.wallet() )
 # pings the axon endpoint
 await d( <axon> )
 # ping multiple axon endpoints
 await d( [<axons>] ) 
 # Send custom synapse request to axon.
-await d( bt.axon(), bt.Synapse() ) 
+await d( bittensor.axon(), bittensor.Synapse() ) 
 # Query all metagraph objects.
-await d( meta.axons, bt.Synapse() ) 
+await d( meta.axons, bittensor.Synapse() ) 
 ```
 
 ## Release

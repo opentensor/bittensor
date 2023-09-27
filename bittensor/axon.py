@@ -22,6 +22,7 @@
 import os
 import uuid
 import copy
+import json
 import time
 import asyncio
 import inspect
@@ -35,9 +36,12 @@ import contextlib
 from inspect import signature, Signature, Parameter
 from fastapi.responses import JSONResponse
 from substrateinterface import Keypair
-from fastapi import FastAPI, APIRouter, Request
+from fastapi import FastAPI, APIRouter, Request, Response, Depends
+from starlette.types import Scope, Message
+from starlette.responses import Response
+from starlette.requests import Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from typing import Dict, Optional, Tuple, Union, List, Callable
+from typing import Dict, Optional, Tuple, Union, List, Callable, Any
 
 
 """ FastAPI server that runs in a thread. 
@@ -98,9 +102,9 @@ class axon:
     ### Example usage:
 
     ```python
-    import bittensor as bt
+    import bittensor
 
-    class MySyanpse( bt.Synapse ):
+    class MySyanpse( bittensor.Synapse ):
         input: int = 1
         output: int = None
 
@@ -126,7 +130,7 @@ class axon:
         return 1.0
 
     # Initialize Axon object with a custom configuration
-    my_axon = bt.axon(config=my_config, wallet=my_wallet, port=9090, ip="192.0.2.0", external_ip="203.0.113.0", external_port=7070)
+    my_axon = bittensor.axon(config=my_config, wallet=my_wallet, port=9090, ip="192.0.2.0", external_ip="203.0.113.0", external_port=7070)
 
     # Attach the endpoint with the specified verification and forwarding functions
     my_axon.attach(
@@ -265,7 +269,7 @@ class axon:
         blacklist_fn: Callable = None,
         priority_fn: Callable = None,
         verify_fn: Callable = None,
-    ):
+    ) -> "bittensor.axon":
         """
         Registers an API endpoint to the FastAPI application router.
         It uses the name of the first argument of the 'forward_fn' function as the endpoint name.
@@ -316,7 +320,10 @@ class axon:
 
         # Add the endpoint to the router, making it available on both GET and POST methods
         self.router.add_api_route(
-            f"/{request_name}", forward_fn, methods=["GET", "POST"]
+            f"/{request_name}",
+            forward_fn,
+            methods=["GET", "POST"],
+            dependencies=[Depends(self.verify_body_integrity)],
         )
         self.app.include_router(self.router)
 
@@ -331,7 +338,7 @@ class axon:
                     ].annotation,
                 )
             ],
-            return_annotation=bool,
+            return_annotation=Tuple[bool, str],
         )
         priority_sig = Signature(
             [
@@ -362,7 +369,7 @@ class axon:
         if blacklist_fn:
             assert (
                 signature(blacklist_fn) == blacklist_sig
-            ), "The blacklist_fn function must have the signature: blacklist( synapse: {} ) -> bool".format(
+            ), "The blacklist_fn function must have the signature: blacklist( synapse: {} ) -> Tuple[bool, str]".format(
                 request_name
             )
         if priority_fn:
@@ -473,6 +480,70 @@ class axon:
             # Exception handling for re-parsing arguments
             pass
 
+    @staticmethod
+    async def verify_body_integrity(request: Request):
+        """
+        Asynchronously verifies the integrity of the body of a request by comparing the hash of required fields
+        with the corresponding hashes provided in the request headers. This method is critical for ensuring
+        that the incoming request payload has not been altered or tampered with during transmission, establishing
+        a level of trust and security between the sender and receiver in the network.
+
+        Args:
+            request (Request): The incoming FastAPI request object containing both headers and the request body.
+
+        Returns:
+            dict: Returns the parsed body of the request as a dictionary if all the hash comparisons match,
+                indicating that the body is intact and has not been tampered with.
+
+        Raises:
+            JSONResponse: Raises a JSONResponse with a 400 status code if any of the hash comparisons fail,
+                        indicating a potential integrity issue with the incoming request payload.
+                        The response includes the detailed error message specifying which field has a hash mismatch.
+
+        Example:
+            Assuming this method is set as a dependency in a route:
+
+            @app.post("/some_endpoint")
+            async def some_endpoint(body_dict: dict = Depends(verify_body_integrity)):
+                # body_dict is the parsed body of the request and is available for use in the route function.
+                # The function only executes if the body integrity verification is successful.
+                ...
+        """
+        # Properly extract keys and values that have 'hash'
+        hash_headers = {
+            "_".join(k.split("_")[k.split("_").index("hash") + 1 :]): v
+            for k, v in request.headers.items()
+            if "_hash_" in k
+        }
+
+        # Await and load the request body so we can inspect it
+        body = await request.body()
+        request_body = body.decode() if isinstance(body, bytes) else body
+
+        # Load the body dict and check if all required field hashes match
+        body_dict = json.loads(request_body)
+        for required_field in list(hash_headers):
+            # Hash the field in the body to compare against the header hashes
+            body_value = body_dict.get(required_field, None)
+            if body_value == None:
+                return JSONResponse(
+                    content={"error": f"Missing required field {required_field}"},
+                    status_code=400,
+                )
+            field_hash = bittensor.utils.hash(str(body_value))
+
+            # If any hashes fail to match up, return a 400 error as the body is invalid
+            if field_hash != hash_headers[required_field]:
+                return JSONResponse(
+                    content={
+                        "error": f"Hash mismatch with {field_hash} and {getattr(synapse, required_field + '_hash')}"
+                    },
+                    status_code=400,
+                )
+
+        # If body is good, return the parsed body so that it can be injected into the route function
+        return body_dict
+
     @classmethod
     def check_config(cls, config: "bittensor.config"):
         """
@@ -559,7 +630,7 @@ class axon:
         subtensor.serve_axon(netuid=netuid, axon=self)
         return self
 
-    def default_verify(self, synapse: bittensor.Synapse) -> Request:
+    def default_verify(self, synapse: bittensor.Synapse):
         """
         This method is used to verify the authenticity of a received message using a digital signature.
         It ensures that the message was not tampered with and was sent by the expected sender.
@@ -582,8 +653,13 @@ class axon:
         # Build the keypair from the dendrite_hotkey
         keypair = Keypair(ss58_address=synapse.dendrite.hotkey)
 
+        # Pull body hashes from synapse recieved with request.
+        body_hashes = [
+            getattr(synapse, field + "_hash") for field in synapse.required_hash_fields
+        ]
+
         # Build the signature messages.
-        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}.{synapse.body_hash}"
+        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}.{body_hashes}"
 
         # Build the unique endpoint key.
         endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
@@ -611,7 +687,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
     This class also runs the requested function and updates the headers of the response.
     """
 
-    def __init__(self, app, axon):
+    def __init__(self, app: "AxonMiddleware", axon: "bittensor.axon"):
         """
         Initialize the AxonMiddleware class.
 
@@ -629,11 +705,11 @@ class AxonMiddleware(BaseHTTPMiddleware):
         Processes incoming requests.
 
         Args:
-            request(starlet Request): The incoming request.
-            call_next(starlet RequestResponseEndpoint): The function to call after processing the request.
+            request(starlette: Request): The incoming request.
+            call_next(starlette: RequestResponseEndpoint): The function to call after processing the request.
 
         Returns:
-            response (starlet Response): The processed request.
+            response (starlette: Response): The processed request.
         """
         # Records the start time of the request processing.
         start_time = time.time()
@@ -647,11 +723,11 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 f"axon     | <-- | {request.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success "
             )
 
-            # Call the verify function
-            await self.verify(synapse)
-
             # Call the blacklist function
             await self.blacklist(synapse)
+
+            # Call verify and return the verified request
+            await self.verify(synapse)
 
             # Call the priority function
             await self.priority(synapse)
@@ -681,9 +757,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         # Logs the end of request processing and returns the response
         finally:
-            # Log that we have reached the end of the processing.
-            bittensor.logging.trace("Finally")
-
             # Log the details of the processed synapse, including total size, name, hotkey, IP, port,
             # status code, and status message, using the debug level of the logger.
             bittensor.logging.debug(
@@ -693,7 +766,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             # Return the response to the requester.
             return response
 
-    async def preprocess(self, request) -> bittensor.Synapse:
+    async def preprocess(self, request: Request) -> bittensor.Synapse:
         """
         Perform preprocess operations for the request and generate the synapse state object.
 
@@ -745,8 +818,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
         """
         # Start of the verification process. Verification is the process where we ensure that
         # the incoming request is from a trusted source or fulfills certain requirements.
-        bittensor.logging.trace("Check verification")
-
         # We get a specific verification function from 'verify_fns' dictionary that corresponds
         # to our request's name. Each request name (synapse name) has its unique verification function.
         verify_fn = self.axon.verify_fns[synapse.name]
@@ -763,7 +834,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             except Exception as e:
                 # If there was an exception during the verification process, we log that
                 # there was a verification exception.
-                bittensor.logging.trace(f"Verify exception")
+                bittensor.logging.trace(f"Verify exception {str(e)}")
 
                 # We set the status code of the synapse to "401" which denotes an unauthorized access.
                 synapse.axon.status_code = "401"
@@ -782,10 +853,8 @@ class AxonMiddleware(BaseHTTPMiddleware):
         Raises:
             Exception: If the request is blacklisted.
         """
-        # Start of the blacklist check process. A blacklist is a list of keys or identifiers
+        # A blacklist is a list of keys or identifiers
         # that are prohibited from accessing certain resources.
-        bittensor.logging.trace("Check Blacklist")
-
         # We retrieve the blacklist checking function from the 'blacklist_fns' dictionary
         # that corresponds to the request's name (synapse name).
         blacklist_fn = self.axon.blacklist_fns[synapse.name]
@@ -794,40 +863,39 @@ class AxonMiddleware(BaseHTTPMiddleware):
         if blacklist_fn:
             # We execute the blacklist checking function using the synapse instance as input.
             # If the function returns True, it means that the key or identifier is blacklisted.
-            blacklisted = (
+            blacklisted, reason = (
                 await blacklist_fn(synapse)
                 if inspect.iscoroutinefunction(blacklist_fn)
                 else blacklist_fn(synapse)
             )
             if blacklisted:
                 # We log that the key or identifier is blacklisted.
-                bittensor.logging.trace(f"Blacklisted")
+                bittensor.logging.trace(f"Blacklisted: {blacklisted}, {reason}")
 
                 # We set the status code of the synapse to "403" which indicates a forbidden access.
                 synapse.axon.status_code = "403"
 
                 # We raise an exception to halt the process and return the error message to the requester.
-                raise Exception("Forbidden. Key is blacklisted.")
+                raise Exception(f"Forbidden. Key is blacklisted: {reason}.")
 
     async def priority(self, synapse: bittensor.Synapse):
         """
         Execute the priority function for the request.
 
+        A priority function is a function that determines the priority or urgency of processing the request compared to other requests.
         Args:
             synapse (bittensor.Synapse): The synapse instance representing the request.
 
         Raises:
             Exception: If the priority function times out.
         """
-        # Start of the priority function execution. A priority function is a function that determines
-        # the priority or urgency of processing the request compared to other requests.
-        bittensor.logging.trace("Run priority")
-
         # Retrieve the priority function from the 'priority_fns' dictionary that corresponds
         # to the request's name (synapse name).
         priority_fn = self.axon.priority_fns[synapse.name]
 
-        async def submit_task(executor, priority):
+        async def submit_task(
+            executor: bittensor.threadpool, priority: float
+        ) -> Tuple[float, Any]:
             """
             Submits the given priority function to the specified executor for asynchronous execution.
             The function will run in the provided executor and return the priority value along with the result.
@@ -869,7 +937,12 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 # Raise an exception to stop the process and return an appropriate error message to the requester.
                 raise Exception(f"Response timeout after: {synapse.timeout}s")
 
-    async def run(self, synapse: bittensor.Synapse, call_next, request):
+    async def run(
+        self,
+        synapse: bittensor.Synapse,
+        call_next: RequestResponseEndpoint,
+        request: Request,
+    ) -> Response:
         """
         Execute the requested function.
 
@@ -881,10 +954,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
         Returns:
             response (starlet Response): The processed request.
         """
-
-        # Start of the execution of the requested function.
-        bittensor.logging.trace("Run forward")
-
         try:
             # The requested function is executed by calling the 'call_next' function,
             # passing the original request as an argument. This function processes the request
@@ -908,8 +977,8 @@ class AxonMiddleware(BaseHTTPMiddleware):
         return response
 
     async def postprocess(
-        self, synapse: bittensor.Synapse, response, start_time: float
-    ):
+        self, synapse: bittensor.Synapse, response: Response, start_time: float
+    ) -> Response:
         """
         Perform post-processing operations on the request.
 
@@ -921,9 +990,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
         Returns:
             response (starlet Response): The processed request with updated headers.
         """
-        # Start of filling the response headers on success.
-        bittensor.logging.trace("Fill successful response")
-
         # Set the status code of the synapse to "200" which indicates a successful response.
         synapse.axon.status_code = "200"
 

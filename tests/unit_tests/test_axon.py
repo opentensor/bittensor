@@ -131,11 +131,11 @@ def verify_fn_fail(synapse):
 
 
 def blacklist_fn_pass(synapse):
-    return False
+    return False, ""
 
 
 def blacklist_fn_fail(synapse):
-    return True
+    return True, ""
 
 
 def priority_fn_pass(synapse) -> float:

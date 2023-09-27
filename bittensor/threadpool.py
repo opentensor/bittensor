@@ -17,6 +17,7 @@ import itertools
 import threading
 
 from loguru import logger
+from typing import Callable
 from concurrent.futures import _base
 
 # Workers are created as daemon threads. This is done to allow the interpreter
@@ -203,7 +204,7 @@ class PriorityThreadPoolExecutor(_base.Executor):
     def is_empty(self):
         return self._work_queue.empty()
 
-    def submit(self, fn, *args, **kwargs):
+    def submit(self, fn: Callable, *args, **kwargs) -> _base.Future:
         with self._shutdown_lock:
             if self._broken:
                 raise BrokenThreadPool(self._broken)

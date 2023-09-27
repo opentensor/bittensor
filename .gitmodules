@@ -1,3 +1,0 @@
-[submodule "bittensor-wallet"]
-	path = bittensor/_wallet
-	url = https://github.com/opentensor/bittensor-wallet
