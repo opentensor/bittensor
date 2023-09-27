@@ -48,7 +48,7 @@ def display_mnemonic_msg(keypair: Keypair, key_type: str):
     print(
         "You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:"
     )
-    print("btcli regen_{} --mnemonic {}".format(key_type, mnemonic))
+    print("btcli w regen_{} --mnemonic {}".format(key_type, mnemonic))
     print("")
 
 
