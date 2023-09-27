@@ -160,22 +160,13 @@ class SubnetListCommand:
 
 HYPERPARAMS = {
     "serving_rate_limit": "sudo_set_serving_rate_limit",
-    "min_difficulty": "sudo_set_min_difficulty",
-    "max_difficulty": "sudo_set_max_difficulty",
     "weights_version": "sudo_set_weights_version_key",
     "weights_rate_Limit": "sudo_set_weights_set_rate_limit",
     "max_weight_limit": "sudo_set_max_weight_limit",
     "immunity_period": "sudo_set_immunity_period",
     "min_allowed_weights": "sudo_set_min_allowed_weights",
-    "kappa": "sudo_set_kappa",
-    "rho": "sudo_set_rho",
     "activity_cutoff": "sudo_set_activity_cutoff",
-    "registration_allowed": "sudo_set_network_registration_allowed",
-    "target_regs_per_interval": "sudo_set_target_registrations_per_interval",
-    "min_burn": "sudo_set_min_burn",
-    "max_burn": "sudo_set_max_burn",
-    "bonds_moving_avg": "sudo_set_bonds_moving_average",
-    "max_regs_per_block": "sudo_set_max_registrations_per_block",
+    "max_validators": "sudo_set_max_allowed_validators",
 }
 
 

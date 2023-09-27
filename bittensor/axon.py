@@ -509,9 +509,12 @@ class axon:
                 # The function only executes if the body integrity verification is successful.
                 ...
         """
-        # Extract keys and values that end with '_hash'
-        hash_headers = {k: v for k, v in request.headers.items() if "_hash_" in k}
-        hash_headers = {k.split("_")[-1]: v for k, v in hash_headers.items()}
+        # Properly extract keys and values that have 'hash'
+        hash_headers = {
+            "_".join(k.split("_")[k.split("_").index("hash") + 1 :]): v
+            for k, v in request.headers.items()
+            if "_hash_" in k
+        }
 
         # Await and load the request body so we can inspect it
         body = await request.body()
@@ -521,7 +524,13 @@ class axon:
         body_dict = json.loads(request_body)
         for required_field in list(hash_headers):
             # Hash the field in the body to compare against the header hashes
-            field_hash = bittensor.utils.hash(str(body_dict[required_field]))
+            body_value = body_dict.get(required_field, None)
+            if body_value == None:
+                return JSONResponse(
+                    content={"error": f"Missing required field {required_field}"},
+                    status_code=400,
+                )
+            field_hash = bittensor.utils.hash(str(body_value))
 
             # If any hashes fail to match up, return a 400 error as the body is invalid
             if field_hash != hash_headers[required_field]:
