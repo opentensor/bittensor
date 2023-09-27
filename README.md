@@ -73,7 +73,7 @@ $ btcli new_coldkey
     The mnemonic to the new coldkey is:
     **** *** **** **** ***** **** *** **** **** **** ***** *****
     You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:
-    btcli regen_coldkey --mnemonic post maid erode shy captain verify scan shoulder brisk mountain pelican elbow
+    btcli w regen_coldkey --mnemonic post maid erode shy captain verify scan shoulder brisk mountain pelican elbow
 
 $ btcli new_hotkey
     Enter wallet name (default): d1
@@ -83,7 +83,7 @@ $ btcli new_hotkey
     The mnemonic to the new hotkey is:
     **** *** **** **** ***** **** *** **** **** **** ***** *****
     You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:
-    btcli regen_hotkey --mnemonic total steak hour bird hedgehog trim timber can friend dry worry text
+    btcli w regen_hotkey --mnemonic total steak hour bird hedgehog trim timber can friend dry worry text
 ```
 In both cases you should be able to view your keys by navigating to ~/.bittensor/wallets or viewed by running ```btcli list```
 ```bash
@@ -98,7 +98,7 @@ $ tree ~/.bittensor/
 ```
 Your default wallet ```Wallet (default, default, ~/.bittensor/wallets/)``` is always used unless you specify otherwise. Be sure to store your mnemonics safely. If you lose your password to your wallet, or the access to the machine where the wallet is stored, you can always regenerate the coldkey using the mnemonic you saved from above. 
 ```bash
-$ btcli regen_coldkey --mnemonic **** *** **** **** ***** **** *** **** **** **** ***** *****
+$ btcli w regen_coldkey --mnemonic **** *** **** **** ***** **** *** **** **** **** ***** *****
 ```
 
 # Using the CLI
