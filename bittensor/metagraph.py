@@ -474,7 +474,7 @@ class metagraph(torch.nn.Module):
         # TODO: Check and test the creation of tensor
         return torch.nn.Parameter(torch.tensor(data, dtype=dtype), requires_grad=False)
 
-    def _set_weights_and_bonds(self, root:bool =False):
+    def _set_weights_and_bonds(self, root: bool = False):
         """
         Computes and sets weights and bonds for each neuron.
 
@@ -534,7 +534,7 @@ class metagraph(torch.nn.Module):
                 f"Empty {attribute}_array on metagraph.sync(). The '{attribute}' tensor is empty."
             )
         return tensor_param
-    
+
     def _process_root_weights(self, data, attribute: str) -> torch.nn.Parameter:
         """
         Processes root weights based on the given attribute.
@@ -559,7 +559,7 @@ class metagraph(torch.nn.Module):
                         n_subnets, uids, values
                     )
                 )
-                
+
         tensor_param = (
             torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
             if len(data_array)
@@ -570,7 +570,7 @@ class metagraph(torch.nn.Module):
                 f"Empty {attribute}_array on metagraph.sync(). The '{attribute}' tensor is empty."
             )
         return tensor_param
-    
+
     def save(self) -> "metagraph":
         """
         Save the state of the metagraph object.

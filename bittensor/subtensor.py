@@ -2306,7 +2306,11 @@ class subtensor:
         return NeuronInfoLite.list_from_vec_u8(bytes_result)
 
     def metagraph(
-        self, netuid: int, lite: bool = True, block: Optional[int] = None, root: bool = False
+        self,
+        netuid: int,
+        lite: bool = True,
+        block: Optional[int] = None,
+        root: bool = False,
     ) -> "bittensor.Metagraph":
         r"""Returns a synced metagraph for the subnet.
         Args:
