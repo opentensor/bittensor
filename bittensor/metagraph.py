@@ -340,6 +340,7 @@ class metagraph(torch.nn.Module):
         block: Optional[int] = None,
         lite: bool = True,
         subtensor: Optional["bittensor.subtensor"] = None,
+        root: bool = False,
     ) -> "metagraph":
         """
         Initiates the synchronization process of the metagraph.
@@ -353,7 +354,7 @@ class metagraph(torch.nn.Module):
             metagraph: Updated metagraph object.
         """
         # Initialize subtensor
-        subtensor = self._initialize_subtensor(subtensor)
+        self.subtensor = self._initialize_subtensor(subtensor)
 
         # Assign neurons based on 'lite' flag
         self._assign_neurons(block, lite, subtensor)
@@ -363,7 +364,7 @@ class metagraph(torch.nn.Module):
 
         # If not a 'lite' version, compute and set weights and bonds for each neuron
         if not lite:
-            self._set_weights_and_bonds()
+            self._set_weights_and_bonds(root=root)
 
     def _initialize_subtensor(self, subtensor):
         """
@@ -473,7 +474,7 @@ class metagraph(torch.nn.Module):
         # TODO: Check and test the creation of tensor
         return torch.nn.Parameter(torch.tensor(data, dtype=dtype), requires_grad=False)
 
-    def _set_weights_and_bonds(self):
+    def _set_weights_and_bonds(self, root:bool =False):
         """
         Computes and sets weights and bonds for each neuron.
 
@@ -481,12 +482,17 @@ class metagraph(torch.nn.Module):
             None.
         """
         # TODO: Check and test the computation of weights and bonds
-        self.weights = self._process_weights_or_bonds(
-            [neuron.weights for neuron in self.neurons], "weights"
-        )
-        self.bonds = self._process_weights_or_bonds(
-            [neuron.bonds for neuron in self.neurons], "bonds"
-        )
+        if root:
+            self.weights = self._process_root_weights(
+                [neuron.weights for neuron in self.neurons], "weights"
+            )
+        else:
+            self.weights = self._process_weights_or_bonds(
+                [neuron.weights for neuron in self.neurons], "weights"
+            )
+            self.bonds = self._process_weights_or_bonds(
+                [neuron.bonds for neuron in self.neurons], "bonds"
+            )
 
     def _process_weights_or_bonds(self, data, attribute: str) -> torch.nn.Parameter:
         """
@@ -528,7 +534,43 @@ class metagraph(torch.nn.Module):
                 f"Empty {attribute}_array on metagraph.sync(). The '{attribute}' tensor is empty."
             )
         return tensor_param
+    
+    def _process_root_weights(self, data, attribute: str) -> torch.nn.Parameter:
+        """
+        Processes root weights based on the given attribute.
 
+        Args:
+            data: The weights or bonds data to be processed.
+            attribute: The attribute to decide the type of processing ('weights' or 'bonds').
+
+        Returns:
+            The processed tensor parameter.
+        """
+        data_array = []
+        n_subnets = self.subtensor.get_total_subnets()
+        for item in data:
+            if len(item) == 0:
+                data_array.append(torch.zeros(n_subnets))
+            else:
+                uids, values = zip(*item)
+                # TODO: Validate and test the conversion of uids and values to tensor
+                data_array.append(
+                    bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor(
+                        n_subnets, uids, values
+                    )
+                )
+                
+        tensor_param = (
+            torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
+            if len(data_array)
+            else torch.nn.Parameter()
+        )
+        if len(data_array) == 0:
+            bittensor.logging.warning(
+                f"Empty {attribute}_array on metagraph.sync(). The '{attribute}' tensor is empty."
+            )
+        return tensor_param
+    
     def save(self) -> "metagraph":
         """
         Save the state of the metagraph object.
