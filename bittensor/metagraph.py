@@ -354,7 +354,7 @@ class metagraph(torch.nn.Module):
             metagraph: Updated metagraph object.
         """
         # Initialize subtensor
-        self.subtensor = self._initialize_subtensor(subtensor)
+        subtensor = self._initialize_subtensor(subtensor)
 
         # Assign neurons based on 'lite' flag
         self._assign_neurons(block, lite, subtensor)
