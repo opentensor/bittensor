@@ -77,7 +77,9 @@ setup(
     license="MIT",
     python_requires=">=3.8",
     install_requires=requirements,
-    extras_require={"dev": extra_requirements_dev},
+    extras_require={
+        "dev": extra_requirements_dev,
+    },
     scripts=["bin/btcli"],
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -89,7 +91,6 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
