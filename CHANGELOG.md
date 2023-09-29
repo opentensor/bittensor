@@ -1,5 +1,27 @@
 # Changelog
 
+## 5.3.4 / 2023-08-16
+
+# What's Changed
+* Removes miniupnpc by @ifrit98 (completely unused and requires a sudo install)
+* Fixes blacklist vpermit_required by @inquinim e80d3d5
+* Add try/except and timeout to version checking with exception handles by @ifrit98 a6a89fd
+* Further updates CONTRIBUTING.md and DEVELOPMENT_WORKFLOW.md by @gitphantomman 3fefdbb
+* Adds automatic compatibility checks to circleci for all major python3 supported versions. add checks by @ifrit98 #1484
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.3.3...v5.3.4
+
+
+## 5.3.3 / 2023-07-26
+
+## What's Changed
+* Remove datasets requirement by @camfairchild in 2eabf0002b01
+* Relax bittensor-* requirements by @camfairchild in da9300ba5b2
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.3.2...v5.3.3
+
+
 ## 5.3.2 / 2023-07-25
 
 ## What's Changed
@@ -15,16 +37,6 @@
 
 ## 5.3.1 / 2023-07-06
 
-<<<<<<< HEAD
-## What's Changed
-* bump bittensor-wallet req, update cryptography security req by @@ifrit98 in [91d13b0](https://github.com/opentensor/bittensor/commit/91d13b0fa711621cbf823708d4368b1b387e42c4)
-* Fixes Discord Link Issue #1442  by @camfairchild in [54d6248](https://github.com/opentensor/bittensor/commit/54d62487d4cb59e0b5edcd53acdca013108d155b)
-* move mocks to bittensor_wallet package by @camfairchild in https://github.com/opentensor/bittensor/pull/1441
-* Bump bittensor-wallet version to 0.0.4
-
-**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.3.0...v5.3.1
-
-=======
  ## What's Changed
  * bump bittensor-wallet req, update cryptography security req by @@ifrit98 in [91d13b0](https://github.com/opentensor/bittensor/commit/91d13b0fa711621cbf823708d4368b1b387e42c4)
  * Fixes Discord Link Issue #1442  by @camfairchild in [54d6248](https://github.com/opentensor/bittensor/commit/54d62487d4cb59e0b5edcd53acdca013108d155b)
@@ -32,7 +44,6 @@
  * Bump bittensor-wallet version to 0.0.4
 
  **Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.3.0...v5.3.1
->>>>>>> 18b8a7cdc5c00cf88dc2600c0e448a640df99caa
 
 ## 5.3.0 / 2023-07-04
 
