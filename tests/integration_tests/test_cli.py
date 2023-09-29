@@ -2122,7 +2122,6 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         )
         cli.run()
 
-    @unittest.skip
     def test_delegate(self, _):
         """
         Test delegate add command
