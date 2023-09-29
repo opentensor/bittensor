@@ -104,7 +104,6 @@ class TestCLINoNetwork(unittest.TestCase):
 
         return defaults
 
-    @unittest.skip
     def test_check_configs(self, _, __):
         config = self.config()
         config.no_prompt = True
@@ -335,7 +334,6 @@ class TestCLINoNetwork(unittest.TestCase):
             set(extracted_commands)
         ), "Duplicate commands found in help output"
 
-    @unittest.skip
     @patch("torch.cuda.is_available", return_value=True)
     def test_register_cuda_use_cuda_flag(self, _, __, patched_sub):
         base_args = [
