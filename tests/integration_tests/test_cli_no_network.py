@@ -97,7 +97,6 @@ class TestCLINoNetwork(unittest.TestCase):
             else:
                 defaults.merge(bittensor.config(parser=parser, args=[command]))
 
-        # import pdb; pdb.set_trace()
         defaults.netuid = 1
         defaults.subtensor.network = "mock"
         defaults.no_version_checking = True
@@ -411,20 +410,36 @@ class TestEmptyArgs(unittest.TestCase):
     Test that the CLI doesn't crash when no args are passed
     """
 
-    @unittest.skip
     @patch("rich.prompt.PromptBase.ask", side_effect=MockException)
     def test_command_no_args(self, _, __, patched_prompt_ask):
         # Get argparser
         parser = bittensor.cli.__create_parser__()
         # Get all commands from argparser
-        commands = [command for command in parser._actions[1].choices]
-
-        # Test that each command can be run with no args
+        commands = [
+            command
+            for command in parser._actions[1].choices
+            if len(command) > 1  # Skip singleton aliases
+            and command
+            not in ["subnet", "sudos", "stakes", "roots", "wallets", "st", "su"]  # Skip duplicate aliases
+        ]
+        # Test that each command and its subcommands can be run with no args
         for command in commands:
-            try:
-                bittensor.cli(args=[command]).run()
-            except MockException:
-                pass  # Expected exception
+            command_data = bittensor.ALL_COMMANDS.get(command)
+
+            # If command is dictionary, it means it has subcommands
+            if isinstance(command_data, dict):
+                for subcommand in command_data["commands"].keys():
+                    try:
+                        # Run each subcommand
+                        bittensor.cli(args=[command, subcommand]).run()
+                    except MockException:
+                        pass  # Expected exception
+            else:
+                try:
+                    # If no subcommands, just run the command
+                    bittensor.cli(args=[command]).run()
+                except MockException:
+                    pass  # Expected exception
 
             # Should not raise any other exceptions
 
