@@ -420,7 +420,15 @@ class TestEmptyArgs(unittest.TestCase):
             for command in parser._actions[1].choices
             if len(command) > 1  # Skip singleton aliases
             and command
-            not in ["subnet", "sudos", "stakes", "roots", "wallets", "st", "su"]  # Skip duplicate aliases
+            not in [
+                "subnet",
+                "sudos",
+                "stakes",
+                "roots",
+                "wallets",
+                "st",
+                "su",
+            ]  # Skip duplicate aliases
         ]
         # Test that each command and its subcommands can be run with no args
         for command in commands:
