@@ -297,6 +297,24 @@ class Synapse(pydantic.BaseModel):
         repr=False,
     )
 
+    computed_body_hash: Optional[str] = pydantic.Field(
+        title="computed_body_hash",
+        description="The computed body hash of the request.",
+        examples="0x0813029319030129u4120u10841824y0182u091u230912u",
+        default="",
+        allow_mutation=False,
+        repr=False,
+    )
+
+    hash_fields: Optional[List[str]] = pydantic.Field(
+        title="hash_fields",
+        description="The list of required fields to compute the body hash.",
+        examples=["roles", "messages"],
+        default=[],
+        allow_mutation=False,
+        repr=False,
+    )
+
     def __setattr__(self, name: str, value: Any):
         """
         Override the __setattr__ method to make the `required_hash_fields` property read-only.
@@ -304,6 +322,10 @@ class Synapse(pydantic.BaseModel):
         if name == "required_hash_fields":
             raise AttributeError(
                 "required_hash_fields property is read-only and cannot be overridden."
+            )
+        if name == "body_hash":
+            raise AttributeError(
+                "body_hash property is read-only and cannot be overridden."
             )
         super().__setattr__(name, value)
 
@@ -505,15 +527,12 @@ class Synapse(pydantic.BaseModel):
 
             elif required and field in required:
                 try:
-                    # Create an empty (dummy) instance of type(value) to pass pydantic validation on the axon side
+                    # create an empty (dummy) instance of type(value) to pass pydantic validation on the axon side
                     serialized_value = json.dumps(value.__class__.__call__())
-                    # Create a hash of the original data so we can verify on the axon side
-                    hash_value = bittensor.utils.hash(str(value))
                     encoded_value = base64.b64encode(serialized_value.encode()).decode(
                         "utf-8"
                     )
                     headers[f"bt_header_input_obj_{field}"] = encoded_value
-                    headers[f"bt_header_input_hash_{field}"] = hash_value
                 except TypeError as e:
                     raise ValueError(
                         f"Error serializing {field} with value {value}. Objects must be json serializable."
@@ -522,8 +541,39 @@ class Synapse(pydantic.BaseModel):
         # Adding the size of the headers and the total size to the headers
         headers["header_size"] = str(sys.getsizeof(headers))
         headers["total_size"] = str(self.get_total_size())
-
+        headers["computed_body_hash"] = self.body_hash
+        headers["hash_fields"] = base64.b64encode(
+            json.dumps(self.required_hash_fields).encode()
+        ).decode("utf-8")
         return headers
+
+    @property
+    def body_hash(self) -> str:
+        """
+        Compute a SHA-256 hash of the serialized body of the Synapse instance.
+
+        The body of the Synapse instance comprises its serialized and encoded
+        non-optional fields. This property retrieves these fields using the
+        `get_body` method, then concatenates their string representations, and
+        finally computes a SHA-256 hash of the resulting string.
+
+        Returns:
+            str: The hexadecimal representation of the SHA-256 hash of the instance's body.
+        """
+        # Hash the body for verification
+        hashes = []
+
+        # Getting the fields of the instance
+        instance_fields = self.__dict__
+
+        # Iterating over the fields of the instance
+        for field, value in instance_fields.items():
+            # If the field is required in the subclass schema, add it.
+            if field in self.required_hash_fields:
+                hashes.append(bittensor.utils.hash(str(value)))
+
+        # Hash and return the hashes that have been concatenated
+        return bittensor.utils.hash("".join(hashes))
 
     @classmethod
     def parse_headers_to_inputs(cls, headers: dict) -> dict:
@@ -630,27 +680,20 @@ class Synapse(pydantic.BaseModel):
                         f"Error while parsing 'input_obj' header {key}: {e}"
                     )
                     continue
-            elif "bt_header_input_hash" in key:
-                try:
-                    new_key = key.split("bt_header_input_hash_")[1] + "_hash"
-                    # Skip if the key already exists in the dictionary
-                    if new_key in inputs_dict:
-                        continue
-                    # Decode and load the serialized object
-                    inputs_dict[new_key] = value
-                except Exception as e:
-                    bittensor.logging.error(
-                        f"Error while parsing 'input_hash' header {key}: {e}"
-                    )
-                    continue
             else:
-                pass  # log unexpected keys
+                pass  # TODO: log unexpected keys
 
         # Assign the remaining known headers directly
         inputs_dict["timeout"] = headers.get("timeout", None)
         inputs_dict["name"] = headers.get("name", None)
         inputs_dict["header_size"] = headers.get("header_size", None)
         inputs_dict["total_size"] = headers.get("total_size", None)
+        inputs_dict["computed_body_hash"] = headers.get("computed_body_hash", None)
+        inputs_dict["hash_fields"] = json.loads(
+            base64.b64decode(headers.get("hash_fields", "W10=").encode()).decode(
+                "utf-8"
+            )
+        )
 
         return inputs_dict
 
