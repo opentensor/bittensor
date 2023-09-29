@@ -65,8 +65,9 @@ print (wallet)
 "Wallet (default, default, ~/.bittensor/wallets/)"
 ```
 2. Or using btcli
+> Use the subcommand `wallet` or it's alias `w`:
 ```bash
-$ btcli new_coldkey
+$ btcli wallet new_coldkey
     Enter wallet name (default):      
 
     IMPORTANT: Store this mnemonic in a secure (preferably offline place), as anyone who has possesion of this mnemonic can use it to regenerate the key and access your tokens. 
@@ -75,7 +76,7 @@ $ btcli new_coldkey
     You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:
     btcli w regen_coldkey --mnemonic post maid erode shy captain verify scan shoulder brisk mountain pelican elbow
 
-$ btcli new_hotkey
+$ btcli wallet new_hotkey
     Enter wallet name (default): d1
     Enter hotkey name (default): 
 
@@ -85,7 +86,7 @@ $ btcli new_hotkey
     You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:
     btcli w regen_hotkey --mnemonic total steak hour bird hedgehog trim timber can friend dry worry text
 ```
-In both cases you should be able to view your keys by navigating to ~/.bittensor/wallets or viewed by running ```btcli list```
+In both cases you should be able to view your keys by navigating to ~/.bittensor/wallets or viewed by running ```btcli wallet list```
 ```bash
 $ tree ~/.bittensor/
     .bittensor/                 # Bittensor, root directory.
@@ -98,85 +99,105 @@ $ tree ~/.bittensor/
 ```
 Your default wallet ```Wallet (default, default, ~/.bittensor/wallets/)``` is always used unless you specify otherwise. Be sure to store your mnemonics safely. If you lose your password to your wallet, or the access to the machine where the wallet is stored, you can always regenerate the coldkey using the mnemonic you saved from above. 
 ```bash
-$ btcli w regen_coldkey --mnemonic **** *** **** **** ***** **** *** **** **** **** ***** *****
+$ btcli wallet regen_coldkey --mnemonic **** *** **** **** ***** **** *** **** **** **** ***** *****
 ```
 
-# Using the CLI
+## Using the cli
+The Bittensor command line interface (`btcli`) is the primary command line tool for interacting with the Bittensor network. It can be used to deploy nodes, manage wallets, stake/unstake, nominate, transfer tokens, and more.
 
-The Bittensor command line interface (btcli) comes installed with this repository. It is the primary command line tool to deploy, analyze, and interface with the Bittensor network. It can be used to transfer tao, stake, unstake, nominate, delegate, and more. You can use btcli --help command as follows to see a full list of commands
+### Basic Usage
+
+To get the list of all the available commands and their descriptions, you can use:
+
 ```bash
-$ btcli --help
-        help                Displays the help.
-        list                List wallets.
-        stake               Stake to your hotkey accounts.
-        update              Updates your bittensor installation.
-        inspect             Inspect a wallet cold, hot pair
-        weights             Show the weights from chain.
-        unstake             Unstake from hotkey accounts.
-        overview            Show registered account overview.
-        register            Register a wallet to a network.
-        transfer            Transfer Tao between accounts.
-        nominate            Become a delegate on the network
-        new_hotkey          Creates a new hotkey for running a miner under the specified path.
-        metagraph           Show the network graph.
-        new_coldkey         Creates a new coldkey  for containing balance under the specified path.
-        my_delegates        Show all delegates where I am delegating a positive amount of stake.
-        list_subnets        List all subnets on the network.
-        regen_hotkey        Regenerates a hotkey from a passed mnemonic.
-        regen_coldkey       Regenerates a coldkey from a passed value.
-        delegate            Delegate Stake to an account.
-        undelegate          Undelegate Stake from an account.
-        list_delegates      List all delegates on the network.
-        regen_coldkeypub    Regenerates a public coldkey from the public part of the coldkey.
-        recycle_register    Register a wallet to a network.
-	senate              View senate and it's members
-    	proposals           View active triumvirate proposals and their status
-    	proposal_votes      View an active proposal's votes by address.
-    	senate_register     Register as a senate member to participate in proposals
-    	senate_leave        Discard senate membership in the governance protocol
-    	senate_vote         Vote on an active proposal by hash.
+btcli --help
 
-    optional arguments:
-    -h, 
-    --help                  Show this help message and exit
-    --config CONFIG         If set, defaults are overridden by passed file.
-    --strict                If flagged, config will check that only exact arguemnts have been set.
+usage: btcli <command> <command args>
+
+bittensor cli v{bittensor.__version__}
+
+commands:
+  subnets (s, subnet) - Commands for managing and viewing subnetworks.
+  root (r, roots) - Commands for managing and viewing the root network.
+  wallet (w, wallets) - Commands for managing and viewing wallets.
+  stake (st, stakes) - Commands for staking and removing stake from hotkey accounts.
+  sudo (su, sudos) - Commands for subnet management.
+  legacy (l) - Miscellaneous commands.
 ```
 
-# Senate 
-List all active proposals for the Senate to vote on. Usage: btcli proposals
+### Example Commands
+
+#### Viewing Senate Proposals
 ```bash
-btcli proposals
+btcli root proposals
 ```
 
-View Senate
-View all delegates currently registered to Senate. Usage: btcli senate
+#### Viewing Senate Members
 ```bash
-btcli senate
+btcli root list_delegates
 ```
 
-Proposal Votes
-Inspect the votes for a single proposal. Usage: btcli proposal_votes [OPTIONS]
+#### Viewing Proposal Votes
 ```bash
-btcli proposal_votes --proposal=[PROPOSAL_HASH]
+btcli root senate_vote --proposal=[PROPOSAL_HASH]
 ```
 
-Senate Register
-Elect to join the Senate with your nominated hotkey. Usage: btcli senate_register [OPTIONS]
+#### Registering for Senate
 ```bash
-btcli senate_register
+btcli root register
 ```
 
-Senate Leave
-Disown your membership of a Senate seat with your nominated hotkey. Usage: btcli senate_leave [OPTIONS]
+#### Leaving Senate
 ```bash
-btcli senate_leave
+btcli root undelegate
 ```
 
-Senate Vote
-Participate in a triumvirate proposal by voting with your senate hotkey. Usage: btcli senate_vote [OPTIONS]
+#### Voting in Senate
 ```bash
-btcli senate_vote --proposal=[PROPOSAL_HASH]
+btcli root senate_vote --proposal=[PROPOSAL_HASH]
+```
+
+#### Miscellaneous Commands
+```bash
+btcli legacy update
+btcli legacy faucet
+```
+
+#### Managing Subnets
+```bash
+btcli subnets list
+btcli subnets create
+```
+
+#### Managing Wallets
+```bash
+btcli wallet list
+btcli wallet transfer
+```
+
+### Note
+
+Please replace the subcommands and arguments as necessary to suit your needs, and always refer to `btcli --help` or `btcli <command> --help` for the most up-to-date and accurate information.
+
+For example:
+```bash
+btcli subnets --help
+
+usage: btcli <command> <command args> subnets [-h] {list,metagraph,lock_cost,create,register,recycle_register,hyperparameters} ...
+
+positional arguments:
+  {list,metagraph,lock_cost,create,register,recycle_register,hyperparameters}
+                        Commands for managing and viewing subnetworks.
+    list                List all subnets on the network
+    metagraph           View a subnet metagraph information.
+    lock_cost           Return the lock cost to register a subnet
+    create              Create a new bittensor subnetwork on this chain.
+    register            Register a wallet to a network.
+    recycle_register    Register a wallet to a network.
+    hyperparameters     View subnet hyperparameters
+
+options:
+  -h, --help            show this help message and exit
 ```
 
 # The Bittensor Package
@@ -303,6 +324,31 @@ await d( [<axons>] )
 await d( bittensor.axon(), bittensor.Synapse() ) 
 # Query all metagraph objects.
 await d( meta.axons, bittensor.Synapse() ) 
+```
+
+## Setting weights on root network
+Use the `root` subcommand to access setting weights on the network across subnets.
+
+```bash
+btcli root weights --wallet.name <coldname> --wallet.hotkey <hotname>
+Enter netuids (e.g. 0, 1, 2 ...):
+# Here enter your selected netuids to wet weights on
+1, 2
+
+>Enter weights (e.g. 0.09, 0.09, 0.09 ...): 
+# These do not need to sum to 1, we do normalization on the backend.
+# Values must be > 0
+0.5, 10
+
+Normalized weights: 
+        tensor([ 0.5000, 10.0000]) -> tensor([0.0476, 0.9524])
+
+Do you want to set the following root weights?:
+  weights: tensor([0.0476, 0.9524])
+  uids: tensor([1, 2])? [y/n]: 
+y
+
+⠏ 📡 Setting root weights on test ...
 ```
 
 ## Release
