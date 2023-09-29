@@ -25,6 +25,7 @@ from ..utils import is_valid_bittensor_address_or_public_key
 
 
 
+
 def transfer_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
