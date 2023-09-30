@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM pytorch/pytorch:1.13.1-cuda11.6-cudnn8-devel
+FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel
 
 LABEL bittensor.image.authors="bittensor.com" \
 	bittensor.image.vendor="Bittensor" \
@@ -9,8 +9,8 @@ LABEL bittensor.image.authors="bittensor.com" \
 	bittensor.image.revision="${VCS_REF}" \
 	bittensor.image.created="${BUILD_DATE}" \
 	bittensor.image.documentation="https://app.gitbook.com/@opentensor/s/bittensor/"
-LABEL bittensor.dependencies.versions.torch="1.13.1"
-LABEL bittensor.dependencies.versions.cuda="11.6"
+LABEL bittensor.dependencies.versions.torch="2.0.1"
+LABEL bittensor.dependencies.versions.cuda="11.7"
 ARG DEBIAN_FRONTEND=noninteractive
 
 #nvidia key migration
