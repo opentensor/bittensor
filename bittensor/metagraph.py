@@ -364,7 +364,7 @@ class metagraph(torch.nn.Module):
 
         # If not a 'lite' version, compute and set weights and bonds for each neuron
         if not lite:
-            self._set_weights_and_bonds(root=root)
+            self._set_weights_and_bonds(root=root, subtensor=subtensor)
 
     def _initialize_subtensor(self, subtensor):
         """
@@ -474,7 +474,9 @@ class metagraph(torch.nn.Module):
         # TODO: Check and test the creation of tensor
         return torch.nn.Parameter(torch.tensor(data, dtype=dtype), requires_grad=False)
 
-    def _set_weights_and_bonds(self, root: bool = False):
+    def _set_weights_and_bonds(
+        self, root: bool = False, subtensor: bittensor.subtensor = None
+    ):
         """
         Computes and sets weights and bonds for each neuron.
 
@@ -484,7 +486,7 @@ class metagraph(torch.nn.Module):
         # TODO: Check and test the computation of weights and bonds
         if root:
             self.weights = self._process_root_weights(
-                [neuron.weights for neuron in self.neurons], "weights"
+                [neuron.weights for neuron in self.neurons], "weights", subtensor
             )
         else:
             self.weights = self._process_weights_or_bonds(
@@ -535,7 +537,9 @@ class metagraph(torch.nn.Module):
             )
         return tensor_param
 
-    def _process_root_weights(self, data, attribute: str) -> torch.nn.Parameter:
+    def _process_root_weights(
+        self, data, attribute: str, subtensor: bittensor.subtensor
+    ) -> torch.nn.Parameter:
         """
         Processes root weights based on the given attribute.
 
@@ -547,7 +551,7 @@ class metagraph(torch.nn.Module):
             The processed tensor parameter.
         """
         data_array = []
-        n_subnets = self.subtensor.get_total_subnets()
+        n_subnets = subtensor.get_total_subnets()
         for item in data:
             if len(item) == 0:
                 data_array.append(torch.zeros(n_subnets))
