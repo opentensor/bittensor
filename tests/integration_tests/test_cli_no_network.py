@@ -480,7 +480,6 @@ def return_mock_sub_3(*args, **kwargs):
 
 @patch("bittensor.subtensor", new_callable=return_mock_sub_3)
 class TestCLIDefaultsNoNetwork(unittest.TestCase):
-    @unittest.skip
     def test_inspect_prompt_wallet_name(self, _):
         # Patch command to exit early
         with patch("bittensor.commands.inspect.InspectCommand.run", return_value=None):
@@ -488,6 +487,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
                     args=[
+                        "wallet",
                         "inspect",
                         # '--wallet.name', 'mock',
                     ]
@@ -501,6 +501,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
                     args=[
+                        "wallet",
                         "inspect",
                         "--wallet.name",
                         "coolwalletname",
@@ -515,6 +516,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
                     args=[
+                        "wallet",
                         "inspect",
                         "--wallet.name",
                         "default",
@@ -525,7 +527,6 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
-    @unittest.skip
     def test_overview_prompt_wallet_name(self, _):
         # Patch command to exit early
         with patch(
@@ -535,6 +536,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
                     args=[
+                        "wallet",
                         "overview",
                         # '--wallet.name', 'mock',
                         "--netuid",
@@ -550,6 +552,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
                     args=[
+                        "wallet",
                         "overview",
                         "--wallet.name",
                         "coolwalletname",
@@ -566,6 +569,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
                     args=[
+                        "wallet",
                         "overview",
                         "--wallet.name",
                         "default",
@@ -578,10 +582,10 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
-    @unittest.skip
     def test_stake_prompt_wallet_name_and_hotkey_name(self, _):
         base_args = [
             "stake",
+            "add",
             "--all",
         ]
         # Patch command to exit early
@@ -739,10 +743,10 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
-    @unittest.skip
     def test_unstake_prompt_wallet_name_and_hotkey_name(self, _):
         base_args = [
-            "unstake",
+            "stake",
+            "remove",
             "--all",
         ]
         # Patch command to exit early
@@ -899,9 +903,14 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
-    @unittest.skip
     def test_delegate_prompt_wallet_name(self, _):
-        base_args = ["delegate", "--all", "--delegate_ss58key", _get_mock_coldkey(0)]
+        base_args = [
+            "root",
+            "delegate",
+            "--all",
+            "--delegate_ss58key",
+            _get_mock_coldkey(0),
+        ]
         # Patch command to exit early
         with patch(
             "bittensor.commands.delegates.DelegateStakeCommand.run", return_value=None
@@ -955,9 +964,14 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
-    @unittest.skip
     def test_undelegate_prompt_wallet_name(self, _):
-        base_args = ["undelegate", "--all", "--delegate_ss58key", _get_mock_coldkey(0)]
+        base_args = [
+            "root",
+            "undelegate",
+            "--all",
+            "--delegate_ss58key",
+            _get_mock_coldkey(0),
+        ]
         # Patch command to exit early
         with patch(
             "bittensor.commands.delegates.DelegateUnstakeCommand.run", return_value=None
@@ -1011,12 +1025,12 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
-    @unittest.skip
     def test_delegate_prompt_hotkey(self, _):
         # Tests when
         # - wallet name IS passed, AND
         # - delegate hotkey IS NOT passed
         base_args = [
+            "root",
             "delegate",
             "--all",
             "--wallet.name",
@@ -1098,12 +1112,12 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                         # NO prompt happened
                         mock_ask_prompt.assert_not_called()
 
-    @unittest.skip
     def test_undelegate_prompt_hotkey(self, _):
         # Tests when
         # - wallet name IS passed, AND
         # - delegate hotkey IS NOT passed
         base_args = [
+            "root",
             "undelegate",
             "--all",
             "--wallet.name",
