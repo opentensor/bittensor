@@ -33,13 +33,10 @@ def read_requirements(path):
     with pathlib.Path(path).open() as requirements_txt:
         for line in requirements_txt:
             if line.startswith("git+"):
-                git_requirements.append(line.strip())
+                pkg_name = re.search(r"egg=([a-zA-Z0-9_-]+)", line.strip()).group(1)
+                requirements.append(pkg_name + " @ " + line.strip())
             else:
                 requirements.append(line.strip())
-
-    # Install git dependencies
-    for git_req in git_requirements:
-        subprocess.check_call(["python", "-m", "pip", "install", git_req])
 
     return requirements
 
@@ -77,7 +74,9 @@ setup(
     license="MIT",
     python_requires=">=3.8",
     install_requires=requirements,
-    extras_require={"dev": extra_requirements_dev},
+    extras_require={
+        "dev": extra_requirements_dev,
+    },
     scripts=["bin/btcli"],
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -89,7 +88,6 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
