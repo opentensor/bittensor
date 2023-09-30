@@ -24,11 +24,11 @@ import pytest
 from copy import deepcopy
 import re
 
-from tests.helpers import _get_mock_coldkey, __mock_wallet_factory__
+from tests.helpers import _get_mock_coldkey, __mock_wallet_factory__, MockConsole
 
 import bittensor
 from bittensor import Balance
-
+from rich.table import Table
 
 class MockException(Exception):
     pass
@@ -1192,6 +1192,82 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                             + [
                                 "--delegate_ss58key",
                                 delegate_ss58,
+                            ]
+                        )
+                        cli.run()
+
+                        # NO prompt happened
+                        mock_ask_prompt.assert_not_called()
+
+
+    def test_vote_command_prompt_proposal_hash(self, _):
+        """Test that the vote command prompts for proposal_hash when it is not passed"""        
+        base_args = [
+            "root",
+            "senate_vote",
+            "--wallet.name",
+            "mock",
+            "--wallet.hotkey",
+            "mock_hotkey",
+        ]
+
+        mock_proposal_hash = "mock_proposal_hash"
+
+        with patch("bittensor.subtensor.subtensor.is_senate_member", return_value=True):
+            with patch(
+                "bittensor.subtensor.subtensor.get_vote_data",
+                return_value={
+                    "index": 1
+                },
+            ):
+                # Patch command to exit early
+                with patch(
+                    "bittensor.commands.senate.VoteCommand.run",
+                    return_value=None,
+                ):
+                    # Test prompt happens when
+                    # - proposal_hash IS NOT passed
+                    with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
+                        mock_ask_prompt.side_effect = [                        
+                            mock_proposal_hash  # Proposal hash
+                        ]
+
+                        cli = bittensor.cli(
+                            args=base_args
+                            # proposal_hash not added
+                        )
+                        cli.run()
+
+                        # Prompt happened
+                        mock_ask_prompt.assert_called()
+                        self.assertEqual(
+                            mock_ask_prompt.call_count,
+                            1,
+                            msg="Prompt should have been called once",
+                        )
+                        args0, kwargs0 = mock_ask_prompt.call_args_list[0]
+                        combined_args_kwargs0 = [arg for arg in args0] + [
+                            val for val in kwargs0.values()
+                        ]
+                        # check that prompt was called for proposal_hash
+                        self.assertTrue(
+                            any(
+                                filter(
+                                    lambda x: "proposal" in x.lower(),
+                                    combined_args_kwargs0,
+                                )
+                            ),
+                            msg=f"Prompt should have been called for proposal: {combined_args_kwargs0}",
+                        )
+
+                    # Test NO prompt happens when
+                    # - proposal_hash IS passed
+                    with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
+                        cli = bittensor.cli(
+                            args=base_args
+                            + [
+                                "--proposal_hash",
+                                mock_proposal_hash,
                             ]
                         )
                         cli.run()
