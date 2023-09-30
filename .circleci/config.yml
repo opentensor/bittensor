@@ -88,6 +88,7 @@ jobs:
             python -m venv env/
             . env/bin/activate
             python -m pip install --upgrade pip
+            python -m pip install git+https://github.com/opentensor/msgpack-numpy.git#egg=msgpack-numpy
             python -m pip install '.[dev]'
 
       - save_cache:
