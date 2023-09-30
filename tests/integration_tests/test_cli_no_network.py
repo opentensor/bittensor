@@ -30,6 +30,7 @@ import bittensor
 from bittensor import Balance
 from rich.table import Table
 
+
 class MockException(Exception):
     pass
 
@@ -1199,9 +1200,8 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                         # NO prompt happened
                         mock_ask_prompt.assert_not_called()
 
-
     def test_vote_command_prompt_proposal_hash(self, _):
-        """Test that the vote command prompts for proposal_hash when it is not passed"""        
+        """Test that the vote command prompts for proposal_hash when it is not passed"""
         base_args = [
             "root",
             "senate_vote",
@@ -1216,9 +1216,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         with patch("bittensor.subtensor.subtensor.is_senate_member", return_value=True):
             with patch(
                 "bittensor.subtensor.subtensor.get_vote_data",
-                return_value={
-                    "index": 1
-                },
+                return_value={"index": 1},
             ):
                 # Patch command to exit early
                 with patch(
@@ -1228,7 +1226,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                     # Test prompt happens when
                     # - proposal_hash IS NOT passed
                     with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
-                        mock_ask_prompt.side_effect = [                        
+                        mock_ask_prompt.side_effect = [
                             mock_proposal_hash  # Proposal hash
                         ]
 
