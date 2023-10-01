@@ -312,7 +312,9 @@ class axon:
         ].annotation
 
         # Parse required hash fields from the forward function protocol defaults
-        required_hash_fields = request_class.__dict__["__fields__"]["required_hash_fields"].default
+        required_hash_fields = request_class.__dict__["__fields__"][
+            "required_hash_fields"
+        ].default
 
         # Assert that the first argument of 'forward_fn' is a subclass of 'bittensor.Synapse'
         assert issubclass(
