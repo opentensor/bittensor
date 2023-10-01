@@ -286,7 +286,6 @@ class axon:
                                               Defaults to None, meaning no priority sorting will be applied.
             verify_fn (Callable, optional): Function to verify requests. It should take the same arguments as 'forward_fn' and return
                                             a boolean value. If None, 'self.default_verify' function will be used.
-            required_hash_fields (List[str], optional): List of fields in the request body that should be hashed and compared against
 
         Note: 'forward_fn', 'blacklist_fn', 'priority_fn', and 'verify_fn' should be designed to receive the same parameters.
 
