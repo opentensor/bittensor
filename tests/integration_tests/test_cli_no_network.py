@@ -24,10 +24,11 @@ import pytest
 from copy import deepcopy
 import re
 
-from tests.helpers import _get_mock_coldkey, __mock_wallet_factory__
+from tests.helpers import _get_mock_coldkey, __mock_wallet_factory__, MockConsole
 
 import bittensor
 from bittensor import Balance
+from rich.table import Table
 
 
 class MockException(Exception):
@@ -97,14 +98,12 @@ class TestCLINoNetwork(unittest.TestCase):
             else:
                 defaults.merge(bittensor.config(parser=parser, args=[command]))
 
-        # import pdb; pdb.set_trace()
         defaults.netuid = 1
         defaults.subtensor.network = "mock"
         defaults.no_version_checking = True
 
         return defaults
 
-    @unittest.skip
     def test_check_configs(self, _, __):
         config = self.config()
         config.no_prompt = True
@@ -335,7 +334,6 @@ class TestCLINoNetwork(unittest.TestCase):
             set(extracted_commands)
         ), "Duplicate commands found in help output"
 
-    @unittest.skip
     @patch("torch.cuda.is_available", return_value=True)
     def test_register_cuda_use_cuda_flag(self, _, __, patched_sub):
         base_args = [
@@ -413,20 +411,44 @@ class TestEmptyArgs(unittest.TestCase):
     Test that the CLI doesn't crash when no args are passed
     """
 
-    @unittest.skip
     @patch("rich.prompt.PromptBase.ask", side_effect=MockException)
     def test_command_no_args(self, _, __, patched_prompt_ask):
         # Get argparser
         parser = bittensor.cli.__create_parser__()
         # Get all commands from argparser
-        commands = [command for command in parser._actions[1].choices]
-
-        # Test that each command can be run with no args
+        commands = [
+            command
+            for command in parser._actions[1].choices
+            if len(command) > 1  # Skip singleton aliases
+            and command
+            not in [
+                "subnet",
+                "sudos",
+                "stakes",
+                "roots",
+                "wallets",
+                "st",
+                "su",
+            ]  # Skip duplicate aliases
+        ]
+        # Test that each command and its subcommands can be run with no args
         for command in commands:
-            try:
-                bittensor.cli(args=[command]).run()
-            except MockException:
-                pass  # Expected exception
+            command_data = bittensor.ALL_COMMANDS.get(command)
+
+            # If command is dictionary, it means it has subcommands
+            if isinstance(command_data, dict):
+                for subcommand in command_data["commands"].keys():
+                    try:
+                        # Run each subcommand
+                        bittensor.cli(args=[command, subcommand]).run()
+                    except MockException:
+                        pass  # Expected exception
+            else:
+                try:
+                    # If no subcommands, just run the command
+                    bittensor.cli(args=[command]).run()
+                except MockException:
+                    pass  # Expected exception
 
             # Should not raise any other exceptions
 
@@ -459,7 +481,6 @@ def return_mock_sub_3(*args, **kwargs):
 
 @patch("bittensor.subtensor", new_callable=return_mock_sub_3)
 class TestCLIDefaultsNoNetwork(unittest.TestCase):
-    @unittest.skip
     def test_inspect_prompt_wallet_name(self, _):
         # Patch command to exit early
         with patch("bittensor.commands.inspect.InspectCommand.run", return_value=None):
@@ -467,6 +488,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
                     args=[
+                        "wallet",
                         "inspect",
                         # '--wallet.name', 'mock',
                     ]
@@ -480,6 +502,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
                     args=[
+                        "wallet",
                         "inspect",
                         "--wallet.name",
                         "coolwalletname",
@@ -494,6 +517,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
                     args=[
+                        "wallet",
                         "inspect",
                         "--wallet.name",
                         "default",
@@ -504,7 +528,6 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
-    @unittest.skip
     def test_overview_prompt_wallet_name(self, _):
         # Patch command to exit early
         with patch(
@@ -514,6 +537,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
                     args=[
+                        "wallet",
                         "overview",
                         # '--wallet.name', 'mock',
                         "--netuid",
@@ -529,6 +553,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
                     args=[
+                        "wallet",
                         "overview",
                         "--wallet.name",
                         "coolwalletname",
@@ -545,6 +570,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
                     args=[
+                        "wallet",
                         "overview",
                         "--wallet.name",
                         "default",
@@ -557,10 +583,10 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
-    @unittest.skip
     def test_stake_prompt_wallet_name_and_hotkey_name(self, _):
         base_args = [
             "stake",
+            "add",
             "--all",
         ]
         # Patch command to exit early
@@ -718,10 +744,10 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
-    @unittest.skip
     def test_unstake_prompt_wallet_name_and_hotkey_name(self, _):
         base_args = [
-            "unstake",
+            "stake",
+            "remove",
             "--all",
         ]
         # Patch command to exit early
@@ -878,9 +904,14 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
-    @unittest.skip
     def test_delegate_prompt_wallet_name(self, _):
-        base_args = ["delegate", "--all", "--delegate_ss58key", _get_mock_coldkey(0)]
+        base_args = [
+            "root",
+            "delegate",
+            "--all",
+            "--delegate_ss58key",
+            _get_mock_coldkey(0),
+        ]
         # Patch command to exit early
         with patch(
             "bittensor.commands.delegates.DelegateStakeCommand.run", return_value=None
@@ -934,9 +965,14 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
-    @unittest.skip
     def test_undelegate_prompt_wallet_name(self, _):
-        base_args = ["undelegate", "--all", "--delegate_ss58key", _get_mock_coldkey(0)]
+        base_args = [
+            "root",
+            "undelegate",
+            "--all",
+            "--delegate_ss58key",
+            _get_mock_coldkey(0),
+        ]
         # Patch command to exit early
         with patch(
             "bittensor.commands.delegates.DelegateUnstakeCommand.run", return_value=None
@@ -990,12 +1026,12 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
-    @unittest.skip
     def test_delegate_prompt_hotkey(self, _):
         # Tests when
         # - wallet name IS passed, AND
         # - delegate hotkey IS NOT passed
         base_args = [
+            "root",
             "delegate",
             "--all",
             "--wallet.name",
@@ -1077,12 +1113,12 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                         # NO prompt happened
                         mock_ask_prompt.assert_not_called()
 
-    @unittest.skip
     def test_undelegate_prompt_hotkey(self, _):
         # Tests when
         # - wallet name IS passed, AND
         # - delegate hotkey IS NOT passed
         base_args = [
+            "root",
             "undelegate",
             "--all",
             "--wallet.name",
@@ -1157,6 +1193,79 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                             + [
                                 "--delegate_ss58key",
                                 delegate_ss58,
+                            ]
+                        )
+                        cli.run()
+
+                        # NO prompt happened
+                        mock_ask_prompt.assert_not_called()
+
+    def test_vote_command_prompt_proposal_hash(self, _):
+        """Test that the vote command prompts for proposal_hash when it is not passed"""
+        base_args = [
+            "root",
+            "senate_vote",
+            "--wallet.name",
+            "mock",
+            "--wallet.hotkey",
+            "mock_hotkey",
+        ]
+
+        mock_proposal_hash = "mock_proposal_hash"
+
+        with patch("bittensor.subtensor.subtensor.is_senate_member", return_value=True):
+            with patch(
+                "bittensor.subtensor.subtensor.get_vote_data",
+                return_value={"index": 1},
+            ):
+                # Patch command to exit early
+                with patch(
+                    "bittensor.commands.senate.VoteCommand.run",
+                    return_value=None,
+                ):
+                    # Test prompt happens when
+                    # - proposal_hash IS NOT passed
+                    with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
+                        mock_ask_prompt.side_effect = [
+                            mock_proposal_hash  # Proposal hash
+                        ]
+
+                        cli = bittensor.cli(
+                            args=base_args
+                            # proposal_hash not added
+                        )
+                        cli.run()
+
+                        # Prompt happened
+                        mock_ask_prompt.assert_called()
+                        self.assertEqual(
+                            mock_ask_prompt.call_count,
+                            1,
+                            msg="Prompt should have been called once",
+                        )
+                        args0, kwargs0 = mock_ask_prompt.call_args_list[0]
+                        combined_args_kwargs0 = [arg for arg in args0] + [
+                            val for val in kwargs0.values()
+                        ]
+                        # check that prompt was called for proposal_hash
+                        self.assertTrue(
+                            any(
+                                filter(
+                                    lambda x: "proposal" in x.lower(),
+                                    combined_args_kwargs0,
+                                )
+                            ),
+                            msg=f"Prompt should have been called for proposal: {combined_args_kwargs0}",
+                        )
+
+                    # Test NO prompt happens when
+                    # - proposal_hash IS passed
+                    with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
+                        cli = bittensor.cli(
+                            args=base_args
+                            + [
+                                "--proposal_hash",
+                                mock_proposal_hash,
                             ]
                         )
                         cli.run()

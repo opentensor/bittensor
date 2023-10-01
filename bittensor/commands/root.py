@@ -67,7 +67,7 @@ class RootList:
         subtensor = bittensor.subtensor(config=cli.config)
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
-                cli.config.subtensor.network
+                subtensor.network
             )
         )
 

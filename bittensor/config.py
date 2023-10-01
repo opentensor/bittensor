@@ -258,7 +258,13 @@ class config(DefaultMunch):
                 Namespace object created from parser arguments.
         """
         if not strict:
-            params = parser.parse_known_args(args=args)[0]
+            params, unrecognized = parser.parse_known_args(args=args)
+            params_list = list(params.__dict__)
+            # bug within argparse itself, does not correctly set value for boolean flags
+            for unrec in unrecognized:
+                if unrec.startswith("--") and unrec[2:] in params_list:
+                    # Set the missing boolean value to true
+                    setattr(params, unrec[2:], True)
         else:
             params = parser.parse_args(args=args)
 
