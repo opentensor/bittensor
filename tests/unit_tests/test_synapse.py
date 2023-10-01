@@ -263,4 +263,3 @@ def test_required_fields_override():
         match='"required_hash_fields" has allow_mutation set to False and cannot be assigned',
     ):
         synapse_instance.required_hash_fields = []
-
