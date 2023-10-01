@@ -306,8 +306,8 @@ class Synapse(pydantic.BaseModel):
         repr=False,
     )
 
-    hash_fields: Optional[List[str]] = pydantic.Field(
-        title="hash_fields",
+    required_hash_fields: Optional[List[str]] = pydantic.Field(
+        title="required_hash_fields",
         description="The list of required fields to compute the body hash.",
         examples=["roles", "messages"],
         default=[],
@@ -319,60 +319,11 @@ class Synapse(pydantic.BaseModel):
         """
         Override the __setattr__ method to make the `required_hash_fields` property read-only.
         """
-        if name == "required_hash_fields":
-            raise AttributeError(
-                "required_hash_fields property is read-only and cannot be overridden."
-            )
         if name == "body_hash":
             raise AttributeError(
                 "body_hash property is read-only and cannot be overridden."
             )
         super().__setattr__(name, value)
-
-    @property
-    def required_hash_fields(self) -> List[str]:
-        """
-        Retrieve the list of non-optional fields of the Synapse instance.
-
-        This default method identifies and returns the names of non-optional attributes of the Synapse
-        instance that have non-null values, excluding specific attributes such as `name`, `timeout`,
-        `total_size`, `header_size`, `dendrite`, and `axon`. The determination of whether a field is
-        optional or not is based on the schema definition for the Synapse class.
-
-        Subclasses are encouraged to override this method to provide their own implementation for
-        determining required fields. If not overridden, the default implementation provided by the
-        Synapse superclass will be used, which returns the fields based on the schema definition.
-
-        Returns:
-            List[str]: A list of names of the non-optional fields of the Synapse instance.
-        """
-        fields = []
-        # Getting the fields of the instance
-        instance_fields = self.__dict__
-
-        # Iterating over the fields of the instance
-        for field, value in instance_fields.items():
-            # If the object is not optional and non-null, add to the list of returned body fields
-            required = schema([self.__class__])["definitions"][self.name].get(
-                "required"
-            )
-            if (
-                required
-                and field in required
-                and value != None
-                and field
-                not in [
-                    "name",
-                    "timeout",
-                    "total_size",
-                    "header_size",
-                    "dendrite",
-                    "axon",
-                ]
-                and "_hash" not in field
-            ):
-                fields.append(field)
-        return fields
 
     def get_total_size(self) -> int:
         """
@@ -542,23 +493,21 @@ class Synapse(pydantic.BaseModel):
         headers["header_size"] = str(sys.getsizeof(headers))
         headers["total_size"] = str(self.get_total_size())
         headers["computed_body_hash"] = self.body_hash
-        headers["hash_fields"] = base64.b64encode(
-            json.dumps(self.required_hash_fields).encode()
-        ).decode("utf-8")
+
         return headers
 
     @property
     def body_hash(self) -> str:
         """
-        Compute a SHA-256 hash of the serialized body of the Synapse instance.
+        Compute a SHA3-256 hash of the serialized body of the Synapse instance.
 
         The body of the Synapse instance comprises its serialized and encoded
         non-optional fields. This property retrieves these fields using the
-        `get_body` method, then concatenates their string representations, and
-        finally computes a SHA-256 hash of the resulting string.
+        `required_fields_hash` field, then concatenates their string representations, 
+        and finally computes a SHA3-256 hash of the resulting string.
 
         Returns:
-            str: The hexadecimal representation of the SHA-256 hash of the instance's body.
+            str: The hexadecimal representation of the SHA3-256 hash of the instance's body.
         """
         # Hash the body for verification
         hashes = []
@@ -566,9 +515,8 @@ class Synapse(pydantic.BaseModel):
         # Getting the fields of the instance
         instance_fields = self.__dict__
 
-        # Iterating over the fields of the instance
         for field, value in instance_fields.items():
-            # If the field is required in the subclass schema, add it.
+            # If the field is required in the subclass schema, hash and add it.
             if field in self.required_hash_fields:
                 hashes.append(bittensor.utils.hash(str(value)))
 
@@ -689,11 +637,6 @@ class Synapse(pydantic.BaseModel):
         inputs_dict["header_size"] = headers.get("header_size", None)
         inputs_dict["total_size"] = headers.get("total_size", None)
         inputs_dict["computed_body_hash"] = headers.get("computed_body_hash", None)
-        inputs_dict["hash_fields"] = json.loads(
-            base64.b64decode(headers.get("hash_fields", "W10=").encode()).decode(
-                "utf-8"
-            )
-        )
 
         return inputs_dict
 
