@@ -270,6 +270,7 @@ class axon:
         blacklist_fn: Callable = None,
         priority_fn: Callable = None,
         verify_fn: Callable = None,
+        required_hash_fields: List[str] = None,
     ) -> "bittensor.axon":
         """
         Registers an API endpoint to the FastAPI application router.
@@ -285,6 +286,7 @@ class axon:
                                               Defaults to None, meaning no priority sorting will be applied.
             verify_fn (Callable, optional): Function to verify requests. It should take the same arguments as 'forward_fn' and return
                                             a boolean value. If None, 'self.default_verify' function will be used.
+            required_hash_fields (List[str], optional): List of fields in the request body that should be hashed and compared against
 
         Note: 'forward_fn', 'blacklist_fn', 'priority_fn', and 'verify_fn' should be designed to receive the same parameters.
 
@@ -396,6 +398,7 @@ class axon:
             verify_fn or self.default_verify
         )  # Use 'default_verify' if 'verify_fn' is None
         self.forward_fns[request_name] = forward_fn
+        self.required_hash_fields[request_name] = required_hash_fields
 
         return self
 
@@ -514,12 +517,9 @@ class axon:
         body = await request.body()
         request_body = body.decode() if isinstance(body, bytes) else body
 
-        # Gather the required field names from the headers of the request
-        required_hash_fields = json.loads(
-            base64.b64decode(request.headers.get("hash_fields", "").encode()).decode(
-                "utf-8"
-            )
-        )
+        # Gather the required field names from the axon's required_hash_fields dict
+        request_name = request.url.path.split("/")[1]
+        required_hash_fields = self.required_hash_fields[request.url.path]
 
         # Load the body dict and check if all required field hashes match
         body_dict = json.loads(request_body)
