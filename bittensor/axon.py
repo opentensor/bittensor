@@ -311,11 +311,6 @@ class axon:
             list(forward_sig.parameters)[0]
         ].annotation
 
-        # Parse required hash fields from the forward function protocol defaults
-        required_hash_fields = request_class.__dict__["__fields__"][
-            "required_hash_fields"
-        ].default
-
         # Assert that the first argument of 'forward_fn' is a subclass of 'bittensor.Synapse'
         assert issubclass(
             request_class, bittensor.Synapse
@@ -403,6 +398,11 @@ class axon:
             verify_fn or self.default_verify
         )  # Use 'default_verify' if 'verify_fn' is None
         self.forward_fns[request_name] = forward_fn
+
+        # Parse required hash fields from the forward function protocol defaults
+        required_hash_fields = request_class.__dict__["__fields__"][
+            "required_hash_fields"
+        ].default
         self.required_hash_fields[request_name] = required_hash_fields
 
         return self
