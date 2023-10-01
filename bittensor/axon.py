@@ -242,6 +242,7 @@ class axon:
         self.priority_fns = {}
         self.forward_fns = {}
         self.verify_fns = {}
+        self.required_hash_fields = {}
 
         # Instantiate FastAPI
         self.app = FastAPI()
@@ -484,8 +485,7 @@ class axon:
             # Exception handling for re-parsing arguments
             pass
 
-    @staticmethod
-    async def verify_body_integrity(request: Request):
+    async def verify_body_integrity(self, request: Request):
         """
         Asynchronously verifies the integrity of the body of a request by comparing the hash of required fields
         with the corresponding hashes provided in the request headers. This method is critical for ensuring
