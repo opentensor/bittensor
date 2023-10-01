@@ -40,9 +40,6 @@ def test_parse_headers_to_inputs():
         "header_size": "111",
         "total_size": "111",
         "computed_body_hash": "0xabcdef",
-        "hash_fields": base64.b64encode(
-            json.dumps(["key1", "key2"]).encode("utf-8")
-        ).decode("utf-8"),
     }
     print(headers)
 
@@ -60,7 +57,6 @@ def test_parse_headers_to_inputs():
         "header_size": "111",
         "total_size": "111",
         "computed_body_hash": "0xabcdef",
-        "hash_fields": ["key1", "key2"],
     }
 
 
@@ -82,9 +78,6 @@ def test_from_headers():
         "header_size": "111",
         "total_size": "111",
         "computed_body_hash": "0xabcdef",
-        "hash_fields": base64.b64encode(
-            json.dumps(["key1", "key2"]).encode("utf-8")
-        ).decode("utf-8"),
     }
 
     # Run the function to test
@@ -264,9 +257,9 @@ def test_required_fields_override():
     # Create a Synapse instance
     synapse_instance = bittensor.Synapse()
 
-    # Try to set the body_hash property and expect an AttributeError
+    # Try to set the required_hash_fields property and expect a TypeError
     with pytest.raises(
-        AttributeError,
-        match="required_hash_fields property is read-only and cannot be overridden.",
+        TypeError,
+        match='"required_hash_fields" has allow_mutation set to False and cannot be assigned',
     ):
         synapse_instance.required_hash_fields = []

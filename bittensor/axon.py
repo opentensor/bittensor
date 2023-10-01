@@ -242,6 +242,7 @@ class axon:
         self.priority_fns = {}
         self.forward_fns = {}
         self.verify_fns = {}
+        self.required_hash_fields = {}
 
         # Instantiate FastAPI
         self.app = FastAPI()
@@ -397,6 +398,12 @@ class axon:
         )  # Use 'default_verify' if 'verify_fn' is None
         self.forward_fns[request_name] = forward_fn
 
+        # Parse required hash fields from the forward function protocol defaults
+        required_hash_fields = request_class.__dict__["__fields__"][
+            "required_hash_fields"
+        ].default
+        self.required_hash_fields[request_name] = required_hash_fields
+
         return self
 
     @classmethod
@@ -481,8 +488,7 @@ class axon:
             # Exception handling for re-parsing arguments
             pass
 
-    @staticmethod
-    async def verify_body_integrity(request: Request):
+    async def verify_body_integrity(self, request: Request):
         """
         Asynchronously verifies the integrity of the body of a request by comparing the hash of required fields
         with the corresponding hashes provided in the request headers. This method is critical for ensuring
@@ -514,12 +520,9 @@ class axon:
         body = await request.body()
         request_body = body.decode() if isinstance(body, bytes) else body
 
-        # Gather the required field names from the headers of the request
-        required_hash_fields = json.loads(
-            base64.b64decode(request.headers.get("hash_fields", "").encode()).decode(
-                "utf-8"
-            )
-        )
+        # Gather the required field names from the axon's required_hash_fields dict
+        request_name = request.url.path.split("/")[1]
+        required_hash_fields = self.required_hash_fields[request_name]
 
         # Load the body dict and check if all required field hashes match
         body_dict = json.loads(request_body)
@@ -628,7 +631,7 @@ class axon:
         subtensor.serve_axon(netuid=netuid, axon=self)
         return self
 
-    def default_verify(self, synapse: bittensor.Synapse):
+    async def default_verify(self, synapse: bittensor.Synapse):
         """
         This method is used to verify the authenticity of a received message using a digital signature.
         It ensures that the message was not tampered with and was sent by the expected sender.
