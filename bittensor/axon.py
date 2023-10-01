@@ -271,7 +271,6 @@ class axon:
         blacklist_fn: Callable = None,
         priority_fn: Callable = None,
         verify_fn: Callable = None,
-        required_hash_fields: List[str] = [],
     ) -> "bittensor.axon":
         """
         Registers an API endpoint to the FastAPI application router.
@@ -311,6 +310,9 @@ class axon:
         request_class = forward_sig.parameters[
             list(forward_sig.parameters)[0]
         ].annotation
+
+        # Parse required hash fields from the forward function protocol defaults
+        required_hash_fields = request_class.__dict__["__fields__"]["required_hash_fields"].default
 
         # Assert that the first argument of 'forward_fn' is a subclass of 'bittensor.Synapse'
         assert issubclass(
