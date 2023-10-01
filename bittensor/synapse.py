@@ -503,7 +503,7 @@ class Synapse(pydantic.BaseModel):
 
         The body of the Synapse instance comprises its serialized and encoded
         non-optional fields. This property retrieves these fields using the
-        `required_fields_hash` field, then concatenates their string representations, 
+        `required_fields_hash` field, then concatenates their string representations,
         and finally computes a SHA3-256 hash of the resulting string.
 
         Returns:
