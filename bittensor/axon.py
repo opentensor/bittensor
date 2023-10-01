@@ -271,7 +271,7 @@ class axon:
         blacklist_fn: Callable = None,
         priority_fn: Callable = None,
         verify_fn: Callable = None,
-        required_hash_fields: List[str] = None,
+        required_hash_fields: List[str] = [],
     ) -> "bittensor.axon":
         """
         Registers an API endpoint to the FastAPI application router.
