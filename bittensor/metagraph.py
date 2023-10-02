@@ -552,6 +552,7 @@ class metagraph(torch.nn.Module):
         """
         data_array = []
         n_subnets = subtensor.get_total_subnets()
+        subnets = subtensor.get_subnets()
         for item in data:
             if len(item) == 0:
                 data_array.append(torch.zeros(n_subnets))
@@ -559,8 +560,8 @@ class metagraph(torch.nn.Module):
                 uids, values = zip(*item)
                 # TODO: Validate and test the conversion of uids and values to tensor
                 data_array.append(
-                    bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor(
-                        n_subnets, uids, values
+                    bittensor.utils.weight_utils.convert_root_weight_uids_and_vals_to_tensor(
+                        n_subnets, uids, values, subnets
                     )
                 )
 
