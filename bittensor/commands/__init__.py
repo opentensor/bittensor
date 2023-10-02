@@ -103,4 +103,4 @@ from .network import (
     SubnetHyperparamsCommand,
     SubnetGetHyperparamsCommand,
 )
-from .root import RootRegisterCommand, RootList, RootSetWeightsCommand
+from .root import RootRegisterCommand, RootList, RootSetWeightsCommand, RootGetWeightsCommand
