@@ -53,7 +53,6 @@ dependencies:
   - libcxx=16.0.3=h4653b0c_0
   - libffi=3.4.2=h3422bc3_5
   - libgrpc=1.54.1=h9dbdbd0_0
-  - libprotobuf=3.21.12=hb5ab8b9_0
   - libsodium=1.0.18=h27ca646_1
   - libsqlite=3.41.2=hb31c410_1
   - libzlib=1.2.13=h03a7124_4
@@ -73,7 +72,6 @@ dependencies:
   - pickleshare=0.7.5=py_1003
   - pip=23.1.2=pyhd8ed1ab_0
   - pkgutil-resolve-name=1.3.10=pyhd8ed1ab_0
-  - prometheus_client=0.17.0=pyhd8ed1ab_0
   - prompt-toolkit=3.0.38=pyha770c72_0
   - prompt_toolkit=3.0.38=hd8ed1ab_0
   - ptyprocess=0.7.0=pyhd3deb0d_0
@@ -87,11 +85,9 @@ dependencies:
   - pysocks=1.7.1=pyha2e5f31_6
   - python=3.10.10=h3ba56d0_0_cpython
   - python-dateutil=2.8.2=pyhd8ed1ab_0
-  - python-fastjsonschema=2.17.1=pyhd8ed1ab_0
   - python-json-logger=2.0.7=pyhd8ed1ab_0
   - python_abi=3.10=3_cp310
   - pytz=2023.3=pyhd8ed1ab_0
-  - pyyaml=6.0=py310h8e9501a_5
   - pyzmq=25.0.2=py310hc407298_0
   - re2=2023.02.02=hb7217d7_0
   - readline=8.2=h92ec313_1
@@ -128,7 +124,6 @@ dependencies:
       - arrow==1.2.3
       - async-timeout==4.0.2
       - backoff==2.1.0
-      - base58==2.0.1
       - blinker==1.6.2
       - cachetools==4.2.4
       - certifi==2020.11.8
@@ -139,7 +134,6 @@ dependencies:
       - cryptography==39.0.0
       - cytoolz==0.12.1
       - dataclasses-json==0.5.7
-      - datasets==2.12.0
       - dill==0.3.6
       - distlib==0.3.6
       - docker-pycreds==0.4.0
@@ -149,7 +143,6 @@ dependencies:
       - eth-typing==3.3.0
       - eth-utils==2.1.0
       - exceptiongroup==1.1.1
-      - fastjsonschema==2.16.3
       - filelock==3.12.0
       - fqdn==1.5.1
       - frozenlist==1.3.3
@@ -167,7 +160,6 @@ dependencies:
       - huggingface-hub==0.14.1
       - hypothesis==6.47.4
       - identify==2.5.24
-      - idna==2.10
       - ipykernel==6.23.0
       - ipython-genutils==0.2.0
       - ipywidgets==8.0.6
@@ -175,18 +167,14 @@ dependencies:
       - jinja2==3.0.0
       - joblib==1.2.0
       - jsonpointer==2.3
-      - jsonschema==4.17.0
       - jupyter==1.0.0
       - jupyter-console==6.6.3
       - jupyterlab-widgets==3.0.7
-      - langchain==0.0.164
       - loguru==0.6.0
       - markupsafe==2.0.1
       - marshmallow==3.19.0
       - marshmallow-enum==1.5.1
       - more-itertools==9.1.0
-      - msgpack==1.0.4
-      - msgpack-numpy==0.4.7.1
       - multidict==6.0.4
       - multiprocess==0.70.14
       - munch==2.5.0
@@ -199,10 +187,8 @@ dependencies:
       - nodeenv==1.8.0
       - notebook==6.5.4
       - numexpr==2.8.4
-      - numpy==1.21.6
       - openapi-schema-pydantic==1.2.4
       - openvalidators==1.0.1
-      - pandas==1.5.2
       - password-strength==0.0.3.post2
       - pathtools==0.1.2
       - pillow==9.5.0
@@ -211,8 +197,6 @@ dependencies:
       - pre-commit==3.3.2
       - prometheus-client==0.14.1
       - promise==2.3
-      - protobuf==3.19.5
-      - psutil==5.9.4
       - py==1.11.0
       - py-bip39-bindings==0.1.11
       - py-ed25519-bindings==1.0.2
@@ -227,7 +211,6 @@ dependencies:
       - pympler==1.0.1
       - pynacl==1.5.0
       - pyparsing==3.0.9
-      - python-levenshtein==0.12.1
       - qqdm==0.0.7
       - qtconsole==5.4.3
       - qtpy==2.3.1
@@ -241,7 +224,6 @@ dependencies:
       - scalecodec==1.2.0
       - scikit-learn==1.2.2
       - scipy==1.10.1
-      - sentence-transformers==2.2.2
       - sentencepiece==0.1.97
       - sentry-sdk==1.22.2
       - setproctitle==1.3.2
@@ -262,7 +244,6 @@ dependencies:
       - torchvision==0.14.1
       - tornado==6.3.1
       - tqdm==4.64.1
-      - transformers==4.20.1
       - typing-extensions==4.5.0
       - typing-inspect==0.8.0
       - tzlocal==5.0.1

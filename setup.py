@@ -23,13 +23,22 @@ import codecs
 import re
 import os
 import pathlib
+import subprocess
 
 
 def read_requirements(path):
+    requirements = []
+    git_requirements = []
+
     with pathlib.Path(path).open() as requirements_txt:
-        return [
-            str(requirement) for requirement in parse_requirements(requirements_txt)
-        ]
+        for line in requirements_txt:
+            if line.startswith("git+"):
+                pkg_name = re.search(r"egg=([a-zA-Z0-9_-]+)", line.strip()).group(1)
+                requirements.append(pkg_name + " @ " + line.strip())
+            else:
+                requirements.append(line.strip())
+
+    return requirements
 
 
 requirements = read_requirements("requirements/prod.txt")

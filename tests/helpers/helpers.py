@@ -16,16 +16,15 @@
 # DEALINGS IN THE SOFTWARE.
 
 from typing import Union
-from bittensor import Balance, NeuronInfo, axon_info, PrometheusInfo, __ss58_format__
+from bittensor import Balance, NeuronInfo, AxonInfo, PrometheusInfo, __ss58_format__
+from bittensor.mock.wallet_mock import MockWallet as _MockWallet
+from bittensor.mock.wallet_mock import get_mock_coldkey as _get_mock_coldkey
+from bittensor.mock.wallet_mock import get_mock_hotkey as _get_mock_hotkey
+from bittensor.mock.wallet_mock import get_mock_keypair as _get_mock_keypair
+from bittensor.mock.wallet_mock import get_mock_wallet as _get_mock_wallet
+
 from rich.console import Console
 from rich.text import Text
-
-from bittensor_wallet.mock import MockWallet as _MockWallet, utils as _mock_wallet_utils
-
-_get_mock_coldkey = _mock_wallet_utils.get_mock_coldkey
-_get_mock_hotkey = _mock_wallet_utils.get_mock_hotkey
-_get_mock_keypair = _mock_wallet_utils.get_mock_keypair
-_get_mock_wallet = _mock_wallet_utils.get_mock_wallet
 
 
 def __mock_wallet_factory__(*args, **kwargs) -> _MockWallet:
@@ -68,7 +67,7 @@ def get_mock_neuron(**kwargs) -> NeuronInfo:
     mock_neuron_d = dict(
         {
             "netuid": -1,  # mock netuid
-            "axon_info": axon_info(
+            "axon_info": AxonInfo(
                 block=0,
                 version=1,
                 ip=0,
@@ -135,6 +134,9 @@ class MockStatus:
 
     def stop(self):
         pass
+
+    def update(self, *args, **kwargs):
+        MockConsole().print(*args, **kwargs)
 
 
 class MockConsole:

@@ -1,49 +1,42 @@
-import numbers
+# The MIT License (MIT)
+# Copyright © 2022 Opentensor Foundation
+# Copyright © 2023 Opentensor Technologies Inc
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
 from typing import Callable, Union, List, Optional, Dict, Literal, Type, Any
 
 import bittensor
-import pandas
+import hashlib
 import requests
 import torch
 import scalecodec
-import argparse
-from substrateinterface.utils import ss58
-from bittensor_wallet.utils import *
+from substrateinterface.utils import ss58 as ss58
 
-from .registration import create_pow, __reregister_wallet as reregister
+from .wallet_utils import *
+from .registration import create_pow as create_pow, __reregister_wallet as reregister
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
 
-def indexed_values_to_dataframe(
-    prefix: Union[str, int],
-    index: Union[list, torch.LongTensor],
-    values: Union[list, torch.Tensor],
-    filter_zeros: bool = False,
-) -> "pandas.DataFrame":
-    # Type checking.
-    if not isinstance(prefix, str) and not isinstance(prefix, numbers.Number):
-        raise ValueError("Passed prefix must have type str or Number")
-    if isinstance(prefix, numbers.Number):
-        prefix = str(prefix)
-    if not isinstance(index, list) and not isinstance(index, torch.Tensor):
-        raise ValueError("Passed uids must have type list or torch.Tensor")
-    if not isinstance(values, list) and not isinstance(values, torch.Tensor):
-        raise ValueError("Passed values must have type list or torch.Tensor")
-    if not isinstance(index, list):
-        index = index.tolist()
-    if not isinstance(values, list):
-        values = values.tolist()
-
-    index = [idx_i for idx_i in index if idx_i < len(values) and idx_i >= 0]
-    dataframe = pandas.DataFrame(columns=[prefix], index=index)
-    for idx_i in index:
-        value_i = values[idx_i]
-        if value_i > 0 or not filter_zeros:
-            dataframe.loc[idx_i] = pandas.Series({str(prefix): value_i})
-    return dataframe
+def ss58_to_vec_u8(ss58_address: str) -> List[int]:
+    ss58_bytes: bytes = bittensor.utils.ss58_address_to_bytes(ss58_address)
+    encoded_address: List[int] = [int(byte) for byte in ss58_bytes]
+    return encoded_address
 
 
 def unbiased_topk(values, k, dim=0, sorted=True, largest=True):
@@ -70,7 +63,7 @@ def unbiased_topk(values, k, dim=0, sorted=True, largest=True):
 
 def version_checking(timeout: int = 15):
     try:
-        bittensor.logging.info(
+        bittensor.logging.debug(
             f"Checking latest Bittensor version at: {bittensor.__pipaddress__}"
         )
         response = requests.get(bittensor.__pipaddress__, timeout=timeout)
@@ -207,10 +200,11 @@ def u8_key_to_ss58(u8_key: List[int]) -> str:
     return scalecodec.ss58_encode(bytes(u8_key).hex(), bittensor.__ss58_format__)
 
 
-def type_or_suppress(
-    type_func: Callable[[str], Any]
-) -> Callable[[str], Union[Any, Literal["==SUPRESS=="]]]:
-    def _type_or_suppress(value: str) -> Union[Any, Literal["==SUPRESS=="]]:
-        return value if value == argparse.SUPPRESS else type_func(value)
+def hash(content, encoding="utf-8"):
+    sha3 = hashlib.sha3_256()
 
-    return _type_or_suppress
+    # Update the hash object with the concatenated string
+    sha3.update(content.encode(encoding))
+
+    # Produce the hash
+    return sha3.hexdigest()

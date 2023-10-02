@@ -17,11 +17,11 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
+from bittensor.mock import MockSubtensor
 import torch
 import pytest
-from bittensor._subtensor.subtensor_mock import MockSubtensor
 
-_subtensor_mock: MockSubtensor = bittensor.subtensor(network="mock", _mock=True)
+_subtensor_mock: MockSubtensor = MockSubtensor()
 
 
 def setUpModule():
@@ -35,23 +35,23 @@ def setUpModule():
 
 class TestMetagraph:
     def setup_method(self):
-        self.sub = bittensor.subtensor(_mock=True)
-        self.metagraph = bittensor.metagraph(netuid=3, network="mock")
+        self.sub = MockSubtensor()
+        self.metagraph = bittensor.metagraph(netuid=3, network="mock", sync=False)
 
     def test_print_empty(self):
         print(self.metagraph)
 
     def test_lite_sync(self):
-        self.metagraph.sync(lite=True)
+        self.metagraph.sync(lite=True, subtensor=self.sub)
 
     def test_full_sync(self):
-        self.metagraph.sync(lite=False)
+        self.metagraph.sync(lite=False, subtensor=self.sub)
 
     def test_sync_block_0(self):
-        self.metagraph.sync(lite=True, block=0)
+        self.metagraph.sync(lite=True, block=0, subtensor=self.sub)
 
     def test_load_sync_save(self):
-        self.metagraph.sync(lite=True)
+        self.metagraph.sync(lite=True, subtensor=self.sub)
         self.metagraph.save()
         self.metagraph.load()
         self.metagraph.save()

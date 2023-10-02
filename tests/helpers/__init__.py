@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Opentensor Technologies
+# Copyright © 2023 Opentensor Technologies Inc
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -22,4 +22,5 @@ from .helpers import (
     _get_mock_wallet,
     CLOSE_IN_VALUE,
     MockConsole,
+    __mock_wallet_factory__,
 )

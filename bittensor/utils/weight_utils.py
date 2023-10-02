@@ -100,6 +100,39 @@ def convert_weight_uids_and_vals_to_tensor(
     return row_weights
 
 
+def convert_root_weight_uids_and_vals_to_tensor(
+    n: int, uids: List[int], weights: List[int], subnets: List[int]
+) -> "torch.FloatTensor":
+    r"""Converts root weights and uids from chain representation into a torch tensor (inverse operation from convert_weights_and_uids_for_emit)
+    Args:
+        n: int:
+            number of neurons on network.
+        uids (:obj:`List[int],`):
+            Tensor of uids as destinations for passed weights.
+        weights (:obj:`List[int],`):
+            Tensor of weights.
+        subnets (:obj:`List[int],`):
+            list of subnets on the network
+    Returns:
+        row_weights ( torch.FloatTensor ):
+            Converted row weights.
+    """
+
+    row_weights = torch.zeros([n], dtype=torch.float32)
+    for uid_j, wij in list(zip(uids, weights)):
+        if uid_j in subnets:
+            index_s = subnets.index(uid_j)
+        else:
+            raise Exception("Incorrect Subnet {uid_j} in {subnets}")
+        row_weights[index_s] = float(
+            wij
+        )  # assumes max-upscaled values (w_max = U16_MAX).
+    row_sum = row_weights.sum()
+    if row_sum > 0:
+        row_weights /= row_sum  # normalize
+    return row_weights
+
+
 def convert_bond_uids_and_vals_to_tensor(
     n: int, uids: List[int], bonds: List[int]
 ) -> "torch.LongTensor":
@@ -180,6 +213,7 @@ def process_weights_for_netuid(
     netuid: int,
     subtensor: "bittensor.subtensor",
     metagraph: "bittensor.metagraph" = None,
+    exclude_quantile: int = 6554,
 ) -> torch.FloatTensor:
     bittensor.logging.debug("process_weights_for_netuid()")
     bittensor.logging.debug("weights", weights)
@@ -197,7 +231,7 @@ def process_weights_for_netuid(
 
     # Network configuration parameters from an subtensor.
     # These parameters determine the range of acceptable weights for each neuron.
-    quantile = subtensor.validator_exclude_quantile(netuid=netuid)
+    quantile = exclude_quantile
     min_allowed_weights = subtensor.min_allowed_weights(netuid=netuid)
     max_weight_limit = subtensor.max_weight_limit(netuid=netuid)
     bittensor.logging.debug("quantile", quantile)

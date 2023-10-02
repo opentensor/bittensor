@@ -1,5 +1,7 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
+# Copyright © 2021-2022 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
+# Copyright © 2023 Opentensor Technologies Inc
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -14,6 +16,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+
 from typing import Union
 
 import bittensor
@@ -21,11 +24,15 @@ import bittensor
 
 class Balance:
     """
-    Represents the bittensor balance of the wallet, stored as rao (int)
-    The Balance object is immutable, and can be used as a number or as a string
-    Can only guarantee that the balance is accurate to 9 decimal places (tao)
+    Represents the bittensor balance of the wallet, stored as rao (int).
+    This class provides a way to interact with balances in two different units: rao and tao.
+    It provides methods to convert between these units, as well as to perform arithmetic and comparison operations.
 
-    Note: In operations between Balance and int/float, the other value is assumed to be in rao
+    Attributes:
+        unit: A string representing the symbol for the tao unit.
+        rao_unit: A string representing the symbol for the rao unit.
+        rao: An integer that stores the balance in rao units.
+        tao: A float property that gives the balance in tao units.
     """
 
     unit: str = bittensor.__tao_symbol__  # This is the tao unit
@@ -34,6 +41,13 @@ class Balance:
     tao: float
 
     def __init__(self, balance: Union[int, float]):
+        """
+        Initialize a Balance object. If balance is an int, it's assumed to be in rao.
+        If balance is a float, it's assumed to be in tao.
+
+        Args:
+            balance: The initial balance, in either rao (if an int) or tao (if a float).
+        """
         if isinstance(balance, int):
             self.rao = balance
         elif isinstance(balance, float):
@@ -47,12 +61,21 @@ class Balance:
         return self.rao / pow(10, 9)
 
     def __int__(self):
+        """
+        Convert the Balance object to an int. The resulting value is in rao.
+        """
         return self.rao
 
     def __float__(self):
+        """
+        Convert the Balance object to a float. The resulting value is in tao.
+        """
         return self.tao
 
     def __str__(self):
+        """
+        Returns the Balance object as a string in the format "symbolvalue", where the value is in tao.
+        """
         return f"{self.unit}{float(self.tao):,.9f}"
 
     def __rich__(self):
@@ -223,17 +246,40 @@ class Balance:
 
     @staticmethod
     def from_float(amount: float):
-        """Given tao (float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))"""
+        """
+        Given tao (float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
+        Args:
+            amount: The amount in tao.
+
+        Returns:
+            A Balance object representing the given amount.
+        """
         rao = int(amount * pow(10, 9))
         return Balance(rao)
 
     @staticmethod
     def from_tao(amount: float):
-        """Given tao (float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))"""
+        """
+        Given tao (float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
+
+        Args:
+            amount: The amount in tao.
+
+        Returns:
+            A Balance object representing the given amount.
+        """
         rao = int(amount * pow(10, 9))
         return Balance(rao)
 
     @staticmethod
     def from_rao(amount: int):
-        """Given rao (int), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))"""
+        """
+        Given rao (int), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
+
+        Args:
+            amount: The amount in rao.
+
+        Returns:
+            A Balance object representing the given amount.
+        """
         return Balance(amount)
