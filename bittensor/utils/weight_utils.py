@@ -99,6 +99,7 @@ def convert_weight_uids_and_vals_to_tensor(
         row_weights /= row_sum  # normalize
     return row_weights
 
+
 def convert_root_weight_uids_and_vals_to_tensor(
     n: int, uids: List[int], weights: List[int], subnets: List[int]
 ) -> "torch.FloatTensor":
@@ -122,7 +123,7 @@ def convert_root_weight_uids_and_vals_to_tensor(
         if uid_j in subnets:
             index_s = subnets.index(uid_j)
         else:
-            raise Exception('Incorrect Subnet {uid_j} in {subnets}')
+            raise Exception("Incorrect Subnet {uid_j} in {subnets}")
         row_weights[index_s] = float(
             wij
         )  # assumes max-upscaled values (w_max = U16_MAX).
@@ -130,6 +131,7 @@ def convert_root_weight_uids_and_vals_to_tensor(
     if row_sum > 0:
         row_weights /= row_sum  # normalize
     return row_weights
+
 
 def convert_bond_uids_and_vals_to_tensor(
     n: int, uids: List[int], bonds: List[int]
