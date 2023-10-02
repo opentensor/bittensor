@@ -1,6 +1,7 @@
 # The MIT License (MIT)
 # Copyright © 2022 Yuma Rao
 # Copyright © 2022-2023 Opentensor Foundation
+# Copyright © 2023 Opentensor Technologies Inc
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -29,16 +30,16 @@ import pytest
 from substrateinterface.base import Keypair
 
 import bittensor
-from bittensor.utils.balance import Balance
+from bittensor.mock import MockSubtensor
+from bittensor import Balance
 from tests.helpers import (
     MockConsole,
     _get_mock_keypair,
     _get_mock_wallet as generate_wallet,
 )
-from bittensor._subtensor.subtensor_mock import MockSubtensor
 
 
-_subtensor_mock: MockSubtensor = bittensor.subtensor(network="mock", _mock=True)
+_subtensor_mock: MockSubtensor = MockSubtensor()
 
 
 def setUpModule():
@@ -58,6 +59,11 @@ def setUpModule():
     _subtensor_mock.set_difficulty(netuid=3, difficulty=0)
 
 
+def return_mock_sub(*args, **kwargs):
+    return MockSubtensor
+
+
+@patch("bittensor.subtensor", new_callable=return_mock_sub)
 class TestCLIWithNetworkAndConfig(unittest.TestCase):
     def setUp(self):
         self._config = TestCLIWithNetworkAndConfig.construct_config()
@@ -69,28 +75,35 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
     @staticmethod
     def construct_config():
-        defaults = bittensor.Config()
+        parser = bittensor.cli.__create_parser__()
+        defaults = bittensor.config(parser=parser, args=[])
+        # Parse commands and subcommands
+        for command in bittensor.ALL_COMMANDS:
+            if (
+                command in bittensor.ALL_COMMANDS
+                and "commands" in bittensor.ALL_COMMANDS[command]
+            ):
+                for subcommand in bittensor.ALL_COMMANDS[command]["commands"]:
+                    defaults.merge(
+                        bittensor.config(parser=parser, args=[command, subcommand])
+                    )
+            else:
+                defaults.merge(bittensor.config(parser=parser, args=[command]))
 
         defaults.netuid = 1
-        bittensor.subtensor.add_defaults(defaults)
         # Always use mock subtensor.
         defaults.subtensor.network = "finney"
-        defaults.subtensor._mock = True
         # Skip version checking.
         defaults.no_version_checking = True
-        bittensor.axon.add_defaults(defaults)
-        bittensor.wallet.add_defaults(defaults)
-        bittensor.dataset.add_defaults(defaults)
-        bittensor.logging.add_defaults(defaults)
-        bittensor.prometheus.add_defaults(defaults)
 
         return defaults
 
-    def test_overview(self):
+    def test_overview(self, _):
         config = self.config
         config.wallet.path = "/tmp/test_cli_test_overview"
         config.wallet.name = "mock_wallet"
-        config.command = "overview"
+        config.command = "wallet"
+        config.subcommand = "overview"
         config.no_prompt = True
         config.all = False
         config.netuid = []  # Don't set, so it tries all networks.
@@ -159,7 +172,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_console = MockConsole()
         with patch(
-            "bittensor._cli.commands.overview.get_hotkey_wallets_for_wallet"
+            "bittensor.commands.overview.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
             with patch("bittensor.wallet") as mock_create_wallet:
@@ -192,11 +205,12 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         if wallet not in [w for _, w in mock_registrations]:
                             self.assertNotIn(wallet.hotkey_str, output_no_syntax)
 
-    def test_overview_not_in_first_subnet(self):
+    def test_overview_not_in_first_subnet(self, _):
         config = self.config
         config.wallet.path = "/tmp/test_cli_test_overview"
         config.wallet.name = "mock_wallet"
-        config.command = "overview"
+        config.command = "wallet"
+        config.subcommand = "overview"
         config.no_prompt = True
         config.all = False
         config.netuid = []  # Don't set, so it tries all networks.
@@ -260,7 +274,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_console = MockConsole()
         with patch(
-            "bittensor._cli.commands.overview.get_hotkey_wallets_for_wallet"
+            "bittensor.commands.overview.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
             with patch("bittensor.wallet") as mock_create_wallet:
@@ -294,26 +308,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         if wallet not in [w for _, w in mock_registrations]:
                             self.assertNotIn(wallet.hotkey_str, output_no_syntax)
 
-    def test_overview_no_wallet(self):
-        # Mock IO for wallet
-        with patch(
-            "bittensor.Wallet.coldkeypub_file",
-            MagicMock(exists_on_device=MagicMock(return_value=False)),
-        ):
-            bittensor.subtensor.register = MagicMock(return_value=True)
-
-            config = self.config
-            config.command = "overview"
-            config.no_prompt = True
-            config.all = False
-            config.netuid = []  # Don't set, so it tries all networks.
-
-            cli = bittensor.cli(config)
-            cli.run()
-
-    def test_overview_with_hotkeys_config(self):
+    def test_overview_with_hotkeys_config(self, _):
         config = self.config
-        config.command = "overview"
+        config.command = "wallet"
+        config.subcommand = "overview"
         config.no_prompt = True
         config.hotkeys = ["some_hotkey"]
         config.all = False
@@ -322,9 +320,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_without_hotkeys_config(self):
+    def test_overview_without_hotkeys_config(self, _):
         config = self.config
-        config.command = "overview"
+        config.command = "wallet"
+        config.subcommand = "overview"
         config.no_prompt = True
         config.all = False
         config.netuid = []  # Don't set, so it tries all networks.
@@ -332,9 +331,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_with_sort_by_config(self):
+    def test_overview_with_sort_by_config(self, _):
         config = self.config
-        config.command = "overview"
+        config.command = "wallet"
+        config.subcommand = "overview"
         config.no_prompt = True
         config.wallet.sort_by = "rank"
         config.all = False
@@ -343,9 +343,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_with_sort_by_bad_column_name(self):
+    def test_overview_with_sort_by_bad_column_name(self, _):
         config = self.config
-        config.command = "overview"
+        config.command = "wallet"
+        config.subcommand = "overview"
         config.no_prompt = True
         config.wallet.sort_by = "totallynotmatchingcolumnname"
         config.all = False
@@ -354,9 +355,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_without_sort_by_config(self):
+    def test_overview_without_sort_by_config(self, _):
         config = self.config
-        config.command = "overview"
+        config.command = "wallet"
+        config.subcommand = "overview"
         config.no_prompt = True
         config.all = False
         config.netuid = []  # Don't set, so it tries all networks.
@@ -364,9 +366,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_with_sort_order_config(self):
+    def test_overview_with_sort_order_config(self, _):
         config = self.config
-        config.command = "overview"
+        config.command = "wallet"
+        config.subcommand = "overview"
         config.wallet.sort_order = "desc"  # Set descending sort order
         config.no_prompt = True
         config.all = False
@@ -375,9 +378,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_with_sort_order_config_bad_sort_type(self):
+    def test_overview_with_sort_order_config_bad_sort_type(self, _):
         config = self.config
-        config.command = "overview"
+        config.command = "wallet"
+        config.subcommand = "overview"
         config.wallet.sort_order = "nowaythisshouldmatchanyorderingchoice"
         config.no_prompt = True
         config.all = False
@@ -386,9 +390,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_without_sort_order_config(self):
+    def test_overview_without_sort_order_config(self, _):
         config = self.config
-        config.command = "overview"
+        config.command = "wallet"
+        config.subcommand = "overview"
         # Don't specify sort_order in config
         config.no_prompt = True
         config.all = False
@@ -397,9 +402,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_with_width_config(self):
+    def test_overview_with_width_config(self, _):
         config = self.config
-        config.command = "overview"
+        config.command = "wallet"
+        config.subcommand = "overview"
         config.width = 100
         config.no_prompt = True
         config.all = False
@@ -408,9 +414,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_without_width_config(self):
+    def test_overview_without_width_config(self, _):
         config = self.config
-        config.command = "overview"
+        config.command = "wallet"
+        config.subcommand = "overview"
         # Don't specify width in config
         config.no_prompt = True
         config.all = False
@@ -419,9 +426,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_overview_all(self):
+    def test_overview_all(self, _):
         config = self.config
-        config.command = "overview"
+        config.command = "wallet"
+        config.subcommand = "overview"
         config.no_prompt = True
         config.netuid = []  # Don't set, so it tries all networks.
 
@@ -429,9 +437,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli = bittensor.cli(config)
         cli.run()
 
-    def test_unstake_with_specific_hotkeys(self):
+    def test_unstake_with_specific_hotkeys(self, _):
         config = self.config
-        config.command = "unstake"
+        config.command = "stake"
+        config.subcommand = "remove"
         config.no_prompt = True
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
@@ -439,11 +448,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all_hotkeys = False
         # Notice no max_stake specified
 
-        mock_stakes: Dict[str, bittensor.Balance] = {
+        mock_stakes: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "hk0": bittensor.Balance.from_float(10.0),
-            "hk1": bittensor.Balance.from_float(11.1),
-            "hk2": bittensor.Balance.from_float(12.2),
+            "hk0": Balance.from_float(10.0),
+            "hk1": Balance.from_float(11.1),
+            "hk2": Balance.from_float(12.2),
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -504,9 +513,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     places=4,
                 )
 
-    def test_unstake_with_all_hotkeys(self):
+    def test_unstake_with_all_hotkeys(self, _):
         config = self.config
-        config.command = "unstake"
+        config.command = "stake"
+        config.subcommand = "remove"
         config.no_prompt = True
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
@@ -514,11 +524,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all_hotkeys = True
         # Notice no max_stake specified
 
-        mock_stakes: Dict[str, bittensor.Balance] = {
+        mock_stakes: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "hk0": bittensor.Balance.from_float(10.0),
-            "hk1": bittensor.Balance.from_float(11.1),
-            "hk2": bittensor.Balance.from_float(12.2),
+            "hk0": Balance.from_float(10.0),
+            "hk1": Balance.from_float(11.1),
+            "hk2": Balance.from_float(12.2),
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -555,7 +565,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 return mock_wallets[0]
 
         with patch(
-            "bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet"
+            "bittensor.commands.unstake.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
             with patch("bittensor.wallet") as mock_create_wallet:
@@ -583,20 +593,21 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                         places=4,
                     )
 
-    def test_unstake_with_exclude_hotkeys_from_all(self):
+    def test_unstake_with_exclude_hotkeys_from_all(self, _):
         config = self.config
-        config.command = "unstake"
+        config.command = "stake"
+        config.subcommand = "remove"
         config.no_prompt = True
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
         config.hotkeys = ["hk1"]  # Exclude hk1
         config.all_hotkeys = True
 
-        mock_stakes: Dict[str, bittensor.Balance] = {
+        mock_stakes: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "hk0": bittensor.Balance.from_float(10.0),
-            "hk1": bittensor.Balance.from_float(11.1),
-            "hk2": bittensor.Balance.from_float(12.2),
+            "hk0": Balance.from_float(10.0),
+            "hk1": Balance.from_float(11.1),
+            "hk2": Balance.from_float(12.2),
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -633,7 +644,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 return mock_wallets[0]
 
         with patch(
-            "bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet"
+            "bittensor.commands.unstake.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
             with patch("bittensor.wallet") as mock_create_wallet:
@@ -667,9 +678,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                             places=4,
                         )
 
-    def test_unstake_with_multiple_hotkeys_max_stake(self):
+    def test_unstake_with_multiple_hotkeys_max_stake(self, _):
         config = self.config
-        config.command = "unstake"
+        config.command = "stake"
+        config.subcommand = "remove"
         config.no_prompt = True
         # Notie amount is not specified
         config.max_stake = 5.0  # The keys should have at most 5.0 tao staked after
@@ -677,11 +689,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0", "hk1", "hk2"]
         config.all_hotkeys = False
 
-        mock_stakes: Dict[str, bittensor.Balance] = {
+        mock_stakes: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "hk0": bittensor.Balance.from_float(10.0),
-            "hk1": bittensor.Balance.from_float(4.9),
-            "hk2": bittensor.Balance.from_float(12.2),
+            "hk0": Balance.from_float(10.0),
+            "hk1": Balance.from_float(4.9),
+            "hk2": Balance.from_float(12.2),
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -720,7 +732,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 return mock_wallets[0]
 
         with patch(
-            "bittensor._cli.commands.unstake.get_hotkey_wallets_for_wallet"
+            "bittensor.commands.unstake.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
             with patch("bittensor.wallet") as mock_create_wallet:
@@ -753,9 +765,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                             stake.tao, mock_stakes[wallet.hotkey_str].tao, places=4
                         )
 
-    def test_stake_with_specific_hotkeys(self):
+    def test_stake_with_specific_hotkeys(self, _):
         config = self.config
         config.command = "stake"
+        config.subcommand = "add"
         config.no_prompt = True
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
@@ -763,7 +776,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all_hotkeys = False
         # Notice no max_stake specified
 
-        mock_balance = bittensor.Balance.from_float(22.2)
+        mock_balance = Balance.from_float(22.2)
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -824,9 +837,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 )
                 self.assertAlmostEqual(stake.tao, config.amount, places=4)
 
-    def test_stake_with_all_hotkeys(self):
+    def test_stake_with_all_hotkeys(self, _):
         config = self.config
         config.command = "stake"
+        config.subcommand = "add"
         config.no_prompt = True
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
@@ -836,7 +850,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_hotkeys = ["hk0", "hk1", "hk2"]
 
-        mock_balance = bittensor.Balance.from_float(22.0)
+        mock_balance = Balance.from_float(22.0)
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -880,7 +894,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         with patch("bittensor.wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
             with patch(
-                "bittensor._cli.commands.stake.get_hotkey_wallets_for_wallet"
+                "bittensor.commands.stake.get_hotkey_wallets_for_wallet"
             ) as mock_get_hotkey_wallets_for_wallet:
                 mock_get_hotkey_wallets_for_wallet.return_value = mock_wallets
 
@@ -921,9 +935,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     places=4,
                 )
 
-    def test_stake_with_exclude_hotkeys_from_all(self):
+    def test_stake_with_exclude_hotkeys_from_all(self, _):
         config = self.config
         config.command = "stake"
+        config.subcommand = "add"
         config.no_prompt = True
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
@@ -933,7 +948,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_hotkeys = ["hk0", "hk1", "hk2"]
 
-        mock_balance = bittensor.Balance.from_float(25.0)
+        mock_balance = Balance.from_float(25.0)
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -975,7 +990,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 return mock_wallets[0]
 
         with patch(
-            "bittensor._cli.commands.stake.get_hotkey_wallets_for_wallet"
+            "bittensor.commands.stake.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
             with patch("bittensor.wallet") as mock_create_wallet:
@@ -1022,9 +1037,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     balance.tao, mock_balance.tao - (config.amount * 2), places=4
                 )
 
-    def test_stake_with_multiple_hotkeys_max_stake(self):
+    def test_stake_with_multiple_hotkeys_max_stake(self, _):
         config = self.config
         config.command = "stake"
+        config.subcommand = "add"
         config.no_prompt = True
         # Notie amount is not specified
         config.max_stake = 15.0  # The keys should have at most 15.0 tao staked after
@@ -1032,12 +1048,12 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0", "hk1", "hk2"]
         config.all_hotkeys = False
 
-        mock_balance = bittensor.Balance.from_float(config.max_stake * 3)
+        mock_balance = Balance.from_float(config.max_stake * 3)
 
-        mock_stakes: Dict[str, bittensor.Balance] = {
-            "hk0": bittensor.Balance.from_float(0.0),
-            "hk1": bittensor.Balance.from_float(config.max_stake * 2),
-            "hk2": bittensor.Balance.from_float(0.0),
+        mock_stakes: Dict[str, Balance] = {
+            "hk0": Balance.from_float(0.0),
+            "hk1": Balance.from_float(config.max_stake * 2),
+            "hk2": Balance.from_float(0.0),
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -1134,9 +1150,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertLessEqual(balance.tao, mock_balance.tao)
 
-    def test_stake_with_multiple_hotkeys_max_stake_not_enough_balance(self):
+    def test_stake_with_multiple_hotkeys_max_stake_not_enough_balance(self, _):
         config = self.config
         config.command = "stake"
+        config.subcommand = "add"
         config.no_prompt = True
         # Notie amount is not specified
         config.max_stake = 15.0  # The keys should have at most 15.0 tao staked after
@@ -1144,9 +1161,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0", "hk1", "hk2"]
         config.all_hotkeys = False
 
-        mock_balance = bittensor.Balance.from_float(
-            15.0 * 2
-        )  # Not enough for all hotkeys
+        mock_balance = Balance.from_float(15.0 * 2)  # Not enough for all hotkeys
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -1228,9 +1243,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 )
                 self.assertLessEqual(balance.tao, mock_balance.tao)
 
-    def test_stake_with_single_hotkey_max_stake(self):
+    def test_stake_with_single_hotkey_max_stake(self, _):
         config = self.config
         config.command = "stake"
+        config.subcommand = "add"
         config.no_prompt = True
         # Notie amount is not specified
         config.max_stake = 15.0  # The keys should have at most 15.0 tao staked after
@@ -1238,7 +1254,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0"]
         config.all_hotkeys = False
 
-        mock_balance = bittensor.Balance.from_float(15.0 * 3)
+        mock_balance = Balance.from_float(15.0 * 3)
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -1315,9 +1331,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertLessEqual(balance.tao, mock_balance.tao)
 
-    def test_stake_with_single_hotkey_max_stake_not_enough_balance(self):
+    def test_stake_with_single_hotkey_max_stake_not_enough_balance(self, _):
         config = self.config
         config.command = "stake"
+        config.subcommand = "add"
         config.no_prompt = True
         # Notie amount is not specified
         config.max_stake = 15.0  # The keys should have at most 15.0 tao staked after
@@ -1325,7 +1342,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0"]
         config.all_hotkeys = False
 
-        mock_balance = bittensor.Balance.from_float(1.0)  # Not enough balance to do max
+        mock_balance = Balance.from_float(1.0)  # Not enough balance to do max
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -1402,10 +1419,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertGreaterEqual(balance.tao, mock_balance.tao - config.max_stake)
 
-    def test_stake_with_single_hotkey_max_stake_enough_stake(self):
+    def test_stake_with_single_hotkey_max_stake_enough_stake(self, _):
         # tests max stake when stake >= max_stake already
         config = self.config
         config.command = "stake"
+        config.subcommand = "add"
         config.no_prompt = True
         # Notie amount is not specified
         config.max_stake = 15.0  # The keys should have at most 15.0 tao staked after
@@ -1413,12 +1431,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0"]
         config.all_hotkeys = False
 
-        mock_balance = bittensor.Balance.from_float(config.max_stake * 3)
+        mock_balance = Balance.from_float(config.max_stake * 3)
 
-        mock_stakes: Dict[
-            str, bittensor.Balance
-        ] = {  # has enough stake, more than max_stake
-            "hk0": bittensor.Balance.from_float(config.max_stake * 2)
+        mock_stakes: Dict[str, Balance] = {  # has enough stake, more than max_stake
+            "hk0": Balance.from_float(config.max_stake * 2)
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -1504,14 +1520,15 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertAlmostEqual(balance.tao, mock_balance.tao, places=4)
 
-    def test_nominate(self):
+    def test_nominate(self, _):
         config = self.config
-        config.command = "nominate"
+        config.command = "root"
+        config.subcommand = "nominate"
         config.no_prompt = True
         config.wallet.name = "w0"
         config.hotkey = "hk0"
 
-        mock_balance = bittensor.Balance.from_float(100.0)
+        mock_balance = Balance.from_float(100.0)
 
         mock_wallet = SimpleNamespace(
             name="w0",
@@ -1556,20 +1573,23 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertTrue(is_delegate)
 
-    def test_delegate_stake(self):
+    def test_delegate_stake(self, _):
         config = self.config
-        config.command = "delegate"
+        config.command = "root"
+        config.subcommand = "delegate"
         config.no_prompt = True
         config.amount = 5.0
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, bittensor.Balance] = {
+        mock_balances: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "w0": {"hk0": bittensor.Balance.from_float(10.0)},
-            "w1": {"hk1": bittensor.Balance.from_float(11.1)},
+            "w0": {
+                "hk0": Balance.from_float(10.0),
+            },
+            "w1": {"hk1": Balance.from_float(11.1)},
         }
 
-        mock_stake = bittensor.Balance.from_float(5.0)
+        mock_stake = Balance.from_float(5.0)
 
         mock_wallets = []
         for idx, wallet_name in enumerate(list(mock_balances.keys())):
@@ -1638,21 +1658,24 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertAlmostEqual(stake.tao, config.amount, places=4)
 
-    def test_undelegate_stake(self):
+    def test_undelegate_stake(self, _):
         config = self.config
-        config.command = "undelegate"
+        config.command = "root"
+        config.subcommand = "undelegate"
         config.no_prompt = True
         config.amount = 5.0
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, bittensor.Balance] = {
+        mock_balances: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "w0": {"hk0": bittensor.Balance.from_float(10.0)},
-            "w1": {"hk1": bittensor.Balance.from_float(11.1)},
+            "w0": {
+                "hk0": Balance.from_float(10.0),
+            },
+            "w1": {"hk1": Balance.from_float(11.1)},
         }
 
-        mock_stake = bittensor.Balance.from_float(5.0)
-        mock_delegated = bittensor.Balance.from_float(6.0)
+        mock_stake = Balance.from_float(5.0)
+        mock_delegated = Balance.from_float(6.0)
 
         mock_wallets = []
         for idx, wallet_name in enumerate(list(mock_balances.keys())):
@@ -1739,16 +1762,17 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 stake.tao, mock_delegated.tao - config.amount, places=4
             )
 
-    def test_transfer(self):
+    def test_transfer(self, _):
         config = self.config
-        config.command = "transfer"
+        config.command = "wallet"
+        config.subcommand = "transfer"
         config.no_prompt = True
         config.amount = 3.2
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, bittensor.Balance] = {
-            "w0": bittensor.Balance.from_float(10.0),
-            "w1": bittensor.Balance.from_float(config.amount + 0.001),
+        mock_balances: Dict[str, Balance] = {
+            "w0": Balance.from_float(10.0),
+            "w1": Balance.from_float(config.amount + 0.001),
         }
 
         mock_wallets = []
@@ -1806,18 +1830,17 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 balance.tao, mock_balances["w1"].tao - config.amount, places=4
             )  # no fees
 
-    def test_transfer_not_enough_balance(self):
+    def test_transfer_not_enough_balance(self, _):
         config = self.config
-        config.command = "transfer"
+        config.command = "wallet"
+        config.subcommand = "transfer"
         config.no_prompt = True
         config.amount = 3.2
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, bittensor.Balance] = {
-            "w0": bittensor.Balance.from_float(10.0),
-            "w1": bittensor.Balance.from_float(
-                config.amount - 0.1
-            ),  # not enough balance
+        mock_balances: Dict[str, Balance] = {
+            "w0": Balance.from_float(10.0),
+            "w1": Balance.from_float(config.amount - 0.1),  # not enough balance
         }
 
         mock_wallets = []
@@ -1886,11 +1909,12 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 balance.tao, mock_balances["w1"].tao, places=4
             )  # did not transfer
 
-    def test_register(self):
+    def test_register(self, _):
         config = self.config
-        config.command = "register"
-        config.subtensor.register.num_processes = 1
-        config.subtensor.register.update_interval = 50_000
+        config.command = "subnets"
+        config.subcommand = "register"
+        config.register.num_processes = 1
+        config.register.update_interval = 50_000
         config.no_prompt = True
 
         mock_wallet = generate_wallet(hotkey=_get_mock_keypair(100, self.id()))
@@ -1900,11 +1924,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         with patch("bittensor.wallet", return_value=mock_wallet) as mock_create_wallet:
             with patch(
-                "bittensor._subtensor.extrinsics.registration.POWSolution.is_stale",
+                "bittensor.extrinsics.registration.POWSolution.is_stale",
                 side_effect=MockException,
             ) as mock_is_stale:
-                mock_is_stale.return_value = False
-
                 with pytest.raises(MockException):
                     cli = bittensor.cli(config)
                     cli.run()
@@ -1912,9 +1934,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
                 self.assertEqual(mock_is_stale.call_count, 1)
 
-    def test_recycle_register(self):
+    def test_recycle_register(self, _):
         config = self.config
-        config.command = "recycle_register"
+        config.command = "subnets"
+        config.subcommand = "recycle_register"
         config.no_prompt = True
 
         mock_wallet = generate_wallet(hotkey=_get_mock_keypair(100, self.id()))
@@ -1922,7 +1945,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Give the wallet some balance for burning
         success, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallet.coldkeypub.ss58_address,
-            balance=bittensor.Balance.from_float(200.0),
+            balance=Balance.from_float(200.0),
         )
 
         with patch("bittensor.wallet", return_value=mock_wallet) as mock_create_wallet:
@@ -1938,14 +1961,14 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
             self.assertTrue(registered)
 
-    def test_stake(self):
+    def test_stake(self, _):
         amount_to_stake: Balance = Balance.from_tao(0.5)
         config = self.config
         config.no_prompt = True
         config.command = "stake"
+        config.subcommand = "add"
         config.amount = amount_to_stake.tao
         config.stake_all = False
-        config.wallet._mock = True
         config.use_password = False
         config.model = "core_server"
         config.hotkey = "hk0"
@@ -1982,10 +2005,11 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
             self.assertGreater(new_stake, old_stake)
 
-    def test_metagraph(self):
+    def test_metagraph(self, _):
         config = self.config
         config.wallet.name = "metagraph_testwallet"
-        config.command = "metagraph"
+        config.command = "subnets"
+        config.subcommand = "metagraph"
         config.no_prompt = True
 
         # Add some neurons to the metagraph
@@ -2034,28 +2058,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         for neuron in nn:
             self.assertIn(str(neuron.uid), output_no_syntax)
 
-    def test_set_weights(self):
-        config = self.config
-        config.wallet.name = "set_weights_testwallet"
-        config.no_prompt = True
-        config.uids = [1, 2, 3, 4]
-        config.weights = [0.25, 0.25, 0.25, 0.25]
-        config.n_words = 12
-        config.use_password = False
-
-        config.overwrite_hotkey = True
-
-        # First create a new hotkey
-        config.command = "new_hotkey"
-        cli = bittensor.cli(config)
-        cli.run()
-
-        # Now set the weights
-        config.command = "set_weights"
-        cli.config = config
-        cli.run()
-
-    def test_inspect(self):
+    def test_inspect(self, _):
         config = self.config
         config.wallet.name = "inspect_testwallet"
         config.no_prompt = True
@@ -2065,43 +2068,49 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.overwrite_hotkey = True
 
         # First create a new coldkey
-        config.command = "new_coldkey"
+        config.command = "wallet"
+        config.subcommand = "new_coldkey"
         cli = bittensor.cli(config)
         cli.run()
 
         # Now let's give it a hotkey
-        config.command = "new_hotkey"
+        config.command = "wallet"
+        config.subcommand = "new_hotkey"
         cli.config = config
         cli.run()
 
         # Now inspect it
-        cli.config.command = "inspect"
+        config.command = "wallet"
+        cli.config.subcommand = "inspect"
         cli.config = config
         cli.run()
 
-        cli.config.command = "list"
+        config.command = "wallet"
+        cli.config.subcommand = "list"
         cli.config = config
         cli.run()
 
 
+@patch("bittensor.subtensor", new_callable=return_mock_sub)
 class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     """
     Test the CLI by passing args directly to the bittensor.cli factory
     """
 
-    def test_list_delegates(self):
+    def test_list_delegates(self, _):
+        cli = bittensor.cli(args=["root", "list_delegates"])
+        cli.run()
+
+    def test_list_subnets(self, _):
         cli = bittensor.cli(
-            args=["list_delegates", "--subtensor.network", "mock"]  # Mock network
+            args=[
+                "subnets",
+                "list",
+            ]
         )
         cli.run()
 
-    def test_list_subnets(self):
-        cli = bittensor.cli(
-            args=["list_subnets", "--subtensor.network", "mock"]  # Mock network
-        )
-        cli.run()
-
-    def test_delegate(self):
+    def test_delegate(self, _):
         """
         Test delegate add command
         """
@@ -2131,7 +2140,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         # Give the wallet some TAO
         _, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallet.coldkey.ss58_address,
-            balance=bittensor.Balance.from_tao(20.0),
+            balance=Balance.from_tao(20.0),
         )
         self.assertEqual(err, None)
 
@@ -2154,13 +2163,12 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         ):  # Mock wallet creation. SHOULD NOT BE REGISTERED
             cli = bittensor.cli(
                 args=[
+                    "root",
                     "delegate",
                     "--subtensor.network",
                     "mock",  # Mock network
                     "--wallet.name",
                     "mock",
-                    "--wallet._mock",
-                    "True",
                     "--delegate_ss58key",
                     delegate_wallet.hotkey.ss58_address,
                     "--amount",

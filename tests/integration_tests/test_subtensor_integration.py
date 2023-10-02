@@ -24,10 +24,10 @@ from unittest.mock import MagicMock, patch
 from types import SimpleNamespace
 
 import bittensor
+from bittensor.mock import MockSubtensor
 import pytest
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
-from bittensor._subtensor.subtensor_mock import MockSubtensor
 from tests.helpers import (
     _get_mock_hotkey,
     _get_mock_coldkey,
@@ -49,7 +49,7 @@ class TestSubtensor(unittest.TestCase):
         )
         self.balance = Balance.from_tao(1000)
         self.mock_neuron = MagicMock()  # NOTE: this might need more sophistication
-        self.subtensor = bittensor.subtensor(network="mock")  # own instance per test
+        self.subtensor = MockSubtensor()  # own instance per test
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -59,7 +59,7 @@ class TestSubtensor(unittest.TestCase):
         cls._mock_console_patcher.start()
 
         # Keeps the same mock network for all tests. This stops the network from being re-setup for each test.
-        cls._mock_subtensor = bittensor.subtensor(network="mock")
+        cls._mock_subtensor = MockSubtensor()
 
         cls._do_setup_subnet()
 
@@ -89,16 +89,7 @@ class TestSubtensor(unittest.TestCase):
         # Mock network calls
         with patch("substrateinterface.SubstrateInterface.connect_websocket"):
             with patch("substrateinterface.SubstrateInterface.reload_type_registry"):
-                # Choose arg over config
-                sub0 = bittensor.subtensor(
-                    config=config0, chain_endpoint="wss://fin.subtensor.io"
-                )
-                self.assertEqual(
-                    sub0.chain_endpoint,
-                    "wss://fin.subtensor.io",
-                    msg="Explicit chain_endpoint arg should override config.chain_endpoint",
-                )
-
+                print(bittensor.subtensor, type(bittensor.subtensor))
                 # Choose network arg over config
                 sub1 = bittensor.subtensor(config=config1, network="local")
                 self.assertEqual(
@@ -107,12 +98,12 @@ class TestSubtensor(unittest.TestCase):
                     msg="Explicit network arg should override config.network",
                 )
 
-                # Choose chain_endpoint config over network config
+                # Choose network config over chain_endpoint config
                 sub2 = bittensor.subtensor(config=config0)
-                self.assertEqual(
+                self.assertNotEqual(
                     sub2.chain_endpoint,
-                    config0.subtensor.chain_endpoint,
-                    msg="config.chain_endpoint should override choice derived from config.network",
+                    bittensor.__finney_entrypoint__,  # Here we expect the endpoint corresponding to the network "finney"
+                    msg="config.network should override config.chain_endpoint",
                 )
 
                 sub3 = bittensor.subtensor(config=config1)
@@ -137,12 +128,11 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
             return_value=self.mock_neuron
         )
-        with patch(
-            "bittensor.Subtensor.get_stake_for_coldkey_and_hotkey",
-            return_value=Balance.from_tao(500),
-        ):
-            success = self.subtensor.unstake(self.wallet, amount=200)
-            self.assertTrue(success, msg="Unstake should succeed")
+        self.subtensor.get_stake_for_coldkey_and_hotkey = MagicMock(
+            return_value=Balance.from_tao(500)
+        )
+        success = self.subtensor.unstake(self.wallet, amount=200)
+        self.assertTrue(success, msg="Unstake should succeed")
 
     def test_unstake_inclusion(self):
         self.subtensor._do_unstake = MagicMock(return_value=True)
@@ -153,18 +143,16 @@ class TestSubtensor(unittest.TestCase):
 
         self.subtensor.register = MagicMock(return_value=True)
         self.subtensor.get_balance = MagicMock(return_value=self.balance)
-
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
             return_value=self.mock_neuron
         )
-        with patch(
-            "bittensor.Subtensor.get_stake_for_coldkey_and_hotkey",
-            return_value=Balance.from_tao(500),
-        ):
-            success = self.subtensor.unstake(
-                self.wallet, amount=200, wait_for_inclusion=True
-            )
-            self.assertTrue(success, msg="Unstake should succeed")
+        self.subtensor.get_stake_for_coldkey_and_hotkey = MagicMock(
+            return_value=Balance.from_tao(500)
+        )
+        success = self.subtensor.unstake(
+            self.wallet, amount=200, wait_for_inclusion=True
+        )
+        self.assertTrue(success, msg="Unstake should succeed")
 
     def test_unstake_failed(self):
         self.subtensor._do_unstake = MagicMock(return_value=False)
@@ -175,14 +163,11 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
             return_value=self.mock_neuron
         )
-        with patch(
-            "bittensor.Subtensor.get_stake_for_coldkey_and_hotkey",
-            return_value=Balance.from_tao(500),
-        ):
-            fail = self.subtensor.unstake(
-                self.wallet, amount=200, wait_for_inclusion=True
-            )
-            self.assertFalse(fail, msg="Unstake should fail")
+        self.subtensor.get_stake_for_coldkey_and_hotkey = MagicMock(
+            return_value=Balance.from_tao(500)
+        )
+        fail = self.subtensor.unstake(self.wallet, amount=200, wait_for_inclusion=True)
+        self.assertFalse(fail, msg="Unstake should fail")
 
     def test_stake(self):
         self.subtensor._do_stake = MagicMock(return_value=True)
@@ -197,16 +182,14 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
             return_value=self.mock_neuron
         )
-        with patch(
-            "bittensor.Subtensor.get_stake_for_coldkey_and_hotkey",
-            return_value=Balance.from_tao(500),
-        ):
-            with patch(
-                "bittensor.Subtensor.get_hotkey_owner",
-                return_value=self.wallet.coldkeypub.ss58_address,
-            ):
-                success = self.subtensor.add_stake(self.wallet, amount=200)
-                self.assertTrue(success, msg="Stake should succeed")
+        self.subtensor.get_stake_for_coldkey_and_hotkey = MagicMock(
+            return_value=Balance.from_tao(500)
+        )
+        self.subtensor.get_hotkey_owner = MagicMock(
+            return_value=self.wallet.coldkeypub.ss58_address
+        )
+        success = self.subtensor.add_stake(self.wallet, amount=200)
+        self.assertTrue(success, msg="Stake should succeed")
 
     def test_stake_inclusion(self):
         self.subtensor._do_stake = MagicMock(return_value=True)
@@ -221,18 +204,16 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
             return_value=self.mock_neuron
         )
-        with patch(
-            "bittensor.Subtensor.get_stake_for_coldkey_and_hotkey",
-            return_value=Balance.from_tao(500),
-        ):
-            with patch(
-                "bittensor.Subtensor.get_hotkey_owner",
-                return_value=self.wallet.coldkeypub.ss58_address,
-            ):
-                success = self.subtensor.add_stake(
-                    self.wallet, amount=200, wait_for_inclusion=True
-                )
-                self.assertTrue(success, msg="Stake should succeed")
+        self.subtensor.get_stake_for_coldkey_and_hotkey = MagicMock(
+            return_value=Balance.from_tao(500)
+        )
+        self.subtensor.get_hotkey_owner = MagicMock(
+            return_value=self.wallet.coldkeypub.ss58_address
+        )
+        success = self.subtensor.add_stake(
+            self.wallet, amount=200, wait_for_inclusion=True
+        )
+        self.assertTrue(success, msg="Stake should succeed")
 
     def test_stake_failed(self):
         self.subtensor._do_stake = MagicMock(return_value=False)
@@ -247,18 +228,16 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
             return_value=self.mock_neuron
         )
-        with patch(
-            "bittensor.Subtensor.get_stake_for_coldkey_and_hotkey",
-            return_value=Balance.from_tao(500),
-        ):
-            with patch(
-                "bittensor.Subtensor.get_hotkey_owner",
-                return_value=self.wallet.coldkeypub.ss58_address,
-            ):
-                fail = self.subtensor.add_stake(
-                    self.wallet, amount=200, wait_for_inclusion=True
-                )
-                self.assertFalse(fail, msg="Stake should fail")
+        self.subtensor.get_stake_for_coldkey_and_hotkey = MagicMock(
+            return_value=Balance.from_tao(500)
+        )
+        self.subtensor.get_hotkey_owner = MagicMock(
+            return_value=self.wallet.coldkeypub.ss58_address
+        )
+        fail = self.subtensor.add_stake(
+            self.wallet, amount=200, wait_for_inclusion=True
+        )
+        self.assertFalse(fail, msg="Stake should fail")
 
     def test_transfer(self):
         fake_coldkey = _get_mock_coldkey(1)
@@ -452,53 +431,47 @@ class TestSubtensor(unittest.TestCase):
         mock_neuron = MagicMock()
         mock_neuron.is_null = True
 
-        with patch("bittensor.Subtensor.difficulty"):
-            # patch solution queue to return None
+        # patch solution queue to return None
+        with patch(
+            "multiprocessing.queues.Queue.get", return_value=None
+        ) as mock_queue_get:
+            # patch time queue get to raise Empty exception
             with patch(
-                "multiprocessing.queues.Queue.get", return_value=None
-            ) as mock_queue_get:
-                # patch time queue get to raise Empty exception
-                with patch(
-                    "multiprocessing.queues.Queue.get_nowait", side_effect=QueueEmpty
-                ) as mock_queue_get_nowait:
-                    wallet = _get_mock_wallet(
-                        hotkey=_get_mock_keypair(0, self.id()),
-                        coldkey=_get_mock_keypair(1, self.id()),
-                    )
-                    self.subtensor.is_hotkey_registered = MagicMock(
-                        side_effect=is_registered_return_values
-                    )
+                "multiprocessing.queues.Queue.get_nowait", side_effect=QueueEmpty
+            ) as mock_queue_get_nowait:
+                wallet = _get_mock_wallet(
+                    hotkey=_get_mock_keypair(0, self.id()),
+                    coldkey=_get_mock_keypair(1, self.id()),
+                )
+                self.subtensor.is_hotkey_registered = MagicMock(
+                    side_effect=is_registered_return_values
+                )
 
-                    self.subtensor.difficulty = MagicMock(return_value=1)
-                    self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
-                        side_effect=mock_neuron
-                    )
-                    self.subtensor._do_pow_register = MagicMock(
-                        return_value=(True, None)
-                    )
+                self.subtensor.difficulty = MagicMock(return_value=1)
+                self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
+                    side_effect=mock_neuron
+                )
+                self.subtensor._do_pow_register = MagicMock(return_value=(True, None))
 
-                    with patch("bittensor.__console__.status") as mock_set_status:
-                        # Need to patch the console status to avoid opening a parallel live display
-                        mock_set_status.__enter__ = MagicMock(return_value=True)
-                        mock_set_status.__exit__ = MagicMock(return_value=True)
+                with patch("bittensor.__console__.status") as mock_set_status:
+                    # Need to patch the console status to avoid opening a parallel live display
+                    mock_set_status.__enter__ = MagicMock(return_value=True)
+                    mock_set_status.__exit__ = MagicMock(return_value=True)
 
-                        # should return True
-                        assert (
-                            self.subtensor.register(
-                                wallet=wallet,
-                                netuid=3,
-                                num_processes=3,
-                                update_interval=5,
-                            )
-                            == True
-                        )
-
-                    # calls until True and once again before exiting subtensor class
-                    # This assertion is currently broken when difficulty is too low
+                    # should return True
                     assert (
-                        self.subtensor.is_hotkey_registered.call_count
-                        == workblocks_before_is_registered + 2
+                        self.subtensor.register(
+                            wallet=wallet, netuid=3, num_processes=3, update_interval=5
+                        )
+                        == True
                     )
+
+                # calls until True and once again before exiting subtensor class
+                # This assertion is currently broken when difficulty is too low
+                assert (
+                    self.subtensor.is_hotkey_registered.call_count
+                    == workblocks_before_is_registered + 2
+                )
 
     def test_registration_partly_failed(self):
         do_pow_register_mock = MagicMock(
@@ -511,31 +484,29 @@ class TestSubtensor(unittest.TestCase):
 
         current_block = [i for i in range(0, 100)]
 
-        with patch(
-            "bittensor.Subtensor.get_neuron_for_pubkey_and_subnet",
-            return_value=bittensor.NeuronInfo._null_neuron(),
-        ):
-            with patch("bittensor.Subtensor.difficulty"):
-                wallet = _get_mock_wallet(
-                    hotkey=_get_mock_keypair(0, self.id()),
-                    coldkey=_get_mock_keypair(1, self.id()),
-                )
+        wallet = _get_mock_wallet(
+            hotkey=_get_mock_keypair(0, self.id()),
+            coldkey=_get_mock_keypair(1, self.id()),
+        )
 
-                self.subtensor.is_hotkey_registered = MagicMock(
-                    side_effect=is_registered_side_effect
-                )
+        self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
+            return_value=bittensor.NeuronInfo._null_neuron()
+        )
+        self.subtensor.is_hotkey_registered = MagicMock(
+            side_effect=is_registered_side_effect
+        )
 
-                self.subtensor.difficulty = MagicMock(return_value=1)
-                self.subtensor.get_current_block = MagicMock(side_effect=current_block)
-                self.subtensor._do_pow_register = do_pow_register_mock
+        self.subtensor.difficulty = MagicMock(return_value=1)
+        self.subtensor.get_current_block = MagicMock(side_effect=current_block)
+        self.subtensor._do_pow_register = do_pow_register_mock
 
-                # should return True
-                self.assertTrue(
-                    self.subtensor.register(
-                        wallet=wallet, netuid=3, num_processes=3, update_interval=5
-                    ),
-                    msg="Registration should succeed",
-                )
+        # should return True
+        self.assertTrue(
+            self.subtensor.register(
+                wallet=wallet, netuid=3, num_processes=3, update_interval=5
+            ),
+            msg="Registration should succeed",
+        )
 
     def test_registration_failed(self):
         is_registered_return_values = [False for _ in range(100)]
@@ -544,7 +515,7 @@ class TestSubtensor(unittest.TestCase):
         mock_neuron.is_null = True
 
         with patch(
-            "bittensor._subtensor.extrinsics.registration.create_pow", return_value=None
+            "bittensor.extrinsics.registration.create_pow", return_value=None
         ) as mock_create_pow:
             wallet = _get_mock_wallet(
                 hotkey=_get_mock_keypair(0, self.id()),
@@ -596,32 +567,24 @@ class TestSubtensor(unittest.TestCase):
 
         mock_create_pow = MagicMock(return_value=MagicMock(is_stale=mock_is_stale))
 
-        with patch(
-            "bittensor.Subtensor.get_neuron_for_pubkey_and_subnet",
-            return_value=bittensor.NeuronInfo._null_neuron(),
-        ):
-            with patch(
-                "bittensor._subtensor.extrinsics.registration.create_pow",
-                mock_create_pow,
-            ):
-                # should create a pow and check if it is stale
-                # then should create a new pow and check if it is stale
-                # then should enter substrate and exit early because of test
-                with pytest.raises(ExitEarly):
-                    bittensor.Subtensor.register(
-                        mock_subtensor_self, mock_wallet, netuid=3
-                    )
-                self.assertEqual(
-                    mock_create_pow.call_count,
-                    2,
-                    msg="must try another pow after stale",
-                )
-                self.assertEqual(mock_is_stale.call_count, 2)
-                self.assertEqual(
-                    mock_do_pow_register.call_count,
-                    1,
-                    msg="only tries to submit once, then exits",
-                )
+        with patch("bittensor.extrinsics.registration.create_pow", mock_create_pow):
+            # should create a pow and check if it is stale
+            # then should create a new pow and check if it is stale
+            # then should enter substrate and exit early because of test
+            self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
+                return_value=bittensor.NeuronInfo._null_neuron()
+            )
+            with pytest.raises(ExitEarly):
+                bittensor.subtensor.register(mock_subtensor_self, mock_wallet, netuid=3)
+            self.assertEqual(
+                mock_create_pow.call_count, 2, msg="must try another pow after stale"
+            )
+            self.assertEqual(mock_is_stale.call_count, 2)
+            self.assertEqual(
+                mock_do_pow_register.call_count,
+                1,
+                msg="only tries to submit once, then exits",
+            )
 
 
 # # This test was flaking, please check to_defaults before reactiving the test

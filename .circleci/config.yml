@@ -88,7 +88,7 @@ jobs:
             python -m venv env/
             . env/bin/activate
             python -m pip install --upgrade pip
-            pip install '.[dev]'
+            python -m pip install '.[dev]'
 
       - save_cache:
           name: Save cached venv
@@ -103,10 +103,10 @@ jobs:
             pip install -e '.[dev]'
 
       - run:
-          name: Instantiate Mock Wallet & Protos
+          name: Instantiate Mock Wallet
           command: |
             . env/bin/activate
-            ./scripts/create_wallet.sh && ./scripts/build_protos.sh
+            ./scripts/create_wallet.sh
 
       # TODO: Update test durations on different runs
       - run:
@@ -247,7 +247,7 @@ workflows:
       - build-and-test:
           matrix:
             parameters:
-              python-version: ["3.8.14", "3.9.13", "3.10.6"]
+              python-version: ["3.9.13", "3.10.6", "3.11.4"]
       - unit-tests-all-python-versions:
           requires:
             - build-and-test
