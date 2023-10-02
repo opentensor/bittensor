@@ -248,7 +248,7 @@ class RootGetWeightsCommand:
                 table.add_row(
                     str(uid),
                     str(weight_data[0]),
-                    str(round(weight_data[1] / 65535, 2))
+                    "{:0.2f}%".format((weight_data[1] / 65535) * 100)
                 )
             
 
