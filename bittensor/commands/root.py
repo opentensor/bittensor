@@ -211,6 +211,7 @@ class RootSetWeightsCommand:
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
+
 class RootGetWeightsCommand:
     @staticmethod
     def run(cli):
@@ -248,9 +249,8 @@ class RootGetWeightsCommand:
                 table.add_row(
                     str(uid),
                     str(weight_data[0]),
-                    "{:0.2f}%".format((weight_data[1] / 65535) * 100)
+                    "{:0.2f}%".format((weight_data[1] / 65535) * 100),
                 )
-            
 
         table.box = None
         table.pad_edge = False
@@ -259,7 +259,9 @@ class RootGetWeightsCommand:
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        parser = parser.add_parser("get_weights", help="""Get weights for root network.""")
+        parser = parser.add_parser(
+            "get_weights", help="""Get weights for root network."""
+        )
 
         bittensor.wallet.add_args(parser)
         bittensor.subtensor.add_args(parser)
