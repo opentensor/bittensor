@@ -213,7 +213,7 @@ def process_weights_for_netuid(
     netuid: int,
     subtensor: "bittensor.subtensor",
     metagraph: "bittensor.metagraph" = None,
-    exclude_quantile: int = 6554,
+    exclude_quantile: float = 0,
 ) -> torch.FloatTensor:
     bittensor.logging.debug("process_weights_for_netuid()")
     bittensor.logging.debug("weights", weights)
