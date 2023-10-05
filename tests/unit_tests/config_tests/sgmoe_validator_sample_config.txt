@@ -1,4 +1,0 @@
-dataset.batch_size: 10
-dendrite.requires_grad: true
-logging.logging_dir: ~/.bittensor/miners
-neuron.clip_gradients: 1.0

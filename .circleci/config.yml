@@ -2,9 +2,68 @@ version: 2.1
 
 orbs:
   python: circleci/python@2.1.1
+  python-lib: dialogue/python-lib@0.1.55
   # coveralls: coveralls/coveralls@1.0.6
 
 jobs:
+  black:
+    resource_class: small
+    parameters:
+      python-version:
+        type: string
+    docker:
+      - image: cimg/python:<< parameters.python-version >>
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          name: Restore cached black venv
+          keys:
+            - v1-pypi-py-black-<< parameters.python-version >>
+
+      - run:
+          name: Update & Activate black venv
+          command: |
+            python -m venv env/
+            . env/bin/activate
+            python -m pip install --upgrade pip
+            pip install black
+
+      - save_cache:
+          name: Save cached black venv
+          paths:
+            - "env/"
+          key: v1-pypi-py-black-<< parameters.python-version >>
+
+      - run:
+          name: Black format check
+          command: |
+            . env/bin/activate
+            python -m black --exclude '(env|venv|.eggs)' --check .
+
+  check_compatibility:
+    parameters:
+      python_version:
+        type: string
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Check if requirements files have changed
+          command: ./scripts/check_requirements_changes.sh
+      - run:
+          name: Install dependencies and Check compatibility
+          command: |
+            if [ "$REQUIREMENTS_CHANGED" == "true" ]; then
+              sudo apt-get update
+              sudo apt-get install -y jq curl
+              ./scripts/check_compatibility.sh << parameters.python_version >>
+            else
+              echo "Skipping compatibility checks..."
+            fi
+
   build-and-test:
     resource_class: medium
     parallelism: 2
@@ -29,7 +88,7 @@ jobs:
             python -m venv env/
             . env/bin/activate
             python -m pip install --upgrade pip
-            pip install '.[dev]'
+            python -m pip install '.[dev]'
 
       - save_cache:
           name: Save cached venv
@@ -44,10 +103,10 @@ jobs:
             pip install -e '.[dev]'
 
       - run:
-          name: Instantiate Mock Wallet & Protos
+          name: Instantiate Mock Wallet
           command: |
             . env/bin/activate
-            ./scripts/create_wallet.sh && ./scripts/build_protos.sh
+            ./scripts/create_wallet.sh
 
       # TODO: Update test durations on different runs
       - run:
@@ -66,7 +125,7 @@ jobs:
           command: |
             . env/bin/activate
             export PYTHONUNBUFFERED=1
-            pytest -n2 --reruns 3 --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
+            pytest -n2 --reruns 3 --reruns-delay 15 --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
             --cov=. --cov-append --cov-config .coveragerc \
             --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
             --splitting-algorithm duration_based_chunks --store-durations --durations-path .test_durations \
@@ -166,12 +225,29 @@ jobs:
 
 
 workflows:
+  compatibility_checks:
+    jobs:
+      - check_compatibility:
+          python_version: "3.8"
+          name: check-compatibility-3.8
+      - check_compatibility:
+          python_version: "3.9"
+          name: check-compatibility-3.9
+      - check_compatibility:
+          python_version: "3.10"
+          name: check-compatibility-3.10
+      - check_compatibility:
+          python_version: "3.11"
+          name: check-compatibility-3.11
+  
   pr-requirements:
     jobs:
+      - black:
+          python-version: "3.8.12"
       - build-and-test:
           matrix:
             parameters:
-              python-version: ["3.8.14", "3.9.13", "3.10.6"]
+              python-version: ["3.9.13", "3.10.6", "3.11.4"]
       - unit-tests-all-python-versions:
           requires:
             - build-and-test

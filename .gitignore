@@ -4,13 +4,11 @@
 *$py.class
 *.pyc
 
+# Remove notebooks.
+*.ipynb
+
 # weigths and biases
 wandb/
-
-# benchmark results
-benchmarks/results/
-benchmarks/results/*
-!benchmarks/results
 
 *.csv
 *.torch

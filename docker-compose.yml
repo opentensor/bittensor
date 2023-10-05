@@ -8,6 +8,3 @@ services:
       - "8091:8091"
     volumes:
       - ~/.bittensor:/root/.bittensor
-
-    command: /bin/bash -c "
-      PYTHONPATH=/bittensor python3 /bittensor/miners/template_miner.py --subtensor.network nobunaga"

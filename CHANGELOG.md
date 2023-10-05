@@ -1,5 +1,137 @@
 # Changelog
 
+## 6.0.1 / 2023-10-02
+
+## What's Changed
+* Fix requirements/prod.txt, we had a bad format dependency not allowed by PyPi by @eduardogr in https://github.com/opentensor/bittensor/pull/1537
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.0.0...v6.0.1
+
+
+## 6.0.0 / 2023-10-02
+
+## What's Changed
+* - Adjusted blacklist argument default to False by @Inquinim in https://github.com/opentensor/bittensor/pull/1448
+* Release/5.3.1 by @camfairchild in https://github.com/opentensor/bittensor/pull/1444
+* Release/5.3.2 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1462
+* [hotfix] Release v5.3.3 by @camfairchild in https://github.com/opentensor/bittensor/pull/1467
+* Update README.md by @unconst in https://github.com/opentensor/bittensor/pull/1477
+* Release/5.3.4 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1483
+* Revolution by @unconst in https://github.com/opentensor/bittensor/pull/1450
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.3.0...v6.0.0
+
+
+## 6.0.1 / 2023-10-02
+
+## What's Changed
+* Fix requirements/prod.txt, we had a bad format dependency not allowed by PyPi by @eduardogr in https://github.com/opentensor/bittensor/pull/1537
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.0.0...v6.0.1
+
+
+## 5.3.4 / 2023-08-16
+
+# What's Changed
+* Removes miniupnpc by @ifrit98 (completely unused and requires a sudo install)
+* Fixes blacklist vpermit_required by @inquinim e80d3d5
+* Add try/except and timeout to version checking with exception handles by @ifrit98 a6a89fd
+* Further updates CONTRIBUTING.md and DEVELOPMENT_WORKFLOW.md by @gitphantomman 3fefdbb
+* Adds automatic compatibility checks to circleci for all major python3 supported versions. add checks by @ifrit98 #1484
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.3.3...v5.3.4
+
+
+## 5.3.3 / 2023-07-26
+
+## What's Changed
+* Remove datasets requirement by @camfairchild in 2eabf0002b01
+* Relax bittensor-* requirements by @camfairchild in da9300ba5b2
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.3.2...v5.3.3
+
+
+## 5.3.2 / 2023-07-25
+
+## What's Changed
+* Btlm miner by @shibshib in https://github.com/opentensor/bittensor/pull/1463
+* Don't finalize set_weights ext by @camfairchild in https://github.com/opentensor/bittensor/pull/1461
+* Faster overview pull by @camfairchild in https://github.com/opentensor/bittensor/pull/1464
+* Contrib revamp by @ifrit98 in https://github.com/opentensor/bittensor/pull/1456
+* fix torch typehint on some neurons BT-1329 by @camfairchild in https://github.com/opentensor/bittensor/pull/1460
+* bump bittensor-wallet version to 0.0.5
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.3.1...v5.3.2
+
+
+## 5.3.1 / 2023-07-06
+
+ ## What's Changed
+ * bump bittensor-wallet req, update cryptography security req by @@ifrit98 in [91d13b0](https://github.com/opentensor/bittensor/commit/91d13b0fa711621cbf823708d4368b1b387e42c4)
+ * Fixes Discord Link Issue #1442  by @camfairchild in [54d6248](https://github.com/opentensor/bittensor/commit/54d62487d4cb59e0b5edcd53acdca013108d155b)
+ * move mocks to bittensor_wallet package by @camfairchild in https://github.com/opentensor/bittensor/pull/1441
+ * Bump bittensor-wallet version to 0.0.4
+
+ **Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.3.0...v5.3.1
+
+## 5.3.0 / 2023-07-04
+
+## What's Changed
+* [BIT-351] Ask for wallet name on btcli unstake by @camfairchild in https://github.com/opentensor/bittensor/pull/1387
+* Fix tests using pure-Python MockSubtensor by @camfairchild in https://github.com/opentensor/bittensor/pull/1349
+* Update README.md by @mostimasblunderbuss in https://github.com/opentensor/bittensor/pull/1397
+* Update authint version by @ifrit98 in https://github.com/opentensor/bittensor/pull/1395
+* Fix subtensor factory integration test by @camfairchild in https://github.com/opentensor/bittensor/pull/1400
+* Remove neurons by @ifrit98 in https://github.com/opentensor/bittensor/pull/1389
+* Merge pull request #1394 from opentensor/fix_axon_requests by @ifrit98 in https://github.com/opentensor/bittensor/pull/1406
+* remove hotkey from proto and dendrite by @ifrit98 in https://github.com/opentensor/bittensor/pull/1407
+* Weight Utils fix by @mrseeker in https://github.com/opentensor/bittensor/pull/1372
+* Extract config to new package by @camfairchild in https://github.com/opentensor/bittensor/pull/1401
+* Extract wallet by @camfairchild in https://github.com/opentensor/bittensor/pull/1403
+* BTCli integration with new governance protocol by @Rubberbandits in https://github.com/opentensor/bittensor/pull/1398
+* Reverting unnecessary commits for next release. by @camfairchild in https://github.com/opentensor/bittensor/pull/1415
+* Extract wallet and config by @camfairchild in https://github.com/opentensor/bittensor/pull/1411
+
+## New Contributors
+* @mostimasblunderbuss made their first contribution in https://github.com/opentensor/bittensor/pull/1397
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.2.0...v5.3.0
+
+
+## 5.2.0 / 2023-06-28
+
+## What's Changed
+* add default 1024 max stake limit for querying UIDs with vpermit. by @ifrit98 in https://github.com/opentensor/bittensor/pull/1379
+* Fixes validator permit issue seen on master by @unconst in https://github.com/opentensor/bittensor/pull/1381
+* Added conda environment by @shibshib in https://github.com/opentensor/bittensor/pull/1386
+* Update package requirements (hotfix) by @ifrit98 in https://github.com/opentensor/bittensor/pull/1385
+* Merge master into new_staging by @ifrit98 in https://github.com/opentensor/bittensor/pull/1388
+* Fix axon requests signature using metadata by @unconst in https://github.com/opentensor/bittensor/pull/1394
+* Governance Protocol Release by @Rubberbandits in https://github.com/opentensor/bittensor/pull/1414
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.1.0...v5.2.0
+
+
+## 5.1.0 / 2023-05-30
+
+## What's Changed
+* update readme by @unconst in https://github.com/opentensor/bittensor/pull/1344
+* Reset scores for validators by @adriansmares in https://github.com/opentensor/bittensor/pull/1359
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v5.0.0...v5.1.0
+
+
+## 5.0.0 / 2023-05-17
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v4.0.1...v5.0.0
+
+
 ## 4.0.1 / 2023-04-21
 
 * Fix btcli my_delegates bug by @camfairchild in ef32a4da0d0827ab5977af1454d66ffe97cbc572
