@@ -238,9 +238,7 @@ class OverviewCommand:
                         name=wallet,
                     )
                     wallet_.hotkey = hotkey_addr
-                    wallet.hotkey_str = hotkey_addr[
-                        :5
-                    ]  # Max length of 5 characters
+                    wallet.hotkey_str = hotkey_addr[:5]  # Max length of 5 characters
                     hotkey_coldkey_to_hotkey_wallet[hotkey_addr][
                         coldkey_wallet.coldkeypub.ss58_address
                     ] = wallet_
