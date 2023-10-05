@@ -1,6 +1,5 @@
 import math
 
-
 def get_human_readable(num, suffix="H"):
     for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
         if abs(num) < 1000.0:
