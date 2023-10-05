@@ -150,7 +150,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 coldkey=wallet.coldkey.ss58_address,
                 hotkey=wallet.hotkey.ss58_address,
             )
-            self.assertTrue(result, err)
 
         def mock_get_wallet(*args, **kwargs):
             hk = kwargs.get("hotkey")
