@@ -281,7 +281,11 @@ class OverviewCommand:
             total_emission = 0
 
             for nn in neurons[str(netuid)]:
-                hotwallet = hotkey_coldkey_to_hotkey_wallet[nn.hotkey][nn.coldkey]
+                hotwallet = hotkey_coldkey_to_hotkey_wallet.get(nn.hotkey, {}).get(
+                    nn.coldkey, None
+                )
+                if not hotwallet:
+                    continue
                 nn: bittensor.NeuronInfoLite
                 uid = nn.uid
                 active = nn.active
