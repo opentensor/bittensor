@@ -264,7 +264,7 @@ class RunFaucetCommand:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         run_faucet_parser = parser.add_parser(
-            "faucet", help="""Register a wallet to a network."""
+            "faucet", help="""Perform PoW to receieve test TAO in your wallet."""
         )
         run_faucet_parser.add_argument(
             "--register.num_processes",
