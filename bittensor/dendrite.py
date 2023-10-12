@@ -259,9 +259,10 @@ class dendrite(torch.nn.Module):
                     response.headers.get("Content-Type", "").lower()
                     == "text/event-stream".lower()
                 ):  # identify streaming response
-                    await synapse.process_streaming_response(
+                    async for chunk in synapse.process_streaming_response(
                         response
-                    )  # process the entire streaming response
+                    ):  # process the entire streaming response
+                        yield chunk  # Yield each chunk as it's processed
                     json_response = synapse.extract_response_json(response)
                 else:
                     json_response = await response.json()
