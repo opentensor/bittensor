@@ -513,8 +513,7 @@ class Synapse(pydantic.BaseModel):
         hashes = []
 
         # Getting the fields of the instance
-        instance_fields = self.__dict__
-
+        instance_fields = self.dict() # __dict__ converts the Tensor types into strings causing a mismatch in the hash, so we use .dict() instead
         for field, value in instance_fields.items():
             # If the field is required in the subclass schema, hash and add it.
             if field in self.required_hash_fields:
