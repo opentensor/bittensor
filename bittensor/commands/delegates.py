@@ -526,6 +526,7 @@ class MyDelegatesCommand:
         table.add_column("[overline white]VPERMIT", justify="right", no_wrap=True)
         table.add_column("[overline white]24h/k\u03C4", style="green", justify="center")
         table.add_column("[overline white]Desc", style="rgb(50,163,219)")
+        total_delegated = 0
 
         for wallet in tqdm(wallets):
             if not wallet.coldkeypub_file.exists_on_device():
@@ -544,6 +545,7 @@ class MyDelegatesCommand:
                         my_delegates[delegate[0].hotkey_ss58] = staked
 
             delegates.sort(key=lambda delegate: delegate[0].total_stake, reverse=True)
+            total_delegated += sum(my_delegates.values())
 
             registered_delegate_info: Optional[
                 DelegatesDetails
@@ -602,6 +604,7 @@ class MyDelegatesCommand:
                     )
 
         bittensor.__console__.print(table)
+        bittensor.__console__.print("Total delegated Tao: {}".format(total_delegated))
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):

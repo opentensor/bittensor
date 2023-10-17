@@ -160,11 +160,15 @@ class OverviewCommand:
             total_coldkey_stake_from_metagraph = defaultdict(
                 lambda: bittensor.Balance(0.0)
             )
+            checked_hotkeys = set()
             for neuron_list in neurons.values():
                 for neuron in neuron_list:
+                    if neuron.hotkey in checked_hotkeys:
+                        continue
                     total_coldkey_stake_from_metagraph[
                         neuron.coldkey
                     ] += neuron.stake_dict[neuron.coldkey]
+                    checked_hotkeys.add(neuron.hotkey)
 
             alerts_table = Table(show_header=True, header_style="bold magenta")
             alerts_table.add_column("🥩 alert!")
@@ -209,40 +213,38 @@ class OverviewCommand:
                 )
                 executor.shutdown(wait=True)  # wait for all complete
 
-                for result in results:
-                    coldkey_wallet, de_registered_stake, err_msg = result
-                    if err_msg is not None:
-                        console.print(err_msg)
+            for result in results:
+                coldkey_wallet, de_registered_stake, err_msg = result
+                if err_msg is not None:
+                    console.print(err_msg)
 
-                    if len(de_registered_stake) == 0:
-                        continue  # We have no de-registered stake with this coldkey.
+                if len(de_registered_stake) == 0:
+                    continue  # We have no de-registered stake with this coldkey.
 
-                    de_registered_neurons = []
-                    for hotkey_addr, our_stake in de_registered_stake:
-                        # Make a neuron info lite for this hotkey and coldkey.
-                        de_registered_neuron = bittensor.NeuronInfoLite._null_neuron()
-                        de_registered_neuron.hotkey = hotkey_addr
-                        de_registered_neuron.coldkey = (
-                            coldkey_wallet.coldkeypub.ss58_address
-                        )
-                        de_registered_neuron.total_stake = bittensor.Balance(our_stake)
+                de_registered_neurons = []
+                for hotkey_addr, our_stake in de_registered_stake:
+                    # Make a neuron info lite for this hotkey and coldkey.
+                    de_registered_neuron = bittensor.NeuronInfoLite._null_neuron()
+                    de_registered_neuron.hotkey = hotkey_addr
+                    de_registered_neuron.coldkey = (
+                        coldkey_wallet.coldkeypub.ss58_address
+                    )
+                    de_registered_neuron.total_stake = bittensor.Balance(our_stake)
 
-                        de_registered_neurons.append(de_registered_neuron)
+                    de_registered_neurons.append(de_registered_neuron)
 
-                        # Add this hotkey to the wallets dict
-                        wallet_ = bittensor.Wallet(
-                            name=wallet,
-                        )
-                        wallet_.hotkey = hotkey_addr
-                        wallet.hotkey_str = hotkey_addr[
-                            :5
-                        ]  # Max length of 5 characters
-                        hotkey_coldkey_to_hotkey_wallet[hotkey_addr][
-                            coldkey_wallet.coldkeypub.ss58_address
-                        ] = wallet_
+                    # Add this hotkey to the wallets dict
+                    wallet_ = bittensor.Wallet(
+                        name=wallet,
+                    )
+                    wallet_.hotkey = hotkey_addr
+                    wallet.hotkey_str = hotkey_addr[:5]  # Max length of 5 characters
+                    hotkey_coldkey_to_hotkey_wallet[hotkey_addr][
+                        coldkey_wallet.coldkeypub.ss58_address
+                    ] = wallet_
 
-                    # Add neurons to overview.
-                    neurons["-1"].extend(de_registered_neurons)
+                # Add neurons to overview.
+                neurons["-1"].extend(de_registered_neurons)
 
         # Setup outer table.
         grid = Table.grid(pad_edge=False)
@@ -279,7 +281,11 @@ class OverviewCommand:
             total_emission = 0
 
             for nn in neurons[str(netuid)]:
-                hotwallet = hotkey_coldkey_to_hotkey_wallet[nn.hotkey][nn.coldkey]
+                hotwallet = hotkey_coldkey_to_hotkey_wallet.get(nn.hotkey, {}).get(
+                    nn.coldkey, None
+                )
+                if not hotwallet:
+                    continue
                 nn: bittensor.NeuronInfoLite
                 uid = nn.uid
                 active = nn.active
@@ -551,13 +557,11 @@ class OverviewCommand:
             ## Filter out hotkeys that are in our wallets
             ## Filter out hotkeys that are delegates.
             def _filter_stake_info(stake_info: "bittensor.StakeInfo") -> bool:
-                hotkey_addr, our_stake = stake_info
-
-                if our_stake == 0:
+                if stake_info.stake == 0:
                     return False  # Skip hotkeys that we have no stake with.
-                if hotkey_addr in all_hotkey_addresses:
+                if stake_info.hotkey_ss58 in all_hotkey_addresses:
                     return False  # Skip hotkeys that are in our wallets.
-                if subtensor.is_hotkey_delegate(hotkey_ss58=hotkey_addr):
+                if subtensor.is_hotkey_delegate(hotkey_ss58=stake_info.hotkey_ss58):
                     return False  # Skip hotkeys that are delegates, they show up in btcli my_delegates table.
 
                 return True

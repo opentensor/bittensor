@@ -526,16 +526,11 @@ class axon:
 
         # Load the body dict and check if all required field hashes match
         body_dict = json.loads(request_body)
-        field_hashes = []
-        for required_field in required_hash_fields:
-            # Hash the field in the body to compare against the header hashes
-            body_value = body_dict.get(required_field, None)
-            if body_value == None:
-                raise ValueError(f"Missing required field {required_field}")
-            field_hash = bittensor.utils.hash(str(body_value))
-            field_hashes.append(field_hash)
 
-        parsed_body_hash = bittensor.utils.hash("".join(field_hashes))
+        # Reconstruct the synapse object from the body dict and recompute the hash
+        syn = self.forward_class_types[request_name](**body_dict)
+        parsed_body_hash = syn.body_hash  # Rehash the body from request
+
         body_hash = request.headers.get("computed_body_hash", "")
         if parsed_body_hash != body_hash:
             raise ValueError(
