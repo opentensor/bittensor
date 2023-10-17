@@ -51,7 +51,7 @@ def register_subnetwork_extrinsic(
     burn_cost = bittensor.utils.balance.Balance(subtensor.get_subnet_burn_cost())
     if burn_cost > your_balance:
         bittensor.__console__.print(
-            f"Your balance of: [green]{your_balance}[/green] is not enough to pay the subnet burn cost of: [green]{burn_cost}[/green]"
+            f"Your balance of: [green]{your_balance}[/green] is not enough to pay the subnet lock cost of: [green]{burn_cost}[/green]"
         )
         return False
 

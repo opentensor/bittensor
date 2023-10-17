@@ -1,5 +1,34 @@
 # Changelog
 
+## 6.1.0 / 2023-10-17
+
+## What's Changed
+* (un)Staking multiple avoid tx limit by @camfairchild in https://github.com/opentensor/bittensor/pull/1244
+* additional logging for prometheus by @Eugene-hu in https://github.com/opentensor/bittensor/pull/1246
+* Dataset fix by @isabella618033 in https://github.com/opentensor/bittensor/pull/1249
+* Grab delegates details from GitHub by @camfairchild in https://github.com/opentensor/bittensor/pull/1245
+* Add raw spec for local test and new bins by @camfairchild in https://github.com/opentensor/bittensor/pull/1243
+* Fix list_delegates on non-archive nodes by @camfairchild in https://github.com/opentensor/bittensor/pull/1232
+* Blacklist fixes + depreciation of old signatures by @Eugene-hu in https://github.com/opentensor/bittensor/pull/1240
+* [BIT-636] Change u16 weight normalization to max-upscaling by @opentaco in https://github.com/opentensor/bittensor/pull/1241
+* remove duplicate command #1228 by @camfairchild in https://github.com/opentensor/bittensor/pull/1231
+* test_forward_priority_2nd_request_timeout fix by @isabella618033 in https://github.com/opentensor/bittensor/pull/1276
+* Remove btcli query and btcli set_weights by @camfairchild in https://github.com/opentensor/bittensor/pull/1144
+* Merge releases 4.0.0 and 4.0.1 back to staging by @camfairchild in https://github.com/opentensor/bittensor/pull/1306
+* Improve development workflow documentation by @quac88 in https://github.com/opentensor/bittensor/pull/1262
+* staging updates and fixes by @ifrit98 in https://github.com/opentensor/bittensor/pull/1540
+* Add root get_weights command to btcli by @Rubberbandits in https://github.com/opentensor/bittensor/pull/1536
+* Fix typo by @steffencruz in https://github.com/opentensor/bittensor/pull/1543
+* remove duplicated debug message in dendrite by @ifrit98 in https://github.com/opentensor/bittensor/pull/1544
+* Cli fix by @ifrit98 in https://github.com/opentensor/bittensor/pull/1541
+* update faucet helpstr by @ifrit98 in https://github.com/opentensor/bittensor/pull/1542
+* Added mechanism to sum all delegated tao by @shibshib in https://github.com/opentensor/bittensor/pull/1547
+* Dict hash fix by @ifrit98 in https://github.com/opentensor/bittensor/pull/1548
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.0.1...v6.1.0
+
+
 ## 6.0.1 / 2023-10-02
 
 ## What's Changed

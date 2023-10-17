@@ -210,3 +210,62 @@ class RootSetWeightsCommand:
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
+
+
+class RootGetWeightsCommand:
+    @staticmethod
+    def run(cli):
+        r"""Get weights for root network."""
+        subtensor = bittensor.subtensor(config=cli.config)
+        weights = subtensor.weights(0)
+
+        table = Table(show_footer=False)
+        table.title = "[white]Root Network Weights"
+        table.add_column(
+            "[overline white]UID",
+            footer_style="overline white",
+            style="rgb(50,163,219)",
+            no_wrap=True,
+        )
+        table.add_column(
+            "[overline white]NETUID",
+            footer_style="overline white",
+            justify="right",
+            style="green",
+            no_wrap=True,
+        )
+        table.add_column(
+            "[overline white]WEIGHT",
+            footer_style="overline white",
+            justify="right",
+            style="green",
+            no_wrap=True,
+        )
+        table.show_footer = True
+
+        for matrix in weights:
+            uid = matrix[0]
+            for weight_data in matrix[1]:
+                table.add_row(
+                    str(uid),
+                    str(weight_data[0]),
+                    "{:0.2f}%".format((weight_data[1] / 65535) * 100),
+                )
+
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        bittensor.__console__.print(table)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser = parser.add_parser(
+            "get_weights", help="""Get weights for root network."""
+        )
+
+        bittensor.wallet.add_args(parser)
+        bittensor.subtensor.add_args(parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        pass

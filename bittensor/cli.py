@@ -65,6 +65,7 @@ COMMANDS = {
         "commands": {
             "list": RootList,
             "weights": RootSetWeightsCommand,
+            "get_weights": RootGetWeightsCommand,
             "senate_vote": VoteCommand,
             "register": RootRegisterCommand,
             "proposals": ProposalsCommand,
