@@ -513,7 +513,7 @@ class Synapse(pydantic.BaseModel):
         hashes = []
 
         # Getting the fields of the instance
-        instance_fields = self.__dict__
+        instance_fields = self.dict()
 
         for field, value in instance_fields.items():
             # If the field is required in the subclass schema, hash and add it.
