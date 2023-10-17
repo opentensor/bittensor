@@ -529,7 +529,7 @@ class axon:
 
         # Reconstruct the synapse object from the body dict and recompute the hash
         syn = self.forward_class_types[request_name](**body_dict)
-        parsed_body_hash = syn.body_hash # Rehash the body from request
+        parsed_body_hash = syn.body_hash  # Rehash the body from request
 
         body_hash = request.headers.get("computed_body_hash", "")
         if parsed_body_hash != body_hash:
