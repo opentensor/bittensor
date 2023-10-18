@@ -133,6 +133,7 @@ class dendrite(torch.nn.Module):
         timeout: float = 12,
         deserialize: bool = True,
         run_async: bool = True,
+        streaming: bool = False,
     ) -> bittensor.Synapse:
         """
         Makes asynchronous requests to multiple target Axons and returns the server responses.
@@ -155,44 +156,65 @@ class dendrite(torch.nn.Module):
             is_list = False
             axons = [axons]
 
-        # This asynchronous function is used to send queries to all axons.
-        async def query_all_axons() -> List[bittensor.Synapse]:
-            # If the 'run_async' flag is not set, the code runs synchronously.
-            if not run_async:
-                # Create an empty list to hold the responses from all axons.
-                all_responses = []
-                # Loop through each axon in the 'axons' list.
-                for target_axon in axons:
-                    # The response from each axon is then appended to the 'all_responses' list.
-                    all_responses.append(
-                        await self.call(
-                            target_axon=target_axon,
-                            synapse=synapse.copy(),
-                            timeout=timeout,
-                            deserialize=deserialize,
-                        )
-                    )
-                # The function then returns a list of responses from all axons.
-                return all_responses
-            else:
-                # Here we build a list of coroutines without awaiting them.
-                coroutines = [
-                    self.call(
+        # Check if synapse is an instance of the StreamingSynapse class or if streaming flag is set.
+        streaming = (
+            issubclass(synapse.__class__, bittensor.StreamingSynapse) or streaming
+        )
+
+        async def query_all_axons(is_stream: bool) -> List[bt.Synapse]:
+            """
+            Handles requests for all axons, either in streaming or non-streaming mode.
+
+            Args:
+                is_stream: If True, handles the axons in streaming mode.
+
+            Returns:
+                List of Synapse objects with responses.
+            """
+
+            async def single_axon_response(target_axon) -> bt.Synapse:
+                """
+                Retrieve response for a single axon, either in streaming or non-streaming mode.
+
+                Args:
+                    target_axon: The target axon to send request to.
+
+                Returns:
+                    A Synapse object with the response.
+                """
+                if is_stream:
+                    # If in streaming mode, we iterate over the streaming content
+                    # and take the last item as the final result.
+                    final_result = None
+                    async for result in self.call_stream(
+                        target_axon=target_axon,
+                        synapse=synapse.copy(),
+                        timeout=timeout,
+                        deserialize=deserialize,
+                    ):
+                        final_result = result
+                    return final_result
+                else:
+                    # If not in streaming mode, simply call the axon and get the response.
+                    return await self.call(
                         target_axon=target_axon,
                         synapse=synapse.copy(),
                         timeout=timeout,
                         deserialize=deserialize,
                     )
-                    for target_axon in axons
+
+            # If run_async flag is False, get responses one by one.
+            if not run_async:
+                return [
+                    await single_axon_response(target_axon) for target_axon in axons
                 ]
-                # 'asyncio.gather' is a method which takes multiple coroutines and runs them in parallel.
-                all_responses = await asyncio.gather(*coroutines)
-                # The function then returns a list of responses from all axons.
-                return all_responses
+            # If run_async flag is True, get responses concurrently using asyncio.gather().
+            return await asyncio.gather(
+                *(single_axon_response(target_axon) for target_axon in axons)
+            )
 
-        # Run all requests concurrently and get the responses
-        responses = await query_all_axons()
-
+        # Get responses for all axons.
+        responses = await query_all_axons(streaming)
         # Return the single response if only one axon was targeted, else return all responses
         if len(responses) == 1 and not is_list:
             return responses[0]
@@ -255,19 +277,9 @@ class dendrite(torch.nn.Module):
                 json=synapse.dict(),
                 timeout=timeout,
             ) as response:
-                if (
-                    response.headers.get("Content-Type", "").lower()
-                    == "text/event-stream".lower()
-                ):  # identify streaming response
-                    async for chunk in synapse.process_streaming_response(
-                        response
-                    ):  # process the entire streaming response
-                        yield chunk  # Yield each chunk as it's processed
-                    json_response = synapse.extract_response_json(response)
-                else:
-                    json_response = await response.json()
-
-                # Process the server response
+                # Extract the JSON response from the server
+                json_response = await response.json()
+                # Process the server response and fill synapse
                 self.process_server_response(response, json_response, synapse)
 
             # Set process time and log the response
@@ -302,6 +314,106 @@ class dendrite(torch.nn.Module):
                 return synapse.deserialize()
             else:
                 return synapse
+
+    async def call_stream(
+        self,
+        target_axon: Union[bittensor.AxonInfo, bittensor.axon],
+        synapse: bittensor.Synapse = bittensor.Synapse(),
+        timeout: float = 12.0,
+        deserialize: bool = True,
+    ) -> bittensor.Synapse:
+        """
+        Makes an asynchronous request to the target Axon, processes the server
+        response and returns the updated Synapse.
+
+        Args:
+            target_axon (Union['bittensor.AxonInfo', 'bittensor.axon']): The target Axon information.
+            synapse (bittensor.Synapse, optional): The Synapse object. Defaults to bittensor.Synapse().
+            timeout (float, optional): The request timeout duration in seconds.
+                Defaults to 12.0 seconds.
+            deserialize (bool, optional): Whether to deserialize the returned Synapse.
+                Defaults to True.
+
+        Returns:
+            bittensor.Synapse: The updated Synapse object after processing server response.
+        """
+
+        # Record start time
+        start_time = time.time()
+        target_axon = (
+            target_axon.info()
+            if isinstance(target_axon, bittensor.axon)
+            else target_axon
+        )
+
+        # Build request endpoint from the synapse class
+        request_name = synapse.__class__.__name__
+        endpoint = (
+            f"0.0.0.0:{str(target_axon.port)}"
+            if target_axon.ip == str(self.external_ip)
+            else f"{target_axon.ip}:{str(target_axon.port)}"
+        )
+        url = f"http://{endpoint}/{request_name}"
+
+        # Preprocess synapse for making a request
+        synapse = self.preprocess_synapse_for_request(target_axon, synapse, timeout)
+
+        try:
+            # Log outgoing request
+            bittensor.logging.debug(
+                f"stream dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success"
+            )
+
+            # Make the HTTP POST request
+            async with (await self.session).post(
+                url,
+                headers=synapse.to_headers(),
+                json=synapse.dict(),
+                timeout=timeout,
+            ) as response:
+                # Use synapse subclass' process_streaming_response method to yield the response chunks
+                async for chunk in synapse.process_streaming_response(response):
+                    yield chunk  # Yield each chunk as it's processed
+                json_response = synapse.extract_response_json(response)
+
+                # Process the server response
+                self.process_server_response(response, json_response, synapse)
+
+            # Set process time and log the response
+            synapse.dendrite.process_time = str(time.time() - start_time)
+            bittensor.logging.debug(
+                f"stream dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.axon.status_code} | {synapse.axon.status_message}"
+            )
+
+        except aiohttp.ClientConnectorError as e:
+            synapse.dendrite.status_code = "503"
+            synapse.dendrite.status_message = f"Service at {synapse.axon.ip}:{str(synapse.axon.port)}/{request_name} unavailable."
+
+        except asyncio.TimeoutError as e:
+            synapse.dendrite.status_code = "408"
+            synapse.dendrite.status_message = f"Timedout after {timeout} seconds."
+
+        except Exception as e:
+            synapse.dendrite.status_code = "422"
+            synapse.dendrite.status_message = (
+                f"Failed to parse response object with error: {str(e)}"
+            )
+
+        finally:
+            bittensor.logging.debug(
+                f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
+            )
+
+            # Log synapse event history
+            self.synapse_history.append(
+                bittensor.Synapse.from_headers(synapse.to_headers())
+            )
+
+            # Return the updated synapse object after deserializing if requested
+            if deserialize:
+                yield synapse.deserialize()
+            else:
+                yield synapse
 
     def preprocess_synapse_for_request(
         self,
