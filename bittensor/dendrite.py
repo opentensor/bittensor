@@ -26,7 +26,7 @@ import torch
 import aiohttp
 import bittensor
 from fastapi import Response
-from typing import Union, Optional, List, Union
+from typing import Union, Optional, List, Union, AsyncGenerator
 
 
 class dendrite(torch.nn.Module):
@@ -136,19 +136,25 @@ class dendrite(torch.nn.Module):
         streaming: bool = False,
     ) -> bittensor.Synapse:
         """
-        Makes asynchronous requests to multiple target Axons and returns the server responses.
+        Asynchronously sends requests to one or multiple Axons and collates their responses.
+
+        This function acts as a bridge for sending multiple requests concurrently or sequentially 
+        based on the provided parameters. It checks the type of the target Axons, preprocesses 
+        the requests, and then sends them off. After getting the responses, it processes and 
+        collates them into a unified format.
 
         Args:
             axons (Union[List[Union['bittensor.AxonInfo', 'bittensor.axon']], Union['bittensor.AxonInfo', 'bittensor.axon']]):
-                The list of target Axon information.
-            synapse (bittensor.Synapse, optional): The Synapse object. Defaults to bittensor.Synapse().
-            timeout (float, optional): The request timeout duration in seconds.
-                Defaults to 12.0 seconds.
+                The target Axons to send requests to. Can be a single Axon or a list of Axons.
+            synapse (bittensor.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new bittensor.Synapse instance.
+            timeout (float, optional): Maximum duration to wait for a response from an Axon in seconds. Defaults to 12.0.
+            deserialize (bool, optional): Determines if the received response should be deserialized. Defaults to True.
+            run_async (bool, optional): If True, sends requests concurrently. Otherwise, sends requests sequentially. Defaults to True.
+            streaming (bool, optional): Indicates if the response is expected to be in streaming format. Defaults to False.
 
         Returns:
-            Union[bittensor.Synapse, List[bittensor.Synapse]]: If a single target axon is provided,
-                returns the response from that axon. If multiple target axons are provided,
-                returns a list of responses from all target axons.
+            Union[bittensor.Synapse, List[bittensor.Synapse]]: If a single Axon is targeted, returns its response. 
+            If multiple Axons are targeted, returns a list of their responses.
         """
         is_list = True
         # If a single axon is provided, wrap it in a list for uniform processing
@@ -229,19 +235,20 @@ class dendrite(torch.nn.Module):
         deserialize: bool = True,
     ) -> bittensor.Synapse:
         """
-        Makes an asynchronous request to the target Axon, processes the server
-        response and returns the updated Synapse.
+        Asynchronously sends a request to a specified Axon and processes the response.
+
+        This function establishes a connection with a specified Axon, sends the encapsulated 
+        data through the Synapse object, waits for a response, processes it, and then 
+        returns the updated Synapse object.
 
         Args:
-            target_axon (Union['bittensor.AxonInfo', 'bittensor.axon']): The target Axon information.
-            synapse (bittensor.Synapse, optional): The Synapse object. Defaults to bittensor.Synapse().
-            timeout (float, optional): The request timeout duration in seconds.
-                Defaults to 12.0 seconds.
-            deserialize (bool, optional): Whether to deserialize the returned Synapse.
-                Defaults to True.
+            target_axon (Union['bittensor.AxonInfo', 'bittensor.axon']): The target Axon to send the request to.
+            synapse (bittensor.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new bittensor.Synapse instance.
+            timeout (float, optional): Maximum duration to wait for a response from the Axon in seconds. Defaults to 12.0.
+            deserialize (bool, optional): Determines if the received response should be deserialized. Defaults to True.
 
         Returns:
-            bittensor.Synapse: The updated Synapse object after processing server response.
+            bittensor.Synapse: The Synapse object, updated with the response data from the Axon.
         """
 
         # Record start time
@@ -321,21 +328,23 @@ class dendrite(torch.nn.Module):
         synapse: bittensor.Synapse = bittensor.Synapse(),
         timeout: float = 12.0,
         deserialize: bool = True,
-    ) -> bittensor.Synapse:
+    ) -> AsyncGenerator[bittensor.Synapse, None]:
         """
-        Makes an asynchronous request to the target Axon, processes the server
-        response and returns the updated Synapse.
+        Sends a request to a specified Axon and yields streaming responses.
+
+        Similar to `call`, but designed for scenarios where the Axon sends back data in 
+        multiple chunks or streams. The function yields each chunk as it is received. This is 
+        useful for processing large responses piece by piece without waiting for the entire 
+        data to be transmitted.
 
         Args:
-            target_axon (Union['bittensor.AxonInfo', 'bittensor.axon']): The target Axon information.
-            synapse (bittensor.Synapse, optional): The Synapse object. Defaults to bittensor.Synapse().
-            timeout (float, optional): The request timeout duration in seconds.
-                Defaults to 12.0 seconds.
-            deserialize (bool, optional): Whether to deserialize the returned Synapse.
-                Defaults to True.
+            target_axon (Union['bittensor.AxonInfo', 'bittensor.axon']): The target Axon to send the request to.
+            synapse (bittensor.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new bittensor.Synapse instance.
+            timeout (float, optional): Maximum duration to wait for a response (or a chunk of the response) from the Axon in seconds. Defaults to 12.0.
+            deserialize (bool, optional): Determines if each received chunk should be deserialized. Defaults to True.
 
-        Returns:
-            bittensor.Synapse: The updated Synapse object after processing server response.
+        Yields:
+            bittensor.Synapse: Each yielded Synapse object contains a chunk of the response data from the Axon.
         """
 
         # Record start time
