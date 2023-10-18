@@ -138,9 +138,9 @@ class dendrite(torch.nn.Module):
         """
         Asynchronously sends requests to one or multiple Axons and collates their responses.
 
-        This function acts as a bridge for sending multiple requests concurrently or sequentially 
-        based on the provided parameters. It checks the type of the target Axons, preprocesses 
-        the requests, and then sends them off. After getting the responses, it processes and 
+        This function acts as a bridge for sending multiple requests concurrently or sequentially
+        based on the provided parameters. It checks the type of the target Axons, preprocesses
+        the requests, and then sends them off. After getting the responses, it processes and
         collates them into a unified format.
 
         Args:
@@ -153,7 +153,7 @@ class dendrite(torch.nn.Module):
             streaming (bool, optional): Indicates if the response is expected to be in streaming format. Defaults to False.
 
         Returns:
-            Union[bittensor.Synapse, List[bittensor.Synapse]]: If a single Axon is targeted, returns its response. 
+            Union[bittensor.Synapse, List[bittensor.Synapse]]: If a single Axon is targeted, returns its response.
             If multiple Axons are targeted, returns a list of their responses.
         """
         is_list = True
@@ -237,8 +237,8 @@ class dendrite(torch.nn.Module):
         """
         Asynchronously sends a request to a specified Axon and processes the response.
 
-        This function establishes a connection with a specified Axon, sends the encapsulated 
-        data through the Synapse object, waits for a response, processes it, and then 
+        This function establishes a connection with a specified Axon, sends the encapsulated
+        data through the Synapse object, waits for a response, processes it, and then
         returns the updated Synapse object.
 
         Args:
@@ -332,9 +332,9 @@ class dendrite(torch.nn.Module):
         """
         Sends a request to a specified Axon and yields streaming responses.
 
-        Similar to `call`, but designed for scenarios where the Axon sends back data in 
-        multiple chunks or streams. The function yields each chunk as it is received. This is 
-        useful for processing large responses piece by piece without waiting for the entire 
+        Similar to `call`, but designed for scenarios where the Axon sends back data in
+        multiple chunks or streams. The function yields each chunk as it is received. This is
+        useful for processing large responses piece by piece without waiting for the entire
         data to be transmitted.
 
         Args:
