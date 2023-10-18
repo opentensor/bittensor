@@ -390,9 +390,6 @@ class dendrite(torch.nn.Module):
 
             # Set process time and log the response
             synapse.dendrite.process_time = str(time.time() - start_time)
-            bittensor.logging.debug(
-                f"stream dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.axon.status_code} | {synapse.axon.status_message}"
-            )
 
         except aiohttp.ClientConnectorError as e:
             synapse.dendrite.status_code = "503"
@@ -410,7 +407,7 @@ class dendrite(torch.nn.Module):
 
         finally:
             bittensor.logging.debug(
-                f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
+                f"stream dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
             )
 
             # Log synapse event history
