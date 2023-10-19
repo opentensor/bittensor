@@ -163,9 +163,14 @@ class dendrite(torch.nn.Module):
             axons = [axons]
 
         # Check if synapse is an instance of the StreamingSynapse class or if streaming flag is set.
-        streaming = (
-            issubclass(synapse.__class__, bittensor.StreamingSynapse) or streaming
+        is_streaming_subclass = issubclass(
+            synapse.__class__, bittensor.StreamingSynapse
         )
+        if streaming != is_streaming_subclass:
+            bittensor.logging.warning(
+                "Argument streaming is {streaming} while issubclass(synapse, StreamingSynapse) is {synapse.__class__.__name__}. This may cause unexpected behavior."
+            )
+        streaming = is_streaming_subclass or streaming
 
         async def query_all_axons(is_stream: bool) -> List[bt.Synapse]:
             """
