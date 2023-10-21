@@ -42,13 +42,49 @@ class dendrite(torch.nn.Module):
 
     Attributes:
         keypair: The wallet or keypair used for signing messages.
+        external_ip (str): The external IP address of the local system.
+        synapse_history (list): A list of Synapse objects representing the historical responses.
 
     Methods:
         __str__(): Returns a string representation of the Dendrite object.
         __repr__(): Returns a string representation of the Dendrite object, acting as a fallback
                     for __str__().
+        query(self, *args, **kwargs) -> Union[bittensor.Synapse, List[bittensor.Synapse]]:
+            Makes synchronous requests to one or multiple target Axons and returns responses.
 
-    Example:
+        forward(self, axons, synapse=bittensor.Synapse(), timeout=12, deserialize=True, run_async=True, streaming=False) -> bittensor.Synapse:
+            Asynchronously sends requests to one or multiple Axons and collates their responses.
+
+        call(self, target_axon, synapse=bittensor.Synapse(), timeout=12.0, deserialize=True) -> bittensor.Synapse:
+            Asynchronously sends a request to a specified Axon and processes the response.
+
+        call_stream(self, target_axon, synapse=bittensor.Synapse(), timeout=12.0, deserialize=True) -> AsyncGenerator[bittensor.Synapse, None]:
+            Sends a request to a specified Axon and yields streaming responses.
+
+        preprocess_synapse_for_request(self, target_axon_info, synapse, timeout=12.0) -> bittensor.Synapse:
+            Preprocesses the synapse for making a request, including building headers and signing.
+
+        process_server_response(self, server_response, json_response, local_synapse):
+            Processes the server response, updates the local synapse state, and merges headers.
+
+        close_session(self):
+            Synchronously closes the internal aiohttp client session.
+
+        aclose_session(self):
+            Asynchronously closes the internal aiohttp client session.
+
+    NOTE: When working with async aiohttp client sessions, it is recommended to use a context manager.
+
+    Example with a context manager:
+        >>> aysnc with dendrite(wallet = bittensor.wallet() ) as dendrite_obj:
+        >>>     print(dendrite_obj)
+        >>>     d( <axon> ) # ping axon
+        >>>     d( [<axons>] ) # ping multiple
+        >>>     d( bittensor.axon(), bittensor.Synapse )
+
+    However, you are able to safely call dendrite.query() without a context manager in a synchronous setting.
+
+    Example without a context manager:
         >>> dendrite_obj = dendrite(wallet = bittensor.wallet() )
         >>> print(dendrite_obj)
         >>> d( <axon> ) # ping axon
@@ -87,11 +123,46 @@ class dendrite(torch.nn.Module):
 
     @property
     async def session(self) -> aiohttp.ClientSession:
+        """
+        Asynchronous property that provides access to the internal aiohttp client session.
+
+        If the session is not already initialized, this property will instantiate a new
+        aiohttp.ClientSession and return it.
+
+        Returns:
+            aiohttp.ClientSession: The aiohttp client session instance.
+
+        Usage:
+            async with dendrite_instance.session as session:
+                response = await session.get('http://example.com')
+        """
         if self._session is None:
             self._session = aiohttp.ClientSession()
         return self._session
 
-    async def close_session(self):
+    def close_session(self):
+        """
+        Closes the internal aiohttp client session in a synchronous manner.
+
+        This method ensures that the resources tied with the aiohttp client session are released.
+        It should be called when the session is no longer needed, typically during the cleanup phase.
+
+        Usage:
+            dendrite_instance.close_session()
+        """
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self._session.close())
+
+    async def aclose_session(self):
+        """
+        Asynchronously closes the internal aiohttp client session.
+
+        Similar to the synchronous `close_session` method but designed to be used within
+        asynchronous contexts. This method ensures that all related resources are released.
+
+        Usage:
+            await dendrite_instance.aclose_session()
+        """
         if self._session:
             await self._session.close()
             self._session = None
@@ -120,6 +191,7 @@ class dendrite(torch.nn.Module):
             new_loop = asyncio.new_event_loop()
             asyncio.set_event_loop(new_loop)
             result = loop.run_until_complete(self.forward(*args, **kwargs))
+            self.close_session()
             new_loop.close()
             return result
 
@@ -547,3 +619,55 @@ class dendrite(torch.nn.Module):
             str: The string representation of the Dendrite object in the format "dendrite(<user_wallet_address>)".
         """
         return self.__str__()
+
+    async def __aenter__(self):
+        """
+        Asynchronous context manager entry method.
+
+        Enables the use of the `async with` statement with the Dendrite instance. When entering the context,
+        the current instance of the class is returned, making it accessible within the asynchronous context.
+
+        Returns:
+            Dendrite: The current instance of the Dendrite class.
+
+        Usage:
+            async with Dendrite() as dendrite:
+                await dendrite.some_async_method()
+        """
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        """
+        Asynchronous context manager exit method.
+
+        Ensures proper cleanup when exiting the `async with` context. This method will close the aiohttp client session
+        asynchronously, releasing any tied resources.
+
+        Args:
+            exc_type (Type[BaseException], optional): The type of exception that was raised.
+            exc_value (BaseException, optional): The instance of exception that was raised.
+            traceback (TracebackType, optional): A traceback object encapsulating the call stack at the point
+                                                where the exception was raised.
+
+        Usage:
+            async with Dendrite() as dendrite:
+                await dendrite.some_async_method()
+        """
+        await self.aclose_session()
+
+    def __del__(self):
+        """
+        Dendrite destructor.
+
+        This method is invoked when the Dendrite instance is about to be destroyed. The destructor ensures that the
+        aiohttp client session is closed before the instance is fully destroyed, releasing any remaining resources.
+
+        Note: Relying on the destructor for cleanup can be unpredictable. It's recommended to explicitly close sessions
+        using the provided methods or the `async with` context manager.
+
+        Usage:
+            dendrite = Dendrite()
+            # ... some operations ...
+            del dendrite  # This will implicitly invoke the __del__ method.
+        """
+        asyncio.run(self.aclose_session())
