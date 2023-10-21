@@ -441,7 +441,7 @@ class Synapse(pydantic.BaseModel):
         property_type_hints = typing.get_type_hints(self)
 
         # Getting the fields of the instance
-        instance_fields = self.__dict__
+        instance_fields = self.dict()
 
         # Iterating over the fields of the instance
         for field, value in instance_fields.items():
