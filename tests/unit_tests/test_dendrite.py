@@ -28,6 +28,7 @@ class Dummy(bittensor.Synapse):
     input: int
     output: typing.Optional[int] = None
 
+
 def dummy(synapse: Dummy) -> Dummy:
     synapse.output = synapse.input + 1
     return synapse
@@ -41,6 +42,7 @@ def setup_dendrite():
     dendrite_obj = bittensor.dendrite(user_wallet)
     return dendrite_obj
 
+
 @pytest.fixture(scope="session")
 def setup_axon():
     axon = bittensor.axon()
@@ -48,6 +50,7 @@ def setup_axon():
     axon.start()
     yield axon
     del axon
+
 
 def test_init(setup_dendrite):
     dendrite_obj = setup_dendrite
@@ -82,11 +85,7 @@ async def test_aclose(setup_dendrite, setup_axon):
     dendrite_obj = setup_dendrite = d = bittensor.dendrite()
 
     async with dendrite_obj:
-        resp = await dendrite_obj(
-            [axon],
-            Dummy(input=1),
-            deserialize=False
-        )
+        resp = await dendrite_obj([axon], Dummy(input=1), deserialize=False)
 
     assert dendrite_obj._session == None
 
