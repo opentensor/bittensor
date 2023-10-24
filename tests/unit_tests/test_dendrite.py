@@ -89,7 +89,6 @@ async def test_aclose(setup_dendrite, setup_axon):
         )
 
     assert dendrite_obj._session == None
-    del axon
 
 
 class AsyncMock(Mock):
