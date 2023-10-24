@@ -72,21 +72,25 @@ def test_repr(setup_dendrite):
 
 def test_close(setup_dendrite, setup_axon):
     axon = setup_axon
-    dendrite_obj = setup_dendrite = d = bittensor.dendrite()
-
+    dendrite_obj = setup_dendrite
+    # Query the axon to open a session
     dendrite_obj.query(axon, Dummy(input=1))
+    assert dendrite_obj._session != None
+    # We haven't called close yet, so the session should still be open
+    assert dendrite_obj._session.closed == False
+    # We call close and should delete the session after closing
     dendrite_obj.close_session()
-    assert dendrite_obj._session.closed == True
+    assert dendrite_obj._session == None
 
 
 @pytest.mark.asyncio
 async def test_aclose(setup_dendrite, setup_axon):
     axon = setup_axon
-    dendrite_obj = setup_dendrite = d = bittensor.dendrite()
-
+    dendrite_obj = setup_dendrite
+    # Use context manager to open an async session
     async with dendrite_obj:
         resp = await dendrite_obj([axon], Dummy(input=1), deserialize=False)
-
+    # Close should automatically be called on the session after context manager scope
     assert dendrite_obj._session == None
 
 

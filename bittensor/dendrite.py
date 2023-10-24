@@ -152,6 +152,7 @@ class dendrite(torch.nn.Module):
         """
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._session.close())
+        self._session = None
 
     async def aclose_session(self):
         """
