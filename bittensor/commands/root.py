@@ -20,6 +20,7 @@ import re
 import torch
 import typing
 import argparse
+import numpy as np
 import bittensor
 from typing import List, Optional, Dict
 from rich.prompt import Prompt, Confirm
@@ -245,11 +246,12 @@ class RootGetWeightsCommand:
 
         for matrix in weights:
             uid = matrix[0]
+            weight_sum = np.sum(matrix[1])
             for weight_data in matrix[1]:
                 table.add_row(
                     str(uid),
                     str(weight_data[0]),
-                    "{:0.2f}%".format((weight_data[1] / 65535) * 100),
+                    "{:0.2f}%".format((weight_data[1] / weight_sum) * 100),
                 )
 
         table.box = None
