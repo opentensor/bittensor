@@ -223,36 +223,55 @@ class RootGetWeightsCommand:
         table = Table(show_footer=False)
         table.title = "[white]Root Network Weights"
         table.add_column(
-            "[overline white]UID",
+            "[white]UID",
+            header_style="overline white",
             footer_style="overline white",
             style="rgb(50,163,219)",
             no_wrap=True,
         )
-        table.add_column(
-            "[overline white]NETUID",
-            footer_style="overline white",
-            justify="right",
-            style="green",
-            no_wrap=True,
-        )
-        table.add_column(
-            "[overline white]WEIGHT",
-            footer_style="overline white",
-            justify="right",
-            style="green",
-            no_wrap=True,
-        )
+
+        uid_to_weights = {}
+        netuids = set()
+        for matrix in weights:
+            [uid, weights_data] = matrix
+            
+            normalized_weights = np.array(weights_data)[:, 1] / np.sum(weights_data, axis=0)[1]
+            for weight_data, normalized_weight in zip(weights_data, normalized_weights):
+                [netuid, _] = weight_data
+                netuids.add(netuid)
+                if uid not in uid_to_weights:
+                    uid_to_weights[uid] = {}
+
+                uid_to_weights[uid][netuid] = normalized_weight
+                
+
+        for netuid in netuids:
+            table.add_column(
+                f"[white]{netuid}",
+                header_style="overline white",
+                footer_style="overline white",
+                justify="right",
+                style="green",
+                no_wrap=True,
+            )
+
+        for uid in uid_to_weights:
+            row = [str(uid)]
+
+            uid_weights = uid_to_weights[uid]
+            for netuid in netuids:
+                if netuid in uid_weights:
+                    normalized_weight = uid_weights[netuid]
+                    row.append(
+                        "{:0.2f}%".format(normalized_weight * 100)
+                    )
+                else:
+                    row.append("-")
+            table.add_row(*row)
+
         table.show_footer = True
 
-        for matrix in weights:
-            uid = matrix[0]
-            weight_sum = np.sum(matrix[1])
-            for weight_data in matrix[1]:
-                table.add_row(
-                    str(uid),
-                    str(weight_data[0]),
-                    "{:0.2f}%".format((weight_data[1] / weight_sum) * 100),
-                )
+        
 
         table.box = None
         table.pad_edge = False
