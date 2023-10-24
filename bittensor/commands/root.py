@@ -234,8 +234,10 @@ class RootGetWeightsCommand:
         netuids = set()
         for matrix in weights:
             [uid, weights_data] = matrix
-            
-            normalized_weights = np.array(weights_data)[:, 1] / np.sum(weights_data, axis=0)[1]
+
+            normalized_weights = (
+                np.array(weights_data)[:, 1] / np.sum(weights_data, axis=0)[1]
+            )
             for weight_data, normalized_weight in zip(weights_data, normalized_weights):
                 [netuid, _] = weight_data
                 netuids.add(netuid)
@@ -243,7 +245,6 @@ class RootGetWeightsCommand:
                     uid_to_weights[uid] = {}
 
                 uid_to_weights[uid][netuid] = normalized_weight
-                
 
         for netuid in netuids:
             table.add_column(
@@ -262,16 +263,12 @@ class RootGetWeightsCommand:
             for netuid in netuids:
                 if netuid in uid_weights:
                     normalized_weight = uid_weights[netuid]
-                    row.append(
-                        "{:0.2f}%".format(normalized_weight * 100)
-                    )
+                    row.append("{:0.2f}%".format(normalized_weight * 100))
                 else:
                     row.append("-")
             table.add_row(*row)
 
         table.show_footer = True
-
-        
 
         table.box = None
         table.pad_edge = False
