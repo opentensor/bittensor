@@ -76,8 +76,8 @@ class dendrite(torch.nn.Module):
     NOTE: When working with async aiohttp client sessions, it is recommended to use a context manager.
 
     Example with a context manager:
-        >>> aysnc with dendrite(wallet = bittensor.wallet() ) as dendrite_obj:
-        >>>     print(dendrite_obj)
+        >>> aysnc with dendrite(wallet = bittensor.wallet()) as d:
+        >>>     print(d)
         >>>     d( <axon> ) # ping axon
         >>>     d( [<axons>] ) # ping multiple
         >>>     d( bittensor.axon(), bittensor.Synapse )
@@ -85,8 +85,8 @@ class dendrite(torch.nn.Module):
     However, you are able to safely call dendrite.query() without a context manager in a synchronous setting.
 
     Example without a context manager:
-        >>> dendrite_obj = dendrite(wallet = bittensor.wallet() )
-        >>> print(dendrite_obj)
+        >>> d = dendrite(wallet = bittensor.wallet() )
+        >>> print(d)
         >>> d( <axon> ) # ping axon
         >>> d( [<axons>] ) # ping multiple
         >>> d( bittensor.axon(), bittensor.Synapse )

@@ -18,9 +18,19 @@
 # DEALINGS IN THE SOFTWARE.
 
 import pytest
+import typing
 import bittensor
 from unittest.mock import MagicMock, Mock, patch
 from tests.helpers import _get_mock_wallet
+
+
+class Dummy(bittensor.Synapse):
+    input: int
+    output: typing.Optional[int] = None
+
+def dummy(synapse: Dummy) -> Dummy:
+    synapse.output = synapse.input + 1
+    return synapse
 
 
 @pytest.fixture
@@ -31,6 +41,13 @@ def setup_dendrite():
     dendrite_obj = bittensor.dendrite(user_wallet)
     return dendrite_obj
 
+@pytest.fixture(scope="session")
+def setup_axon():
+    axon = bittensor.axon()
+    axon.attach(forward_fn=dummy)
+    axon.start()
+    yield axon
+    del axon
 
 def test_init(setup_dendrite):
     dendrite_obj = setup_dendrite
@@ -48,6 +65,31 @@ def test_repr(setup_dendrite):
     dendrite_obj = setup_dendrite
     expected_string = "dendrite({})".format(setup_dendrite.keypair.ss58_address)
     assert repr(dendrite_obj) == expected_string
+
+
+def test_close(setup_dendrite, setup_axon):
+    axon = setup_axon
+    dendrite_obj = setup_dendrite = d = bittensor.dendrite()
+
+    dendrite_obj.query(axon, Dummy(input=1))
+    dendrite_obj.close_session()
+    assert dendrite_obj._session.closed == True
+
+
+@pytest.mark.asyncio
+async def test_aclose(setup_dendrite, setup_axon):
+    axon = setup_axon
+    dendrite_obj = setup_dendrite = d = bittensor.dendrite()
+
+    async with dendrite_obj:
+        resp = await dendrite_obj(
+            [axon],
+            Dummy(input=1),
+            deserialize=False
+        )
+
+    assert dendrite_obj._session == None
+    del axon
 
 
 class AsyncMock(Mock):
