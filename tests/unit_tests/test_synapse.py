@@ -188,3 +188,39 @@ def test_required_fields_override():
         match='"required_hash_fields" has allow_mutation set to False and cannot be assigned',
     ):
         synapse_instance.required_hash_fields = []
+
+
+def test_default_instance_fields_dict_consistency():
+    synapse_instance = bittensor.Synapse()
+    assert synapse_instance.dict() == {
+        "name": "Synapse",
+        "timeout": 12.0,
+        "total_size": 0,
+        "header_size": 0,
+        "dendrite": {
+            "status_code": None,
+            "status_message": None,
+            "process_time": None,
+            "ip": None,
+            "port": None,
+            "version": None,
+            "nonce": None,
+            "uuid": None,
+            "hotkey": None,
+            "signature": None,
+        },
+        "axon": {
+            "status_code": None,
+            "status_message": None,
+            "process_time": None,
+            "ip": None,
+            "port": None,
+            "version": None,
+            "nonce": None,
+            "uuid": None,
+            "hotkey": None,
+            "signature": None,
+        },
+        "computed_body_hash": "",
+        "required_hash_fields": [],
+    }
