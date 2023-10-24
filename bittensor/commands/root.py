@@ -235,8 +235,8 @@ class RootGetWeightsCommand:
         for matrix in weights:
             [uid, weights_data] = matrix
 
-            normalized_weights = (
-                np.array(weights_data)[:, 1] / np.sum(weights_data, axis=0)[1]
+            normalized_weights = np.array(weights_data)[:, 1] / max(
+                np.sum(weights_data, axis=0)[1], 1
             )
             for weight_data, normalized_weight in zip(weights_data, normalized_weights):
                 [netuid, _] = weight_data
