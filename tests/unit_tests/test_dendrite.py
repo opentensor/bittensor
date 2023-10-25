@@ -24,12 +24,12 @@ from unittest.mock import MagicMock, Mock, patch
 from tests.helpers import _get_mock_wallet
 
 
-class Dummy(bittensor.Synapse):
+class SynapseDummy(bittensor.Synapse):
     input: int
     output: typing.Optional[int] = None
 
 
-def dummy(synapse: Dummy) -> Dummy:
+def dummy(synapse: SynapseDummy) -> SynapseDummy:
     synapse.output = synapse.input + 1
     return synapse
 
@@ -74,7 +74,7 @@ def test_close(setup_dendrite, setup_axon):
     axon = setup_axon
     dendrite_obj = setup_dendrite
     # Query the axon to open a session
-    dendrite_obj.query(axon, Dummy(input=1))
+    dendrite_obj.query(axon, SynapseDummy(input=1))
     assert dendrite_obj._session != None
     # We haven't called close yet, so the session should still be open
     assert dendrite_obj._session.closed == False
@@ -89,7 +89,7 @@ async def test_aclose(setup_dendrite, setup_axon):
     dendrite_obj = setup_dendrite
     # Use context manager to open an async session
     async with dendrite_obj:
-        resp = await dendrite_obj([axon], Dummy(input=1), deserialize=False)
+        resp = await dendrite_obj([axon], SynapseDummy(input=1), deserialize=False)
     # Close should automatically be called on the session after context manager scope
     assert dendrite_obj._session == None
 
