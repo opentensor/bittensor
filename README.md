@@ -183,17 +183,16 @@ For example:
 ```bash
 btcli subnets --help
 
-usage: btcli <command> <command args> subnets [-h] {list,metagraph,lock_cost,create,register,recycle_register,hyperparameters} ...
+usage: btcli <command> <command args> subnets [-h] {list,metagraph,lock_cost,create,register,hyperparameters} ...
 
 positional arguments:
-  {list,metagraph,lock_cost,create,register,recycle_register,hyperparameters}
+  {list,metagraph,lock_cost,create,register,hyperparameters}
                         Commands for managing and viewing subnetworks.
     list                List all subnets on the network
     metagraph           View a subnet metagraph information.
     lock_cost           Return the lock cost to register a subnet
     create              Create a new bittensor subnetwork on this chain.
     register            Register a wallet to a network.
-    recycle_register    Register a wallet to a network.
     hyperparameters     View subnet hyperparameters
 
 options:

@@ -54,7 +54,6 @@ COMMANDS = {
             "lock_cost": SubnetLockCostCommand,
             "create": RegisterSubnetworkCommand,
             "register": RegisterCommand,
-            "recycle_register": RecycleRegisterCommand,
             "hyperparameters": SubnetHyperparamsCommand,
         },
     },
