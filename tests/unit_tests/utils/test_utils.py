@@ -585,7 +585,6 @@ class TestPOWCalled(unittest.TestCase):
         self._subtensor.create_subnet(netuid=99)
 
 
-
 class TestCUDASolverRun(unittest.TestCase):
     def test_multi_cuda_run_updates_nonce_start(self):
         class MockException(Exception):

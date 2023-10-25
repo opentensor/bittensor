@@ -418,11 +418,11 @@ class TestSubtensor(unittest.TestCase):
         )
         self.assertFalse(registered, msg="Hotkey should not be registered")
 
-
     def test_defaults_to_finney(self):
         sub = bittensor.subtensor()
-        assert sub.network == 'finney'
+        assert sub.network == "finney"
         assert sub.chain_endpoint == bittensor.__finney_entrypoint__
+
 
 if __name__ == "__main__":
     unittest.main()
