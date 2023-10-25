@@ -26,7 +26,6 @@ from . import defaults
 console = bittensor.__console__
 
 
-
 class RegisterCommand:
     @staticmethod
     def run(cli):

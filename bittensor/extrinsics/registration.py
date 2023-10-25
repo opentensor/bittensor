@@ -25,7 +25,6 @@ from typing import List, Union, Optional, Tuple
 from bittensor.utils.registration import POWSolution, create_pow
 
 
-
 def burned_register_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
