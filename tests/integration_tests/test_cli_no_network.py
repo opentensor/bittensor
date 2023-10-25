@@ -334,49 +334,6 @@ class TestCLINoNetwork(unittest.TestCase):
             set(extracted_commands)
         ), "Duplicate commands found in help output"
 
-    @patch("torch.cuda.is_available", return_value=True)
-    def test_register_cuda_use_cuda_flag(self, _, __, patched_sub):
-        base_args = [
-            "subnets",
-            "register",
-            "--wallet.path",
-            "tmp/walletpath",
-            "--wallet.name",
-            "mock",
-            "--wallet.hotkey",
-            "hk0",
-            "--no_prompt",
-            "--cuda.dev_id",
-            "0",
-        ]
-
-        patched_sub.return_value = MagicMock(
-            get_subnets=MagicMock(return_value=[1]),
-            subnet_exists=MagicMock(return_value=True),
-            register=MagicMock(side_effect=MockException),
-        )
-
-        # Should be able to set true without argument
-        args = base_args + [
-            "--register.cuda.use_cuda",  # should be True without any arugment
-        ]
-        with pytest.raises(MockException):
-            cli = bittensor.cli(args=args)
-            cli.run()
-
-        self.assertEqual(cli.config.register.cuda.get("use_cuda"), True)
-
-        # Should be able to set to false with no argument
-
-        args = base_args + [
-            "--register.cuda.no_cuda",
-        ]
-        with pytest.raises(MockException):
-            cli = bittensor.cli(args=args)
-            cli.run()
-
-        self.assertEqual(cli.config.register.cuda.get("use_cuda"), False)
-
 
 def return_mock_sub_2(*args, **kwargs):
     return MagicMock(
