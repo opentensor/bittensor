@@ -187,13 +187,15 @@ class dendrite(torch.nn.Module):
         """
         try:
             loop = asyncio.get_event_loop()
-            return loop.run_until_complete(self.forward(*args, **kwargs))
+            result = loop.run_until_complete(self.forward(*args, **kwargs))
         except:
             new_loop = asyncio.new_event_loop()
             asyncio.set_event_loop(new_loop)
             result = loop.run_until_complete(self.forward(*args, **kwargs))
-            self.close_session()
             new_loop.close()
+            return result
+        finally:
+            self.close_session()
             return result
 
     async def forward(
