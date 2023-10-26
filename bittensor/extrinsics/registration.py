@@ -452,3 +452,35 @@ def run_faucet_extrinsic(
 
         except KeyboardInterrupt:
             return True, "Done"
+
+
+def swap_hotkey_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    new_wallet: "bittensor.wallet",
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+    prompt: bool = False,
+) -> bool:
+    wallet.coldkey  # unlock coldkey
+    if prompt:
+        # Prompt user for confirmation.
+        if not Confirm.ask(f"Swap {wallet.hotkey} for new hotkey: {new_wallet.hotkey}?"):
+            return False
+
+    with bittensor.__console__.status(":satellite: Swapping hotkeys..."):
+        success, err_msg = subtensor._do_swap_hotkey(
+            wallet=wallet,
+            new_wallet=new_wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if success != True or success == False:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
+            )
+            time.sleep(0.5)
+
+        else:
+            bittensor.__console__.print(f"Hotkey {wallet.hotkey} swapped for new hotkey: {new_wallet.hotkey}")

@@ -65,7 +65,7 @@ defaults: Munch = munchify(
 from .stake import StakeCommand, StakeShow
 from .unstake import UnStakeCommand
 from .overview import OverviewCommand
-from .register import RegisterCommand, RecycleRegisterCommand, RunFaucetCommand
+from .register import RegisterCommand, RecycleRegisterCommand, RunFaucetCommand, SwapHotkeyCommand
 from .delegates import (
     NominateCommand,
     ListDelegatesCommand,

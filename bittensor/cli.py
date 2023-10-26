@@ -94,6 +94,7 @@ COMMANDS = {
             "regen_hotkey": RegenHotkeyCommand,
             "faucet": RunFaucetCommand,
             "update": UpdateWalletCommand,
+            "swap_hotkey": SwapHotkeyCommand,
         },
     },
     "stake": {
