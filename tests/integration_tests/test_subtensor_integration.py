@@ -419,59 +419,59 @@ class TestSubtensor(unittest.TestCase):
         self.assertFalse(registered, msg="Hotkey should not be registered")
 
     def test_registration_multiprocessed_already_registered(self):
-         workblocks_before_is_registered = random.randint(5, 10)
-         # return False each work block but return True after a random number of blocks
-         is_registered_return_values = (
-             [False for _ in range(workblocks_before_is_registered)]
-             + [True]
-             + [True, False]
-         )
-         # this should pass the initial False check in the subtensor class and then return True because the neuron is already registered
+        workblocks_before_is_registered = random.randint(5, 10)
+        # return False each work block but return True after a random number of blocks
+        is_registered_return_values = (
+            [False for _ in range(workblocks_before_is_registered)]
+            + [True]
+            + [True, False]
+        )
+        # this should pass the initial False check in the subtensor class and then return True because the neuron is already registered
 
-         mock_neuron = MagicMock()
-         mock_neuron.is_null = True
+        mock_neuron = MagicMock()
+        mock_neuron.is_null = True
 
-         # patch solution queue to return None
-         with patch(
-             "multiprocessing.queues.Queue.get", return_value=None
-         ) as mock_queue_get:
-             # patch time queue get to raise Empty exception
-             with patch(
-                 "multiprocessing.queues.Queue.get_nowait", side_effect=QueueEmpty
-             ) as mock_queue_get_nowait:
-                 wallet = _get_mock_wallet(
-                     hotkey=_get_mock_keypair(0, self.id()),
-                     coldkey=_get_mock_keypair(1, self.id()),
-                 )
-                 self.subtensor.is_hotkey_registered = MagicMock(
-                     side_effect=is_registered_return_values
-                 )
+        # patch solution queue to return None
+        with patch(
+            "multiprocessing.queues.Queue.get", return_value=None
+        ) as mock_queue_get:
+            # patch time queue get to raise Empty exception
+            with patch(
+                "multiprocessing.queues.Queue.get_nowait", side_effect=QueueEmpty
+            ) as mock_queue_get_nowait:
+                wallet = _get_mock_wallet(
+                    hotkey=_get_mock_keypair(0, self.id()),
+                    coldkey=_get_mock_keypair(1, self.id()),
+                )
+                self.subtensor.is_hotkey_registered = MagicMock(
+                    side_effect=is_registered_return_values
+                )
 
-                 self.subtensor.difficulty = MagicMock(return_value=1)
-                 self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
-                     side_effect=mock_neuron
-                 )
-                 self.subtensor._do_pow_register = MagicMock(return_value=(True, None))
+                self.subtensor.difficulty = MagicMock(return_value=1)
+                self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
+                    side_effect=mock_neuron
+                )
+                self.subtensor._do_pow_register = MagicMock(return_value=(True, None))
 
-                 with patch("bittensor.__console__.status") as mock_set_status:
-                     # Need to patch the console status to avoid opening a parallel live display
-                     mock_set_status.__enter__ = MagicMock(return_value=True)
-                     mock_set_status.__exit__ = MagicMock(return_value=True)
+                with patch("bittensor.__console__.status") as mock_set_status:
+                    # Need to patch the console status to avoid opening a parallel live display
+                    mock_set_status.__enter__ = MagicMock(return_value=True)
+                    mock_set_status.__exit__ = MagicMock(return_value=True)
 
-                     # should return True
-                     assert (
-                         self.subtensor.register(
-                             wallet=wallet, netuid=3, num_processes=3, update_interval=5
-                         )
-                         == True
-                     )
+                    # should return True
+                    assert (
+                        self.subtensor.register(
+                            wallet=wallet, netuid=3, num_processes=3, update_interval=5
+                        )
+                        == True
+                    )
 
-                 # calls until True and once again before exiting subtensor class
-                 # This assertion is currently broken when difficulty is too low
-                 assert (
-                     self.subtensor.is_hotkey_registered.call_count
-                     == workblocks_before_is_registered + 2
-                 )
+                # calls until True and once again before exiting subtensor class
+                # This assertion is currently broken when difficulty is too low
+                assert (
+                    self.subtensor.is_hotkey_registered.call_count
+                    == workblocks_before_is_registered + 2
+                )
 
     def test_registration_partly_failed(self):
         do_pow_register_mock = MagicMock(

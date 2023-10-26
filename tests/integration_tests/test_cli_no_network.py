@@ -377,6 +377,7 @@ class TestCLINoNetwork(unittest.TestCase):
 
         self.assertEqual(cli.config.pow_register.cuda.get("use_cuda"), False)
 
+
 def return_mock_sub_2(*args, **kwargs):
     return MagicMock(
         return_value=MagicMock(

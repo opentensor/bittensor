@@ -132,7 +132,9 @@ class PowRegisterCommand:
             output_in_place=cli.config.pow_register.get(
                 "output_in_place", defaults.pow_register.output_in_place
             ),
-            log_verbose=cli.config.pow_register.get("verbose", defaults.pow_register.verbose),
+            log_verbose=cli.config.pow_register.get(
+                "verbose", defaults.pow_register.verbose
+            ),
         )
 
     @staticmethod
@@ -258,7 +260,9 @@ class RunFaucetCommand:
             output_in_place=cli.config.pow_register.get(
                 "output_in_place", defaults.pow_register.output_in_place
             ),
-            log_verbose=cli.config.pow_register.get("verbose", defaults.pow_register.verbose),
+            log_verbose=cli.config.pow_register.get(
+                "verbose", defaults.pow_register.verbose
+            ),
         )
 
     @staticmethod
