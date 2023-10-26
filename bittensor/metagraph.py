@@ -473,9 +473,7 @@ class metagraph(torch.nn.Module):
         # TODO: Check and test the creation of tensor
         return torch.nn.Parameter(torch.tensor(data, dtype=dtype), requires_grad=False)
 
-    def _set_weights_and_bonds(
-        self, subtensor: bittensor.subtensor = None
-    ):
+    def _set_weights_and_bonds(self, subtensor: bittensor.subtensor = None):
         """
         Computes and sets weights and bonds for each neuron.
 
@@ -483,7 +481,7 @@ class metagraph(torch.nn.Module):
             None.
         """
         # TODO: Check and test the computation of weights and bonds
-        if self.netiud == 0: # Is this the root network?
+        if self.netiud == 0:  # Is this the root network?
             self.weights = self._process_root_weights(
                 [neuron.weights for neuron in self.neurons], "weights", subtensor
             )
