@@ -119,14 +119,8 @@ class OverviewCommand:
             hotkey_coldkey_to_hotkey_wallet[hotkey_wallet.hotkey.ss58_address][
                 hotkey_wallet.coldkeypub.ss58_address
             ] = hotkey_wallet
-        from pprint import pformat
 
-        print("Hotkey wallets:", pformat(hotkey_coldkey_to_hotkey_wallet))
-        import pdb
-
-        pdb.set_trace()
         all_hotkey_addresses = list(hotkey_coldkey_to_hotkey_wallet.keys())
-
         with console.status(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
                 cli.config.subtensor.get(
