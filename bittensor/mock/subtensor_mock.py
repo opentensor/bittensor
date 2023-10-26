@@ -1073,28 +1073,6 @@ class MockSubtensor(subtensor):
 
         return True, None, None
 
-    def _do_pow_register(
-        self,
-        netuid: int,
-        wallet: "wallet",
-        pow_result: "POWSolution",
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        # Assume pow result is valid
-
-        subtensor_state = self.chain_state["SubtensorModule"]
-        if netuid not in subtensor_state["NetworksAdded"]:
-            raise Exception("Subnet does not exist")
-
-        self._register_neuron(
-            netuid=netuid,
-            hotkey=wallet.hotkey.ss58_address,
-            coldkey=wallet.coldkeypub.ss58_address,
-        )
-
-        return True, None
-
     def _do_burned_register(
         self,
         netuid: int,
