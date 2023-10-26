@@ -131,10 +131,6 @@ class dendrite(torch.nn.Module):
 
         Returns:
             aiohttp.ClientSession: The aiohttp client session instance.
-
-        Usage:
-            async with dendrite_instance.session as session:
-                response = await session.get('http://example.com')
         """
         if self._session is None:
             self._session = aiohttp.ClientSession()
@@ -173,6 +169,8 @@ class dendrite(torch.nn.Module):
     ) -> Union[bittensor.Synapse, List[bittensor.Synapse]]:
         """
         Makes a synchronous request to multiple target Axons and returns the server responses.
+
+        Cleanup is automatically handled and sessions are closed upon completed requests.
 
         Args:
             axons (Union[List[Union['bittensor.AxonInfo', 'bittensor.axon']], Union['bittensor.AxonInfo', 'bittensor.axon']]):

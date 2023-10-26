@@ -75,11 +75,7 @@ def test_close(setup_dendrite, setup_axon):
     dendrite_obj = setup_dendrite
     # Query the axon to open a session
     dendrite_obj.query(axon, SynapseDummy(input=1))
-    assert dendrite_obj._session != None
-    # We haven't called close yet, so the session should still be open
-    assert dendrite_obj._session.closed == False
-    # We call close and should delete the session after closing
-    dendrite_obj.close_session()
+    # Session should be automatically closed after query
     assert dendrite_obj._session == None
 
 
