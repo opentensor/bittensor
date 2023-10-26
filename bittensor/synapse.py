@@ -410,7 +410,6 @@ class Synapse(pydantic.BaseModel):
         Headers for 'name' and 'timeout' are directly taken from the instance.
         Further headers are constructed from the properties 'axon' and 'dendrite'.
 
-        If the object is a tensor, its shape and data type are added to the headers.
         For non-optional objects, these are serialized and encoded before adding to the headers.
 
         Finally, the function adds the sizes of the headers and the total size to the headers.
@@ -441,7 +440,7 @@ class Synapse(pydantic.BaseModel):
         property_type_hints = typing.get_type_hints(self)
 
         # Getting the fields of the instance
-        instance_fields = self.__dict__
+        instance_fields = self.dict()
 
         # Iterating over the fields of the instance
         for field, value in instance_fields.items():
@@ -453,28 +452,6 @@ class Synapse(pydantic.BaseModel):
             # Skipping the field if it's already in the headers or its value is None
             if field in headers or value is None:
                 continue
-
-            # Adding the tensor shape and data type to the headers if the object is a tensor
-            if isinstance(value, bittensor.Tensor):
-                headers[f"bt_header_tensor_{field}"] = f"{value.shape}-{value.dtype}"
-
-            elif isinstance(value, list) and all(
-                isinstance(elem, bittensor.Tensor) for elem in value
-            ):
-                serialized_list_tensor = []
-                for i, tensor in enumerate(value):
-                    serialized_list_tensor.append(f"{tensor.shape}-{tensor.dtype}")
-                headers[f"bt_header_list_tensor_{field}"] = str(serialized_list_tensor)
-
-            elif isinstance(value, dict) and all(
-                isinstance(elem, bittensor.Tensor) for elem in value.values()
-            ):
-                serialized_dict_tensor = []
-                for key, tensor in value.items():
-                    serialized_dict_tensor.append(
-                        f"{key}-{tensor.shape}-{tensor.dtype}"
-                    )
-                headers[f"bt_header_dict_tensor_{field}"] = str(serialized_dict_tensor)
 
             elif required and field in required:
                 try:
@@ -561,50 +538,6 @@ class Synapse(pydantic.BaseModel):
                 except Exception as e:
                     bittensor.logging.error(
                         f"Error while parsing 'dendrite' header {key}: {e}"
-                    )
-                    continue
-            # Handle 'tensor' headers
-            elif "bt_header_tensor_" in key:
-                try:
-                    new_key = key.split("bt_header_tensor_")[1]
-                    shape, dtype = value.split("-")
-                    # TODO: Verify if the shape and dtype values need to be converted before being used
-                    inputs_dict[new_key] = bittensor.Tensor(shape=shape, dtype=dtype)
-                except Exception as e:
-                    bittensor.logging.error(
-                        f"Error while parsing 'tensor' header {key}: {e}"
-                    )
-                    continue
-            elif "bt_header_list_tensor_" in key:
-                try:
-                    new_key = key.split("bt_header_list_tensor_")[1]
-                    deserialized_tensors = []
-                    stensors = ast.literal_eval(value)
-                    for value in stensors:
-                        shape, dtype = value.split("-")
-                        deserialized_tensors.append(
-                            bittensor.Tensor(shape=shape, dtype=dtype)
-                        )
-                    inputs_dict[new_key] = deserialized_tensors
-                except Exception as e:
-                    bittensor.logging.error(
-                        f"Error while parsing 'tensor' header {key}: {e}"
-                    )
-                    continue
-            elif "bt_header_dict_tensor_" in key:
-                try:
-                    new_key = key.split("bt_header_dict_tensor_")[1]
-                    deserialized_dict_tensors = {}
-                    stensors = ast.literal_eval(value)
-                    for value in stensors:
-                        key, shape, dtype = value.split("-")
-                        deserialized_dict_tensors[key] = bittensor.Tensor(
-                            shape=shape, dtype=dtype
-                        )
-                    inputs_dict[new_key] = deserialized_dict_tensors
-                except Exception as e:
-                    bittensor.logging.error(
-                        f"Error while parsing 'tensor' header {key}: {e}"
                     )
                     continue
             # Handle 'input_obj' headers
