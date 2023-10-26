@@ -53,6 +53,7 @@ COMMANDS = {
             "metagraph": MetagraphCommand,
             "lock_cost": SubnetLockCostCommand,
             "create": RegisterSubnetworkCommand,
+            "pow_register": PowRegisterCommand,
             "register": RegisterCommand,
             "hyperparameters": SubnetHyperparamsCommand,
         },

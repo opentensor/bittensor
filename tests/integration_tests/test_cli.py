@@ -1936,6 +1936,31 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
             self.assertTrue(registered)
 
+    def test_pow_register(self, _):
+         config = self.config
+         config.command = "subnets"
+         config.subcommand = "pow_register"
+         config.pow_register.num_processes = 1
+         config.pow_register.update_interval = 50_000
+         config.no_prompt = True
+
+         mock_wallet = generate_wallet(hotkey=_get_mock_keypair(100, self.id()))
+
+         class MockException(Exception):
+             pass
+
+         with patch("bittensor.wallet", return_value=mock_wallet) as mock_create_wallet:
+             with patch(
+                 "bittensor.extrinsics.registration.POWSolution.is_stale",
+                 side_effect=MockException,
+             ) as mock_is_stale:
+                 with pytest.raises(MockException):
+                     cli = bittensor.cli(config)
+                     cli.run()
+                     mock_create_wallet.assert_called_once()
+
+                 self.assertEqual(mock_is_stale.call_count, 1)
+
     def test_stake(self, _):
         amount_to_stake: Balance = Balance.from_tao(0.5)
         config = self.config

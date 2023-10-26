@@ -584,6 +584,54 @@ class TestPOWCalled(unittest.TestCase):
         self._subtensor.reset()
         self._subtensor.create_subnet(netuid=99)
 
+    def test_pow_called_for_cuda(self, mock_cuda_available):
+         class MockException(Exception):
+             pass
+
+         mock_pow_register_call = MagicMock(side_effect=MockException)
+
+         mock_subtensor = MockSubtensor()
+         mock_subtensor.reset()
+         mock_subtensor.create_subnet(netuid=99)
+         mock_subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(is_null=True)
+         mock_subtensor._do_pow_register = mock_pow_register_call
+
+         mock_wallet = SimpleNamespace(
+             hotkey=bittensor.Keypair.create_from_seed(
+                 "0x" + "0" * 64, ss58_format=bittensor.__ss58_format__
+             ),
+             coldkeypub=SimpleNamespace(ss58_address=""),
+         )
+
+         mock_pow_is_stale = MagicMock(return_value=False)
+
+         mock_result = MagicMock(
+             spec=bittensor.utils.registration.POWSolution,
+             block_number=1,
+             nonce=random.randint(0, pow(2, 32)),
+             difficulty=1,
+             seal=b"\x00" * 64,
+             is_stale=mock_pow_is_stale,
+         )
+
+         with patch(
+             "bittensor.extrinsics.registration.create_pow", return_value=mock_result
+         ) as mock_create_pow:
+             # Should exit early
+             with pytest.raises(MockException):
+                 mock_subtensor.register(mock_wallet, netuid=99, cuda=True, prompt=False)
+
+             mock_pow_is_stale.assert_called_once()
+             mock_create_pow.assert_called_once()
+             mock_cuda_available.assert_called_once()
+
+             call0 = mock_pow_is_stale.call_args
+             _, kwargs = call0
+             assert kwargs["subtensor"] == mock_subtensor
+
+             mock_pow_register_call.assert_called_once()
+             _, kwargs = mock_pow_register_call.call_args
+             kwargs["pow_result"].nonce == mock_result.nonce
 
 class TestCUDASolverRun(unittest.TestCase):
     def test_multi_cuda_run_updates_nonce_start(self):
