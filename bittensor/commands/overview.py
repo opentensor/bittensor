@@ -119,7 +119,9 @@ class OverviewCommand:
             hotkey_coldkey_to_hotkey_wallet[hotkey_wallet.hotkey.ss58_address][
                 hotkey_wallet.coldkeypub.ss58_address
             ] = hotkey_wallet
-
+        from pprint import pformat
+        print("Hotkey wallets:", pformat(hotkey_coldkey_to_hotkey_wallet))
+        import pdb; pdb.set_trace() 
         all_hotkey_addresses = list(hotkey_coldkey_to_hotkey_wallet.keys())
 
         with console.status(
@@ -285,7 +287,11 @@ class OverviewCommand:
                     nn.coldkey, None
                 )
                 if not hotwallet:
-                    continue
+                    # Indicates a mismatch between what the chain says the coldkey
+                    # is for this hotkey and the local wallet coldkey-hotkey pair
+                    hotwallet = argparse.Namespace()
+                    hotwallet.name = nn.coldkey[:7]
+                    hotwallet.hotkey_str = nn.hotkey[:7]
                 nn: bittensor.NeuronInfoLite
                 uid = nn.uid
                 active = nn.active
