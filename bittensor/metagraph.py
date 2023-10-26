@@ -481,7 +481,7 @@ class metagraph(torch.nn.Module):
             None.
         """
         # TODO: Check and test the computation of weights and bonds
-        if self.netiud == 0:  # Is this the root network?
+        if self.netuid == 0:  # Is this the root network?
             self.weights = self._process_root_weights(
                 [neuron.weights for neuron in self.neurons], "weights", subtensor
             )
