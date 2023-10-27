@@ -146,9 +146,10 @@ class dendrite(torch.nn.Module):
         Usage:
             dendrite_instance.close_session()
         """
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self._session.close())
-        self._session = None
+        if self._session:
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self._session.close())
+            self._session = None
 
     async def aclose_session(self):
         """
@@ -241,7 +242,7 @@ class dendrite(torch.nn.Module):
         )
         if streaming != is_streaming_subclass:
             bittensor.logging.warning(
-                "Argument streaming is {streaming} while issubclass(synapse, StreamingSynapse) is {synapse.__class__.__name__}. This may cause unexpected behavior."
+                f"Argument streaming is {streaming} while issubclass(synapse, StreamingSynapse) is {synapse.__class__.__name__}. This may cause unexpected behavior."
             )
         streaming = is_streaming_subclass or streaming
 
