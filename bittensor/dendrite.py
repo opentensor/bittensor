@@ -59,7 +59,8 @@ class dendrite(torch.nn.Module):
             Asynchronously sends a request to a specified Axon and processes the response.
 
         call_stream(self, target_axon, synapse=bittensor.Synapse(), timeout=12.0, deserialize=True) -> AsyncGenerator[bittensor.Synapse, None]:
-            Sends a request to a specified Axon and yields streaming responses.
+            Sends a request to a specified Axon and yields an AsyncGenerator that contains streaming
+            response chunks before finally yielding the filled Synapse as the final element.
 
         preprocess_synapse_for_request(self, target_axon_info, synapse, timeout=12.0) -> bittensor.Synapse:
             Preprocesses the synapse for making a request, including building headers and signing.
@@ -165,9 +166,47 @@ class dendrite(torch.nn.Module):
             await self._session.close()
             self._session = None
 
+    def _get_endpoint_url(self, target_axon, request_name):
+        endpoint = (
+            f"0.0.0.0:{str(target_axon.port)}"
+            if target_axon.ip == str(self.external_ip)
+            else f"{target_axon.ip}:{str(target_axon.port)}"
+        )
+        return f"http://{endpoint}/{request_name}"
+
+    def _handle_request_errors(self, synapse, request_name, exception):
+        if isinstance(exception, aiohttp.ClientConnectorError):
+            synapse.dendrite.status_code = "503"
+            synapse.dendrite.status_message = f"Service at {synapse.axon.ip}:{str(synapse.axon.port)}/{request_name} unavailable."
+        elif isinstance(exception, asyncio.TimeoutError):
+            synapse.dendrite.status_code = "408"
+            synapse.dendrite.status_message = (
+                f"Timedout after {synapse.timeout} seconds."
+            )
+        else:
+            synapse.dendrite.status_code = "422"
+            synapse.dendrite.status_message = (
+                f"Failed to parse response object with error: {str(exception)}"
+            )
+
+    def _log_outgoing_request(self, synapse):
+        bittensor.logging.debug(
+            f"dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success"
+        )
+
+    def _log_incoming_response(self, synapse):
+        bittensor.logging.debug(
+            f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
+        )
+
     def query(
         self, *args, **kwargs
-    ) -> Union[bittensor.Synapse, List[bittensor.Synapse]]:
+    ) -> Union[
+        bittensor.Synapse,
+        List[bittensor.Synapse],
+        bittensor.StreamingSynapse,
+        List[bittensor.StreamingSynapse],
+    ]:
         """
         Makes a synchronous request to multiple target Axons and returns the server responses.
 
@@ -217,6 +256,17 @@ class dendrite(torch.nn.Module):
         the requests, and then sends them off. After getting the responses, it processes and
         collates them into a unified format.
 
+        When querying an Axon that sends back data in chunks using the Dednrite, this function
+        returns an AsyncGenerator that yields each chunk as it is received. The generator can be
+        iterated over to process each chunk individually.
+
+        For example:
+            >>> ...
+            >>> dendrte = bittensor.dendrite(wallet = wallet)
+            >>> async for chunk in dendrite.forward(axons, synapse, timeout, deserialize, run_async, streaming):
+            >>>     # Process each chunk here
+            >>>     print(chunk)
+
         Args:
             axons (Union[List[Union['bittensor.AxonInfo', 'bittensor.axon']], Union['bittensor.AxonInfo', 'bittensor.axon']]):
                 The target Axons to send requests to. Can be a single Axon or a list of Axons.
@@ -227,7 +277,7 @@ class dendrite(torch.nn.Module):
             streaming (bool, optional): Indicates if the response is expected to be in streaming format. Defaults to False.
 
         Returns:
-            Union[bittensor.Synapse, List[bittensor.Synapse]]: If a single Axon is targeted, returns its response.
+            Union[AsyncGenerator, bittensor.Synapse, List[bittensor.Synapse]]: If a single Axon is targeted, returns its response.
             If multiple Axons are targeted, returns a list of their responses.
         """
         is_list = True
@@ -338,21 +388,14 @@ class dendrite(torch.nn.Module):
 
         # Build request endpoint from the synapse class
         request_name = synapse.__class__.__name__
-        endpoint = (
-            f"0.0.0.0:{str(target_axon.port)}"
-            if target_axon.ip == str(self.external_ip)
-            else f"{target_axon.ip}:{str(target_axon.port)}"
-        )
-        url = f"http://{endpoint}/{request_name}"
+        url = self._get_endpoint_url(target_axon, request_name=request_name)
 
         # Preprocess synapse for making a request
         synapse = self.preprocess_synapse_for_request(target_axon, synapse, timeout)
 
         try:
             # Log outgoing request
-            bittensor.logging.debug(
-                f"dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success"
-            )
+            self._log_outgoing_request(synapse)
 
             # Make the HTTP POST request
             async with (await self.session).post(
@@ -369,24 +412,11 @@ class dendrite(torch.nn.Module):
             # Set process time and log the response
             synapse.dendrite.process_time = str(time.time() - start_time)
 
-        except aiohttp.ClientConnectorError as e:
-            synapse.dendrite.status_code = "503"
-            synapse.dendrite.status_message = f"Service at {synapse.axon.ip}:{str(synapse.axon.port)}/{request_name} unavailable."
-
-        except asyncio.TimeoutError as e:
-            synapse.dendrite.status_code = "408"
-            synapse.dendrite.status_message = f"Timedout after {timeout} seconds."
-
         except Exception as e:
-            synapse.dendrite.status_code = "422"
-            synapse.dendrite.status_message = (
-                f"Failed to parse response object with error: {str(e)}"
-            )
+            self._handle_request_errors(synapse, request_name, e)
 
         finally:
-            bittensor.logging.debug(
-                f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
-            )
+            self._log_incoming_response(synapse)
 
             # Log synapse event history
             self.synapse_history.append(
@@ -421,7 +451,8 @@ class dendrite(torch.nn.Module):
             deserialize (bool, optional): Determines if each received chunk should be deserialized. Defaults to True.
 
         Yields:
-            bittensor.Synapse: Each yielded Synapse object contains a chunk of the response data from the Axon.
+            object: Each yielded object contains a chunk of the arbitrary response data from the Axon.
+            bittensor.Synapse: After the AsyncGenerator has been exhausted, yields the final filled Synapse.
         """
 
         # Record start time
@@ -446,9 +477,7 @@ class dendrite(torch.nn.Module):
 
         try:
             # Log outgoing request
-            bittensor.logging.debug(
-                f"stream dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success"
-            )
+            self._log_outgoing_request(synapse)
 
             # Make the HTTP POST request
             async with (await self.session).post(
@@ -468,24 +497,11 @@ class dendrite(torch.nn.Module):
             # Set process time and log the response
             synapse.dendrite.process_time = str(time.time() - start_time)
 
-        except aiohttp.ClientConnectorError as e:
-            synapse.dendrite.status_code = "503"
-            synapse.dendrite.status_message = f"Service at {synapse.axon.ip}:{str(synapse.axon.port)}/{request_name} unavailable."
-
-        except asyncio.TimeoutError as e:
-            synapse.dendrite.status_code = "408"
-            synapse.dendrite.status_message = f"Timedout after {timeout} seconds."
-
         except Exception as e:
-            synapse.dendrite.status_code = "422"
-            synapse.dendrite.status_message = (
-                f"Failed to parse response object with error: {str(e)}"
-            )
+            self._handle_request_errors(synapse, request_name, e)
 
         finally:
-            bittensor.logging.debug(
-                f"stream dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
-            )
+            self._log_incoming_response(synapse)
 
             # Log synapse event history
             self.synapse_history.append(
