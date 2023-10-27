@@ -257,7 +257,9 @@ class dendrite(torch.nn.Module):
                 List of Synapse objects with responses.
             """
 
-            async def single_axon_response(target_axon) -> Union[AsyncGenerator, bittenst.Synapse, bittensor.StreamingSynapse]:
+            async def single_axon_response(
+                target_axon,
+            ) -> Union[AsyncGenerator, bittenst.Synapse, bittensor.StreamingSynapse]:
                 """
                 Retrieve response for a single axon, either in streaming or non-streaming mode.
 
