@@ -26,7 +26,7 @@ import torch
 import aiohttp
 import bittensor
 from fastapi import Response
-from typing import Union, Optional, List, Union, AsyncGenerator
+from typing import Union, Optional, List, Union, AsyncGenerator, Any
 
 
 class dendrite(torch.nn.Module):
@@ -247,7 +247,7 @@ class dendrite(torch.nn.Module):
         deserialize: bool = True,
         run_async: bool = True,
         streaming: bool = False,
-    ) -> List[Union[AsyncGenerator, bittenst.Synapse, bittensor.StreamingSynapse]]:
+    ) -> List[Union[AsyncGenerator[Any], bittenst.Synapse, bittensor.StreamingSynapse]]:
         """
         Asynchronously sends requests to one or multiple Axons and collates their responses.
 
@@ -296,7 +296,9 @@ class dendrite(torch.nn.Module):
             )
         streaming = is_streaming_subclass or streaming
 
-        async def query_all_axons(is_stream: bool) -> List[bittensor.Synapse]:
+        async def query_all_axons(
+            is_stream: bool,
+        ) -> Union[AsyncGenerator[Any], bittenst.Synapse, bittensor.StreamingSynapse]:
             """
             Handles requests for all axons, either in streaming or non-streaming mode.
 
@@ -309,7 +311,9 @@ class dendrite(torch.nn.Module):
 
             async def single_axon_response(
                 target_axon,
-            ) -> Union[AsyncGenerator, bittenst.Synapse, bittensor.StreamingSynapse]:
+            ) -> Union[
+                AsyncGenerator[Any], bittenst.Synapse, bittensor.StreamingSynapse
+            ]:
                 """
                 Retrieve response for a single axon, either in streaming or non-streaming mode.
 
@@ -435,7 +439,7 @@ class dendrite(torch.nn.Module):
         synapse: bittensor.Synapse = bittensor.Synapse(),
         timeout: float = 12.0,
         deserialize: bool = True,
-    ) -> AsyncGenerator[bittensor.Synapse, bittensor.StreamingSynapse, None]:
+    ) -> AsyncGenerator[Any]:
         """
         Sends a request to a specified Axon and yields streaming responses.
 
