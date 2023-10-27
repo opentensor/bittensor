@@ -74,7 +74,7 @@ COMMANDS = {
             "my_delegates": MyDelegatesCommand,
             "list_delegates": ListDelegatesCommand,
             "nominate": NominateCommand,
-            "set_delegate_take": SetDelegateTakeCommand
+            "set_delegate_take": SetDelegateTakeCommand,
         },
     },
     "wallet": {

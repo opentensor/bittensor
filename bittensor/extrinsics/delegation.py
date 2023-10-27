@@ -94,6 +94,7 @@ def nominate_extrinsic(
 
     return False
 
+
 def set_delegate_take_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
@@ -117,15 +118,11 @@ def set_delegate_take_extrinsic(
 
     # Check if the hotkey is already a delegate.
     if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
-        logger.error(
-            "Hotkey {} isn't a delegate.".format(wallet.hotkey.ss58_address)
-        )
+        logger.error("Hotkey {} isn't a delegate.".format(wallet.hotkey.ss58_address))
         return False
 
     with bittensor.__console__.status(
-        ":satellite: Sending call on [white]{}[/white] ...".format(
-            subtensor.network
-        )
+        ":satellite: Sending call on [white]{}[/white] ...".format(subtensor.network)
     ):
         try:
             success = subtensor._do_set_delegate_take(
@@ -156,6 +153,7 @@ def set_delegate_take_extrinsic(
             )
 
     return False
+
 
 def delegate_extrinsic(
     subtensor: "bittensor.subtensor",

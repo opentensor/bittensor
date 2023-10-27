@@ -631,6 +631,7 @@ class MyDelegatesCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
+
 class SetDelegateTakeCommand:
     @staticmethod
     def run(cli):
@@ -642,12 +643,10 @@ class SetDelegateTakeCommand:
         wallet.hotkey
         wallet.coldkey
 
-        take = float(cli.config.take);
+        take = float(cli.config.take)
         if take > 1 or take < 0:
             bittensor.__console__.print(
-                "Aborting: Invalid take value: {}".format(
-                    cli.config.delegate.take
-                )
+                "Aborting: Invalid take value: {}".format(cli.config.delegate.take)
             )
             return
 
@@ -660,7 +659,9 @@ class SetDelegateTakeCommand:
             )
             return
 
-        result: bool = subtensor.set_delegate_take(wallet, int(take * 65535)) # Cast 0-1 float to u16 ratio for chain
+        result: bool = subtensor.set_delegate_take(
+            wallet, int(take * 65535)
+        )  # Cast 0-1 float to u16 ratio for chain
         if not result:
             bittensor.__console__.print(
                 "Could not set delegate take on [white]{}[/white]".format(
@@ -679,7 +680,9 @@ class SetDelegateTakeCommand:
         set_delegate_take_parser = parser.add_parser(
             "set_delegate_take", help="""Set your delegate's take percentage."""
         )
-        set_delegate_take_parser.add_argument("--delegate.take", dest="take", type=str, required=False)
+        set_delegate_take_parser.add_argument(
+            "--delegate.take", dest="take", type=str, required=False
+        )
 
         bittensor.wallet.add_args(set_delegate_take_parser)
         bittensor.subtensor.add_args(set_delegate_take_parser)

@@ -65,7 +65,7 @@ from .extrinsics.delegation import (
     delegate_extrinsic,
     nominate_extrinsic,
     undelegate_extrinsic,
-    set_delegate_take_extrinsic
+    set_delegate_take_extrinsic,
 )
 from .extrinsics.senate import (
     register_senate_extrinsic,
@@ -352,7 +352,7 @@ class subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
-    
+
     def set_delegate_take(
         self,
         wallet: "bittensor.wallet",
@@ -2551,7 +2551,7 @@ class subtensor:
                     raise NominationError(response.error_message)
 
         return make_substrate_call_with_retry()
-    
+
     def _do_set_delegate_take(
         self,
         wallet: "bittensor.wallet",
@@ -2585,7 +2585,6 @@ class subtensor:
                     raise NominationError(response.error_message)
 
         return make_substrate_call_with_retry()
-
 
     ################
     #### Legacy ####
