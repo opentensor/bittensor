@@ -208,7 +208,7 @@ class dendrite(torch.nn.Module):
         deserialize: bool = True,
         run_async: bool = True,
         streaming: bool = False,
-    ) -> bittensor.Synapse:
+    ) -> List[Union[AsyncGenerator, bittenst.Synapse, bittensor.StreamingSynapse]]:
         """
         Asynchronously sends requests to one or multiple Axons and collates their responses.
 
@@ -246,7 +246,7 @@ class dendrite(torch.nn.Module):
             )
         streaming = is_streaming_subclass or streaming
 
-        async def query_all_axons(is_stream: bool) -> List[bt.Synapse]:
+        async def query_all_axons(is_stream: bool) -> List[bittensor.Synapse]:
             """
             Handles requests for all axons, either in streaming or non-streaming mode.
 
@@ -257,7 +257,7 @@ class dendrite(torch.nn.Module):
                 List of Synapse objects with responses.
             """
 
-            async def single_axon_response(target_axon) -> bt.Synapse:
+            async def single_axon_response(target_axon) -> Union[AsyncGenerator, bittenst.Synapse, bittensor.StreamingSynapse]:
                 """
                 Retrieve response for a single axon, either in streaming or non-streaming mode.
 
@@ -268,17 +268,13 @@ class dendrite(torch.nn.Module):
                     A Synapse object with the response.
                 """
                 if is_stream:
-                    # If in streaming mode, we iterate over the streaming content
-                    # and take the last item as the final result.
-                    final_result = None
-                    async for result in self.call_stream(
+                    # If in streaming mode, return the async_generator
+                    return self.call_stream(
                         target_axon=target_axon,
                         synapse=synapse.copy(),
                         timeout=timeout,
                         deserialize=deserialize,
-                    ):
-                        final_result = result
-                    return final_result
+                    )
                 else:
                     # If not in streaming mode, simply call the axon and get the response.
                     return await self.call(
@@ -407,7 +403,7 @@ class dendrite(torch.nn.Module):
         synapse: bittensor.Synapse = bittensor.Synapse(),
         timeout: float = 12.0,
         deserialize: bool = True,
-    ) -> AsyncGenerator[bittensor.Synapse, None]:
+    ) -> AsyncGenerator[bittensor.Synapse, bittensor.StreamingSynapse, None]:
         """
         Sends a request to a specified Axon and yields streaming responses.
 
