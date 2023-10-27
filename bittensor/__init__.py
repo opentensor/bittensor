@@ -87,7 +87,7 @@ __ss58_format__ = 42
 # Wallet ss58 address length
 __ss58_address_length__ = 48
 
-__networks__ = ["local", "finney"]
+__networks__ = ["local", "finney", "test"]
 
 __finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 
