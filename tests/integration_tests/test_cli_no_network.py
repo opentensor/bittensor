@@ -338,7 +338,7 @@ class TestCLINoNetwork(unittest.TestCase):
     def test_register_cuda_use_cuda_flag(self, _, __, patched_sub):
         base_args = [
             "subnets",
-            "register",
+            "pow_register",
             "--wallet.path",
             "tmp/walletpath",
             "--wallet.name",
@@ -358,24 +358,24 @@ class TestCLINoNetwork(unittest.TestCase):
 
         # Should be able to set true without argument
         args = base_args + [
-            "--register.cuda.use_cuda",  # should be True without any arugment
+            "--pow_register.cuda.use_cuda",  # should be True without any arugment
         ]
         with pytest.raises(MockException):
             cli = bittensor.cli(args=args)
             cli.run()
 
-        self.assertEqual(cli.config.register.cuda.get("use_cuda"), True)
+        self.assertEqual(cli.config.pow_register.cuda.get("use_cuda"), True)
 
         # Should be able to set to false with no argument
 
         args = base_args + [
-            "--register.cuda.no_cuda",
+            "--pow_register.cuda.no_cuda",
         ]
         with pytest.raises(MockException):
             cli = bittensor.cli(args=args)
             cli.run()
 
-        self.assertEqual(cli.config.register.cuda.get("use_cuda"), False)
+        self.assertEqual(cli.config.pow_register.cuda.get("use_cuda"), False)
 
 
 def return_mock_sub_2(*args, **kwargs):

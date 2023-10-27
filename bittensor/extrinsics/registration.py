@@ -321,6 +321,14 @@ def burned_register_extrinsic(
                 )
 
 
+class MaxSuccessException(Exception):
+    pass
+
+
+class MaxAttemptsException(Exception):
+    pass
+
+
 def run_faucet_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
@@ -384,6 +392,7 @@ def run_faucet_extrinsic(
 
     # Attempt rolling registration.
     attempts = 1
+    successes = 1
     while True:
         try:
             pow_result = None
@@ -441,6 +450,9 @@ def run_faucet_extrinsic(
                 bittensor.__console__.print(
                     f":cross_mark: [red]Failed[/red]: Error: {response.error_message}"
                 )
+                if attempts == max_allowed_attempts:
+                    raise MaxAttemptsException
+                attempts += 1
 
             # Successful registration
             else:
@@ -450,5 +462,15 @@ def run_faucet_extrinsic(
                 )
                 old_balance = new_balance
 
+                if successes == 3:
+                    raise MaxSuccessException
+                successes += 1
+
         except KeyboardInterrupt:
             return True, "Done"
+
+        except MaxSuccessException:
+            return True, f"Max successes reached: {3}"
+
+        except MaxAttemptedException:
+            return False, f"Max attempts reached: {max_allowed_attempts}"
