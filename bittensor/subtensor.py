@@ -1319,7 +1319,7 @@ class subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
-    
+
     ########################
     #### Registry Calls ####
     ########################
@@ -1336,15 +1336,17 @@ class subtensor:
             with self.substrate as substrate:
                 return substrate.query(
                     module="Registry",
-                    storage_function='IdentityOf',
+                    storage_function="IdentityOf",
                     params=[key],
                     block_hash=None
                     if block == None
                     else substrate.get_block_hash(block),
                 )
-            
-        identity_info  = make_substrate_call_with_retry()
-        return bittensor.utils.wallet_utils.decode_hex_identity_dict(identity_info.value['info'])  
+
+        identity_info = make_substrate_call_with_retry()
+        return bittensor.utils.wallet_utils.decode_hex_identity_dict(
+            identity_info.value["info"]
+        )
 
     def update_identity(
         self,

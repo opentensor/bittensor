@@ -104,7 +104,6 @@ def is_valid_bittensor_address_or_public_key(address: Union[str, bytes]) -> bool
         return False
 
 
-
 def create_identity_dict(
     display: str = "",
     legal: str = "",
@@ -134,25 +133,26 @@ def create_identity_dict(
     dict: A dictionary with the specified structure and byte string conversions.
     """
     return {
-        'info': {
-            'additional': [[]],
-            'display': {f'Raw{len(display.encode())}': display.encode()},
-            'legal': {f'Raw{len(legal.encode())}': legal.encode()},
-            'web': {f'Raw{len(web.encode())}': web.encode()},
-            'riot': {f'Raw{len(riot.encode())}': riot.encode()},
-            'email': {f'Raw{len(email.encode())}': email.encode()},
-            'pgp_fingerprint': pgp_fingerprint.encode() if pgp_fingerprint else None,
-            'image': {f'Raw{len(image.encode())}': image.encode()},
-            'info': {f'Raw{len(info.encode())}': info.encode()},
-            'twitter': {f'Raw{len(twitter.encode())}': twitter.encode()},
+        "info": {
+            "additional": [[]],
+            "display": {f"Raw{len(display.encode())}": display.encode()},
+            "legal": {f"Raw{len(legal.encode())}": legal.encode()},
+            "web": {f"Raw{len(web.encode())}": web.encode()},
+            "riot": {f"Raw{len(riot.encode())}": riot.encode()},
+            "email": {f"Raw{len(email.encode())}": email.encode()},
+            "pgp_fingerprint": pgp_fingerprint.encode() if pgp_fingerprint else None,
+            "image": {f"Raw{len(image.encode())}": image.encode()},
+            "info": {f"Raw{len(info.encode())}": info.encode()},
+            "twitter": {f"Raw{len(twitter.encode())}": twitter.encode()},
         }
     }
+
 
 def decode_hex_identity_dict(info_dictionary):
     for key, value in info_dictionary.items():
         if isinstance(value, dict):
             item = list(value.values())[0]
-            if isinstance(item, str) and item.startswith('0x'):
+            if isinstance(item, str) and item.startswith("0x"):
                 try:
                     info_dictionary[key] = bytes.fromhex(item[2:]).decode()
                 except UnicodeDecodeError:
