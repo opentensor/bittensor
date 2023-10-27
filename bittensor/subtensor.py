@@ -509,6 +509,65 @@ class subtensor:
             prompt=prompt,
         )
 
+    def _do_pow_register(
+        self,
+        netuid: int,
+        wallet: "bittensor.wallet",
+        pow_result: POWSolution,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        """Sends a (POW) register extrinsic to the chain.
+        Args:
+            netuid (int): the subnet to register on.
+            wallet (bittensor.wallet): the wallet to register.
+            pow_result (POWSolution): the pow result to register.
+            wait_for_inclusion (bool): if true, waits for the extrinsic to be included in a block.
+            wait_for_finalization (bool): if true, waits for the extrinsic to be finalized.
+        Returns:
+            success (bool): True if the extrinsic was included in a block.
+            error (Optional[str]): None on success or not waiting for inclusion/finalization, otherwise the error message.
+        """
+
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                # create extrinsic call
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="register",
+                    call_params={
+                        "netuid": netuid,
+                        "block_number": pow_result.block_number,
+                        "nonce": pow_result.nonce,
+                        "work": [int(byte_) for byte_ in pow_result.seal],
+                        "hotkey": wallet.hotkey.ss58_address,
+                        "coldkey": wallet.coldkeypub.ss58_address,
+                    },
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.hotkey
+                )
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True, None
+
+                # process if registration successful, try again if pow is still valid
+                response.process_events()
+                if not response.is_success:
+                    return False, response.error_message
+                # Successful registration
+                else:
+                    return True, None
+
+        return make_substrate_call_with_retry()
+
     def _do_burned_register(
         self,
         netuid: int,
