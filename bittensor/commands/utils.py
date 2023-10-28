@@ -80,15 +80,15 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
     """Checks, when CUDA is available, if the user would like to register with their CUDA device."""
     if torch.cuda.is_available():
         if not config.no_prompt:
-            if config.register.cuda.get("use_cuda") == None:  # flag not set
+            if config.pow_register.cuda.get("use_cuda") == None:  # flag not set
                 # Ask about cuda registration only if a CUDA device is available.
                 cuda = Confirm.ask("Detected CUDA device, use CUDA for registration?\n")
-                config.register.cuda.use_cuda = cuda
+                config.pow_register.cuda.use_cuda = cuda
 
             # Only ask about which CUDA device if the user has more than one CUDA device.
             if (
-                config.register.cuda.use_cuda
-                and config.register.cuda.get("dev_id") is None
+                config.pow_register.cuda.use_cuda
+                and config.pow_register.cuda.get("dev_id") is None
             ):
                 devices: List[str] = [str(x) for x in range(torch.cuda.device_count())]
                 device_names: List[str] = [
@@ -122,11 +122,11 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
                             )
                         )
                         sys.exit(1)
-                config.register.cuda.dev_id = dev_id
+                config.pow_register.cuda.dev_id = dev_id
         else:
             # flag was not set, use default value.
-            if config.register.cuda.get("use_cuda") is None:
-                config.register.cuda.use_cuda = defaults.register.cuda.use_cuda
+            if config.pow_register.cuda.get("use_cuda") is None:
+                config.pow_register.cuda.use_cuda = defaults.pow_register.cuda.use_cuda
 
 
 def get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
