@@ -235,6 +235,9 @@ class RootGetWeightsCommand:
         for matrix in weights:
             [uid, weights_data] = matrix
 
+            if not len(weights_data):
+                continue
+
             normalized_weights = np.array(weights_data)[:, 1] / max(
                 np.sum(weights_data, axis=0)[1], 1
             )
