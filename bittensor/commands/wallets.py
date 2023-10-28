@@ -527,3 +527,72 @@ class UpdateWalletCommand:
                 "Enter wallet name", default=bittensor.defaults.wallet.name
             )
             config.wallet.name = str(wallet_name)
+
+
+def _get_coldkey_ss58_addresses_for_path(path: str) -> List[str]:
+    """Get all coldkey ss58 addresses from path."""
+
+    def list_coldkeypub_files(dir_path):
+        abspath = os.path.abspath(os.path.expanduser(dir_path))
+        return [
+        os.path.join(abspath, file, "coldkeypub.txt") \
+        for file in os.listdir(abspath)
+    ]
+
+    return [
+        bittensor.keyfile(file).keypair.ss58_address
+        for file in list_coldkeypub_files(path)
+    ]
+
+class WalletBalanceCommand:
+    @staticmethod
+    def run(cli):
+        """Check the balance of the wallet."""
+        coldkeys = _get_coldkey_ss58_addresses_for_path(cli.config.wallet.path)
+        subtensor = bittensor.subtensor(config=cli.config)
+        free_balances = [
+            subtensor.get_balance(coldkeys[i]) for i in range(len(coldkeys))
+        ]
+        staked_balances = [
+            subtensor.get_total_stake_for_coldkey(coldkeys[i]) for i in range(len(coldkeys))
+        ]
+        total_free_balance = sum(free_balances)
+        total_staked_balance = sum(staked_balances)
+        print("\n===== ", cli.config.wallet.path, " =====")
+        print("Total free balance: ", total_free_balance)
+        print("Total staked balance: ", total_staked_balance)
+        print("Total balance: ", total_free_balance + total_staked_balance)
+        print("Coldkeys: ", coldkeys)
+
+        balances = {
+            coldkey: (
+                subtensor.get_balance(coldkey),
+                subtensor.get_total_stake_for_coldkey(coldkey)
+            )
+            for coldkey in coldkeys
+        }
+        print(balances)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        balance_parser = parser.add_parser(
+            "balance", help="""Checks the balance of the wallet."""
+        )
+        bittensor.wallet.add_args(balance_parser)
+        bittensor.subtensor.add_args(balance_parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.path") and not config.no_prompt:
+            path = Prompt.ask("Enter wallets path", default=defaults.wallet.path)
+            config.wallet.path = str(path)
+
+        if not config.is_set("subtensor.network") and not config.no_prompt:
+            network = Prompt.ask(
+                "Enter network", default=defaults.subtensor.network,
+                choices=bittensor.__networks__
+            )
+            config.subtensor.network = str(network)
+            _, config.subtensor.chain_endpoint = bittensor.subtensor.determine_chain_endpoint_and_network(
+                str(network)
+            )
