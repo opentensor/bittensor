@@ -2,14 +2,10 @@ import argparse
 from rich import print
 from rich.table import Table
 from rich.prompt import Prompt
+from sys import getsizeof
 
 import bittensor
 
-console = bittensor.__console__
-
-
-class NotSubnetOwnerException(Exception):
-    pass
 
 
 class SetIdentityCommand:
@@ -22,33 +18,27 @@ class SetIdentityCommand:
 
         wallet.coldkey  # unlock coldkey
 
+        id_dict = {
+            "display": cli.config.display,
+            "legal": cli.config.legal,
+            "web": cli.config.web,
+            "pgp_fingerprint": cli.config.pgp_fingerprint,
+            "riot": cli.config.riot,
+            "email": cli.config.email,
+            "image": cli.config.image,
+            "twitter": cli.config.twitter,
+            "info": cli.config.info,
+        }
+
+        for field, string in id_dict.items():
+            if getsizeof(string) > 64:
+                raise ValueError(f"Identity value `{field}` must be <= 64 bytes")
+
         with console.status(":satellite: [bold green]Updating identity on-chain..."):
             try:
-                owner_coldkeys = [
-                    subtensor.get_subnet_owner(i)
-                    for i in subtensor.get_all_subnet_netuids()
-                ]
-
-                if wallet.coldkey.ss58_address not in owner_coldkeys:
-                    raise NotSubnetOwnerException(
-                        "Coldkey {} is not a subnet owner, cannot create new hotkey.".format(
-                            wallet.coldkey.ss58_address
-                        )
-                    )
-
                 subtensor.update_identity(
                     wallet=wallet,
-                    params={
-                        "display": cli.config.display,
-                        "legal": cli.config.legal,
-                        "web": cli.config.web,
-                        "pgp_fingerprint": cli.config.pgp_fingerprint,
-                        "riot": cli.config.riot,
-                        "email": cli.config.email,
-                        "image": cli.config.image,
-                        "twitter": cli.config.twitter,
-                        "info": cli.config.info,
-                    },
+                    params=id_dict,
                 )
             except Exception as e:
                 console.print(f"[red]:cross_mark: Failed![/red] {e}")
@@ -71,8 +61,12 @@ class SetIdentityCommand:
     @staticmethod
     def check_config(config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
-            config.wallet_name = Prompt.ask(
+            config.wallet.name = Prompt.ask(
                 "Enter wallet name", default=bittensor.defaults.wallet.name
+            )
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            config.wallet.hotkey = Prompt.ask(
+                "Enter wallet hotkey", default=bittensor.defaults.wallet.hotkey
             )
         if not config.is_set("subtensor.network") and not config.no_prompt:
             config.subtensor.network = Prompt.ask(
