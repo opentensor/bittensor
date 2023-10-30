@@ -2310,7 +2310,6 @@ class subtensor:
         netuid: int,
         lite: bool = True,
         block: Optional[int] = None,
-        root: bool = False,
     ) -> "bittensor.Metagraph":
         r"""Returns a synced metagraph for the subnet.
         Args:
@@ -2327,7 +2326,7 @@ class subtensor:
         metagraph_ = bittensor.metagraph(
             network=self.network, netuid=netuid, lite=lite, sync=False
         )
-        metagraph_.sync(block=block, lite=lite, subtensor=self, root=root)
+        metagraph_.sync(block=block, lite=lite, subtensor=self)
 
         return metagraph_
 

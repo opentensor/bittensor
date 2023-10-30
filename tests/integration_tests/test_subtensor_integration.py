@@ -586,12 +586,11 @@ class TestSubtensor(unittest.TestCase):
                 msg="only tries to submit once, then exits",
             )
 
+    def test_defaults_to_finney(self):
+        sub = bittensor.subtensor()
+        assert sub.network == "finney"
+        assert sub.chain_endpoint == bittensor.__finney_entrypoint__
 
-# # This test was flaking, please check to_defaults before reactiving the test
-# def _test_defaults_to_finney():
-#     sub = bittensor.subtensor()
-#     assert sub.network == 'finney'
-#     assert sub.chain_endpoint == bittensor.__finney_entrypoint__
 
 if __name__ == "__main__":
     unittest.main()
