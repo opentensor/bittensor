@@ -535,10 +535,17 @@ def _get_coldkey_ss58_addresses_for_path(path: str) -> List[str]:
 
     def list_coldkeypub_files(dir_path):
         abspath = os.path.abspath(os.path.expanduser(dir_path))
-        return [
-            os.path.join(abspath, file, "coldkeypub.txt")
-            for file in os.listdir(abspath)
-        ]
+        coldkey_files = []
+
+        for file in os.listdir(abspath):
+            coldkey_path = os.path.join(abspath, file, "coldkeypub.txt")
+            if os.path.exists(coldkey_path):
+                coldkey_files.append(coldkey_path)
+            else:
+                bittensor.logging.warning(
+                    f"{coldkey_path} does not exist. Excluding..."
+                )
+        return coldkey_files
 
     return [
         bittensor.keyfile(file).keypair.ss58_address
