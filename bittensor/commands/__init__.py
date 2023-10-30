@@ -81,6 +81,7 @@ from .wallets import (
     RegenHotkeyCommand,
     UpdateWalletCommand,
     WalletCreateCommand,
+    WalletBalanceCommand,
 )
 from .transfer import TransferCommand
 from .inspect import InspectCommand
