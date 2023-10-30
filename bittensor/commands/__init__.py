@@ -21,7 +21,7 @@ defaults: Munch = munchify(
     {
         "netuid": 1,
         "subtensor": {"network": "finney", "chain_endpoint": None, "_mock": False},
-        "register": {
+        "pow_register": {
             "num_processes": None,
             "update_interval": 50000,
             "output_in_place": True,
@@ -65,7 +65,7 @@ defaults: Munch = munchify(
 from .stake import StakeCommand, StakeShow
 from .unstake import UnStakeCommand
 from .overview import OverviewCommand
-from .register import RegisterCommand, RecycleRegisterCommand, RunFaucetCommand
+from .register import PowRegisterCommand, RegisterCommand, RunFaucetCommand
 from .delegates import (
     NominateCommand,
     ListDelegatesCommand,
@@ -81,6 +81,7 @@ from .wallets import (
     RegenHotkeyCommand,
     UpdateWalletCommand,
     WalletCreateCommand,
+    WalletBalanceCommand,
 )
 from .transfer import TransferCommand
 from .inspect import InspectCommand

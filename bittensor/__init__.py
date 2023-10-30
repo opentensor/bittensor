@@ -27,7 +27,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = "6.1.0"
+__version__ = "6.2.0"
 version_split = __version__.split(".")
 __version_as_int__ = (
     (100 * int(version_split[0]))
@@ -87,7 +87,7 @@ __ss58_format__ = 42
 # Wallet ss58 address length
 __ss58_address_length__ = 48
 
-__networks__ = ["local", "finney"]
+__networks__ = ["local", "finney", "test"]
 
 __finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 

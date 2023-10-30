@@ -340,7 +340,6 @@ class metagraph(torch.nn.Module):
         block: Optional[int] = None,
         lite: bool = True,
         subtensor: Optional["bittensor.subtensor"] = None,
-        root: bool = False,
     ) -> "metagraph":
         """
         Initiates the synchronization process of the metagraph.
@@ -364,7 +363,7 @@ class metagraph(torch.nn.Module):
 
         # If not a 'lite' version, compute and set weights and bonds for each neuron
         if not lite:
-            self._set_weights_and_bonds(root=root, subtensor=subtensor)
+            self._set_weights_and_bonds(subtensor=subtensor)
 
     def _initialize_subtensor(self, subtensor):
         """
@@ -474,9 +473,7 @@ class metagraph(torch.nn.Module):
         # TODO: Check and test the creation of tensor
         return torch.nn.Parameter(torch.tensor(data, dtype=dtype), requires_grad=False)
 
-    def _set_weights_and_bonds(
-        self, root: bool = False, subtensor: bittensor.subtensor = None
-    ):
+    def _set_weights_and_bonds(self, subtensor: bittensor.subtensor = None):
         """
         Computes and sets weights and bonds for each neuron.
 
@@ -484,7 +481,7 @@ class metagraph(torch.nn.Module):
             None.
         """
         # TODO: Check and test the computation of weights and bonds
-        if root:
+        if self.netuid == 0:
             self.weights = self._process_root_weights(
                 [neuron.weights for neuron in self.neurons], "weights", subtensor
             )

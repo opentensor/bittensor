@@ -25,7 +25,6 @@ import bittensor
 def test_parse_headers_to_inputs():
     class Test(bittensor.Synapse):
         key1: typing.List[int]
-        key2: bittensor.Tensor
 
     # Define a mock headers dictionary to use for testing
     headers = {
@@ -34,7 +33,6 @@ def test_parse_headers_to_inputs():
         "bt_header_input_obj_key1": base64.b64encode(
             json.dumps([1, 2, 3, 4]).encode("utf-8")
         ).decode("utf-8"),
-        "bt_header_tensor_key2": "[3]-torch.float32",
         "timeout": "12",
         "name": "Test",
         "header_size": "111",
@@ -51,7 +49,6 @@ def test_parse_headers_to_inputs():
         "axon": {"nonce": "111"},
         "dendrite": {"ip": "12.1.1.2"},
         "key1": [1, 2, 3, 4],
-        "key2": bittensor.Tensor(dtype="torch.float32", shape=[3]),
         "timeout": "12",
         "name": "Test",
         "header_size": "111",
@@ -63,7 +60,6 @@ def test_parse_headers_to_inputs():
 def test_from_headers():
     class Test(bittensor.Synapse):
         key1: typing.List[int]
-        key2: bittensor.Tensor
 
     # Define a mock headers dictionary to use for testing
     headers = {
@@ -72,7 +68,6 @@ def test_from_headers():
         "bt_header_input_obj_key1": base64.b64encode(
             json.dumps([1, 2, 3, 4]).encode("utf-8")
         ).decode("utf-8"),
-        "bt_header_tensor_key2": "[3]-torch.float32",
         "timeout": "12",
         "name": "Test",
         "header_size": "111",
@@ -91,8 +86,6 @@ def test_from_headers():
     assert synapse.axon.nonce == 111
     assert synapse.dendrite.ip == "12.1.1.2"
     assert synapse.key1 == [1, 2, 3, 4]
-    assert synapse.key2.shape == [3]
-    assert synapse.key2.dtype == "torch.float32"
     assert synapse.timeout == 12
     assert synapse.name == "Test"
     assert synapse.header_size == 111
@@ -139,7 +132,6 @@ def test_custom_synapse():
         c: typing.Optional[int]  # Not carried through headers
         d: typing.Optional[typing.List[int]]  # Not carried through headers
         e: typing.List[int]  # Carried through headers
-        f: bittensor.Tensor  # Carried through headers, but not buffer.
 
     # Create an instance of the custom Synapse subclass
     synapse = Test(
@@ -147,7 +139,6 @@ def test_custom_synapse():
         c=3,
         d=[1, 2, 3, 4],
         e=[1, 2, 3, 4],
-        f=bittensor.Tensor.serialize(torch.randn(10)),
     )
 
     # Ensure the instance created is of type Test and has the expected properties
@@ -158,7 +149,6 @@ def test_custom_synapse():
     assert synapse.c == 3
     assert synapse.d == [1, 2, 3, 4]
     assert synapse.e == [1, 2, 3, 4]
-    assert synapse.f.shape == [10]
 
     # Convert the Test instance to a headers dictionary
     headers = synapse.to_headers()
@@ -174,71 +164,6 @@ def test_custom_synapse():
     assert next_synapse.c == None
     assert next_synapse.d == None
     assert next_synapse.e == []  # Empty list is default for list types
-    assert next_synapse.f.shape == [10]  # Shape is passed through
-    assert next_synapse.f.dtype == "torch.float32"  # Type is passed through
-    assert next_synapse.f.buffer == None  # Buffer is not passed through
-
-
-def test_list_tensors():
-    class Test(bittensor.Synapse):
-        a: typing.List[bittensor.Tensor]
-
-    synapse = Test(
-        a=[bittensor.Tensor.serialize(torch.randn(10))],
-    )
-    headers = synapse.to_headers()
-    assert "bt_header_list_tensor_a" in headers
-    assert headers["bt_header_list_tensor_a"] == "['[10]-torch.float32']"
-    next_synapse = synapse.from_headers(synapse.to_headers())
-    assert next_synapse.a[0].dtype == "torch.float32"
-    assert next_synapse.a[0].shape == [10]
-
-    class Test(bittensor.Synapse):
-        a: typing.List[bittensor.Tensor]
-
-    synapse = Test(
-        a=[
-            bittensor.Tensor.serialize(torch.randn(10)),
-            bittensor.Tensor.serialize(torch.randn(11)),
-            bittensor.Tensor.serialize(torch.randn(12)),
-        ],
-    )
-    headers = synapse.to_headers()
-    assert "bt_header_list_tensor_a" in headers
-    assert (
-        headers["bt_header_list_tensor_a"]
-        == "['[10]-torch.float32', '[11]-torch.float32', '[12]-torch.float32']"
-    )
-    next_synapse = synapse.from_headers(synapse.to_headers())
-    assert next_synapse.a[0].dtype == "torch.float32"
-    assert next_synapse.a[0].shape == [10]
-    assert next_synapse.a[1].dtype == "torch.float32"
-    assert next_synapse.a[1].shape == [11]
-    assert next_synapse.a[2].dtype == "torch.float32"
-    assert next_synapse.a[2].shape == [12]
-
-
-def test_dict_tensors():
-    class Test(bittensor.Synapse):
-        a: typing.Dict[str, bittensor.Tensor]
-
-    synapse = Test(
-        a={
-            "cat": bittensor.tensor(torch.randn(10)),
-            "dog": bittensor.tensor(torch.randn(11)),
-        },
-    )
-    headers = synapse.to_headers()
-    assert "bt_header_dict_tensor_a" in headers
-    assert (
-        headers["bt_header_dict_tensor_a"]
-        == "['cat-[10]-torch.float32', 'dog-[11]-torch.float32']"
-    )
-    next_synapse = synapse.from_headers(synapse.to_headers())
-    assert next_synapse.a["cat"].dtype == "torch.float32"
-    assert next_synapse.a["cat"].shape == [10]
-    assert next_synapse.a["dog"].dtype == "torch.float32"
-    assert next_synapse.a["dog"].shape == [11]
 
 
 def test_body_hash_override():
@@ -263,3 +188,39 @@ def test_required_fields_override():
         match='"required_hash_fields" has allow_mutation set to False and cannot be assigned',
     ):
         synapse_instance.required_hash_fields = []
+
+
+def test_default_instance_fields_dict_consistency():
+    synapse_instance = bittensor.Synapse()
+    assert synapse_instance.dict() == {
+        "name": "Synapse",
+        "timeout": 12.0,
+        "total_size": 0,
+        "header_size": 0,
+        "dendrite": {
+            "status_code": None,
+            "status_message": None,
+            "process_time": None,
+            "ip": None,
+            "port": None,
+            "version": None,
+            "nonce": None,
+            "uuid": None,
+            "hotkey": None,
+            "signature": None,
+        },
+        "axon": {
+            "status_code": None,
+            "status_message": None,
+            "process_time": None,
+            "ip": None,
+            "port": None,
+            "version": None,
+            "nonce": None,
+            "uuid": None,
+            "hotkey": None,
+            "signature": None,
+        },
+        "computed_body_hash": "",
+        "required_hash_fields": [],
+    }
