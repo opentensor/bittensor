@@ -7,7 +7,6 @@ from sys import getsizeof
 import bittensor
 
 
-
 class SetIdentityCommand:
     def run(cli):
         r"""Create a new or update existing identity on-chain."""
