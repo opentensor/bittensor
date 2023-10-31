@@ -256,7 +256,7 @@ class dendrite(torch.nn.Module):
         the requests, and then sends them off. After getting the responses, it processes and
         collates them into a unified format.
 
-        When querying an Axon that sends back data in chunks using the Dednrite, this function
+        When querying an Axon that sends back data in chunks using the Dendrite, this function
         returns an AsyncGenerator that yields each chunk as it is received. The generator can be
         iterated over to process each chunk individually.
 
