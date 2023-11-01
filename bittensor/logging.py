@@ -298,4 +298,3 @@ class logging:
         if not cls.__has_been_inited__:
             cls()
         logger.exception(cls._format(prefix, sufix))
-
