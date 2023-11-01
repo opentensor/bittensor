@@ -161,7 +161,7 @@ class SubnetListCommand:
 HYPERPARAMS = {
     "serving_rate_limit": "sudo_set_serving_rate_limit",
     "weights_version": "sudo_set_weights_version_key",
-    "weights_rate_Limit": "sudo_set_weights_set_rate_limit",
+    "weights_rate_limit": "sudo_set_weights_set_rate_limit",
     "max_weight_limit": "sudo_set_max_weight_limit",
     "immunity_period": "sudo_set_immunity_period",
     "min_allowed_weights": "sudo_set_min_allowed_weights",
