@@ -124,7 +124,7 @@ def create_identity_dict(
     web (str): String to be converted and stored under 'web'.
     riot (str): String to be converted and stored under 'riot'.
     email (str): String to be converted and stored under 'email'.
-    pgp_fingerprint (str): String to be converted and stored under 'pgp_fingerprint'. 
+    pgp_fingerprint (str): String to be converted and stored under 'pgp_fingerprint'.
     image (str): String to be converted and stored under 'image'.
     info (str): String to be converted and stored under 'info'.
     twitter (str): String to be converted and stored under 'twitter'.
