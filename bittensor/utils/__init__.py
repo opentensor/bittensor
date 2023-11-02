@@ -77,7 +77,8 @@ def version_checking(timeout: int = 15):
 
         if latest_version_as_int > bittensor.__version_as_int__:
             print(
-                "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience\u001b[0m".format(
+                "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience. "
+                "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor".format(
                     bittensor.__version__, latest_version
                 )
             )
