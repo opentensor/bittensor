@@ -229,13 +229,25 @@ class AxonInfo:
 
     def to_string(self) -> str:
         """Converts the AxonInfo object to a string representation using JSON."""
-        return json.dumps(asdict(self))
+        try:
+            return json.dumps(asdict(self))
+        except (TypeError, ValueError) as e:
+            bittensor.logging.error(f"Error converting AxonInfo to string: {e}")
+            return AxonInfo(0, "", 0, 0, "", "").to_string()
 
     @classmethod
     def from_string(cls, s: str) -> "AxonInfo":
         """Creates an AxonInfo object from its string representation using JSON."""
-        data = json.loads(s)
-        return cls(**data)
+        try:
+            data = json.loads(s)
+            return cls(**data)
+        except json.JSONDecodeError as e:
+            bittensor.logging.error(f"Error decoding JSON: {e}")
+        except TypeError as e:
+            bittensor.logging.error(f"Type error: {e}")
+        except ValueError as e:
+            bittensor.logging.error(f"Value error: {e}")
+        return AxonInfo(0, "", 0, 0, "", "")
 
     @classmethod
     def from_neuron_info(cls, neuron_info: dict) -> "AxonInfo":
