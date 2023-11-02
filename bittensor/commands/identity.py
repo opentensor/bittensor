@@ -15,8 +15,6 @@ class SetIdentityCommand:
         wallet = bittensor.wallet(config=cli.config)
         subtensor = bittensor.subtensor(config=cli.config)
 
-        wallet.coldkey  # unlock coldkey
-
         id_dict = {
             "display": cli.config.display,
             "legal": cli.config.legal,
@@ -33,9 +31,24 @@ class SetIdentityCommand:
             if getsizeof(string) > 64:
                 raise ValueError(f"Identity value `{field}` must be <= 64 bytes")
 
+        identified = (
+            wallet.hotkey.ss58_address
+            if str(
+                Prompt.ask(
+                    "Are you updating a validator hotkey identity?",
+                    default="y",
+                    choices=["y", "n"],
+                )
+            ).lower()
+            == "y"
+            else None
+        )
+
+        wallet.coldkey  # unlock coldkey
         with console.status(":satellite: [bold green]Updating identity on-chain..."):
             try:
                 subtensor.update_identity(
+                    identified=identified,
                     wallet=wallet,
                     params=id_dict,
                 )
@@ -45,13 +58,13 @@ class SetIdentityCommand:
 
             console.print(":white_heavy_check_mark: Success!")
 
-        identity = subtensor.query_identity(wallet.coldkey.ss58_address)
+        identity = subtensor.query_identity(identified or wallet.coldkey.ss58_address)
 
         table = Table(title="[bold white italic]Updated On-Chain Identity")
         table.add_column("Key", justify="right", style="cyan", no_wrap=True)
         table.add_column("Value", style="magenta")
 
-        table.add_row("Address", wallet.coldkey.ss58_address)
+        table.add_row("Address", identified or wallet.coldkey.ss58_address)
         for key, value in identity.items():
             table.add_row(key, str(value) if value is not None else "None")
 
@@ -162,13 +175,13 @@ class GetIdentityCommand:
 
         with console.status(":satellite: [bold green]Querying chain identity..."):
             subtensor = bittensor.subtensor(config=cli.config)
-            identity = subtensor.query_identity(cli.config.coldkey)
+            identity = subtensor.query_identity(cli.config.key)
 
         table = Table(title="[bold white italic]On-Chain Identity")
         table.add_column("Item", justify="right", style="cyan", no_wrap=True)
         table.add_column("Value", style="magenta")
 
-        table.add_row("Address", cli.config.coldkey)
+        table.add_row("Address", cli.config.key)
         for key, value in identity.items():
             table.add_row(key, str(value) if value is not None else "None")
 
@@ -176,10 +189,12 @@ class GetIdentityCommand:
 
     @staticmethod
     def check_config(config: "bittensor.config"):
-        if not config.is_set("coldkey") and not config.no_prompt:
-            config.coldkey = Prompt.ask("Enter coldkey ss58 address", default=None)
-            if config.coldkey is None:
-                raise ValueError("coldkey must be set")
+        if not config.is_set("key") and not config.no_prompt:
+            config.key = Prompt.ask(
+                "Enter coldkey or hotkey ss58 address", default=None
+            )
+            if config.key is None:
+                raise ValueError("key must be set")
         if not config.is_set("subtensor.network") and not config.no_prompt:
             config.subtensor.network = Prompt.ask(
                 "Enter subtensor network",
@@ -200,10 +215,10 @@ class GetIdentityCommand:
             help="""Creates a new coldkey (for containing balance) under the specified path. """,
         )
         new_coldkey_parser.add_argument(
-            "--coldkey",
+            "--key",
             type=str,
             default=None,
-            help="""The coldkey ss58 address to query.""",
+            help="""The coldkey or hotkey ss58 address to query.""",
         )
         bittensor.wallet.add_args(new_coldkey_parser)
         bittensor.subtensor.add_args(new_coldkey_parser)
