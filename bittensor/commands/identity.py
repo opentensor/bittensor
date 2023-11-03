@@ -28,7 +28,7 @@ class SetIdentityCommand:
         }
 
         for field, string in id_dict.items():
-            if getsizeof(string) > 113: # 64 + 49 overhead bytes for string
+            if getsizeof(string) > 113:  # 64 + 49 overhead bytes for string
                 raise ValueError(f"Identity value `{field}` must be <= 64 raw bytes")
 
         identified = (
