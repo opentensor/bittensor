@@ -111,3 +111,4 @@ from .root import (
     RootSetWeightsCommand,
     RootGetWeightsCommand,
 )
+from .identity import GetIdentityCommand, SetIdentityCommand
