@@ -44,6 +44,19 @@ class SetIdentityCommand:
             else None
         )
 
+        if (
+            str(
+                Prompt.ask(
+                    "Cost to register an Identity is [bold white italic]1 Tao[/bold white italic], are you sure you wish to continue?",
+                    default="n",
+                    choices=["y", "n"],
+                )
+            ).lower()
+            == "n"
+        ):
+            console.print(":cross_mark: Aborted!")
+            exit(0)
+
         wallet.coldkey  # unlock coldkey
         with console.status(":satellite: [bold green]Updating identity on-chain..."):
             try:
