@@ -102,7 +102,7 @@ def set_delegate_take_extrinsic(
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True,
 ) -> bool:
-    r"""Becomes a delegate for the hotkey.
+    r"""Set the delegate take for the provided hotkey.
     Args:
         wallet ( bittensor.wallet ):
             The wallet to become a delegate for.
