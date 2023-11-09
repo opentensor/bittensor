@@ -133,7 +133,7 @@ class dendrite(torch.nn.Module):
         Returns:
             aiohttp.ClientSession: The aiohttp client session instance.
         """
-        if self._session is None:
+        if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession()
         return self._session
 
@@ -164,7 +164,10 @@ class dendrite(torch.nn.Module):
         """
         if self._session:
             await self._session.close()
-            self._session = None
+            try:
+                self._session = None
+            except:
+                pass
 
     def _get_endpoint_url(self, target_axon, request_name):
         endpoint = (
