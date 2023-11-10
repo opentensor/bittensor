@@ -161,7 +161,7 @@ class subtensor:
         """
         if network == None:
             return None, None
-        if network in ["finney", "local", "test"]:
+        if network in ["finney", "local", "test", "archive"]:
             if network == "finney":
                 # Kiru Finney stagin network.
                 return network, bittensor.__finney_entrypoint__
@@ -169,6 +169,8 @@ class subtensor:
                 return network, bittensor.__local_entrypoint__
             elif network == "test":
                 return network, bittensor.__finney_test_entrypoint__
+            elif network == "archive":
+                return network, bittensor.__archive_entrypoint__
         else:
             if (
                 network == bittensor.__finney_entrypoint__
@@ -180,6 +182,11 @@ class subtensor:
                 or "test.finney.opentensor.ai" in network
             ):
                 return "test", bittensor.__finney_test_entrypoint__
+            elif (
+                network == bittensor.__archive_entrypoint__
+                or "archive.chain.opentensor.ai" in network
+            ):
+                return "archive", bittensor.__archive_entrypoint__
             elif "127.0.0.1" in network or "localhost" in network:
                 return "local", network
             else:
