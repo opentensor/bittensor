@@ -101,17 +101,13 @@ def show_delegates(
         no_wrap=True,
     )
     table.add_column("[overline white]CHANGE/(4h)", style="grey0", justify="center")
-    table.add_column(
-        "[overline white]SUBNETS", justify="right", style="white", no_wrap=True
-    )
-    table.add_column("[overline white]VPERMIT", justify="right", no_wrap=True)
-    # table.add_column("[overline white]TAKE", style='white', no_wrap=True)
+    table.add_column("[overline white]VPERMIT", justify="right", no_wrap=False)
+    table.add_column("[overline white]TAKE", style='white', no_wrap=True)
     table.add_column(
         "[overline white]NOMINATOR/(24h)/k\u03C4", style="green", justify="center"
     )
     table.add_column("[overline white]DELEGATE/(24h)", style="green", justify="center")
     table.add_column("[overline white]Desc", style="rgb(50,163,219)")
-    # table.add_column("[overline white]DESCRIPTION", style='white')
 
     for i, delegate in enumerate(delegates):
         owner_stake = next(
@@ -166,17 +162,11 @@ def show_delegates(
             f"{delegate.total_stake!s:13.13}",
             rate_change_in_stake_str,
             str(delegate.registrations),
-            str(
-                [
-                    "*" if subnet in delegate.validator_permits else ""
-                    for subnet in delegate.registrations
-                ]
-            ),
-            # f'{delegate.take * 100:.1f}%',
+            f'{delegate.take * 100:.1f}%',
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (1000/ ( 0.001 + delegate.total_stake.tao ) ))!s:6.6}",
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (0.18) ) !s:6.6}",
-            str(delegate_description)
-            # f'{delegate_profile.description:140.140}',
+            str(delegate_description),
+            end_section=True
         )
     bittensor.__console__.print(table)
 
@@ -381,6 +371,8 @@ class ListDelegatesCommand:
         r"""
         List all delegates on the network.
         """
+        cli.config.subtensor.network = "archive"
+        cli.config.subtensor.chain_endpoint = "wss://archive.chain.opentensor.ai:443"
         subtensor = bittensor.subtensor(config=cli.config)
         with bittensor.__console__.status(":satellite: Loading delegates..."):
             delegates: bittensor.DelegateInfo = subtensor.get_delegates()
