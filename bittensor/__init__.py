@@ -93,6 +93,8 @@ __finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 
 __finney_test_entrypoint__ = "wss://test.finney.opentensor.ai:443/"
 
+__archive_entrypoint__ = "wss://archive.chain.opentensor.ai:443"
+
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
