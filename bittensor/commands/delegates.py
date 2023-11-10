@@ -102,7 +102,7 @@ def show_delegates(
     )
     table.add_column("[overline white]CHANGE/(4h)", style="grey0", justify="center")
     table.add_column("[overline white]VPERMIT", justify="right", no_wrap=False)
-    table.add_column("[overline white]TAKE", style='white', no_wrap=True)
+    table.add_column("[overline white]TAKE", style="white", no_wrap=True)
     table.add_column(
         "[overline white]NOMINATOR/(24h)/k\u03C4", style="green", justify="center"
     )
@@ -162,11 +162,11 @@ def show_delegates(
             f"{delegate.total_stake!s:13.13}",
             rate_change_in_stake_str,
             str(delegate.registrations),
-            f'{delegate.take * 100:.1f}%',
+            f"{delegate.take * 100:.1f}%",
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (1000/ ( 0.001 + delegate.total_stake.tao ) ))!s:6.6}",
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (0.18) ) !s:6.6}",
             str(delegate_description),
-            end_section=True
+            end_section=True,
         )
     bittensor.__console__.print(table)
 
