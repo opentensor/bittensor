@@ -223,6 +223,7 @@ class dendrite(torch.nn.Module):
                 returns the response from that axon. If multiple target axons are provided,
                 returns a list of responses from all target axons.
         """
+        result = None
         try:
             loop = asyncio.get_event_loop()
             result = loop.run_until_complete(self.forward(*args, **kwargs))
@@ -231,7 +232,6 @@ class dendrite(torch.nn.Module):
             asyncio.set_event_loop(new_loop)
             result = loop.run_until_complete(self.forward(*args, **kwargs))
             new_loop.close()
-            return result
         finally:
             self.close_session()
             return result
