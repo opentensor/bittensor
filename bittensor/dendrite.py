@@ -166,8 +166,8 @@ class dendrite(torch.nn.Module):
             await self._session.close()
             try:
                 self._session = None
-            except:
-                pass
+            except Exception as e:
+                bt.logging.error(f"Failed to close session with error: {str(e)}")
 
     def _get_endpoint_url(self, target_axon, request_name):
         endpoint = (
