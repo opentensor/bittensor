@@ -53,43 +53,7 @@ def show_delegates(
     prev_delegates: Optional[List["bittensor.DelegateInfo"]],
     width: Optional[int] = None,
 ):
-    """
-    Displays a formatted table of Bittensor network delegates, providing a comprehensive
-    overview of delegate statistics and information. This table helps users make informed
-    decisions on which delegates to allocate their Tao stake.
-
-    Parameters:
-    - delegates (List[bittensor.DelegateInfo]): A list of current delegate information objects.
-    - prev_delegates (Optional[List[bittensor.DelegateInfo]]): A list of previous delegate
-      information objects used to calculate stake changes. Defaults to None.
-    - width (Optional[int]): The maximum width of the table when displayed. Defaults to None,
-      which allows the table to expand to the full width of the console.
-
-    The table columns include:
-    - INDEX: The delegate's index in the sorted list.
-    - DELEGATE: The name of the delegate.
-    - SS58: The delegate's unique SS58 address (truncated for display).
-    - NOMINATORS: The count of nominators backing the delegate.
-    - DELEGATE STAKE(τ): The total stake amount delegated specifically to the delegate.
-    - TOTAL STAKE(τ): The delegate's cumulative stake, including self-staked and nominators' stakes.
-    - CHANGE/(4h): The percentage change in the delegate's stake over the last four hours.
-    - SUBNETS: The subnets to which the delegate is registered.
-    - VPERMIT: Indicates the subnets for which the delegate has validator permits.
-    - NOMINATOR/(24h)/kτ: The earnings per 1000 τ staked by nominators in the last 24 hours.
-    - DELEGATE/(24h): The total earnings of the delegate in the last 24 hours.
-    - DESCRIPTION: A brief description of the delegate's purpose and operations.
-
-    Sorting is done based on the 'TOTAL STAKE' column in descending order. Changes in stake
-    are highlighted: increases in green and decreases in red. Entries with no previous data
-    are marked with 'NA'. Each delegate's name is a hyperlink to their respective URL, if available.
-
-    Example usage:
-    >>> show_delegates(current_delegates, previous_delegates, width=80)
-
-    Note:
-    This function is part of the Bittensor CLI tools and is intended for use within a console
-    application. It prints directly to the console and does not return any value.
-    """
+    """Pretty prints a table of delegates sorted by total stake."""
     delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
     prev_delegates_dict = {}
     if prev_delegates is not None:
@@ -412,6 +376,44 @@ class DelegateUnstakeCommand:
 
 
 class ListDelegatesCommand:
+    """
+    Displays a formatted table of Bittensor network delegates, providing a comprehensive
+    overview of delegate statistics and information. This table helps users make informed
+    decisions on which delegates to allocate their Tao stake.
+
+    Parameters:
+    - delegates (List[bittensor.DelegateInfo]): A list of current delegate information objects.
+    - prev_delegates (Optional[List[bittensor.DelegateInfo]]): A list of previous delegate
+      information objects used to calculate stake changes. Defaults to None.
+    - width (Optional[int]): The maximum width of the table when displayed. Defaults to None,
+      which allows the table to expand to the full width of the console.
+
+    The table columns include:
+    - INDEX: The delegate's index in the sorted list.
+    - DELEGATE: The name of the delegate.
+    - SS58: The delegate's unique SS58 address (truncated for display).
+    - NOMINATORS: The count of nominators backing the delegate.
+    - DELEGATE STAKE(τ): The total stake amount delegated specifically to the delegate.
+    - TOTAL STAKE(τ): The delegate's cumulative stake, including self-staked and nominators' stakes.
+    - CHANGE/(4h): The percentage change in the delegate's stake over the last four hours.
+    - SUBNETS: The subnets to which the delegate is registered.
+    - VPERMIT: Indicates the subnets for which the delegate has validator permits.
+    - NOMINATOR/(24h)/kτ: The earnings per 1000 τ staked by nominators in the last 24 hours.
+    - DELEGATE/(24h): The total earnings of the delegate in the last 24 hours.
+    - DESCRIPTION: A brief description of the delegate's purpose and operations.
+
+    Sorting is done based on the 'TOTAL STAKE' column in descending order. Changes in stake
+    are highlighted: increases in green and decreases in red. Entries with no previous data
+    are marked with 'NA'. Each delegate's name is a hyperlink to their respective URL, if available.
+
+    Example usage:
+    >>> show_delegates(current_delegates, previous_delegates, width=80)
+
+    Note:
+    This function is part of the Bittensor CLI tools and is intended for use within a console
+    application. It prints directly to the console and does not return any value.
+    """
+
     @staticmethod
     def run(cli):
         r"""
@@ -666,73 +668,3 @@ class MyDelegatesCommand:
         ):
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
-
-
-class SetDelegateTakeCommand:
-    @staticmethod
-    def run(cli):
-        r"""Set your delegate's take percentage."""
-        wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config)
-
-        # Unlock the wallet.
-        wallet.hotkey
-        wallet.coldkey
-
-        take = float(cli.config.take)
-        if take > 1 or take < 0:
-            bittensor.__console__.print(
-                "Aborting: Invalid take value: {}".format(cli.config.delegate.take)
-            )
-            return
-
-        # Check if the hotkey is already a delegate.
-        if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
-            bittensor.__console__.print(
-                "Aborting: Hotkey {} isn't a delegate.".format(
-                    wallet.hotkey.ss58_address
-                )
-            )
-            return
-
-        result: bool = subtensor.set_delegate_take(
-            wallet, int(take * 65535)
-        )  # Cast 0-1 float to u16 ratio for chain
-        if not result:
-            bittensor.__console__.print(
-                "Could not set delegate take on [white]{}[/white]".format(
-                    subtensor.network
-                )
-            )
-        else:
-            bittensor.__console__.print(
-                "Successfully set delegate take on [white]{}[/white]".format(
-                    subtensor.network
-                )
-            )
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
-        set_delegate_take_parser = parser.add_parser(
-            "set_delegate_take", help="""Set your delegate's take percentage."""
-        )
-        set_delegate_take_parser.add_argument(
-            "--delegate.take", dest="take", type=str, required=False
-        )
-
-        bittensor.wallet.add_args(set_delegate_take_parser)
-        bittensor.subtensor.add_args(set_delegate_take_parser)
-
-    @staticmethod
-    def check_config(config: "bittensor.config"):
-        if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
-            config.wallet.name = str(wallet_name)
-
-        if not config.is_set("wallet.hotkey") and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
-            config.wallet.hotkey = str(hotkey)
-
-        if not config.is_set("delegate.take") and not config.no_prompt:
-            take = Prompt.ask("Enter new delegate take value (0 - 1)")
-            config.take = take
