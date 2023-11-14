@@ -210,7 +210,7 @@ from .utils.balance import Balance as Balance
 from .chain_data import *
 from .subtensor import subtensor as subtensor
 from .cli import cli as cli, COMMANDS as ALL_COMMANDS
-from .logging import logging as logging
+from .btlogging import logging as logging
 from .metagraph import metagraph as metagraph
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
