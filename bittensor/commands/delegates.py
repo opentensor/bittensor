@@ -666,3 +666,73 @@ class MyDelegatesCommand:
         ):
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
+
+
+class SetDelegateTakeCommand:
+    @staticmethod
+    def run(cli):
+        r"""Set your delegate's take percentage."""
+        wallet = bittensor.wallet(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config)
+
+        # Unlock the wallet.
+        wallet.hotkey
+        wallet.coldkey
+
+        take = float(cli.config.take)
+        if take > 1 or take < 0:
+            bittensor.__console__.print(
+                "Aborting: Invalid take value: {}".format(cli.config.delegate.take)
+            )
+            return
+
+        # Check if the hotkey is already a delegate.
+        if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
+            bittensor.__console__.print(
+                "Aborting: Hotkey {} isn't a delegate.".format(
+                    wallet.hotkey.ss58_address
+                )
+            )
+            return
+
+        result: bool = subtensor.set_delegate_take(
+            wallet, int(take * 65535)
+        )  # Cast 0-1 float to u16 ratio for chain
+        if not result:
+            bittensor.__console__.print(
+                "Could not set delegate take on [white]{}[/white]".format(
+                    subtensor.network
+                )
+            )
+        else:
+            bittensor.__console__.print(
+                "Successfully set delegate take on [white]{}[/white]".format(
+                    subtensor.network
+                )
+            )
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        set_delegate_take_parser = parser.add_parser(
+            "set_delegate_take", help="""Set your delegate's take percentage."""
+        )
+        set_delegate_take_parser.add_argument(
+            "--delegate.take", dest="take", type=str, required=False
+        )
+
+        bittensor.wallet.add_args(set_delegate_take_parser)
+        bittensor.subtensor.add_args(set_delegate_take_parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+        if not config.is_set("delegate.take") and not config.no_prompt:
+            take = Prompt.ask("Enter new delegate take value (0 - 1)")
+            config.take = take

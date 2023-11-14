@@ -291,3 +291,10 @@ class logging:
         if not cls.__has_been_inited__:
             cls()
         logger.trace(cls._format(prefix, sufix))
+
+    @classmethod
+    def exception(cls, prefix: object, sufix: object = None):
+        """Exception logging with traceback"""
+        if not cls.__has_been_inited__:
+            cls()
+        logger.exception(cls._format(prefix, sufix))

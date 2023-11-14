@@ -95,6 +95,66 @@ def nominate_extrinsic(
     return False
 
 
+def set_delegate_take_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    take: int,
+    wait_for_finalization: bool = False,
+    wait_for_inclusion: bool = True,
+) -> bool:
+    r"""Set the delegate take for the provided hotkey.
+    Args:
+        wallet ( bittensor.wallet ):
+            The wallet to become a delegate for.
+        take (int):
+            The u16 ratio of a delegator's rewards you'll take.
+    Returns:
+        success (bool):
+            True if the transaction was successful.
+    """
+    # Unlock the coldkey.
+    wallet.coldkey
+    wallet.hotkey
+
+    # Check if the hotkey is already a delegate.
+    if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
+        logger.error("Hotkey {} isn't a delegate.".format(wallet.hotkey.ss58_address))
+        return False
+
+    with bittensor.__console__.status(
+        ":satellite: Sending call on [white]{}[/white] ...".format(subtensor.network)
+    ):
+        try:
+            success = subtensor._do_set_delegate_take(
+                wallet=wallet,
+                take=take,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            if success == True:
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
+                bittensor.logging.success(
+                    prefix="Set delegate take",
+                    sufix="<green>Finalized: </green>" + str(success),
+                )
+
+            # Raises NominationError if False
+            return success
+
+        except Exception as e:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+            )
+            bittensor.logging.warning(
+                prefix="Set delegate take", sufix="<red>Failed: </red>" + str(e)
+            )
+
+    return False
+
+
 def delegate_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",

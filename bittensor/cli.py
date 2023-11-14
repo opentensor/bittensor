@@ -74,6 +74,7 @@ COMMANDS = {
             "my_delegates": MyDelegatesCommand,
             "list_delegates": ListDelegatesCommand,
             "nominate": NominateCommand,
+            "set_delegate_take": SetDelegateTakeCommand,
         },
     },
     "wallet": {
@@ -94,6 +95,8 @@ COMMANDS = {
             "regen_hotkey": RegenHotkeyCommand,
             "faucet": RunFaucetCommand,
             "update": UpdateWalletCommand,
+            "set_identity": SetIdentityCommand,
+            "get_identity": GetIdentityCommand,
         },
     },
     "stake": {
