@@ -101,17 +101,13 @@ def show_delegates(
         no_wrap=True,
     )
     table.add_column("[overline white]CHANGE/(4h)", style="grey0", justify="center")
-    table.add_column(
-        "[overline white]SUBNETS", justify="right", style="white", no_wrap=True
-    )
-    table.add_column("[overline white]VPERMIT", justify="right", no_wrap=True)
-    # table.add_column("[overline white]TAKE", style='white', no_wrap=True)
+    table.add_column("[overline white]VPERMIT", justify="right", no_wrap=False)
+    table.add_column("[overline white]TAKE", style="white", no_wrap=True)
     table.add_column(
         "[overline white]NOMINATOR/(24h)/k\u03C4", style="green", justify="center"
     )
     table.add_column("[overline white]DELEGATE/(24h)", style="green", justify="center")
     table.add_column("[overline white]Desc", style="rgb(50,163,219)")
-    # table.add_column("[overline white]DESCRIPTION", style='white')
 
     for i, delegate in enumerate(delegates):
         owner_stake = next(
@@ -166,17 +162,11 @@ def show_delegates(
             f"{delegate.total_stake!s:13.13}",
             rate_change_in_stake_str,
             str(delegate.registrations),
-            str(
-                [
-                    "*" if subnet in delegate.validator_permits else ""
-                    for subnet in delegate.registrations
-                ]
-            ),
-            # f'{delegate.take * 100:.1f}%',
+            f"{delegate.take * 100:.1f}%",
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (1000/ ( 0.001 + delegate.total_stake.tao ) ))!s:6.6}",
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (0.18) ) !s:6.6}",
-            str(delegate_description)
-            # f'{delegate_profile.description:140.140}',
+            str(delegate_description),
+            end_section=True,
         )
     bittensor.__console__.print(table)
 
@@ -381,6 +371,8 @@ class ListDelegatesCommand:
         r"""
         List all delegates on the network.
         """
+        cli.config.subtensor.network = "archive"
+        cli.config.subtensor.chain_endpoint = "wss://archive.chain.opentensor.ai:443"
         subtensor = bittensor.subtensor(config=cli.config)
         with bittensor.__console__.status(":satellite: Loading delegates..."):
             delegates: bittensor.DelegateInfo = subtensor.get_delegates()
@@ -630,3 +622,73 @@ class MyDelegatesCommand:
         ):
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
+
+
+class SetDelegateTakeCommand:
+    @staticmethod
+    def run(cli):
+        r"""Set your delegate's take percentage."""
+        wallet = bittensor.wallet(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config)
+
+        # Unlock the wallet.
+        wallet.hotkey
+        wallet.coldkey
+
+        take = float(cli.config.take)
+        if take > 1 or take < 0:
+            bittensor.__console__.print(
+                "Aborting: Invalid take value: {}".format(cli.config.delegate.take)
+            )
+            return
+
+        # Check if the hotkey is already a delegate.
+        if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
+            bittensor.__console__.print(
+                "Aborting: Hotkey {} isn't a delegate.".format(
+                    wallet.hotkey.ss58_address
+                )
+            )
+            return
+
+        result: bool = subtensor.set_delegate_take(
+            wallet, int(take * 65535)
+        )  # Cast 0-1 float to u16 ratio for chain
+        if not result:
+            bittensor.__console__.print(
+                "Could not set delegate take on [white]{}[/white]".format(
+                    subtensor.network
+                )
+            )
+        else:
+            bittensor.__console__.print(
+                "Successfully set delegate take on [white]{}[/white]".format(
+                    subtensor.network
+                )
+            )
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        set_delegate_take_parser = parser.add_parser(
+            "set_delegate_take", help="""Set your delegate's take percentage."""
+        )
+        set_delegate_take_parser.add_argument(
+            "--delegate.take", dest="take", type=str, required=False
+        )
+
+        bittensor.wallet.add_args(set_delegate_take_parser)
+        bittensor.subtensor.add_args(set_delegate_take_parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+        if not config.is_set("delegate.take") and not config.no_prompt:
+            take = Prompt.ask("Enter new delegate take value (0 - 1)")
+            config.take = take

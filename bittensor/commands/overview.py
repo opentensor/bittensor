@@ -121,7 +121,6 @@ class OverviewCommand:
             ] = hotkey_wallet
 
         all_hotkey_addresses = list(hotkey_coldkey_to_hotkey_wallet.keys())
-
         with console.status(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
                 cli.config.subtensor.get(
@@ -285,7 +284,11 @@ class OverviewCommand:
                     nn.coldkey, None
                 )
                 if not hotwallet:
-                    continue
+                    # Indicates a mismatch between what the chain says the coldkey
+                    # is for this hotkey and the local wallet coldkey-hotkey pair
+                    hotwallet = argparse.Namespace()
+                    hotwallet.name = nn.coldkey[:7]
+                    hotwallet.hotkey_str = nn.hotkey[:7]
                 nn: bittensor.NeuronInfoLite
                 uid = nn.uid
                 active = nn.active
