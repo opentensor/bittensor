@@ -57,7 +57,7 @@ from .extrinsics.registration import (
     register_extrinsic,
     burned_register_extrinsic,
     run_faucet_extrinsic,
-    swap_hotkey_extrinsic
+    swap_hotkey_extrinsic,
 )
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
@@ -483,7 +483,7 @@ class subtensor:
             update_interval=update_interval,
             log_verbose=log_verbose,
         )
-    
+
     def swap_hotkey(
         self,
         wallet: "bittensor.wallet",
@@ -652,7 +652,7 @@ class subtensor:
                     return True, None
 
         return make_substrate_call_with_retry()
-    
+
     def _do_swap_hotkey(
         self,
         wallet: "bittensor.wallet",

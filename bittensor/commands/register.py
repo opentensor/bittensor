@@ -373,6 +373,7 @@ class RunFaucetCommand:
         if not config.no_prompt:
             check_for_cuda_reg_config(config)
 
+
 class SwapHotkeyCommand:
     @staticmethod
     def run(cli):
@@ -390,7 +391,7 @@ class SwapHotkeyCommand:
             new_wallet=new_wallet,
             wait_for_finalization=False,
             wait_for_inclusion=True,
-            prompt=False
+            prompt=False,
         )
 
     @staticmethod

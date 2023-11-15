@@ -487,7 +487,9 @@ def swap_hotkey_extrinsic(
     wallet.coldkey  # unlock coldkey
     if prompt:
         # Prompt user for confirmation.
-        if not Confirm.ask(f"Swap {wallet.hotkey} for new hotkey: {new_wallet.hotkey}?"):
+        if not Confirm.ask(
+            f"Swap {wallet.hotkey} for new hotkey: {new_wallet.hotkey}?"
+        ):
             return False
 
     with bittensor.__console__.status(":satellite: Swapping hotkeys..."):
@@ -505,4 +507,6 @@ def swap_hotkey_extrinsic(
             time.sleep(0.5)
 
         else:
-            bittensor.__console__.print(f"Hotkey {wallet.hotkey} swapped for new hotkey: {new_wallet.hotkey}")
+            bittensor.__console__.print(
+                f"Hotkey {wallet.hotkey} swapped for new hotkey: {new_wallet.hotkey}"
+            )
