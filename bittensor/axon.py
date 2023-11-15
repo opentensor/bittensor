@@ -559,6 +559,12 @@ class axon:
             config.axon.external_port > 1024 and config.axon.external_port < 65535
         ), "External port must be in range [1024, 65535]"
 
+    def to_string(self):
+        """
+        Provides a human-readable representation of the AxonInfo for this Axon.
+        """
+        return self.info().to_string()
+
     def __str__(self) -> str:
         """
         Provides a human-readable representation of the Axon instance.

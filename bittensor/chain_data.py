@@ -14,12 +14,12 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
 import torch
 import bittensor
 
+import json
 from enum import Enum
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from scalecodec.types import GenericCall
 from typing import List, Tuple, Dict, Optional, Any, TypedDict, Union
 from scalecodec.base import RuntimeConfiguration, ScaleBytes
@@ -226,6 +226,28 @@ class AxonInfo:
 
     def __repr__(self):
         return self.__str__()
+
+    def to_string(self) -> str:
+        """Converts the AxonInfo object to a string representation using JSON."""
+        try:
+            return json.dumps(asdict(self))
+        except (TypeError, ValueError) as e:
+            bittensor.logging.error(f"Error converting AxonInfo to string: {e}")
+            return AxonInfo(0, "", 0, 0, "", "").to_string()
+
+    @classmethod
+    def from_string(cls, s: str) -> "AxonInfo":
+        """Creates an AxonInfo object from its string representation using JSON."""
+        try:
+            data = json.loads(s)
+            return cls(**data)
+        except json.JSONDecodeError as e:
+            bittensor.logging.error(f"Error decoding JSON: {e}")
+        except TypeError as e:
+            bittensor.logging.error(f"Type error: {e}")
+        except ValueError as e:
+            bittensor.logging.error(f"Value error: {e}")
+        return AxonInfo(0, "", 0, 0, "", "")
 
     @classmethod
     def from_neuron_info(cls, neuron_info: dict) -> "AxonInfo":
