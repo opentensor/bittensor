@@ -235,9 +235,6 @@ class dendrite(torch.nn.Module):
         finally:
             self.close_session()
             return result
-        finally:
-            self.close_session()
-            return result
 
     async def forward(
         self,
