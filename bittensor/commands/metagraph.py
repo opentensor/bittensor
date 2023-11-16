@@ -43,7 +43,7 @@ class MetagraphCommand:
     - CONSENSUS: Consensus score of the neuron.
     - INCENTIVE: Incentive score representing the neuron's incentive alignment.
     - DIVIDENDS: Dividends earned by the neuron.
-    - EMISSION(ρ): Emission in Rho (ρ) received by the neuron.
+    - EMISSION(p): Emission in Rho (p) received by the neuron.
     - VTRUST: Validator trust score indicating the network's trust in the neuron as a validator.
     - VAL: Validator status of the neuron.
     - UPDATED: Number of blocks since the neuron's last update.
