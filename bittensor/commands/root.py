@@ -33,6 +33,24 @@ console = bittensor.__console__
 
 
 class RootRegisterCommand:
+    """
+    Executes the 'register' command to register a wallet to the root network of the Bittensor network.
+    This command is used to formally acknowledge a wallet's participation in the network's root layer.
+
+    Usage:
+    The command registers the user's wallet with the root network, which is a crucial step for participating in network governance and other advanced functions.
+
+    Optional arguments:
+    - None. The command primarily uses the wallet and subtensor configurations.
+
+    Example usage:
+    >>> btcli root register
+
+    Note:
+    This command is important for users seeking to engage deeply with the Bittensor network, particularly in aspects related to network governance and decision-making.
+    It is a straightforward process but requires the user to have an initialized and configured wallet.
+    """
+
     @staticmethod
     def run(cli):
         r"""Register to root network."""
@@ -62,6 +80,35 @@ class RootRegisterCommand:
 
 
 class RootList:
+    """
+    Executes the 'list' command to display the members of the root network on the Bittensor network.
+    This command provides an overview of the neurons that constitute the network's foundational layer.
+
+    Usage:
+    Upon execution, the command fetches and lists the neurons in the root network, showing their unique identifiers (UIDs), names, addresses, stakes,
+    and whether they are part of the senate (network governance body).
+
+    Optional arguments:
+    - None. The command uses the subtensor configuration to retrieve data.
+
+    Example usage:
+    >>> btcli root list
+
+    UID  NAME                             ADDRESS                                                STAKE(τ)  SENATOR
+    0                                     5CaCUPsSSdKWcMJbmdmJdnWVa15fJQuz5HsSGgVdZffpHAUa    27086.37070  Yes
+    1    RaoK9                            5GmaAk7frPXnAxjbQvXcoEzMGZfkrDee76eGmKoB3wxUburE      520.24199  No
+    2    Openτensor Foundaτion            5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3  1275437.45895  Yes
+    3    RoundTable21                     5FFApaS75bv5pJHfAp2FVLBj9ZaXuFDjEypsaBNc1wCfe52v    84718.42095  Yes
+    4                                     5HK5tp6t2S59DywmHRWPBVJeJ86T61KjurYqeooqj8sREpeN   168897.40859  Yes
+    5    Rizzo                            5CXRfP2ekFhe62r7q3vppRajJmGhTi7vwvb2yr79jveZ282w    53383.34400  No
+    6    τaosτaτs and BitAPAI             5Hddm3iBFD2GLT5ik7LZnT3XJUnRnN8PoeCFgGQgawUVKNm8   646944.73569  Yes
+    ...
+
+    Note:
+    This command is useful for users interested in understanding the composition and governance structure of the Bittensor network's root layer.
+    It provides insights into which neurons hold significant influence and responsibility within the network.
+    """
+
     @staticmethod
     def run(cli):
         r"""List the root network"""
@@ -144,6 +191,26 @@ class RootList:
 
 
 class RootSetWeightsCommand:
+    """
+    Executes the 'weights' command to set the weights for the root network on the Bittensor network.
+    This command is used by network senators to influence the distribution of network rewards and responsibilities.
+
+    Usage:
+    The command allows setting weights for different subnets within the root network.
+    Users need to specify the netuids (network unique identifiers) and corresponding weights they wish to assign.
+
+    Optional arguments:
+    - --netuids (str): A comma-separated list of netuids for which weights are to be set.
+    - --weights (str): Corresponding weights for the specified netuids, in comma-separated format.
+
+    Example usage:
+    >>> btcli root weights --netuids 1,2,3 --weights 0.3,0.3,0.4
+
+    Note:
+    This command is particularly important for network senators and requires a comprehensive understanding of the network's dynamics.
+    It is a powerful tool that directly impacts the network's operational mechanics and reward distribution.
+    """
+
     @staticmethod
     def run(cli):
         r"""Set weights for root network."""
@@ -214,6 +281,38 @@ class RootSetWeightsCommand:
 
 
 class RootGetWeightsCommand:
+    """
+    Executes the 'get_weights' command to retrieve the weights set for the root network on the Bittensor network.
+    This command provides visibility into how network responsibilities and rewards are distributed among various subnets.
+
+    Usage:
+    The command outputs a table listing the weights assigned to each subnet within the root network.
+    This information is crucial for understanding the current influence and reward distribution among the subnets.
+
+    Optional arguments:
+    - None. The command fetches weight information based on the subtensor configuration.
+
+    Example usage:
+    >>> btcli root get_weights
+
+                                            Root Network Weights
+    UID        0        1        2       3        4        5       8        9       11     13      18       19
+    1    100.00%        -        -       -        -        -       -        -        -      -       -        -
+    2          -   40.00%    5.00%  10.00%   10.00%   10.00%  10.00%    5.00%        -      -  10.00%        -
+    3          -        -   25.00%       -   25.00%        -  25.00%        -        -      -  25.00%        -
+    4          -        -    7.00%   7.00%   20.00%   20.00%  20.00%        -    6.00%      -  20.00%        -
+    5          -   20.00%        -  10.00%   15.00%   15.00%  15.00%    5.00%        -      -  10.00%   10.00%
+    6          -        -        -       -   10.00%   10.00%  25.00%   25.00%        -      -  30.00%        -
+    7          -   60.00%        -       -   20.00%        -       -        -   20.00%      -       -        -
+    8          -   49.35%        -   7.18%   13.59%   21.14%   1.53%    0.12%    7.06%  0.03%       -        -
+    9    100.00%        -        -       -        -        -       -        -        -      -       -        -
+    ...
+
+    Note:
+    This command is essential for users interested in the governance and operational dynamics of the Bittensor network.
+    It offers transparency into how network rewards and responsibilities are allocated across different subnets.
+    """
+
     @staticmethod
     def run(cli):
         r"""Get weights for root network."""
