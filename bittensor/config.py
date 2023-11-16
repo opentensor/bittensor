@@ -287,12 +287,22 @@ class config(DefaultMunch):
     def __repr__(self) -> str:
         return self.__str__()
 
+    def _remove_private_keys(self, d):
+        if "__parser" in d:
+            d.pop("__parser", None)
+        if "__is_set" in d:
+            d.pop("__is_set", None)
+        for k, v in list(d.items()):
+            if isinstance(v, dict):
+                self._remove_private_keys(v)
+        return d
+
     def __str__(self) -> str:
         # remove the parser and is_set map from the visible config
         visible = self.toDict()
         visible.pop("__parser", None)
-        visible.pop("__is_set", None)
-        return "\n" + yaml.dump(visible)
+        cleaned = self.remove_private_keys(visible)
+        return "\n" + yaml.dump(cleaned, sort_keys=False)
 
     def copy(self) -> "config":
         return copy.deepcopy(self)
