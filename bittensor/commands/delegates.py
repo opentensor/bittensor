@@ -485,7 +485,7 @@ class ListDelegatesCommand:
     - DELEGATE: The name of the delegate.
     - SS58: The delegate's unique SS58 address (truncated for display).
     - NOMINATORS: The count of nominators backing the delegate.
-    - DELEGATE STAKE(τ): The total stake amount delegated specifically to the delegate.
+    - DELEGATE STAKE(τ): The amount of delegate's own stake (not the TAO delegated from any nominators).
     - TOTAL STAKE(τ): The delegate's cumulative stake, including self-staked and nominators' stakes.
     - CHANGE/(4h): The percentage change in the delegate's stake over the last four hours.
     - SUBNETS: The subnets to which the delegate is registered.
