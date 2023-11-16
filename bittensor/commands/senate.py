@@ -482,6 +482,25 @@ class SenateLeaveCommand:
 
 
 class VoteCommand:
+    """
+    Executes the 'senate_vote' command to cast a vote on an active proposal in Bittensor's governance protocol.
+    This command is used by Senate members to vote on various proposals that shape the network's future.
+
+    Usage:
+    The user needs to specify the hash of the proposal they want to vote on. The command then allows the Senate member
+    to cast an 'Aye' or 'Nay' vote, contributing to the decision-making process.
+
+    Optional arguments:
+    - --proposal (str): The hash of the proposal to vote on.
+
+    Example usage:
+    >>> btcli root senate_vote --proposal <proposal_hash>
+
+    Note:
+    This command is crucial for Senate members to exercise their voting rights on key proposals. It plays a vital role in the governance
+    and evolution of the Bittensor network.
+    """
+
     @staticmethod
     def run(cli):
         r"""Vote in Bittensor's governance protocol proposals"""
