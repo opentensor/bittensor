@@ -1,17 +1,4 @@
-<div align="center">
 
-# **Bittensor** <!-- omit in toc -->
-[![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/bittensor)
-[![PyPI version](https://badge.fury.io/py/bittensor.svg)](https://badge.fury.io/py/bittensor)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
-
----
-
-### Internet-scale Neural Networks <!-- omit in toc -->
-
-[Discord](https://discord.gg/bittensor) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper)
-
-</div>
 
 Bittensor is a mining network, similar to Bitcoin, that includes built-in incentives designed to encourage computers to provide access to machine learning models in an efficient and censorship-resistant manner. These models can be queried by users seeking outputs from the network, for instance; generating text, audio, and images, or for extracting numerical representations of these input types. Under the hood, Bittensor’s *economic market*, is facilitated by a blockchain token mechanism, through which producers (***miners***) and the verification of the work done by those miners (***validators***) are rewarded. Miners host, train or otherwise procure machine learning systems into the network as a means of fulfilling the verification problems defined by the validators, like the ability to generate responses from prompts i.e. “What is the capital of Texas?. 
 
