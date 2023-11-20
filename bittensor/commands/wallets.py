@@ -26,6 +26,30 @@ from . import defaults
 
 
 class RegenColdkeyCommand:
+    """
+    Executes the 'regen_coldkey' command to regenerate a coldkey for a wallet on the Bittensor network.
+    This command is used to create a new coldkey from an existing mnemonic, seed, or JSON file.
+
+    Usage:
+    Users can specify a mnemonic, a seed string, or a JSON file path to regenerate a coldkey.
+    The command supports optional password protection for the generated key and can overwrite an existing coldkey.
+
+    Optional arguments:
+    - --mnemonic (str): A mnemonic phrase used to regenerate the key.
+    - --seed (str): A seed hex string used for key regeneration.
+    - --json (str): Path to a JSON file containing an encrypted key backup.
+    - --json_password (str): Password to decrypt the JSON file.
+    - --use_password (bool): Enables password protection for the generated key.
+    - --overwrite_coldkey (bool): Overwrites the existing coldkey with the new one.
+
+    Example usage:
+    >>> btcli wallet regen_coldkey --mnemonic "word1 word2 ... word12"
+
+    Note:
+    This command is critical for users who need to regenerate their coldkey, possibly for recovery or security reasons.
+    It should be used with caution to avoid overwriting existing keys unintentionally.
+    """
+
     def run(cli):
         r"""Creates a new coldkey under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
@@ -126,6 +150,27 @@ class RegenColdkeyCommand:
 
 
 class RegenColdkeypubCommand:
+    """
+    Executes the 'regen_coldkeypub' command to regenerate the public part of a coldkey (coldkeypub) for a wallet on the Bittensor network.
+    This command is used when a user needs to recreate their coldkeypub from an existing public key or SS58 address.
+
+    Usage:
+    The command requires either a public key in hexadecimal format or an SS58 address to regenerate the coldkeypub.
+    It optionally allows overwriting an existing coldkeypub file.
+
+    Optional arguments:
+    - --public_key_hex (str): The public key in hex format.
+    - --ss58_address (str): The SS58 address of the coldkey.
+    - --overwrite_coldkeypub (bool): Overwrites the existing coldkeypub file with the new one.
+
+    Example usage:
+    >>> btcli wallet regen_coldkeypub --ss58_address 5DkQ4...
+
+    Note:
+    This command is particularly useful for users who need to regenerate their coldkeypub, perhaps due to file corruption or loss.
+    It is a recovery-focused utility that ensures continued access to wallet functionalities.
+    """
+
     def run(cli):
         r"""Creates a new coldkeypub under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
@@ -191,6 +236,31 @@ class RegenColdkeypubCommand:
 
 
 class RegenHotkeyCommand:
+    """
+    Executes the 'regen_hotkey' command to regenerate a hotkey for a wallet on the Bittensor network.
+    Similar to regenerating a coldkey, this command creates a new hotkey from a mnemonic, seed, or JSON file.
+
+    Usage:
+    Users can provide a mnemonic, seed string, or a JSON file to regenerate the hotkey.
+    The command supports optional password protection and can overwrite an existing hotkey.
+
+    Optional arguments:
+    - --mnemonic (str): A mnemonic phrase used to regenerate the key.
+    - --seed (str): A seed hex string used for key regeneration.
+    - --json (str): Path to a JSON file containing an encrypted key backup.
+    - --json_password (str): Password to decrypt the JSON file.
+    - --use_password (bool): Enables password protection for the generated key.
+    - --overwrite_hotkey (bool): Overwrites the existing hotkey with the new one.
+
+    Example usage:
+    >>> btcli wallet regen_hotkey
+    >>> btcli wallet regen_hotkey --seed 0x1234...
+
+    Note:
+    This command is essential for users who need to regenerate their hotkey, possibly for security upgrades or key recovery.
+    It should be used cautiously to avoid accidental overwrites of existing keys.
+    """
+
     def run(cli):
         r"""Creates a new coldkey under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
@@ -296,6 +366,27 @@ class RegenHotkeyCommand:
 
 
 class NewHotkeyCommand:
+    """
+    Executes the 'new_hotkey' command to create a new hotkey under a wallet on the Bittensor network.
+    This command is used to generate a new hotkey for managing a neuron or participating in the network.
+
+    Usage:
+    The command creates a new hotkey with an optional word count for the mnemonic and supports password protection.
+    It also allows overwriting an existing hotkey.
+
+    Optional arguments:
+    - --n_words (int): The number of words in the mnemonic phrase.
+    - --use_password (bool): Enables password protection for the generated key.
+    - --overwrite_hotkey (bool): Overwrites the existing hotkey with the new one.
+
+    Example usage:
+    >>> btcli wallet new_hotkey --n_words 24
+
+    Note:
+    This command is useful for users who wish to create additional hotkeys for different purposes,
+    such as running multiple miners or separating operational roles within the network.
+    """
+
     def run(cli):
         """Creates a new hotke under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
@@ -352,6 +443,27 @@ class NewHotkeyCommand:
 
 
 class NewColdkeyCommand:
+    """
+    Executes the 'new_coldkey' command to create a new coldkey under a wallet on the Bittensor network.
+    This command generates a coldkey, which is essential for holding balances and performing high-value transactions.
+
+    Usage:
+    The command creates a new coldkey with an optional word count for the mnemonic and supports password protection.
+    It also allows overwriting an existing coldkey.
+
+    Optional arguments:
+    - --n_words (int): The number of words in the mnemonic phrase.
+    - --use_password (bool): Enables password protection for the generated key.
+    - --overwrite_coldkey (bool): Overwrites the existing coldkey with the new one.
+
+    Example usage:
+    >>> btcli wallet new_coldkey --n_words 15
+
+    Note:
+    This command is crucial for users who need to create a new coldkey for enhanced security or as part of setting up a new wallet.
+    It's a foundational step in establishing a secure presence on the Bittensor network.
+    """
+
     def run(cli):
         r"""Creates a new coldkey under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
@@ -404,6 +516,28 @@ class NewColdkeyCommand:
 
 
 class WalletCreateCommand:
+    """
+    Executes the 'create' command to generate both a new coldkey and hotkey under a specified wallet on the Bittensor network.
+    This command is a comprehensive utility for creating a complete wallet setup with both cold and hotkeys.
+
+    Usage:
+    The command facilitates the creation of a new coldkey and hotkey with an optional word count for the mnemonics.
+    It supports password protection for the coldkey and allows overwriting of existing keys.
+
+    Optional arguments:
+    - --n_words (int): The number of words in the mnemonic phrase for both keys.
+    - --use_password (bool): Enables password protection for the coldkey.
+    - --overwrite_coldkey (bool): Overwrites the existing coldkey with the new one.
+    - --overwrite_hotkey (bool): Overwrites the existing hotkey with the new one.
+
+    Example usage:
+    >>> btcli wallet create --n_words 21
+
+    Note:
+    This command is ideal for new users setting up their wallet for the first time or for those who wish to completely renew their wallet keys.
+    It ensures a fresh start with new keys for secure and effective participation in the network.
+    """
+
     def run(cli):
         r"""Creates a new coldkey and hotkey under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
@@ -481,6 +615,26 @@ def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
 
 
 class UpdateWalletCommand:
+    """
+    Executes the 'update' command to check and potentially update the security of the wallets in the Bittensor network.
+    This command is used to enhance wallet security using modern encryption standards.
+
+    Usage:
+    The command checks if any of the wallets need an update in their security protocols.
+    It supports updating all legacy wallets or a specific one based on the user's choice.
+
+    Optional arguments:
+    - --all (bool): When set, updates all legacy wallets.
+    - --no_prompt (bool): Disables user prompting during the update process.
+
+    Example usage:
+    >>> btcli wallet update --all
+
+    Note:
+    This command is important for maintaining the highest security standards for users' wallets.
+    It is recommended to run this command periodically to ensure wallets are up-to-date with the latest security practices.
+    """
+
     @staticmethod
     def run(cli):
         """Check if any of the wallets needs an update."""
@@ -554,6 +708,25 @@ def _get_coldkey_ss58_addresses_for_path(path: str) -> List[str]:
 
 
 class WalletBalanceCommand:
+    """
+    Executes the 'balance' command to check the balance of the wallet on the Bittensor network.
+    This command provides a detailed view of the wallet's coldkey balances, including free and staked balances.
+
+    Usage:
+    The command lists the balances of all wallets in the user's configuration directory, showing the wallet name,
+    coldkey address, and the respective free and staked balances.
+
+    Optional arguments:
+    None. The command uses the wallet and subtensor configurations to fetch balance data.
+
+    Example usage:
+    >>> btcli wallet balance
+
+    Note:
+    This command is essential for users to monitor their financial status on the Bittensor network.
+    It helps in keeping track of assets and ensuring the wallet's financial health.
+    """
+
     @staticmethod
     def run(cli):
         """Check the balance of the wallet."""
