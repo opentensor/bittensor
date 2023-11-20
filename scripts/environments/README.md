@@ -13,3 +13,8 @@ There are quite a few Python libraries that are not yet compatible with Apple M 
    ```bash
    conda env list
    ```
+
+4. Install bittensor (without dependencies):
+    ```bash
+    pip install --no-deps bittensor
+    ```
