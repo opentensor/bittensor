@@ -732,7 +732,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Catch the error case where axon is not configured to handle the request.
         except KeyError:
             # Log key error.
-            bittensor.logging.error(f"Synapse name {request_name} not found.")
+            bittensor.logging.error(
+                f"Key Error: Synapse name {request_name} not found."
+            )
 
             # Create a synapse instance with status code 404 (not found) and status message.
             synapse: bittensor.Synapse = bittensor.Synapse()
@@ -748,7 +750,8 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Start of catching all exceptions, updating the status message, and processing time.
         except Exception as e:
             # Log the exception for debugging purposes.
-            bittensor.logging.error(f"Forward exception: {traceback.format_exc()}")
+            bittensor.logging.error(f"Exception: {str(e)}")
+            bittensor.logging.trace(f"Forward exception: {traceback.format_exc()}")
 
             # Set the status message of the synapse to the string representation of the exception.
             synapse.axon.status_message = f"{str(e)}"
