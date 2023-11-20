@@ -65,7 +65,6 @@ from .extrinsics.delegation import (
     delegate_extrinsic,
     nominate_extrinsic,
     undelegate_extrinsic,
-    set_delegate_take_extrinsic,
 )
 from .extrinsics.senate import (
     register_senate_extrinsic,
@@ -358,22 +357,6 @@ class subtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
-        )
-
-    def set_delegate_take(
-        self,
-        wallet: "bittensor.wallet",
-        take: int,
-        wait_for_finalization: bool = False,
-        wait_for_inclusion: bool = True,
-    ) -> bool:
-        """Set your delegate take percentage."""
-        return set_delegate_take_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            take=take,
-            wait_for_finalization=wait_for_finalization,
-            wait_for_inclusion=wait_for_inclusion,
         )
 
     #####################
@@ -1297,7 +1280,7 @@ class subtensor:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
                     call_function="root_register",
-                    call_params={"hotkey": wallet.hotkey.ss58_address, "take": 11796},
+                    call_params={"hotkey": wallet.hotkey.ss58_address},
                 )
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call, keypair=wallet.coldkey
@@ -2611,40 +2594,6 @@ class subtensor:
                     call_module="SubtensorModule",
                     call_function="become_delegate",
                     call_params={"hotkey": wallet.hotkey.ss58_address},
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )  # sign with coldkey
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise NominationError(response.error_message)
-
-        return make_substrate_call_with_retry()
-
-    def _do_set_delegate_take(
-        self,
-        wallet: "bittensor.wallet",
-        take: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="set_delegate_take",
-                    call_params={"hotkey": wallet.hotkey.ss58_address, "take": take},
                 )
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call, keypair=wallet.coldkey
