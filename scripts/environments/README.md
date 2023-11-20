@@ -16,5 +16,6 @@ There are quite a few Python libraries that are not yet compatible with Apple M 
 
 4. Install bittensor (without dependencies):
     ```bash
-    pip install --no-deps bittensor
+    conda activate bittensor        # activate the env 
+    pip install --no-deps bittensor # install bittensor
     ```
