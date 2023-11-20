@@ -93,7 +93,7 @@ from .transfer import TransferCommand
 from .inspect import InspectCommand
 from .metagraph import MetagraphCommand
 from .list import ListCommand
-from .misc import UpdateCommand, ListSubnetsCommand
+from .misc import UpdateCommand
 from .senate import (
     SenateCommand,
     ProposalsCommand,

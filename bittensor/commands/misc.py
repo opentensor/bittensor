@@ -27,6 +27,25 @@ console = bittensor.__console__
 
 
 class UpdateCommand:
+    """
+    Executes the 'update' command to update the local Bittensor package. This command performs a series of operations to ensure that the user's local Bittensor installation is updated to the latest version from the master branch of its GitHub repository. It primarily involves pulling the latest changes from the repository and reinstalling the package.
+
+    Usage:
+    Upon invocation, the command first checks the user's configuration for the 'no_prompt' setting. If 'no_prompt' is set to True, or if the user explicitly confirms with 'Y' when prompted, the command proceeds to update the local Bittensor package. It changes the current directory to the Bittensor package directory, checks out the master branch of the Bittensor repository, pulls the latest changes, and then reinstalls the package using pip.
+
+    The command structure is as follows:
+    1. Change directory to the Bittensor package directory.
+    2. Check out the master branch of the Bittensor GitHub repository.
+    3. Pull the latest changes with the '--ff-only' option to ensure a fast-forward update.
+    4. Reinstall the Bittensor package using pip.
+
+    Example usage:
+    >>> btcli legacy update
+
+    Note:
+    This command is intended to be used within the Bittensor CLI to facilitate easy updates of the Bittensor package. It should be used with caution as it directly affects the local installation of the package. It is recommended to ensure that any important data or configurations are backed up before running this command.
+    """
+
     @staticmethod
     def run(cli):
         if cli.config.no_prompt or cli.config.answer == "Y":
@@ -52,93 +71,3 @@ class UpdateCommand:
         )
 
         bittensor.subtensor.add_args(update_parser)
-
-
-class ListSubnetsCommand:
-    @staticmethod
-    def run(cli):
-        r"""List all subnet netuids in the network."""
-        subtensor = bittensor.subtensor(config=cli.config)
-        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
-
-        rows = []
-        total_neurons = 0
-
-        for subnet in subnets:
-            total_neurons += subnet.max_n
-            # netuid, N, Max N, difficulty, network connect, tempo, emission, burn rate
-            rows.append(
-                (
-                    str(subnet.netuid),
-                    str(subnet.subnetwork_n),
-                    str(bittensor.utils.formatting.millify(subnet.max_n)),
-                    str(bittensor.utils.formatting.millify(subnet.difficulty)),
-                    str(subnet.tempo),
-                    str(
-                        [
-                            f"{cr[0]}: {cr[1] * 100:.1f}%"
-                            for cr in subnet.connection_requirements.items()
-                        ]
-                        if len(subnet.connection_requirements) > 0
-                        else None
-                    ),
-                    f"{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%",
-                    f"{subnet.burn!s:8.8}",
-                    f"{subnet.owner_ss58}",
-                )
-            )
-
-        table = Table(
-            show_footer=True,
-            width=cli.config.get("width", None),
-            pad_edge=True,
-            box=None,
-            show_edge=True,
-        )
-        table.title = "[white]Subnets - {}".format(subtensor.network)
-        # netuid, N, Max N, difficulty, network connect, tempo, emission, burn rate
-        table.add_column(
-            "[overline white]NETUID",
-            str(len(subnets)),
-            footer_style="overline white",
-            style="bold green",
-            justify="center",
-        )
-        table.add_column(
-            "[overline white]NEURONS",
-            str(total_neurons),
-            footer_style="overline white",
-            style="white",
-            justify="center",
-        )
-        table.add_column("[overline white]MAX_N", style="white", justify="center")
-        table.add_column("[overline white]DIFFICULTY", style="white", justify="center")
-        # table.add_column("[overline white]IMMUNITY", style='white')
-        # table.add_column("[overline white]BATCH SIZE", style='white')
-        # table.add_column("[overline white]SEQ_LEN", style='white')
-        table.add_column("[overline white]TEMPO", style="white", justify="center")
-        # table.add_column("[overline white]MODALITY", style='white')
-        table.add_column("[overline white]CON_REQ", style="white", justify="center")
-        # table.add_column("[overline white]STAKE", style="green", justify="center")
-        table.add_column(
-            "[overline white]EMISSION", style="white", justify="center"
-        )  # sums to 100%
-        table.add_column("[overline white]BURN(\u03C4)", style="white")
-        table.add_column("[overline white]OWNER(\u03C4)", style="white")
-
-        for row in rows:
-            table.add_row(*row)
-
-        bittensor.__console__.print(table)
-
-    @staticmethod
-    def check_config(config: "bittensor.config"):
-        pass
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
-        list_subnets_parser = parser.add_parser(
-            "list_subnets", help="""List all subnets on the network"""
-        )
-
-        bittensor.subtensor.add_args(list_subnets_parser)
