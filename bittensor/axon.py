@@ -559,6 +559,12 @@ class axon:
             config.axon.external_port > 1024 and config.axon.external_port < 65535
         ), "External port must be in range [1024, 65535]"
 
+    def to_string(self):
+        """
+        Provides a human-readable representation of the AxonInfo for this Axon.
+        """
+        return self.info().to_string()
+
     def __str__(self) -> str:
         """
         Provides a human-readable representation of the Axon instance.
@@ -729,9 +735,28 @@ class AxonMiddleware(BaseHTTPMiddleware):
             # Call the postprocess function
             response = await self.postprocess(synapse, response, start_time)
 
+        # Catch the error case where axon is not configured to handle the request.
+        except KeyError:
+            # Log key error.
+            bittensor.logging.error(
+                f"Key Error: Synapse name {request_name} not found."
+            )
+
+            # Create a synapse instance with status code 404 (not found) and status message.
+            synapse: bittensor.Synapse = bittensor.Synapse()
+            synapse.axon.status_code = "404"
+            synapse.axon.status_message = f"Synapse name {request_name} not found."
+
+            # Create a JSON response with a status code of 404 (not found error),
+            # synapse headers, and an empty content.
+            response = JSONResponse(
+                status_code=404, headers=synapse.to_headers(), content={}
+            )
+
         # Start of catching all exceptions, updating the status message, and processing time.
         except Exception as e:
             # Log the exception for debugging purposes.
+            bittensor.logging.error(f"Exception: {str(e)}")
             bittensor.logging.trace(f"Forward exception: {traceback.format_exc()}")
 
             # Set the status message of the synapse to the string representation of the exception.
