@@ -46,6 +46,11 @@ class UnstakeError(ChainTransactionError):
     pass
 
 
+class IdentityError(ChainTransactionError):
+    r"""Error raised when an identity transaction fails."""
+    pass
+
+
 class NominationError(ChainTransactionError):
     r"""Error raised when a nomination transaction fails."""
     pass

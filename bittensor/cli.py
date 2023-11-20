@@ -67,6 +67,7 @@ COMMANDS = {
             "weights": RootSetWeightsCommand,
             "get_weights": RootGetWeightsCommand,
             "senate_vote": VoteCommand,
+            "senate": SenateCommand,
             "register": RootRegisterCommand,
             "proposals": ProposalsCommand,
             "delegate": DelegateStakeCommand,
@@ -94,6 +95,8 @@ COMMANDS = {
             "regen_hotkey": RegenHotkeyCommand,
             "faucet": RunFaucetCommand,
             "update": UpdateWalletCommand,
+            "set_identity": SetIdentityCommand,
+            "get_identity": GetIdentityCommand,
         },
     },
     "stake": {
