@@ -93,7 +93,7 @@ class SetIdentityCommand:
         if (
             str(
                 Prompt.ask(
-                    "Cost to register an Identity is [bold white italic]1 Tao[/bold white italic], are you sure you wish to continue?",
+                    "Cost to register an Identity is [bold white italic]0.1 Tao[/bold white italic], are you sure you wish to continue?",
                     default="n",
                     choices=["y", "n"],
                 )
