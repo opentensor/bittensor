@@ -36,7 +36,7 @@ def register_extrinsic(
     output_in_place: bool = True,
     cuda: bool = False,
     dev_id: Union[List[int], int] = 0,
-    TPB: int = 256,
+    tpb: int = 256,
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
