@@ -160,7 +160,7 @@ class subtensor:
         """
         if network == None:
             return None, None
-        if network in ["finney", "local", "test"]:
+        if network in ["finney", "local", "test", "archive"]:
             if network == "finney":
                 # Kiru Finney stagin network.
                 return network, bittensor.__finney_entrypoint__
@@ -168,6 +168,8 @@ class subtensor:
                 return network, bittensor.__local_entrypoint__
             elif network == "test":
                 return network, bittensor.__finney_test_entrypoint__
+            elif network == "archive":
+                return network, bittensor.__archive_entrypoint__
         else:
             if (
                 network == bittensor.__finney_entrypoint__
@@ -179,6 +181,11 @@ class subtensor:
                 or "test.finney.opentensor.ai" in network
             ):
                 return "test", bittensor.__finney_test_entrypoint__
+            elif (
+                network == bittensor.__archive_entrypoint__
+                or "archive.chain.opentensor.ai" in network
+            ):
+                return "archive", bittensor.__archive_entrypoint__
             elif "127.0.0.1" in network or "localhost" in network:
                 return "local", network
             else:
@@ -1319,6 +1326,78 @@ class subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
+
+    ########################
+    #### Registry Calls ####
+    ########################
+
+    """ Queries subtensor registry named storage with params and block. """
+
+    def query_identity(
+        self,
+        key: str,
+        block: Optional[int] = None,
+    ) -> Optional[object]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                return substrate.query(
+                    module="Registry",
+                    storage_function="IdentityOf",
+                    params=[key],
+                    block_hash=None
+                    if block == None
+                    else substrate.get_block_hash(block),
+                )
+
+        identity_info = make_substrate_call_with_retry()
+        return bittensor.utils.wallet_utils.decode_hex_identity_dict(
+            identity_info.value["info"]
+        )
+
+    def update_identity(
+        self,
+        wallet: "bittensor.wallet",
+        identified: str = None,
+        params: dict = {},
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Creates an identity extrinsics with the specific structure.
+        """
+        if identified == None:
+            identified = wallet.coldkey.ss58_address
+
+        call_params = bittensor.utils.wallet_utils.create_identity_dict(**params)
+        call_params["identified"] = identified
+
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module="Registry",
+                    call_function="set_identity",
+                    call_params=call_params,
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+                response.process_events()
+                if response.is_success:
+                    return True
+                else:
+                    raise IdentityError(response.error_message)
+
+        return make_substrate_call_with_retry()
 
     ########################
     #### Standard Calls ####

@@ -27,7 +27,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = "6.2.0"
+__version__ = "6.3.0"
 version_split = __version__.split(".")
 __version_as_int__ = (
     (100 * int(version_split[0]))
@@ -87,11 +87,13 @@ __ss58_format__ = 42
 # Wallet ss58 address length
 __ss58_address_length__ = 48
 
-__networks__ = ["local", "finney", "test"]
+__networks__ = ["local", "finney", "test", "archive"]
 
 __finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 
 __finney_test_entrypoint__ = "wss://test.finney.opentensor.ai:443/"
+
+__archive_entrypoint__ = "wss://archive.chain.opentensor.ai:443/"
 
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
@@ -208,7 +210,7 @@ from .utils.balance import Balance as Balance
 from .chain_data import *
 from .subtensor import subtensor as subtensor
 from .cli import cli as cli, COMMANDS as ALL_COMMANDS
-from .logging import logging as logging
+from .btlogging import logging as logging
 from .metagraph import metagraph as metagraph
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
