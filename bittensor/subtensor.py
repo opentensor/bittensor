@@ -151,18 +151,18 @@ class subtensor:
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         prefix_str = "" if prefix == None else prefix + "."
         try:
-            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "local"
+            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "finney"
             default_chain_endpoint = (
                 os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
-                or bittensor.__local_entrypoint__
+                or bittensor.__finney_entrypoint__
             )
             parser.add_argument(
                 "--" + prefix_str + "subtensor.network",
                 default=default_network,
                 type=str,
                 help="""The subtensor network flag. The likely choices are:
-                                        -- local (local running network)
                                         -- finney (main network)
+                                        -- local (local running network)
                                     If this option is set it overloads subtensor.chain_endpoint with
                                     an entry point node from that network.
                                     """,
