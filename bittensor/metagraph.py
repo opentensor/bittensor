@@ -146,9 +146,6 @@ class metagraph(torch.nn.Module):
         Returns:
             torch.FloatTensor: A tensor representing the stake of each neuron in the network. Higher values
                             signify a greater stake held by the respective neuron.
-
-        Reference:
-            Bittensor NeurIPS Paper, Section 2: AI Layer.
         """
         return self.total_stake
 
@@ -163,9 +160,6 @@ class metagraph(torch.nn.Module):
         Returns:
             torch.FloatTensor: A tensor where each element represents the rank of a neuron. Higher values
                             indicate higher ranks within the network.
-
-        Reference:
-            Bittensor NeurIPS Paper, Section 2: AI Layer.
         """
         return self.ranks
 
@@ -180,9 +174,6 @@ class metagraph(torch.nn.Module):
         Returns:
             torch.FloatTensor: A tensor of incentive values, indicating the rewards or benefits accrued by each
                             neuron based on their contributions and network consensus.
-
-        Reference:
-            Bittensor NeurIPS Paper, Section 3: Blockchain Layer.
         """
         return self.incentive
 
@@ -197,9 +188,6 @@ class metagraph(torch.nn.Module):
         Returns:
             torch.FloatTensor: A tensor where each element represents the emission value for a neuron, indicating
                             the amount of reward distributed to that neuron.
-
-        Reference:
-            Bittensor NeurIPS Paper, Section 3: Blockchain Layer.
         """
         return self.emission
 
@@ -216,8 +204,6 @@ class metagraph(torch.nn.Module):
             torch.FloatTensor: A tensor of consensus values, where each element reflects the level of trust and
                             agreement a neuron has achieved within the network.
 
-        Reference:
-            Bittensor NeurIPS Paper, Section 3: Blockchain Layer.
         """
         return self.consensus
 
@@ -235,9 +221,6 @@ class metagraph(torch.nn.Module):
         Returns:
             torch.FloatTensor: A tensor of trust values, where each element represents the trust level of a neuron.
                             Higher values denote a higher level of trust within the network.
-
-        Reference:
-            Bittensor NeurIPS Paper, Section 3: Blockchain Layer.
         """
         return self.trust
 
@@ -255,9 +238,6 @@ class metagraph(torch.nn.Module):
         Returns:
             torch.FloatTensor: A tensor of validator trust values, specifically applicable to neurons serving as
                             validators, where higher values denote greater trustworthiness in their validation roles.
-
-        Reference:
-            Bittensor NeurIPS Paper, Section 3: Blockchain Layer
         """
         return self.validator_trust
 
@@ -271,9 +251,6 @@ class metagraph(torch.nn.Module):
         Returns:
             torch.FloatTensor: A tensor of dividend values, where each element indicates the dividends received by
                             a neuron, reflecting their share of network rewards.
-
-        Reference:
-            Bittensor NeurIPS Paper, Section 3: Blockchain Layer.
         """
         return self.dividends
 
@@ -288,9 +265,6 @@ class metagraph(torch.nn.Module):
         Returns:
             torch.FloatTensor: A tensor representing the bonds held by each neuron, where each value signifies
                             the proportion of bonds owned by one neuron in another.
-
-        Reference:
-            Bittensor NeurIPS Paper, Section 3: Blockchain Layer.
         """
         return self.bonds
 
@@ -311,9 +285,6 @@ class metagraph(torch.nn.Module):
             torch.FloatTensor: A tensor of inter-peer weights, where each element wij represents the weight assigned
                             by neuron i to neuron j. This matrix is fundamental to the network's functioning,
                             influencing the distribution of incentives and the inter-neuronal dynamics.
-
-        Reference:
-            Bittensor NeurIPS Paper, Section 2: AI Layer.
         """
         return self.weights
 
