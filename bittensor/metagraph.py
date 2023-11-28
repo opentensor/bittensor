@@ -95,7 +95,7 @@ class metagraph(torch.nn.Module):
                                     with the network's latest state.
         stake, total_stake, ranks, trust, consensus, validator_trust, incentive, emission, dividends,
         active, last_update, validator_permit, weights, bonds, uids (torch.nn.Parameter):
-            - Stake: Represents the cryptocurrency staked by neurons, impacting their influence and
+            - Stake: Represents the amount of Tao staked by neurons, impacting their influence and
                      earnings within the network.
             - Total Stake: The cumulative stake across all neurons.
             - Ranks: Neuron rankings as per the Yuma Consensus algorithm, influencing their incentive
@@ -181,7 +181,7 @@ class metagraph(torch.nn.Module):
     def E(self) -> torch.FloatTensor:
         """
         Denotes the emission values of neurons in the Bittensor network. Emissions refer to the distribution or
-        release of rewards (often in the form of cryptocurrency) to neurons, typically based on their stake and
+        release of rewards (often in the form of the Tao token) to neurons, typically based on their stake and
         performance. This mechanism is central to the network's incentive model, ensuring that active and
         contributing neurons are appropriately rewarded.
 

@@ -2342,6 +2342,8 @@ class subtensor:
         'Rho' represents the global inflation rate, which directly influences the network's
         token emission rate and economic model.
 
+        Note: This is currently fixed such that the Bittensor blockchain emmits 7200 Tao per day.
+
         Args:
             netuid (int): The unique identifier of the subnet.
             block (Optional[int], optional): The blockchain block number at which to query the parameter.
@@ -2351,7 +2353,7 @@ class subtensor:
 
         Mathematical Context:
             Rho (p) is calculated based on the network's target inflation and actual neuron staking.
-            It adjusts the emission rate of the TAO cryptocurrency to balance the network's economy.
+            It adjusts the emission rate of the TAO token to balance the network's economy and dynamics.
             The formula for Rho is defined as: p = (Staking_Target / Staking_Actual) * Inflation_Target.
             Here, Staking_Target and Staking_Actual represent the desired and actual total stakes in the network,
             while Inflation_Target is the predefined inflation rate goal&#8203;``【oaicite:0】``&#8203;.
@@ -2415,7 +2417,7 @@ class subtensor:
     def burn(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the
-        amount of cryptocurrency that is effectively removed from circulation within the Bittensor network.
+        amount of Tao that is effectively removed from circulation within the Bittensor network.
 
         Args:
             netuid (int): The unique identifier of the subnet.
@@ -2425,7 +2427,7 @@ class subtensor:
             Optional[Balance]: The value of the 'Burn' hyperparameter if the subnet exists, None otherwise.
 
         Understanding the 'Burn' rate is essential for analyzing the network's economic model, particularly
-        how it manages inflation and the overall supply of its native cryptocurrency.
+        how it manages inflation and the overall supply of its native token Tao.
         """
         if not self.subnet_exists(netuid, block):
             return None
@@ -2684,7 +2686,7 @@ class subtensor:
 
     def total_issuance(self, block: Optional[int] = None) -> "Balance":
         """
-        Retrieves the total issuance of the Bittensor network's native cryptocurrency (TAO) as of a specific
+        Retrieves the total issuance of the Bittensor network's native token (Tao) as of a specific
         blockchain block. This represents the total amount of currency that has been issued or mined on the network.
 
         Args:
@@ -2829,7 +2831,7 @@ class subtensor:
     ) -> Optional[float]:
         """
         Retrieves the emission value of a specific subnet within the Bittensor network. The emission value
-        represents the rate at which the subnet emits or distributes the network's native cryptocurrency.
+        represents the rate at which the subnet emits or distributes the network's native token (Tao).
 
         Args:
             netuid (int): The unique identifier of the subnet.
@@ -3803,7 +3805,7 @@ class subtensor:
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> int:
         """
         Retrieves the burn cost for registering a new subnet within the Bittensor network. This cost
-        represents the amount of cryptocurrency that needs to be locked or burned to establish a new subnet.
+        represents the amount of Tao that needs to be locked or burned to establish a new subnet.
 
         Args:
             block (Optional[int]): The blockchain block number for the query.
@@ -3977,7 +3979,7 @@ class subtensor:
     def get_balance(self, address: str, block: int = None) -> Balance:
         """
         Retrieves the token balance of a specific address within the Bittensor network. This function queries
-        the blockchain to determine the amount of cryptocurrency held by a given account.
+        the blockchain to determine the amount of Tao held by a given account.
 
         Args:
             address (str): The Substrate address in ss58 format.
@@ -4033,7 +4035,7 @@ class subtensor:
     def get_balances(self, block: int = None) -> Dict[str, Balance]:
         """
         Retrieves the token balances of all accounts within the Bittensor network as of a specific blockchain block.
-        This function provides a comprehensive view of the cryptocurrency distribution among different accounts.
+        This function provides a comprehensive view of the token distribution among different accounts.
 
         Args:
             block (int, optional): The blockchain block number at which to perform the query.
