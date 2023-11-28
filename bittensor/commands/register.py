@@ -20,6 +20,7 @@ import argparse
 import bittensor
 from rich.prompt import Prompt, Confirm
 from .utils import check_netuid_set, check_for_cuda_reg_config
+from copy import deepcopy
 
 from . import defaults
 
@@ -465,3 +466,66 @@ class RunFaucetCommand:
             config.wallet.name = str(wallet_name)
         if not config.no_prompt:
             check_for_cuda_reg_config(config)
+
+
+class SwapHotkeyCommand:
+    @staticmethod
+    def run(cli):
+        r"""Swap your hotkey for all registered axons on the network."""
+        wallet = bittensor.wallet(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config)
+
+        # This creates an unnecessary amount of extra data, but simplifies implementation.
+        new_config = deepcopy(cli.config)
+        new_config.wallet.hotkey = new_config.wallet.hotkey_b
+        new_wallet = bittensor.wallet(config=new_config)
+
+        subtensor.swap_hotkey(
+            wallet=wallet,
+            new_wallet=new_wallet,
+            wait_for_finalization=False,
+            wait_for_inclusion=True,
+            prompt=False,
+        )
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        swap_hotkey_parser = parser.add_parser(
+            "swap_hotkey", help="""Swap your associated hotkey."""
+        )
+
+        swap_hotkey_parser.add_argument(
+            "--wallet.hotkey_b",
+            type=str,
+            default=defaults.wallet.hotkey,
+            help="""Name of the new hotkey""",
+            required=False,
+        )
+
+        bittensor.wallet.add_args(swap_hotkey_parser)
+        bittensor.subtensor.add_args(swap_hotkey_parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if (
+            not config.is_set("subtensor.network")
+            and not config.is_set("subtensor.chain_endpoint")
+            and not config.no_prompt
+        ):
+            config.subtensor.network = Prompt.ask(
+                "Enter subtensor network",
+                choices=bittensor.__networks__,
+                default=defaults.subtensor.network,
+            )
+
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter old hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+        if not config.is_set("wallet.hotkey_b") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter new hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey_b = str(hotkey)
