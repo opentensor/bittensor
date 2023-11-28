@@ -220,23 +220,28 @@ class RootSetBoostCommand:
         if not cli.config.is_set("amount"):
             cli.config.amount = float(Prompt.ask(f"Enter amount (e.g. 0.01)"))
 
-
-        bittensor.__console__.print("Boosting weight for subnet: {} by amount: {}".format(cli.config.netuid, cli.config.amount))
-        root = subtensor.metagraph( 0, lite=False )
+        bittensor.__console__.print(
+            "Boosting weight for subnet: {} by amount: {}".format(
+                cli.config.netuid, cli.config.amount
+            )
+        )
+        root = subtensor.metagraph(0, lite=False)
         try:
-            my_uid = root.hotkeys.index( wallet.hotkey.ss58_address )
+            my_uid = root.hotkeys.index(wallet.hotkey.ss58_address)
         except ValueError:
-            bittensor.__console__.print("Wallet hotkey: {} not found in root metagraph".format( wallet.hotkey ))
+            bittensor.__console__.print(
+                "Wallet hotkey: {} not found in root metagraph".format(wallet.hotkey)
+            )
             exit()
         my_weights = root.weights[my_uid]
         my_weights[cli.config.netuid] += cli.config.amount
         my_weights /= my_weights.sum()
-        all_netuids = torch.tensor( list( range( len(my_weights) ) ) )
+        all_netuids = torch.tensor(list(range(len(my_weights))))
 
         subtensor.root_set_weights(
             wallet=wallet,
-            netuids = all_netuids,
-            weights = my_weights,
+            netuids=all_netuids,
+            weights=my_weights,
             version_key=0,
             prompt=not cli.config.no_prompt,
             wait_for_finalization=True,
@@ -245,7 +250,9 @@ class RootSetBoostCommand:
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        parser = parser.add_parser("boost", help="""Boost weight for a specific subnet by increase amount.""")
+        parser = parser.add_parser(
+            "boost", help="""Boost weight for a specific subnet by increase amount."""
+        )
         parser.add_argument("--netuid", dest="netuid", type=int, required=False)
         parser.add_argument("--amount", dest="amount", type=float, required=False)
 
