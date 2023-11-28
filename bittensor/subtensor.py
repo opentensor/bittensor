@@ -112,18 +112,18 @@ class subtensor:
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         prefix_str = "" if prefix == None else prefix + "."
         try:
-            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "finney"
+            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "local"
             default_chain_endpoint = (
                 os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
-                or bittensor.__finney_entrypoint__
+                or bittensor.__local_entrypoint__
             )
             parser.add_argument(
                 "--" + prefix_str + "subtensor.network",
                 default=default_network,
                 type=str,
                 help="""The subtensor network flag. The likely choices are:
-                                        -- finney (main network)
                                         -- local (local running network)
+                                        -- finney (main network)
                                     If this option is set it overloads subtensor.chain_endpoint with
                                     an entry point node from that network.
                                     """,
@@ -258,7 +258,7 @@ class subtensor:
         Args:
             config (:obj:`bittensor.config`, `optional`):
                 bittensor.subtensor.config()
-            network (default='local or ws://127.0.0.1:9946', type=str)
+            network (default='local or ws://127.0.0.1:9944', type=str)
                 The subtensor network flag. The likely choices are:
                         -- local (local running network)
                         -- finney (main network)
@@ -461,7 +461,7 @@ class subtensor:
         output_in_place: bool = True,
         cuda: bool = False,
         dev_id: Union[List[int], int] = 0,
-        TPB: int = 256,
+        tpb: int = 256,
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
@@ -478,7 +478,7 @@ class subtensor:
             output_in_place=output_in_place,
             cuda=cuda,
             dev_id=dev_id,
-            TPB=TPB,
+            tpb=tpb,
             num_processes=num_processes,
             update_interval=update_interval,
             log_verbose=log_verbose,
@@ -512,7 +512,7 @@ class subtensor:
         output_in_place: bool = True,
         cuda: bool = False,
         dev_id: Union[List[int], int] = 0,
-        TPB: int = 256,
+        tpb: int = 256,
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
@@ -528,7 +528,7 @@ class subtensor:
             output_in_place=output_in_place,
             cuda=cuda,
             dev_id=dev_id,
-            TPB=TPB,
+            tpb=tpb,
             num_processes=num_processes,
             update_interval=update_interval,
             log_verbose=log_verbose,

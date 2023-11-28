@@ -209,7 +209,7 @@ class _Solver(_SolverBase):
 
 class _CUDASolver(_SolverBase):
     dev_id: int
-    TPB: int
+    tpb: int
 
     def __init__(
         self,
@@ -225,7 +225,7 @@ class _CUDASolver(_SolverBase):
         check_block,
         limit,
         dev_id: int,
-        TPB: int,
+        tpb: int,
     ):
         super().__init__(
             proc_num,
@@ -241,7 +241,7 @@ class _CUDASolver(_SolverBase):
             limit,
         )
         self.dev_id = dev_id
-        self.TPB = TPB
+        self.tpb = tpb
 
     def run(self):
         block_number: int = 0  # dummy value
@@ -269,7 +269,7 @@ class _CUDASolver(_SolverBase):
                 self.limit,
                 block_number,
                 self.dev_id,
-                self.TPB,
+                self.tpb,
             )
             if solution is not None:
                 self.solution_queue.put(solution)
@@ -282,7 +282,7 @@ class _CUDASolver(_SolverBase):
                 pass
 
             # increase nonce by number of nonces processed
-            nonce_start += self.update_interval * self.TPB
+            nonce_start += self.update_interval * self.tpb
             nonce_start = nonce_start % nonce_limit
 
 
@@ -294,13 +294,13 @@ def _solve_for_nonce_block_cuda(
     limit: int,
     block_number: int,
     dev_id: int,
-    TPB: int,
+    tpb: int,
 ) -> Optional[POWSolution]:
-    """Tries to solve the POW on a CUDA device for a block of nonces (nonce_start, nonce_start + update_interval * TPB"""
+    """Tries to solve the POW on a CUDA device for a block of nonces (nonce_start, nonce_start + update_interval * tpb"""
     solution, seal = solve_cuda(
         nonce_start,
         update_interval,
-        TPB,
+        tpb,
         block_and_hotkey_hash_bytes,
         difficulty,
         limit,
@@ -794,7 +794,7 @@ def _solve_for_difficulty_fast_cuda(
     netuid: int,
     output_in_place: bool = True,
     update_interval: int = 50_000,
-    TPB: int = 512,
+    tpb: int = 512,
     dev_id: Union[List[int], int] = 0,
     n_samples: int = 10,
     alpha_: float = 0.80,
@@ -813,7 +813,7 @@ def _solve_for_difficulty_fast_cuda(
             If true, prints the output in place, otherwise prints to new lines
         update_interval: int
             The number of nonces to try before checking for more blocks
-        TPB: int
+        tpb: int
             The number of threads per block. CUDA param that should match the GPU capability
         dev_id: Union[List[int], int]
             The CUDA device IDs to execute the registration on, either a single device or a list of devices
@@ -868,7 +868,7 @@ def _solve_for_difficulty_fast_cuda(
                 check_block,
                 limit,
                 dev_id[i],
-                TPB,
+                tpb,
             )
             for i in range(num_processes)
         ]
@@ -967,7 +967,7 @@ def _solve_for_difficulty_fast_cuda(
             if num_time > 0 and time_since_last > 0.0:
                 # create EWMA of the hash_rate to make measure more robust
 
-                hash_rate_ = (num_time * TPB * update_interval) / time_since_last
+                hash_rate_ = (num_time * tpb * update_interval) / time_since_last
                 hash_rates.append(hash_rate_)
                 hash_rates.pop(0)  # remove the 0th data point
                 curr_stats.hash_rate = sum(
@@ -987,7 +987,7 @@ def _solve_for_difficulty_fast_cuda(
             curr_stats.time_spent = time_since_last
             new_time_spent_total = time_now - start_time_perpetual
             curr_stats.hash_rate_perpetual = (
-                curr_stats.rounds_total * (TPB * update_interval)
+                curr_stats.rounds_total * (tpb * update_interval)
             ) / new_time_spent_total
             curr_stats.time_spent_total = new_time_spent_total
 
@@ -1071,7 +1071,7 @@ def create_pow(
             netuid=netuid,
             output_in_place=output_in_place,
             dev_id=dev_id,
-            TPB=tpb,
+            tpb=tpb,
             update_interval=update_interval,
             log_verbose=log_verbose,
         )

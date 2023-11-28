@@ -50,6 +50,14 @@ or using python
 import bittensor
 ```
 
+#### CUDA
+If you anticipate using PoW registration for subnets or the faucet (only available on staging), please install `cubit` as well for your version of python. You can find the Opentensor cubit implementation and instructions [here](https://github.com/opentensor/cubit).
+
+For example with python 3.10:
+```bash
+pip install https://github.com/opentensor/cubit/releases/download/v1.1.2/cubit-1.1.2-cp310-cp310-linux_x86_64.whl
+```
+
 # Wallets 
 
 Wallets are the core ownership and identity technology around which all functions on Bittensor are carried out. Bittensor wallets consists of a coldkey and hotkey where the coldkey may contain many hotkeys, while each hotkey can only belong to a single coldkey. Coldkeys store funds securely, and operate functions such as transfers and staking, while hotkeys are used for all online operations such as signing queries, running miners and validating. 

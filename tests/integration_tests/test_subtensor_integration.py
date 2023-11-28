@@ -18,6 +18,7 @@
 
 
 import random
+import socket
 import unittest
 from queue import Empty as QueueEmpty
 from unittest.mock import MagicMock, patch
@@ -586,10 +587,25 @@ class TestSubtensor(unittest.TestCase):
                 msg="only tries to submit once, then exits",
             )
 
-    def test_defaults_to_finney(self):
-        sub = bittensor.subtensor()
-        assert sub.network == "finney"
-        assert sub.chain_endpoint == bittensor.__finney_entrypoint__
+    @staticmethod
+    def is_port_open(host, port):
+        """Check if a port is open on a given host."""
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            return s.connect_ex((host, port)) == 0
+
+    def test_defaults_to_local(self):
+        port = int(
+            bittensor.__local_entrypoint__.split(":")[-1]
+        )  # Default port for local subtensor
+        if self.is_port_open("127.0.0.1", port):
+            # If service is running, check default values
+            sub = bittensor.subtensor()
+            self.assertEqual(sub.network, "local")
+            self.assertEqual(sub.chain_endpoint, bittensor.__local_entrypoint__)
+        else:
+            # If service is not running, expect a ConnectionRefusedError
+            with self.assertRaises(ConnectionRefusedError):
+                bittensor.subtensor()
 
 
 if __name__ == "__main__":
