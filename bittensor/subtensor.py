@@ -257,7 +257,7 @@ class subtensor:
         Args:
             config (:obj:`bittensor.config`, `optional`):
                 bittensor.subtensor.config()
-            network (default='local or ws://127.0.0.1:9946', type=str)
+            network (default='local or ws://127.0.0.1:9944', type=str)
                 The subtensor network flag. The likely choices are:
                         -- local (local running network)
                         -- finney (main network)
