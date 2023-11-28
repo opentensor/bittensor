@@ -190,6 +190,78 @@ class RootList:
         pass
 
 
+class RootSetBoostCommand:
+    """
+    Executes the 'boost' command to boost the weights for a specific subnet within the root network on the Bittensor network.
+
+    Usage:
+    The command allows boosting the weights for different subnets within the root network.
+
+    Optional arguments:
+    - --netuid (int): A single netuid for which weights are to be boosted.
+    - --increase (float): The cooresponding increase in the weight for this subnet.
+
+    Example usage:
+    >>> btcli root boost --netuid 1 --increase 0.01
+
+    """
+
+    @staticmethod
+    def run(cli):
+        r"""Set weights for root network."""
+        wallet = bittensor.wallet(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config)
+        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
+
+        # Get values if not set.
+        if not cli.config.is_set("netuid"):
+            cli.config.netuids = int(Prompt.ask(f"Enter netuid (e.g. 1)"))
+
+        if not cli.config.is_set("amount"):
+            cli.config.amount = float(Prompt.ask(f"Enter amount (e.g. 0.01)"))
+
+
+        bittensor.__console__.print("Boosting weight for subnet: {} by amount: {}".format(cli.config.netuid, cli.config.amount))
+        root = subtensor.metagraph( 0, lite=False )
+        try:
+            my_uid = root.hotkeys.index( wallet.hotkey.ss58_address )
+        except ValueError:
+            bittensor.__console__.print("Wallet hotkey: {} not found in root metagraph".format( wallet.hotkey ))
+            exit()
+        my_weights = root.weights[my_uid]
+        my_weights[cli.config.netuid] += cli.config.amount
+        my_weights /= my_weights.sum()
+        all_netuids = torch.tensor( list( range( len(my_weights) ) ) )
+
+        subtensor.root_set_weights(
+            wallet=wallet,
+            netuids = all_netuids,
+            weights = my_weights,
+            version_key=0,
+            prompt=not cli.config.no_prompt,
+            wait_for_finalization=True,
+            wait_for_inclusion=True,
+        )
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser = parser.add_parser("boost", help="""Boost weight for a specific subnet by increase amount.""")
+        parser.add_argument("--netuid", dest="netuid", type=int, required=False)
+        parser.add_argument("--amount", dest="amount", type=float, required=False)
+
+        bittensor.wallet.add_args(parser)
+        bittensor.subtensor.add_args(parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+
 class RootSetWeightsCommand:
     """
     Executes the 'weights' command to set the weights for the root network on the Bittensor network.

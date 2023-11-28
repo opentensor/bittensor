@@ -109,5 +109,6 @@ from .root import (
     RootList,
     RootSetWeightsCommand,
     RootGetWeightsCommand,
+    RootSetBoostCommand,
 )
 from .identity import GetIdentityCommand, SetIdentityCommand
