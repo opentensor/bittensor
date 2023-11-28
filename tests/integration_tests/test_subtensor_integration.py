@@ -588,7 +588,7 @@ class TestSubtensor(unittest.TestCase):
 
     @patch("substrateinterface.base.SubstrateInterface")
     def test_defaults_to_local(self, mock_substrate):
-        mock_substrate.return_value = None
+        mock_substrate.return_value = MagicMock()
         sub = bittensor.subtensor()
         self.assertEqual(sub.network, "local")
         self.assertEqual(sub.chain_endpoint, bittensor.__local_entrypoint__)
