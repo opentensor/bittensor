@@ -291,9 +291,9 @@ class RootSetBoostCommand:
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
-        if not config.is_set("netuid"):
+        if not config.is_set("netuid") and not config.no_prompt:
             config.netuid = int(Prompt.ask(f"Enter netuid (e.g. 1)"))
-        if not config.is_set("amount"):
+        if not config.is_set("amount") and not config.no_prompt:
             config.amount = float(Prompt.ask(f"Enter amount (e.g. 0.01)"))
 
 
@@ -397,9 +397,9 @@ class RootSetSlashCommand:
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
-        if not config.is_set("netuid"):
+        if not config.is_set("netuid") and not config.no_prompt:
             config.netuid = int(Prompt.ask(f"Enter netuid (e.g. 1)"))
-        if not config.is_set("amount"):
+        if not config.is_set("amount") and not config.no_prompt:
             config.amount = float(Prompt.ask(f"Enter decrease amount (e.g. 0.01)"))
 
 
