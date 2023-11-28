@@ -115,5 +115,7 @@ from .root import (
     RootList,
     RootSetWeightsCommand,
     RootGetWeightsCommand,
+    RootSetBoostCommand,
+    RootSetSlashCommand,
 )
 from .identity import GetIdentityCommand, SetIdentityCommand
