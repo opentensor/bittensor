@@ -586,10 +586,12 @@ class TestSubtensor(unittest.TestCase):
                 msg="only tries to submit once, then exits",
             )
 
-    def test_defaults_to_local(self):
+    @patch("substrateinterface.base.SubstrateInterface")
+    def test_defaults_to_local(self, mock_substrate):
+        mock_substrate.return_value = None
         sub = bittensor.subtensor()
-        assert sub.network == "local"
-        assert sub.chain_endpoint == bittensor.__local_entrypoint__
+        self.assertEqual(sub.network, "local")
+        self.assertEqual(sub.chain_endpoint, bittensor.__local_entrypoint__)
 
 
 if __name__ == "__main__":
