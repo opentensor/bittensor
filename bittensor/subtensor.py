@@ -57,6 +57,7 @@ from .extrinsics.registration import (
     register_extrinsic,
     burned_register_extrinsic,
     run_faucet_extrinsic,
+    swap_hotkey_extrinsic,
 )
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
@@ -111,18 +112,18 @@ class subtensor:
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         prefix_str = "" if prefix == None else prefix + "."
         try:
-            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "finney"
+            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "local"
             default_chain_endpoint = (
                 os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
-                or bittensor.__finney_entrypoint__
+                or bittensor.__local_entrypoint__
             )
             parser.add_argument(
                 "--" + prefix_str + "subtensor.network",
                 default=default_network,
                 type=str,
                 help="""The subtensor network flag. The likely choices are:
-                                        -- finney (main network)
                                         -- local (local running network)
+                                        -- finney (main network)
                                     If this option is set it overloads subtensor.chain_endpoint with
                                     an entry point node from that network.
                                     """,
@@ -257,7 +258,7 @@ class subtensor:
         Args:
             config (:obj:`bittensor.config`, `optional`):
                 bittensor.subtensor.config()
-            network (default='local or ws://127.0.0.1:9946', type=str)
+            network (default='local or ws://127.0.0.1:9944', type=str)
                 The subtensor network flag. The likely choices are:
                         -- local (local running network)
                         -- finney (main network)
@@ -460,7 +461,7 @@ class subtensor:
         output_in_place: bool = True,
         cuda: bool = False,
         dev_id: Union[List[int], int] = 0,
-        TPB: int = 256,
+        tpb: int = 256,
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
@@ -477,10 +478,28 @@ class subtensor:
             output_in_place=output_in_place,
             cuda=cuda,
             dev_id=dev_id,
-            TPB=TPB,
+            tpb=tpb,
             num_processes=num_processes,
             update_interval=update_interval,
             log_verbose=log_verbose,
+        )
+
+    def swap_hotkey(
+        self,
+        wallet: "bittensor.wallet",
+        new_wallet: "bittensor.wallet",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False,
+    ) -> bool:
+        """Swaps an old hotkey to a new hotkey."""
+        return swap_hotkey_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            new_wallet=new_wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
         )
 
     def run_faucet(
@@ -493,7 +512,7 @@ class subtensor:
         output_in_place: bool = True,
         cuda: bool = False,
         dev_id: Union[List[int], int] = 0,
-        TPB: int = 256,
+        tpb: int = 256,
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
@@ -509,7 +528,7 @@ class subtensor:
             output_in_place=output_in_place,
             cuda=cuda,
             dev_id=dev_id,
-            TPB=TPB,
+            tpb=tpb,
             num_processes=num_processes,
             update_interval=update_interval,
             log_verbose=log_verbose,
@@ -609,6 +628,48 @@ class subtensor:
                     call_params={
                         "netuid": netuid,
                         "hotkey": wallet.hotkey.ss58_address,
+                    },
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+
+                # process if registration successful, try again if pow is still valid
+                response.process_events()
+                if not response.is_success:
+                    return False, response.error_message
+                # Successful registration
+                else:
+                    return True, None
+
+        return make_substrate_call_with_retry()
+
+    def _do_swap_hotkey(
+        self,
+        wallet: "bittensor.wallet",
+        new_wallet: "bittensor.wallet",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                # create extrinsic call
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="swap_hotkey",
+                    call_params={
+                        "hotkey": wallet.hotkey.ss58_address,
+                        "new_hotkey": new_wallet.hotkey.ss58_address,
                     },
                 )
                 extrinsic = substrate.create_signed_extrinsic(
