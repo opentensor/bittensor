@@ -36,7 +36,7 @@ def register_extrinsic(
     output_in_place: bool = True,
     cuda: bool = False,
     dev_id: Union[List[int], int] = 0,
-    TPB: int = 256,
+    tpb: int = 256,
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
@@ -61,7 +61,7 @@ def register_extrinsic(
             If true, the wallet should be registered using CUDA device(s).
         dev_id (Union[List[int], int]):
             The CUDA device id to use, or a list of device ids.
-        TPB (int):
+        tpb (int):
             The number of threads per block (CUDA).
         num_processes (int):
             The number of processes to use to register.
@@ -123,7 +123,7 @@ def register_extrinsic(
                 output_in_place,
                 cuda=cuda,
                 dev_id=dev_id,
-                TPB=TPB,
+                tpb=tpb,
                 num_processes=num_processes,
                 update_interval=update_interval,
                 log_verbose=log_verbose,
@@ -339,7 +339,7 @@ def run_faucet_extrinsic(
     output_in_place: bool = True,
     cuda: bool = False,
     dev_id: Union[List[int], int] = 0,
-    TPB: int = 256,
+    tpb: int = 256,
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
@@ -362,7 +362,7 @@ def run_faucet_extrinsic(
             If true, the wallet should be registered using CUDA device(s).
         dev_id (Union[List[int], int]):
             The CUDA device id to use, or a list of device ids.
-        TPB (int):
+        tpb (int):
             The number of threads per block (CUDA).
         num_processes (int):
             The number of processes to use to register.
@@ -410,7 +410,7 @@ def run_faucet_extrinsic(
                         output_in_place,
                         cuda=cuda,
                         dev_id=dev_id,
-                        TPB=TPB,
+                        tpb=tpb,
                         num_processes=num_processes,
                         update_interval=update_interval,
                         log_verbose=log_verbose,
