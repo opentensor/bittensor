@@ -26,7 +26,7 @@ defaults: Munch = munchify(
             "update_interval": 50000,
             "output_in_place": True,
             "verbose": False,
-            "cuda": {"dev_id": [0], "use_cuda": False, "TPB": 256},
+            "cuda": {"dev_id": [0], "use_cuda": False, "tpb": 256},
         },
         "axon": {
             "port": 8091,

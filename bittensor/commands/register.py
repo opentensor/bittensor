@@ -157,7 +157,7 @@ class PowRegisterCommand:
     - --pow_register.cuda.use_cuda (bool): Enables the use of CUDA for GPU-accelerated PoW calculations. Requires a CUDA-compatible GPU.
     - --pow_register.cuda.no_cuda (bool): Disables the use of CUDA, defaulting to CPU-based calculations.
     - --pow_register.cuda.dev_id (int): Specifies the CUDA device ID, useful for systems with multiple CUDA-compatible GPUs.
-    - --pow_register.cuda.TPB (int): Sets the number of Threads Per Block for CUDA operations, affecting the GPU calculation dynamics.
+    - --pow_register.cuda.tpb (int): Sets the number of Threads Per Block for CUDA operations, affecting the GPU calculation dynamics.
 
     The command also supports additional wallet and subtensor arguments, enabling further customization of the registration process.
 
@@ -189,7 +189,7 @@ class PowRegisterCommand:
             wallet=wallet,
             netuid=cli.config.netuid,
             prompt=not cli.config.no_prompt,
-            TPB=cli.config.pow_register.cuda.get("TPB", None),
+            tpb=cli.config.pow_register.cuda.get("tpb", None),
             update_interval=cli.config.pow_register.get("update_interval", None),
             num_processes=cli.config.pow_register.get("num_processes", None),
             cuda=cli.config.pow_register.cuda.get(
@@ -281,10 +281,10 @@ class PowRegisterCommand:
             required=False,
         )
         register_parser.add_argument(
-            "--pow_register.cuda.TPB",
-            "--cuda.TPB",
+            "--pow_register.cuda.tpb",
+            "--cuda.tpb",
             type=int,
-            default=defaults.pow_register.cuda.TPB,
+            default=defaults.pow_register.cuda.tpb,
             help="""Set the number of Threads Per Block for CUDA.""",
             required=False,
         )
@@ -342,7 +342,7 @@ class RunFaucetCommand:
     - --faucet.cuda.use_cuda (bool): Activates the use of CUDA for GPU acceleration in the PoW process, suitable for CUDA-compatible GPUs.
     - --faucet.cuda.no_cuda (bool): Disables the use of CUDA, opting for CPU-based calculations.
     - --faucet.cuda.dev_id (int[]): Allows selection of specific CUDA device IDs for the operation, useful in multi-GPU setups.
-    - --faucet.cuda.TPB (int): Determines the number of Threads Per Block for CUDA operations, affecting GPU calculation efficiency.
+    - --faucet.cuda.tpb (int): Determines the number of Threads Per Block for CUDA operations, affecting GPU calculation efficiency.
 
     These options provide flexibility in configuring the PoW process according to the user's hardware capabilities and preferences.
 
@@ -364,7 +364,7 @@ class RunFaucetCommand:
         subtensor.run_faucet(
             wallet=wallet,
             prompt=not cli.config.no_prompt,
-            TPB=cli.config.pow_register.cuda.get("TPB", None),
+            tpb=cli.config.pow_register.cuda.get("tpb", None),
             update_interval=cli.config.pow_register.get("update_interval", None),
             num_processes=cli.config.pow_register.get("num_processes", None),
             cuda=cli.config.pow_register.cuda.get(
@@ -449,10 +449,10 @@ class RunFaucetCommand:
             required=False,
         )
         run_faucet_parser.add_argument(
-            "--faucet.cuda.TPB",
-            "--cuda.TPB",
+            "--faucet.cuda.tpb",
+            "--cuda.tpb",
             type=int,
-            default=defaults.pow_register.cuda.TPB,
+            default=defaults.pow_register.cuda.tpb,
             help="""Set the number of Threads Per Block for CUDA.""",
             required=False,
         )
