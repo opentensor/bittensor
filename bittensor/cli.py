@@ -98,6 +98,7 @@ COMMANDS = {
             "regen_hotkey": RegenHotkeyCommand,
             "faucet": RunFaucetCommand,
             "update": UpdateWalletCommand,
+            "swap_hotkey": SwapHotkeyCommand,
             "set_identity": SetIdentityCommand,
             "get_identity": GetIdentityCommand,
         },
