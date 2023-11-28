@@ -57,6 +57,7 @@ from .extrinsics.registration import (
     register_extrinsic,
     burned_register_extrinsic,
     run_faucet_extrinsic,
+    swap_hotkey_extrinsic,
 )
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
@@ -483,6 +484,24 @@ class subtensor:
             log_verbose=log_verbose,
         )
 
+    def swap_hotkey(
+        self,
+        wallet: "bittensor.wallet",
+        new_wallet: "bittensor.wallet",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False,
+    ) -> bool:
+        """Swaps an old hotkey to a new hotkey."""
+        return swap_hotkey_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            new_wallet=new_wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+
     def run_faucet(
         self,
         wallet: "bittensor.wallet",
@@ -609,6 +628,48 @@ class subtensor:
                     call_params={
                         "netuid": netuid,
                         "hotkey": wallet.hotkey.ss58_address,
+                    },
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+
+                # process if registration successful, try again if pow is still valid
+                response.process_events()
+                if not response.is_success:
+                    return False, response.error_message
+                # Successful registration
+                else:
+                    return True, None
+
+        return make_substrate_call_with_retry()
+
+    def _do_swap_hotkey(
+        self,
+        wallet: "bittensor.wallet",
+        new_wallet: "bittensor.wallet",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                # create extrinsic call
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="swap_hotkey",
+                    call_params={
+                        "hotkey": wallet.hotkey.ss58_address,
+                        "new_hotkey": new_wallet.hotkey.ss58_address,
                     },
                 )
                 extrinsic = substrate.create_signed_extrinsic(
