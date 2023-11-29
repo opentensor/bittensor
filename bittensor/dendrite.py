@@ -131,15 +131,27 @@ class dendrite(torch.nn.Module):
         initializes the aiohttp.ClientSession on its first use. The session is then reused for subsequent
         HTTP requests, offering performance benefits by reusing underlying connections.
 
+        This is used internally by the dendrite when querying axons, and should not be used directly
+        unless absolutely necessary for your application.
+
         Returns:
             aiohttp.ClientSession: The active aiohttp client session instance. If no session exists, a
             new one is created and returned. This session is used for asynchronous HTTP requests within
             the dendrite, adhering to the async nature of the network interactions in the Bittensor framework.
 
-        Example:
-            async with dendrite_instance.session as session:
-                async with session.get('http://example.com') as response:
-                    # Process the response
+        Example usage:
+            import bittensor as bt                    # Import bittensor
+            wallet = bt.wallet( ... )                 # Initialize a wallet
+            dendrite = bt.dendrite( wallet )          # Initialize a dendrite instance with the wallet
+
+            async with (await dendrite.session).post( # Use the session to make an HTTP POST request
+                url,                                  # URL to send the request to
+                headers={...},                        # Headers dict to be sent with the request
+                json={...},                           # JSON body data to be sent with the request
+                timeout=10,                           # Timeout duration in seconds
+            ) as response:
+                json_response = await response.json() # Extract the JSON response from the server
+
         """
         if self._session is None:
             self._session = aiohttp.ClientSession()
@@ -332,6 +344,18 @@ class dendrite(torch.nn.Module):
         based on the provided parameters. It checks the type of the target Axons, preprocesses
         the requests, and then sends them off. After getting the responses, it processes and
         collates them into a unified format.
+
+        When querying an Axon that sends a single response, this function returns a Synapse object
+        containing the response data. If multiple Axons are queried, a list of Synapse objects is
+        returned, each containing the response from the corresponding Axon.
+
+        For example:
+            >>> ...
+            >>> wallet = bittensor.wallet()                   # Initialize a wallet
+            >>> synapse = bittensor.Synapse(...)              # Create a synapse object that contains query data
+            >>> dendrte = bittensor.dendrite(wallet = wallet) # Initialize a dendrite instance
+            >>> axons = metagraph.axons                       # Create a list of axons to query
+            >>> responses = await dendrite(axons, synapse)    # Send the query to all axons and await the responses
 
         When querying an Axon that sends back data in chunks using the Dendrite, this function
         returns an AsyncGenerator that yields each chunk as it is received. The generator can be
@@ -765,8 +789,10 @@ class dendrite(torch.nn.Module):
                                                 where the exception was raised.
 
         Usage:
-            async with Dendrite() as dendrite:
+            async with bt.dendrite( wallet ) as dendrite:
                 await dendrite.some_async_method()
+
+        Note: This automatically closes the session by calling __aexit__ after the context closes.
         """
         await self.aclose_session()
 
@@ -783,6 +809,6 @@ class dendrite(torch.nn.Module):
         Usage:
             dendrite = Dendrite()
             # ... some operations ...
-            del dendrite  # This will implicitly invoke the __del__ method.
+            del dendrite  # This will implicitly invoke the __del__ method and close the session.
         """
         asyncio.run(self.aclose_session())
