@@ -308,17 +308,31 @@ class Synapse(pydantic.BaseModel):
         # Creating a Synapse instance with default values
         synapse = Synapse()
 
-        # Setting properties
+        # Setting properties and input
         synapse.timeout = 15.0
         synapse.name = "MySynapse"
+        # Not setting fields that are not defined in your synapse class will result in an error, e.g.:
+        synapse.dummy_input = 1 # This will raise an error because dummy_input is not defined in the Synapse class
 
-        # Serializing and deserializing a Synapse instance
-        serialized_synapse = synapse.json()
-        deserialized_synapse = Synapse.parse_raw(serialized_synapse)
+        # Get a dictionary of headers and body from the synapse instance
+        synapse_dict = synapse.json()
 
-        # Checking the status of the dendrite
+        # Get a dictionary of headers from the synapse instance
+        headers = synapse.to_headers()
+
+        # Reconstruct the synapse from headers using the classmethod 'from_headers'
+        synapse = Synapse.from_headers(headers)
+
+        # Deserialize synapse after receiving it over the network, controlled by `deserialize` method
+        deserialized_synapse = synapse.deserialize()
+
+        # Checking the status of the request
         if synapse.is_success:
             print("Request succeeded")
+
+        # Checking and setting the status of the request
+        print(synapse.axon.status_code)
+        synapse.axon.status_code = 408 # Timeout
 
     Attributes:
         name (str): HTTP route name, set on axon.attach.
@@ -699,6 +713,9 @@ class Synapse(pydantic.BaseModel):
             }
             inputs = Synapse.parse_headers_to_inputs(received_headers)
             # inputs now contains a structured representation of Synapse properties based on the headers
+
+        Note: This is handled automatically when calling Synapse.from_headers(headers) and does not
+        need to be called directly.
 
         Args:
             headers (dict): The headers dictionary to parse.
