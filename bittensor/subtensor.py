@@ -129,6 +129,9 @@ class subtensor:
         # Speculate by accumulating bonds in other promising neurons.
         success = finney_subtensor.delegate(wallet=wallet, delegate_ss58=other_neuron_ss58, amount=bond_amount)
 
+        # Get the metagraph for a specific subnet using given subtensor connection
+        metagraph = subtensor.metagraph(netuid=netuid)
+
     By facilitating these operations, the Subtensor class is instrumental in maintaining the decentralized
     intelligence and dynamic learning environment of the Bittensor network, as envisioned in its foundational
     principles and mechanisms described in the NeurIPS paper.
@@ -684,7 +687,7 @@ class subtensor:
         """
         Facilitates a faucet transaction, allowing new neurons to receive an initial amount of TAO
         for participating in the network. This function is particularly useful for newcomers to the
-        Bittensor network, enabling them to start with a small stake.
+        Bittensor network, enabling them to start with a small stake on testnet only.
 
         Args:
             wallet (bittensor.wallet): The wallet for which the faucet transaction is to be run.
@@ -695,6 +698,9 @@ class subtensor:
 
         This function is part of Bittensor's onboarding process, ensuring that new neurons have
         the necessary resources to begin their journey in the decentralized AI network.
+
+        Note: This is for testnet ONLY and is disabled currently. You must build your own
+        staging subtensor chain with the `--features pow-faucet` argument to enable this.
         """
         return run_faucet_extrinsic(
             subtensor=self,
