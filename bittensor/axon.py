@@ -172,16 +172,11 @@ class axon:
     includes internal mechanisms to manage a thread pool, supporting concurrent handling of
     requests with defined priority levels.
 
-    Methods in this class are equipped to deal with incoming requests from other scenarios in the
+    Methods in this class are equipped to deal with incoming requests from various scenarios in the
     network and serve as the server face for a neuron. It accepts multiple arguments, like wallet,
     configuration parameters, ip address, server binding  port, external ip, external port and max
     workers. Key methods involve managing and operating the FastAPI application router, including
     the attachment and operation of endpoints.
-
-    The `axon` class offers flexibility to specify custom rules to forward, blacklist, prioritize and
-    verify incoming requests against custom functions. The class also encapsulates methods to add
-    command-line arguments for user-friendly interaction with the program, and supports the handling
-    of these arguments, to define the behavior of the axon object.
 
     Key Features:
     - FastAPI router integration for endpoint creation and management.
@@ -195,11 +190,12 @@ class axon:
     ```python
     import bittensor
 
+    # Define your custom synapse class
     class MySyanpse( bittensor.Synapse ):
         input: int = 1
         output: int = None
 
-    # Define a custom request forwarding function
+    # Define a custom request forwarding function using your synapse class
     def forward( synapse: MySyanpse ) -> MySyanpse:
         # Apply custom logic to synapse and return it
         synapse.output = 2
@@ -209,11 +205,13 @@ class axon:
     def verify_my_synapse( synapse: MySyanpse ):
         # Apply custom verification logic to synapse
         # Optionally raise Exception
+        assert synapse.input == 1
+        ...
 
     # Define a custom request blacklist fucntion
     def blacklist_my_synapse( synapse: MySyanpse ) -> bool:
         # Apply custom blacklist
-        # return False ( if non blacklisted ) or True ( if blacklisted )
+        return False ( if non blacklisted ) or True ( if blacklisted )
 
     # Define a custom request priority fucntion
     def prioritize_my_synape( synapse: MySyanpse ) -> float:
@@ -230,7 +228,21 @@ class axon:
         external_port=7070
     )
 
-    # Attach the endpoint with the specified verification and forwarding functions
+    # Attach the endpoint with the specified verification and forward functions.
+    my_axon.attach(
+        forward_fn = forward_my_synapse,
+        verify_fn = verify_my_synapse,
+        blacklist_fn = blacklist_my_synapse,
+        priority_fn = prioritize_my_synape
+    )
+
+    # Serve and start your axon.
+    my_axon.serve(
+        netuid = ...
+        subtensor = ...
+    ).start()
+
+    # If you have multiple forwarding functions, you can chain attach them.
     my_axon.attach(
         forward_fn = forward_my_synapse,
         verify_fn = verify_my_synapse,
@@ -265,7 +277,7 @@ class axon:
 
     Importance and Functionality
         Endpoint Registration: This method dynamically registers API endpoints based on the Synapse class
-            used, allowing the Axon to respond to specific types of requests.
+            used, allowing the Axon to respond to specific types of requests and synapses.
 
         Customization of Request Handling: By attaching different functions, the Axon can customize how it
             handles, verifies, prioritizes, and potentially blocks incoming requests, making it adaptable
@@ -451,6 +463,12 @@ class axon:
             def forward_custom(synapse: MyCustomSynapse) -> MyCustomSynapse:
                 # Custom logic for processing the request
                 return synapse
+
+            def blacklist_custom(synapse: MyCustomSynapse) -> Tuple[bool, str]:
+                return True, "Allowed!"
+
+            def priority_custom(synapse: MyCustomSynapse) -> float:
+                return 1.0
 
             def verify_custom(synapse: MyCustomSynapse):
                 # Custom logic for verifying the request
@@ -686,14 +704,6 @@ class axon:
         4. Reconstructing the Synapse object and recomputing the hash for verification and logging.
         5. Comparing the recomputed hash with the hash provided in the request headers for verification.
 
-        Example:
-            Assuming this method is set as a dependency in a route:
-
-            @app.post("/some_endpoint")
-            async def some_endpoint(body_dict: dict = Depends(verify_body_integrity)):
-                # body_dict is the parsed body of the request and is available for use in the route function.
-                # The function only executes if the body integrity verification is successful.
-                ...
         Note:
             The integrity verification is an essential step in ensuring the security of the data exchange
             within the Bittensor network. It helps prevent tampering and manipulation of data during transit,
@@ -790,6 +800,7 @@ class axon:
         Example:
             ```python
             my_axon = bittensor.axon(...)
+            ... # setup axon, attach functions, etc.
             my_axon.start()  # Starts the axon server
             ```
 
@@ -851,7 +862,8 @@ class axon:
         Example:
             ```python
             my_axon = bittensor.axon(...)
-            my_axon.serve(netuid=12345)  # Serves the axon on subnet with netuid 12345
+            subtensor = bt.subtensor(network="local") # Local by default
+            my_axon.serve(netuid=1, subtensor=subtensor)  # Serves the axon on subnet with netuid 1
             ```
 
         Note:
