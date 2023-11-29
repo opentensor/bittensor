@@ -74,7 +74,7 @@ class metagraph(torch.nn.Module):
     that forms the backbone of the decentralized machine learning system. It is a dynamic representation
     of the network's state, capturing the interconnectedness and attributes of neurons (participants)
     in the Bittensor ecosystem. This class is not just a static structure but a live reflection of the
-    network, constantly updated and synchronized with the state of the blockchain.
+    network, and can should be constantly synchronized with the state of the blockchain.
 
     In Bittensor, neurons are akin to nodes in a distributed system, each contributing computational
     resources and participating in the network's collective intelligence. The metagraph tracks various
@@ -276,7 +276,7 @@ class metagraph(torch.nn.Module):
         for setting its weights, which are then recorded on a digital ledger. These weights are reflective of the
         neuron's assessment or judgment of other neurons in the network.
 
-        The weight matrix W = [wij] is a key component of the network's architecture, where the ith row is set by
+        The weight matrix W = [w_ij] is a key component of the network's architecture, where the ith row is set by
         neuron i and represents its weights towards other neurons. These weights influence the ranking and incentive
         mechanisms within the network. Higher weights from a neuron towards another can imply greater trust or value
         placed on that neuron's contributions.
@@ -515,6 +515,9 @@ class metagraph(torch.nn.Module):
             metagraph: The metagraph instance, updated to the state of the specified block or the latest network state.
 
         Example:
+            # Setup subtensor (ideally local) to sync the metagraph with the latest block from the subtensor.
+            subtensor = bittensor.subtensor(network='local')
+
             # Sync the metagraph with the latest block from the subtensor, using the lite version for efficiency.
             metagraph.sync(subtensor=subtensor)
 
