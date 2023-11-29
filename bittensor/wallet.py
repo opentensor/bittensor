@@ -94,11 +94,17 @@ class wallet:
         hotkey = my_wallet.get_hotkey()
         coldkey = my_wallet.get_coldkey()
 
+        # Set a new coldkey
+        my_wallet.new_coldkey(n_words=24) # number of seed words to use
+
         # Update wallet hotkey
         my_wallet.set_hotkey(new_hotkey)
 
         # Print wallet details
         print(my_wallet)
+
+        # Access coldkey property, must use password to unlock
+        my_wallet.coldkey
     """
 
     @classmethod
