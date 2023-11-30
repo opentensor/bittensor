@@ -517,6 +517,10 @@ class SwapHotkeyCommand:
                 choices=bittensor.__networks__,
                 default=defaults.subtensor.network,
             )
+            _, endpoint = bittensor.subtensor.determine_chain_endpoint_and_network(
+                config.subtensor.network
+            )
+            config.subtensor.chain_endpoint = endpoint
 
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
