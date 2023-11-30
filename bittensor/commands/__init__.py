@@ -26,7 +26,7 @@ defaults: Munch = munchify(
             "update_interval": 50000,
             "output_in_place": True,
             "verbose": False,
-            "cuda": {"dev_id": [0], "use_cuda": False, "TPB": 256},
+            "cuda": {"dev_id": [0], "use_cuda": False, "tpb": 256},
         },
         "axon": {
             "port": 8091,
@@ -65,7 +65,12 @@ defaults: Munch = munchify(
 from .stake import StakeCommand, StakeShow
 from .unstake import UnStakeCommand
 from .overview import OverviewCommand
-from .register import PowRegisterCommand, RegisterCommand, RunFaucetCommand
+from .register import (
+    PowRegisterCommand,
+    RegisterCommand,
+    RunFaucetCommand,
+    SwapHotkeyCommand,
+)
 from .delegates import (
     NominateCommand,
     ListDelegatesCommand,
@@ -109,5 +114,7 @@ from .root import (
     RootList,
     RootSetWeightsCommand,
     RootGetWeightsCommand,
+    RootSetBoostCommand,
+    RootSetSlashCommand,
 )
 from .identity import GetIdentityCommand, SetIdentityCommand
