@@ -54,11 +54,57 @@ def display_mnemonic_msg(keypair: Keypair, key_type: str):
 
 class wallet:
     """
-    Bittensor wallet maintenance class. Each wallet contains a coldkey and a hotkey.
-    The coldkey is the user's primary key for holding stake in their wallet
-    and is the only way that users can access Tao. Coldkeys can hold tokens and should be encrypted on your device.
-    The coldkey must be used to stake and unstake funds from a running node. The hotkey, on the other hand, is only used
-    for subscribing and setting weights from running code. Hotkeys are linked to coldkeys through the metagraph.
+    The wallet class in the Bittensor framework handles wallet functionality, crucial for participating in
+    the Bittensor network. It manages two types of keys: coldkey and hotkey, each serving different purposes
+    in network operations. Each wallet contains a coldkey and a hotkey.
+
+    The coldkey is the user's primary key for holding stake in their wallet and is the only way that users
+    can access Tao. Coldkeys can hold tokens and should be encrypted on your device.
+
+    The coldkey is the primary key used for securing the wallet's stake in the Bittensor network (Tao) and
+    is critical for financial transactions like staking and unstaking tokens. It's recommended to keep the
+    coldkey encrypted and secure, as it holds the actual tokens.
+
+    The hotkey, in contrast, is used for operational tasks like subscribing to and setting weights in the
+    network. It's linked to the coldkey through the metagraph and does not directly hold tokens, thereby
+    offering a safer way to interact with the network during regular operations.
+
+    Attributes:
+        name (str): The name of the wallet, used to identify it among possibly multiple wallets.
+        path (str): File system path where wallet keys are stored.
+        hotkey_str (str): String identifier for the hotkey.
+        _hotkey, _coldkey, _coldkeypub (bittensor.Keypair): Internal representations of the hotkey and coldkey.
+
+    Methods:
+        create_if_non_existent, create, recreate: Methods to handle the creation of wallet keys.
+        get_coldkey, get_hotkey, get_coldkeypub: Methods to retrieve specific keys.
+        set_coldkey, set_hotkey, set_coldkeypub: Methods to set or update keys.
+        hotkey_file, coldkey_file, coldkeypub_file: Properties that return respective key file objects.
+        regenerate_coldkey, regenerate_hotkey, regenerate_coldkeypub: Methods to regenerate keys from different sources.
+        config, help, add_args: Utility methods for configuration and assistance.
+
+    The wallet class is a fundamental component for users to interact securely with the Bittensor network,
+    facilitating both operational tasks and transactions involving value transfer across the network.
+
+    Example Usage:
+        # Create a new wallet with default coldkey and hotkey names
+        my_wallet = wallet()
+
+        # Access hotkey and coldkey
+        hotkey = my_wallet.get_hotkey()
+        coldkey = my_wallet.get_coldkey()
+
+        # Set a new coldkey
+        my_wallet.new_coldkey(n_words=24) # number of seed words to use
+
+        # Update wallet hotkey
+        my_wallet.set_hotkey(new_hotkey)
+
+        # Print wallet details
+        print(my_wallet)
+
+        # Access coldkey property, must use password to unlock
+        my_wallet.coldkey
     """
 
     @classmethod

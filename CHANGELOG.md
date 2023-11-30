@@ -1,5 +1,71 @@
 # Changelog
 
+## 6.4.0 / 2023-11-29
+
+## What's Changed
+* (un)Staking multiple avoid tx limit by @camfairchild in https://github.com/opentensor/bittensor/pull/1244
+* additional logging for prometheus by @Eugene-hu in https://github.com/opentensor/bittensor/pull/1246
+* Dataset fix by @isabella618033 in https://github.com/opentensor/bittensor/pull/1249
+* Grab delegates details from GitHub by @camfairchild in https://github.com/opentensor/bittensor/pull/1245
+* Add raw spec for local test and new bins by @camfairchild in https://github.com/opentensor/bittensor/pull/1243
+* Fix list_delegates on non-archive nodes by @camfairchild in https://github.com/opentensor/bittensor/pull/1232
+* Blacklist fixes + depreciation of old signatures by @Eugene-hu in https://github.com/opentensor/bittensor/pull/1240
+* [BIT-636] Change u16 weight normalization to max-upscaling by @opentaco in https://github.com/opentensor/bittensor/pull/1241
+* remove duplicate command #1228 by @camfairchild in https://github.com/opentensor/bittensor/pull/1231
+* test_forward_priority_2nd_request_timeout fix by @isabella618033 in https://github.com/opentensor/bittensor/pull/1276
+* Remove btcli query and btcli set_weights by @camfairchild in https://github.com/opentensor/bittensor/pull/1144
+* Merge releases 4.0.0 and 4.0.1 back to staging by @camfairchild in https://github.com/opentensor/bittensor/pull/1306
+* Improve development workflow documentation by @quac88 in https://github.com/opentensor/bittensor/pull/1262
+* staging updates and fixes by @ifrit98 in https://github.com/opentensor/bittensor/pull/1540
+* Add root get_weights command to btcli by @Rubberbandits in https://github.com/opentensor/bittensor/pull/1536
+* Fix typo by @steffencruz in https://github.com/opentensor/bittensor/pull/1543
+* remove duplicated debug message in dendrite by @ifrit98 in https://github.com/opentensor/bittensor/pull/1544
+* Cli fix by @ifrit98 in https://github.com/opentensor/bittensor/pull/1541
+* update faucet helpstr by @ifrit98 in https://github.com/opentensor/bittensor/pull/1542
+* Added mechanism to sum all delegated tao by @shibshib in https://github.com/opentensor/bittensor/pull/1547
+* Dict hash fix by @ifrit98 in https://github.com/opentensor/bittensor/pull/1548
+* Release/6.1.0 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1550
+* Merge master by @ifrit98 in https://github.com/opentensor/bittensor/pull/1552
+* Streaming fix by @ifrit98 in https://github.com/opentensor/bittensor/pull/1551
+* Fix typos by @omahs in https://github.com/opentensor/bittensor/pull/1553
+* Normalize weights in r get weights table by @camfairchild in https://github.com/opentensor/bittensor/pull/1556
+* Dendrite & Synapse updates and fixes by @ifrit98 in https://github.com/opentensor/bittensor/pull/1555
+* rm root flag in metagraph by @ifrit98 in https://github.com/opentensor/bittensor/pull/1558
+* Max Faucet Runs == 3 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1560
+* replace unknown wallet params (chain mismatch) with key values by @ifrit98 in https://github.com/opentensor/bittensor/pull/1559
+* Remove PoW registration cli and associated extrinsic by @ifrit98 in https://github.com/opentensor/bittensor/pull/1557
+* Add btcli wallet balance by @ifrit98 in https://github.com/opentensor/bittensor/pull/1564
+* Dendrite fixes by @ifrit98 in https://github.com/opentensor/bittensor/pull/1561
+* Master into staging by @ifrit98 in https://github.com/opentensor/bittensor/pull/1570
+* adding logging.exception by @surcyf123 in https://github.com/opentensor/bittensor/pull/1569
+* Update network.py by @wildcommunist in https://github.com/opentensor/bittensor/pull/1568
+* Subtensor Registry by @Eugene-hu in https://github.com/opentensor/bittensor/pull/1562
+* add instructions for upgrading bittensor with outdated version check by @ifrit98 in https://github.com/opentensor/bittensor/pull/1571
+* Add identity commands to btcli by @ifrit98 in https://github.com/opentensor/bittensor/pull/1566
+* Add set_delegate_take command to btcli by @Rubberbandits in https://github.com/opentensor/bittensor/pull/1563
+* Subtensor archive by @ifrit98 in https://github.com/opentensor/bittensor/pull/1575
+* Bugfix/list delegates by @ifrit98 in https://github.com/opentensor/bittensor/pull/1577
+* don't return result twice in query() by @ifrit98 in https://github.com/opentensor/bittensor/pull/1574
+* rename logging.py so doesn't circ import by @ifrit98 in https://github.com/opentensor/bittensor/pull/1572
+* add AxonInfo.<to|from>_string() by @ifrit98 in https://github.com/opentensor/bittensor/pull/1565
+* don't print __is_set for recursive objects by @ifrit98 in https://github.com/opentensor/bittensor/pull/1573
+* Adds docstrings for CLI for Sphynx documentation by @ifrit98 in https://github.com/opentensor/bittensor/pull/1579
+* Master 630 into staging by @ifrit98 in https://github.com/opentensor/bittensor/pull/1590
+* Registry cost 0.1 tao by @Eugene-hu in https://github.com/opentensor/bittensor/pull/1587
+* Add swap_hotkey command to wallet by @ifrit98 in https://github.com/opentensor/bittensor/pull/1580
+* Cuda fix by @ifrit98 in https://github.com/opentensor/bittensor/pull/1595
+* Feature/local subtensor default by @ifrit98 in https://github.com/opentensor/bittensor/pull/1591
+* Boost by @unconst in https://github.com/opentensor/bittensor/pull/1594
+* avoid aiohttp <3.9.0 potential security issue by @ifrit98 in https://github.com/opentensor/bittensor/pull/1597
+* update bittensor docstrings (overhaul) by @ifrit98 in https://github.com/opentensor/bittensor/pull/1592
+
+## New Contributors
+* @omahs made their first contribution in https://github.com/opentensor/bittensor/pull/1553
+* @surcyf123 made their first contribution in https://github.com/opentensor/bittensor/pull/1569
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.0.1...v6.4.0
+
+
 ## 6.3.0 / 2023-11-16
 
 ## What's Changed

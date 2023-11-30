@@ -125,13 +125,33 @@ class dendrite(torch.nn.Module):
     @property
     async def session(self) -> aiohttp.ClientSession:
         """
-        Asynchronous property that provides access to the internal aiohttp client session.
+        An asynchronous property that provides access to the internal aiohttp client session.
 
-        If the session is not already initialized, this property will instantiate a new
-        aiohttp.ClientSession and return it.
+        This property ensures the management of HTTP connections in an efficient way. It lazily
+        initializes the aiohttp.ClientSession on its first use. The session is then reused for subsequent
+        HTTP requests, offering performance benefits by reusing underlying connections.
+
+        This is used internally by the dendrite when querying axons, and should not be used directly
+        unless absolutely necessary for your application.
 
         Returns:
-            aiohttp.ClientSession: The aiohttp client session instance.
+            aiohttp.ClientSession: The active aiohttp client session instance. If no session exists, a
+            new one is created and returned. This session is used for asynchronous HTTP requests within
+            the dendrite, adhering to the async nature of the network interactions in the Bittensor framework.
+
+        Example usage:
+            import bittensor as bt                    # Import bittensor
+            wallet = bt.wallet( ... )                 # Initialize a wallet
+            dendrite = bt.dendrite( wallet )          # Initialize a dendrite instance with the wallet
+
+            async with (await dendrite.session).post( # Use the session to make an HTTP POST request
+                url,                                  # URL to send the request to
+                headers={...},                        # Headers dict to be sent with the request
+                json={...},                           # JSON body data to be sent with the request
+                timeout=10,                           # Timeout duration in seconds
+            ) as response:
+                json_response = await response.json() # Extract the JSON response from the server
+
         """
         if self._session is None:
             self._session = aiohttp.ClientSession()
@@ -139,12 +159,17 @@ class dendrite(torch.nn.Module):
 
     def close_session(self):
         """
-        Closes the internal aiohttp client session in a synchronous manner.
+        Closes the internal aiohttp client session synchronously.
 
-        This method ensures that the resources tied with the aiohttp client session are released.
-        It should be called when the session is no longer needed, typically during the cleanup phase.
+        This method ensures the proper closure and cleanup of the aiohttp client session, releasing any
+        resources like open connections and internal buffers. It is crucial for preventing resource leakage
+        and should be called when the dendrite instance is no longer in use, especially in synchronous contexts.
+
+        Note: This method utilizes asyncio's event loop to close the session asynchronously from a synchronous
+        context. It is advisable to use this method only when asynchronous context management is not feasible.
 
         Usage:
+            # When finished with dendrite in a synchronous context
             dendrite_instance.close_session()
         """
         if self._session:
@@ -156,17 +181,40 @@ class dendrite(torch.nn.Module):
         """
         Asynchronously closes the internal aiohttp client session.
 
-        Similar to the synchronous `close_session` method but designed to be used within
-        asynchronous contexts. This method ensures that all related resources are released.
+        This method is the asynchronous counterpart to the `close_session` method. It should be used in
+        asynchronous contexts to ensure that the aiohttp client session is closed properly. The method
+        releases resources associated with the session, such as open connections and internal buffers,
+        which is essential for resource management in asynchronous applications.
 
         Usage:
+            # When finished with dendrite in an asynchronous context
             await dendrite_instance.aclose_session()
+
+        Example:
+            async with dendrite_instance:
+                # Operations using dendrite
+                pass
+            # The session will be closed automatically after the above block
         """
         if self._session:
             await self._session.close()
             self._session = None
 
     def _get_endpoint_url(self, target_axon, request_name):
+        """
+        Constructs the endpoint URL for a network request to a target axon.
+
+        This internal method generates the full HTTP URL for sending a request to the specified axon. The
+        URL includes the IP address and port of the target axon, along with the specific request name. It
+        differentiates between requests to the local system (using '0.0.0.0') and external systems.
+
+        Args:
+            target_axon: The target axon object containing IP and port information.
+            request_name: The specific name of the request being made.
+
+        Returns:
+            str: A string representing the complete HTTP URL for the request.
+        """
         endpoint = (
             f"0.0.0.0:{str(target_axon.port)}"
             if target_axon.ip == str(self.external_ip)
@@ -175,6 +223,20 @@ class dendrite(torch.nn.Module):
         return f"http://{endpoint}/{request_name}"
 
     def _handle_request_errors(self, synapse, request_name, exception):
+        """
+        Handles exceptions that occur during network requests, updating the synapse with appropriate status
+        codes and messages.
+
+        This method interprets different types of exceptions and sets the corresponding status code and
+        message in the synapse object. It covers common network errors such as connection issues and timeouts.
+
+        Args:
+            synapse: The synapse object associated with the request.
+            request_name: The name of the request during which the exception occurred.
+            exception: The exception object caught during the request.
+
+        Note: This method updates the synapse object in-place.
+        """
         if isinstance(exception, aiohttp.ClientConnectorError):
             synapse.dendrite.status_code = "503"
             synapse.dendrite.status_message = f"Service at {synapse.axon.ip}:{str(synapse.axon.port)}/{request_name} unavailable."
@@ -190,11 +252,38 @@ class dendrite(torch.nn.Module):
             )
 
     def _log_outgoing_request(self, synapse):
+        """
+        Logs information about outgoing requests for debugging purposes.
+
+        This internal method logs key details about each outgoing request, including the size of the
+        request, the name of the synapse, the axon's details, and a success indicator. This information
+        is crucial for monitoring and debugging network activity within the Bittensor network.
+
+        To turn on debug messages, set the environment variable BITTENSOR_DEBUG to 1. or call the bittensor
+        debug method like so:
+        ```python
+        import bittensor
+        bittensor.debug()
+        ```
+
+        Args:
+            synapse: The synapse object representing the request being sent.
+        """
         bittensor.logging.debug(
             f"dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success"
         )
 
     def _log_incoming_response(self, synapse):
+        """
+        Logs information about incoming responses for debugging and monitoring.
+
+        Similar to `_log_outgoing_request`, this method logs essential details of the incoming responses,
+        including the size of the response, synapse name, axon details, status code, and status message.
+        This logging is vital for troubleshooting and understanding the network interactions in Bittensor.
+
+        Args:
+            synapse: The synapse object representing the received response.
+        """
         bittensor.logging.debug(
             f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
         )
@@ -256,6 +345,18 @@ class dendrite(torch.nn.Module):
         the requests, and then sends them off. After getting the responses, it processes and
         collates them into a unified format.
 
+        When querying an Axon that sends a single response, this function returns a Synapse object
+        containing the response data. If multiple Axons are queried, a list of Synapse objects is
+        returned, each containing the response from the corresponding Axon.
+
+        For example:
+            >>> ...
+            >>> wallet = bittensor.wallet()                   # Initialize a wallet
+            >>> synapse = bittensor.Synapse(...)              # Create a synapse object that contains query data
+            >>> dendrte = bittensor.dendrite(wallet = wallet) # Initialize a dendrite instance
+            >>> axons = metagraph.axons                       # Create a list of axons to query
+            >>> responses = await dendrite(axons, synapse)    # Send the query to all axons and await the responses
+
         When querying an Axon that sends back data in chunks using the Dendrite, this function
         returns an AsyncGenerator that yields each chunk as it is received. The generator can be
         iterated over to process each chunk individually.
@@ -300,13 +401,21 @@ class dendrite(torch.nn.Module):
             is_stream: bool,
         ) -> Union[AsyncGenerator[Any], bittenst.Synapse, bittensor.StreamingSynapse]:
             """
-            Handles requests for all axons, either in streaming or non-streaming mode.
+            Handles the processing of requests to all targeted axons, accommodating both streaming and
+            non-streaming responses.
+
+            This function manages the concurrent or sequential dispatch of requests to a list of axons.
+            It utilizes the `is_stream` parameter to determine the mode of response handling (streaming
+            or non-streaming). For each axon, it calls 'single_axon_response' and aggregates the responses.
 
             Args:
-                is_stream: If True, handles the axons in streaming mode.
+                is_stream (bool): Flag indicating whether the axon responses are expected to be streamed.
+                If True, responses are handled in streaming mode.
 
             Returns:
-                List of Synapse objects with responses.
+                List[Union[AsyncGenerator, bittensor.Synapse, bittensor.StreamingSynapse]]: A list
+                containing the responses from each axon. The type of each response depends on the
+                streaming mode and the type of synapse used.
             """
 
             async def single_axon_response(
@@ -315,13 +424,23 @@ class dendrite(torch.nn.Module):
                 AsyncGenerator[Any], bittenst.Synapse, bittensor.StreamingSynapse
             ]:
                 """
-                Retrieve response for a single axon, either in streaming or non-streaming mode.
+                Manages the request and response process for a single axon, supporting both streaming and
+                non-streaming modes.
+
+                This function is responsible for initiating a request to a single axon. Depending on the
+                'is_stream' flag, it either uses 'call_stream' for streaming responses or 'call' for
+                standard responses. The function handles the response processing, catering to the specifics
+                of streaming or non-streaming data.
 
                 Args:
-                    target_axon: The target axon to send request to.
+                    target_axon: The target axon object to which the request is to be sent. This object
+                    contains the necessary information like IP address and port to formulate the request.
 
                 Returns:
-                    A Synapse object with the response.
+                    Union[AsyncGenerator, bittensor.Synapse, bittensor.StreamingSynapse]: The response
+                    from the targeted axon. In streaming mode, an AsyncGenerator is returned, yielding
+                    data chunks. In non-streaming mode, a Synapse or StreamingSynapse object is returned
+                    containing the response.
                 """
                 if is_stream:
                     # If in streaming mode, return the async_generator
@@ -670,8 +789,10 @@ class dendrite(torch.nn.Module):
                                                 where the exception was raised.
 
         Usage:
-            async with Dendrite() as dendrite:
+            async with bt.dendrite( wallet ) as dendrite:
                 await dendrite.some_async_method()
+
+        Note: This automatically closes the session by calling __aexit__ after the context closes.
         """
         await self.aclose_session()
 
@@ -688,6 +809,6 @@ class dendrite(torch.nn.Module):
         Usage:
             dendrite = Dendrite()
             # ... some operations ...
-            del dendrite  # This will implicitly invoke the __del__ method.
+            del dendrite  # This will implicitly invoke the __del__ method and close the session.
         """
         asyncio.run(self.aclose_session())

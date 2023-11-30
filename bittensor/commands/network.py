@@ -93,7 +93,7 @@ class SubnetLockCostCommand:
     1. It copies the user's current Bittensor configuration.
     2. It initializes the Bittensor subtensor object with this configuration.
     3. It then retrieves the subnet lock cost using the `get_subnet_burn_cost()` method from the subtensor object.
-    4. The cost is displayed to the user in a readable format, indicating the amount of cryptocurrency required to lock for registering a new subnetwork.
+    4. The cost is displayed to the user in a readable format, indicating the amount of Tao required to lock for registering a new subnetwork.
 
     In case of any errors during the process (e.g., network issues, configuration problems), the command will catch these exceptions and inform the user that it failed to retrieve the lock cost, along with the specific error encountered.
 

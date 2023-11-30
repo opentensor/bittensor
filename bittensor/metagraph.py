@@ -70,168 +70,294 @@ def latest_block_path(dir_path: str) -> int:
 
 class metagraph(torch.nn.Module):
     """
-    Metagraph class representing the neural network graph.
+    The metagraph class is a core component of the Bittensor network, representing the neural graph
+    that forms the backbone of the decentralized machine learning system. It is a dynamic representation
+    of the network's state, capturing the interconnectedness and attributes of neurons (participants)
+    in the Bittensor ecosystem. This class is not just a static structure but a live reflection of the
+    network, and can should be constantly synchronized with the state of the blockchain.
+
+    In Bittensor, neurons are akin to nodes in a distributed system, each contributing computational
+    resources and participating in the network's collective intelligence. The metagraph tracks various
+    attributes of these neurons, such as stake, trust, and consensus, which are crucial for the network's
+    incentive mechanisms and the Yuma Consensus algorithm as outlined in the NeurIPS paper. These attributes
+    govern how neurons interact, how they are incentivized, and their roles within the network's
+    decision-making processes.
 
     Attributes:
-        netuid (int): Network UID.
-        network (str): Network name.
-        version (torch.nn.Parameter): Version of the network.
-        n (torch.nn.Parameter): Number of neurons in the graph.
-        block (torch.nn.Parameter): Current block number.
-        stake (torch.nn.Parameter): Stake of the neurons.
-        total_stake (torch.nn.Parameter): Total stake of the neurons.
-        ranks (torch.nn.Parameter): Ranks of the neurons.
-        trust (torch.nn.Parameter): Trust values of the neurons.
-        consensus (torch.nn.Parameter): Consensus values of the neurons.
-        validator_trust (torch.nn.Parameter): Validator trust values of the neurons.
-        incentive (torch.nn.Parameter): Incentive values of the neurons.
-        emission (torch.nn.Parameter): Emission values of the neurons.
-        dividends (torch.nn.Parameter): Dividends of the neurons.
-        active (torch.nn.Parameter): Activation state of the neurons.
-        last_update (torch.nn.Parameter): Last update time of the neurons.
-        validator_permit (torch.nn.Parameter): Validator permit state of the neurons.
-        weights (torch.nn.Parameter): Weights of the neurons.
-        bonds (torch.nn.Parameter): Bonds of the neurons.
-        uids (torch.nn.Parameter): UID values of the neurons.
-        axons (List): List of axon information for the neurons.
+        netuid (int): A unique identifier that distinguishes between different instances or versions
+                      of the Bittensor network.
+        network (str): The name of the network, signifying specific configurations or iterations within
+                       the Bittensor ecosystem.
+        version (torch.nn.Parameter): The version number of the network, formatted for compatibility with
+                                      PyTorch models, integral for tracking network updates.
+        n (torch.nn.Parameter): The total number of neurons in the network, reflecting its size and complexity.
+        block (torch.nn.Parameter): The current block number in the blockchain, crucial for synchronizing
+                                    with the network's latest state.
+        stake, total_stake, ranks, trust, consensus, validator_trust, incentive, emission, dividends,
+        active, last_update, validator_permit, weights, bonds, uids (torch.nn.Parameter):
+            - Stake: Represents the amount of Tao staked by neurons, impacting their influence and
+                     earnings within the network.
+            - Total Stake: The cumulative stake across all neurons.
+            - Ranks: Neuron rankings as per the Yuma Consensus algorithm, influencing their incentive
+                     distribution and network authority.
+            - Trust: Scores indicating the reliability of neurons, mainly miners, within the network's
+                     operational context.
+            - Consensus: Scores reflecting each neuron's alignment with the network's collective decisions.
+            - Validator Trust: Trust scores for validator neurons, crucial for network security and validation.
+            - Incentive: Rewards allocated to neurons, particularly miners, for their network contributions.
+            - Emission: The rate at which rewards are distributed to neurons.
+            - Dividends: Rewards received primarily by validators as part of the incentive mechanism.
+            - Active: Status indicating whether a neuron is actively participating in the network.
+            - Last Update: Timestamp of the latest update to a neuron's data.
+            - Validator Permit: Indicates if a neuron is authorized to act as a validator.
+            - Weights: Inter-neuronal weights set by each neuron, influencing network dynamics.
+            - Bonds: Represents speculative investments by neurons in others, part of the reward mechanism.
+            - UIDs: Unique identifiers for each neuron, essential for network operations.
+        axons (List): Details about each neuron's axon, critical for facilitating network communication.
+
+    The metagraph plays a pivotal role in Bittensor's decentralized AI operations, influencing everything
+    from data propagation to reward distribution. It embodies the principles of decentralized governance
+    and collaborative intelligence, ensuring that the network remains adaptive, secure, and efficient.
+
+    Example Usage:
+        # Initializing the metagraph to represent the current state of the Bittensor network.
+        metagraph = bt.metagraph(netuid=config.netuid, network=subtensor.network, sync=False)
+
+        # Synchronizing the metagraph with the network to reflect the latest state and neuron data.
+        metagraph.sync(subtensor=subtensor)
+
+        # Accessing metagraph properties to inform network interactions and decisions.
+        total_stake = metagraph.S
+        neuron_ranks = metagraph.R
+        neuron_incentives = metagraph.I
+        ...
+        # Maintaining a local copy of hotkeys for querying and interacting with network entities.
+        hotkeys = deepcopy(metagraph.hotkeys)
     """
 
     @property
     def S(self) -> torch.FloatTensor:
         """
-        Total stake of the neurons.
+        Represents the stake of each neuron in the Bittensor network. Stake is an important concept in the
+        Bittensor ecosystem, signifying the amount of network weight (or “stake”) each neuron holds,
+        represented on a digital ledger. The stake influences a neuron's ability to contribute to and benefit
+        from the network, playing a crucial role in the distribution of incentives and decision-making processes.
 
         Returns:
-            torch.FloatTensor: Total stake.
+            torch.FloatTensor: A tensor representing the stake of each neuron in the network. Higher values
+                            signify a greater stake held by the respective neuron.
         """
         return self.total_stake
 
     @property
     def R(self) -> torch.FloatTensor:
         """
-        Ranks of the neurons.
+        Contains the ranks of neurons in the Bittensor network. Ranks are determined by the network based
+        on each neuron's performance and contributions. Higher ranks typically indicate a greater level of
+        contribution or performance by a neuron. These ranks are crucial in determining the distribution of
+        incentives within the network, with higher-ranked neurons receiving more incentive.
 
         Returns:
-            torch.FloatTensor: Ranks.
+            torch.FloatTensor: A tensor where each element represents the rank of a neuron. Higher values
+                            indicate higher ranks within the network.
         """
         return self.ranks
 
     @property
     def I(self) -> torch.FloatTensor:
         """
-        Incentive values of the neurons.
+        Incentive values of neurons represent the rewards they receive for their contributions to the network.
+        The Bittensor network employs an incentive mechanism that rewards neurons based on their
+        informational value, stake, and consensus with other peers. This ensures that the most valuable and
+        trusted contributions are incentivized.
 
         Returns:
-            torch.FloatTensor: Incentive values.
+            torch.FloatTensor: A tensor of incentive values, indicating the rewards or benefits accrued by each
+                            neuron based on their contributions and network consensus.
         """
         return self.incentive
 
     @property
     def E(self) -> torch.FloatTensor:
         """
-        Emission values of the neurons.
+        Denotes the emission values of neurons in the Bittensor network. Emissions refer to the distribution or
+        release of rewards (often in the form of the Tao token) to neurons, typically based on their stake and
+        performance. This mechanism is central to the network's incentive model, ensuring that active and
+        contributing neurons are appropriately rewarded.
 
         Returns:
-            torch.FloatTensor: Emission values.
+            torch.FloatTensor: A tensor where each element represents the emission value for a neuron, indicating
+                            the amount of reward distributed to that neuron.
         """
         return self.emission
 
     @property
     def C(self) -> torch.FloatTensor:
         """
-        Consensus values of the neurons.
+        Represents the consensus values of neurons in the Bittensor network. Consensus is a measure of how
+        much a neuron's contributions are trusted and agreed upon by the majority of the network. It is
+        calculated based on a staked weighted trust system, where the network leverages the collective
+        judgment of all participating peers. Higher consensus values indicate that a neuron's contributions
+        are more widely trusted and valued across the network.
 
         Returns:
-            torch.FloatTensor: Consensus values.
+            torch.FloatTensor: A tensor of consensus values, where each element reflects the level of trust and
+                            agreement a neuron has achieved within the network.
+
         """
         return self.consensus
 
     @property
     def T(self) -> torch.FloatTensor:
         """
-        Trust values of the neurons.
+        Represents the trust values assigned to each neuron in the Bittensor network. Trust is a key metric that
+        reflects the reliability and reputation of a neuron based on its past behavior and contributions. It is
+        an essential aspect of the network's functioning, influencing decision-making processes and interactions
+        between neurons.
+
+        The trust matrix is inferred from the network's inter-peer weights, indicating the level of trust each neuron
+        has in others. A higher value in the trust matrix suggests a stronger trust relationship between neurons.
 
         Returns:
-            torch.FloatTensor: Trust values.
+            torch.FloatTensor: A tensor of trust values, where each element represents the trust level of a neuron.
+                            Higher values denote a higher level of trust within the network.
         """
         return self.trust
 
     @property
     def Tv(self) -> torch.FloatTensor:
         """
-        Validator trust values of the neurons.
+        Contains the validator trust values of neurons in the Bittensor network. Validator trust is specifically
+        associated with neurons that act as validators within the network. This specialized form of trust reflects
+        the validators' reliability and integrity in their role, which is crucial for maintaining the network's
+        stability and security.
+
+        Validator trust values are particularly important for the network's consensus and validation processes,
+        determining the validators' influence and responsibilities in these critical functions.
 
         Returns:
-            torch.FloatTensor: Validator trust values.
+            torch.FloatTensor: A tensor of validator trust values, specifically applicable to neurons serving as
+                            validators, where higher values denote greater trustworthiness in their validation roles.
         """
         return self.validator_trust
 
     @property
     def D(self) -> torch.FloatTensor:
         """
-        Dividends of the neurons.
+        Represents the dividends received by neurons in the Bittensor network. Dividends are a form of reward or
+        distribution, typically given to neurons based on their stake, performance, and contribution to the network.
+        They are an integral part of the network's incentive structure, encouraging active and beneficial participation.
 
         Returns:
-            torch.FloatTensor: Dividends.
+            torch.FloatTensor: A tensor of dividend values, where each element indicates the dividends received by
+                            a neuron, reflecting their share of network rewards.
         """
         return self.dividends
 
     @property
     def B(self) -> torch.FloatTensor:
         """
-        Bonds of the neurons.
+        Bonds in the Bittensor network represent a speculative reward mechanism where neurons can accumulate
+        bonds in other neurons. Bonds are akin to investments or stakes in other neurons, reflecting a belief in
+        their future value or performance. This mechanism encourages correct weighting and collaboration
+        among neurons while providing an additional layer of incentive.
 
         Returns:
-            torch.FloatTensor: Bonds.
+            torch.FloatTensor: A tensor representing the bonds held by each neuron, where each value signifies
+                            the proportion of bonds owned by one neuron in another.
         """
         return self.bonds
 
     @property
     def W(self) -> torch.FloatTensor:
         """
-        Weights of the neurons.
+        Represents the weights assigned to each neuron in the Bittensor network. In the context of Bittensor,
+        weights are crucial for determining the influence and interaction between neurons. Each neuron is responsible
+        for setting its weights, which are then recorded on a digital ledger. These weights are reflective of the
+        neuron's assessment or judgment of other neurons in the network.
+
+        The weight matrix W = [w_ij] is a key component of the network's architecture, where the ith row is set by
+        neuron i and represents its weights towards other neurons. These weights influence the ranking and incentive
+        mechanisms within the network. Higher weights from a neuron towards another can imply greater trust or value
+        placed on that neuron's contributions.
 
         Returns:
-            torch.FloatTensor: Weights.
+            torch.FloatTensor: A tensor of inter-peer weights, where each element wij represents the weight assigned
+                            by neuron i to neuron j. This matrix is fundamental to the network's functioning,
+                            influencing the distribution of incentives and the inter-neuronal dynamics.
         """
         return self.weights
 
     @property
     def hotkeys(self) -> List[str]:
         """
-        List of hotkeys for the neurons.
+        Represents a list of 'hotkeys' for each neuron in the Bittensor network. Hotkeys are unique identifiers
+        used by neurons for active participation in the network, such as sending and receiving information or
+        transactions. They are akin to public keys in cryptographic systems and are essential for identifying
+        and authenticating neurons within the network's operations.
 
         Returns:
-            List[str]: List of hotkeys.
+            List[str]: A list of hotkeys, with each string representing the hotkey of a corresponding neuron.
+                    These keys are crucial for the network's security and integrity, ensuring proper
+                    identification and authorization of network participants.
+
+        Note:
+            While the NeurIPS paper may not explicitly detail the concept of hotkeys, they are a fundamental aspect
+            of decentralized networks for secure and authenticated interactions.
         """
         return [axon.hotkey for axon in self.axons]
 
     @property
     def coldkeys(self) -> List[str]:
         """
-        List of coldkeys for the neurons.
+        Contains a list of 'coldkeys' for each neuron in the Bittensor network. Coldkeys are similar to hotkeys
+        but are typically used for more secure, offline activities such as storing assets or offline signing of
+        transactions. They are an important aspect of a neuron's security, providing an additional layer of
+        protection for sensitive operations and assets.
 
         Returns:
-            List[str]: List of coldkeys.
+            List[str]: A list of coldkeys, each string representing the coldkey of a neuron. These keys play a
+                    vital role in the secure management of assets and sensitive operations within the network.
+
+        Note:
+            The concept of coldkeys, while not explicitly covered in the NeurIPS paper, is a standard practice in
+            blockchain and decentralized networks for enhanced security and asset protection.
         """
         return [axon.coldkey for axon in self.axons]
 
     @property
     def addresses(self) -> List[str]:
         """
-        List of IP addresses for the neurons.
+        Provides a list of IP addresses for each neuron in the Bittensor network. These addresses are used for
+        network communication, allowing neurons to connect, interact, and exchange information with each other.
+        IP addresses are fundamental for the network's peer-to-peer communication infrastructure.
 
         Returns:
-            List[str]: List of IP addresses.
+            List[str]: A list of IP addresses, with each string representing the address of a neuron. These
+                    addresses enable the decentralized, distributed nature of the network, facilitating
+                    direct communication and data exchange among neurons.
+
+        Note:
+            While IP addresses are a basic aspect of network communication, specific details about their use in
+            the Bittensor network may not be covered in the NeurIPS paper. They are, however, integral to the
+            functioning of any distributed network.
         """
         return [axon.ip_str() for axon in self.axons]
 
     def __str__(self) -> str:
         """
-        String representation of the metagraph.
+        Provides a human-readable string representation of the metagraph object. This representation
+        includes key identifiers and attributes of the metagraph, making it easier to quickly understand
+        the state and configuration of the metagraph in a simple format.
 
         Returns:
-            str: String representation.
+            str: A string that succinctly represents the metagraph, including its network UID, the total
+                number of neurons (n), the current block number, and the network's name. This format is
+                particularly useful for logging, debugging, and displaying the metagraph in a concise manner.
+
+        Example:
+            # When printing the metagraph object or using it in a string context, this method is automatically invoked.
+            print(metagraph)  # Output: "metagraph(netuid:1, n:100, block:500, network:finney)"
         """
         return "metagraph(netuid:{}, n:{}, block:{}, network:{})".format(
             self.netuid, self.n.item(), self.block.item(), self.network
@@ -239,19 +365,39 @@ class metagraph(torch.nn.Module):
 
     def __repr__(self) -> str:
         """
-        String representation of the metagraph.
+        Provides a detailed string representation of the metagraph object, intended for unambiguous
+        understanding and debugging purposes. This method simply calls the `__str__` method, ensuring
+        consistency between the informal and formal string representations of the metagraph.
 
         Returns:
-            str: String representation.
+            str: The same string representation as provided by the `__str__` method, detailing the metagraph's
+                key attributes including network UID, number of neurons, block number, and network name.
+
+        Example:
+            # The __repr__ output can be used in debugging to get a clear and concise description of the metagraph.
+            metagraph_repr = repr(metagraph)
+            print(metagraph_repr)  # Output mirrors that of __str__
         """
         return self.__str__()
 
     def metadata(self) -> dict:
         """
-        Get the metadata of the metagraph.
+        Retrieves the metadata of the metagraph, providing key information about the current state of the
+        Bittensor network. This metadata includes details such as the network's unique identifier (netuid),
+        the total number of neurons (n), the current block number, the network's name, and the version of
+        the Bittensor network.
 
         Returns:
-            dict: Metadata dictionary.
+            dict: A dictionary containing essential metadata about the metagraph, including:
+                - 'netuid': The unique identifier for the network.
+                - 'n': The total number of neurons in the network.
+                - 'block': The current block number in the network's blockchain.
+                - 'network': The name of the Bittensor network.
+                - 'version': The version number of the Bittensor software.
+
+        Note:
+            This metadata is crucial for understanding the current state and configuration of the network,
+            as well as for tracking its evolution over time.
         """
         return {
             "netuid": self.netuid,
@@ -265,13 +411,24 @@ class metagraph(torch.nn.Module):
         self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
     ) -> "metagraph":
         """
-        Initialize the metagraph object.
+        Initializes a new instance of the metagraph object, setting up the basic structure and parameters
+        based on the provided arguments. This method is the entry point for creating a metagraph object,
+        which is a central component in representing the state of the Bittensor network.
 
         Args:
-            netuid (int): Network UID.
-            network (str): Network name.
-            lite (bool): Whether to use lite version of the metagraph.
-            sync (bool): Whether to synchronize the metagraph.
+            netuid (int): The unique identifier for the network, distinguishing this instance of the metagraph
+                        within potentially multiple network configurations.
+            network (str): The name of the network, which can indicate specific configurations or versions
+                        of the Bittensor network.
+            lite (bool): A flag indicating whether to use a lite version of the metagraph. The lite version
+                        may contain less detailed information but can be quicker to initialize and sync.
+            sync (bool): A flag indicating whether to synchronize the metagraph with the network upon initialization.
+                        Synchronization involves updating the metagraph's parameters to reflect the current state
+                        of the network.
+
+        Example:
+            # Initializing a metagraph object for the Bittensor network with a specific network UID.
+            metagraph = metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
         super(metagraph, self).__init__()
         self.netuid = netuid
@@ -342,15 +499,36 @@ class metagraph(torch.nn.Module):
         subtensor: Optional["bittensor.subtensor"] = None,
     ) -> "metagraph":
         """
-        Initiates the synchronization process of the metagraph.
+        Synchronizes the metagraph with the Bittensor network's current state. It updates the metagraph's attributes
+        to reflect the latest data from the network, ensuring the metagraph represents the most current state of the network.
 
         Args:
-            block (int, optional): Block number to sync. If None, the current block is used.
-            lite (bool): Whether to use lite version of the metagraph.
-            subtensor (bittensor.subtensor, optional): Subtensor object to use for syncing.
+            block (Optional[int]): A specific block number to synchronize with. If None, the metagraph syncs with the latest block.
+                                    This allows for historical analysis or specific state examination of the network.
+            lite (bool): If True, a lite version of the metagraph is used for quicker synchronization. This is beneficial
+                        when full detail is not necessary, allowing for reduced computational and time overhead.
+            subtensor (Optional[bittensor.subtensor]): An instance of the subtensor class from Bittensor, providing an
+                                                        interface to the underlying blockchain data. If provided, this
+                                                        instance is used for data retrieval during synchronization.
 
         Returns:
-            metagraph: Updated metagraph object.
+            metagraph: The metagraph instance, updated to the state of the specified block or the latest network state.
+
+        Example:
+            # Setup subtensor (ideally local) to sync the metagraph with the latest block from the subtensor.
+            subtensor = bittensor.subtensor(network='local')
+
+            # Sync the metagraph with the latest block from the subtensor, using the lite version for efficiency.
+            metagraph.sync(subtensor=subtensor)
+
+            # Sync with a specific block number for detailed analysis.
+            metagraph.sync(block=12345, lite=False, subtensor=subtensor)
+
+        NOTE: If attempting to access data beyond the previous 300 blocks, you **must** use the `archive` network for subtensor.
+        Light nodes are configured only to store the previous 300 blocks if connecting to finney or test networks.
+
+        For example:
+            subtensor = bittensor.subtensor(network='archive')
         """
         # Initialize subtensor
         subtensor = self._initialize_subtensor(subtensor)
@@ -367,13 +545,22 @@ class metagraph(torch.nn.Module):
 
     def _initialize_subtensor(self, subtensor):
         """
-        Initializes the subtensor to be used for syncing.
+        Initializes the subtensor to be used for syncing the metagraph. This method ensures that a subtensor
+        instance is available and properly set up for data retrieval during the synchronization process.
+
+        If no subtensor is provided, this method is responsible for creating a new instance of the subtensor,
+        configured according to the current network settings.
 
         Args:
-            subtensor: The subtensor to initialize. If None, a new subtensor is created.
+            subtensor: The subtensor instance provided for initialization. If None, a new subtensor
+                    instance is created using the current network configuration.
 
         Returns:
-            subtensor: The initialized subtensor.
+            subtensor: The initialized subtensor instance, ready to be used for syncing the metagraph.
+
+        Internal Usage:
+            # Used internally during the sync process to ensure a valid subtensor instance is available.
+            subtensor = self._initialize_subtensor(subtensor)
         """
         if not subtensor:
             # TODO: Check and test the initialization of the new subtensor
@@ -382,15 +569,20 @@ class metagraph(torch.nn.Module):
 
     def _assign_neurons(self, block, lite, subtensor):
         """
-        Assigns neurons to the metagraph based on the 'lite' flag.
+        Assigns neurons to the metagraph based on the provided block number and the lite flag. This method
+        is responsible for fetching and setting the neuron data in the metagraph, which includes neuron
+        attributes like UID, stake, trust, and other relevant information.
 
         Args:
-            block: The block number for which the neurons need to be assigned.
-            lite: Flag to decide the type of neurons to be assigned.
-            subtensor: The subtensor to use for syncing.
+            block: The block number for which the neuron data needs to be fetched. If None, the latest block
+                data is used.
+            lite: A boolean flag indicating whether to use a lite version of the neuron data. The lite version
+                typically includes essential information and is quicker to fetch and process.
+            subtensor: The subtensor instance used for fetching neuron data from the network.
 
-        Returns:
-            None.
+        Internal Usage:
+            # Used internally during the sync process to fetch and set neuron data.
+            self._assign_neurons(block, lite, subtensor)
         """
         # TODO: Check and test the conditions for assigning neurons
         if lite:
@@ -401,14 +593,18 @@ class metagraph(torch.nn.Module):
 
     def _set_metagraph_attributes(self, block, subtensor):
         """
-        Sets attributes for the metagraph.
+        Sets various attributes of the metagraph based on the latest network data fetched from the subtensor.
+        This method updates parameters like the number of neurons, block number, stakes, trusts, ranks, and other
+        neuron-specific information.
 
         Args:
-            block: The block number for which the attributes need to be set.
-            subtensor: The subtensor to use for syncing.
+            block: The block number for which the metagraph attributes need to be set. If None, the latest block
+                data is used.
+            subtensor: The subtensor instance used for fetching the latest network data.
 
-        Returns:
-            None.
+        Internal Usage:
+            # Used internally during the sync process to update the metagraph's attributes.
+            self._set_metagraph_attributes(block, subtensor)
         """
         # TODO: Check and test the setting of each attribute
         self.n = self._create_tensor(len(self.neurons), dtype=torch.int64)
@@ -461,24 +657,37 @@ class metagraph(torch.nn.Module):
 
     def _create_tensor(self, data, dtype) -> torch.nn.Parameter:
         """
-        Creates a tensor parameter with the given data and dtype.
+        Creates a tensor parameter with the given data and data type. This method is a utility function used
+        internally to encapsulate data into a PyTorch tensor, making it compatible with the metagraph's PyTorch
+        model structure.
 
         Args:
-            data: The data to be included in the tensor.
-            dtype: The datatype for the tensor.
+            data: The data to be included in the tensor. This could be any numeric data, like stakes, ranks, etc.
+            dtype: The data type for the tensor, typically a PyTorch data type like torch.float32 or torch.int64.
 
         Returns:
-            A tensor parameter.
+            A tensor parameter encapsulating the provided data.
+
+        Internal Usage:
+            # Used internally to create tensor parameters for various metagraph attributes.
+            self.stake = self._create_tensor(neuron_stakes, dtype=torch.float32)
         """
         # TODO: Check and test the creation of tensor
         return torch.nn.Parameter(torch.tensor(data, dtype=dtype), requires_grad=False)
 
     def _set_weights_and_bonds(self, subtensor: bittensor.subtensor = None):
         """
-        Computes and sets weights and bonds for each neuron.
+        Computes and sets the weights and bonds for each neuron in the metagraph. This method is responsible for
+        processing the raw weight and bond data obtained from the network and converting it into a structured format
+        suitable for the metagraph model.
 
-        Returns:
-            None.
+        Args:
+            subtensor: The subtensor instance used for fetching weights and bonds data. If None, the weights and
+                    bonds are not updated.
+
+        Internal Usage:
+            # Used internally during the sync process to update the weights and bonds of the neurons.
+            self._set_weights_and_bonds(subtensor=subtensor)
         """
         # TODO: Check and test the computation of weights and bonds
         if self.netuid == 0:
@@ -495,14 +704,21 @@ class metagraph(torch.nn.Module):
 
     def _process_weights_or_bonds(self, data, attribute: str) -> torch.nn.Parameter:
         """
-        Processes weights or bonds based on the given attribute.
+        Processes the raw weights or bonds data and converts it into a structured tensor format. This method handles
+        the transformation of neuron connection data (weights or bonds) from a list or other unstructured format
+        into a tensor that can be utilized within the metagraph model.
 
         Args:
-            data: The weights or bonds data to be processed.
-            attribute: The attribute to decide the type of processing ('weights' or 'bonds').
+            data: The raw weights or bonds data to be processed. This data typically comes from the subtensor.
+            attribute: A string indicating whether the data is 'weights' or 'bonds', which determines the
+                    specific processing steps to be applied.
 
         Returns:
-            The processed tensor parameter.
+            A tensor parameter encapsulating the processed weights or bonds data.
+
+        Internal Usage:
+            # Used internally to process and set weights or bonds for the neurons.
+            self.weights = self._process_weights_or_bonds(raw_weights_data, "weights")
         """
         data_array = []
         for item in data:
@@ -538,14 +754,20 @@ class metagraph(torch.nn.Module):
         self, data, attribute: str, subtensor: bittensor.subtensor
     ) -> torch.nn.Parameter:
         """
-        Processes root weights based on the given attribute.
+        Specifically processes the root weights data for the metagraph. This method is similar to _process_weights_or_bonds
+        but is tailored for processing root weights, which have a different structure and significance in the network.
 
         Args:
-            data: The weights or bonds data to be processed.
-            attribute: The attribute to decide the type of processing ('weights' or 'bonds').
+            data: The raw root weights data to be processed.
+            attribute: A string indicating the attribute type, here it's typically 'weights'.
+            subtensor: The subtensor instance used for additional data and context needed in processing.
 
         Returns:
-            The processed tensor parameter.
+            A tensor parameter encapsulating the processed root weights data.
+
+        Internal Usage:
+            # Used internally to process and set root weights for the metagraph.
+            self.root_weights = self._process_root_weights(raw_root_weights_data, "weights", subtensor)
         """
         data_array = []
         n_subnets = subtensor.get_total_subnets()
@@ -575,10 +797,24 @@ class metagraph(torch.nn.Module):
 
     def save(self) -> "metagraph":
         """
-        Save the state of the metagraph object.
+        Saves the current state of the metagraph to a file on disk. This function is crucial for persisting the current
+        state of the network's metagraph, which can later be reloaded or analyzed. The save operation includes all neuron
+        attributes and parameters, ensuring a complete snapshot of the metagraph's state.
 
         Returns:
-            metagraph: Updated metagraph object.
+            metagraph: The metagraph instance after saving its state.
+
+        Example:
+            # Save the current state of the metagraph to the default directory.
+            metagraph.save()
+
+            # The saved state can later be loaded to restore or analyze the metagraph's state at this point.
+
+            # If using the default save path
+            metagraph.load()
+
+            # If using a custom save path
+            metagraph.load_from_path(dir_path)
         """
         save_directory = get_save_dir(self.network, self.netuid)
         os.makedirs(save_directory, exist_ok=True)
@@ -591,22 +827,67 @@ class metagraph(torch.nn.Module):
 
     def load(self) -> "metagraph":
         """
-        Load the state of the metagraph object.
+        Loads the state of the metagraph from the default save directory. This method is instrumental for restoring
+        the metagraph to its last saved state. It automatically identifies the save directory based on the network
+        and netuid properties of the metagraph, locates the latest block file in that directory, and loads all
+        metagraph parameters from it.
+
+        This functionality is particularly beneficial when continuity in the state of the metagraph is necessary
+        across different runtime sessions, or after a restart of the system. It ensures that the metagraph reflects
+        the exact state it was in at the last save point, maintaining consistency in the network's representation.
+
+        The method delegates to `load_from_path`, supplying it with the directory path constructed from the metagraph's
+        current network and netuid properties. This abstraction simplifies the process of loading the metagraph's state
+        for the user, requiring no direct path specifications.
 
         Returns:
-            metagraph: Updated metagraph object.
+            metagraph: The metagraph instance after loading its state from the default directory.
+
+        Example:
+            # Load the metagraph state from the last saved snapshot in the default directory.
+            metagraph.load()
+
+            # After this operation, the metagraph's parameters and neuron data are restored to their state
+            # at the time of the last save in the default directory.
+
+        Note:
+            The default save directory is determined based on the metagraph's network and netuid attributes. It is
+            important to ensure that these attributes are set correctly and that the default save directory contains
+            the appropriate state files for the metagraph.
         """
         self.load_from_path(get_save_dir(self.network, self.netuid))
 
     def load_from_path(self, dir_path: str) -> "metagraph":
         """
-        Load the state of the metagraph object from the specified path.
+        Loads the state of the metagraph from a specified directory path. This method is crucial for restoring
+        the metagraph to a specific state based on saved data. It locates the latest block file in the given
+        directory and loads all metagraph parameters from it. This is particularly useful for analyses that
+        require historical states of the network or for restoring previous states of the metagraph in different
+        execution environments.
+
+        The method first identifies the latest block file in the specified directory, then loads the metagraph state
+        including neuron attributes and parameters from this file. This ensures that the metagraph is accurately
+        reconstituted to reflect the network state at the time of the saved block.
 
         Args:
-            dir_path (str): Directory path.
+            dir_path (str): The directory path where the metagraph's state files are stored. This path should
+                            contain one or more saved state files, typically named in a format that includes
+                            the block number.
 
         Returns:
-            metagraph: Updated metagraph object.
+            metagraph: The metagraph instance after loading its state from the specified directory path.
+
+        Example:
+            # Load the metagraph state from a specific directory.
+            dir_path = "/path/to/saved/metagraph/states"
+            metagraph.load_from_path(dir_path)
+
+            # The metagraph is now restored to the state it was in at the time of the latest saved block in the specified directory.
+
+        Note:
+            This method assumes that the state files in the specified directory are correctly formatted and
+            contain valid data for the metagraph. It is essential to ensure that the directory path and the
+            state files within it are accurate and consistent with the expected metagraph structure.
         """
         graph_file = latest_block_path(dir_path)
         state_dict = torch.load(graph_file)

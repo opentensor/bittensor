@@ -13,7 +13,7 @@ import io
 def solve_cuda(
     nonce_start: np.int64,
     update_interval: np.int64,
-    TPB: int,
+    tpb: int,
     block_and_hotkey_hash_bytes: bytes,
     difficulty: int,
     limit: int,
@@ -26,7 +26,7 @@ def solve_cuda(
             Starting nonce.
         update_interval: int64
             Number of nonces to solve before updating block information.
-        TPB: int
+        tpb: int
             Threads per block.
         block_and_hotkey_hash_bytes: bytes
             Keccak(Bytes of the block hash + bytes of the hotkey) 64 bytes.
@@ -78,7 +78,7 @@ def solve_cuda(
     block_and_hotkey_hash_hex = binascii.hexlify(block_and_hotkey_hash_bytes)[:64]
 
     solution = cubit.solve_cuda(
-        TPB,
+        tpb,
         nonce_start,
         update_interval,
         upper_bytes,

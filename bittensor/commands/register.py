@@ -20,6 +20,7 @@ import argparse
 import bittensor
 from rich.prompt import Prompt, Confirm
 from .utils import check_netuid_set, check_for_cuda_reg_config
+from copy import deepcopy
 
 from . import defaults
 
@@ -156,7 +157,7 @@ class PowRegisterCommand:
     - --pow_register.cuda.use_cuda (bool): Enables the use of CUDA for GPU-accelerated PoW calculations. Requires a CUDA-compatible GPU.
     - --pow_register.cuda.no_cuda (bool): Disables the use of CUDA, defaulting to CPU-based calculations.
     - --pow_register.cuda.dev_id (int): Specifies the CUDA device ID, useful for systems with multiple CUDA-compatible GPUs.
-    - --pow_register.cuda.TPB (int): Sets the number of Threads Per Block for CUDA operations, affecting the GPU calculation dynamics.
+    - --pow_register.cuda.tpb (int): Sets the number of Threads Per Block for CUDA operations, affecting the GPU calculation dynamics.
 
     The command also supports additional wallet and subtensor arguments, enabling further customization of the registration process.
 
@@ -188,7 +189,7 @@ class PowRegisterCommand:
             wallet=wallet,
             netuid=cli.config.netuid,
             prompt=not cli.config.no_prompt,
-            TPB=cli.config.pow_register.cuda.get("TPB", None),
+            tpb=cli.config.pow_register.cuda.get("tpb", None),
             update_interval=cli.config.pow_register.get("update_interval", None),
             num_processes=cli.config.pow_register.get("num_processes", None),
             cuda=cli.config.pow_register.cuda.get(
@@ -280,10 +281,10 @@ class PowRegisterCommand:
             required=False,
         )
         register_parser.add_argument(
-            "--pow_register.cuda.TPB",
-            "--cuda.TPB",
+            "--pow_register.cuda.tpb",
+            "--cuda.tpb",
             type=int,
-            default=defaults.pow_register.cuda.TPB,
+            default=defaults.pow_register.cuda.tpb,
             help="""Set the number of Threads Per Block for CUDA.""",
             required=False,
         )
@@ -341,7 +342,7 @@ class RunFaucetCommand:
     - --faucet.cuda.use_cuda (bool): Activates the use of CUDA for GPU acceleration in the PoW process, suitable for CUDA-compatible GPUs.
     - --faucet.cuda.no_cuda (bool): Disables the use of CUDA, opting for CPU-based calculations.
     - --faucet.cuda.dev_id (int[]): Allows selection of specific CUDA device IDs for the operation, useful in multi-GPU setups.
-    - --faucet.cuda.TPB (int): Determines the number of Threads Per Block for CUDA operations, affecting GPU calculation efficiency.
+    - --faucet.cuda.tpb (int): Determines the number of Threads Per Block for CUDA operations, affecting GPU calculation efficiency.
 
     These options provide flexibility in configuring the PoW process according to the user's hardware capabilities and preferences.
 
@@ -363,7 +364,7 @@ class RunFaucetCommand:
         subtensor.run_faucet(
             wallet=wallet,
             prompt=not cli.config.no_prompt,
-            TPB=cli.config.pow_register.cuda.get("TPB", None),
+            tpb=cli.config.pow_register.cuda.get("tpb", None),
             update_interval=cli.config.pow_register.get("update_interval", None),
             num_processes=cli.config.pow_register.get("num_processes", None),
             cuda=cli.config.pow_register.cuda.get(
@@ -448,10 +449,10 @@ class RunFaucetCommand:
             required=False,
         )
         run_faucet_parser.add_argument(
-            "--faucet.cuda.TPB",
-            "--cuda.TPB",
+            "--faucet.cuda.tpb",
+            "--cuda.tpb",
             type=int,
-            default=defaults.pow_register.cuda.TPB,
+            default=defaults.pow_register.cuda.tpb,
             help="""Set the number of Threads Per Block for CUDA.""",
             required=False,
         )
@@ -465,3 +466,70 @@ class RunFaucetCommand:
             config.wallet.name = str(wallet_name)
         if not config.no_prompt:
             check_for_cuda_reg_config(config)
+
+
+class SwapHotkeyCommand:
+    @staticmethod
+    def run(cli):
+        r"""Swap your hotkey for all registered axons on the network."""
+        wallet = bittensor.wallet(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config)
+
+        # This creates an unnecessary amount of extra data, but simplifies implementation.
+        new_config = deepcopy(cli.config)
+        new_config.wallet.hotkey = new_config.wallet.hotkey_b
+        new_wallet = bittensor.wallet(config=new_config)
+
+        subtensor.swap_hotkey(
+            wallet=wallet,
+            new_wallet=new_wallet,
+            wait_for_finalization=False,
+            wait_for_inclusion=True,
+            prompt=False,
+        )
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        swap_hotkey_parser = parser.add_parser(
+            "swap_hotkey", help="""Swap your associated hotkey."""
+        )
+
+        swap_hotkey_parser.add_argument(
+            "--wallet.hotkey_b",
+            type=str,
+            default=defaults.wallet.hotkey,
+            help="""Name of the new hotkey""",
+            required=False,
+        )
+
+        bittensor.wallet.add_args(swap_hotkey_parser)
+        bittensor.subtensor.add_args(swap_hotkey_parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if (
+            not config.is_set("subtensor.network")
+            and not config.is_set("subtensor.chain_endpoint")
+            and not config.no_prompt
+        ):
+            config.subtensor.network = Prompt.ask(
+                "Enter subtensor network",
+                choices=bittensor.__networks__,
+                default=defaults.subtensor.network,
+            )
+            _, endpoint = bittensor.subtensor.determine_chain_endpoint_and_network(
+                config.subtensor.network
+            )
+            config.subtensor.chain_endpoint = endpoint
+
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter old hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+        if not config.is_set("wallet.hotkey_b") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter new hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey_b = str(hotkey)

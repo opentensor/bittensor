@@ -639,13 +639,13 @@ class TestCUDASolverRun(unittest.TestCase):
         class MockException(Exception):
             pass
 
-        TPB: int = 512
+        tpb: int = 512
         update_interval: int = 70_000
         nonce_limit: int = int(math.pow(2, 64)) - 1
 
         mock_solver_self = MagicMock(
             spec=_CUDASolver,
-            TPB=TPB,
+            tpb=tpb,
             dev_id=0,
             update_interval=update_interval,
             stopEvent=MagicMock(is_set=MagicMock(return_value=False)),
@@ -690,10 +690,10 @@ class TestCUDASolverRun(unittest.TestCase):
                 initial_nonce_start,
                 "nonce_start was not updated after iteration",
             )
-            ## Should incerase by the number of nonces tried == TPB * update_interval
+            ## Should incerase by the number of nonces tried == tpb * update_interval
             self.assertEqual(
                 nonce_start_after_iteration,
-                (initial_nonce_start + update_interval * TPB) % nonce_limit,
+                (initial_nonce_start + update_interval * tpb) % nonce_limit,
                 "nonce_start was not updated by the correct amount",
             )
 
