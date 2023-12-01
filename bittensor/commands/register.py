@@ -127,14 +127,12 @@ class RegisterCommand:
             )
             config.subtensor.chain_endpoint = endpoint
 
-        check_netuid_set(config, subtensor=bittensor.subtensor(config=config))
-
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
+            hotkey = Prompt.ask("Enter old hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
 
@@ -517,6 +515,10 @@ class SwapHotkeyCommand:
                 choices=bittensor.__networks__,
                 default=defaults.subtensor.network,
             )
+            _, endpoint = bittensor.subtensor.determine_chain_endpoint_and_network(
+                config.subtensor.network
+            )
+            config.subtensor.chain_endpoint = endpoint
 
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
