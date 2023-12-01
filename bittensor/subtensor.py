@@ -109,8 +109,8 @@ class subtensor:
     investments.
 
     Attributes:
-        network (str): The name of the Bittensor network (e.g., 'finney', 'local') the instance is
-                       connected to, determining the blockchain interaction context.
+        network (str): The name of the Bittensor network (e.g., 'finney', 'test', 'archive', 'local') the instance
+                       is connected to, determining the blockchain interaction context.
         chain_endpoint (str): The blockchain node endpoint URL, enabling direct communication
                               with the Bittensor blockchain for transaction processing and data retrieval.
 
@@ -154,18 +154,20 @@ class subtensor:
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         prefix_str = "" if prefix == None else prefix + "."
         try:
-            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "local"
+            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "finney"
             default_chain_endpoint = (
                 os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
-                or bittensor.__local_entrypoint__
+                or bittensor.__finney_entrypoint__
             )
             parser.add_argument(
                 "--" + prefix_str + "subtensor.network",
                 default=default_network,
                 type=str,
                 help="""The subtensor network flag. The likely choices are:
-                                        -- local (local running network)
                                         -- finney (main network)
+                                        -- test (test network)
+                                        -- archive (archive network +300 blocks)
+                                        -- local (local running network)
                                     If this option is set it overloads subtensor.chain_endpoint with
                                     an entry point node from that network.
                                     """,
@@ -195,6 +197,7 @@ class subtensor:
         Args:
             network (str): The network flag. The likely choices are:
                     -- finney (main network)
+                    -- archive (archive network +300 blocks)
                     -- local (local running network)
                     -- test (test network)
             chain_endpoint (str): The chain endpoint flag. If set, overrides the network argument.
@@ -299,6 +302,13 @@ class subtensor:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
 
+        NOTE: Currently subtensor defaults to the finney network. This will change in a future release.
+
+        We strongly encourage users to run their own local subtensor node whenever possible. This increases
+        decentralization and resilience of the network. In a future release, local subtensor will become the
+        default and the fallback to finney removed. Please plan ahead for this change. We will provide detailed
+        instructions on how to run a local subtensor node in the documentation in a subsequent release.
+
         Args:
             network (str, optional): The network name to connect to (e.g., 'finney', 'local').
                                      Defaults to the main Bittensor network if not specified.
@@ -320,6 +330,22 @@ class subtensor:
         # Setup config.subtensor.network and config.subtensor.chain_endpoint
         self.chain_endpoint, self.network = subtensor.setup_config(network, config)
 
+        if (
+            self.network == "finney"
+            or self.chain_endpoint == bittensor.__finney_entrypoint__
+        ):
+            bittensor.logging.info(
+                f"You are connecting to {self.network} network with endpoint {self.chain_endpoint}."
+            )
+            bittensor.logging.warning(
+                "We strongly encourage running a local subtensor node whenever possible. "
+                "This increases decentralization and resilience of the network."
+            )
+            bittensor.logging.warning(
+                "In a future release, local subtensor will become the default endpoint. "
+                "To get ahead of this change, please run a local subtensor node and point to it."
+            )
+
         # Returns a mocked connection with a background chain connection.
         self.config.subtensor._mock = (
             _mock
@@ -330,12 +356,27 @@ class subtensor:
             config.subtensor._mock = True
             return bittensor.subtensor_mock.MockSubtensor()
 
-        # Set up params.
-        self.substrate = SubstrateInterface(
-            ss58_format=bittensor.__ss58_format__,
-            use_remote_preset=True,
-            url=self.chain_endpoint,
-            type_registry=bittensor.__type_registry__,
+        # Attempt to connect to chosen endpoint. Fallback to finney if local unavailable.
+        try:
+            # Set up params.
+            self.substrate = SubstrateInterface(
+                ss58_format=bittensor.__ss58_format__,
+                use_remote_preset=True,
+                url=self.chain_endpoint,
+                type_registry=bittensor.__type_registry__,
+            )
+        except ConnectionRefusedError as e:
+            bittensor.logging.error(
+                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting..."
+            )
+            bittensor.logging.info(
+                f"You can check if you have connectivity by runing this command: nc -vz localhost {self.chain_endpoint.split(':')[2]}"
+            )
+            exit(1)
+            # TODO (edu/phil): Advise to run local subtensor and point to dev docs.
+
+        bittensor.logging.info(
+            f"Connected to {self.network} network and {self.chain_endpoint}."
         )
 
     def __str__(self) -> str:
