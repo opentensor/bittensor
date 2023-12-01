@@ -42,6 +42,8 @@ ALIAS_TO_COMMAND = {
     "wallets": "wallet",
     "stakes": "stake",
     "sudos": "sudo",
+    "subtensor": "subtensor",
+    "sub": "subtensor",
 }
 COMMANDS = {
     "subnets": {
@@ -129,6 +131,14 @@ COMMANDS = {
         "commands": {
             "update": UpdateCommand,
             "faucet": RunFaucetCommand,
+        },
+    },
+    "subtensor": {
+        "name": "subtensor",
+        "aliases": ["sub"],
+        "help": "Commands for checking the connectivity status of Bittensor network endpoints.",
+        "commands": {
+            "check": CheckEndpointCommand,
         },
     },
 }
