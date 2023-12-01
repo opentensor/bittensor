@@ -342,7 +342,8 @@ class subtensor:
                 "This increases decentralization and resilience of the network."
             )
             bittensor.logging.warning(
-                "In a future release, local subtensor will become the default and the fallback to finney removed."
+                "In a future release, local subtensor will become the default endpoint. "
+                "To get ahead of this change, please run a local subtensor node and point to it."
             )
 
         # Returns a mocked connection with a background chain connection.
@@ -366,26 +367,12 @@ class subtensor:
             )
         except ConnectionRefusedError as e:
             bittensor.logging.error(
-                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint."
+                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting..."
             )
-            bittensor.logging.warning(
+            bittensor.logging.info(
                 f"You can check if you have connectivity by runing this command: nc -vz localhost {self.chain_endpoint.split(':')[2]}"
             )
-            bittensor.logging.warning(
-                f"Falling back to finney at {bittensor.__finney_entrypoint__}"
-            )
-            bittensor.logging.warning(
-                f"Note: This will become an error in a future release by removing the fallback to finney."
-            )
-
-            self.substrate = SubstrateInterface(
-                ss58_format=bittensor.__ss58_format__,
-                use_remote_preset=True,
-                url=bittensor.__finney_entrypoint__,
-                type_registry=bittensor.__type_registry__,
-            )
-            self.network = "finney"
-            self.chain_endpoint = bittensor.__finney_entrypoint__
+            exit(1)
             # TODO (edu/phil): Advise to run local subtensor and point to dev docs.
 
         bittensor.logging.info(

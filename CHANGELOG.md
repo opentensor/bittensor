@@ -3,7 +3,7 @@
 ## 6.4.1 / 2023-12-01
 
 ## What's Changed
-* add helpful messages to signal coming changes & fallback to finney in https://github.com/opentensor/bittensor/pull/1600/commits/86c0c3ccfcd91d0e3ff87f53bdc3e9c5e68661da
+* add helpful messages to signal coming changes in https://github.com/opentensor/bittensor/pull/1600/commits/86c0c3ccfcd91d0e3ff87f53bdc3e9c5e68661da
 * revert default subtensor network to finney in https://github.com/opentensor/bittensor/pull/1600/commits/8c69a3c15cd556384d0309e951f0a9b164dd36cb
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.0.1...v6.4.1
