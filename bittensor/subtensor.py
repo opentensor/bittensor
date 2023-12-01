@@ -586,7 +586,7 @@ class subtensor:
         """
         Internal method to send a transaction to the Bittensor blockchain, setting weights
         for specified neurons. This method constructs and submits the transaction, handling
-        retries and blockchain communication. 
+        retries and blockchain communication.
 
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron setting the weights.
