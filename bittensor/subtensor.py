@@ -109,8 +109,8 @@ class subtensor:
     investments.
 
     Attributes:
-        network (str): The name of the Bittensor network (e.g., 'finney', 'local') the instance is
-                       connected to, determining the blockchain interaction context.
+        network (str): The name of the Bittensor network (e.g., 'finney', 'test', 'archive', 'local') the instance
+                       is connected to, determining the blockchain interaction context.
         chain_endpoint (str): The blockchain node endpoint URL, enabling direct communication
                               with the Bittensor blockchain for transaction processing and data retrieval.
 
@@ -154,18 +154,20 @@ class subtensor:
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         prefix_str = "" if prefix == None else prefix + "."
         try:
-            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "local"
+            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "finney"
             default_chain_endpoint = (
                 os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
-                or bittensor.__local_entrypoint__
+                or bittensor.__finney_entrypoint__
             )
             parser.add_argument(
                 "--" + prefix_str + "subtensor.network",
                 default=default_network,
                 type=str,
                 help="""The subtensor network flag. The likely choices are:
-                                        -- local (local running network)
                                         -- finney (main network)
+                                        -- test (test network)
+                                        -- archive (archive network +300 blocks)
+                                        -- local (local running network)
                                     If this option is set it overloads subtensor.chain_endpoint with
                                     an entry point node from that network.
                                     """,
@@ -195,6 +197,7 @@ class subtensor:
         Args:
             network (str): The network flag. The likely choices are:
                     -- finney (main network)
+                    -- archive (archive network +300 blocks)
                     -- local (local running network)
                     -- test (test network)
             chain_endpoint (str): The chain endpoint flag. If set, overrides the network argument.
