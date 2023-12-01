@@ -155,10 +155,10 @@ class subtensor:
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         prefix_str = "" if prefix == None else prefix + "."
         try:
-            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "local"
+            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "finney"
             default_chain_endpoint = (
                 os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
-                or bittensor.__local_entrypoint__
+                or bittensor.__finney_entrypoint__
             )
             parser.add_argument(
                 "--" + prefix_str + "subtensor.network",
