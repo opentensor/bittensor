@@ -118,4 +118,3 @@ from .root import (
     RootSetSlashCommand,
 )
 from .identity import GetIdentityCommand, SetIdentityCommand
-from .subtensor import CheckEndpointCommand
