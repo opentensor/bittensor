@@ -1,7 +1,5 @@
 # Changelog
 
-<<<<<<< HEAD
-=======
 ## 6.4.1 / 2023-12-01
 
 ## What's Changed
@@ -77,7 +75,6 @@
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.0.1...v6.4.0
 
 
->>>>>>> master
 ## 6.3.0 / 2023-11-16
 
 ## What's Changed
