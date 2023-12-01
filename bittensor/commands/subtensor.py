@@ -51,6 +51,9 @@ class CheckEndpointCommand:
             "archive": bittensor.__archive_entrypoint__,
         }
 
+        if cli.config.endpoint:
+            endpoints.update({"custom": cli.config.endpoint})
+
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("Network", style="dim", width=12)
         table.add_column("Endpoint")
@@ -89,8 +92,15 @@ class CheckEndpointCommand:
         check_parser = parser.add_parser(
             "check", help="Check connectivity with Bittensor network endpoints."
         )
-        # No additional arguments needed for this command.
+        check_parser.add_argument(
+            "--endpoint",
+            type=str,
+            help="Endpoint to check connectivity with.",
+        )
 
     @staticmethod
     def check_config(config: argparse.Namespace):
-        pass
+        if config.endpoint:
+            # If endpoint is specified, check that it is a valid URL
+            if not re.match(r"(?:wss?://)?[^:/]+(?::\d+)?", config.endpoint):
+                raise ValueError("Invalid endpoint URL")
