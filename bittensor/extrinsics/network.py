@@ -167,7 +167,7 @@ def set_hyperparameter_extrinsic(
 
             # create extrinsic call
             call = substrate.compose_call(
-                call_module="SubtensorModule",
+                call_module="AdminUtils",
                 call_function=extrinsic,
                 call_params={"netuid": netuid, str(value_argument["name"]): value},
             )
