@@ -329,7 +329,7 @@ class subtensor:
         self.config = copy.deepcopy(config)
 
         # Setup config.subtensor.network and config.subtensor.chain_endpoint
-        self.chain_endpoint, self.network = subtensor.setup_config(network, config)
+        self.network, self.chain_endpoint = subtensor.setup_config(network, config)
 
         if (
             self.network == "finney"
