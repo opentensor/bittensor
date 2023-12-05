@@ -159,7 +159,7 @@ def set_hyperparameter_extrinsic(
     ):
         with subtensor.substrate as substrate:
             extrinsic_params = substrate.get_metadata_call_function(
-                "SubtensorModule", extrinsic
+                "AdminUtils", extrinsic
             )
             value_argument = extrinsic_params["fields"][
                 len(extrinsic_params["fields"]) - 1
