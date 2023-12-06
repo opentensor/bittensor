@@ -107,9 +107,16 @@ __rao_symbol__: str = chr(0x03C1)
 # Block Explorers map network to explorer url
 ## Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
-    "local": "https://explorer.finney.opentensor.ai/#/explorer",
-    "endpoint": "https://explorer.finney.opentensor.ai/#/explorer",
-    "finney": "https://explorer.finney.opentensor.ai/#/explorer",
+    "opentensor": {
+        "local": "https://explorer.finney.opentensor.ai/#/explorer",
+        "endpoint": "https://explorer.finney.opentensor.ai/#/explorer",
+        "finney": "https://explorer.finney.opentensor.ai/#/explorer",
+    },
+    "taostats": {
+        "local": "https://x.taostats.io",
+        "endpoint": "https://x.taostats.io",
+        "finney": "https://x.taostats.io",
+    },
 }
 
 # --- Type Registry ---
