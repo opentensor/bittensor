@@ -384,7 +384,7 @@ class subtensor:
 
         bittensor.logging.info(
             f"Connected to {self.network} network and {self.chain_endpoint}."
-        
+        )
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
