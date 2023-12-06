@@ -298,6 +298,7 @@ class subtensor:
         network: str = None,
         config: "bittensor.config" = None,
         _mock: bool = False,
+        log_verbose: bool = True,
     ) -> None:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
@@ -333,7 +334,7 @@ class subtensor:
         if (
             self.network == "finney"
             or self.chain_endpoint == bittensor.__finney_entrypoint__
-        ):
+        ) and log_verbose:
             bittensor.logging.info(
                 f"You are connecting to {self.network} network with endpoint {self.chain_endpoint}."
             )
