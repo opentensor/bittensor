@@ -700,63 +700,71 @@ class TestCUDASolverRun(unittest.TestCase):
 
 @ddt
 class TestExplorerURL(unittest.TestCase):
-    network_map: Dict[str, str] = {
-        "nakamoto": "https://polkadot.js.org/apps/?rpc=wss://archivelb.nakamoto.opentensor.ai:9943#/explorer",
-        "example": "https://polkadot.js.org/apps/?rpc=wss://example.example.com#/explorer",
-        "nobunaga": "https://polkadot.js.org/apps/?rpc=wss://nobunaga.bittensor.com:9943#/explorer",
-        # "bad": None # no explorer for this network
-    }
-
     @data(
         (
-            "nobunaga",
-            "https://polkadot.js.org/apps/?rpc=wss://nobunaga.bittensor.com:9943#/explorer",
+            "local",
+            {
+                "opentensor": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
+                "taostats": "https://x.taostats.io",
+            },
         ),
         (
-            "nakamoto",
-            "https://polkadot.js.org/apps/?rpc=wss://archivelb.nakamoto.opentensor.ai:9943#/explorer",
+            "endpoint",
+            {
+                "opentensor": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
+                "taostats": "https://x.taostats.io",
+            },
         ),
         (
-            "example",
-            "https://polkadot.js.org/apps/?rpc=wss://example.example.com#/explorer",
+            "finney",
+            {
+                "opentensor": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
+                "taostats": "https://x.taostats.io",
+            },
         ),
-        ("bad", None),
-        ("", None),
-        ("networknamewithoutexplorer", None),
+        ("bad", {}),
+        ("", {}),
+        ("unknown", {}),
     )
     @unpack
     def test_get_explorer_root_url_by_network_from_map(
-        self, network: str, expected: str
-    ) -> str:
+        self, network: str, expected: dict
+    ) -> None:
         self.assertEqual(
             bittensor.utils.get_explorer_root_url_by_network_from_map(
-                network, self.network_map
+                network, bittensor.__network_explorer_map__
             ),
             expected,
         )
 
     @data(
         (
-            "nobunaga",
+            "local",
             "0x123",
-            "https://polkadot.js.org/apps/?rpc=wss://nobunaga.bittensor.com:9943#/explorer/query/0x123",
+            {
+                "opentensor": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer/query/0x123",
+                "taostats": "https://x.taostats.io/search?query=0x123",
+            },
         ),
         (
-            "example",
-            "0x123",
-            "https://polkadot.js.org/apps/?rpc=wss://example.example.com#/explorer/query/0x123",
+            "endpoint",
+            "0x456",
+            {
+                "opentensor": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer/query/0x456",
+                "taostats": "https://x.taostats.io/search?query=0x456",
+            },
         ),
-        ("bad", "0x123", None),
-        ("", "0x123", None),
-        ("networknamewithoutexplorer", "0x123", None),
+        ("bad", "0x789", {}),
+        ("", "0xabc", {}),
+        ("unknown", "0xdef", {}),
     )
     @unpack
     def test_get_explorer_url_for_network_by_network_and_block_hash(
-        self, network: str, block_hash: str, expected: str
-    ) -> str:
+        self, network: str, block_hash: str, expected: dict
+    ) -> None:
         self.assertEqual(
             bittensor.utils.get_explorer_url_for_network(
-                network, block_hash, self.network_map
+                network, block_hash, bittensor.__network_explorer_map__
             ),
             expected,
         )

@@ -123,8 +123,8 @@ def strtobool(val: str) -> Union[bool, Literal["==SUPRESS=="]]:
 
 
 def get_explorer_root_url_by_network_from_map(
-    network: str, network_map: Dict[str, str]
-) -> Optional[str]:
+    network: str, network_map: Dict[str, Dict[str, str]]
+) -> Optional[Dict[str, str]]:
     r"""
     Returns the explorer root url for the given network name from the given network map.
 
@@ -136,42 +136,48 @@ def get_explorer_root_url_by_network_from_map(
         The explorer url for the given network.
         Or None if the network is not in the network map.
     """
-    explorer_url: Optional[str] = None
-    if network in network_map:
-        explorer_url = network_map[network]
+    explorer_urls: Optional[Dict[str, str]] = {}
+    for entity_nm, entity_network_map in network_map.items():
+        if network in entity_network_map:
+            explorer_urls[entity_nm] = entity_network_map[network]
 
-    return explorer_url
+    return explorer_urls
 
 
 def get_explorer_url_for_network(
     network: str, block_hash: str, network_map: Dict[str, str]
-) -> Optional[str]:
+) -> Optional[List[str]]:
     r"""
     Returns the explorer url for the given block hash and network.
 
     Args:
         network(str): The network to get the explorer url for.
         block_hash(str): The block hash to get the explorer url for.
-        network_map(Dict[str, str]): The network map to get the explorer url from.
+        network_map(Dict[str, Dict[str, str]]): The network maps to get the explorer urls from.
 
     Returns:
         The explorer url for the given block hash and network.
         Or None if the network is not known.
     """
 
-    explorer_url: Optional[str] = None
+    explorer_urls: Optional[Dict[str, str]] = {}
     # Will be None if the network is not known. i.e. not in network_map
-    explorer_root_url: Optional[str] = get_explorer_root_url_by_network_from_map(
-        network, network_map
-    )
+    explorer_root_urls: Optional[
+        Dict[str, str]
+    ] = get_explorer_root_url_by_network_from_map(network, network_map)
 
-    if explorer_root_url is not None:
+    if explorer_root_urls != {}:
         # We are on a known network.
-        explorer_url = "{root_url}/query/{block_hash}".format(
-            root_url=explorer_root_url, block_hash=block_hash
+        explorer_opentensor_url = "{root_url}/query/{block_hash}".format(
+            root_url=explorer_root_urls.get("opentensor"), block_hash=block_hash
         )
+        explorer_taostats_url = "{root_url}/search?query={block_hash}".format(
+            root_url=explorer_root_urls.get("taostats"), block_hash=block_hash
+        )
+        explorer_urls["opentensor"] = explorer_opentensor_url
+        explorer_urls["taostats"] = explorer_taostats_url
 
-    return explorer_url
+    return explorer_urls
 
 
 def ss58_address_to_bytes(ss58_address: str) -> bytes:
