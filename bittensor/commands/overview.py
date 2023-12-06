@@ -558,7 +558,7 @@ class OverviewCommand:
         result: List["bittensor.NeuronInfoLite"] = []
 
         try:
-            subtensor = bittensor.subtensor(config=subtensor_config)
+            subtensor = bittensor.subtensor(config=subtensor_config, log_verbose=False)
 
             all_neurons: List["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
                 netuid=netuid
@@ -587,7 +587,7 @@ class OverviewCommand:
         result: List[Tuple[str, "bittensor.Balance"]] = []
 
         try:
-            subtensor = bittensor.subtensor(config=subtensor_config)
+            subtensor = bittensor.subtensor(config=subtensor_config, log_verbose=False)
 
             # Pull all stake for our coldkey
             all_stake_info_for_coldkey = subtensor.get_stake_info_for_coldkey(
