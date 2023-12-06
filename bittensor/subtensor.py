@@ -366,7 +366,6 @@ class subtensor:
                 url=self.chain_endpoint,
                 type_registry=bittensor.__type_registry__,
             )
-            self.substrate.websocket.settimeout(600)
         except ConnectionRefusedError as e:
             bittensor.logging.error(
                 f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting..."
@@ -376,6 +375,11 @@ class subtensor:
             )
             exit(1)
             # TODO (edu/phil): Advise to run local subtensor and point to dev docs.
+
+        try:
+            self.substrate.websocket.settimeout(600)
+        except:
+            bittensor.logging.warning("Could not set websocket timeout.")
 
         bittensor.logging.info(
             f"Connected to {self.network} network and {self.chain_endpoint}."
