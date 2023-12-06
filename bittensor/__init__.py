@@ -108,9 +108,9 @@ __rao_symbol__: str = chr(0x03C1)
 ## Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
     "opentensor": {
-        "local": "https://explorer.finney.opentensor.ai/#/explorer",
-        "endpoint": "https://explorer.finney.opentensor.ai/#/explorer",
-        "finney": "https://explorer.finney.opentensor.ai/#/explorer",
+        "local": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
+        "endpoint": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
+        "finney": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
     },
     "taostats": {
         "local": "https://x.taostats.io",
