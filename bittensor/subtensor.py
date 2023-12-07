@@ -501,37 +501,6 @@ class subtensor:
             prompt=prompt,
         )
 
-    def set_delegate_take(
-        self,
-        wallet: "bittensor.wallet",
-        take: int,
-        wait_for_finalization: bool = False,
-        wait_for_inclusion: bool = True,
-    ) -> bool:
-        """
-        Sets the percentage of incentives that a delegate neuron takes from its delegators. This action adjusts
-        the reward distribution mechanism between a delegate and its supporting neurons.
-
-        Args:
-            wallet (bittensor.wallet): The wallet of the delegate neuron.
-            take (int): The percentage (0-100) of incentives to take from delegators.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-
-        Returns:
-            bool: True if the setting of delegate take percentage is successful, False otherwise.
-
-        This method allows a delegate neuron to specify its share of the incentives generated through delegation,
-        aligning with the network's principles of decentralized governance and fair incentive distribution.
-        """
-        return set_delegate_take_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            take=take,
-            wait_for_finalization=wait_for_finalization,
-            wait_for_inclusion=wait_for_inclusion,
-        )
-
     #####################
     #### Set Weights ####
     #####################
