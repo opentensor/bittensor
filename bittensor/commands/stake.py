@@ -375,7 +375,7 @@ class StakeShow:
             Returns:
                 A dictionary mapping SS58 addresses to their respective stake account details.
             """
-            subtensor = bittensor.subtensor(config=cli.config)
+            subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
             wallet_stake_accounts = {}
 
