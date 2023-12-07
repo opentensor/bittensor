@@ -249,7 +249,6 @@ HYPERPARAMS = {
     "immunity_period": "sudo_set_immunity_period",
     "min_allowed_weights": "sudo_set_min_allowed_weights",
     "activity_cutoff": "sudo_set_activity_cutoff",
-    "max_validators": "sudo_set_max_allowed_validators",
 }
 
 
