@@ -201,7 +201,7 @@ positional arguments:
     lock_cost           Return the lock cost to register a subnet.
     create              Create a new bittensor subnetwork on this chain.
     register            Register a wallet to a network.
-    register            Register a wallet to a network using PoW.
+    pow_register        Register a wallet to a network using PoW.
     hyperparameters     View subnet hyperparameters.
 
 options:
@@ -282,28 +282,28 @@ Axon: Serves Synapse protocols with custom blacklist, priority and verify functi
 ```python
 import bittensor
 
-class MySyanpse( bittensor.Synapse ):
+class MySynapse( bittensor.Synapse ):
     input: int = 1
     output: int = None
 
 # Define a custom request forwarding function
-def forward( synapse: MySyanpse ) -> MySyanpse:
+def forward( synapse: MySynapse ) -> MySynapse:
     # Apply custom logic to synapse and return it
     synapse.output = 2
     return synapse
 
 # Define a custom request verification function
-def verify_my_synapse( synapse: MySyanpse ):
+def verify_my_synapse( synapse: MySynapse ):
     # Apply custom verification logic to synapse
     # Optionally raise Exception
 
 # Define a custom request blacklist function
-def blacklist_my_synapse( synapse: MySyanpse ) -> bool:
+def blacklist_my_synapse( synapse: MySynapse ) -> bool:
     # Apply custom blacklist 
     # return False ( if non blacklisted ) or True ( if blacklisted )
 
 # Define a custom request priority function
-def prioritize_my_synape( synapse: MySyanpse ) -> float:
+def prioritize_my_synape( synapse: MySynapse ) -> float:
     # Apply custom priority
     return 1.0 
 
@@ -321,6 +321,7 @@ my_axon.attach(
 
 Dendrite: Inheriting from PyTorch's Module class, represents the abstracted implementation of a network client module designed 
 to send requests to those endpoints to receive inputs.
+
 Example:
 ```python
 dendrite_obj = dendrite( wallet = bittensor.wallet() )
@@ -340,7 +341,7 @@ Use the `root` subcommand to access setting weights on the network across subnet
 ```bash
 btcli root weights --wallet.name <coldname> --wallet.hotkey <hotname>
 Enter netuids (e.g. 0, 1, 2 ...):
-# Here enter your selected netuids to wet weights on
+# Here enter your selected netuids to set weights on
 1, 2
 
 >Enter weights (e.g. 0.09, 0.09, 0.09 ...): 
