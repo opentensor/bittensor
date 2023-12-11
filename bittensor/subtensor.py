@@ -298,6 +298,7 @@ class subtensor:
         network: str = None,
         config: "bittensor.config" = None,
         _mock: bool = False,
+        log_verbose: bool = True,
     ) -> None:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
@@ -333,7 +334,7 @@ class subtensor:
         if (
             self.network == "finney"
             or self.chain_endpoint == bittensor.__finney_entrypoint__
-        ):
+        ) and log_verbose:
             bittensor.logging.info(
                 f"You are connecting to {self.network} network with endpoint {self.chain_endpoint}."
             )
@@ -374,6 +375,11 @@ class subtensor:
             )
             exit(1)
             # TODO (edu/phil): Advise to run local subtensor and point to dev docs.
+
+        try:
+            self.substrate.websocket.settimeout(600)
+        except:
+            bittensor.logging.warning("Could not set websocket timeout.")
 
         bittensor.logging.info(
             f"Connected to {self.network} network and {self.chain_endpoint}."

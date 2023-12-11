@@ -27,7 +27,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = "6.4.1"
+__version__ = "6.4.2"
 version_split = __version__.split(".")
 __version_as_int__ = (
     (100 * int(version_split[0]))
@@ -107,9 +107,16 @@ __rao_symbol__: str = chr(0x03C1)
 # Block Explorers map network to explorer url
 ## Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
-    "local": "https://explorer.finney.opentensor.ai/#/explorer",
-    "endpoint": "https://explorer.finney.opentensor.ai/#/explorer",
-    "finney": "https://explorer.finney.opentensor.ai/#/explorer",
+    "opentensor": {
+        "local": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
+        "endpoint": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
+        "finney": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
+    },
+    "taostats": {
+        "local": "https://x.taostats.io",
+        "endpoint": "https://x.taostats.io",
+        "finney": "https://x.taostats.io",
+    },
 }
 
 # --- Type Registry ---

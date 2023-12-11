@@ -159,7 +159,7 @@ def set_hyperparameter_extrinsic(
     ):
         with subtensor.substrate as substrate:
             extrinsic_params = substrate.get_metadata_call_function(
-                "SubtensorModule", extrinsic
+                "AdminUtils", extrinsic
             )
             value_argument = extrinsic_params["fields"][
                 len(extrinsic_params["fields"]) - 1
@@ -167,7 +167,7 @@ def set_hyperparameter_extrinsic(
 
             # create extrinsic call
             call = substrate.compose_call(
-                call_module="SubtensorModule",
+                call_module="AdminUtils",
                 call_function=extrinsic,
                 call_params={"netuid": netuid, str(value_argument["name"]): value},
             )
