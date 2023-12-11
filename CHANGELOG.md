@@ -4,11 +4,14 @@
 
 ## What's Changed
 * Release/6.1.0 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1550
+  - bugfixes and minor improvements to documentation
 * Release/6.2.0 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1567
+  - dendrite fixes, change PoW -> recycle registration by default, small bug fixes
 * Release/6.3.0 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1582
+  - adds subtensor archive node option, as well as several bugfixes and small enhancements.
 * Release/6.4.0 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1599
+  - massive overhaul to docstrings and bugfixes, add balance command to btcli
 * revert subtensor local to finney by @ifrit98 in https://github.com/opentensor/bittensor/pull/1600
-
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.0.1...v6.4.2
 
