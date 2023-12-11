@@ -13,7 +13,7 @@
   - massive overhaul to docstrings and bugfixes, add balance command to btcli
 * revert subtensor local to finney by @ifrit98 in https://github.com/opentensor/bittensor/pull/1600
 
-**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.0.1...v6.4.2
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.4.1...v6.4.2
 
 
 ## 6.4.1 / 2023-12-01
