@@ -174,6 +174,8 @@ custom_rpc_type_registry = {
                 ["max_burn", "Compact<u64>"],
                 ["bonds_moving_avg", "Compact<u64>"],
                 ["max_regs_per_block", "Compact<u16>"],
+                ["serving_rate_limit", "Compact<u64>"],
+                ["max_validators", "Compact<u16>"],
             ],
         },
     }
@@ -963,6 +965,8 @@ class SubnetHyperparameters:
     max_burn: int
     bonds_moving_avg: int
     max_regs_per_block: int
+    serving_rate_limit: int
+    max_validators: int
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetHyperparameters"]:
@@ -1013,6 +1017,8 @@ class SubnetHyperparameters:
             max_burn=decoded["max_burn"],
             bonds_moving_avg=decoded["bonds_moving_avg"],
             max_regs_per_block=decoded["max_regs_per_block"],
+            max_validators=decoded["max_validators"],
+            serving_rate_limit=decoded["serving_rate_limit"],
         )
 
     def to_parameter_dict(self) -> "torch.nn.ParameterDict":
