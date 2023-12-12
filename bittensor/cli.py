@@ -134,6 +134,20 @@ COMMANDS = {
 }
 
 
+class CLIErrorParser(argparse.ArgumentParser):
+    """
+    Custom ArgumentParser for better error messages.
+    """
+
+    def error(self, message):
+        """
+        This method is called when an error occurs. It prints a custom error message.
+        """
+        sys.stderr.write(f"Error: {message}\n")
+        self.print_help()
+        sys.exit(2)
+
+
 class cli:
     """
     Implementation of the Command Line Interface (CLI) class for the Bittensor protocol.
@@ -190,7 +204,7 @@ class cli:
             argparse.ArgumentParser: An argument parser object for Bittensor CLI.
         """
         # Define the basic argument parser.
-        parser = argparse.ArgumentParser(
+        parser = CLIErrorParser(
             description=f"bittensor cli v{bittensor.__version__}",
             usage="btcli <command> <command args>",
             add_help=True,
