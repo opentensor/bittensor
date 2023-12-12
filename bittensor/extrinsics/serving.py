@@ -20,7 +20,7 @@ import bittensor
 from dataclasses import asdict
 import bittensor.utils.networking as net
 from rich.prompt import Confirm
-
+from ..errors import MetadataError
 
 def serve_extrinsic(
     subtensor: "bittensor.subtensor",
@@ -203,3 +203,41 @@ def serve_axon_extrinsic(
         prompt=prompt,
     )
     return serve_success
+
+def publish_metadata(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    netuid: int,
+    type: str,
+    hash: str,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+) -> bool:
+    wallet.hotkey
+
+    with subtensor.substrate as substrate:
+        call = substrate.compose_call(
+            call_module="Commitments",
+            call_function="set_commitment",
+            call_params={
+                "netuid": netuid,
+                "info": {"fields": [[{f"{type}": hash}]]}
+            }
+        )
+
+        extrinsic = substrate.create_signed_extrinsic(
+            call=call, keypair=wallet.hotkey
+        )
+        response = substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
+        response.process_events()
+        if response.is_success:
+            return True
+        else:
+            raise MetadataError(response.error_message)
