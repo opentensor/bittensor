@@ -209,7 +209,7 @@ def publish_metadata(
     wallet: "bittensor.wallet",
     netuid: int,
     type: str,
-    hash: str,
+    data: str,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
 ) -> bool:
@@ -221,7 +221,7 @@ def publish_metadata(
             call_function="set_commitment",
             call_params={
                 "netuid": netuid,
-                "info": {"fields": [[{f"{type}": hash}]]}
+                "info": {"fields": [[{f"{type}": data}]]}
             }
         )
 
