@@ -81,6 +81,7 @@ class KeyFileError(Exception):
 
     pass
 
+
 class MetadataError(ChainTransactionError):
     r"""Error raised when metadata commitment transaction fails."""
     pass
