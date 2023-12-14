@@ -52,7 +52,12 @@ from .extrinsics.network import (
 )
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
-from .extrinsics.serving import serve_extrinsic, serve_axon_extrinsic
+from .extrinsics.serving import (
+    serve_extrinsic,
+    serve_axon_extrinsic,
+    publish_metadata,
+    get_metadata,
+)
 from .extrinsics.registration import (
     register_extrinsic,
     burned_register_extrinsic,
@@ -2110,6 +2115,17 @@ class subtensor:
                     raise IdentityError(response.error_message)
 
         return make_substrate_call_with_retry()
+
+    """ Make some commitment on-chain about arbitary data """
+
+    def commit(self, wallet, netuid: int, data: str):
+        publish_metadata(self, wallet, netuid, f"Raw{len(data)}", data.encode())
+
+    def get_commitment(self, netuid: int, uid: int, block: Optional[int] = None) -> str:
+        metagraph = self.metagraph(netuid)
+        hotkey = metagraph.hotkeys[uid]
+
+        return get_metadata(self, netuid, hotkey, block)
 
     ########################
     #### Standard Calls ####
