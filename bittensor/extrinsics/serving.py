@@ -231,7 +231,7 @@ def publish_metadata(
             hashing algorithm used for the data.
         data (str):
             The actual metadata content to be published. This should be formatted or hashed
-            according to the 'type' specified.
+            according to the 'type' specified. (Note: max str length of 128 bytes)
         wait_for_inclusion (bool, optional):
             If True, the function will wait for the extrinsic to be included in a block before returning.
             Defaults to False.
