@@ -71,7 +71,6 @@ from .extrinsics.delegation import (
     delegate_extrinsic,
     nominate_extrinsic,
     undelegate_extrinsic,
-    set_delegate_take_extrinsic,
 )
 from .extrinsics.senate import (
     register_senate_extrinsic,
