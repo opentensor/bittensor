@@ -2121,7 +2121,7 @@ class subtensor:
     ):
         publish_metadata(self, wallet, netuid, f"Raw{len(data)}", data.encode())
 
-    def get_commitment(self, netuid: int, uid: int, block) -> str:
+    def get_commitment(self, netuid: int, uid: int, block: Optional[int] = None) -> str:
         metagraph = self.metagraph(netuid)
         hotkey = metagraph.hotkeys[uid]
 

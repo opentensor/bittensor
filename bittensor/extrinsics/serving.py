@@ -273,8 +273,9 @@ def publish_metadata(
             raise MetadataError(response.error_message)
         
 from retry import retry
+from typing import Optional
 
-def get_metadata(self, netuid: int, hotkey: str, block) -> str:
+def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> str:
     @retry(delay=2, tries=3, backoff=2, max_delay=4)
     def make_substrate_call_with_retry():
         with self.substrate as substrate:
@@ -286,5 +287,5 @@ def get_metadata(self, netuid: int, hotkey: str, block) -> str:
                 if block == None
                 else substrate.get_block_hash(block),
             )
-
-    return make_substrate_call_with_retry()
+    commit_data = make_substrate_call_with_retry()
+    return commit_data.value
