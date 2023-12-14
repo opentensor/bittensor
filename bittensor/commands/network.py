@@ -143,7 +143,7 @@ class SubnetListCommand:
     Executes the 'list' command to list all subnets and their detailed information on the Bittensor network.
     This command is designed to provide users with comprehensive information about each subnet within the
     network, including its unique identifier (netuid), the number of neurons, maximum neuron capacity,
-    emission rate, tempo, recycle register cost (burn), proof of work (PoW) difficulty, and the name or
+    emission rate, tempo, recycle register cost, proof of work (PoW) difficulty, and the name or
     SS58 address of the subnet owner.
 
     Usage:
@@ -160,7 +160,7 @@ class SubnetListCommand:
     - Initializing the Bittensor subtensor and retrieving subnet information.
     - Calculating the total number of neurons across all subnets.
     - Constructing a table that includes columns for NETUID, N (current neurons), MAX_N (maximum neurons),
-        EMISSION, TEMPO, BURN, POW (proof of work difficulty), and SUDO (owner's name or SS58 address).
+        EMISSION, TEMPO, RECYCLE, POW (proof of work difficulty), and SUDO (owner's name or SS58 address).
     - Displaying the table with a footer that summarizes the total number of subnets and neurons.
 
     Example usage:
@@ -222,7 +222,7 @@ class SubnetListCommand:
         table.add_column("[overline white]MAX_N", style="white", justify="center")
         table.add_column("[overline white]EMISSION", style="white", justify="center")
         table.add_column("[overline white]TEMPO", style="white", justify="center")
-        table.add_column("[overline white]BURN", style="white", justify="center")
+        table.add_column("[overline white]RECYCLE", style="white", justify="center")
         table.add_column("[overline white]POW", style="white", justify="center")
         table.add_column("[overline white]SUDO", style="white")
         for row in rows:
