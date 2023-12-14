@@ -77,7 +77,6 @@ from .delegates import (
     DelegateStakeCommand,
     DelegateUnstakeCommand,
     MyDelegatesCommand,
-    SetDelegateTakeCommand,
 )
 from .wallets import (
     NewColdkeyCommand,
