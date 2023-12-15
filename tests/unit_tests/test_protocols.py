@@ -20,7 +20,78 @@ import json
 import bittensor as bt
 
 from bittensor.subnets import TextToImage
+from bittensor.subnets import Prompting
 
+
+# !============================ sn1
+def test_text_prompting_synapse():
+    # Define a mock headers dictionary to use for testing
+    headers = {
+        "bt_header_axon_nonce": 111,
+        "bt_header_dendrite_ip": "1.1.1.1",
+        "bt_header_input_obj_roles": base64.b64encode(json.dumps([
+            'system', 'user'
+        ]).encode("utf-8")).decode("utf-8"),
+        "bt_header_input_obj_messages": base64.b64encode(json.dumps([
+            "You are an AI assistant.", "Hello"
+        ]).encode("utf-8")).decode("utf-8"),
+        "timeout": 12,
+        "header_size": 111,
+        "total_size": 111,
+        "computed_body_hash": "0xabcdef",
+    }
+
+    # Run the function to test
+    sn1_synapse_test = Prompting.from_headers(headers)
+
+    # Check that the resulting object is an instance of Prompting
+    assert isinstance(sn1_synapse_test, Prompting)
+
+    # Check the properties of the resulting object
+    assert sn1_synapse_test.roles == ['system', 'user']
+    assert sn1_synapse_test.messages == ["You are an AI assistant.", "Hello"]
+
+    assert sn1_synapse_test.axon.nonce == 111
+    assert sn1_synapse_test.dendrite.ip == "1.1.1.1"
+    assert sn1_synapse_test.timeout == 12
+    assert sn1_synapse_test.name == "Prompting"
+    assert sn1_synapse_test.header_size == 111
+    assert sn1_synapse_test.total_size == 111
+    assert sn1_synapse_test.computed_body_hash == "0xabcdef"
+
+def test_text_prompting_dendrite_call():
+    # Define a mock headers dictionary to use for testing
+    headers = {
+        "bt_header_input_obj_roles": base64.b64encode(json.dumps([
+            'system', 'user'
+        ]).encode("utf-8")).decode("utf-8"),
+        "bt_header_input_obj_messages": base64.b64encode(json.dumps([
+            "You are an AI assistant.", "Hello"
+        ]).encode("utf-8")).decode("utf-8"),
+        "timeout": 12,
+    }
+
+    # Run the function to test
+    sn1_synapse_test = Prompting.from_headers(headers)
+
+    # Get metagraph and dendrite
+    sn1 = bt.metagraph(1)
+    d = bt.dendrite()
+
+    # Call the dendrite
+    sn1_out = d.query(sn1.axons[1], sn1_synapse_test)    
+    
+    # Check that the resulting object is an instance of Prompting
+    assert isinstance(sn1_out, Prompting)
+
+    # Check the properties of the resulting object
+    assert sn1_synapse_test.roles == ['system', 'user']
+    assert sn1_synapse_test.messages == ["You are an AI assistant.", "Hello"]
+    assert sn1_out.name == "Prompting"
+    assert sn1_out.timeout == 12
+# sn1 ============================!
+
+# !============================ sn5
 def test_text_to_image_synapse():
     # Define a mock headers dictionary to use for testing
     headers = {
@@ -82,5 +153,6 @@ def test_text_to_image_dendrite_call():
     for image in sn5_out.images:    # Check the shape of each image in the list
         assert image.shape == [3, 512, 512]
 
-        assert sn5_out.timeout == 12
+    assert sn5_out.timeout == 12
     assert sn5_out.name == "TextToImage"
+# sn5 ============================!
