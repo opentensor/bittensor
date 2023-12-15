@@ -224,6 +224,7 @@ from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 from .synapse import *
 from .stream import *
 from .tensor import *
+from .subnets import *
 from .axon import axon as axon
 from .dendrite import dendrite as dendrite
 
