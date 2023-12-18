@@ -73,7 +73,7 @@ class MetagraphCommand:
     def run(cli):
         r"""Prints an entire metagraph."""
         console = bittensor.__console__
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
                 cli.config.subtensor.network
@@ -232,7 +232,9 @@ class MetagraphCommand:
 
     @staticmethod
     def check_config(config: "bittensor.config"):
-        check_netuid_set(config, subtensor=bittensor.subtensor(config=config))
+        check_netuid_set(
+            config, subtensor=bittensor.subtensor(config=config, log_verbose=False)
+        )
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):

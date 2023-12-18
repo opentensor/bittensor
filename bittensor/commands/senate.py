@@ -51,7 +51,9 @@ class SenateCommand:
         console = bittensor.__console__
 
         config = cli.config.copy()
-        subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
+        subtensor: bittensor.subtensor = bittensor.subtensor(
+            config=config, log_verbose=False
+        )
 
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
@@ -177,7 +179,9 @@ class ProposalsCommand:
         console = bittensor.__console__
 
         config = cli.config.copy()
-        subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
+        subtensor: bittensor.subtensor = bittensor.subtensor(
+            config=config, log_verbose=False
+        )
 
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
@@ -284,7 +288,9 @@ class ShowVotesCommand:
     def run(cli):
         r"""View Bittensor's governance protocol proposals active votes"""
         config = cli.config.copy()
-        subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
+        subtensor: bittensor.subtensor = bittensor.subtensor(
+            config=config, log_verbose=False
+        )
 
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
@@ -376,7 +382,9 @@ class SenateRegisterCommand:
         r"""Register to participate in Bittensor's governance protocol proposals"""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=cli.config)
-        subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
+        subtensor: bittensor.subtensor = bittensor.subtensor(
+            config=config, log_verbose=False
+        )
 
         # Unlock the wallet.
         wallet.hotkey
@@ -444,7 +452,9 @@ class SenateLeaveCommand:
         r"""Discard membership in Bittensor's governance protocol proposals"""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=cli.config)
-        subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
+        subtensor: bittensor.subtensor = bittensor.subtensor(
+            config=config, log_verbose=False
+        )
 
         # Unlock the wallet.
         wallet.hotkey
@@ -506,7 +516,9 @@ class VoteCommand:
         r"""Vote in Bittensor's governance protocol proposals"""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=cli.config)
-        subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
+        subtensor: bittensor.subtensor = bittensor.subtensor(
+            config=config, log_verbose=False
+        )
 
         proposal_hash = cli.config.proposal_hash
         if len(proposal_hash) == 0:
