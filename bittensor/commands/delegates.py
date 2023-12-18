@@ -835,3 +835,101 @@ class MyDelegatesCommand:
         ):
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
+
+
+class SetDelegateTakeCommand:
+    """
+    Executes the 'set_delegate_take' command, which sets the commission rate (take percentage)
+    for a user's delegate on the Bittensor network. This commission is the fraction of rewards
+    that the delegate takes from staking operations.
+
+    Optional Arguments:
+    - wallet.name: The name of the wallet to use for the command.
+    - delegate.take: The take percentage to set for the delegate.
+
+    The function performs several checks:
+    - Ensures the take value is within the valid range (0.0 to 1.0).
+    - Verifies that the hotkey associated with the wallet is registered as a delegate.
+    - Sets the take percentage on the network if the above conditions are met.
+
+    Usage:
+    The user is prompted to enter the desired take value, which must be a float between 0 and 1.
+    The value is then scaled and cast to an integer ratio before being sent to the network.
+
+    Example usage:
+    >>> btcli root set_delegate_take --take 0.1
+    >>> btcli root set_delegate_take --wallet.name my_wallet --wallet.hotkey my_hotkey --take 0.1
+
+    Note:
+    This command will result in a change to the blockchain state and may incur transaction fees.
+    It is interactive and requires input from the user. This function is intended to be used as
+    part of the Bittensor CLI and not as a standalone function within user code.
+    """
+
+    @staticmethod
+    def run(cli):
+        r"""Set your delegate's take percentage."""
+        wallet = bittensor.wallet(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config)
+
+        # Unlock the wallet.
+        wallet.hotkey
+        wallet.coldkey
+
+        take = float(cli.config.take)
+        if take > 1 or take < 0:
+            bittensor.__console__.print(
+                "Aborting: Invalid take value: {}".format(cli.config.delegate.take)
+            )
+            return
+
+        # Check if the hotkey is already a delegate.
+        if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
+            bittensor.__console__.print(
+                "Aborting: Hotkey {} isn't a delegate.".format(
+                    wallet.hotkey.ss58_address
+                )
+            )
+            return
+
+        result: bool = subtensor.set_delegate_take(
+            wallet, int(take * 65535)
+        )  # Cast 0-1 float to u16 ratio for chain
+        if not result:
+            bittensor.__console__.print(
+                "Could not set delegate take on [white]{}[/white]".format(
+                    subtensor.network
+                )
+            )
+        else:
+            bittensor.__console__.print(
+                "Successfully set delegate take on [white]{}[/white]".format(
+                    subtensor.network
+                )
+            )
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        set_delegate_take_parser = parser.add_parser(
+            "set_delegate_take", help="""Set your delegate's take percentage."""
+        )
+        set_delegate_take_parser.add_argument(
+            "--take", dest="take", type=str, required=False
+        )
+
+        bittensor.wallet.add_args(set_delegate_take_parser)
+        bittensor.subtensor.add_args(set_delegate_take_parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+        if not config.is_set("take") and not config.no_prompt:
+            take = Prompt.ask("Enter new delegate take value (0 - 1)")
+            config.take = take

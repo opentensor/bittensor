@@ -52,7 +52,12 @@ from .extrinsics.network import (
 )
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
-from .extrinsics.serving import serve_extrinsic, serve_axon_extrinsic
+from .extrinsics.serving import (
+    serve_extrinsic,
+    serve_axon_extrinsic,
+    publish_metadata,
+    get_metadata,
+)
 from .extrinsics.registration import (
     register_extrinsic,
     burned_register_extrinsic,
@@ -66,6 +71,7 @@ from .extrinsics.delegation import (
     delegate_extrinsic,
     nominate_extrinsic,
     undelegate_extrinsic,
+    set_delegate_take_extrinsic,
 )
 from .extrinsics.senate import (
     register_senate_extrinsic,
@@ -498,6 +504,37 @@ class subtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
+        )
+
+    def set_delegate_take(
+        self,
+        wallet: "bittensor.wallet",
+        take: int,
+        wait_for_finalization: bool = False,
+        wait_for_inclusion: bool = True,
+    ) -> bool:
+        """
+        Sets the percentage of incentives that a delegate neuron takes from its delegators. This action adjusts
+        the reward distribution mechanism between a delegate and its supporting neurons.
+
+        Args:
+            wallet (bittensor.wallet): The wallet of the delegate neuron.
+            take (int): The percentage (0-100) of incentives to take from delegators.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+
+        Returns:
+            bool: True if the setting of delegate take percentage is successful, False otherwise.
+
+        This method allows a delegate neuron to specify its share of the incentives generated through delegation,
+        aligning with the network's principles of decentralized governance and fair incentive distribution.
+        """
+        return set_delegate_take_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            take=take,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_inclusion=wait_for_inclusion,
         )
 
     #####################
@@ -1940,7 +1977,7 @@ class subtensor:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
                     call_function="root_register",
-                    call_params={"hotkey": wallet.hotkey.ss58_address},
+                    call_params={"hotkey": wallet.hotkey.ss58_address, "take": 11796},
                 )
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call, keypair=wallet.coldkey
@@ -2110,6 +2147,17 @@ class subtensor:
                     raise IdentityError(response.error_message)
 
         return make_substrate_call_with_retry()
+
+    """ Make some commitment on-chain about arbitary data """
+
+    def commit(self, wallet, netuid: int, data: str):
+        publish_metadata(self, wallet, netuid, f"Raw{len(data)}", data.encode())
+
+    def get_commitment(self, netuid: int, uid: int, block: Optional[int] = None) -> str:
+        metagraph = self.metagraph(netuid)
+        hotkey = metagraph.hotkeys[uid]
+
+        return get_metadata(self, netuid, hotkey, block)
 
     ########################
     #### Standard Calls ####
@@ -4000,6 +4048,40 @@ class subtensor:
                     call_module="SubtensorModule",
                     call_function="become_delegate",
                     call_params={"hotkey": wallet.hotkey.ss58_address},
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )  # sign with coldkey
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+                response.process_events()
+                if response.is_success:
+                    return True
+                else:
+                    raise NominationError(response.error_message)
+
+        return make_substrate_call_with_retry()
+
+    def _do_set_delegate_take(
+        self,
+        wallet: "bittensor.wallet",
+        take: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="set_delegate_take",
+                    call_params={"hotkey": wallet.hotkey.ss58_address, "take": take},
                 )
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call, keypair=wallet.coldkey
