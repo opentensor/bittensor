@@ -1,5 +1,20 @@
 # Changelog
 
+## 6.4.4 / 2023-12-14
+
+## What's Changed
+
+* Merge/master642 staging no-ff by @ifrit98 in https://github.com/opentensor/bittensor/pull/1615
+* print help message on error for subcommands by @ifrit98 in https://github.com/opentensor/bittensor/pull/1618
+* Metadata/commitments by @ifrit98 in https://github.com/opentensor/bittensor/pull/1621
+
+## New Contributors
+* @omahs made their first contribution in https://github.com/opentensor/bittensor/pull/1553
+* @surcyf123 made their first contribution in https://github.com/opentensor/bittensor/pull/1569
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.4.2...v6.4.4
+
+
 ## 6.4.2 / 2023-12-07
 
 ## What's Changed
