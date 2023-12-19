@@ -125,3 +125,8 @@ class PostProcessException(Exception):
 class RunException(Exception):
     r"""This exception is raised when the requested function cannot be executed. Indicates a server error."""
     pass
+
+
+class InternalServerError(Exception):
+    r"""This exception is raised when the requested function fails on the server. Indicates a server error."""
+    pass

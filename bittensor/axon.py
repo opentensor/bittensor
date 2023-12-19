@@ -53,6 +53,7 @@ from bittensor.errors import (
     PriorityException,
     RunException,
     PostProcessException,
+    InternalServerError,
 )
 
 
@@ -1171,15 +1172,14 @@ class AxonMiddleware(BaseHTTPMiddleware):
         request_synapse = self.axon.forward_class_types.get(request_name)
         if request_synapse is None:
             raise UnknownSynapseError(
-                f"Synapse name {request_name} not found. Available synapses {list(self.axon.forward_class_types.keys())}"
+                f"Synapse name '{request_name}' not found. Available synapses {list(self.axon.forward_class_types.keys())}"
             )
 
         try:
             synapse = request_synapse.from_headers(request.headers)
         except Exception as e:
             raise SynapseParsingError(
-                f"Improperly formatted request. Could not parse headers {request.headers} into synapse of type {request_name}. "
-                f"Error: {e}"
+                f"Improperly formatted request. Could not parse headers {request.headers} into synapse of type {request_name}."
             )
         synapse.name = request_name
 
@@ -1431,7 +1431,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             # If there is an exception during the response header update, we log the exception.
             raise PostProcessException(
-                f"Error updating response headers {updated_headers}. Postprocess exception: {str(e)}"
+                f"Error while parsing or updating response headers. Postprocess exception: {str(e)}."
             )
 
         # Calculate the processing time by subtracting the start time from the current time.
