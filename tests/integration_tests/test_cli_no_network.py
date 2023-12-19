@@ -321,7 +321,7 @@ class TestCLINoNetwork(unittest.TestCase):
 
         # Get expected commands
         parser = bittensor.cli.__create_parser__()
-        expected_commands = [command for command in parser._actions[1].choices]
+        expected_commands = [command for command in parser._actions[-1].choices]
 
         # Validate each expected command is in extracted commands
         for command in expected_commands:
@@ -418,7 +418,7 @@ class TestEmptyArgs(unittest.TestCase):
         # Get all commands from argparser
         commands = [
             command
-            for command in parser._actions[1].choices
+            for command in parser._actions[-1].choices  # extract correct subparser keys
             if len(command) > 1  # Skip singleton aliases
             and command
             not in [

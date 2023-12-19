@@ -71,3 +71,25 @@ class UpdateCommand:
         )
 
         bittensor.subtensor.add_args(update_parser)
+
+
+class AutocompleteCommand:
+    """Show users how to install and run autocompletion for Bittensor CLI."""
+
+    @staticmethod
+    def run(cli):
+        print("To enable autocompletion for Bittensor CLI, run:")
+        print("btcli --print-completion bash >> ~/.bashrc  # For Bash")
+        print("btcli --print-completion zsh >> ~/.zshrc    # For Zsh")
+        print("And then run:\nsource ~/.bashrc  # For both Bash and Zsh")
+
+    @staticmethod
+    def add_args(parser):
+        parser.add_parser(
+            "autocomplete",
+            help="Instructions for enabling autocompletion for Bittensor CLI.",
+        )
+
+    @staticmethod
+    def check_config(config):
+        pass

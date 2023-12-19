@@ -92,7 +92,7 @@ from .transfer import TransferCommand
 from .inspect import InspectCommand
 from .metagraph import MetagraphCommand
 from .list import ListCommand
-from .misc import UpdateCommand
+from .misc import UpdateCommand, AutocompleteCommand
 from .senate import (
     SenateCommand,
     ProposalsCommand,
