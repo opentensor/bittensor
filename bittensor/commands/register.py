@@ -61,7 +61,7 @@ class RegisterCommand:
     def run(cli):
         r"""Register neuron by recycling some TAO."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         # Verify subnet exists
         if not subtensor.subnet_exists(netuid=cli.config.netuid):
@@ -127,7 +127,9 @@ class RegisterCommand:
             )
             config.subtensor.chain_endpoint = endpoint
 
-        check_netuid_set(config, subtensor=bittensor.subtensor(config=config))
+        check_netuid_set(
+            config, subtensor=bittensor.subtensor(config=config, log_verbose=False)
+        )
 
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
@@ -176,7 +178,7 @@ class PowRegisterCommand:
     def run(cli):
         r"""Register neuron."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         # Verify subnet exists
         if not subtensor.subnet_exists(netuid=cli.config.netuid):
@@ -309,7 +311,9 @@ class PowRegisterCommand:
             )
             config.subtensor.chain_endpoint = endpoint
 
-        check_netuid_set(config, subtensor=bittensor.subtensor(config=config))
+        check_netuid_set(
+            config, subtensor=bittensor.subtensor(config=config, log_verbose=False)
+        )
 
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
@@ -360,7 +364,7 @@ class RunFaucetCommand:
     def run(cli):
         r"""Register neuron."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
         subtensor.run_faucet(
             wallet=wallet,
             prompt=not cli.config.no_prompt,
@@ -473,7 +477,7 @@ class SwapHotkeyCommand:
     def run(cli):
         r"""Swap your hotkey for all registered axons on the network."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         # This creates an unnecessary amount of extra data, but simplifies implementation.
         new_config = deepcopy(cli.config)
