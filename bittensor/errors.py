@@ -87,7 +87,7 @@ class MetadataError(ChainTransactionError):
     pass
 
 
-class InvalidRequestName(Exception):
+class InvalidRequestNameError(Exception):
     r"""This exception is raised when the request name is invalid. Ususally indicates a broken URL."""
     pass
 
