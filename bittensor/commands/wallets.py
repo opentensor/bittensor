@@ -732,7 +732,7 @@ class WalletBalanceCommand:
         """Check the balance of the wallet."""
         wallet_names = os.listdir(os.path.expanduser(cli.config.wallet.path))
         coldkeys = _get_coldkey_ss58_addresses_for_path(cli.config.wallet.path)
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         free_balances = [
             subtensor.get_balance(coldkeys[i]) for i in range(len(coldkeys))
