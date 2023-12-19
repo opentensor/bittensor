@@ -223,7 +223,7 @@ class cli:
         parser.add_argument(
             "--print-completion",
             choices=shtab.SUPPORTED_SHELLS,
-            help="Print shell tab completion script"
+            help="Print shell tab completion script",
         )
         # Add arguments for each sub-command.
         cmd_parsers = parser.add_subparsers(dest="command")

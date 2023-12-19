@@ -74,7 +74,8 @@ class UpdateCommand:
 
 
 class AutocompleteCommand:
-    """ Show users how to install and run autocompletion for Bittensor CLI. """
+    """Show users how to install and run autocompletion for Bittensor CLI."""
+
     @staticmethod
     def run(cli):
         print("To enable autocompletion for Bittensor CLI, run:")
@@ -86,7 +87,7 @@ class AutocompleteCommand:
     def add_args(parser):
         parser.add_parser(
             "autocomplete",
-            help="Instructions for enabling autocompletion for Bittensor CLI."
+            help="Instructions for enabling autocompletion for Bittensor CLI.",
         )
 
     @staticmethod

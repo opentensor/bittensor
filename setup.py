@@ -26,7 +26,6 @@ import pathlib
 import subprocess
 
 
-
 def read_requirements(path):
     requirements = []
     git_requirements = []
