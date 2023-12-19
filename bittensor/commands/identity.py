@@ -59,7 +59,7 @@ class SetIdentityCommand:
         console = bittensor.__console__
 
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         id_dict = {
             "display": cli.config.display,
@@ -263,7 +263,7 @@ class GetIdentityCommand:
         console = bittensor.__console__
 
         with console.status(":satellite: [bold green]Querying chain identity..."):
-            subtensor = bittensor.subtensor(config=cli.config)
+            subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
             identity = subtensor.query_identity(cli.config.key)
 
         table = Table(title="[bold white italic]On-Chain Identity")

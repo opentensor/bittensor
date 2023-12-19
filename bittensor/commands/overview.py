@@ -78,7 +78,9 @@ class OverviewCommand:
         r"""Prints an overview for the wallet's colkey."""
         console = bittensor.__console__
         wallet = bittensor.wallet(config=cli.config)
-        subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config)
+        subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            config=cli.config, log_verbose=False
+        )
 
         all_hotkeys = []
         total_balance = bittensor.Balance(0)

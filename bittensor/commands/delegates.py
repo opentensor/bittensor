@@ -251,7 +251,9 @@ class DelegateStakeCommand:
         """Delegates stake to a chain delegate."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
-        subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
+        subtensor: bittensor.subtensor = bittensor.subtensor(
+            config=config, log_verbose=False
+        )
         subtensor.delegate(
             wallet=wallet,
             delegate_ss58=config.get("delegate_ss58key"),
@@ -287,7 +289,7 @@ class DelegateStakeCommand:
         if not config.get("delegate_ss58key"):
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
-                subtensor = bittensor.subtensor(config=config)
+                subtensor = bittensor.subtensor(config=config, log_verbose=False)
                 delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
                 try:
                     prev_delegates = subtensor.get_delegates(
@@ -379,7 +381,9 @@ class DelegateUnstakeCommand:
         """Undelegates stake from a chain delegate."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
-        subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
+        subtensor: bittensor.subtensor = bittensor.subtensor(
+            config=config, log_verbose=False
+        )
         subtensor.undelegate(
             wallet=wallet,
             delegate_ss58=config.get("delegate_ss58key"),
@@ -419,7 +423,7 @@ class DelegateUnstakeCommand:
         if not config.get("delegate_ss58key"):
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
-                subtensor = bittensor.subtensor(config=config)
+                subtensor = bittensor.subtensor(config=config, log_verbose=False)
                 delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
                 try:
                     prev_delegates = subtensor.get_delegates(
@@ -515,7 +519,7 @@ class ListDelegatesCommand:
         """
         cli.config.subtensor.network = "archive"
         cli.config.subtensor.chain_endpoint = "wss://archive.chain.opentensor.ai:443"
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
         with bittensor.__console__.status(":satellite: Loading delegates..."):
             delegates: bittensor.DelegateInfo = subtensor.get_delegates()
             try:
@@ -581,7 +585,7 @@ class NominateCommand:
     def run(cli):
         r"""Nominate wallet."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         # Unlock the wallet.
         wallet.hotkey
@@ -688,7 +692,9 @@ class MyDelegatesCommand:
             wallets = _get_coldkey_wallets_for_path(config.wallet.path)
         else:
             wallets = [bittensor.wallet(config=config)]
-        subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
+        subtensor: bittensor.subtensor = bittensor.subtensor(
+            config=config, log_verbose=False
+        )
 
         table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
         table.add_column(
