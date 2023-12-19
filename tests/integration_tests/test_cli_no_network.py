@@ -418,7 +418,7 @@ class TestEmptyArgs(unittest.TestCase):
         # Get all commands from argparser
         commands = [
             command
-            for command in parser._actions[-1].choices # extract correct subparser keys
+            for command in parser._actions[-1].choices  # extract correct subparser keys
             if len(command) > 1  # Skip singleton aliases
             and command
             not in [
