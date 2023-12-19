@@ -44,6 +44,7 @@ ALIAS_TO_COMMAND = {
     "stakes": "stake",
     "sudos": "sudo",
     "i": "info",
+    "info": "info",
 }
 COMMANDS = {
     "subnets": {
@@ -134,7 +135,7 @@ COMMANDS = {
         },
     },
     "info": {
-        "name": "autocomplete",
+        "name": "info",
         "aliases": ["i"],
         "help": "Instructions for enabling autocompletion for the CLI.",
         "commands": {
