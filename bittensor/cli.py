@@ -43,6 +43,7 @@ ALIAS_TO_COMMAND = {
     "wallets": "wallet",
     "stakes": "stake",
     "sudos": "sudo",
+    "i": "info",
 }
 COMMANDS = {
     "subnets": {
@@ -130,6 +131,14 @@ COMMANDS = {
         "commands": {
             "update": UpdateCommand,
             "faucet": RunFaucetCommand,
+        },
+    },
+    "info": {
+        "name": "autocomplete",
+        "aliases": ["i"],
+        "help": "Instructions for enabling autocompletion for the CLI.",
+        "commands": {
+            "autocomplete": AutocompleteCommand,
         },
     },
 }
