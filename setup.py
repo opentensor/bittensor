@@ -24,6 +24,15 @@ import re
 import os
 import pathlib
 import subprocess
+from setuptools.command.install import install
+
+
+class PostInstallCLIAutocomplete(install):
+    """Post-installation for installation mode."""
+    def run(self):
+        install.run(self)
+        import post_install_cli
+        post_install_cli.post_install()
 
 
 def read_requirements(path):
@@ -76,6 +85,9 @@ setup(
     install_requires=requirements,
     extras_require={
         "dev": extra_requirements_dev,
+    },
+    cmdclass={
+        'install': PostInstallCLIAutocomplete,
     },
     scripts=["bin/btcli"],
     classifiers=[

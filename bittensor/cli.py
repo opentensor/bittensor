@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import sys
+import shtab
 import argparse
 import bittensor
 from typing import List, Optional
@@ -209,6 +210,12 @@ class cli:
             usage="btcli <command> <command args>",
             add_help=True,
         )
+        # Add shtab completion
+        parser.add_argument(
+            "--print-completion",
+            choices=shtab.SUPPORTED_SHELLS,
+            help="Print shell tab completion script"
+        )
         # Add arguments for each sub-command.
         cmd_parsers = parser.add_subparsers(dest="command")
         # Add argument parsers for all available commands.
@@ -282,6 +289,12 @@ class cli:
         """
         Executes the command from the configuration.
         """
+        # Check for print-completion argument
+        if self.config.print_completion:
+            shell = self.config.print_completion
+            print(shtab.complete(parser, shell))
+            return
+
         # Check if command exists, if so, run the corresponding method.
         # If command doesn't exist, inform user and exit the program.
         command = self.config.command
