@@ -153,7 +153,9 @@ class UnStakeCommand:
         r"""Unstake token of amount from hotkey(s)."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
-        subtensor: bittensor.subtensor = bittensor.subtensor(config=cli.config)
+        subtensor: bittensor.subtensor = bittensor.subtensor(
+            config=cli.config, log_verbose=False
+        )
 
         # Get the hotkey_names (if any) and the hotkey_ss58s.
         hotkeys_to_unstake_from: List[Tuple[Optional[str], str]] = []

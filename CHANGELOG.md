@@ -1,5 +1,17 @@
 # Changelog
 
+## 6.5.0 / 2023-12-19
+
+## What's Changed
+* Logging/axon handling refactor by @ifrit98 in https://github.com/opentensor/bittensor/pull/1627
+* Add decoding to get_commitment helper function to return original value by @ifrit98 in https://github.com/opentensor/bittensor/pull/1630
+* don't print subtensor message on cli by @ifrit98 in https://github.com/opentensor/bittensor/pull/1625
+* Add tab autocompletion to btcli by @ifrit98 in https://github.com/opentensor/bittensor/pull/1628
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.4.4...v6.5.0
+
+
 ## 6.4.4 / 2023-12-14
 
 ## What's Changed

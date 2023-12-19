@@ -25,6 +25,7 @@ retry
 requests
 rich
 scalecodec==1.2.0
+shtab==1.6.5
 substrate-interface==1.5.0
 termcolor
 torch>=1.13.1
