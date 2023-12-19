@@ -109,7 +109,7 @@ class InspectCommand:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)
         else:
             wallets = [bittensor.wallet(config=cli.config)]
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         netuids = subtensor.get_all_subnet_netuids()
 

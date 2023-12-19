@@ -61,7 +61,9 @@ class StakeCommand:
         r"""Stake token of amount to hotkey(s)."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
-        subtensor: bittensor.subtensor = bittensor.subtensor(config=config)
+        subtensor: bittensor.subtensor = bittensor.subtensor(
+            config=config, log_verbose=False
+        )
 
         # Get the hotkey_names (if any) and the hotkey_ss58s.
         hotkeys_to_stake_to: List[Tuple[Optional[str], str]] = []

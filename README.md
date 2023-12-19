@@ -208,6 +208,16 @@ options:
   -h, --help            show this help message and exit
 ```
 
+### Post-Installation Steps
+
+To enable autocompletion for Bittensor CLI, run the following commands:
+
+```bash
+btcli --print-completion bash >> ~/.bashrc  # For Bash
+btcli --print-completion zsh >> ~/.zshrc    # For Zsh
+source ~/.bashrc  # Reload Bash configuration to take effect
+```
+
 # The Bittensor Package
 The bittensor package contains data structures for interacting with the bittensor ecosystem, writing miners, validators and querying the network. Additionally, it provides many utilities for efficient serialization of Tensors over the wire, performing data analysis of the network, and other useful utilities.
 
