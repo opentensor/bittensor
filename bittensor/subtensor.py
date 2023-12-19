@@ -2125,7 +2125,11 @@ class subtensor:
         metagraph = self.metagraph(netuid)
         hotkey = metagraph.hotkeys[uid]
 
-        return get_metadata(self, netuid, hotkey, block)
+        metadata = get_metadata(self, netuid, hotkey, block)
+        commitment = metadata["info"]["fields"][0]
+        hex_data = commitment[list(commitment.keys())[0]][2:]
+
+        return bytes.fromhex(hex_data).decode()
 
     ########################
     #### Standard Calls ####
