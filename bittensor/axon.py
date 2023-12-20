@@ -597,7 +597,7 @@ class axon:
         self.forward_fns[request_name] = forward_fn
 
         # Parse required hash fields from the forward function protocol defaults
-        required_hash_fields = request_class.__dict__["__fields__"][
+        required_hash_fields = request_class.__dict__["model_fields"][
             "required_hash_fields"
         ].default
         self.required_hash_fields[request_name] = required_hash_fields
