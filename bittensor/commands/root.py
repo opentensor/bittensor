@@ -55,7 +55,7 @@ class RootRegisterCommand:
     def run(cli):
         r"""Register to root network."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         subtensor.root_register(wallet=wallet, prompt=not cli.config.no_prompt)
 
@@ -112,7 +112,7 @@ class RootList:
     @staticmethod
     def run(cli):
         r"""List the root network"""
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
                 subtensor.network
@@ -241,7 +241,7 @@ class RootSetBoostCommand:
     def run(cli):
         r"""Set weights for root network."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
         subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
         bittensor.__console__.print(
@@ -346,7 +346,7 @@ class RootSetSlashCommand:
     def run(cli):
         """Set weights for root network with decreased values."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
         subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
         bittensor.__console__.print(
@@ -428,7 +428,7 @@ class RootSetWeightsCommand:
     def run(cli):
         r"""Set weights for root network."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
         subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
         # Get values if not set.
@@ -529,7 +529,7 @@ class RootGetWeightsCommand:
     @staticmethod
     def run(cli):
         r"""Get weights for root network."""
-        subtensor = bittensor.subtensor(config=cli.config)
+        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
         weights = subtensor.weights(0)
 
         table = Table(show_footer=False)
