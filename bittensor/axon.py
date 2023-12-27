@@ -172,7 +172,13 @@ class FastAPIThreadedServer(uvicorn.Server):
             self.should_exit = True
 
 
-class FindPeers(bittensor.Synapse):
+class GossipMessage(bittensor.Synapse):
+    message_type: str
+    payload: Any
+
+
+class FindPeers(GossipMessage):
+    message_type: str = "find_peers"
     return_peer_uids: List[int] = None  # Return peer UIDs
 
 
@@ -328,32 +334,47 @@ class axon:
             placeholder2=0,
         )
 
-    async def start_gossip(self):
+    async def start_peer_discovery(self):
         while True:
-            await self.gossip()
+            await self.discover_peers()
             await asyncio.sleep(self.gossip_interval)
 
-    @staticmethod
-    def get_seed_peers(metagraph, n=0.01):
+    def get_seed_peers(self, n=0.01):
         top_uids = torch.where(
-            metagraph.S > torch.quantile(metagraph.S, 1 - n)  # top n% stake validators
+            self.metagraph.S
+            > torch.quantile(self.metagraph.S, 1 - n)  # top n% stake validators
         )[0].tolist()
-        return {uid: metagraph.axons[uid] for uid in top_uids}
+        return {uid: self.metagraph.axons[uid] for uid in top_uids}
 
-    async def gossip(self):
+    def get_validator_hotkeys(self):
+        return [
+            self.metagraph.hotkeys[uid]
+            for uid in torch.where(self.metagraph.validator_trust > 0)[0]
+        ]
+
+    async def blacklist_find_peers(self, synapse: FindPeers) -> Tuple[bool, str]:
+        """Blacklist function for FindPeers requests."""
+        if synapse.axon.hotkey not in self.validator_hotkeys:
+            return True, "Not a validator!"
+        return False, "Validator allowed!"
+
+    async def discover_peers(self):
         peer_uid_list = list(self.known_peers.keys())
 
-        if len(self.known_peers):
+        if (
+            len(peer_uid_list) < self.max_known_peers
+        ):  # < Max known validators, keep discovering peers.
             next_peer_uid = peer_uid_list[self.last_contacted_peer_index]
             next_peer_axon = self.known_peers[next_peer_uid]
+            bittensor.logging.info(f"Discovering peers from UID {next_peer_uid}")
 
             response = await self.gossip_dendrite(
                 next_peer_axon,
                 synapse=FindPeers(),
-                timeout=10,
+                timeout=5,
             )
 
-            bittensor.logging.trace(f"Gossip response: {pformat(response)}")
+            bittensor.logging.info(f"Gossip response: {pformat(response)}")
             if response.dendrite.status_code == 200:
                 # Update known peers.
                 new_peer_axons = {
@@ -365,8 +386,11 @@ class axon:
                 self.known_peers
             )
 
+        elif len(peer_uid_list) == 0:
+            bittensor.logging.info("No known peers to gossip with.")
+
         else:
-            bittensor.logging.trace("No known peers to gossip with.")
+            bittensor.logging.info(f"Discovered max peers: {self.max_known_peers}")
 
     def __init__(
         self,
@@ -480,21 +504,28 @@ class axon:
         axon_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
         self.is_validator_axon = self.metagraph.validator_permit[axon_uid]
 
-        if self.is_validator_axon:
+        if True:  # self.is_validator_axon:
             # Setup p2p gossip protocol variables.
+            self.validator_hotkeys = self.get_validator_hotkeys()
+            self.max_known_peers = len(self.validator_hotkeys)
             self.known_peers = {}  # House the known peer list.
-            self.gossip_interval = 10  # Seconds between gossiping with peers.
+            self.gossip_interval = (
+                10  # Seconds between gossiping with peers for node discovery.
+            )
             self.last_contacted_peer_index = (
                 0  # Index to track the last contacted peer.
             )
             self.gossip_dendrite = bittensor.dendrite(wallet=self.wallet)
+            bittensor.logging.info(
+                f"Max validator peers for subnet {self.metagraph.netuid}: {self.max_known_peers}"
+            )
 
             if metagraph == None and netuid == None:
                 bittensor.logging.warning(
                     "Can't initialize gossip protocol. Must pass either metagraph or netuid if validator axon."
                 )
             else:
-                self.known_peers.update(axon.get_seed_peers(metagraph))
+                self.known_peers.update(self.get_seed_peers())
                 bittensor.logging.info(
                     f"Initial seed peers: {pformat(self.known_peers)}"
                 )
@@ -506,9 +537,7 @@ class axon:
 
             self.attach(
                 forward_fn=find_peers,
-                verify_fn=None,
-                blacklist_fn=None,
-                priority_fn=None,
+                blacklist_fn=self.blacklist_find_peers,
             )
 
         else:
@@ -662,8 +691,8 @@ class axon:
         if blacklist_fn:
             assert (
                 signature(blacklist_fn) == blacklist_sig
-            ), "The blacklist_fn function must have the signature: blacklist( synapse: {} ) -> Tuple[bool, str]".format(
-                request_name
+            ), "The blacklist_fn function must have the signature: blacklist( synapse: {} ) -> Tuple[bool, str], found {}".format(
+                request_name, signature(blacklist_fn)
             )
         if priority_fn:
             assert (
@@ -915,7 +944,7 @@ class axon:
         """
         self.fast_server.start()
         self.started = True
-        asyncio.create_task(self.start_gossip())
+        # asyncio.create_task(self.start_peer_discovery())
         return self
 
     def stop(self) -> "bittensor.axon":
