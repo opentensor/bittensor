@@ -263,6 +263,7 @@ class MockSubtensor(subtensor):
                     "Axons": {},
                     "Prometheus": {},
                     "SubnetOwner": {},
+                    "Commits": {},
                 },
             }
 
@@ -327,6 +328,7 @@ class MockSubtensor(subtensor):
             subtensor_state["EmissionValues"][netuid][0] = 0
             subtensor_state["Burn"][netuid] = {}
             subtensor_state["Burn"][netuid][0] = 0
+            subtensor_state["Commits"][netuid] = {}
 
             # Per-UID/Hotkey
 
@@ -561,6 +563,24 @@ class MockSubtensor(subtensor):
         }
 
         return defaults_mapping.get(name, None)
+
+    def commit(self, wallet: "wallet", netuid: int, data: str) -> None:
+        uid = self.get_uid_for_hotkey_on_subnet(
+            hotkey_ss58=wallet.hotkey.ss58_address,
+            netuid=netuid,
+        )
+        if uid is None:
+            raise Exception("Neuron not found")
+        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state["Commits"][netuid].setdefault(self.block_number, {})[uid] = data
+
+    def get_commitment(self, netuid: int, uid: int, block: Optional[int] = None) -> str:
+        if block and self.block_number < block:
+            raise Exception("Cannot query block in the future")
+        block = block or self.block_number
+
+        subtensor_state = self.chain_state["SubtensorModule"]
+        return subtensor_state["Commits"][netuid][block][uid]
 
     def query_subtensor(
         self,
