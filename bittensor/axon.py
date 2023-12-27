@@ -173,7 +173,6 @@ class FastAPIThreadedServer(uvicorn.Server):
 
 
 class FindPeers(bittensor.Synapse):
-    send_peer_uids: List[int]
     return_peer_uids: List[int] = None  # Return peer UIDs
 
 
@@ -329,6 +328,11 @@ class axon:
             placeholder2=0,
         )
 
+    async def start_gossip(self):
+        while True:
+            await self.gossip()
+            await asyncio.sleep(self.gossip_interval)
+
     @staticmethod
     def get_seed_peers(metagraph, n=0.01):
         top_uids = torch.where(
@@ -344,10 +348,8 @@ class axon:
             next_peer_axon = self.known_peers[next_peer_uid]
 
             response = await self.gossip_dendrite(
-                [next_peer_axon],
-                synapse=FindPeers(
-                    send_peer_uids=peer_uid_list,
-                ),
+                next_peer_axon,
+                synapse=FindPeers(),
                 timeout=10,
             )
 
@@ -471,7 +473,7 @@ class axon:
         )
 
         # Only setup gossip protocol if a validator with a vpermit.
-        netuid = netuid or self.config.netuid # This may fail if neither provided
+        netuid = netuid or self.config.netuid  # This may fail if neither provided
         self.metagraph = metagraph or bittensor.metagraph(netuid)
 
         # Determine if a validator axon, and if so establish gossip protocol.
@@ -480,8 +482,11 @@ class axon:
 
         if self.is_validator_axon:
             # Setup p2p gossip protocol variables.
-            self.known_peers = {}
-            self.last_contacted_peer_index = 0  # Index to track the last contacted peer.
+            self.known_peers = {}  # House the known peer list.
+            self.gossip_interval = 10  # Seconds between gossiping with peers.
+            self.last_contacted_peer_index = (
+                0  # Index to track the last contacted peer.
+            )
             self.gossip_dendrite = bittensor.dendrite(wallet=self.wallet)
 
             if metagraph == None and netuid == None:
@@ -490,19 +495,21 @@ class axon:
                 )
             else:
                 self.known_peers.update(axon.get_seed_peers(metagraph))
-                bittensor.logging.info(f"Initial seed peers: {pformat(self.known_peers)}")
+                bittensor.logging.info(
+                    f"Initial seed peers: {pformat(self.known_peers)}"
+                )
 
             # Setup p2p gossip protocol forward.
             def find_peers(g: FindPeers) -> FindPeers:
-                g.returned_peers = list(self.known_peers)
+                g.return_peer_uids = list(self.known_peers.keys())
                 return g
 
             self.attach(
-                forward_fn=find_peers, verify_fn=None, blacklist_fn=None, priority_fn=None
+                forward_fn=find_peers,
+                verify_fn=None,
+                blacklist_fn=None,
+                priority_fn=None,
             )
-
-            # Get initial peers
-            await self.gossip()
 
         else:
             # Unused references for miners
@@ -908,6 +915,7 @@ class axon:
         """
         self.fast_server.start()
         self.started = True
+        asyncio.create_task(self.start_gossip())
         return self
 
     def stop(self) -> "bittensor.axon":
@@ -1250,7 +1258,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             request_name = request.url.path.split("/")[1]
         except:
             raise InvalidRequestNameError(
-                f"Improperly formatted request. Could not parser request {request.url.path}."
+                f"Improperly formatted request. Could not parse request {request.url.path}."
             )
 
         # Creates a synapse instance from the headers using the appropriate forward class type
