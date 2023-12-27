@@ -24,6 +24,7 @@ import uuid
 import copy
 import json
 import time
+import torch
 import base64
 import asyncio
 import inspect
@@ -34,6 +35,7 @@ import threading
 import bittensor
 import contextlib
 
+from pprint import pformat
 from inspect import signature, Signature, Parameter
 from fastapi.responses import JSONResponse
 from substrateinterface import Keypair
@@ -168,6 +170,11 @@ class FastAPIThreadedServer(uvicorn.Server):
         """
         if self.is_running:
             self.should_exit = True
+
+
+class FindPeers(bittensor.Synapse):
+    send_peer_uids: List[int]
+    return_peer_uids: List[int] = None  # Return peer UIDs
 
 
 class axon:
@@ -322,6 +329,43 @@ class axon:
             placeholder2=0,
         )
 
+    @staticmethod
+    def get_seed_peers(metagraph, n=0.01):
+        top_uids = torch.where(
+            metagraph.S > torch.quantile(metagraph.S, 1 - n)  # top n% stake validators
+        )[0].tolist()
+        return {uid: metagraph.axons[uid] for uid in top_uids}
+
+    async def gossip(self):
+        peer_uid_list = list(self.known_peers.keys())
+
+        if len(self.known_peers):
+            next_peer_uid = peer_uid_list[self.last_contacted_peer_index]
+            next_peer_axon = self.known_peers[next_peer_uid]
+
+            response = await self.gossip_dendrite(
+                [next_peer_axon],
+                synapse=FindPeers(
+                    send_peer_uids=peer_uid_list,
+                ),
+                timeout=10,
+            )
+
+            bittensor.logging.trace(f"Gossip response: {pformat(response)}")
+            if response.dendrite.status_code == 200:
+                # Update known peers.
+                new_peer_axons = {
+                    uid: self.metagraph.axons[uid] for uid in response.return_peer_uids
+                }
+                self.known_peers.update(new_peer_axons)
+
+            self.last_contacted_peer_index = (self.last_contacted_peer_index + 1) % len(
+                self.known_peers
+            )
+
+        else:
+            bittensor.logging.trace("No known peers to gossip with.")
+
     def __init__(
         self,
         wallet: "bittensor.wallet" = None,
@@ -331,6 +375,10 @@ class axon:
         external_ip: Optional[str] = None,
         external_port: Optional[int] = None,
         max_workers: Optional[int] = None,
+        netuid: Optional[int] = None,  # For seed peer initialization of p2p protocol.
+        metagraph: Optional[
+            bittensor.metagraph
+        ] = None,  # For seed peer initialization of p2p protocol.
     ) -> "bittensor.axon":
         r"""Creates a new bittensor.Axon object from passed arguments.
         Args:
@@ -421,6 +469,44 @@ class axon:
         self.attach(
             forward_fn=ping, verify_fn=None, blacklist_fn=None, priority_fn=None
         )
+
+        # Only setup gossip protocol if a validator with a vpermit.
+        netuid = netuid or self.config.netuid # This may fail if neither provided
+        self.metagraph = metagraph or bittensor.metagraph(netuid)
+
+        # Determine if a validator axon, and if so establish gossip protocol.
+        axon_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+        self.is_validator_axon = self.metagraph.validator_permit[axon_uid]
+
+        if self.is_validator_axon:
+            # Setup p2p gossip protocol variables.
+            self.known_peers = {}
+            self.last_contacted_peer_index = 0  # Index to track the last contacted peer.
+            self.gossip_dendrite = bittensor.dendrite(wallet=self.wallet)
+
+            if metagraph == None and netuid == None:
+                bittensor.logging.warning(
+                    "Can't initialize gossip protocol. Must pass either metagraph or netuid if validator axon."
+                )
+            else:
+                self.known_peers.update(axon.get_seed_peers(metagraph))
+                bittensor.logging.info(f"Initial seed peers: {pformat(self.known_peers)}")
+
+            # Setup p2p gossip protocol forward.
+            def find_peers(g: FindPeers) -> FindPeers:
+                g.returned_peers = list(self.known_peers)
+                return g
+
+            self.attach(
+                forward_fn=find_peers, verify_fn=None, blacklist_fn=None, priority_fn=None
+            )
+
+            # Get initial peers
+            await self.gossip()
+
+        else:
+            # Unused references for miners
+            del self.metagraph, netuid, axon_uid
 
     def attach(
         self,
@@ -874,7 +960,7 @@ class axon:
         Example:
             ```python
             my_axon = bittensor.axon(...)
-            subtensor = bt.subtensor(network="local") # Local by default
+            subtensor = bittensor.subtensor(network="local") # Local by default
             my_axon.serve(netuid=1, subtensor=subtensor)  # Serves the axon on subnet with netuid 1
             ```
 
