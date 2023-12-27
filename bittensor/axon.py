@@ -504,7 +504,7 @@ class axon:
         axon_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
         self.is_validator_axon = self.metagraph.validator_permit[axon_uid]
 
-        if True:  # self.is_validator_axon:
+        if self.is_validator_axon:
             # Setup p2p gossip protocol variables.
             self.validator_hotkeys = self.get_validator_hotkeys()
             self.max_known_peers = len(self.validator_hotkeys)
@@ -944,7 +944,7 @@ class axon:
         """
         self.fast_server.start()
         self.started = True
-        # asyncio.create_task(self.start_peer_discovery())
+        asyncio.create_task(self.start_peer_discovery())
         return self
 
     def stop(self) -> "bittensor.axon":
