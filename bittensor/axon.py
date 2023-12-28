@@ -335,11 +335,34 @@ class axon:
         )
 
     async def start_peer_discovery(self):
+        """
+        Initiates the peer discovery process that runs indefinitely at regular intervals
+        defined by `self.gossip_interval`. This method repeatedly calls `discover_peers`
+        method to update the list of known peers in the network.
+
+        The method runs asynchronously and is typically invoked when the Axon server starts,
+        enabling continuous discovery and maintenance of the peer network.
+
+        Usage:
+            asyncio.create_task(self.start_peer_discovery())
+        """
         while True:
             await self.discover_peers()
             await asyncio.sleep(self.gossip_interval)
 
     def get_seed_peers(self, n=0.01):
+        """
+        Retrieves a list of seed peers from the metagraph based on their stake.
+        Seed peers are selected as the top 'n' percent of validators by stake.
+
+        Args:
+            n (float, optional): The percentage of top validators to include as seed peers.
+                                Defaults to 0.01 (1%).
+
+        Returns:
+            dict: A dictionary of peer UIDs mapped to their corresponding Axon addresses,
+                representing the initial set of seed peers for the gossip protocol.
+        """
         top_uids = torch.where(
             self.metagraph.S
             > torch.quantile(self.metagraph.S, 1 - n)  # top n% stake validators
@@ -347,18 +370,47 @@ class axon:
         return {uid: self.metagraph.axons[uid] for uid in top_uids}
 
     def get_validator_hotkeys(self):
+        """
+        Retrieves the hotkeys of all validators in the network. This method is used to
+        identify the validators and their corresponding hotkeys, which are essential
+        for various network operations, including blacklisting and peer validation.
+
+        Returns:
+            List[str]: A list of hotkeys corresponding to all the validators in the network.
+        """
         return [
             self.metagraph.hotkeys[uid]
             for uid in torch.where(self.metagraph.validator_trust > 0)[0]
         ]
 
     async def blacklist_find_peers(self, synapse: FindPeers) -> Tuple[bool, str]:
-        """Blacklist function for FindPeers requests."""
+        """
+        A blacklist function for handling incoming 'FindPeers' requests. This function
+        determines whether a given 'FindPeers' request should be accepted or rejected
+        based on the validator status of the requester.
+
+        Args:
+            synapse (FindPeers): The 'FindPeers' synapse object containing the request details.
+
+        Returns:
+            Tuple[bool, str]: A tuple containing a boolean indicating whether to blacklist
+                            the request, and a string message explaining the decision.
+        """
         if synapse.axon.hotkey not in self.validator_hotkeys:
             return True, "Not a validator!"
         return False, "Validator allowed!"
 
     async def discover_peers(self):
+        """
+        Discovers peers in the network by communicating with known peers and updating
+        the list of known peers based on responses. This method is part of the gossip
+        protocol, where each Axon instance periodically contacts a peer to exchange
+        peer information, thereby maintaining an updated view of the network.
+
+        The method cycles through known peers, sends out 'FindPeers' requests, and updates
+        the known peer list based on the responses. If the maximum number of known peers
+        is reached, the discovery process is paused.
+        """
         peer_uid_list = list(self.known_peers.keys())
 
         if (
@@ -944,7 +996,7 @@ class axon:
         """
         self.fast_server.start()
         self.started = True
-        asyncio.create_task(self.start_peer_discovery())
+        # asyncio.create_task(self.start_peer_discovery())
         return self
 
     def stop(self) -> "bittensor.axon":
