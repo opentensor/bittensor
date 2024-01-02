@@ -25,6 +25,7 @@ from typing import Optional, List
 from . import defaults
 import requests
 
+
 class RegenColdkeyCommand:
     """
     Executes the 'regen_coldkey' command to regenerate a coldkey for a wallet on the Bittensor network.
@@ -828,10 +829,11 @@ class WalletBalanceCommand:
                 config.subtensor.chain_endpoint,
             ) = bittensor.subtensor.determine_chain_endpoint_and_network(str(network))
 
+
 class GetWalletHistoryCommand:
     """
     Executes the 'history' command to fetch the latest transfers of the provided wallet on the Bittensor network.
-   
+
     This command provides a detailed view of the transfers carried out on the wallet.
 
     Usage:
@@ -854,7 +856,7 @@ class GetWalletHistoryCommand:
         wallet = bittensor.wallet(config=cli.config)
         wallet_address = wallet.coldkey.ss58_address
 
-        #Fetch all transfers
+        # Fetch all transfers
         transfers = get_wallet_transfers(wallet_address)
 
         # Create output table
@@ -910,12 +912,12 @@ class GetWalletHistoryCommand:
 
         for item in transfers:
             table.add_row(
-                item['id'],
-                item['from'],
-                item['to'],
-                item['amount'],
-                str(item['extrinsicId']),
-                item['blockNumber'],
+                item["id"],
+                item["from"],
+                item["to"],
+                item["amount"],
+                str(item["extrinsicId"]),
+                item["blockNumber"],
             )
         table.add_row()
         table.show_footer = True
@@ -923,11 +925,12 @@ class GetWalletHistoryCommand:
         table.pad_edge = False
         table.width = None
         bittensor.__console__.print(table)
-            
+
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         history_parser = parser.add_parser(
-            "history", help="""Fetch transfer history associated with the provided wallet"""
+            "history",
+            help="""Fetch transfer history associated with the provided wallet""",
         )
         bittensor.wallet.add_args(history_parser)
         bittensor.subtensor.add_args(history_parser)
@@ -938,18 +941,28 @@ class GetWalletHistoryCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
+
 def get_wallet_transfers(wallet_address) -> List[dict]:
     """Get all transfers associated with the provided wallet address."""
-    
+
     url = "https://api.subquery.network/sq/TaoStats/bittensor-indexer"
     query = "query ($first: Int!, $after: Cursor, $filter: TransferFilter, $order: [TransfersOrderBy!]!) {\n\t\t\ttransfers(first: $first, after: $after, filter: $filter, orderBy: $order) {\n\t\t\t\tnodes {\n\t\t\t\t\tid\n\t\t\t\t\tfrom\n\t\t\t\t\tto\n\t\t\t\t\tamount\n\t\t\t\t\textrinsicId\n\t\t\t\t\tblockNumber\n\t\t\t\t}\n\t\t\t\tpageInfo {\n\t\t\t\t\tendCursor\n\t\t\t\t\thasNextPage\n\t\t\t\t\thasPreviousPage\n\t\t\t\t}\n\t\t\t\ttotalCount\n\t\t\t}\n\t\t}"
-    variables = {"first":10,"filter":{"or":[{"from":{"equalTo": wallet_address}},{"to":{"equalTo": wallet_address}}]},"order":"BLOCK_NUMBER_DESC"}
-        
+    variables = {
+        "first": 10,
+        "filter": {
+            "or": [
+                {"from": {"equalTo": wallet_address}},
+                {"to": {"equalTo": wallet_address}},
+            ]
+        },
+        "order": "BLOCK_NUMBER_DESC",
+    }
+
     transfers = []
-    
+
     # Make the request with the provided query and variables until all transfers are fetched
     while True:
-        response = requests.post(url, json={"query": query,"variables": variables})
+        response = requests.post(url, json={"query": query, "variables": variables})
         data = response.json()
 
         # Extract nodes and pageInfo from the response
