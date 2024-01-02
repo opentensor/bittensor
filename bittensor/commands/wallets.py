@@ -830,6 +830,30 @@ class WalletBalanceCommand:
             ) = bittensor.subtensor.determine_chain_endpoint_and_network(str(network))
 
 
+API_URL = "https://api.subquery.network/sq/TaoStats/bittensor-indexer"
+
+GRAPHQL_QUERY = """
+query ($first: Int!, $after: Cursor, $filter: TransferFilter, $order: [TransfersOrderBy!]!) {
+    transfers(first: $first, after: $after, filter: $filter, orderBy: $order) {
+        nodes {
+            id
+            from
+            to
+            amount
+            extrinsicId
+            blockNumber
+        }
+        pageInfo {
+            endCursor
+            hasNextPage
+            hasPreviousPage
+        }
+        totalCount
+    }
+}
+"""
+
+
 class GetWalletHistoryCommand:
     """
     Executes the 'history' command to fetch the latest transfers of the provided wallet on the Bittensor network.
@@ -860,70 +884,8 @@ class GetWalletHistoryCommand:
         transfers = get_wallet_transfers(wallet_address)
 
         # Create output table
-        table = Table(show_footer=False)
-        table.title = "[white]Wallet Transfers"
-        table.add_column(
-            "[white]Id",
-            header_style="overline white",
-            footer_style="overline white",
-            style="rgb(50,163,219)",
-            no_wrap=True,
-        )
+        table = create_transfer_history_table(transfers)
 
-        table.add_column(
-            "[white]From",
-            header_style="overline white",
-            footer_style="overline white",
-            style="rgb(50,163,219)",
-            no_wrap=True,
-        )
-
-        table.add_column(
-            "[white]To",
-            header_style="overline white",
-            footer_style="overline white",
-            style="rgb(50,163,219)",
-            no_wrap=True,
-        )
-
-        table.add_column(
-            "[white]Amount",
-            header_style="overline white",
-            footer_style="overline white",
-            style="rgb(50,163,219)",
-            no_wrap=True,
-        )
-
-        table.add_column(
-            "[white]Extrinsic Id",
-            header_style="overline white",
-            footer_style="overline white",
-            style="rgb(50,163,219)",
-            no_wrap=True,
-        )
-
-        table.add_column(
-            "[white]Block Number",
-            header_style="overline white",
-            footer_style="overline white",
-            style="rgb(50,163,219)",
-            no_wrap=True,
-        )
-
-        for item in transfers:
-            table.add_row(
-                item["id"],
-                item["from"],
-                item["to"],
-                item["amount"],
-                str(item["extrinsicId"]),
-                item["blockNumber"],
-            )
-        table.add_row()
-        table.show_footer = True
-        table.box = None
-        table.pad_edge = False
-        table.width = None
         bittensor.__console__.print(table)
 
     @staticmethod
@@ -945,8 +907,6 @@ class GetWalletHistoryCommand:
 def get_wallet_transfers(wallet_address) -> List[dict]:
     """Get all transfers associated with the provided wallet address."""
 
-    url = "https://api.subquery.network/sq/TaoStats/bittensor-indexer"
-    query = "query ($first: Int!, $after: Cursor, $filter: TransferFilter, $order: [TransfersOrderBy!]!) {\n\t\t\ttransfers(first: $first, after: $after, filter: $filter, orderBy: $order) {\n\t\t\t\tnodes {\n\t\t\t\t\tid\n\t\t\t\t\tfrom\n\t\t\t\t\tto\n\t\t\t\t\tamount\n\t\t\t\t\textrinsicId\n\t\t\t\t\tblockNumber\n\t\t\t\t}\n\t\t\t\tpageInfo {\n\t\t\t\t\tendCursor\n\t\t\t\t\thasNextPage\n\t\t\t\t\thasPreviousPage\n\t\t\t\t}\n\t\t\t\ttotalCount\n\t\t\t}\n\t\t}"
     variables = {
         "first": 10,
         "filter": {
@@ -962,7 +922,9 @@ def get_wallet_transfers(wallet_address) -> List[dict]:
 
     # Make the request with the provided query and variables until all transfers are fetched
     while True:
-        response = requests.post(url, json={"query": query, "variables": variables})
+        response = requests.post(
+            API_URL, json={"query": GRAPHQL_QUERY, "variables": variables}
+        )
         data = response.json()
 
         # Extract nodes and pageInfo from the response
@@ -981,3 +943,48 @@ def get_wallet_transfers(wallet_address) -> List[dict]:
         variables["after"] = page_info["endCursor"]
 
     return transfers
+
+
+def create_transfer_history_table(transfers):
+    """Get output transfer table"""
+
+    table = Table(show_footer=False)
+    # Define the column names
+    column_names = ["Id", "From", "To", "Amount", "Extrinsic Id", "Block Number"]
+
+    # Create a table
+    table = Table(show_footer=False)
+    table.title = "[white]Wallet Transfers"
+
+    # Define the column styles
+    header_style = "overline white"
+    footer_style = "overline white"
+    column_style = "rgb(50,163,219)"
+    no_wrap = True
+
+    # Add columns to the table
+    for column_name in column_names:
+        table.add_column(
+            f"[white]{column_name}",
+            header_style=header_style,
+            footer_style=footer_style,
+            style=column_style,
+            no_wrap=no_wrap,
+        )
+
+    # Add rows to the table
+    for item in transfers:
+        table.add_row(
+            item["id"],
+            item["from"],
+            item["to"],
+            item["amount"],
+            str(item["extrinsicId"]),
+            item["blockNumber"],
+        )
+    table.add_row()
+    table.show_footer = True
+    table.box = None
+    table.pad_edge = False
+    table.width = None
+    return table
