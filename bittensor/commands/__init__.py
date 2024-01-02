@@ -87,6 +87,7 @@ from .wallets import (
     UpdateWalletCommand,
     WalletCreateCommand,
     WalletBalanceCommand,
+    GetWalletHistoryCommand,
 )
 from .transfer import TransferCommand
 from .inspect import InspectCommand

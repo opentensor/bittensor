@@ -103,6 +103,7 @@ COMMANDS = {
             "swap_hotkey": SwapHotkeyCommand,
             "set_identity": SetIdentityCommand,
             "get_identity": GetIdentityCommand,
+            "history": GetWalletHistoryCommand,
         },
     },
     "stake": {
