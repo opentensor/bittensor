@@ -1,19 +1,32 @@
 #!/usr/bin/env python
 
+import websocket
+
 import sys
 import shtab
-import bittensor
+from bittensor import cli as btcli
+from bittensor import logging as bt_logging
+
 
 def main():
     # Create the parser with shtab support
-    parser = bittensor.cli.__create_parser__()
+    parser = btcli.__create_parser__()
     args, unknown = parser.parse_known_args()
 
     if args.print_completion:  # Check for print-completion argument
         print(shtab.complete(parser, args.print_completion))
-    else:
-        cli_instance = bittensor.cli(args=sys.argv[1:])
+        return
+
+    try:
+        cli_instance = btcli(args=sys.argv[1:])
         cli_instance.run()
+    except KeyboardInterrupt:
+        print('KeyboardInterrupt')
+    except RuntimeError as e:
+        bt_logging.error(f'RuntimeError: {e}')
+    except websocket.WebSocketConnectionClosedException as e:
+        bt_logging.error(f'Subtensor related error. WebSocketConnectionClosedException: {e}')
+
 
 if __name__ == '__main__':
     main()
