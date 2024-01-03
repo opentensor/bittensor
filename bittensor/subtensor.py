@@ -402,6 +402,15 @@ class subtensor:
     def __repr__(self) -> str:
         return self.__str__()
 
+    ####################
+    #### SubstrateInterface related
+    ####################
+    def connect_websocket(self):
+        self.subtensor.connect_websocket
+
+    def close(self):
+        self.substrate.close()
+
     #####################
     #### Delegation #####
     #####################
