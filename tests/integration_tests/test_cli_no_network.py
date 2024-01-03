@@ -1028,6 +1028,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
     def test_history_prompt_wallet_name(self, _):
         base_args = [
+            "wallet",
             "history",
         ]
         # Patch command to exit early
