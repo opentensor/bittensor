@@ -1032,7 +1032,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         ]
         # Patch command to exit early
         with patch(
-            "bittensor.commands.history.WalletBalanceCommand.run", return_value=None
+            "bittensor.commands.wallets.GetWalletHistoryCommand.run", return_value=None
         ):
             # Test prompt happens when
             # - wallet name IS NOT passed
