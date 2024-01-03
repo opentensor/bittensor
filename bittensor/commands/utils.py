@@ -173,6 +173,25 @@ def get_all_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     return all_wallets
 
 
+def filter_netuids_by_registered_hotkeys(cli, subtensor, netuids, all_hotkeys) -> List[int]:
+    netuids_with_registered_hotkeys = []
+    for wallet in all_hotkeys:
+        netuids_list = subtensor.get_netuids_for_hotkey(wallet.hotkey.ss58_address)
+        bittensor.logging.debug(f'Hotkey {wallet.hotkey.ss58_address} registered in netuids: {netuids_list}')
+        netuids_with_registered_hotkeys.extend(netuids_list)
+
+    netuids_with_registered_hotkeys = list(set(netuids_with_registered_hotkeys))
+
+    if cli.config.netuids == None or cli.config.netuids == []:
+        netuids = netuids_with_registered_hotkeys
+
+    elif cli.config.netuids != []:
+        netuids = [netuid for netuid in netuids if netuid in cli.config.netuids]
+        netuids.extend(netuids_with_registered_hotkeys)
+
+    return netuids
+
+
 @dataclass
 class DelegatesDetails:
     name: str
