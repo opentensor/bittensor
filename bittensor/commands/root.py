@@ -244,11 +244,6 @@ class RootSetBoostCommand:
         subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
         subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
-        bittensor.__console__.print(
-            "Boosting weight for subnet: {} by amount: {}".format(
-                cli.config.netuid, cli.config.amount
-            )
-        )
         root = subtensor.metagraph(0, lite=False)
         try:
             my_uid = root.hotkeys.index(wallet.hotkey.ss58_address)
@@ -258,10 +253,16 @@ class RootSetBoostCommand:
             )
             exit()
         my_weights = root.weights[my_uid]
-        my_weights[cli.config.netuid] += cli.config.amount
-        my_weights /= my_weights.sum()
+        prev_weight = my_weights[cli.config.netuid]
+        new_weight = prev_weight + cli.config.amount
+
+        bittensor.__console__.print(
+            f"Boosting weight for netuid {cli.config.netuid} from {prev_weight} -> {new_weight}"
+        )
+        my_weights[cli.config.netuid] = new_weight
         all_netuids = torch.tensor(list(range(len(my_weights))))
 
+        bittensor.__console__.print("Setting root weights...")
         subtensor.root_set_weights(
             wallet=wallet,
             netuids=all_netuids,
@@ -365,7 +366,6 @@ class RootSetSlashCommand:
         my_weights = root.weights[my_uid]
         my_weights[cli.config.netuid] -= cli.config.amount
         my_weights[my_weights < 0] = 0  # Ensure weights don't go negative
-        my_weights /= my_weights.sum()
         all_netuids = torch.tensor(list(range(len(my_weights))))
 
         subtensor.root_set_weights(
