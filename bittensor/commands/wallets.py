@@ -879,7 +879,6 @@ class GetWalletHistoryCommand:
         r"""Check the transfer history of the provided wallet."""
         wallet = bittensor.wallet(config=cli.config)
         wallet_address = wallet.coldkey.ss58_address
-
         # Fetch all transfers
         transfers = get_wallet_transfers(wallet_address)
 
@@ -920,8 +919,17 @@ def get_wallet_transfers(wallet_address) -> List[dict]:
 
     transfers = []
 
+    max_txn_history = os.getenv("MAX_TXN_HISTORY", 1000)  # max transactions to fetch.
+    page_info = {"hasNextPage": True}  # for initial loop entry.
+    try:
+        max_txn_history = int(max_txn_history)
+    except:
+        max_txn_history = 1000
+
     # Make the request with the provided query and variables until all transfers are fetched
-    while True:
+    while (
+        len(transfers) < int(max_txn_history) and page_info.get("hasNextPage") == True
+    ):
         response = requests.post(
             API_URL, json={"query": GRAPHQL_QUERY, "variables": variables}
         )
