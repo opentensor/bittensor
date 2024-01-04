@@ -832,7 +832,7 @@ class WalletBalanceCommand:
 
 
 API_URL = "https://api.subquery.network/sq/TaoStats/bittensor-indexer"
-
+MAX_TXN = 1000
 GRAPHQL_QUERY = """
 query ($first: Int!, $after: Cursor, $filter: TransferFilter, $order: [TransfersOrderBy!]!) {
     transfers(first: $first, after: $after, filter: $filter, orderBy: $order) {
@@ -908,7 +908,7 @@ def get_wallet_transfers(wallet_address) -> List[dict]:
     """Get all transfers associated with the provided wallet address."""
 
     variables = {
-        "first": 10,
+        "first": MAX_TXN,
         "filter": {
             "or": [
                 {"from": {"equalTo": wallet_address}},
@@ -918,38 +918,14 @@ def get_wallet_transfers(wallet_address) -> List[dict]:
         "order": "BLOCK_NUMBER_DESC",
     }
 
-    transfers = []
+    response = requests.post(
+        API_URL, json={"query": GRAPHQL_QUERY, "variables": variables}
+    )
+    data = response.json()
 
-    max_txn_history = os.getenv("MAX_TXN_HISTORY", 1000)  # max transactions to fetch.
-    page_info = {"hasNextPage": True}  # for initial loop entry.
-    try:
-        max_txn_history = int(max_txn_history)
-    except:
-        max_txn_history = 1000
-
-    # Make the request with the provided query and variables until all transfers are fetched
-    while (
-        len(transfers) < int(max_txn_history) and page_info.get("hasNextPage") == True
-    ):
-        response = requests.post(
-            API_URL, json={"query": GRAPHQL_QUERY, "variables": variables}
-        )
-        data = response.json()
-
-        # Extract nodes and pageInfo from the response
-        transfer_data = data.get("data", {}).get("transfers", {})
-        nodes = transfer_data.get("nodes", [])
-        page_info = transfer_data.get("pageInfo", {})
-
-        # Add the nodes to the result list
-        transfers.extend(nodes)
-
-        # Check if there are more pages
-        if not page_info.get("hasNextPage"):
-            break
-
-        # Update variables for the next request with the endCursor from the current response
-        variables["after"] = page_info["endCursor"]
+    # Extract nodes and pageInfo from the response
+    transfer_data = data.get("data", {}).get("transfers", {})
+    transfers = transfer_data.get("nodes", [])
 
     return transfers
 
@@ -984,7 +960,7 @@ def create_transfer_history_table(transfers):
     # Add rows to the table
     for item in transfers:
         try:
-            tao_amount = int(float(item["amount"])) / RAOPERTAO
+            tao_amount = int(item["amount"]) / RAOPERTAO
         except:
             tao_amount = item["amount"]
         table.add_row(
