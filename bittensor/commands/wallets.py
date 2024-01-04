@@ -935,7 +935,7 @@ def create_transfer_history_table(transfers):
 
     table = Table(show_footer=False)
     # Define the column names
-    column_names = ["Id", "From", "To", "Amount", "Extrinsic Id", "Block Number"]
+    column_names = ["Id", "From", "To", "Amount (Tao)", "Extrinsic Id", "Block Number"]
 
     # Create a table
     table = Table(show_footer=False)
@@ -955,6 +955,7 @@ def create_transfer_history_table(transfers):
             footer_style=footer_style,
             style=column_style,
             no_wrap=no_wrap,
+            justify="left" if column_name == "Id" else "right",
         )
 
     # Add rows to the table
@@ -967,7 +968,7 @@ def create_transfer_history_table(transfers):
             item["id"],
             item["from"],
             item["to"],
-            str(tao_amount),
+            f"{tao_amount:.3f}",
             str(item["extrinsicId"]),
             item["blockNumber"],
         )
