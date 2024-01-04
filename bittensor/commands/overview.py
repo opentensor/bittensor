@@ -714,7 +714,7 @@ class OverviewCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.netuids != []:
+        if config.netuids != [] and config.netuids != None:
             if not isinstance(config.netuids, list):
                 config.netuids = [int(config.netuids)]
             else:

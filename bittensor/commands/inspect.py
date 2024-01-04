@@ -238,12 +238,18 @@ class InspectCommand:
     @staticmethod
     def check_config(config: "bittensor.config"):
         if (
-            not config.get("all", d=None)
-            and not config.is_set("wallet.name")
+            not config.is_set("wallet.name")
             and not config.no_prompt
+            and not config.get("all", d=None)
         ):
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
+
+        if config.netuids != [] and config.netuids != None:
+            if not isinstance(config.netuids, list):
+                config.netuids = [int(config.netuids)]
+            else:
+                config.netuids = [int(netuid) for netuid in config.netuids]
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
