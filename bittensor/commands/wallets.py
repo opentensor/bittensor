@@ -24,6 +24,7 @@ from rich.table import Table
 from typing import Optional, List
 from . import defaults
 import requests
+from ..utils import RAOPERTAO
 
 
 class RegenColdkeyCommand:
@@ -878,7 +879,7 @@ class GetWalletHistoryCommand:
     def run(cli):
         r"""Check the transfer history of the provided wallet."""
         wallet = bittensor.wallet(config=cli.config)
-        wallet_address = wallet.coldkey.ss58_address
+        wallet_address = wallet.get_coldkeypub().ss58_address
         # Fetch all transfers
         transfers = get_wallet_transfers(wallet_address)
 
@@ -982,11 +983,15 @@ def create_transfer_history_table(transfers):
 
     # Add rows to the table
     for item in transfers:
+        try:
+            tao_amount = int(float(item["amount"])) / RAOPERTAO
+        except:
+            tao_amount = item["amount"]
         table.add_row(
             item["id"],
             item["from"],
             item["to"],
-            item["amount"],
+            str(tao_amount),
             str(item["extrinsicId"]),
             item["blockNumber"],
         )
