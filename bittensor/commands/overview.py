@@ -630,6 +630,11 @@ class OverviewCommand:
 
         except Exception as e:
             return coldkey_wallet, [], "Error: {}".format(e)
+        finally:
+            if 'subtensor' in locals():
+                subtensor.close()
+                bittensor.logging.debug('closing subtensor connection')
+
 
         return coldkey_wallet, result, None
 
