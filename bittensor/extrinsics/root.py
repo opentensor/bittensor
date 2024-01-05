@@ -159,7 +159,7 @@ def set_root_weights_extrinsic(
         x=weights, limit=max_weight_limit
     )
     bittensor.__console__.print(
-        f"\nNormalized weights: \n\t{weights} -> {formatted_weights}\n"
+        f"\nRaw Weights -> Normalized weights: \n\t{weights} -> \n\t{formatted_weights}\n"
     )
 
     # Ask before moving on.
