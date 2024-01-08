@@ -173,11 +173,15 @@ def get_all_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     return all_wallets
 
 
-def filter_netuids_by_registered_hotkeys(cli, subtensor, netuids, all_hotkeys) -> List[int]:
+def filter_netuids_by_registered_hotkeys(
+    cli, subtensor, netuids, all_hotkeys
+) -> List[int]:
     netuids_with_registered_hotkeys = []
     for wallet in all_hotkeys:
         netuids_list = subtensor.get_netuids_for_hotkey(wallet.hotkey.ss58_address)
-        bittensor.logging.debug(f'Hotkey {wallet.hotkey.ss58_address} registered in netuids: {netuids_list}')
+        bittensor.logging.debug(
+            f"Hotkey {wallet.hotkey.ss58_address} registered in netuids: {netuids_list}"
+        )
         netuids_with_registered_hotkeys.extend(netuids_list)
 
     if cli.config.netuids == None or cli.config.netuids == []:
