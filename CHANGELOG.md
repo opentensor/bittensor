@@ -1,5 +1,24 @@
 # Changelog
 
+## 6.6.0 / 2024-01-08
+
+## What's Changed
+* Release/6.5.0 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1631
+* Merge master staging by @ifrit98 in https://github.com/opentensor/bittensor/pull/1634
+* Add commitment support to MockSubtensor by @agoncharov-reef in https://github.com/opentensor/bittensor/pull/1635
+* don't prenormalize weights in btcli boost/slash by @ifrit98 in https://github.com/opentensor/bittensor/pull/1636
+* feat(wallets.py): add wallet history command by @saqib-codes-11 in https://github.com/opentensor/bittensor/pull/1638
+* Update taostats link by @mogmachine in https://github.com/opentensor/bittensor/pull/1641
+* Bugfix/expand dendrite json by @ifrit98 in https://github.com/opentensor/bittensor/pull/1633
+* update wallet history command to right justify and fmt 3 decimal places by @ifrit98 in https://github.com/opentensor/bittensor/pull/1639
+
+## New Contributors
+* @agoncharov-reef made their first contribution in https://github.com/opentensor/bittensor/pull/1635
+* @saqib-codes-11 made their first contribution in https://github.com/opentensor/bittensor/pull/1638
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.5.0...v6.6.0
+
+
 ## 6.5.0 / 2023-12-19
 
 ## What's Changed
