@@ -1026,6 +1026,64 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
+    def test_history_prompt_wallet_name(self, _):
+        base_args = [
+            "wallet",
+            "history",
+        ]
+        # Patch command to exit early
+        with patch(
+            "bittensor.commands.wallets.GetWalletHistoryCommand.run", return_value=None
+        ):
+            # Test prompt happens when
+            # - wallet name IS NOT passed
+            with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
+                mock_ask_prompt.side_effect = ["mock"]
+
+                cli = bittensor.cli(
+                    args=base_args
+                    + [
+                        # '--wallet.name', 'mock',
+                    ]
+                )
+                cli.run()
+
+                # Prompt happened
+                mock_ask_prompt.assert_called()
+                self.assertEqual(
+                    mock_ask_prompt.call_count,
+                    1,
+                    msg="Prompt should have been called ONCE",
+                )
+                args0, kwargs0 = mock_ask_prompt.call_args_list[0]
+                combined_args_kwargs0 = [arg for arg in args0] + [
+                    val for val in kwargs0.values()
+                ]
+                # check that prompt was called for wallet name
+                self.assertTrue(
+                    any(
+                        filter(
+                            lambda x: "wallet name" in x.lower(), combined_args_kwargs0
+                        )
+                    ),
+                    msg=f"Prompt should have been called for wallet name: {combined_args_kwargs0}",
+                )
+
+            # Test NO prompt happens when
+            # - wallet name IS passed
+            with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
+                cli = bittensor.cli(
+                    args=base_args
+                    + [
+                        "--wallet.name",
+                        "coolwalletname",
+                    ]
+                )
+                cli.run()
+
+                # NO prompt happened
+                mock_ask_prompt.assert_not_called()
+
     def test_delegate_prompt_hotkey(self, _):
         # Tests when
         # - wallet name IS passed, AND
