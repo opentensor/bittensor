@@ -247,20 +247,23 @@ class DelegateStakeCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
         """Delegates stake to a chain delegate."""
-        config = cli.config.copy()
-        wallet = bittensor.wallet(config=config)
-        subtensor: bittensor.subtensor = bittensor.subtensor(
-            config=config, log_verbose=False
-        )
-        subtensor.delegate(
-            wallet=wallet,
-            delegate_ss58=config.get("delegate_ss58key"),
-            amount=config.get("amount"),
-            wait_for_inclusion=True,
-            prompt=not config.no_prompt,
-        )
+        try:
+            config = cli.config.copy()
+            wallet = bittensor.wallet(config=config)
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=config, log_verbose=False)
+            subtensor.delegate(
+                wallet=wallet,
+                delegate_ss58=config.get("delegate_ss58key"),
+                amount=config.get("amount"),
+                wait_for_inclusion=True,
+                prompt=not config.no_prompt,
+            )
+        finally:
+            if 'subtensor' in locals():
+                subtensor.close()
+                bittensor.logging.debug('closing subtensor connection')
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -377,13 +380,21 @@ class DelegateUnstakeCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        """Undelegates stake from a chain delegate."""
+        try:
+            config = cli.config.copy()
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=config, log_verbose=False)
+            DelegateUnstakeCommand._run(cli, subtensor)
+        finally:
+            if 'subtensor' in locals():
+                subtensor.close()
+                bittensor.logging.debug('closing subtensor connection')
+
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         """Undelegates stake from a chain delegate."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
-        subtensor: bittensor.subtensor = bittensor.subtensor(
-            config=config, log_verbose=False
-        )
         subtensor.undelegate(
             wallet=wallet,
             delegate_ss58=config.get("delegate_ss58key"),
@@ -513,13 +524,25 @@ class ListDelegatesCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        r"""
+        List all delegates on the network.
+        """
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            ListDelegatesCommand._run(cli, subtensor)
+        finally:
+            if 'subtensor' in locals():
+                subtensor.close()
+                bittensor.logging.debug('closing subtensor connection')
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""
         List all delegates on the network.
         """
         cli.config.subtensor.network = "archive"
         cli.config.subtensor.chain_endpoint = "wss://archive.chain.opentensor.ai:443"
-        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
         with bittensor.__console__.status(":satellite: Loading delegates..."):
             delegates: bittensor.DelegateInfo = subtensor.get_delegates()
             try:
@@ -582,10 +605,20 @@ class NominateCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        r"""Nominate wallet."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            NominateCommand._run(cli, subtensor)
+        finally:
+            if 'subtensor' in locals():
+                subtensor.close()
+                bittensor.logging.debug('closing subtensor connection')
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Nominate wallet."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         # Unlock the wallet.
         wallet.hotkey
@@ -685,16 +718,25 @@ class MyDelegatesCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        """Delegates stake to a chain delegate."""
+        try:
+            config = cli.config.copy()
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=config, log_verbose=False)
+            MyDelegatesCommand._run(cli, subtensor)
+        finally:
+            if 'subtensor' in locals():
+                subtensor.close()
+                bittensor.logging.debug('closing subtensor connection')
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         """Delegates stake to a chain delegate."""
         config = cli.config.copy()
         if config.get("all", d=None) == True:
             wallets = _get_coldkey_wallets_for_path(config.wallet.path)
         else:
             wallets = [bittensor.wallet(config=config)]
-        subtensor: bittensor.subtensor = bittensor.subtensor(
-            config=config, log_verbose=False
-        )
 
         table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
         table.add_column(
