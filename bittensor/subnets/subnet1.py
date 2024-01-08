@@ -79,6 +79,7 @@ class Prompting(bt.Synapse):
     This example demonstrates how to create an instance of the `Prompting` class, access the
     `roles` and `messages` fields, and update the `completion` field.
     """
+
     model_config = ConfigDict(validate_assignment=True)
 
     def deserialize(self) -> "Prompting":
