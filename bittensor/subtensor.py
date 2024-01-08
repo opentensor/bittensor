@@ -123,6 +123,12 @@ class subtensor:
         # Connect to the main Bittensor network (Finney).
         finney_subtensor = subtensor(network='finney')
 
+        # Close websocket connection with the Bittensor network.
+        finney_subtensor.close()
+
+        # Open/Reconnect websocket connection with the Bittensor network.
+        finney_subtensor.connect_websocket()
+
         # Register a new neuron on the network.
         wallet = bittensor.wallet(...)  # Assuming a wallet instance is created.
         success = finney_subtensor.register(wallet=wallet, netuid=netuid)
