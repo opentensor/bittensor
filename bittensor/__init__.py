@@ -227,6 +227,7 @@ from .stream import *
 from .tensor import *
 from .axon import axon as axon
 from .dendrite import dendrite as dendrite
+from .subnets import *
 
 from .mock.keyfile_mock import MockKeyfile as MockKeyfile
 from .mock.subtensor_mock import MockSubtensor as MockSubtensor

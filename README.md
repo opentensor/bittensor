@@ -370,6 +370,84 @@ y
 ⠏ 📡 Setting root weights on test ...
 ```
 
+## Subnet Protocols
+You may access subnet protocols from within bittensor as a convenience to query and utilize the broader network as a whole in order to create more useful and complex forms of intelligence.
+
+There are also wrapper functions to facilitate ease of use. For example to create a `synapse` for Storage (filetao):
+```python
+# Grab the setup function for all subnets
+from bittensor.subnets import setup_synapse
+
+# Create a synapse from inputs
+setup_synapse(
+    subnet=21, # integer value of the subnet
+    protocol="StoreUser", # protocol (Synapse) name for the desired functionality
+    # kwargs here required for the bespoke function call to follow
+    data="0x123456789", # Data to store
+    wallet=bt.wallet(), # wallet to encrypt the data in StoreUser()
+)
+Enter password to unlock key: # Enter wallet password to encrypt data using wallet coldkey
+
+StoreUser(
+    required_hash_fields=['encrypted_data', 'encryption_payload'], 
+    encrypted_data='5pEOWbKMTJbdhPs=', 
+    encryption_payload='{"nonce": "155ca45fdbb20...", "ciphertext": "1b7e31c549d67cf..."}', 
+    data_hash=None
+)
+
+```
+
+Now let's do the same for Cortex Tao (Subnet 18)
+```python
+# ImageResponse
+setup_synapse(
+    18,
+    "ImageResponse",
+    messages="The leaning tower of Pisa as a Pizza.",
+)
+
+ImageResponse(
+    required_hash_fields=['messages'], 
+    completion=None, 
+    messages='The leaning tower of Pisa as a Pizza.', 
+    provider='DallE', 
+    seed=1234, 
+    samples=1, 
+    cfg_scale=8.0, 
+    sampler='', 
+    steps=30, 
+    model='dall-e-2', 
+    style='vivid', 
+    size='1024x1024', 
+    height=1024, 
+    width=1024, 
+    quality='standard'
+)
+
+# StreamPrompting
+setup_synapse(
+    18, 
+    "StreamPrompting", 
+    messages=[{"role": "user", "message": "Leaning tower of Piza."}], 
+    top_p=0.1
+)
+
+StreamPrompting(
+    required_hash_fields=['messages'],
+    messages=[{'role': 'user', 'message': 'What is the leaning tower of Pisa?'}], 
+    seed='1234', 
+    temperature=0.0001, 
+    max_tokens=2048, 
+    top_p=0.1, 
+    top_k=1, 
+    completion=None, 
+    provider='OpenAI', 
+    model='gpt-3.5-turbo'
+)
+```
+
+
+
 ## Release
 The release manager should follow the instructions of the [RELEASE_GUIDELINES.md](./RELEASE_GUIDELINES.md) document.
 
