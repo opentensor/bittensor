@@ -55,12 +55,14 @@ class RootRegisterCommand:
     def run(cli: "bittensor.cli"):
         r"""Register to root network."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
             RootRegisterCommand._run(cli, subtensor)
         finally:
-            if 'subtensor' in locals():
+            if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug('closing subtensor connection')
+                bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -123,12 +125,14 @@ class RootList:
     def run(cli: "bittensor.cli"):
         r"""List the root network"""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
             RootList._run(cli, subtensor)
         finally:
-            if 'subtensor' in locals():
+            if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug('closing subtensor connection')
+                bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -261,12 +265,14 @@ class RootSetBoostCommand:
     def run(cli: "bittensor.cli"):
         r"""Set weights for root network."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
             RootSetBoostCommand._run(cli, subtensor)
         finally:
-            if 'subtensor' in locals():
+            if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug('closing subtensor connection')
+                bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -376,12 +382,14 @@ class RootSetSlashCommand:
     def run(cli: "bittensor.cli"):
         """Set weights for root network with decreased values."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
             RootSetSlashCommand._run(cli, subtensor)
         finally:
-            if 'subtensor' in locals():
+            if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug('closing subtensor connection')
+                bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -467,12 +475,14 @@ class RootSetWeightsCommand:
     def run(cli: "bittensor.cli"):
         r"""Set weights for root network."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
             RootSetWeightsCommand._run(cli, subtensor)
         finally:
-            if 'subtensor' in locals():
+            if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug('closing subtensor connection')
+                bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -579,12 +589,14 @@ class RootGetWeightsCommand:
     def run(cli: "bittensor.cli"):
         r"""Get weights for root network."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
             RootGetWeightsCommand._run(cli, subtensor)
         finally:
-            if 'subtensor' in locals():
+            if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug('closing subtensor connection')
+                bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):

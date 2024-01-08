@@ -29,7 +29,7 @@ from .utils import (
     get_hotkey_wallets_for_wallet,
     get_coldkey_wallets_for_path,
     get_all_wallets_for_path,
-    filter_netuids_by_registered_hotkeys
+    filter_netuids_by_registered_hotkeys,
 )
 from . import defaults
 
@@ -78,12 +78,14 @@ class OverviewCommand:
     def run(cli: "bittensor.cli"):
         r"""Prints an overview for the wallet's colkey."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
             OverviewCommand._run(cli, subtensor)
         finally:
-            if 'subtensor' in locals():
+            if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug('closing subtensor connection')
+                bittensor.logging.debug("closing subtensor connection")
 
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an overview for the wallet's colkey."""
@@ -148,9 +150,10 @@ class OverviewCommand:
         block = subtensor.block
 
         netuids = subtensor.get_all_subnet_netuids()
-        netuids = filter_netuids_by_registered_hotkeys(cli, subtensor, netuids, all_hotkeys)
-        bittensor.logging.debug(f'Netuids to check: {netuids}')
-
+        netuids = filter_netuids_by_registered_hotkeys(
+            cli, subtensor, netuids, all_hotkeys
+        )
+        bittensor.logging.debug(f"Netuids to check: {netuids}")
 
         for netuid in netuids:
             neurons[str(netuid)] = []
@@ -585,9 +588,9 @@ class OverviewCommand:
         except Exception as e:
             return netuid, [], "Error: {}".format(e)
         finally:
-            if 'subtensor' in locals():
+            if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug('closing subtensor connection')
+                bittensor.logging.debug("closing subtensor connection")
 
         return netuid, result, None
 
@@ -631,10 +634,9 @@ class OverviewCommand:
         except Exception as e:
             return coldkey_wallet, [], "Error: {}".format(e)
         finally:
-            if 'subtensor' in locals():
+            if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug('closing subtensor connection')
-
+                bittensor.logging.debug("closing subtensor connection")
 
         return coldkey_wallet, result, None
 

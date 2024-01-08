@@ -57,12 +57,14 @@ class SetIdentityCommand:
     def run(cli: "bittensor.cli"):
         r"""Create a new or update existing identity on-chain."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
             SetIdentityCommand._run(cli, subtensor)
         finally:
-            if 'subtensor' in locals():
+            if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug('closing subtensor connection')
+                bittensor.logging.debug("closing subtensor connection")
 
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Create a new or update existing identity on-chain."""
@@ -270,12 +272,14 @@ class GetIdentityCommand:
     def run(cli: "bittensor.cli"):
         r"""Queries the subtensor chain for user identity."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
             GetIdentityCommand._run(cli, subtensor)
         finally:
-            if 'subtensor' in locals():
+            if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug('closing subtensor connection')
+                bittensor.logging.debug("closing subtensor connection")
 
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         console = bittensor.__console__

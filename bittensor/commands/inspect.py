@@ -114,12 +114,14 @@ class InspectCommand:
     def run(cli: "bittensor.cli"):
         r"""Inspect a cold, hot pair."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
             InspectCommand._run(cli, subtensor)
         finally:
-            if 'subtensor' in locals():
+            if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug('closing subtensor connection')
+                bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -131,8 +133,10 @@ class InspectCommand:
             all_hotkeys = get_hotkey_wallets_for_wallet(wallets[0])
 
         netuids = subtensor.get_all_subnet_netuids()
-        netuids = filter_netuids_by_registered_hotkeys(cli, subtensor, netuids, all_hotkeys)
-        bittensor.logging.debug(f'Netuids to check: {netuids}')
+        netuids = filter_netuids_by_registered_hotkeys(
+            cli, subtensor, netuids, all_hotkeys
+        )
+        bittensor.logging.debug(f"Netuids to check: {netuids}")
 
         registered_delegate_info: Optional[
             Dict[str, DelegatesDetails]
