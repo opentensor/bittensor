@@ -3503,23 +3503,6 @@ class subtensor:
             for netuid in self.get_netuids_for_hotkey(hotkey_ss58, block)
         ]
 
-    def get_netuids_for_hotkeys(
-        self, hotkeys: List[str], block: int = None
-    ) -> Dict[str, List[int]]:
-        """
-        Retrieves a list of subnet UIDs (netuids) for a batch of hotkeys. This function identifies the
-        specific subnets within the Bittensor network where the neurons associated with the hotkeys are active.
-
-        Args:
-            hotkeys (List[str]): A list of SS58 addresses of the neurons' hotkeys.
-
-        Returns:
-            Dict[str, List[int]]: A dict of (str, list) pairs, each containing the netuids for the neurons associated with each hotkey.ß
-        """
-        return {
-            hotkey: self.get_netuids_for_hotkey(hotkey, block) for hotkey in hotkeys
-        }
-
     def get_netuids_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> List[int]:
