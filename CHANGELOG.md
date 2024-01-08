@@ -3,8 +3,6 @@
 ## 6.6.0 / 2024-01-08
 
 ## What's Changed
-* Release/6.5.0 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1631
-* Merge master staging by @ifrit98 in https://github.com/opentensor/bittensor/pull/1634
 * Add commitment support to MockSubtensor by @agoncharov-reef in https://github.com/opentensor/bittensor/pull/1635
 * don't prenormalize weights in btcli boost/slash by @ifrit98 in https://github.com/opentensor/bittensor/pull/1636
 * feat(wallets.py): add wallet history command by @saqib-codes-11 in https://github.com/opentensor/bittensor/pull/1638
