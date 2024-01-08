@@ -22,6 +22,7 @@ import torch
 from typing import List
 import bittensor as bt
 from starlette.responses import StreamingResponse
+from pydantic import ConfigDict
 
 
 class Prompting(bt.Synapse):
@@ -78,14 +79,7 @@ class Prompting(bt.Synapse):
     This example demonstrates how to create an instance of the `Prompting` class, access the
     `roles` and `messages` fields, and update the `completion` field.
     """
-
-    class Config:
-        """
-        Pydantic model configuration class for Prompting. This class sets validation of attribute assignment as True.
-        validate_assignment set to True means the pydantic model will validate attribute assignments on the class.
-        """
-
-        validate_assignment = True
+    model_config = ConfigDict(validate_assignment=True)
 
     def deserialize(self) -> "Prompting":
         """
