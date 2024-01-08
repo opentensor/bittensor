@@ -728,11 +728,21 @@ class WalletBalanceCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        """Check the balance of the wallet."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            WalletBalanceCommand._run(cli, subtensor)
+        finally:
+            if 'subtensor' in locals():
+                subtensor.close()
+                bittensor.logging.debug('closing subtensor connection')
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         """Check the balance of the wallet."""
         wallet_names = os.listdir(os.path.expanduser(cli.config.wallet.path))
         coldkeys = _get_coldkey_ss58_addresses_for_path(cli.config.wallet.path)
-        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         free_balances = [
             subtensor.get_balance(coldkeys[i]) for i in range(len(coldkeys))
