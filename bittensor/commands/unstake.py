@@ -149,13 +149,24 @@ class UnStakeCommand:
         bittensor.subtensor.add_args(unstake_parser)
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        r"""Unstake token of amount from hotkey(s)."""
+        try:
+            config = cli.config.copy()
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=config, log_verbose=False
+            )
+            UnStakeCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Unstake token of amount from hotkey(s)."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
-        subtensor: bittensor.subtensor = bittensor.subtensor(
-            config=cli.config, log_verbose=False
-        )
 
         # Get the hotkey_names (if any) and the hotkey_ss58s.
         hotkeys_to_unstake_from: List[Tuple[Optional[str], str]] = []
