@@ -4,7 +4,7 @@ from starlette.responses import StreamingResponse as _StreamingResponse
 from starlette.responses import Response
 from starlette.types import Send, Receive, Scope
 from typing import Callable, Awaitable, List
-from pydantic import ConfigDict, BaseModel
+from pydantic import BaseModel
 from abc import ABC, abstractmethod
 
 
@@ -36,7 +36,8 @@ class StreamingSynapse(bittensor.Synapse, ABC):
     and extract JSON data. It also includes a method to create a streaming response object.
     """
 
-    model_config = ConfigDict(validate_assignment=True)
+    class Config:
+        validate_assignment = True
 
     class BTStreamingResponse(_StreamingResponse):
         """
