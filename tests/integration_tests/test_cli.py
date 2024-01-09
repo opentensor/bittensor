@@ -2090,6 +2090,12 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.config = config
         cli.run()
 
+        # Run History Command to get list of transfers
+        config.command = "wallet"
+        cli.config.subcommand = "history"
+        cli.config = config
+        cli.run()
+
 
 @patch("bittensor.subtensor", new_callable=return_mock_sub)
 class TestCLIWithNetworkUsingArgs(unittest.TestCase):
