@@ -70,10 +70,21 @@ class MetagraphCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        r"""Prints an entire metagraph."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            MetagraphCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an entire metagraph."""
         console = bittensor.__console__
-        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
                 cli.config.subtensor.network
