@@ -20,7 +20,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import uuid
 import time
 import torch
@@ -525,7 +524,7 @@ class dendrite(torch.nn.Module):
             async with (await self.session).post(
                 url,
                 headers=synapse.to_headers(),
-                json=json.loads(synapse.json()),
+                json=synapse.dict(),
                 timeout=timeout,
             ) as response:
                 # Extract the JSON response from the server
@@ -607,7 +606,7 @@ class dendrite(torch.nn.Module):
             async with (await self.session).post(
                 url,
                 headers=synapse.to_headers(),
-                json=json.loads(synapse.json()),
+                json=synapse.dict(),
                 timeout=timeout,
             ) as response:
                 # Use synapse subclass' process_streaming_response method to yield the response chunks
