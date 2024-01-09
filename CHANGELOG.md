@@ -7,7 +7,6 @@
 * don't prenormalize weights in btcli boost/slash by @ifrit98 in https://github.com/opentensor/bittensor/pull/1636
 * feat(wallets.py): add wallet history command by @saqib-codes-11 in https://github.com/opentensor/bittensor/pull/1638
 * Update taostats link by @mogmachine in https://github.com/opentensor/bittensor/pull/1641
-* Bugfix/expand dendrite json by @ifrit98 in https://github.com/opentensor/bittensor/pull/1633
 * update wallet history command to right justify and fmt 3 decimal places by @ifrit98 in https://github.com/opentensor/bittensor/pull/1639
 
 ## New Contributors
