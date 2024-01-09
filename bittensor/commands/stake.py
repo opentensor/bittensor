@@ -57,13 +57,24 @@ class StakeCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        r"""Stake token of amount to hotkey(s)."""
+        try:
+            config = cli.config.copy()
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=config, log_verbose=False
+            )
+            StakeCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Stake token of amount to hotkey(s)."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
-        subtensor: bittensor.subtensor = bittensor.subtensor(
-            config=config, log_verbose=False
-        )
 
         # Get the hotkey_names (if any) and the hotkey_ss58s.
         hotkeys_to_stake_to: List[Tuple[Optional[str], str]] = []
@@ -358,7 +369,20 @@ class StakeShow:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        r"""Show all stake accounts."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            StakeShow._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Show all stake accounts."""
         if cli.config.get("all", d=False) == True:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)
@@ -368,7 +392,9 @@ class StakeShow:
             Dict[str, DelegatesDetails]
         ] = get_delegates_details(url=bittensor.__delegates_details_url__)
 
-        def get_stake_accounts(wallet) -> Dict[str, Dict[str, Union[str, Balance]]]:
+        def get_stake_accounts(
+            wallet, subtensor
+        ) -> Dict[str, Dict[str, Union[str, Balance]]]:
             """Get stake account details for the given wallet.
 
             Args:
@@ -377,7 +403,6 @@ class StakeShow:
             Returns:
                 A dictionary mapping SS58 addresses to their respective stake account details.
             """
-            subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
             wallet_stake_accounts = {}
 
@@ -462,6 +487,7 @@ class StakeShow:
 
         def get_all_wallet_accounts(
             wallets,
+            subtensor,
         ) -> List[Dict[str, Dict[str, Union[str, Balance]]]]:
             """Fetch stake accounts for all provided wallets using a ThreadPool.
 
@@ -477,12 +503,12 @@ class StakeShow:
             with tqdm(total=len(wallets), desc="Fetching accounts", ncols=100) as pbar:
                 # Using a ThreadPool to fetch accounts.
                 with ThreadPoolExecutor() as executor:
-                    for account in executor.map(get_stake_accounts, wallets):
+                    for account in executor.map(get_stake_accounts, wallets, subtensor):
                         accounts.append(account)
                         pbar.update()
             return accounts
 
-        accounts = get_all_wallet_accounts(wallets)
+        accounts = get_all_wallet_accounts(wallets, subtensor)
 
         total_stake = 0
         total_balance = 0

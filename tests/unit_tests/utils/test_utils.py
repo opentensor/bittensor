@@ -743,7 +743,7 @@ class TestExplorerURL(unittest.TestCase):
             "0x123",
             {
                 "opentensor": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer/query/0x123",
-                "taostats": "https://x.taostats.io/search?query=0x123",
+                "taostats": "https://x.taostats.io/extrinsic/0x123",
             },
         ),
         (
@@ -751,7 +751,7 @@ class TestExplorerURL(unittest.TestCase):
             "0x456",
             {
                 "opentensor": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer/query/0x456",
-                "taostats": "https://x.taostats.io/search?query=0x456",
+                "taostats": "https://x.taostats.io/extrinsic/0x456",
             },
         ),
         ("bad", "0x789", {}),
