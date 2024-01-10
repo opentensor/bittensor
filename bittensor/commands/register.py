@@ -58,10 +58,23 @@ class RegisterCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        r"""Register neuron by recycling some TAO."""
+        try:
+            config = cli.config.copy()
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=config, log_verbose=False
+            )
+            RegisterCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Register neuron by recycling some TAO."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         # Verify subnet exists
         if not subtensor.subnet_exists(netuid=cli.config.netuid):
@@ -175,10 +188,22 @@ class PowRegisterCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        r"""Register neuron."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            PowRegisterCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Register neuron."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         # Verify subnet exists
         if not subtensor.subnet_exists(netuid=cli.config.netuid):
@@ -361,10 +386,22 @@ class RunFaucetCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        r"""Register neuron."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            RunFaucetCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Register neuron."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
         subtensor.run_faucet(
             wallet=wallet,
             prompt=not cli.config.no_prompt,
@@ -474,10 +511,22 @@ class RunFaucetCommand:
 
 class SwapHotkeyCommand:
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        r"""Swap your hotkey for all registered axons on the network."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            SwapHotkeyCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Swap your hotkey for all registered axons on the network."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         # This creates an unnecessary amount of extra data, but simplifies implementation.
         new_config = deepcopy(cli.config)
