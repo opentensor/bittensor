@@ -19,8 +19,8 @@ import base64
 import json
 import bittensor as bt
 
-from bittensor.subnets import TextToImage
-from bittensor.subnets import Prompting
+from bittensor.subnets.protocols.sn5 import TextToImage
+from bittensor.subnets.protocols.sn1 import Prompting
 
 
 # !============================ sn1
