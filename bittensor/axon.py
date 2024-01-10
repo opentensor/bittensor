@@ -638,22 +638,28 @@ class axon:
 
         # Only setup gossip protocol if a validator with a vpermit.
         netuid = netuid or self.config.netuid  # This may fail if neither provided
-        self.metagraph = metagraph or bittensor.metagraph(netuid)
+        if netuid != None:
+            self.metagraph = metagraph or bittensor.metagraph(netuid)
 
-        # Determine if a validator axon, and if so establish gossip protocol.
-        self.axon_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+            # Determine if a validator axon, and if so establish gossip protocol.
+            self.axon_uid = self.metagraph.hotkeys.index(
+                self.wallet.hotkey.ss58_address
+            )
 
-        self.validator_hotkeys = self.get_validator_hotkeys(
-            vpermit_tao_limit=vpermit_tao_limit,
-            vtrust_threshold=vtrust_threshold,
-        )
+            self.validator_hotkeys = self.get_validator_hotkeys(
+                vpermit_tao_limit=vpermit_tao_limit,
+                vtrust_threshold=vtrust_threshold,
+            )
 
-        # Only considered a validator axon IFF (vtrust > threshold and stake > vpermit_tao_limit).
-        self.is_validator_axon = (
-            self.metagraph.validator_permit[self.axon_uid]
-            and (self.metagraph.S[self.axon_uid] > vpermit_tao_limit)
-            and self.metagraph.hotkeys[self.axon_uid] in self.validator_hotkeys
-        )
+            # Only considered a validator axon IFF (vtrust > threshold and stake > vpermit_tao_limit).
+            self.is_validator_axon = (
+                self.metagraph.validator_permit[self.axon_uid]
+                and (self.metagraph.S[self.axon_uid] > vpermit_tao_limit)
+                and self.metagraph.hotkeys[self.axon_uid] in self.validator_hotkeys
+            )
+        else:
+            self.is_validator_axon = False
+            self.metagraph = None
 
         if self.is_validator_axon:
             # Setup p2p gossip protocol variables.
@@ -693,10 +699,6 @@ class axon:
                     forward_fn=find_peers,
                     blacklist_fn=self.blacklist_find_peers,
                 )
-
-        else:
-            # Unused references for miners
-            del self.metagraph, self.validator_hotkeys, netuid, self.axon_uid
 
     def attach(
         self,
