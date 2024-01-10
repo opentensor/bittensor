@@ -1,0 +1,16 @@
+{
+    "protocols": [
+        {
+            "name": "sn0",
+            "url": ""
+        },
+        {
+            "name": "sn1",
+            "url": "https://github.com/opentensor/text-prompting/blob/main/prompting/protocol.py"
+        },
+        {
+            "name": "sn5",
+            "url": "https://github.com/unconst/ImageSubnet/blob/main/protocol.py"
+        }
+    ]
+}
