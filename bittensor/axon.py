@@ -356,18 +356,16 @@ class axon:
         )
 
         attempt = 0
-        while (
-            True
-        ):  # len(self.known_peers) < self.max_known_peers and n < max_initial_attempts:
-            bittensor.logging.trace(f"Discovering peers... iteration {attempt}")
+        while self.peer_discovery_running:
+            bittensor.logging.trace(f"Discovering peers iteration {attempt}")
 
-            # Insert some space between calls to discover peers.
-            await asyncio.sleep(1)
             await self.discover_peers()
-
+            bittensor.logging.trace(
+                f"known_peers after discover_peers() inside while loop: {self.known_peers}"
+            )
             if (
-                len(self.known_peers) == self.max_known_peers
-                or attempt > max_initial_attempts
+                len(self.known_peers) >= self.max_known_peers
+                or attempt == max_initial_attempts
             ):
                 # Heartbeat peer discovery to keep up-to-date with the network.
                 bittensor.logging.trace(
@@ -384,6 +382,9 @@ class axon:
                 attempt = 0
 
             attempt += 1
+
+            # Insert some space between calls to discover peers.
+            await asyncio.sleep(1)
 
     def get_seed_peers(self, top_percent: float):
         """
@@ -411,10 +412,14 @@ class axon:
             if self.metagraph.validator_trust[uid] > self.vtrust_threshold
         ]
         # Add myself to the list of seed peers IFF I am a validator.
-        return {uid: self.metagraph.axons[uid] for uid in top_uids + [self.axon_uid]}
+        return {
+            uid: self.metagraph.axons[uid]
+            for uid in top_uids + [self.axon_uid]
+            if self.metagraph.hotkeys[uid] in self.validator_hotkeys
+        }
 
     def get_validator_hotkeys(
-        self, vpermit_tao_limit: int, vtrust_threshold: float = 0.5
+        self, vpermit_tao_limit: int, vtrust_threshold: float = 0.0
     ):
         """
         Retrieves the hotkeys of all validators in the network. This method is used to
@@ -471,7 +476,7 @@ class axon:
         if (
             len(peer_uid_list) < self.max_known_peers
         ):  # < Max known validators, keep discovering peers.
-            bittensor.logging.info(
+            bittensor.logging.trace(
                 f"Last contacted peer index: {self.last_contacted_peer_index}"
             )
             next_peer_uid = peer_uid_list[self.last_contacted_peer_index]
@@ -488,14 +493,16 @@ class axon:
             if response.dendrite.status_code == 200:
                 # Update known peers.
                 new_peer_axons = {
-                    uid: self.metagraph.axons[uid] for uid in response.return_peer_uids
+                    uid: self.metagraph.axons[uid]
+                    for uid in response.return_peer_uids
+                    if self.metagraph.hotkeys[uid] in self.validator_hotkeys
                 }
                 self.known_peers.update(new_peer_axons)
 
             self.last_contacted_peer_index = (self.last_contacted_peer_index + 1) % len(
                 self.known_peers
             )
-            bittensor.logging.debug(
+            bittensor.logging.trace(
                 f"Updated known peers: {pformat(list(self.known_peers))}"
             )
 
@@ -503,7 +510,7 @@ class axon:
             bittensor.logging.warning("No known peers to gossip with.")
 
         else:
-            bittensor.logging.info(
+            bittensor.logging.trace(
                 f"Already discovered max peers: {self.max_known_peers} | {pformat(list(self.known_peers))}"
             )
 
@@ -545,6 +552,16 @@ class axon:
                 The external port of the server to broadcast to the network.
             max_workers (:type:`Optional[int]`, `optional`):
                 Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
+            netuid (:type:`Optional[int]`, `optional`):
+                The netuid of the subnet to connect to.
+            metagraph (:type:`Optional[bittensor.metagraph]`, `optional`):
+                The metagraph object to use for peer discovery.
+            vpermit_tao_limit (:type:`Optional[int]`, `optional`):
+                The minimum stake to be considered a validator.
+            top_percent_stake (:type:`Optional[float]`, `optional`):
+                The percentage of top validators by stake to include as seed peers.
+            vtrust_threshold (:type:`Optional[float]`, `optional`):
+                The minimum trust score to be considered a validator.
         """
         # Build and check config.
         if config is None:
@@ -631,7 +648,7 @@ class axon:
             vtrust_threshold=vtrust_threshold,
         )
 
-        # Only considered a validator axon if vpermit and stake > vpermit_tao_limit.
+        # Only considered a validator axon IFF (vtrust > threshold and stake > vpermit_tao_limit).
         self.is_validator_axon = (
             self.metagraph.validator_permit[self.axon_uid]
             and (self.metagraph.S[self.axon_uid] > vpermit_tao_limit)
@@ -640,12 +657,13 @@ class axon:
 
         if self.is_validator_axon:
             # Setup p2p gossip protocol variables.
+            self.peer_discovery_running = False
             self.vtrust_threshold = vtrust_threshold
             self.top_percent_stake = top_percent_stake
             self.max_known_peers = len(self.validator_hotkeys)
             self.known_peers = {}  # Dict to house the known peer list.
             self.gossip_interval = (
-                18  # Seconds between hearbeat gossip peer discovery (resets peers).
+                60  # Seconds between hearbeat gossip peer discovery (resets peers).
             )
             self.last_contacted_peer_index = 0
             self.gossip_dendrite = bittensor.dendrite(wallet=self.wallet)
@@ -1081,11 +1099,25 @@ class axon:
         self.fast_server.start()
         self.started = True
         if self.is_validator_axon:
-            if not self.loop.is_running():
-                self.loop.run_until_complete(self.start_peer_discovery())
-            else:
-                asyncio.create_task(self.start_peer_discovery())
+            # Start the peer discovery in a separate thread and store the thread reference
+            self.peer_discovery_thread = threading.Thread(
+                target=self.run_peer_discovery_in_thread, daemon=True
+            )
+            self.peer_discovery_thread.start()
+            self.peer_discovery_running = True
         return self
+
+    def run_peer_discovery_in_thread(self):
+        """
+        Sets up an event loop and runs the start_peer_discovery coroutine in a separate thread.
+        """
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        try:
+            loop.run_until_complete(self.start_peer_discovery())
+        finally:
+            loop.close()
 
     def stop(self) -> "bittensor.axon":
         """
@@ -1114,6 +1146,9 @@ class axon:
         """
         self.fast_server.stop()
         self.started = False
+        if self.is_validator_axon:
+            self.peer_discovery_running = False
+            self.peer_discovery_thread.join()
         return self
 
     def serve(
