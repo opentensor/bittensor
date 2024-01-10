@@ -9,8 +9,128 @@
             "url": "https://github.com/opentensor/text-prompting/blob/main/prompting/protocol.py"
         },
         {
+            "name": "sn2",
+            "url": "https://github.com/bittranslateio/bittranslate/blob/main/neurons/protocol.py"
+        },
+        {
+            "name": "sn3",
+            "url": "https://github.com/gitphantomman/scraping_subnet/blob/main/scraping/protocol.py"
+        },
+        {
+            "name": "sn4",
+            "url": "https://github.com/manifold-inc/targon/blob/main/targon/protocol.py"
+        },
+        {
             "name": "sn5",
             "url": "https://github.com/unconst/ImageSubnet/blob/main/protocol.py"
+        },
+        {
+            "name": "sn6",
+            "url": ""
+        },
+        {
+            "name": "sn7",
+            "url": "https://github.com/tensorage/tensorage/blob/main/storage/protocol.py"
+        },
+        {
+            "name": "sn8",
+            "url": "https://github.com/taoshidev/time-series-prediction-subnet/blob/main/template/protocol.py"
+        },
+        {
+            "name": "sn9",
+            "url": ""
+        },
+        {
+            "name": "sn10",
+            "url": "https://github.com/dream-well/map-reduce-subnet/blob/main/mapreduce/protocol.py"
+        },
+        {
+            "name": "sn11",
+            "url": "https://github.com/opentensor/text-prompting/blob/main/prompting/protocol.py"
+        },
+        {
+            "name": "sn12",
+            "url": ""
+        },
+        {
+            "name": "sn13",
+            "url": "https://github.com/RusticLuftig/data-universe/blob/main/common/protocol.py"
+        },
+        {
+            "name": "sn14",
+            "url": "https://github.com/ceterum1/llm-defender-subnet/blob/main/llm_defender/base/protocol.py"
+        },
+        {
+            "name": "sn15",
+            "url": "https://github.com/blockchain-insights/blockchain-data-subnet/blob/main/insights/protocol.py"
+        },
+        {
+            "name": "sn16",
+            "url": "https://github.com/UncleTensor/AudioSubnet/blob/main/lib/protocol.py"
+        },
+        {
+            "name": "sn17",
+            "url": "https://github.com/CortexLM/flavia/blob/main/template/protocol.py"
+        },
+        {
+            "name": "sn18",
+            "url": "https://github.com/corcel-api/cortex.t/blob/main/template/protocol.py"
+        },
+        {
+            "name": "sn19",
+            "url": "https://github.com/namoray/vision/blob/main/template/protocol.py"
+        },
+        {
+            "name": "sn20",
+            "url": "https://github.com/oracle-subnet/oracle-subnet/blob/main/template/protocol.py"
+        },
+        {
+            "name": "sn21",
+            "url": "https://github.com/ifrit98/storage-subnet/blob/main/storage/protocol.py"
+        },
+        {
+            "name": "sn22",
+            "url": "https://github.com/surcyf123/smart-scrape/blob/main/template/protocol.py"
+        },
+        {
+            "name": "sn23",
+            "url": "https://github.com/NicheTensor/NicheImage/blob/main/image_generation_subnet/protocol.py"
+        },
+        {
+            "name": "sn24",
+            "url": ""
+        },
+        {
+            "name": "sn25",
+            "url": "https://github.com/KMFODA/DistributedTraining/blob/main/template/protocol.py"
+        },
+        {
+            "name": "sn26",
+            "url": "https://github.com/Supreme-Emperor-Wang/ImageAlchemy/blob/main/neurons/protocol.py"
+        },
+        {
+            "name": "sn27",
+            "url": "https://github.com/neuralinternet/compute-subnet/blob/main/compute/protocol.py"
+        },
+        {
+            "name": "sn28",
+            "url": "https://github.com/zktensor/zktensor_subnet/blob/main/neurons/protocol.py"
+        },
+        {
+            "name": "sn29",
+            "url": "https://github.com/404-Repo/Subnet-29/blob/main/template/protocol.py"
+        },
+        {
+            "name": "sn30",
+            "url": ""
+        },
+        {
+            "name": "sn31",
+            "url": ""
+        },
+        {
+            "name": "sn32",
+            "url": "https://github.com/RoyalTensor/roleplay/blob/main/prompting/protocol.py"
         }
     ]
 }

@@ -31,5 +31,5 @@ jobs:
         git config --global user.email "crazydevlegend@gmail.com"
         git config --global user.name "crazydevlegend"
         git add bittensor/subnets/*
-        git commit -m "Update subnet protocols" || exit 0  # Will not fail if there's nothing to commit
+        git commit -m "Updated subnet protocols at $(date -u)" || exit 0  # Will not fail if there's nothing to commit
         git push
