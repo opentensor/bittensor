@@ -730,11 +730,23 @@ class WalletBalanceCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        """Check the balance of the wallet."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            WalletBalanceCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         """Check the balance of the wallet."""
         wallet_names = os.listdir(os.path.expanduser(cli.config.wallet.path))
         coldkeys = _get_coldkey_ss58_addresses_for_path(cli.config.wallet.path)
-        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         free_balances = [
             subtensor.get_balance(coldkeys[i]) for i in range(len(coldkeys))
@@ -935,7 +947,7 @@ def create_transfer_history_table(transfers):
 
     table = Table(show_footer=False)
     # Define the column names
-    column_names = ["Id", "From", "To", "Amount", "Extrinsic Id", "Block Number"]
+    column_names = ["Id", "From", "To", "Amount (Tao)", "Extrinsic Id", "Block Number"]
 
     # Create a table
     table = Table(show_footer=False)
@@ -955,6 +967,7 @@ def create_transfer_history_table(transfers):
             footer_style=footer_style,
             style=column_style,
             no_wrap=no_wrap,
+            justify="left" if column_name == "Id" else "right",
         )
 
     # Add rows to the table
@@ -967,7 +980,7 @@ def create_transfer_history_table(transfers):
             item["id"],
             item["from"],
             item["to"],
-            str(tao_amount),
+            f"{tao_amount:.3f}",
             str(item["extrinsicId"]),
             item["blockNumber"],
         )

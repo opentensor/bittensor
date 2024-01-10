@@ -123,6 +123,12 @@ class subtensor:
         # Connect to the main Bittensor network (Finney).
         finney_subtensor = subtensor(network='finney')
 
+        # Close websocket connection with the Bittensor network.
+        finney_subtensor.close()
+
+        # (Re)creates the websocket connection with the Bittensor network.
+        finney_subtensor.connect_websocket()
+
         # Register a new neuron on the network.
         wallet = bittensor.wallet(...)  # Assuming a wallet instance is created.
         success = finney_subtensor.register(wallet=wallet, netuid=netuid)
@@ -401,6 +407,21 @@ class subtensor:
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    ####################
+    #### SubstrateInterface related
+    ####################
+    def connect_websocket(self):
+        """
+        (Re)creates the websocket connection, if the URL contains a 'ws' or 'wss' scheme
+        """
+        self.subtensor.connect_websocket
+
+    def close(self):
+        """
+        Cleans up resources for this subtensor instance like active websocket connection and active extensions
+        """
+        self.substrate.close()
 
     #####################
     #### Delegation #####
@@ -3508,16 +3529,9 @@ class subtensor:
 
         Returns:
             List[int]: A list of netuids where the neuron is a member.
-
-        This function provides insights into a neuron's involvement and distribution across different
-        subnets, illustrating its role and contributions within the network.
         """
         result = self.query_map_subtensor("IsNetworkMember", block, [hotkey_ss58])
-        netuids = []
-        for netuid, is_member in result.records:
-            if is_member:
-                netuids.append(netuid.value)
-        return netuids
+        return [record[0].value for record in result.records if record[1]]
 
     def get_neuron_for_pubkey_and_subnet(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
