@@ -29,6 +29,7 @@ from .utils import (
     get_hotkey_wallets_for_wallet,
     get_coldkey_wallets_for_path,
     get_all_wallets_for_path,
+    filter_netuids_by_registered_hotkeys,
 )
 from . import defaults
 
@@ -76,11 +77,20 @@ class OverviewCommand:
     @staticmethod
     def run(cli: "bittensor.cli"):
         r"""Prints an overview for the wallet's colkey."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            OverviewCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        r"""Prints an overview for the wallet's colkey."""
         console = bittensor.__console__
         wallet = bittensor.wallet(config=cli.config)
-        subtensor: "bittensor.subtensor" = bittensor.subtensor(
-            config=cli.config, log_verbose=False
-        )
 
         all_hotkeys = []
         total_balance = bittensor.Balance(0)
@@ -140,8 +150,11 @@ class OverviewCommand:
         block = subtensor.block
 
         netuids = subtensor.get_all_subnet_netuids()
-        if cli.config.netuid != []:
-            netuids = [netuid for netuid in netuids if netuid in cli.config.netuid]
+        netuids = filter_netuids_by_registered_hotkeys(
+            cli, subtensor, netuids, all_hotkeys
+        )
+        bittensor.logging.debug(f"Netuids to check: {netuids}")
+
         for netuid in netuids:
             neurons[str(netuid)] = []
 
@@ -185,7 +198,7 @@ class OverviewCommand:
                 for result in results:
                     netuid, neurons_result, err_msg = result
                     if err_msg is not None:
-                        console.print(err_msg)
+                        console.print(f"netuid '{netuid}': {err_msg}")
 
                     if len(neurons_result) == 0:
                         # Remove netuid from overview if no neurons are found.
@@ -574,6 +587,10 @@ class OverviewCommand:
                     result.append(nn)
         except Exception as e:
             return netuid, [], "Error: {}".format(e)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
 
         return netuid, result, None
 
@@ -616,6 +633,10 @@ class OverviewCommand:
 
         except Exception as e:
             return coldkey_wallet, [], "Error: {}".format(e)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
 
         return coldkey_wallet, result, None
 
@@ -680,12 +701,12 @@ class OverviewCommand:
             help="""To specify all hotkeys. Specifying hotkeys will exclude them from this all.""",
         )
         overview_parser.add_argument(
-            "--netuid",
-            dest="netuid",
+            "--netuids",
+            dest="netuids",
             type=int,
             nargs="*",
             help="""Set the netuid(s) to filter by.""",
-            default=[],
+            default=None,
         )
         bittensor.wallet.add_args(overview_parser)
         bittensor.subtensor.add_args(overview_parser)
@@ -700,8 +721,8 @@ class OverviewCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.netuid != []:
-            if not isinstance(config.netuid, list):
-                config.netuid = [int(config.netuid)]
+        if config.netuids != [] and config.netuids != None:
+            if not isinstance(config.netuids, list):
+                config.netuids = [int(config.netuids)]
             else:
-                config.netuid = [int(netuid) for netuid in config.netuid]
+                config.netuids = [int(netuid) for netuid in config.netuids]

@@ -54,12 +54,23 @@ class SetIdentityCommand:
     part of other scripts or applications.
     """
 
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        r"""Create a new or update existing identity on-chain."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            SetIdentityCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Create a new or update existing identity on-chain."""
         console = bittensor.__console__
 
         wallet = bittensor.wallet(config=cli.config)
-        subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
 
         id_dict = {
             "display": cli.config.display,
@@ -258,12 +269,22 @@ class GetIdentityCommand:
     primarily used for informational purposes and has no side effects on the network state.
     """
 
-    def run(cli):
+    def run(cli: "bittensor.cli"):
         r"""Queries the subtensor chain for user identity."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            GetIdentityCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         console = bittensor.__console__
 
         with console.status(":satellite: [bold green]Querying chain identity..."):
-            subtensor = bittensor.subtensor(config=cli.config, log_verbose=False)
             identity = subtensor.query_identity(cli.config.key)
 
         table = Table(title="[bold white italic]On-Chain Identity")
