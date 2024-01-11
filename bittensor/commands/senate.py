@@ -46,15 +46,23 @@ class SenateCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        r"""View Bittensor's governance protocol proposals"""
+        try:
+            config = cli.config.copy()
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=config, log_verbose=False
+            )
+            SenateCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""View Bittensor's governance protocol proposals"""
         console = bittensor.__console__
-
-        config = cli.config.copy()
-        subtensor: bittensor.subtensor = bittensor.subtensor(
-            config=config, log_verbose=False
-        )
-
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
                 cli.config.subtensor.network
@@ -174,15 +182,23 @@ class ProposalsCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
+        r"""View Bittensor's governance protocol proposals"""
+        try:
+            config = cli.config.copy()
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=config, log_verbose=False
+            )
+            ProposalsCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""View Bittensor's governance protocol proposals"""
         console = bittensor.__console__
-
-        config = cli.config.copy()
-        subtensor: bittensor.subtensor = bittensor.subtensor(
-            config=config, log_verbose=False
-        )
-
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
                 subtensor.network
@@ -285,13 +301,22 @@ class ShowVotesCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
         r"""View Bittensor's governance protocol proposals active votes"""
-        config = cli.config.copy()
-        subtensor: bittensor.subtensor = bittensor.subtensor(
-            config=config, log_verbose=False
-        )
+        try:
+            config = cli.config.copy()
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=config, log_verbose=False
+            )
+            ShowVotesCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
 
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        r"""View Bittensor's governance protocol proposals active votes"""
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
                 cli.config.subtensor.network
@@ -378,13 +403,23 @@ class SenateRegisterCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
         r"""Register to participate in Bittensor's governance protocol proposals"""
-        config = cli.config.copy()
+        try:
+            config = cli.config.copy()
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=config, log_verbose=False
+            )
+            SenateRegisterCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        r"""Register to participate in Bittensor's governance protocol proposals"""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor: bittensor.subtensor = bittensor.subtensor(
-            config=config, log_verbose=False
-        )
 
         # Unlock the wallet.
         wallet.hotkey
@@ -448,13 +483,23 @@ class SenateLeaveCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
         r"""Discard membership in Bittensor's governance protocol proposals"""
-        config = cli.config.copy()
+        try:
+            config = cli.config.copy()
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=config, log_verbose=False
+            )
+            SenateLeaveCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.cli"):
+        r"""Discard membership in Bittensor's governance protocol proposals"""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor: bittensor.subtensor = bittensor.subtensor(
-            config=config, log_verbose=False
-        )
 
         # Unlock the wallet.
         wallet.hotkey
@@ -512,13 +557,23 @@ class VoteCommand:
     """
 
     @staticmethod
-    def run(cli):
+    def run(cli: "bittensor.cli"):
         r"""Vote in Bittensor's governance protocol proposals"""
-        config = cli.config.copy()
+        try:
+            config = cli.config.copy()
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=config, log_verbose=False
+            )
+            VoteCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        r"""Vote in Bittensor's governance protocol proposals"""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor: bittensor.subtensor = bittensor.subtensor(
-            config=config, log_verbose=False
-        )
 
         proposal_hash = cli.config.proposal_hash
         if len(proposal_hash) == 0:
