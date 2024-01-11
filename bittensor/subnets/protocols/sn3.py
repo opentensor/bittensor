@@ -24,30 +24,23 @@ import pydantic
 """
 Represents a software version with major, minor, and patch components.
 """
-
-
-class Version(pydantic.BaseModel):
+class Version (pydantic.BaseModel):
     major_version: Optional[int] = None
     minor_version: Optional[int] = None
     patch_version: Optional[int] = None
-
 
 """
 Extends the Bittensor Synapse with an additional version attribute, 
 used for compatibility and version control in operations.
 """
-
-
-class ScrapingSynapse(bt.Synapse):
+class ScrapingSynapse ( bt.Synapse ):
     version: Optional[Version] = None
-
 
 class RedditScrap(ScrapingSynapse):
     """
     RedditScrap class inherits from ScrapingSynapse.
     It is used to scrape data from Reddit.
     """
-
     # Required request input, filled by sending dendrite caller.
     scrap_input: Optional[Dict] = None
 
@@ -62,13 +55,11 @@ class RedditScrap(ScrapingSynapse):
         # TODO: Add error handling for when scrap_output is None
         return self.scrap_output
 
-
 class TwitterScrap(ScrapingSynapse):
     """
     TwitterScrap class inherits from ScrapingSynapse.
     It is used to scrape data from Twitter.
     """
-
     # Required request input, filled by sending dendrite caller.
     scrap_input: Optional[Dict] = None
 
@@ -82,13 +73,11 @@ class TwitterScrap(ScrapingSynapse):
         # TODO: Add error handling for when scrap_output is None
         return self.scrap_output
 
-
 class CheckMiner(ScrapingSynapse):
     """
     CheckMiner class inherits from ScrapingSynapse.
     It is used to check the miner's status.
     """
-
     # Required request input, send url_hash for check
     check_url_hash: str
 
@@ -102,3 +91,4 @@ class CheckMiner(ScrapingSynapse):
         """
         # TODO: Add error handling for when check_output is None
         return self.check_output
+

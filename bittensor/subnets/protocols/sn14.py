@@ -19,7 +19,9 @@ class LLMDefenderProtocol(bt.Synapse):
     output: typing.Optional[dict] = None
 
     synapse_uuid: str = pydantic.Field(
-        ..., description="Synapse UUID", allow_mutation=False
+        ...,
+        description="Synapse UUID",
+        allow_mutation=False
     )
 
     subnet_version: int = pydantic.Field(

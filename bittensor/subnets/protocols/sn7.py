@@ -28,18 +28,15 @@ class Store(bt.Synapse):
     data: str = ""
 
     required_hash_fields: typing.List[str] = ["key", "data"]
-
+    
     # Deserialize responses.
     def deserialize(self) -> int:
         return self.key
 
-
 class Ping(bt.Synapse):
     data: str = ""
-
     def deserialize(self) -> str:
         return self.data
-
 
 class Retrieve(bt.Synapse):
     # Key of data.
@@ -49,7 +46,7 @@ class Retrieve(bt.Synapse):
     data: typing.Optional[str] = None
 
     required_hash_fields: typing.List[str] = ["key", "data"]
-
+    
     # Deserialize responses.
     def deserialize(self) -> str:
         return self.data

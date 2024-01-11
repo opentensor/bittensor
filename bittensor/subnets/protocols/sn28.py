@@ -21,16 +21,14 @@ from typing import Optional, List, Dict
 
 import bittensor as bt
 
-
 class QueryZkProof(bt.Synapse):
     """
     QueryZkProof class inherits from bt.Synapse.
     It is used to query zkproof of certain model.
     """
-
     # Required request input, filled by sending dendrite caller.
     query_input: Optional[Dict] = None
-
+    
     # Optional request output, filled by receiving axon.
     query_output: Optional[str] = None
 
@@ -40,13 +38,11 @@ class QueryZkProof(bt.Synapse):
         """
         return self.query_output
 
-
 class CheckMiner(bt.Synapse):
     """
     CheckMiner class inherits from bt.Synapse.
     It is used to check the miner's status. This is not used yet.
     """
-
     # Required request input, send url_hash for check
     check_url_hash: str
 
@@ -59,3 +55,4 @@ class CheckMiner(bt.Synapse):
         """
         # TODO: Add error handling for when check_output is None
         return self.check_output
+

@@ -3,7 +3,6 @@ import bittensor as bt
 import pydantic
 import torch
 
-
 class ImageGenerating(bt.Synapse):
     prompt: str = pydantic.Field(
         default="",
@@ -14,9 +13,7 @@ class ImageGenerating(bt.Synapse):
         default=0, title="Seed", description="Seed for deterministic generation"
     )
     image: str = pydantic.Field(
-        default="",
-        title="Image",
-        description="Output of text to image model in base64 format",
+        default="", title="Image", description="Output of text to image model in base64 format"
     )
     model_name: str = pydantic.Field(
         default="",
