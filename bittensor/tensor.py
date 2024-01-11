@@ -24,7 +24,6 @@ import msgpack
 import pydantic
 import msgpack_numpy
 from typing import Dict, Optional, Tuple, Union, List, Callable
-from pydantic import ConfigDict
 
 TORCH_DTYPES = {
     "torch.float16": torch.float16,
@@ -117,7 +116,8 @@ class Tensor(pydantic.BaseModel):
         shape (List[int]): Tensor shape.
     """
 
-    model_config = ConfigDict(validate_assignment=True)
+    class Config:
+        validate_assignment = True
 
     def tensor(self) -> torch.Tensor:
         return self.deserialize()
