@@ -19,7 +19,6 @@ import torch
 import base64
 import typing
 import pytest
-import pydantic
 import bittensor
 
 
@@ -160,10 +159,10 @@ def test_custom_synapse():
 
     # Create a new Test from the headers and check its properties
     next_synapse = synapse.from_headers(synapse.to_headers())
-    assert next_synapse.a == 0  # Default value is 0 for int type
+    assert next_synapse.a == 0  # Default value is 0
     assert next_synapse.b == None
-    assert next_synapse.c == 0  # Default value is 0 for int type
-    assert next_synapse.d == []  # Empty list is default for list types
+    assert next_synapse.c == None
+    assert next_synapse.d == None
     assert next_synapse.e == []  # Empty list is default for list types
 
 
@@ -185,7 +184,8 @@ def test_required_fields_override():
 
     # Try to set the required_hash_fields property and expect a TypeError
     with pytest.raises(
-        pydantic.ValidationError,
+        TypeError,
+        match='"required_hash_fields" has allow_mutation set to False and cannot be assigned',
     ):
         synapse_instance.required_hash_fields = []
 

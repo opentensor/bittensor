@@ -27,7 +27,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = "6.5.0"
+__version__ = "6.6.0"
 
 version_split = __version__.split(".")
 __version_as_int__ = (
