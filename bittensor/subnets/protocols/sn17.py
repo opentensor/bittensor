@@ -23,7 +23,9 @@ from typing import List
 from pydantic import BaseModel
 import bittensor as bt
 from starlette.responses import StreamingResponse
+
 # Your existing Dummy class here...
+
 
 # New classes inheriting from bt.Synapse
 class TextInteractive(bt.StreamingSynapse):
@@ -68,7 +70,7 @@ class TextInteractive(bt.StreamingSynapse):
             str: The completion result.
         """
         return self.completion
-    
+
     def extract_response_json(self, response: StreamingResponse) -> dict:
         headers = {
             k.decode("utf-8"): v.decode("utf-8")
@@ -93,7 +95,7 @@ class TextInteractive(bt.StreamingSynapse):
             "model": self.model,
             "completion": self.completion,
         }
-    
+
 
 class TextCompletion(bt.StreamingSynapse):
     model: str
@@ -136,7 +138,7 @@ class TextCompletion(bt.StreamingSynapse):
             str: The completion result.
         """
         return self.completion
-    
+
     def extract_response_json(self, response: StreamingResponse) -> dict:
         headers = {
             k.decode("utf-8"): v.decode("utf-8")
@@ -161,7 +163,7 @@ class TextCompletion(bt.StreamingSynapse):
             "messages": self.messages,
             "completion": self.completion,
         }
-    
+
 
 class TextToImage(bt.Synapse):
     model: str
@@ -169,29 +171,31 @@ class TextToImage(bt.Synapse):
     height: typing.Optional[int] = 1024
     width: typing.Optional[int] = 1024
     num_inference_steps: typing.Optional[int] = 30
-    seed: typing.Optional[int] = -1 
+    seed: typing.Optional[int] = -1
     batch_size: typing.Optional[int] = 1
     refiner: typing.Optional[bool] = False
-    output: list[ bt.Tensor ] = [] #base64
+    output: list[bt.Tensor] = []  # base64
 
     def deserialize(self):
         # Implementation of the deserialize method
         pass  # Customize based on your requirements
 
+
 class ImageToImage(bt.Synapse):
     model: str
-    image: bt.Tensor =  None
+    image: bt.Tensor = None
     prompt: str
     height: typing.Optional[int] = 1024
     width: typing.Optional[int] = 1024
     strength: typing.Optional[int] = 1
-    seed: typing.Optional[int] = -1 
+    seed: typing.Optional[int] = -1
     batch_size: typing.Optional[int] = 1
-    output: list[ bt.Tensor ] = [] #base64
+    output: list[bt.Tensor] = []  # base64
 
     def deserialize(self):
         # Implementation of the deserialize method
         pass  # Customize based on your requirements
+
 
 class isOnline(bt.Synapse):
     active: str = False
@@ -199,6 +203,8 @@ class isOnline(bt.Synapse):
     def deserialize(self):
         # Implementation of the deserialize method
         pass  # Customize based on your requirements
+
+
 # Additional implementation details here...
 class Models(bt.Synapse):
     active: str = False
@@ -206,13 +212,16 @@ class Models(bt.Synapse):
     def deserialize(self):
         # Implementation of the deserialize method
         pass  # Customize based on your requirements
-# Additional implementation details here...    
+
+
+# Additional implementation details here...
 class ServerInfo(bt.Synapse):
     active: str = False
 
     def deserialize(self):
         # Implementation of the deserialize method
         pass  # Customize based on your requirements
+
 
 class StartModel(bt.Synapse):
     active: str = False
@@ -221,10 +230,13 @@ class StartModel(bt.Synapse):
         # Implementation of the deserialize method
         pass  # Customize based on your requirements
 
+
 class StopModel(bt.Synapse):
     active: str = False
 
     def deserialize(self):
         # Implementation of the deserialize method
         pass  # Customize based on your requirements
+
+
 # Additional implementation details here...
