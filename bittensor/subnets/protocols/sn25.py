@@ -23,18 +23,16 @@ import bittensor as bt
 import numpy as np
 import pydantic
 
-
-class IsAlive(bt.Synapse):
+class IsAlive( bt.Synapse ):
     answer: Optional[str] = None
     completion: str = pydantic.Field(
         "",
         title="Completion",
         description="Completion status of the current StreamPrompting object. "
-        "This attribute is mutable and can be updated.",
+                    "This attribute is mutable and can be updated.",
     )
 
-
-class Train(bt.Synapse):
+class Train( bt.Synapse ):
     """
     A simple Train protocol representation which uses bt.Synapse as its base.
     This protocol helps in handling request and response communication between
@@ -70,15 +68,15 @@ class Train(bt.Synapse):
     # Optional request output, filled by recieving axon.
     # gradients: List[ bt.Tensor ] = []
     # gradients: list = None
-
+    
     # Optional model name
     model_name: str = "kmfoda/tiny-random-gpt2"
 
     # # Optional learning rate
     lr: float = 1e-5
-
+    
     # # Optional dataset name
-    dataset_name: str = "wikitext"
+    dataset_name: str = 'wikitext'
 
     # # Required optimizer
     # optimizer_name: str = "adam"
@@ -88,6 +86,6 @@ class Train(bt.Synapse):
 
     # # Optional score
     loss: float = 0.0
-
+    
     # # Training Steps
     # steps: int = 10

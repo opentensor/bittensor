@@ -22,13 +22,11 @@ from typing import Optional, List
 import bittensor as bt
 import pydantic
 
-
 class TextToSpeech(bt.Synapse):
     """
     TextToSpeech class inherits from bt.Synapse.
     It is used to convert text to speech.
     """
-
     class Config:
         """
         Pydantic model configuration class for Prompting. This class sets validation of attribute assignment as True.
@@ -36,6 +34,8 @@ class TextToSpeech(bt.Synapse):
         """
 
         validate_assignment = True
+
+
 
     # Required request input, filled by sending dendrite caller.
     text_input: Optional[str] = None
@@ -46,13 +46,14 @@ class TextToSpeech(bt.Synapse):
 
     completion: str = None
 
+
     def deserialize(self) -> List:
         """
         Deserialize the speech_output into a PyTorch tensor.
         """
         # If speech_output is a tensor, just return it
         # if isinstance(self.speech_output, List):
-        # print(" Deserialize the speech_output into a PyTorch tensor.",self)
+          # print(" Deserialize the speech_output into a PyTorch tensor.",self)
         return self
         # raise TypeError("speech_output is not a tensor")
 
@@ -62,7 +63,6 @@ class TextToMusic(bt.Synapse):
     TextToMusic class inherits from bt.Synapse.
     It is used to convert text to music.
     """
-
     # Required request input, filled by sending dendrite caller.
     text_input: Optional[str] = None
 
@@ -71,23 +71,24 @@ class TextToMusic(bt.Synapse):
 
     completion: str = None
 
+
     def deserialize(self) -> List:
         """
         Deserialize the music_output into a PyTorch tensor.
         """
         # If music_output is a tensor, just return it
         if isinstance(self.music_output, List):
-            print(" Deserialize the music_output into a PyTorch tensor.", self)
-            return self
+          print(" Deserialize the music_output into a PyTorch tensor.",self)
+          return self
         raise TypeError("music_output is not a tensor")
 
+    
 
 class VoiceClone(bt.Synapse):
     """
     VoiceClone class inherits from bt.Synapse.
     It is used to clone a voice.
     """
-
     class Config:
         """
         Pydantic model configuration class for Prompting. This class sets validation of attribute assignment as True.

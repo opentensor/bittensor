@@ -22,31 +22,23 @@ import pydantic
 """
 Represents a software version with major, minor, and patch components.
 """
-
-
-class Version(pydantic.BaseModel):
+class Version (pydantic.BaseModel):
     major_version: Optional[int] = None
     minor_version: Optional[int] = None
     patch_version: Optional[int] = None
-
 
 """
 Extends the Bittensor Synapse with an additional version attribute, 
 used for compatibility and version control in mapreduce operations.
 """
-
-
-class MapSynapse(bt.Synapse):
+class MapSynapse ( bt.Synapse ):
     version: Optional[Version] = None
-
 
 """
 Defines the structure of a mapreduce job, including information about network configuration, 
 the participating miners, and the job's runtime status.
 """
-
-
-class Job(pydantic.BaseModel):
+class Job (pydantic.BaseModel):
     master_hotkey: Optional[str] = None
     client_hotkey: Optional[str] = None
     master_addr: Optional[str] = None
@@ -62,79 +54,58 @@ class Job(pydantic.BaseModel):
     status: Optional[str] = None
     reason: Optional[str] = None
 
-
 """
 A specialized Synapse representing the status of a miner, 
 including its availability and memory resources.
 """
-
-
-class MinerStatus(MapSynapse):
+class MinerStatus( MapSynapse ):
     free_memory: Optional[int] = None
     available: Optional[bool] = None
     # perf_input: Optional[str] = None
     # pert_output: Optional[str] = None
 
-
 """
 Defines the status of a validator, particularly whether it is available for processing requests.
 """
-
-
-class ValidatorStatus(pydantic.BaseModel):
+class ValidatorStatus( pydantic.BaseModel ):
     available: Optional[bool] = None
-
-
+    
 """
 Represents a synapse message for joining a mapreduce job, 
 including the job details and ranks of participating nodes.
 """
-
-
-class Join(MapSynapse):
+class Join( MapSynapse ):
     ranks: Optional[Dict] = None
     job: Optional[Job] = None
     joining: Optional[bool] = None
     reason: Optional[str] = None
 
-
 """
 Synapse message used when a node needs to connect to the master node for a job.
 """
-
-
-class ConnectMaster(MapSynapse):
+class ConnectMaster( MapSynapse ):
     job: Optional[Job] = None
-
 
 """
 Synapse message for requesting a benchmarking operation, 
 specifying the miner UID and job details.
 """
-
-
-class RequestBenchmark(MapSynapse):
+class RequestBenchmark( MapSynapse ):
     miner_uid: Optional[int] = None
     job: Optional[Job] = None
-
 
 """
 Synapse message encapsulating the results of a benchmarking operation.
 """
-
-
-class BenchmarkResults(MapSynapse):
+class BenchmarkResults( MapSynapse ):
     results: Optional[List] = None
     bots: Optional[List] = None
-
-
+    
 """
 Defines the structure for the results of a benchmarking operation, 
 including metrics like bandwidth, speed, and duration.
 """
-
-
-class BenchmarkResult(pydantic.BaseModel):
+class BenchmarkResult( pydantic.BaseModel ):
     bandwidth: Optional[int] = None
     speed: Optional[int] = None
     duration: Optional[int] = None
@@ -143,11 +114,8 @@ class BenchmarkResult(pydantic.BaseModel):
     upload: Optional[int] = None
     download: Optional[int] = None
 
-
 """
 Speed test
 """
-
-
-class SpeedTest(MapSynapse):
+class SpeedTest( MapSynapse ):
     result: Optional[Dict] = None

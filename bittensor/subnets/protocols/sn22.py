@@ -6,17 +6,15 @@ from typing import List, Union, Callable, Awaitable, Dict, Optional, Any
 from starlette.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-
-class IsAlive(bt.Synapse):
-    answer: typing.Optional[str] = None
+class IsAlive( bt.Synapse ):   
+    answer: typing.Optional[ str ] = None
     completion: str = pydantic.Field(
         "",
         title="Completion",
         description="Completion status of the current StreamPrompting object. This attribute is mutable and can be updated.",
     )
 
-
-class StreamPrompting(bt.StreamingSynapse):
+class StreamPrompting( bt.StreamingSynapse ):
     messages: List[Dict[str, str]] = pydantic.Field(
         ...,
         title="Messages",
@@ -86,7 +84,6 @@ class StreamPrompting(bt.StreamingSynapse):
             "completion": self.completion,
         }
 
-
 class TwitterPromptAnalysisResult(BaseModel):
     api_params: Dict[str, Any] = {}
     keywords: List[str] = []
@@ -94,25 +91,24 @@ class TwitterPromptAnalysisResult(BaseModel):
     user_mentions: List[str] = []
 
     def fill(self, response: Dict[str, Any]):
-        if "api_params" in response:
-            self.api_params = response["api_params"]
-        if "keywords" in response:
-            self.keywords = response["keywords"]
-        if "hashtags" in response:
-            self.hashtags = response["hashtags"]
-        if "user_mentions" in response:
-            self.user_mentions = response["user_mentions"]
+        if 'api_params' in response:
+            self.api_params = response['api_params']
+        if 'keywords' in response:
+            self.keywords = response['keywords']
+        if 'hashtags' in response:
+            self.hashtags = response['hashtags']
+        if 'user_mentions' in response:
+            self.user_mentions = response['user_mentions']
 
     def __str__(self):
         return f"Query String: {self.api_params}, Keywords: {self.keywords}, Hashtags: {self.hashtags}, User Mentions: {self.user_mentions}"
 
-
 class TwitterScraperStreaming(bt.StreamingSynapse):
     messages: str = pydantic.Field(
-        ...,
-        title="Messages",
-        description="A list of messages in the StreamPrompting scenario, each containing a role and content. Immutable.",
-        allow_mutation=False,
+            ...,
+            title="Messages",
+            description="A list of messages in the StreamPrompting scenario, each containing a role and content. Immutable.",
+            allow_mutation=False,
     )
 
     completion: str = pydantic.Field(
@@ -143,7 +139,7 @@ class TwitterScraperStreaming(bt.StreamingSynapse):
     prompt_analysis: TwitterPromptAnalysisResult = pydantic.Field(
         default_factory=lambda: TwitterPromptAnalysisResult(),
         title="Prompt Analysis",
-        description="Analysis of the Twitter query result.",
+        description="Analysis of the Twitter query result."
     )
 
     tweets: Optional[str] = pydantic.Field(
@@ -200,6 +196,6 @@ class TwitterScraperStreaming(bt.StreamingSynapse):
             "messages": self.messages,
             "completion": self.completion,
         }
-
+    
     class Config:
         arbitrary_types_allowed = True

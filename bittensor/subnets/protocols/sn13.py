@@ -31,12 +31,12 @@ class BaseProtocol(bt.Synapse):
         arbitrary_types_allowed = True
         validate_assignment = True
 
-    version: int = pydantic.Field(
-        description="Protocol version", default=constants.PROTOCOL_VERSION
+    version: Optional[int] = pydantic.Field(
+        description="Protocol version", default=None
     )
 
 
-class GetMinerIndex(bt.Synapse):
+class GetMinerIndex(BaseProtocol):
     """
     Protocol by which Validators can retrieve the Index from a Miner.
 

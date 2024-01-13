@@ -14,7 +14,9 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from inspect import signature, Signature, Parameter
 
 
-class TargonLinkPrediction(bt.Synapse):
+
+
+class TargonLinkPrediction( bt.Synapse ):
     url: str = pydantic.Field(
         ...,
         title="Query",
@@ -54,8 +56,7 @@ class TargonLinkPrediction(bt.Synapse):
         allow_mutation=False,
     )
 
-
-class TargonSearchResult(bt.Synapse):
+class TargonSearchResult( bt.Synapse ):
     query: str = pydantic.Field(
         ...,
         title="Query",
@@ -91,7 +92,7 @@ class TargonSearchResult(bt.Synapse):
     )
 
 
-class TargonSearchResultStream(bt.StreamingSynapse):
+class TargonSearchResultStream( bt.StreamingSynapse ):
     query: str = pydantic.Field(
         ...,
         title="Query",
@@ -125,7 +126,6 @@ class TargonSearchResultStream(bt.StreamingSynapse):
         description="A list of required fields for the hash.",
         allow_mutation=False,
     )
-
     async def process_streaming_response(self, response: StreamingResponse):
         """
         `process_streaming_response` is an asynchronous method designed to process the incoming streaming response from the
@@ -160,6 +160,8 @@ class TargonSearchResultStream(bt.StreamingSynapse):
                 if token:
                     self.completion += token
                     yield token  # yield token immediately
+
+
 
     def extract_response_json(self, response: StreamingResponse) -> dict:
         """
@@ -222,7 +224,8 @@ class TargonSearchResultStream(bt.StreamingSynapse):
         }
 
 
-class TargonDendrite(bt.dendrite):
+class TargonDendrite( bt.dendrite ):
+    
     async def forward(
         self,
         axons: Union[
@@ -334,7 +337,9 @@ class TargonDendrite(bt.dendrite):
         # Record start time
         start_time = time.time()
         target_axon = (
-            target_axon.info() if isinstance(target_axon, bt.axon) else target_axon
+            target_axon.info()
+            if isinstance(target_axon, bt.axon)
+            else target_axon
         )
 
         # Build request endpoint from the synapse class
@@ -369,7 +374,7 @@ class TargonDendrite(bt.dendrite):
                         yield token  # Yield each token as it's processed
                     json_response = synapse.extract_response_json(response)
                 else:
-                    bt.logging.info("stream dendrite | --> | ", response)
+                    bt.logging.info('stream dendrite | --> | ', response)
 
                     json_response = await response.json()
 
@@ -402,7 +407,9 @@ class TargonDendrite(bt.dendrite):
             )
 
             # Log synapse event history
-            self.synapse_history.append(bt.Synapse.from_headers(synapse.to_headers()))
+            self.synapse_history.append(
+                bt.Synapse.from_headers(synapse.to_headers())
+            )
 
             # Return the updated synapse object after deserializing if requested
             if deserialize:
