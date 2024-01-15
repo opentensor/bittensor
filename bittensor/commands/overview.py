@@ -561,7 +561,7 @@ class OverviewCommand:
 
             grid.add_row(table)
 
-        # console.clear()
+        console.clear()
 
         caption = "[italic][dim][white]Wallet balance: [green]\u03C4" + str(
             total_balance.tao
