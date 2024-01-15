@@ -78,16 +78,32 @@ class AutocompleteCommand:
 
     @staticmethod
     def run(cli):
-        print("To enable autocompletion for Bittensor CLI, run:")
-        print("btcli --print-completion bash >> ~/.bashrc  # For Bash")
-        print("btcli --print-completion zsh >> ~/.zshrc    # For Zsh")
-        print("And then run:\nsource ~/.bashrc  # For both Bash and Zsh")
+        console = bittensor.__console__
+        shell_commands = {
+            'Bash': 'btcli --print-completion bash >> ~/.bashrc',
+            'Zsh': 'btcli --print-completion zsh >> ~/.zshrc',
+            'Tcsh': 'btcli --print-completion tcsh >> ~/.tcshrc'
+        }
+
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("Shell", style="dim", width=12)
+        table.add_column("Command to Enable Autocompletion", justify="left")
+
+        for shell, command in shell_commands.items():
+            table.add_row(shell, command)
+
+        console.print("To enable autocompletion for Bittensor CLI, run the appropriate command for your shell:")
+        console.print(table)
+
+        console.print("\n[bold]After running the command, execute the following to apply the changes:[/bold]")
+        console.print("  [yellow]source ~/.bashrc[/yellow]  # For Bash and Zsh")
+        console.print("  [yellow]source ~/.tcshrc[/yellow]  # For Tcsh")
 
     @staticmethod
     def add_args(parser):
         parser.add_parser(
             "autocomplete",
-            help="Instructions for enabling autocompletion for Bittensor CLI.",
+            help="Instructions for enabling autocompletion for Bittensor CLI."
         )
 
     @staticmethod
