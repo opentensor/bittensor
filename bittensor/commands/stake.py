@@ -501,11 +501,9 @@ class StakeShow:
             accounts = []
             # Create a progress bar using tqdm
             with tqdm(total=len(wallets), desc="Fetching accounts", ncols=100) as pbar:
-                # Using a ThreadPool to fetch accounts.
-                with ThreadPoolExecutor() as executor:
-                    for account in executor.map(get_stake_accounts, wallets, subtensor):
-                        accounts.append(account)
-                        pbar.update()
+                for wallet in wallets:
+                    accounts.append(get_stake_accounts(wallet, subtensor))
+                    pbar.update()
             return accounts
 
         accounts = get_all_wallet_accounts(wallets, subtensor)
