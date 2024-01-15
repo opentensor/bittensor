@@ -24,12 +24,13 @@ from fuzzywuzzy import fuzz
 from rich.align import Align
 from rich.table import Table
 from rich.prompt import Prompt
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Dict, Tuple, Union, Any
 from .utils import (
     get_hotkey_wallets_for_wallet,
     get_coldkey_wallets_for_path,
     get_all_wallets_for_path,
     filter_netuids_by_registered_hotkeys,
+    neurons_lite_rpc,
 )
 from . import defaults
 
@@ -180,18 +181,24 @@ class OverviewCommand:
                 )
             )
         ):
-            # Create a copy of the config without the parser and formatter_class.
-            ## This is needed to pass to the ProcessPoolExecutor, which cannot pickle the parser.
-            copy_config = cli.config.copy()
-            copy_config["__parser"] = None
-            copy_config["formatter_class"] = None
+            # Extract correct chain endpoint and network from config.
+            network = cli.config.subtensor.get(
+                "network", bittensor.defaults.subtensor.network
+            )
+            (
+                _,
+                chain_endpoint,
+            ) = bittensor.subtensor.determine_chain_endpoint_and_network(network)
 
             # Pull neuron info for all keys.
             ## Max len(netuids) or 5 threads.
             with ProcessPoolExecutor(max_workers=max(len(netuids), 5)) as executor:
                 results = executor.map(
                     OverviewCommand._get_neurons_for_netuid,
-                    [(copy_config, netuid, all_hotkey_addresses) for netuid in netuids],
+                    [
+                        (chain_endpoint, netuid, all_hotkey_addresses)
+                        for netuid in netuids
+                    ],
                 )
                 executor.shutdown(wait=True)  # wait for all complete
 
@@ -554,7 +561,7 @@ class OverviewCommand:
 
             grid.add_row(table)
 
-        console.clear()
+        # console.clear()
 
         caption = "[italic][dim][white]Wallet balance: [green]\u03C4" + str(
             total_balance.tao
@@ -568,15 +575,13 @@ class OverviewCommand:
     def _get_neurons_for_netuid(
         args_tuple: Tuple["bittensor.Config", int, List[str]]
     ) -> Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]:
-        subtensor_config, netuid, hot_wallets = args_tuple
+        chain_endpoint, netuid, hot_wallets = args_tuple
 
         result: List["bittensor.NeuronInfoLite"] = []
 
         try:
-            subtensor = bittensor.subtensor(config=subtensor_config, log_verbose=False)
-
-            all_neurons: List["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
-                netuid=netuid
+            all_neurons: List["bittensor.NeuronInfoLite"] = neurons_lite_rpc(
+                chain_endpoint=chain_endpoint, netuid=netuid
             )
             # Map the hotkeys to uids
             hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
@@ -585,12 +590,9 @@ class OverviewCommand:
                 if uid is not None:
                     nn = all_neurons[uid]
                     result.append(nn)
+
         except Exception as e:
             return netuid, [], "Error: {}".format(e)
-        finally:
-            if "subtensor" in locals():
-                subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
 
         return netuid, result, None
 
