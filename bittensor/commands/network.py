@@ -313,9 +313,8 @@ class SubnetSudoCommand:
     def run(cli: "bittensor.cli"):
         r"""Set subnet hyperparameters."""
         try:
-            config = cli.config.copy()
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
-                config=config, log_verbose=False
+                config=cli.config, log_verbose=False
             )
             SubnetSudoCommand._run(cli, subtensor)
         finally:
@@ -324,23 +323,26 @@ class SubnetSudoCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(
+        cli: "bittensor.cli",
+        subtensor: "bittensor.subtensor",
+    ):
         r"""Set subnet hyperparameters."""
         wallet = bittensor.wallet(config=cli.config)
         print("\n")
         SubnetHyperparamsCommand.run(cli)
-        if not config.is_set("param") and not config.no_prompt:
+        if not cli.config.is_set("param") and not cli.config.no_prompt:
             param = Prompt.ask("Enter hyperparameter", choices=HYPERPARAMS)
-            config.param = str(param)
-        if not config.is_set("value") and not config.no_prompt:
+            cli.config.param = str(param)
+        if not cli.config.is_set("value") and not cli.config.no_prompt:
             value = Prompt.ask("Enter new value")
-            config.value = value
+            cli.config.value = value
 
         subtensor.set_hyperparameter(
             wallet,
             netuid=cli.config.netuid,
-            parameter=config.param,
-            value=config.value,
+            parameter=cli.config.param,
+            value=cli.config.value,
             prompt=not cli.config.no_prompt,
         )
 
