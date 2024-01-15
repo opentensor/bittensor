@@ -324,7 +324,11 @@ class SubnetSudoCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor", config: "bittensor.config"):
+    def _run(
+        cli: "bittensor.cli",
+        subtensor: "bittensor.subtensor",
+        config: "bittensor.config",
+    ):
         r"""Set subnet hyperparameters."""
         wallet = bittensor.wallet(config=cli.config)
         print("\n")
