@@ -105,7 +105,7 @@ class UnStakeCommand:
     def add_args(command_parser):
         unstake_parser = command_parser.add_parser(
             "remove",
-            help="""Remove stake from your hotkey accounts into their coldkey accounts.""",
+            help="""Remove stake from the specified hotkey into the coldkey balance.""",
         )
         unstake_parser.add_argument(
             "--all", dest="unstake_all", action="store_true", default=False
