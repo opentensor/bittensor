@@ -24,7 +24,7 @@ import base64
 import typing
 import hashlib
 import pydantic
-from pydantic.schema import schema
+from pydantic.v1.schema import schema
 import bittensor
 from typing import Optional, List, Any
 
@@ -146,8 +146,7 @@ class TerminalInfo(pydantic.BaseModel):
     TerminalInfo plays a pivotal role in providing transparency and control over network operations, making it an indispensable tool for developers and users interacting with the Bittensor ecosystem.
     """
 
-    class Config:
-        validate_assignment = True
+    model_config = pydantic.ConfigDict(validate_assignment=True)
 
     # The HTTP status code from: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
     status_code: Optional[int] = pydantic.Field(
@@ -357,8 +356,7 @@ class Synapse(pydantic.BaseModel):
     standardized communication in a decentralized environment.
     """
 
-    class Config:
-        validate_assignment = True
+    model_config = pydantic.ConfigDict(validate_assignment=True)
 
     def deserialize(self) -> "Synapse":
         """
@@ -628,18 +626,20 @@ class Synapse(pydantic.BaseModel):
         # Getting the fields of the instance
         instance_fields = self.dict()
 
+        # Fetch the required fields from the model schema (pydantic v2)
+        required = []
+        for k, v in self.__class__.__dict__["model_fields"].items():
+            if v.is_required():
+                required.append(k)
+
         # Iterating over the fields of the instance
         for field, value in instance_fields.items():
-            # If the object is not optional, serializing it, encoding it, and adding it to the headers
-            required = schema([self.__class__])["definitions"][self.name].get(
-                "required"
-            )
 
             # Skipping the field if it's already in the headers or its value is None
             if field in headers or value is None:
                 continue
 
-            elif required and field in required:
+            elif field in required:
                 try:
                     # create an empty (dummy) instance of type(value) to pass pydantic validation on the axon side
                     serialized_value = json.dumps(value.__class__.__call__())

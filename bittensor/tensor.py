@@ -116,8 +116,7 @@ class Tensor(pydantic.BaseModel):
         shape (List[int]): Tensor shape.
     """
 
-    class Config:
-        validate_assignment = True
+    model_config = pydnatic.ConfigDict(validate_assignment=True)
 
     def tensor(self) -> torch.Tensor:
         return self.deserialize()
