@@ -634,7 +634,6 @@ class Synapse(pydantic.BaseModel):
 
         # Iterating over the fields of the instance
         for field, value in instance_fields.items():
-
             # Skipping the field if it's already in the headers or its value is None
             if field in headers or value is None:
                 continue
