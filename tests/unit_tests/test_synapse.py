@@ -173,7 +173,8 @@ def test_body_hash_override():
 
     # Try to set the body_hash property and expect an AttributeError
     with pytest.raises(
-        pydantic.ValidationError,
+        AttributeError,
+        match="body_hash property is read-only and cannot be overridden.",
     ):
         synapse_instance.body_hash = []
 
@@ -184,15 +185,14 @@ def test_required_fields_override():
 
     # Try to set the required_hash_fields property and expect a TypeError
     with pytest.raises(
-        TypeError,
-        match='"required_hash_fields" has allow_mutation set to False and cannot be assigned',
+        pydantic.ValidationError,
     ):
         synapse_instance.required_hash_fields = []
 
 
 def test_default_instance_fields_dict_consistency():
     synapse_instance = bittensor.Synapse()
-    assert synapse_instance.dict() == {
+    assert synapse_instance.model_dump() == {
         "name": "Synapse",
         "timeout": 12.0,
         "total_size": 0,

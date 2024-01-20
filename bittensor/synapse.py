@@ -154,11 +154,11 @@ class TerminalInfo(pydantic.BaseModel):
         description="The HTTP status code from: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status",
         examples=200,
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
-    _extract_status_code = pydantic.validator(
-        "status_code", pre=True, allow_reuse=True
-    )(cast_int)
+    _extract_status_code = pydantic.field_validator("status_code", mode="before")(
+        cast_int
+    )
 
     # The HTTP status code from: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
     status_message: Optional[str] = pydantic.Field(
@@ -166,7 +166,7 @@ class TerminalInfo(pydantic.BaseModel):
         description="The status_message associated with the status_code",
         examples="Success",
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
 
     # Process time on this terminal side of call
@@ -175,11 +175,11 @@ class TerminalInfo(pydantic.BaseModel):
         description="Process time on this terminal side of call",
         examples=0.1,
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
-    _extract_process_time = pydantic.validator(
-        "process_time", pre=True, allow_reuse=True
-    )(cast_float)
+    _extract_process_time = pydantic.field_validator("process_time", mode="before")(
+        cast_float
+    )
 
     # The terminal ip.
     ip: Optional[str] = pydantic.Field(
@@ -187,7 +187,7 @@ class TerminalInfo(pydantic.BaseModel):
         description="The ip of the axon recieving the request.",
         examples="198.123.23.1",
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
 
     # The host port of the terminal.
@@ -196,9 +196,9 @@ class TerminalInfo(pydantic.BaseModel):
         description="The port of the terminal.",
         examples="9282",
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
-    _extract_port = pydantic.validator("port", pre=True, allow_reuse=True)(cast_int)
+    _extract_port = pydantic.field_validator("port", mode="before")(cast_int)
 
     # The bittensor version on the terminal as an int.
     version: Optional[int] = pydantic.Field(
@@ -206,11 +206,9 @@ class TerminalInfo(pydantic.BaseModel):
         description="The bittensor version on the axon as str(int)",
         examples=111,
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
-    _extract_version = pydantic.validator("version", pre=True, allow_reuse=True)(
-        cast_int
-    )
+    _extract_version = pydantic.field_validator("version", mode="before")(cast_int)
 
     # A unique monotonically increasing integer nonce associate with the terminal
     nonce: Optional[int] = pydantic.Field(
@@ -218,9 +216,9 @@ class TerminalInfo(pydantic.BaseModel):
         description="A unique monotonically increasing integer nonce associate with the terminal generated from time.monotonic_ns()",
         examples=111111,
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
-    _extract_nonce = pydantic.validator("nonce", pre=True, allow_reuse=True)(cast_int)
+    _extract_nonce = pydantic.field_validator("nonce", mode="before")(cast_int)
 
     # A unique identifier associated with the terminal, set on the axon side.
     uuid: Optional[str] = pydantic.Field(
@@ -228,7 +226,7 @@ class TerminalInfo(pydantic.BaseModel):
         description="A unique identifier associated with the terminal",
         examples="5ecbd69c-1cec-11ee-b0dc-e29ce36fec1a",
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
 
     # The bittensor version on the terminal as an int.
@@ -237,7 +235,7 @@ class TerminalInfo(pydantic.BaseModel):
         description="The ss58 encoded hotkey string of the terminal wallet.",
         examples="5EnjDGNqqWnuL2HCAdxeEtN2oqtXZw6BMBe936Kfy2PFz1J1",
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
 
     # A signature verifying the tuple (axon_nonce, axon_hotkey, dendrite_hotkey, axon_uuid)
@@ -246,7 +244,7 @@ class TerminalInfo(pydantic.BaseModel):
         description="A signature verifying the tuple (nonce, axon_hotkey, dendrite_hotkey, uuid)",
         examples="0x0813029319030129u4120u10841824y0182u091u230912u",
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
 
 
@@ -394,7 +392,7 @@ class Synapse(pydantic.BaseModel):
         """
         return self
 
-    @pydantic.root_validator(pre=True)
+    @pydantic.model_validator(mode="before")
     def set_name_type(cls, values) -> dict:
         values["name"] = cls.__name__
         return values
@@ -404,7 +402,7 @@ class Synapse(pydantic.BaseModel):
         title="name",
         description="Defines the http route name which is set on axon.attach( callable( request: RequestName ))",
         examples="Forward",
-        allow_mutation=True,
+        frozen=False,
         default=None,
         repr=False,
     )
@@ -415,12 +413,10 @@ class Synapse(pydantic.BaseModel):
         description="Defines the total query length.",
         examples=12.0,
         default=12.0,
-        allow_mutation=True,
+        frozen=False,
         repr=False,
     )
-    _extract_timeout = pydantic.validator("timeout", pre=True, allow_reuse=True)(
-        cast_float
-    )
+    _extract_timeout = pydantic.field_validator("timeout", mode="before")(cast_float)
 
     # The call timeout, set by the dendrite terminal.
     total_size: Optional[int] = pydantic.Field(
@@ -428,10 +424,10 @@ class Synapse(pydantic.BaseModel):
         description="Total size of request body in bytes.",
         examples=1000,
         default=0,
-        allow_mutation=True,
+        frozen=False,
         repr=False,
     )
-    _extract_total_size = pydantic.validator("total_size", pre=True, allow_reuse=True)(
+    _extract_total_size = pydantic.field_validator("total_size", mode="before")(
         cast_int
     )
 
@@ -441,11 +437,12 @@ class Synapse(pydantic.BaseModel):
         description="Size of request header in bytes.",
         examples=1000,
         default=0,
-        allow_mutation=True,
+        frozen=False,
         repr=False,
     )
-    _extract_header_size = pydantic.validator(
-        "header_size", pre=True, allow_reuse=True
+    _extract_header_size = pydantic.field_validator(
+        "header_size",
+        mode="before",
     )(cast_int)
 
     # The dendrite Terminal Information.
@@ -454,7 +451,7 @@ class Synapse(pydantic.BaseModel):
         description="Dendrite Terminal Information",
         examples="bittensor.TerminalInfo",
         default=TerminalInfo(),
-        allow_mutation=True,
+        frozen=False,
         repr=False,
     )
 
@@ -464,7 +461,7 @@ class Synapse(pydantic.BaseModel):
         description="Axon Terminal Information",
         examples="bittensor.TerminalInfo",
         default=TerminalInfo(),
-        allow_mutation=True,
+        frozen=False,
         repr=False,
     )
 
@@ -473,7 +470,7 @@ class Synapse(pydantic.BaseModel):
         description="The computed body hash of the request.",
         examples="0x0813029319030129u4120u10841824y0182u091u230912u",
         default="",
-        allow_mutation=False,
+        frozen=True,
         repr=False,
     )
 
@@ -482,7 +479,7 @@ class Synapse(pydantic.BaseModel):
         description="The list of required fields to compute the body hash.",
         examples=["roles", "messages"],
         default=[],
-        allow_mutation=False,
+        frozen=True,
         repr=False,
     )
 
@@ -608,14 +605,14 @@ class Synapse(pydantic.BaseModel):
         headers.update(
             {
                 f"bt_header_axon_{k}": str(v)
-                for k, v in self.axon.dict().items()
+                for k, v in self.axon.model_dump().items()
                 if v is not None
             }
         )
         headers.update(
             {
                 f"bt_header_dendrite_{k}": str(v)
-                for k, v in self.dendrite.dict().items()
+                for k, v in self.dendrite.model_dump().items()
                 if v is not None
             }
         )
@@ -624,7 +621,7 @@ class Synapse(pydantic.BaseModel):
         property_type_hints = typing.get_type_hints(self)
 
         # Getting the fields of the instance
-        instance_fields = self.dict()
+        instance_fields = self.model_dump()
 
         # Fetch the required fields from the model schema (pydantic v2)
         required = []
@@ -682,7 +679,7 @@ class Synapse(pydantic.BaseModel):
         hashes = []
 
         # Getting the fields of the instance
-        instance_fields = self.dict()
+        instance_fields = self.model_dump()
 
         for field, value in instance_fields.items():
             # If the field is required in the subclass schema, hash and add it.
