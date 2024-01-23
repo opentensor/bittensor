@@ -33,7 +33,7 @@ def add_stake_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Adds the specified amount of stake to passed hotkey ``uid``.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
@@ -210,7 +210,7 @@ def add_stake_multiple_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Adds stake to each ``hotkey_ss58`` in the list, using each amount, from a common coldkey.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object for the coldkey.
@@ -435,7 +435,7 @@ def __do_add_stake_single(
 ) -> bool:
     r"""
     Executes a stake call to the chain using the wallet and the amount specified.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.

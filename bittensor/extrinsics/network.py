@@ -31,7 +31,7 @@ def register_subnetwork_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Registers a new subnetwork.
-    
+
     Args:
         wallet (bittensor.wallet):
             bittensor wallet object.
@@ -116,7 +116,7 @@ def set_hyperparameter_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Sets a hyperparameter for a specific subnetwork.
-    
+
     Args:
         wallet (bittensor.wallet):
             bittensor wallet object.

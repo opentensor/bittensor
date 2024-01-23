@@ -42,7 +42,7 @@ def register_extrinsic(
     log_verbose: bool = False,
 ) -> bool:
     r"""Registers the wallet to the chain.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
@@ -223,7 +223,7 @@ def burned_register_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Registers the wallet to chain by recycling TAO.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
@@ -341,7 +341,7 @@ def run_faucet_extrinsic(
     log_verbose: bool = False,
 ) -> bool:
     r"""Runs a continual POW to get a faucet of TAO on the test net.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
