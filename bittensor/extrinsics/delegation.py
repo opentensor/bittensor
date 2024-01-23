@@ -35,7 +35,7 @@ def nominate_extrinsic(
     wait_for_inclusion: bool = True,
 ) -> bool:
     r"""Becomes a delegate for the hotkey.
-    
+
     Args:
         wallet (bittensor.wallet): The wallet to become a delegate for.
     Returns:
@@ -104,7 +104,7 @@ def delegate_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Delegates the specified amount of stake to the passed delegate.
-    
+
     Args:
         wallet (bittensor.wallet): Bittensor wallet object.
         delegate_ss58 (Optional[str]): The ``ss58`` address of the delegate.
@@ -239,7 +239,7 @@ def undelegate_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Un-delegates stake from the passed delegate.
-    
+
     Args:
         wallet (bittensor.wallet): Bittensor wallet object.
         delegate_ss58 (Optional[str]): The ``ss58`` address of the delegate.
