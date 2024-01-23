@@ -41,24 +41,23 @@ def register_extrinsic(
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
 ) -> bool:
-    r"""Registers the wallet to chain.
+    r"""Registers the wallet to the chain.
+    
     Args:
         wallet (bittensor.wallet):
-            bittensor wallet object.
+            Bittensor wallet object.
         netuid (int):
-            The netuid of the subnet to register on.
+            The ``netuid`` of the subnet to register on.
         wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true,
-            or returns false if the extrinsic fails to enter the block within the timeout.
+            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning true,
-            or returns false if the extrinsic fails to be finalized within the timeout.
+            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
         prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
+            If ``true``, the call waits for confirmation from the user before proceeding.
         max_allowed_attempts (int):
             Maximum number of attempts to register the wallet.
         cuda (bool):
-            If true, the wallet should be registered using CUDA device(s).
+            If ``true``, the wallet should be registered using CUDA device(s).
         dev_id (Union[List[int], int]):
             The CUDA device id to use, or a list of device ids.
         tpb (int):
@@ -68,11 +67,10 @@ def register_extrinsic(
         update_interval (int):
             The number of nonces to solve between updates.
         log_verbose (bool):
-            If true, the registration process will log more information.
+            If ``true``, the registration process will log more information.
     Returns:
         success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block.
-            If we did not wait for finalization / inclusion, the response is true.
+            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if not subtensor.subnet_exists(netuid):
         bittensor.__console__.print(
@@ -225,23 +223,21 @@ def burned_register_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Registers the wallet to chain by recycling TAO.
+    
     Args:
         wallet (bittensor.wallet):
-            bittensor wallet object.
+            Bittensor wallet object.
         netuid (int):
-            The netuid of the subnet to register on.
+            The ``netuid`` of the subnet to register on.
         wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true,
-            or returns false if the extrinsic fails to enter the block within the timeout.
+            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning true,
-            or returns false if the extrinsic fails to be finalized within the timeout.
+            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
         prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
+            If ``true``, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block.
-            If we did not wait for finalization / inclusion, the response is true.
+            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if not subtensor.subnet_exists(netuid):
         bittensor.__console__.print(
@@ -345,21 +341,20 @@ def run_faucet_extrinsic(
     log_verbose: bool = False,
 ) -> bool:
     r"""Runs a continual POW to get a faucet of TAO on the test net.
+    
     Args:
         wallet (bittensor.wallet):
-            bittensor wallet object.
+            Bittensor wallet object.
         prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
+            If ``true``, the call waits for confirmation from the user before proceeding.
         wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true,
-            or returns false if the extrinsic fails to enter the block within the timeout.
+            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning true,
-            or returns false if the extrinsic fails to be finalized within the timeout.
+            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
         max_allowed_attempts (int):
             Maximum number of attempts to register the wallet.
         cuda (bool):
-            If true, the wallet should be registered using CUDA device(s).
+            If ``true``, the wallet should be registered using CUDA device(s).
         dev_id (Union[List[int], int]):
             The CUDA device id to use, or a list of device ids.
         tpb (int):
@@ -369,11 +364,10 @@ def run_faucet_extrinsic(
         update_interval (int):
             The number of nonces to solve between updates.
         log_verbose (bool):
-            If true, the registration process will log more information.
+            If ``true``, the registration process will log more information.
     Returns:
         success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block.
-            If we did not wait for finalization / inclusion, the response is true.
+            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if prompt:
         if not Confirm.ask(
