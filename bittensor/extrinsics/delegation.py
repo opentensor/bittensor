@@ -35,12 +35,11 @@ def nominate_extrinsic(
     wait_for_inclusion: bool = True,
 ) -> bool:
     r"""Becomes a delegate for the hotkey.
+    
     Args:
-        wallet ( bittensor.wallet ):
-            The wallet to become a delegate for.
+        wallet (bittensor.wallet): The wallet to become a delegate for.
     Returns:
-        success (bool):
-            True if the transaction was successful.
+        success (bool): ``True`` if the transaction was successful.
     """
     # Unlock the coldkey.
     wallet.coldkey
@@ -105,31 +104,20 @@ def delegate_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Delegates the specified amount of stake to the passed delegate.
+    
     Args:
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        delegate_ss58 (Optional[str]):
-            ss58 address of the delegate.
-        amount (Union[Balance, float]):
-            Amount to stake as bittensor balance, or float interpreted as Tao.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true,
-            or returns false if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning true,
-            or returns false if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        delegate_ss58 (Optional[str]): The ``ss58`` address of the delegate.
+        amount (Union[Balance, float]): Amount to stake as bittensor balance, or ``float`` interpreted as Tao.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
     Returns:
-        success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block.
-            If we did not wait for finalization / inclusion, the response is true.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
 
     Raises:
-        NotRegisteredError:
-            If the wallet is not registered on the chain.
-        NotDelegateError:
-            If the hotkey is not a delegate on the chain.
+        NotRegisteredError: If the wallet is not registered on the chain.
+        NotDelegateError: If the hotkey is not a delegate on the chain.
     """
     # Decrypt keys,
     wallet.coldkey
@@ -251,31 +239,20 @@ def undelegate_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Un-delegates stake from the passed delegate.
+    
     Args:
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        delegate_ss58 (Optional[str]):
-            ss58 address of the delegate.
-        amount (Union[Balance, float]):
-            Amount to unstake as bittensor balance, or float interpreted as Tao.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true,
-            or returns false if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning true,
-            or returns false if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        delegate_ss58 (Optional[str]): The ``ss58`` address of the delegate.
+        amount (Union[Balance, float]): Amount to unstake as bittensor balance, or ``float`` interpreted as Tao.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
     Returns:
-        success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block.
-            If we did not wait for finalization / inclusion, the response is true.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
 
     Raises:
-        NotRegisteredError:
-            If the wallet is not registered on the chain.
-        NotDelegateError:
-            If the hotkey is not a delegate on the chain.
+        NotRegisteredError: If the wallet is not registered on the chain.
+        NotDelegateError: If the hotkey is not a delegate on the chain.
     """
     # Decrypt keys,
     wallet.coldkey

@@ -1,4 +1,4 @@
-""" Create and init Axon, whcih services Forward and Backward requests from other neurons.
+""" Create and initialize Axon, which services the forward and backward requests from other neurons.
 """
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
@@ -59,47 +59,37 @@ from bittensor.errors import (
 
 class FastAPIThreadedServer(uvicorn.Server):
     """
-    The `FastAPIThreadedServer` class is a specialized server implementation for the Axon server in the
-    Bittensor network. It extends the functionality of `uvicorn.Server` to run the FastAPI application
-    in a separate thread, allowing the Axon server to handle HTTP requests concurrently and non-blocking.
+    The ``FastAPIThreadedServer`` class is a specialized server implementation for the Axon server in the Bittensor network. 
+    
+    It extends the functionality of :func:`uvicorn.Server` to run the FastAPI application in a separate thread, allowing the Axon server to handle HTTP requests concurrently and non-blocking.
 
-    This class is designed to facilitate the integration of FastAPI with the Axon's asynchronous
-    architecture, ensuring efficient and scalable handling of network requests.
+    This class is designed to facilitate the integration of FastAPI with the Axon's asynchronous architecture, ensuring efficient and scalable handling of network requests.
 
-    Importance and Functionality:
-        Threaded Execution: The class allows the FastAPI application to run in a separate thread,
-            enabling concurrent handling of HTTP requests which is crucial for the performance and
-            scalability of the Axon server.
+    Importance and Functionality
+        Threaded Execution
+            The class allows the FastAPI application to run in a separate thread, enabling concurrent handling of HTTP requests which is crucial for the performance and scalability of the Axon server.  
 
-        Seamless Integration: By running FastAPI in a threaded manner, this class ensures seamless integration
-            of FastAPI's capabilities with the Axon server's asynchronous and multi-threaded architecture.
+        Seamless Integration
+            By running FastAPI in a threaded manner, this class ensures seamless integration of FastAPI's capabilities with the Axon server's asynchronous and multi-threaded architecture.
 
-        Controlled Server Management: The methods start and stop provide controlled management of the server's
-            lifecycle, ensuring that the server can be started and stopped as needed, which is vital for
-            maintaining the Axon server's reliability and availability.
+        Controlled Server Management 
+            The methods start and stop provide controlled management of the server's lifecycle, ensuring that the server can be started and stopped as needed, which is vital for maintaining the Axon server's reliability and availability.
 
-        Signal Handling: Overriding the default signal handlers prevents potential conflicts with the Axon
-            server's main application flow, ensuring stable operation in various network conditions.
+        Signal Handling
+            Overriding the default signal handlers prevents potential conflicts with the Axon server's main application flow, ensuring stable operation in various network conditions.
 
-    Use Cases:
-        Starting the Server: When the Axon server is initialized, it can use this class to start the
-            FastAPI application in a separate thread, enabling it to begin handling HTTP requests immediately.
-        Stopping the Server: During shutdown or maintenance of the Axon server, this class can be used
-            to stop the FastAPI application gracefully, ensuring that all resources are properly released.
+    Use Cases
+        Starting the Server
+            When the Axon server is initialized, it can use this class to start the FastAPI application in a separate thread, enabling it to begin handling HTTP requests immediately.
+            
+        Stopping the Server
+            During shutdown or maintenance of the Axon server, this class can be used to stop the FastAPI application gracefully, ensuring that all resources are properly released.
 
-    Attributes:
+    Args:
         should_exit (bool): Flag to indicate whether the server should stop running.
         is_running (bool): Flag to indicate whether the server is currently running.
 
-    The server overrides the default signal handlers to prevent interference with the main application
-    flow and provides methods to start and stop the server in a controlled manner.
-
-    Methods:
-        install_signal_handlers: Overrides the default signal handlers.
-        run_in_thread: Manages the execution of the server in a separate thread.
-        _wrapper_run: Wraps the run_in_thread method for thread execution.
-        start: Starts the server thread if it is not already running.
-        stop: Signals the server thread to stop running.
+    The server overrides the default signal handlers to prevent interference with the main application flow and provides methods to start and stop the server in a controlled manner.
     """
 
     should_exit: bool = False
@@ -107,22 +97,17 @@ class FastAPIThreadedServer(uvicorn.Server):
 
     def install_signal_handlers(self):
         """
-        Overrides the default signal handlers provided by `uvicorn.Server`. This method is essential to
-        ensure that the signal handling in the threaded server does not interfere with the main
-        application's flow, especially in a complex asynchronous environment like the Axon server.
+        Overrides the default signal handlers provided by ``uvicorn.Server``. This method is essential to ensure that the signal handling in the threaded server does not interfere with the main application's flow, especially in a complex asynchronous environment like the Axon server.
         """
         pass
 
     @contextlib.contextmanager
     def run_in_thread(self):
         """
-        Manages the execution of the server in a separate thread, allowing the FastAPI application to
-        run asynchronously without blocking the main thread of the Axon server. This method is a key
-        component in enabling concurrent request handling in the Axon server.
+        Manages the execution of the server in a separate thread, allowing the FastAPI application to run asynchronously without blocking the main thread of the Axon server. This method is a key component in enabling concurrent request handling in the Axon server.
 
         Yields:
-            None: This method yields control back to the caller while the server is running in the
-            background thread.
+            None: This method yields control back to the caller while the server is running in the background thread.
         """
         thread = threading.Thread(target=self.run, daemon=True)
         thread.start()
@@ -136,8 +121,7 @@ class FastAPIThreadedServer(uvicorn.Server):
 
     def _wrapper_run(self):
         """
-        A wrapper method for the `run_in_thread` context manager. This method is used internally by the
-        `start` method to initiate the server's execution in a separate thread.
+        A wrapper method for the :func:`run_in_thread` context manager. This method is used internally by the ``start`` method to initiate the server's execution in a separate thread.
         """
         with self.run_in_thread():
             while not self.should_exit:
@@ -145,12 +129,10 @@ class FastAPIThreadedServer(uvicorn.Server):
 
     def start(self):
         """
-        Starts the FastAPI server in a separate thread if it is not already running. This method sets up
-        the server to handle HTTP requests concurrently, enabling the Axon server to efficiently manage
+        Starts the FastAPI server in a separate thread if it is not already running. This method sets up the server to handle HTTP requests concurrently, enabling the Axon server to efficiently manage
         incoming network requests.
 
-        The method ensures that the server starts running in a non-blocking manner, allowing the Axon
-        server to continue its other operations seamlessly.
+        The method ensures that the server starts running in a non-blocking manner, allowing the Axon server to continue its other operations seamlessly.
         """
         if not self.is_running:
             self.should_exit = False
@@ -160,11 +142,9 @@ class FastAPIThreadedServer(uvicorn.Server):
 
     def stop(self):
         """
-        Signals the FastAPI server to stop running. This method sets the `should_exit` flag to `True`,
-        indicating that the server should cease its operations and exit the running thread.
+        Signals the FastAPI server to stop running. This method sets the :func:`should_exit` flag to ``True``, indicating that the server should cease its operations and exit the running thread.
 
-        Stopping the server is essential for controlled shutdowns and resource management in the Axon
-        server, especially during maintenance or when redeploying with updated configurations.
+        Stopping the server is essential for controlled shutdowns and resource management in the Axon server, especially during maintenance or when redeploying with updated configurations.
         """
         if self.is_running:
             self.should_exit = True
@@ -172,8 +152,9 @@ class FastAPIThreadedServer(uvicorn.Server):
 
 class axon:
     """
-    The `axon` class in Bittensor is a fundamental component that serves as the server-side
-    interface for a neuron within the Bittensor network. This class is responsible for managing
+    The ``axon`` class in Bittensor is a fundamental component that serves as the server-side interface for a neuron within the Bittensor network. 
+    
+    This class is responsible for managing
     incoming requests from other neurons and implements various mechanisms to ensure efficient
     and secure network interactions.
 
@@ -191,85 +172,83 @@ class axon:
     the attachment and operation of endpoints.
 
     Key Features:
+
     - FastAPI router integration for endpoint creation and management.
     - Customizable request handling including forwarding, blacklisting, and prioritization.
     - Verification of incoming requests against custom-defined functions.
     - Thread pool management for concurrent request handling.
     - Command-line argument support for user-friendly program interaction.
 
-    Example Usage:
+    Example Usage::
+    
+        import bittensor
+        # Define your custom synapse class
+        class MySyanpse( bittensor.Synapse ):
+            input: int = 1
+            output: int = None
 
-    ```python
-    import bittensor
+        # Define a custom request forwarding function using your synapse class
+        def forward( synapse: MySyanpse ) -> MySyanpse:
+            # Apply custom logic to synapse and return it
+            synapse.output = 2
+            return synapse
 
-    # Define your custom synapse class
-    class MySyanpse( bittensor.Synapse ):
-        input: int = 1
-        output: int = None
+        # Define a custom request verification function
+        def verify_my_synapse( synapse: MySyanpse ):
+            # Apply custom verification logic to synapse
+            # Optionally raise Exception
+            assert synapse.input == 1
+            ...
 
-    # Define a custom request forwarding function using your synapse class
-    def forward( synapse: MySyanpse ) -> MySyanpse:
-        # Apply custom logic to synapse and return it
-        synapse.output = 2
-        return synapse
+        # Define a custom request blacklist fucntion
+        def blacklist_my_synapse( synapse: MySyanpse ) -> bool:
+            # Apply custom blacklist
+            return False ( if non blacklisted ) or True ( if blacklisted )
 
-    # Define a custom request verification function
-    def verify_my_synapse( synapse: MySyanpse ):
-        # Apply custom verification logic to synapse
-        # Optionally raise Exception
-        assert synapse.input == 1
-        ...
+        # Define a custom request priority fucntion
+        def prioritize_my_synape( synapse: MySyanpse ) -> float:
+            # Apply custom priority
+            return 1.0
 
-    # Define a custom request blacklist fucntion
-    def blacklist_my_synapse( synapse: MySyanpse ) -> bool:
-        # Apply custom blacklist
-        return False ( if non blacklisted ) or True ( if blacklisted )
+        # Initialize Axon object with a custom configuration
+        my_axon = bittensor.axon(
+            config=my_config,
+            wallet=my_wallet,
+            port=9090,
+            ip="192.0.2.0",
+            external_ip="203.0.113.0",
+            external_port=7070
+        )
 
-    # Define a custom request priority fucntion
-    def prioritize_my_synape( synapse: MySyanpse ) -> float:
-        # Apply custom priority
-        return 1.0
+        # Attach the endpoint with the specified verification and forward functions.
+        my_axon.attach(
+            forward_fn = forward_my_synapse,
+            verify_fn = verify_my_synapse,
+            blacklist_fn = blacklist_my_synapse,
+            priority_fn = prioritize_my_synape
+        )
 
-    # Initialize Axon object with a custom configuration
-    my_axon = bittensor.axon(
-        config=my_config,
-        wallet=my_wallet,
-        port=9090,
-        ip="192.0.2.0",
-        external_ip="203.0.113.0",
-        external_port=7070
-    )
+        # Serve and start your axon.
+        my_axon.serve(
+            netuid = ...
+            subtensor = ...
+        ).start()
 
-    # Attach the endpoint with the specified verification and forward functions.
-    my_axon.attach(
-        forward_fn = forward_my_synapse,
-        verify_fn = verify_my_synapse,
-        blacklist_fn = blacklist_my_synapse,
-        priority_fn = prioritize_my_synape
-    )
-
-    # Serve and start your axon.
-    my_axon.serve(
-        netuid = ...
-        subtensor = ...
-    ).start()
-
-    # If you have multiple forwarding functions, you can chain attach them.
-    my_axon.attach(
-        forward_fn = forward_my_synapse,
-        verify_fn = verify_my_synapse,
-        blacklist_fn = blacklist_my_synapse,
-        priority_fn = prioritize_my_synape
-    ).attach(
-        forward_fn = forward_my_synapse_2,
-        verify_fn = verify_my_synapse_2,
-        blacklist_fn = blacklist_my_synapse_2,
-        priority_fn = prioritize_my_synape_2
-    ).serve(
-        netuid = ...
-        subtensor = ...
-    ).start()
-    ```
+        # If you have multiple forwarding functions, you can chain attach them.
+        my_axon.attach(
+            forward_fn = forward_my_synapse,
+            verify_fn = verify_my_synapse,
+            blacklist_fn = blacklist_my_synapse,
+            priority_fn = prioritize_my_synape
+        ).attach(
+            forward_fn = forward_my_synapse_2,
+            verify_fn = verify_my_synapse_2,
+            blacklist_fn = blacklist_my_synapse_2,
+            priority_fn = prioritize_my_synape_2
+        ).serve(
+            netuid = ...
+            subtensor = ...
+        ).start()
 
     Args:
         wallet (bittensor.wallet, optional): Wallet with hotkey and coldkeypub.
@@ -288,22 +267,21 @@ class axon:
         allowing neurons to communicate effectively and securely.
 
     Importance and Functionality
-        Endpoint Registration: This method dynamically registers API endpoints based on the Synapse class
-            used, allowing the Axon to respond to specific types of requests and synapses.
+        Endpoint Registration
+            This method dynamically registers API endpoints based on the Synapse used, allowing the Axon to respond to specific types of requests and synapses.
 
-        Customization of Request Handling: By attaching different functions, the Axon can customize how it
-            handles, verifies, prioritizes, and potentially blocks incoming requests, making it adaptable
-            to various network scenarios.
+        Customization of Request Handling
+            By attaching different functions, the Axon can customize how it
+            handles, verifies, prioritizes, and potentially blocks incoming requests, making it adaptable to various network scenarios.
 
-        Security and Efficiency: The method contributes to both the security (via verification and blacklisting)
-            and efficiency (via prioritization) of request handling, which are crucial in a decentralized
-            network environment.
+        Security and Efficiency
+            The method contributes to both the security (via verification and blacklisting) and efficiency (via prioritization) of request handling, which are crucial in a decentralized network environment.
 
-        Flexibility: The ability to define custom functions for different aspects of request handling
-            provides great flexibility, allowing the Axon to be tailored to specific needs and use cases
-            within the Bittensor network.
+        Flexibility
+            The ability to define custom functions for different aspects of request handling provides great flexibility, allowing the Axon to be tailored to specific needs and use cases within the Bittensor network.
 
-        Error Handling and Validation: The method ensures that the attached functions meet the required
+        Error Handling and Validation
+            The method ensures that the attached functions meet the required
             signatures, providing error handling to prevent runtime issues.
 
     """
@@ -436,7 +414,7 @@ class axon:
         prioritization, thereby customizing its interaction within the Bittensor network.
 
         Registers an API endpoint to the FastAPI application router.
-        It uses the name of the first argument of the 'forward_fn' function as the endpoint name.
+        It uses the name of the first argument of the :func:`forward_fn` function as the endpoint name.
 
         The attach method in the Bittensor framework's axon class is a crucial function for registering
         API endpoints to the Axon's FastAPI application router. This method allows the Axon server to
@@ -445,33 +423,25 @@ class axon:
         and ensuring efficient and secure handling of requests within the Bittensor network.
 
         Args:
-            forward_fn (Callable): Function to be called when the API endpoint is accessed.
-                                   It should have at least one argument.
-            blacklist_fn (Callable, optional): Function to filter out undesired requests. It should take
-                                                the same arguments as 'forward_fn' and return a boolean
-                                                value. Defaults to None, meaning no blacklist filter will
-                                                be used.
-            priority_fn (Callable, optional): Function to rank requests based on their priority. It should
-                                                take the same arguments as 'forward_fn' and return a numerical
-                                                value representing the request's priority. Defaults to None,
-                                                meaning no priority sorting will be applied.
-            verify_fn (Callable, optional): Function to verify requests. It should take the same arguments as
-                                                'forward_fn' and return a boolean value. If None,
-                                                'self.default_verify' function will be used.
+            forward_fn (Callable): Function to be called when the API endpoint is accessed. It should have at least one argument.
+            blacklist_fn (Callable, optional): Function to filter out undesired requests. It should take the same arguments as :func:`forward_fn` and return a boolean value. Defaults to ``None``, meaning no blacklist filter will be used.
+            priority_fn (Callable, optional): Function to rank requests based on their priority. It should take the same arguments as :func:`forward_fn` and return a numerical value representing the request's priority. Defaults to ``None``, meaning no priority sorting will be applied.
+            verify_fn (Callable, optional): Function to verify requests. It should take the same arguments as :func:`forward_fn` and return a boolean value. If ``None``, :func:`self.default_verify` function will be used.
 
-        Note: 'forward_fn', 'blacklist_fn', 'priority_fn', and 'verify_fn' should be designed to receive the same parameters.
+        Note: 
+            The methods :func:`forward_fn`, :func:`blacklist_fn`, :func:`priority_fn`, and :func:`verify_fn` should be designed to receive the same parameters.
 
         Raises:
-            AssertionError: If 'forward_fn' does not have the signature: forward( synapse: YourSynapse ) -> synapse:
-            AssertionError: If 'blacklist_fn' does not have the signature: blacklist( synapse: YourSynapse ) -> bool
-            AssertionError: If 'priority_fn' does not have the signature: priority( synapse: YourSynapse ) -> float
-            AssertionError: If 'verify_fn' does not have the signature: verify( synapse: YourSynapse ) -> None
+            AssertionError: If :func:`forward_fn` does not have the signature: ``forward( synapse: YourSynapse ) -> synapse``.
+            AssertionError: If :func:`blacklist_fn` does not have the signature: ``blacklist( synapse: YourSynapse ) -> bool``.
+            AssertionError: If :func:`priority_fn` does not have the signature: ``priority( synapse: YourSynapse ) -> float``.
+            AssertionError: If :func:`verify_fn` does not have the signature: ``verify( synapse: YourSynapse ) -> None``.
 
         Returns:
             self: Returns the instance of the AxonServer class for potential method chaining.
 
-        Example Usage:
-            ```python
+        Example Usage::
+        
             def forward_custom(synapse: MyCustomSynapse) -> MyCustomSynapse:
                 # Custom logic for processing the request
                 return synapse
@@ -488,10 +458,9 @@ class axon:
 
             my_axon = bittensor.axon(...)
             my_axon.attach(forward_fn=forward_custom, verify_fn=verify_custom)
-            ```
 
         Note:
-            The 'attach' method is fundamental in setting up the Axon server's request handling capabilities,
+            The :func:`attach` method is fundamental in setting up the Axon server's request handling capabilities,
             enabling it to participate effectively and securely in the Bittensor network. The flexibility
             offered by this method allows developers to tailor the Axon's behavior to specific requirements and
             use cases.
@@ -607,7 +576,7 @@ class axon:
     @classmethod
     def config(cls) -> "bittensor.config":
         """
-        Parses command-line arguments to form a bittensor configuration object.
+        Parses the command-line arguments to form a Bittensor configuration object.
 
         Returns:
             bittensor.config: Configuration object with settings from command-line arguments.
@@ -688,11 +657,11 @@ class axon:
 
     async def verify_body_integrity(self, request: Request):
         """
-        The verify_body_integrity method in the Bittensor framework is a key security function within the
+        The ``verify_body_integrity`` method in the Bittensor framework is a key security function within the
         Axon server's middleware. It is responsible for ensuring the integrity of the body of incoming HTTP
         requests.
 
-        Asynchronously verifies the integrity of the body of a request by comparing the hash of required fields
+        It asynchronously verifies the integrity of the body of a request by comparing the hash of required fields
         with the corresponding hashes provided in the request headers. This method is critical for ensuring
         that the incoming request payload has not been altered or tampered with during transmission, establishing
         a level of trust and security between the sender and receiver in the network.
@@ -710,6 +679,7 @@ class axon:
                         The response includes the detailed error message specifying which field has a hash mismatch.
 
         This method performs several key functions:
+        
         1. Decoding and loading the request body for inspection.
         2. Gathering required field names for hash comparison from the Axon configuration.
         3. Loading and parsing the request body into a dictionary.
@@ -799,7 +769,7 @@ class axon:
     def start(self) -> "bittensor.axon":
         """
         Starts the Axon server and its underlying FastAPI server thread, transitioning the state of the
-        Axon instance to 'started'. This method initiates the server's ability to accept and process
+        Axon instance to ``started``. This method initiates the server's ability to accept and process
         incoming network requests, making it an active participant in the Bittensor network.
 
         The start method triggers the FastAPI server associated with the Axon to begin listening for
@@ -809,16 +779,14 @@ class axon:
         Returns:
             bittensor.axon: The Axon instance in the 'started' state.
 
-        Example:
-            ```python
+        Example::
+        
             my_axon = bittensor.axon(...)
             ... # setup axon, attach functions, etc.
             my_axon.start()  # Starts the axon server
-            ```
 
         Note:
-            After invoking this method, the Axon is ready to handle requests as per its configured
-            endpoints and custom logic.
+            After invoking this method, the Axon is ready to handle requests as per its configured endpoints and custom logic.
         """
         self.fast_server.start()
         self.started = True
@@ -827,7 +795,7 @@ class axon:
     def stop(self) -> "bittensor.axon":
         """
         Stops the Axon server and its underlying GRPC server thread, transitioning the state of the Axon
-        instance to 'stopped'. This method ceases the server's ability to accept new network requests,
+        instance to ``stopped``. This method ceases the server's ability to accept new network requests,
         effectively removing the neuron's server-side presence in the Bittensor network.
 
         By stopping the FastAPI server, the Axon ceases to listen for incoming requests, and any existing
@@ -837,17 +805,16 @@ class axon:
         Returns:
             bittensor.axon: The Axon instance in the 'stopped' state.
 
-        Example:
-            ```python
+        Example::
+            
             my_axon = bittensor.axon(...)
             my_axon.start()
             ...
             my_axon.stop()  # Stops the axon server
-            ```
+            
 
         Note:
-            It is advisable to ensure that all ongoing processes or requests are completed or properly
-            handled before invoking this method.
+            It is advisable to ensure that all ongoing processes or requests are completed or properly handled before invoking this method.
         """
         self.fast_server.stop()
         self.started = False
@@ -858,28 +825,25 @@ class axon:
     ) -> "bittensor.axon":
         """
         Serves the Axon on the specified subtensor connection using the configured wallet. This method
-        registers the Axon with a specific subnet within the Bittensor network, identified by the 'netuid'.
+        registers the Axon with a specific subnet within the Bittensor network, identified by the ``netuid``.
         It links the Axon to the broader network, allowing it to participate in the decentralized exchange
         of information.
 
         Args:
-            netuid (int): The unique identifier of the subnet to register on. This ID is essential for the
-                Axon to correctly position itself within the Bittensor network topology.
-            subtensor (bittensor.subtensor, optional): The subtensor connection to use for serving. If not
-            provided, a new connection is established based on default configurations.
+            netuid (int): The unique identifier of the subnet to register on. This ID is essential for the Axon to correctly position itself within the Bittensor network topology.
+            subtensor (bittensor.subtensor, optional): The subtensor connection to use for serving. If not provided, a new connection is established based on default configurations.
 
         Returns:
             bittensor.axon: The Axon instance that is now actively serving on the specified subtensor.
 
-        Example:
-            ```python
+        Example::
+            
             my_axon = bittensor.axon(...)
             subtensor = bt.subtensor(network="local") # Local by default
             my_axon.serve(netuid=1, subtensor=subtensor)  # Serves the axon on subnet with netuid 1
-            ```
 
         Note:
-            The 'serve' method is crucial for integrating the Axon into the Bittensor network, allowing it
+            The ``serve`` method is crucial for integrating the Axon into the Bittensor network, allowing it
             to start receiving and processing requests from other neurons.
         """
         if subtensor == None:
@@ -893,30 +857,34 @@ class axon:
 
         It ensures that the message was not tampered with and was sent by the expected sender.
 
-        The `default_verify` method in the Bittensor framework is a critical security function within the
+        The :func:`default_verify` method in the Bittensor framework is a critical security function within the
         Axon server. It is designed to authenticate incoming messages by verifying their digital
         signatures. This verification ensures the integrity of the message and confirms that it was
         indeed sent by the claimed sender. The method plays a pivotal role in maintaining the trustworthiness
         and reliability of the communication within the Bittensor network.
 
-        Key Features:
-            Security Assurance: The default_verify method is crucial for ensuring the security of the
-                Bittensor network. By verifying digital signatures, it guards against unauthorized access
+        Key Features
+            Security Assurance
+                The default_verify method is crucial for ensuring the security of the Bittensor network. By verifying digital signatures, it guards against unauthorized access
                 and data manipulation.
 
-            Preventing Replay Attacks: The method checks for increasing nonce values, which is a vital
+            Preventing Replay Attacks
+                The method checks for increasing nonce values, which is a vital
                 step in preventing replay attacks. A replay attack involves an adversary reusing or
                 delaying the transmission of a valid data transmission to deceive the receiver.
 
-            Authenticity and Integrity Checks: By verifying that the message's digital signature matches
+            Authenticity and Integrity Checks
+                By verifying that the message's digital signature matches
                 its content, the method ensures the message's authenticity (it comes from the claimed
                 sender) and integrity (it hasn't been altered during transmission).
 
-            Trust in Communication: This method fosters trust in the network communication. Neurons
+            Trust in Communication
+                This method fosters trust in the network communication. Neurons
                 (nodes in the Bittensor network) can confidently interact, knowing that the messages they
                 receive are genuine and have not been tampered with.
 
-            Cryptographic Techniques: The method's reliance on asymmetric encryption techniques is a
+            Cryptographic Techniques
+                The method's reliance on asymmetric encryption techniques is a
                 cornerstone of modern cryptographic security, ensuring that only entities with the correct
                 cryptographic keys can participate in secure communication.
 
@@ -925,7 +893,7 @@ class axon:
                 bittensor request synapse.
 
         Raises:
-            Exception: If the receiver_hotkey doesn't match with self.receiver_hotkey.
+            Exception: If the ``receiver_hotkey`` doesn't match with ``self.receiver_hotkey``.
             Exception: If the nonce is not larger than the previous nonce for the same endpoint key.
             Exception: If the signature verification fails.
 
@@ -994,8 +962,9 @@ def log_and_handle_error(
 
 class AxonMiddleware(BaseHTTPMiddleware):
     """
-    The `AxonMiddleware` class is a key component in the Axon server, responsible for processing all
-    incoming requests. It handles the essential tasks of verifying requests, executing blacklist checks,
+    The `AxonMiddleware` class is a key component in the Axon server, responsible for processing all incoming requests. 
+    
+    It handles the essential tasks of verifying requests, executing blacklist checks,
     running priority functions, and managing the logging of messages and errors. Additionally, the class
     is responsible for updating the headers of the response and executing the requested functions.
 
@@ -1033,13 +1002,13 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         Args:
             request (Request): The incoming HTTP request to be processed.
-            call_next (RequestResponseEndpoint): A callable that processes the request and returns a
-                response.
+            call_next (RequestResponseEndpoint): A callable that processes the request and returns a response.
 
         Returns:
             Response: The HTTP response generated after processing the request.
 
         This method performs several key functions:
+    
         1. Request Preprocessing: Sets up Synapse object from request headers and fills necessary information.
         2. Logging: Logs the start of request processing.
         3. Blacklist Checking: Verifies if the request is blacklisted.
@@ -1151,6 +1120,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             bittensor.Synapse: The Synapse object representing the preprocessed state of the request.
 
         The preprocessing involves:
+    
         1. Extracting the request name from the URL path.
         2. Creating a Synapse instance from the request headers using the appropriate class type.
         3. Filling in the Axon and Dendrite information into the Synapse object.
@@ -1218,6 +1188,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             Exception: If the verification process fails due to unmet criteria or security concerns.
 
         The verification process involves:
+    
         1. Retrieving the specific verification function for the request's Synapse type.
         2. Executing the verification function and handling any exceptions that arise.
 
@@ -1265,6 +1236,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             Exception: If the request is found in the blacklist.
 
         The blacklist check involves:
+        
         1. Retrieving the blacklist checking function for the request's Synapse type.
         2. Executing the check and handling the case where the request is blacklisted.
 
