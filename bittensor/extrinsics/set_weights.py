@@ -40,29 +40,27 @@ def set_weights_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Sets the given weights and values on chain for wallet hotkey account.
+    
     Args:
         wallet (bittensor.wallet):
-            bittensor wallet object.
+            Bittensor wallet object.
         netuid (int):
-            netuid of the subent to set weights for.
+            The ``netuid`` of the subnet to set weights for.
         uids (Union[torch.LongTensor, list]):
-            uint64 uids of destination neurons.
+            The ``uint64`` uids of destination neurons.
         weights ( Union[torch.FloatTensor, list]):
-            weights to set which must floats and correspond to the passed uids.
+            The weights to set. These must be ``float`` s and correspond to the passed ``uid`` s.
         version_key (int):
-            version key of the validator.
+            The version key of the validator.
         wait_for_inclusion (bool):
-            if set, waits for the extrinsic to enter a block before returning true,
-            or returns false if the extrinsic fails to enter the block within the timeout.
+            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
-            if set, waits for the extrinsic to be finalized on the chain before returning true,
-            or returns false if the extrinsic fails to be finalized within the timeout.
+            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
         prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
+            If ``true``, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block.
-            If we did not wait for finalization / inclusion, the response is true.
+            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # First convert types.
     if isinstance(uids, list):

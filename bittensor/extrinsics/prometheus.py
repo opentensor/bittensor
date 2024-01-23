@@ -31,28 +31,27 @@ def prometheus_extrinsic(
     wait_for_inclusion: bool = False,
     wait_for_finalization=True,
 ) -> bool:
-    r"""Subscribes an bittensor endpoint to the substensor chain.
+    r"""Subscribes an Bittensor endpoint to the substensor chain.
+    
     Args:
         subtensor (bittensor.subtensor):
-            bittensor subtensor object.
+            Bittensor subtensor object.
         wallet (bittensor.wallet):
-            bittensor wallet object.
+            Bittensor wallet object.
         ip (str):
-            endpoint host port i.e. 192.122.31.4
+            Endpoint host port i.e., ``192.122.31.4``.
         port (int):
-            endpoint port number i.e. 9221
+            Endpoint port number i.e., `9221`.
         netuid (int):
-            network uid to serve on.
+            Network `uid` to serve on.
         wait_for_inclusion (bool):
-            if set, waits for the extrinsic to enter a block before returning true,
-            or returns false if the extrinsic fails to enter the block within the timeout.
+            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
-            if set, waits for the extrinsic to be finalized on the chain before returning true,
-            or returns false if the extrinsic fails to be finalized within the timeout.
+            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
     Returns:
         success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block.
-            If we did not wait for finalization / inclusion, the response is true.
+            Flag is ``true`` if extrinsic was finalized or uncluded in the block.
+            If we did not wait for finalization / inclusion, the response is ``true``.
     """
 
     # ---- Get external ip ----
