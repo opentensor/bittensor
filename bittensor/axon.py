@@ -962,8 +962,7 @@ def log_and_handle_error(
 
 class AxonMiddleware(BaseHTTPMiddleware):
     """
-    The `AxonMiddleware` class is a key component in the Axon server, responsible for processing all
-    incoming requests. 
+    The `AxonMiddleware` class is a key component in the Axon server, responsible for processing all incoming requests. 
     
     It handles the essential tasks of verifying requests, executing blacklist checks,
     running priority functions, and managing the logging of messages and errors. Additionally, the class
