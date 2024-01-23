@@ -35,7 +35,7 @@ def transfer_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Transfers funds from this wallet to the destination public key address.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object to make transfer from.
