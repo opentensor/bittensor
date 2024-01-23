@@ -32,7 +32,7 @@ def register_senate_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Registers the wallet to chain for senate voting.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
@@ -109,7 +109,7 @@ def leave_senate_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Removes the wallet from chain for senate voting.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
@@ -189,7 +189,7 @@ def vote_senate_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Removes the wallet from chain for senate voting.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
