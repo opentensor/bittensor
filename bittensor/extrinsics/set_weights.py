@@ -40,7 +40,7 @@ def set_weights_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Sets the given weights and values on chain for wallet hotkey account.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
