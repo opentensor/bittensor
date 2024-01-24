@@ -28,7 +28,7 @@ console = bittensor.__console__
 class TransferCommand:
     """
     Executes the ``transfer`` command to transfer TAO tokens from one account to another on the Bittensor network.
-    
+
     This command is used for transactions between different accounts, enabling users to send tokens to other participants on the network.
 
     Usage:
@@ -42,7 +42,7 @@ class TransferCommand:
     The command displays the user's current balance before prompting for the amount to transfer, ensuring transparency and accuracy in the transaction.
 
     Example usage::
-    
+
         btcli wallet transfer --dest 5Dp8... --amount 100
 
     Note:
