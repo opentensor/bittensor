@@ -292,8 +292,6 @@ HYPERPARAMS = {
     "immunity_period": "sudo_set_immunity_period",
     "min_allowed_weights": "sudo_set_min_allowed_weights",
     "max_allowed_uids": "sudo_set_max_allowed_uids",
-    "kappa": "sudo_set_kappa",
-    "rho": "sudo_set_rho",
     "activity_cutoff": "sudo_set_activity_cutoff",
     "network_registration_allowed": "sudo_set_network_registration_allowed",
     "network_pow_registration_allowed": "sudo_set_network_pow_registration_allowed",
