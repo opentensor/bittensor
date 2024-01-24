@@ -54,9 +54,9 @@ def display_mnemonic_msg(keypair: Keypair, key_type: str):
 
 class wallet:
     """
-    The wallet class in the Bittensor framework handles wallet functionality, crucial for participating in
-    the Bittensor network. It manages two types of keys: coldkey and hotkey, each serving different purposes
-    in network operations. Each wallet contains a coldkey and a hotkey.
+    The wallet class in the Bittensor framework handles wallet functionality, crucial for participating in the Bittensor network. 
+    
+    It manages two types of keys: coldkey and hotkey, each serving different purposes in network operations. Each wallet contains a coldkey and a hotkey.
 
     The coldkey is the user's primary key for holding stake in their wallet and is the only way that users
     can access Tao. Coldkeys can hold tokens and should be encrypted on your device.
@@ -69,7 +69,7 @@ class wallet:
     network. It's linked to the coldkey through the metagraph and does not directly hold tokens, thereby
     offering a safer way to interact with the network during regular operations.
 
-    Attributes:
+    Args:
         name (str): The name of the wallet, used to identify it among possibly multiple wallets.
         path (str): File system path where wallet keys are stored.
         hotkey_str (str): String identifier for the hotkey.
@@ -83,10 +83,10 @@ class wallet:
         regenerate_coldkey, regenerate_hotkey, regenerate_coldkeypub: Methods to regenerate keys from different sources.
         config, help, add_args: Utility methods for configuration and assistance.
 
-    The wallet class is a fundamental component for users to interact securely with the Bittensor network,
-    facilitating both operational tasks and transactions involving value transfer across the network.
+    The wallet class is a fundamental component for users to interact securely with the Bittensor network, facilitating both operational tasks and transactions involving value transfer across the network.
 
-    Example Usage:
+    Example Usage::
+    
         # Create a new wallet with default coldkey and hotkey names
         my_wallet = wallet()
 
@@ -176,10 +176,10 @@ class wallet:
         Initialize the bittensor wallet object containing a hot and coldkey.
 
         Args:
-            name (str, optional): The name of the wallet to unlock for running bittensor. Defaults to 'default'.
-            hotkey (str, optional): The name of hotkey used to running the miner. Defaults to 'default'.
-            path (str, optional): The path to your bittensor wallets. Defaults to '~/.bittensor/wallets/'.
-            config (bittensor.config, optional): bittensor.wallet.config(). Defaults to None.
+            name (str, optional): The name of the wallet to unlock for running bittensor. Defaults to ``default``.
+            hotkey (str, optional): The name of hotkey used to running the miner. Defaults to ``default``.
+            path (str, optional): The path to your bittensor wallets. Defaults to ``~/.bittensor/wallets/``.
+            config (bittensor.config, optional): bittensor.wallet.config(). Defaults to ``None``.
         """
         # Fill config from passed args using command line defaults.
         if config is None:
@@ -214,7 +214,7 @@ class wallet:
 
     def __repr__(self):
         """
-        Returns the string representation of the Wallet object.
+        Returns the string representation of the wallet object.
 
         Returns:
             str: The string representation.
@@ -225,14 +225,14 @@ class wallet:
         self, coldkey_use_password: bool = True, hotkey_use_password: bool = False
     ) -> "wallet":
         """
-        Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+        Checks for existing coldkeypub and hotkeys, and creates them if non-existent.
 
         Args:
-            coldkey_use_password (bool, optional): Whether to use a password for coldkey. Defaults to True.
-            hotkey_use_password (bool, optional): Whether to use a password for hotkey. Defaults to False.
+            coldkey_use_password (bool, optional): Whether to use a password for coldkey. Defaults to ``True``.
+            hotkey_use_password (bool, optional): Whether to use a password for hotkey. Defaults to ``False``.
 
         Returns:
-            wallet: The Wallet object.
+            wallet: The wallet object.
         """
         return self.create(coldkey_use_password, hotkey_use_password)
 
@@ -240,14 +240,14 @@ class wallet:
         self, coldkey_use_password: bool = True, hotkey_use_password: bool = False
     ) -> "wallet":
         """
-        Checks for existing coldkeypub and hotkeys and creates them if non-existent.
+        Checks for existing coldkeypub and hotkeys, and creates them if non-existent.
 
         Args:
-            coldkey_use_password (bool, optional): Whether to use a password for coldkey. Defaults to True.
-            hotkey_use_password (bool, optional): Whether to use a password for hotkey. Defaults to False.
+            coldkey_use_password (bool, optional): Whether to use a password for coldkey. Defaults to ``True``.
+            hotkey_use_password (bool, optional): Whether to use a password for hotkey. Defaults to ``False``.
 
         Returns:
-            wallet: The Wallet object.
+            wallet: The wallet object.
         """
         # ---- Setup Wallet. ----
         if (
@@ -266,11 +266,11 @@ class wallet:
         Checks for existing coldkeypub and hotkeys and creates them if non-existent.
 
         Args:
-            coldkey_use_password (bool, optional): Whether to use a password for coldkey. Defaults to True.
-            hotkey_use_password (bool, optional): Whether to use a password for hotkey. Defaults to False.
+            coldkey_use_password (bool, optional): Whether to use a password for coldkey. Defaults to ``True``.
+            hotkey_use_password (bool, optional): Whether to use a password for hotkey. Defaults to ``False``.
 
         Returns:
-            wallet: The Wallet object.
+            wallet: The wallet object.
         """
         # ---- Setup Wallet. ----
         self.create_new_coldkey(n_words=12, use_password=coldkey_use_password)
@@ -324,8 +324,8 @@ class wallet:
 
         Args:
             keypair (bittensor.Keypair): The hotkey keypair.
-            encrypt (bool, optional): Whether to encrypt the hotkey. Defaults to False.
-            overwrite (bool, optional): Whether to overwrite an existing hotkey. Defaults to False.
+            encrypt (bool, optional): Whether to encrypt the hotkey. Defaults to ``False``.
+            overwrite (bool, optional): Whether to overwrite an existing hotkey. Defaults to ``False``.
 
         Returns:
             bittensor.keyfile: The hotkey file.
@@ -344,8 +344,8 @@ class wallet:
 
         Args:
             keypair (bittensor.Keypair): The coldkeypub keypair.
-            encrypt (bool, optional): Whether to encrypt the coldkeypub. Defaults to False.
-            overwrite (bool, optional): Whether to overwrite an existing coldkeypub. Defaults to False.
+            encrypt (bool, optional): Whether to encrypt the coldkeypub. Defaults to ``False``.
+            overwrite (bool, optional): Whether to overwrite an existing coldkeypub. Defaults to ``False``.
 
         Returns:
             bittensor.keyfile: The coldkeypub file.
@@ -366,8 +366,8 @@ class wallet:
 
         Args:
             keypair (bittensor.Keypair): The coldkey keypair.
-            encrypt (bool, optional): Whether to encrypt the coldkey. Defaults to True.
-            overwrite (bool, optional): Whether to overwrite an existing coldkey. Defaults to False.
+            encrypt (bool, optional): Whether to encrypt the coldkey. Defaults to ``True``.
+            overwrite (bool, optional): Whether to overwrite an existing coldkey. Defaults to ``False``.
 
         Returns:
             bittensor.keyfile: The coldkey file.
@@ -382,7 +382,7 @@ class wallet:
         Gets the coldkey from the wallet.
 
         Args:
-            password (str, optional): The password to decrypt the coldkey. Defaults to None.
+            password (str, optional): The password to decrypt the coldkey. Defaults to ``None``.
 
         Returns:
             bittensor.Keypair: The coldkey keypair.
@@ -394,7 +394,7 @@ class wallet:
         Gets the hotkey from the wallet.
 
         Args:
-            password (str, optional): The password to decrypt the hotkey. Defaults to None.
+            password (str, optional): The password to decrypt the hotkey. Defaults to ``None``.
 
         Returns:
             bittensor.Keypair: The hotkey keypair.
@@ -406,7 +406,7 @@ class wallet:
         Gets the coldkeypub from the wallet.
 
         Args:
-            password (str, optional): The password to decrypt the coldkeypub. Defaults to None.
+            password (str, optional): The password to decrypt the coldkeypub. Defaults to ``None``.
 
         Returns:
             bittensor.Keypair: The coldkeypub keypair.
@@ -416,6 +416,7 @@ class wallet:
     @property
     def hotkey(self) -> "bittensor.Keypair":
         r"""Loads the hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or raises an error.
+        
         Returns:
             hotkey (Keypair):
                 hotkey loaded from config arguments.
@@ -430,9 +431,9 @@ class wallet:
     @property
     def coldkey(self) -> "bittensor.Keypair":
         r"""Loads the hotkey from wallet.path/wallet.name/coldkey or raises an error.
+        
         Returns:
-            coldkey (Keypair):
-                colkey loaded from config arguments.
+            coldkey (Keypair): coldkey loaded from config arguments.
         Raises:
             KeyFileError: Raised if the file is corrupt of non-existent.
             CryptoKeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
@@ -444,9 +445,9 @@ class wallet:
     @property
     def coldkeypub(self) -> "bittensor.Keypair":
         r"""Loads the coldkeypub from wallet.path/wallet.name/coldkeypub.txt or raises an error.
+        
         Returns:
-            coldkeypub (Keypair):
-                colkeypub loaded from config arguments.
+            coldkeypub (Keypair): coldkeypub loaded from config arguments.
         Raises:
             KeyFileError: Raised if the file is corrupt of non-existent.
             CryptoKeyError: Raised if the user enters an incorrect password for an encrypted keyfile.
@@ -462,17 +463,18 @@ class wallet:
         overwrite: bool = False,
         suppress: bool = False,
     ) -> "wallet":
-        """Creates coldkey from suri string, optionally encrypts it with the user's inputed password.
+        """Creates coldkey from suri string, optionally encrypts it with the user-provided password.
+        
         Args:
             uri: (str, required):
-                URI string to use i.e. /Alice or /Bob
+                URI string to use i.e., ``/Alice`` or ``/Bob``.
             use_password (bool, optional):
                 Is the created key password protected.
             overwrite (bool, optional):
-                Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
+                Determines if this operation overwrites the coldkey under the same path ``<wallet path>/<wallet name>/coldkey``.
         Returns:
             wallet (bittensor.wallet):
-                this object with newly created coldkey.
+                This object with newly created coldkey.
         """
         keypair = Keypair.create_from_uri(uri)
         if not suppress:
@@ -488,17 +490,18 @@ class wallet:
         overwrite: bool = False,
         suppress: bool = False,
     ) -> "wallet":
-        """Creates hotkey from suri string, optionally encrypts it with the user's inputed password.
+        """Creates hotkey from suri string, optionally encrypts it with the user-provided password.
+        
         Args:
             uri: (str, required):
-                URI string to use i.e. /Alice or /Bob
+                URI string to use i.e., ``/Alice`` or ``/Bob``
             use_password (bool, optional):
                 Is the created key password protected.
             overwrite (bool, optional):
-                Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
+                Determines if this operation overwrites the hotkey under the same path ``<wallet path>/<wallet name>/hotkeys/<hotkey>``.
         Returns:
             wallet (bittensor.wallet):
-                this object with newly created hotkey.
+                This object with newly created hotkey.
         """
         keypair = Keypair.create_from_uri(uri)
         if not suppress:
@@ -513,17 +516,18 @@ class wallet:
         overwrite: bool = False,
         suppress: bool = False,
     ) -> "wallet":
-        """Creates a new coldkey, optionally encrypts it with the user's inputed password and saves to disk.
+        """Creates a new coldkey, optionally encrypts it with the user-provided password and saves to disk.
+        
         Args:
             n_words: (int, optional):
                 Number of mnemonic words to use.
             use_password (bool, optional):
                 Is the created key password protected.
             overwrite (bool, optional):
-                Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
+                Determines if this operation overwrites the coldkey under the same path ``<wallet path>/<wallet name>/coldkey``.
         Returns:
             wallet (bittensor.wallet):
-                this object with newly created coldkey.
+                This object with newly created coldkey.
         """
         self.create_new_coldkey(n_words, use_password, overwrite, suppress)
 
@@ -534,17 +538,18 @@ class wallet:
         overwrite: bool = False,
         suppress: bool = False,
     ) -> "wallet":
-        """Creates a new coldkey, optionally encrypts it with the user's inputed password and saves to disk.
+        """Creates a new coldkey, optionally encrypts it with the user-provided password and saves to disk.
+        
         Args:
             n_words: (int, optional):
                 Number of mnemonic words to use.
             use_password (bool, optional):
                 Is the created key password protected.
             overwrite (bool, optional):
-                Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
+                Determines if this operation overwrites the coldkey under the same path ``<wallet path>/<wallet name>/coldkey``.
         Returns:
             wallet (bittensor.wallet):
-                this object with newly created coldkey.
+                This object with newly created coldkey.
         """
         mnemonic = Keypair.generate_mnemonic(n_words)
         keypair = Keypair.create_from_mnemonic(mnemonic)
@@ -561,17 +566,18 @@ class wallet:
         overwrite: bool = False,
         suppress: bool = False,
     ) -> "wallet":
-        """Creates a new hotkey, optionally encrypts it with the user's inputed password and saves to disk.
+        """Creates a new hotkey, optionally encrypts it with the user-provided password and saves to disk.
+        
         Args:
             n_words: (int, optional):
                 Number of mnemonic words to use.
             use_password (bool, optional):
                 Is the created key password protected.
             overwrite (bool, optional):
-                Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
+                Determines if this operation overwrites the hotkey under the same path ``<wallet path>/<wallet name>/hotkeys/<hotkey>``.
         Returns:
             wallet (bittensor.wallet):
-                this object with newly created hotkey.
+                This object with newly created hotkey.
         """
         self.create_new_hotkey(n_words, use_password, overwrite, suppress)
 
@@ -582,7 +588,8 @@ class wallet:
         overwrite: bool = False,
         suppress: bool = False,
     ) -> "wallet":
-        """Creates a new hotkey, optionally encrypts it with the user's inputed password and saves to disk.
+        """Creates a new hotkey, optionally encrypts it with the user-provided password and saves to disk.
+        
         Args:
             n_words: (int, optional):
                 Number of mnemonic words to use.
@@ -592,7 +599,7 @@ class wallet:
                 Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
         Returns:
             wallet (bittensor.wallet):
-                this object with newly created hotkey.
+                This object with newly created hotkey.
         """
         mnemonic = Keypair.generate_mnemonic(n_words)
         keypair = Keypair.create_from_mnemonic(mnemonic)
@@ -608,18 +615,18 @@ class wallet:
         overwrite: bool = False,
         suppress: bool = False,
     ) -> "wallet":
-        """Regenerates the coldkeypub from passed ss58_address or public_key and saves the file
-           Requires either ss58_address or public_key to be passed.
+        """Regenerates the coldkeypub from the passed ``ss58_address`` or public_key and saves the file. Requires either ``ss58_address`` or public_key to be passed.
+        
         Args:
             ss58_address: (str, optional):
-                Address as ss58 string.
+                Address as ``ss58`` string.
             public_key: (str | bytes, optional):
                 Public key as hex string or bytes.
             overwrite (bool, optional) (default: False):
-                Will this operation overwrite the coldkeypub (if exists) under the same path <wallet path>/<wallet name>/coldkeypub
+                Determins if this operation overwrites the coldkeypub (if exists) under the same path ``<wallet path>/<wallet name>/coldkeypub``.
         Returns:
             wallet (bittensor.wallet):
-                newly re-generated Wallet with coldkeypub.
+                Newly re-generated wallet with coldkeypub.
 
         """
         if ss58_address is None and public_key is None:
@@ -691,23 +698,26 @@ class wallet:
         suppress: bool = False,
         **kwargs,
     ) -> "wallet":
-        """Regenerates the coldkey from passed mnemonic, seed, or json encrypts it with the user's password and saves the file
+        """Regenerates the coldkey from the passed mnemonic or seed, or JSON encrypts it with the user's password and saves the file.
+        
         Args:
             mnemonic: (Union[list, str], optional):
                 Key mnemonic as list of words or string space separated words.
             seed: (str, optional):
                 Seed as hex string.
             json: (Tuple[Union[str, Dict], str], optional):
-                Restore from encrypted JSON backup as (json_data: Union[str, Dict], passphrase: str)
+                Restore from encrypted JSON backup as ``(json_data: Union[str, Dict], passphrase: str)``
             use_password (bool, optional):
                 Is the created key password protected.
             overwrite (bool, optional):
-                Will this operation overwrite the coldkey under the same path <wallet path>/<wallet name>/coldkey
+                Determines if this operation overwrites the coldkey under the same path ``<wallet path>/<wallet name>/coldkey``.
         Returns:
             wallet (bittensor.wallet):
-                this object with newly created coldkey.
+                This object with newly created coldkey.
 
-        Note: uses priority order: mnemonic > seed > json
+        Note: 
+            Uses priority order: ``mnemonic > seed > json``.
+        
         """
         if len(kwargs) == 0:
             raise ValueError("Must pass either mnemonic, seed, or json")
@@ -796,21 +806,22 @@ class wallet:
         suppress: bool = False,
         **kwargs,
     ) -> "wallet":
-        """Regenerates the hotkey from passed mnemonic, encrypts it with the user's password and save the file
+        """Regenerates the hotkey from passed mnemonic or seed, encrypts it with the user's password and saves the file.
+        
         Args:
             mnemonic: (Union[list, str], optional):
                 Key mnemonic as list of words or string space separated words.
             seed: (str, optional):
                 Seed as hex string.
             json: (Tuple[Union[str, Dict], str], optional):
-                Restore from encrypted JSON backup as (json_data: Union[str, Dict], passphrase: str)
+                Restore from encrypted JSON backup as ``(json_data: Union[str, Dict], passphrase: str)``.
             use_password (bool, optional):
                 Is the created key password protected.
             overwrite (bool, optional):
-                Will this operation overwrite the hotkey under the same path <wallet path>/<wallet name>/hotkeys/<hotkey>
+                Determies if this operation overwrites the hotkey under the same path ``<wallet path>/<wallet name>/hotkeys/<hotkey>``.
         Returns:
             wallet (bittensor.wallet):
-                this object with newly created hotkey.
+                This object with newly created hotkey.
         """
         if len(kwargs) == 0:
             raise ValueError("Must pass either mnemonic, seed, or json")
