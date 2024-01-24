@@ -37,7 +37,7 @@ def root_register_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Registers the wallet to root network.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
@@ -109,7 +109,7 @@ def set_root_weights_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Sets the given weights and values on chain for wallet hotkey account.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.

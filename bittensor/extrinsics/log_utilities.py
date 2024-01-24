@@ -665,7 +665,7 @@ class ValidatorLogger:
 class ValidatorPrometheus:
     r"""
     Prometheis logging object for validator.
-    
+
     Args:
         config (bittensor.Config, optional):
             ``bittensor.server.config()``

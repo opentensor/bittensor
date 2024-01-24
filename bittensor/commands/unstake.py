@@ -30,7 +30,7 @@ console = bittensor.__console__
 class UnStakeCommand:
     """
     Executes the ``remove`` command to unstake TAO tokens from one or more hotkeys and transfer them back to the user's coldkey on the Bittensor network.
-    
+
     This command is used to withdraw tokens previously staked to different hotkeys.
 
     Usage:
@@ -47,7 +47,7 @@ class UnStakeCommand:
     The command prompts for confirmation before executing the unstaking operation.
 
     Example usage::
-    
+
         btcli stake remove --amount 100 --hotkeys hk1,hk2
 
     Note:

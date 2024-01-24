@@ -31,7 +31,7 @@ console = bittensor.__console__
 class SenateCommand:
     """
     Executes the ``senate`` command to view the members of Bittensor's governance protocol, known as the Senate.
-    
+
     This command lists the delegates involved in the decision-making process of the Bittensor network.
 
     Usage:
@@ -39,7 +39,7 @@ class SenateCommand:
         This information is crucial for understanding who holds governance roles within the network.
 
     Example usage::
-    
+
         btcli root senate
 
     Note:
@@ -168,14 +168,14 @@ def display_votes(
 class ProposalsCommand:
     """
     Executes the ``proposals`` command to view active proposals within Bittensor's governance protocol.
-    
+
     This command displays the details of ongoing proposals, including votes, thresholds, and proposal data.
 
     Usage:
         The command lists all active proposals, showing their hash, voting threshold, number of ayes and nays, detailed votes by address, end block number, and call data associated with each proposal.
 
     Example usage::
-    
+
         btcli root proposals
 
     Note:
@@ -283,10 +283,10 @@ class ProposalsCommand:
 class ShowVotesCommand:
     """
     Executes the ``proposal_votes`` command to view the votes for a specific proposal in Bittensor's governance protocol.
-    
+
     IMPORTANT
         **THIS COMMAND IS DEPRECATED**. Use ``btcli root proposals`` to see vote status.
-    
+
     This command provides a detailed breakdown of the votes cast by the senators for a particular proposal.
 
     Usage:
@@ -296,7 +296,7 @@ class ShowVotesCommand:
         - ``--proposal`` (str): The hash of the proposal for which votes need to be displayed.
 
     Example usage::
-    
+
         btcli root proposal_votes --proposal <proposal_hash>
 
     Note:
@@ -394,7 +394,7 @@ class ShowVotesCommand:
 class SenateRegisterCommand:
     """
     Executes the ``senate_register`` command to register as a member of the Senate in Bittensor's governance protocol.
-    
+
     This command is used by delegates who wish to participate in the governance and decision-making process of the network.
 
     Usage:
@@ -402,7 +402,7 @@ class SenateRegisterCommand:
         Successful execution allows the user to participate in proposal voting and other governance activities.
 
     Example usage::
-    
+
         btcli root senate_register
 
     Note:
@@ -476,7 +476,7 @@ class SenateRegisterCommand:
 class SenateLeaveCommand:
     """
     Executes the ``senate_leave`` command to discard membership in Bittensor's Senate.
-    
+
     This command allows a Senate member to voluntarily leave the governance body.
 
     Usage:
@@ -484,7 +484,7 @@ class SenateLeaveCommand:
         It effectively removes the user from participating in future governance decisions.
 
     Example usage::
-    
+
         btcli root senate_leave
 
     Note:
@@ -549,7 +549,7 @@ class SenateLeaveCommand:
 class VoteCommand:
     """
     Executes the ``senate_vote`` command to cast a vote on an active proposal in Bittensor's governance protocol.
-    
+
     This command is used by Senate members to vote on various proposals that shape the network's future.
 
     Usage:
@@ -559,7 +559,7 @@ class VoteCommand:
         - ``--proposal`` (str): The hash of the proposal to vote on.
 
     Example usage::
-    
+
         btcli root senate_vote --proposal <proposal_hash>
 
     Note:

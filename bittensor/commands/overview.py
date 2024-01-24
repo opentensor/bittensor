@@ -39,7 +39,7 @@ console = bittensor.__console__
 class OverviewCommand:
     """
     Executes the ``overview`` command to present a detailed overview of the user's registered accounts on the Bittensor network.
-    
+
     This command compiles and displays comprehensive information about each neuron associated with the user's wallets,
     including both hotkeys and coldkeys. It is especially useful for users managing multiple accounts or seeking a summary
     of their network activities and stake distributions.
@@ -48,7 +48,7 @@ class OverviewCommand:
         The command offers various options to customize the output. Users can filter the displayed data by specific netuids,
         sort by different criteria, and choose to include all wallets in the user's configuration directory. The output is
         presented in a tabular format with the following columns:
-        
+
         - COLDKEY: The SS58 address of the coldkey.
         - HOTKEY: The SS58 address of the hotkey.
         - UID: Unique identifier of the neuron.
@@ -67,7 +67,7 @@ class OverviewCommand:
         - HOTKEY_SS58: Human-readable representation of the hotkey.
 
     Example usage::
-    
+
         btcli wallet overview
         btcli wallet overview --all --sort_by stake --sort_order descending
 
