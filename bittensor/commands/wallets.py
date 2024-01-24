@@ -30,7 +30,7 @@ from ..utils import RAOPERTAO
 class RegenColdkeyCommand:
     """
     Executes the ``regen_coldkey`` command to regenerate a coldkey for a wallet on the Bittensor network.
-    
+
     This command is used to create a new coldkey from an existing mnemonic, seed, or JSON file.
 
     Usage:
@@ -46,7 +46,7 @@ class RegenColdkeyCommand:
         - ``--overwrite_coldkey`` (bool): Overwrites the existing coldkey with the new one.
 
     Example usage::
-    
+
         btcli wallet regen_coldkey --mnemonic "word1 word2 ... word12"
 
     Note:
@@ -156,7 +156,7 @@ class RegenColdkeyCommand:
 class RegenColdkeypubCommand:
     """
     Executes the ``regen_coldkeypub`` command to regenerate the public part of a coldkey (coldkeypub) for a wallet on the Bittensor network.
-    
+
     This command is used when a user needs to recreate their coldkeypub from an existing public key or SS58 address.
 
     Usage:
@@ -168,7 +168,7 @@ class RegenColdkeypubCommand:
         - ``--overwrite_coldkeypub`` (bool): Overwrites the existing coldkeypub file with the new one.
 
     Example usage::
-    
+
         btcli wallet regen_coldkeypub --ss58_address 5DkQ4...
 
     Note:
@@ -243,7 +243,7 @@ class RegenColdkeypubCommand:
 class RegenHotkeyCommand:
     """
     Executes the ``regen_hotkey`` command to regenerate a hotkey for a wallet on the Bittensor network.
-    
+
     Similar to regenerating a coldkey, this command creates a new hotkey from a mnemonic, seed, or JSON file.
 
     Usage:
@@ -259,7 +259,7 @@ class RegenHotkeyCommand:
         - ``--overwrite_hotkey`` (bool): Overwrites the existing hotkey with the new one.
 
     Example usage::
-    
+
         btcli wallet regen_hotkey
         btcli wallet regen_hotkey --seed 0x1234...
 
@@ -375,7 +375,7 @@ class RegenHotkeyCommand:
 class NewHotkeyCommand:
     """
     Executes the ``new_hotkey`` command to create a new hotkey under a wallet on the Bittensor network.
-    
+
     This command is used to generate a new hotkey for managing a neuron or participating in the network.
 
     Usage:
@@ -388,7 +388,7 @@ class NewHotkeyCommand:
         - ``--overwrite_hotkey`` (bool): Overwrites the existing hotkey with the new one.
 
     Example usage::
-    
+
         btcli wallet new_hotkey --n_words 24
 
     Note:
@@ -454,7 +454,7 @@ class NewHotkeyCommand:
 class NewColdkeyCommand:
     """
     Executes the ``new_coldkey`` command to create a new coldkey under a wallet on the Bittensor network.
-    
+
     This command generates a coldkey, which is essential for holding balances and performing high-value transactions.
 
     Usage:
@@ -467,7 +467,7 @@ class NewColdkeyCommand:
         - ``--overwrite_coldkey`` (bool): Overwrites the existing coldkey with the new one.
 
     Example usage::
-    
+
         btcli wallet new_coldkey --n_words 15
 
     Note:
@@ -529,7 +529,7 @@ class NewColdkeyCommand:
 class WalletCreateCommand:
     """
     Executes the ``create`` command to generate both a new coldkey and hotkey under a specified wallet on the Bittensor network.
-    
+
     This command is a comprehensive utility for creating a complete wallet setup with both cold and hotkeys.
 
     Usage:
@@ -543,7 +543,7 @@ class WalletCreateCommand:
         - ``--overwrite_hotkey`` (bool): Overwrites the existing hotkey with the new one.
 
     Example usage::
-    
+
         btcli wallet create --n_words 21
 
     Note:
@@ -630,7 +630,7 @@ def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
 class UpdateWalletCommand:
     """
     Executes the ``update`` command to check and potentially update the security of the wallets in the Bittensor network.
-    
+
     This command is used to enhance wallet security using modern encryption standards.
 
     Usage:
@@ -642,7 +642,7 @@ class UpdateWalletCommand:
         - ``--no_prompt`` (bool): Disables user prompting during the update process.
 
     Example usage::
-    
+
         btcli wallet update --all
 
     Note:
@@ -725,7 +725,7 @@ def _get_coldkey_ss58_addresses_for_path(path: str) -> List[str]:
 class WalletBalanceCommand:
     """
     Executes the ``balance`` command to check the balance of the wallet on the Bittensor network.
-    
+
     This command provides a detailed view of the wallet's coldkey balances, including free and staked balances.
 
     Usage:
@@ -735,7 +735,7 @@ class WalletBalanceCommand:
         None. The command uses the wallet and subtensor configurations to fetch balance data.
 
     Example usage::
-    
+
         btcli wallet balance
 
     Note:
@@ -894,7 +894,7 @@ class GetWalletHistoryCommand:
         None. The command uses the wallet and subtensor configurations to fetch latest transfer data associated with a wallet.
 
     Example usage::
-    
+
         btcli wallet history
 
     Note:
