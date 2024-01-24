@@ -26,8 +26,8 @@ console = bittensor.__console__
 
 class ListCommand:
     """
-    Executes the ``list`` command which enumerates all wallets and their respective hotkeys present in the user's Bittensor configuration directory. 
-    
+    Executes the ``list`` command which enumerates all wallets and their respective hotkeys present in the user's Bittensor configuration directory.
+
     The command organizes the information in a tree structure, displaying each wallet along with the ``ss58`` addresses for the coldkey public key and any hotkeys associated with it.
 
     Optional arguments:
@@ -41,7 +41,7 @@ class ListCommand:
         Upon invocation, the command scans the wallet directory and prints a list of all wallets, indicating whether the public keys are available (``?`` denotes unavailable or encrypted keys).
 
     Example usage::
-    
+
         btcli wallet list --path ~/.bittensor
 
     Note:
