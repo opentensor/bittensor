@@ -358,6 +358,12 @@ class SubnetSudoCommand:
             value = Prompt.ask("Enter new value")
             cli.config.value = value
 
+        if (
+            cli.config.param == "network_registration_allowed"
+            or cli.config.param == "network_pow_registration_allowed"
+        ):
+            cli.config.value = bool(cli.config.value)
+
         subtensor.set_hyperparameter(
             wallet,
             netuid=cli.config.netuid,
