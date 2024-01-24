@@ -31,7 +31,7 @@ console = bittensor.__console__
 class StakeCommand:
     """
     Executes the ``add`` command to stake tokens to one or more hotkeys from a user's coldkey on the Bittensor network.
-    
+
     This command is used to allocate tokens to different hotkeys, securing their position and influence on the network.
 
     Usage:
@@ -49,7 +49,7 @@ class StakeCommand:
     The command prompts for confirmation before executing the staking operation.
 
     Example usage::
-    
+
         btcli stake add --amount 100 --wallet.name <my_wallet> --wallet.hotkey <my_hotkey>
 
     Note:
@@ -345,7 +345,7 @@ def _get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
 class StakeShow:
     """
     Executes the ``show`` command to list all stake accounts associated with a user's wallet on the Bittensor network.
-    
+
     This command provides a comprehensive view of the stakes associated with both hotkeys and delegates linked to the user's coldkey.
 
     Usage:
@@ -356,7 +356,7 @@ class StakeShow:
         - ``--all`` (bool): When set, the command checks all coldkey wallets instead of just the specified wallet.
 
     The command compiles a table showing:
-    
+
     - Coldkey: The coldkey associated with the wallet.
     - Balance: The balance of the coldkey.
     - Account: The name of the hotkey or delegate.
@@ -364,7 +364,7 @@ class StakeShow:
     - Rate: The rate of return on the stake, typically shown in TAO per day.
 
     Example usage::
-    
+
         btcli stake show --all
 
     Note:

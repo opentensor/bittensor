@@ -73,8 +73,8 @@ def _get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
 
 class InspectCommand:
     """
-    Executes the ``inspect`` command, which compiles and displays a detailed report of a user's wallet pairs (coldkey, hotkey) on the Bittensor network. 
-    
+    Executes the ``inspect`` command, which compiles and displays a detailed report of a user's wallet pairs (coldkey, hotkey) on the Bittensor network.
+
     This report includes balance and
     staking information for both the coldkey and hotkey associated with the wallet.
 
@@ -82,13 +82,13 @@ class InspectCommand:
         - ``all``: If set to ``True``, the command will inspect all wallets located within the specified path. If set to ``False``, the command will inspect only the wallet specified by the user.
 
     The command gathers data on:
-    
+
     - Coldkey balance and delegated stakes.
     - Hotkey stake and emissions per neuron on the network.
     - Delegate names and details fetched from the network.
 
     The resulting table includes columns for:
-    
+
     - **Coldkey**: The coldkey associated with the user's wallet.
     - **Balance**: The balance of the coldkey.
     - **Delegate**: The name of the delegate to which the coldkey has staked funds.
@@ -103,7 +103,7 @@ class InspectCommand:
         and performance in the Bittensor network.
 
     Example usage::
-        
+
             btcli wallet inspect
             btcli wallet inspect --all
 

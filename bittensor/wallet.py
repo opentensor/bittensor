@@ -54,8 +54,8 @@ def display_mnemonic_msg(keypair: Keypair, key_type: str):
 
 class wallet:
     """
-    The wallet class in the Bittensor framework handles wallet functionality, crucial for participating in the Bittensor network. 
-    
+    The wallet class in the Bittensor framework handles wallet functionality, crucial for participating in the Bittensor network.
+
     It manages two types of keys: coldkey and hotkey, each serving different purposes in network operations. Each wallet contains a coldkey and a hotkey.
 
     The coldkey is the user's primary key for holding stake in their wallet and is the only way that users
@@ -86,7 +86,7 @@ class wallet:
     The wallet class is a fundamental component for users to interact securely with the Bittensor network, facilitating both operational tasks and transactions involving value transfer across the network.
 
     Example Usage::
-    
+
         # Create a new wallet with default coldkey and hotkey names
         my_wallet = wallet()
 
@@ -416,7 +416,7 @@ class wallet:
     @property
     def hotkey(self) -> "bittensor.Keypair":
         r"""Loads the hotkey from wallet.path/wallet.name/hotkeys/wallet.hotkey or raises an error.
-        
+
         Returns:
             hotkey (Keypair):
                 hotkey loaded from config arguments.
@@ -431,7 +431,7 @@ class wallet:
     @property
     def coldkey(self) -> "bittensor.Keypair":
         r"""Loads the hotkey from wallet.path/wallet.name/coldkey or raises an error.
-        
+
         Returns:
             coldkey (Keypair): coldkey loaded from config arguments.
         Raises:
@@ -445,7 +445,7 @@ class wallet:
     @property
     def coldkeypub(self) -> "bittensor.Keypair":
         r"""Loads the coldkeypub from wallet.path/wallet.name/coldkeypub.txt or raises an error.
-        
+
         Returns:
             coldkeypub (Keypair): coldkeypub loaded from config arguments.
         Raises:
@@ -464,7 +464,7 @@ class wallet:
         suppress: bool = False,
     ) -> "wallet":
         """Creates coldkey from suri string, optionally encrypts it with the user-provided password.
-        
+
         Args:
             uri: (str, required):
                 URI string to use i.e., ``/Alice`` or ``/Bob``.
@@ -491,7 +491,7 @@ class wallet:
         suppress: bool = False,
     ) -> "wallet":
         """Creates hotkey from suri string, optionally encrypts it with the user-provided password.
-        
+
         Args:
             uri: (str, required):
                 URI string to use i.e., ``/Alice`` or ``/Bob``
@@ -517,7 +517,7 @@ class wallet:
         suppress: bool = False,
     ) -> "wallet":
         """Creates a new coldkey, optionally encrypts it with the user-provided password and saves to disk.
-        
+
         Args:
             n_words: (int, optional):
                 Number of mnemonic words to use.
@@ -539,7 +539,7 @@ class wallet:
         suppress: bool = False,
     ) -> "wallet":
         """Creates a new coldkey, optionally encrypts it with the user-provided password and saves to disk.
-        
+
         Args:
             n_words: (int, optional):
                 Number of mnemonic words to use.
@@ -567,7 +567,7 @@ class wallet:
         suppress: bool = False,
     ) -> "wallet":
         """Creates a new hotkey, optionally encrypts it with the user-provided password and saves to disk.
-        
+
         Args:
             n_words: (int, optional):
                 Number of mnemonic words to use.
@@ -589,7 +589,7 @@ class wallet:
         suppress: bool = False,
     ) -> "wallet":
         """Creates a new hotkey, optionally encrypts it with the user-provided password and saves to disk.
-        
+
         Args:
             n_words: (int, optional):
                 Number of mnemonic words to use.
@@ -616,7 +616,7 @@ class wallet:
         suppress: bool = False,
     ) -> "wallet":
         """Regenerates the coldkeypub from the passed ``ss58_address`` or public_key and saves the file. Requires either ``ss58_address`` or public_key to be passed.
-        
+
         Args:
             ss58_address: (str, optional):
                 Address as ``ss58`` string.
@@ -699,7 +699,7 @@ class wallet:
         **kwargs,
     ) -> "wallet":
         """Regenerates the coldkey from the passed mnemonic or seed, or JSON encrypts it with the user's password and saves the file.
-        
+
         Args:
             mnemonic: (Union[list, str], optional):
                 Key mnemonic as list of words or string space separated words.
@@ -715,9 +715,9 @@ class wallet:
             wallet (bittensor.wallet):
                 This object with newly created coldkey.
 
-        Note: 
+        Note:
             Uses priority order: ``mnemonic > seed > json``.
-        
+
         """
         if len(kwargs) == 0:
             raise ValueError("Must pass either mnemonic, seed, or json")
@@ -807,7 +807,7 @@ class wallet:
         **kwargs,
     ) -> "wallet":
         """Regenerates the hotkey from passed mnemonic or seed, encrypts it with the user's password and saves the file.
-        
+
         Args:
             mnemonic: (Union[list, str], optional):
                 Key mnemonic as list of words or string space separated words.
