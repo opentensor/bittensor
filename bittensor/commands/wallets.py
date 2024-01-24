@@ -962,7 +962,8 @@ def create_transfer_history_table(transfers):
 
     table = Table(show_footer=False)
     # Define the column names
-    column_names = ["Id", "From", "To", "Amount (Tao)", "Extrinsic Id", "Block Number"]
+    column_names = ["Id", "From", "To", "Amount (Tao)", "Extrinsic Id", "Block Number", "URL (taostats)"]
+    taostats_url_base = "https://x.taostats.io/extrinsic"
 
     # Create a table
     table = Table(show_footer=False)
@@ -998,6 +999,7 @@ def create_transfer_history_table(transfers):
             f"{tao_amount:.3f}",
             str(item["extrinsicId"]),
             item["blockNumber"],
+            f"{taostats_url_base}/{item['blockNumber']}-{item['extrinsicId']}",
         )
     table.add_row()
     table.show_footer = True
