@@ -279,38 +279,19 @@ class SubnetListCommand:
 
 
 HYPERPARAMS = {
-    "default_take": "sudo_set_default_take",
-    "tx_rate_limit": "sudo_set_tx_rate_limit",
     "serving_rate_limit": "sudo_set_serving_rate_limit",
     "min_difficulty": "sudo_set_min_difficulty",
     "max_difficulty": "sudo_set_max_difficulty",
     "weights_version": "sudo_set_weights_version_key",
     "weights_rate_limit": "sudo_set_weights_set_rate_limit",
-    "adjustment_interval": "sudo_set_adjustment_interval",
-    "adjustment_alpha": "sudo_set_adjustment_alpha",
     "max_weight_limit": "sudo_set_max_weight_limit",
     "immunity_period": "sudo_set_immunity_period",
     "min_allowed_weights": "sudo_set_min_allowed_weights",
-    "max_allowed_uids": "sudo_set_max_allowed_uids",
     "activity_cutoff": "sudo_set_activity_cutoff",
     "network_registration_allowed": "sudo_set_network_registration_allowed",
     "network_pow_registration_allowed": "sudo_set_network_pow_registration_allowed",
-    "target_registrations_per_interval": "sudo_set_target_registrations_per_interval",
     "min_burn": "sudo_set_min_burn",
     "max_burn": "sudo_set_max_burn",
-    "difficulty": "sudo_set_difficulty",
-    "max_allowed_validators": "sudo_set_max_allowed_validators",
-    "bonds_moving_average": "sudo_set_bonds_moving_average",
-    "max_registrations_per_block": "sudo_set_max_registrations_per_block",
-    "subnet_owner_cut": "sudo_set_subnet_owner_cut",
-    "network_rate_limit": "sudo_set_network_rate_limit",
-    "tempo": "sudo_set_tempo",
-    "total_issuance": "sudo_set_total_issuance",
-    "network_immunity_period": "sudo_set_network_immunity_period",
-    "network_min_lock_cost": "sudo_set_network_min_lock_cost", # network_min_lock?
-    "subnet_limit": "sudo_set_subnet_limit",
-    "lock_reduction_interval": "sudo_set_lock_reduction_interval",
-    "rao_recycled": "sudo_set_rao_recycled"
 }
 
 
