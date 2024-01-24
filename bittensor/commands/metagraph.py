@@ -26,8 +26,8 @@ console = bittensor.__console__
 
 class MetagraphCommand:
     """
-    Executes the ``metagraph`` command to retrieve and display the entire metagraph for a specified network. 
-    
+    Executes the ``metagraph`` command to retrieve and display the entire metagraph for a specified network.
+
     This metagraph contains detailed information about
     all the neurons (nodes) participating in the network, including their stakes,
     trust scores, and more.
@@ -37,7 +37,7 @@ class MetagraphCommand:
         - ``--subtensor.network``: The name of the network to query. Defaults to the default network name.
 
     The table displayed includes the following columns for each neuron:
-    
+
     - UID: Unique identifier of the neuron.
     - STAKE(τ): Total stake of the neuron in Tau (τ).
     - RANK: Rank score of the neuron.
@@ -60,7 +60,7 @@ class MetagraphCommand:
         The user must specify the network UID to query the metagraph. If not specified, the default network UID is used.
 
     Example usage::
-    
+
         btcli subnet metagraph --netuid 0 # Root network
         btcli subnet metagraph --netuid 1 --subtensor.network test
 

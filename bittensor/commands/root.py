@@ -35,7 +35,7 @@ console = bittensor.__console__
 class RootRegisterCommand:
     """
     Executes the ``register`` command to register a wallet to the root network of the Bittensor network.
-    
+
     This command is used to formally acknowledge a wallet's participation in the network's root layer.
 
     Usage:
@@ -45,12 +45,12 @@ class RootRegisterCommand:
         - None. The command primarily uses the wallet and subtensor configurations.
 
     Example usage::
-    
+
         btcli root register
 
     Note:
         This command is important for users seeking to engage deeply with the Bittensor network, particularly in aspects related to network governance and decision-making.
-        
+
         It is a straightforward process but requires the user to have an initialized and configured wallet.
     """
 
@@ -97,7 +97,7 @@ class RootRegisterCommand:
 class RootList:
     """
     Executes the ``list`` command to display the members of the root network on the Bittensor network.
-    
+
     This command provides an overview of the neurons that constitute the network's foundational layer.
 
     Usage:
@@ -107,7 +107,7 @@ class RootList:
         - None. The command uses the subtensor configuration to retrieve data.
 
     Example usage::
-    
+
         $ btcli root list
 
         UID  NAME                             ADDRESS                                                STAKE(τ)  SENATOR
@@ -229,7 +229,7 @@ class RootSetBoostCommand:
         - ``--increase`` (float): The cooresponding increase in the weight for this subnet.
 
     Example usage::
-    
+
         $ btcli root boost --netuid 1 --increase 0.01
 
         Enter netuid (e.g. 1): 1
@@ -350,7 +350,7 @@ class RootSetSlashCommand:
         - ``--decrease`` (float): The corresponding decrease in the weight for this subnet.
 
     Example usage::
-    
+
         $ btcli root slash --netuid 1 --decrease 0.01
 
         Enter netuid (e.g. 1): 1
@@ -458,7 +458,7 @@ class RootSetSlashCommand:
 class RootSetWeightsCommand:
     """
     Executes the ``weights`` command to set the weights for the root network on the Bittensor network.
-    
+
     This command is used by network senators to influence the distribution of network rewards and responsibilities.
 
     Usage:
@@ -469,7 +469,7 @@ class RootSetWeightsCommand:
         - ``--weights`` (str): Corresponding weights for the specified netuids, in comma-separated format.
 
     Example usage::
-    
+
         btcli root weights --netuids 1,2,3 --weights 0.3,0.3,0.4
 
     Note:
@@ -561,7 +561,7 @@ class RootSetWeightsCommand:
 class RootGetWeightsCommand:
     """
     Executes the ``get_weights`` command to retrieve the weights set for the root network on the Bittensor network.
-    
+
     This command provides visibility into how network responsibilities and rewards are distributed among various subnets.
 
     Usage:
@@ -571,7 +571,7 @@ class RootGetWeightsCommand:
         - None. The command fetches weight information based on the subtensor configuration.
 
     Example usage::
-    
+
         $ btcli root get_weights
 
                                                 Root Network Weights

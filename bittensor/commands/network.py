@@ -29,13 +29,13 @@ console = bittensor.__console__
 
 class RegisterSubnetworkCommand:
     """
-    Executes the ``register_subnetwork`` command to register a new subnetwork on the Bittensor network. 
-    
+    Executes the ``register_subnetwork`` command to register a new subnetwork on the Bittensor network.
+
     This command facilitates the creation and registration of a subnetwork, which involves interaction with the user's wallet and the Bittensor subtensor. It ensures that the user has the necessary credentials and configurations to successfully register a new subnetwork.
 
     Usage:
         Upon invocation, the command performs several key steps to register a subnetwork:
-        
+
         1. It copies the user's current configuration settings.
         2. It accesses the user's wallet using the provided configuration.
         3. It initializes the Bittensor subtensor object with the user's configuration.
@@ -44,14 +44,14 @@ class RegisterSubnetworkCommand:
     If the user's configuration does not specify a wallet name and ``no_prompt`` is not set, the command will prompt the user to enter a wallet name. This name is then used in the registration process.
 
     The command structure includes:
-    
+
     - Copying the user's configuration.
     - Accessing and preparing the user's wallet.
     - Initializing the Bittensor subtensor.
     - Registering the subnetwork with the necessary credentials.
 
     Example usage::
-    
+
         btcli subnets create
 
     Note:
@@ -101,15 +101,15 @@ class RegisterSubnetworkCommand:
 
 class SubnetLockCostCommand:
     """
-    Executes the ``lock_cost`` command to view the locking cost required for creating a new subnetwork on the Bittensor network. 
-    
+    Executes the ``lock_cost`` command to view the locking cost required for creating a new subnetwork on the Bittensor network.
+
     This command is designed to provide users with the current cost of registering a new subnetwork, which is a critical piece of information for anyone considering expanding the network's infrastructure.
 
     The current implementation anneals the cost of creating a subnet over a period of two days. If the cost is unappealing currently, check back in a day or two to see if it has reached an amenble level.
 
     Usage:
         Upon invocation, the command performs the following operations:
-        
+
         1. It copies the user's current Bittensor configuration.
         2. It initializes the Bittensor subtensor object with this configuration.
         3. It then retrieves the subnet lock cost using the ``get_subnet_burn_cost()`` method from the subtensor object.
@@ -118,13 +118,13 @@ class SubnetLockCostCommand:
     In case of any errors during the process (e.g., network issues, configuration problems), the command will catch these exceptions and inform the user that it failed to retrieve the lock cost, along with the specific error encountered.
 
     The command structure includes:
-    
+
     - Copying and using the user's configuration for Bittensor.
     - Retrieving the current subnet lock cost from the Bittensor network.
     - Displaying the cost in a user-friendly manner.
 
     Example usage::
-    
+
         btcli subnets lock_cost
 
     Note:
@@ -176,7 +176,7 @@ class SubnetLockCostCommand:
 class SubnetListCommand:
     """
     Executes the ``list`` command to list all subnets and their detailed information on the Bittensor network.
-    
+
     This command is designed to provide users with comprehensive information about each subnet within the
     network, including its unique identifier (netuid), the number of neurons, maximum neuron capacity,
     emission rate, tempo, recycle register cost (burn), proof of work (PoW) difficulty, and the name or
@@ -184,7 +184,7 @@ class SubnetListCommand:
 
     Usage:
         Upon invocation, the command performs the following actions:
-        
+
         1. It initializes the Bittensor subtensor object with the user's configuration.
         2. It retrieves a list of all subnets in the network along with their detailed information.
         3. The command compiles this data into a table format, displaying key information about each subnet.
@@ -194,14 +194,14 @@ class SubnetListCommand:
     address is displayed.
 
     The command structure includes:
-    
+
     - Initializing the Bittensor subtensor and retrieving subnet information.
     - Calculating the total number of neurons across all subnets.
     - Constructing a table that includes columns for ``NETUID``, ``N`` (current neurons), ``MAX_N`` (maximum neurons), ``EMISSION``, ``TEMPO``, ``BURN``, ``POW`` (proof of work difficulty), and ``SUDO`` (owner's name or ``SS58`` address).
     - Displaying the table with a footer that summarizes the total number of subnets and neurons.
 
     Example usage::
-    
+
         btcli subnets list
 
     Note:
@@ -304,7 +304,7 @@ HYPERPARAMS = {
 class SubnetSudoCommand:
     """
     Executes the ``set`` command to set hyperparameters for a specific subnet on the Bittensor network.
-    
+
     This command allows subnet owners to modify various hyperparameters of theirs subnet, such as its tempo,
     emission rates, and other network-specific settings.
 
@@ -314,7 +314,7 @@ class SubnetSudoCommand:
         to the specified subnet.
 
     Example usage::
-    
+
         btcli sudo set --netuid 1 --param 'tempo' --value '0.5'
 
     Note:
@@ -386,8 +386,8 @@ class SubnetSudoCommand:
 
 class SubnetHyperparamsCommand:
     """
-    Executes the '``hyperparameters``' command to view the current hyperparameters of a specific subnet on the Bittensor network. 
-    
+    Executes the '``hyperparameters``' command to view the current hyperparameters of a specific subnet on the Bittensor network.
+
     This command is useful for users who wish to understand the configuration and
     operational parameters of a particular subnet.
 
@@ -397,7 +397,7 @@ class SubnetHyperparamsCommand:
         the subnet's behavior.
 
     Example usage::
-    
+
         $ btcli subnets hyperparameters --netuid 1
 
         Subnet Hyperparameters - NETUID: 1 - finney
@@ -485,7 +485,7 @@ class SubnetHyperparamsCommand:
 class SubnetGetHyperparamsCommand:
     """
     Executes the ``get`` command to retrieve the hyperparameters of a specific subnet on the Bittensor network.
-    
+
     This command is similar to the ``hyperparameters`` command but may be used in different contexts within the CLI.
 
     Usage:
@@ -494,7 +494,7 @@ class SubnetGetHyperparamsCommand:
         performance and interaction within the network.
 
     Example usage::
-    
+
         $ btcli sudo get --netuid 1
 
         Subnet Hyperparameters - NETUID: 1 - finney
