@@ -9,8 +9,8 @@ import bittensor
 
 class SetIdentityCommand:
     """
-    Executes the :func:`set_identity` command within the Bittensor network, which allows for the creation or update of a delegate's on-chain identity. 
-    
+    Executes the :func:`set_identity` command within the Bittensor network, which allows for the creation or update of a delegate's on-chain identity.
+
     This identity includes various
     attributes such as display name, legal name, web URL, PGP fingerprint, and contact
     information, among others.
@@ -250,12 +250,12 @@ class GetIdentityCommand:
         - ``key``: The ``ss58`` address of the coldkey or hotkey to query.
 
     The command performs the following actions:
-    
+
     - Connects to the subtensor network and retrieves the identity information.
     - Displays the information in a structured table format.
 
     The displayed table includes:
-    
+
     - **Address**: The ``ss58`` address of the queried key.
     - **Item**: Various attributes of the identity such as stake, rank, and trust.
     - **Value**: The corresponding values of the attributes.
@@ -265,7 +265,7 @@ class GetIdentityCommand:
         provided in the configuration, the user is prompted to enter one.
 
     Example usage::
-    
+
         btcli wallet get_identity --key <s58_address>
 
     Note:

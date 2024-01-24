@@ -30,30 +30,30 @@ console = bittensor.__console__
 class RegisterCommand:
     """
     Executes the ``register`` command to register a neuron on the Bittensor network by recycling some TAO (the network's native token).
-    
+
     This command is used to add a new neuron to a specified subnet within the network, contributing to the decentralization and robustness of Bittensor.
 
     Usage:
         Before registering, the command checks if the specified subnet exists and whether the user's balance is sufficient to cover the registration cost.
-        
+
         The registration cost is determined by the current recycle amount for the specified subnet. If the balance is insufficient or the subnet does not exist, the command will exit with an appropriate error message.
 
         If the preconditions are met, and the user confirms the transaction (if ``no_prompt`` is not set), the command proceeds to register the neuron by burning the required amount of TAO.
 
     The command structure includes:
-    
+
     - Verification of subnet existence.
     - Checking the user's balance against the current recycle amount for the subnet.
     - User confirmation prompt for proceeding with registration.
     - Execution of the registration process.
 
     Columns Displayed in the confirmation prompt:
-    
+
     - Balance: The current balance of the user's wallet in TAO.
     - Cost to Register: The required amount of TAO needed to register on the specified subnet.
 
     Example usage::
-    
+
         btcli subnets register --netuid 1
 
     Note:
@@ -159,7 +159,7 @@ class RegisterCommand:
 class PowRegisterCommand:
     """
     Executes the ``pow_register`` command to register a neuron on the Bittensor network using Proof of Work (PoW).
-    
+
     This method is an alternative registration process that leverages computational work for securing a neuron's place on the network.
 
     Usage:
@@ -180,7 +180,7 @@ class PowRegisterCommand:
     The command also supports additional wallet and subtensor arguments, enabling further customization of the registration process.
 
     Example usage::
-    
+
         btcli pow_register --netuid 1 --pow_register.num_processes 4 --cuda.use_cuda
 
     Note:
@@ -359,10 +359,10 @@ class PowRegisterCommand:
 class RunFaucetCommand:
     """
     Executes the ``faucet`` command to obtain test TAO tokens by performing Proof of Work (PoW).
-    
+
     IMPORTANT:
         **THIS COMMAND IS CURRENTLY DISABLED.**
-    
+
     This command is particularly useful for users who need test tokens for operations on the Bittensor testnet.
 
     Usage:
@@ -381,7 +381,7 @@ class RunFaucetCommand:
     These options provide flexibility in configuring the PoW process according to the user's hardware capabilities and preferences.
 
     Example usage::
-    
+
         btcli wallet faucet --faucet.num_processes 4 --faucet.cuda.use_cuda
 
     Note:
