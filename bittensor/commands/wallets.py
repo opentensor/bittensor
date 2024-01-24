@@ -962,7 +962,15 @@ def create_transfer_history_table(transfers):
 
     table = Table(show_footer=False)
     # Define the column names
-    column_names = ["Id", "From", "To", "Amount (Tao)", "Extrinsic Id", "Block Number", "URL (taostats)"]
+    column_names = [
+        "Id",
+        "From",
+        "To",
+        "Amount (Tao)",
+        "Extrinsic Id",
+        "Block Number",
+        "URL (taostats)",
+    ]
     taostats_url_base = "https://x.taostats.io/extrinsic"
 
     # Create a table
