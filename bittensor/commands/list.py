@@ -26,28 +26,26 @@ console = bittensor.__console__
 
 class ListCommand:
     """
-    Executes the 'list' command which enumerates all wallets and their respective hotkeys
-    present in the user's Bittensor configuration directory. The command organizes the
-    information in a tree structure, displaying each wallet along with the SS58 addresses
-    for the coldkey public key and any hotkeys associated with it.
+    Executes the ``list`` command which enumerates all wallets and their respective hotkeys present in the user's Bittensor configuration directory. 
+    
+    The command organizes the information in a tree structure, displaying each wallet along with the ``ss58`` addresses for the coldkey public key and any hotkeys associated with it.
 
     Optional arguments:
-    -p, --path: The path to the Bittensor configuration directory. Defaults to '~/.bittensor'.
+        - ``-p``, ``--path``: The path to the Bittensor configuration directory. Defaults to '~/.bittensor'.
 
     The output is presented in a hierarchical tree format, with each wallet as a root node,
-    and any associated hotkeys as child nodes. The SS58 address is displayed for each
+    and any associated hotkeys as child nodes. The ``ss58`` address is displayed for each
     coldkey and hotkey that is not encrypted and exists on the device.
 
     Usage:
-    Upon invocation, the command scans the wallet directory and prints a list of all wallets,
-    indicating whether the public keys are available ('?' denotes unavailable or encrypted keys).
+        Upon invocation, the command scans the wallet directory and prints a list of all wallets, indicating whether the public keys are available (``?`` denotes unavailable or encrypted keys).
 
-    Example usage:
-    >>> btcli list --path ~/.bittensor
+    Example usage::
+    
+        btcli wallet list --path ~/.bittensor
 
     Note:
-    This command is read-only and does not modify the filesystem or the network state. It is
-    intended for use within the Bittensor CLI to provide a quick overview of the user's wallets.
+        This command is read-only and does not modify the filesystem or the network state. It is intended for use within the Bittensor CLI to provide a quick overview of the user's wallets.
     """
 
     @staticmethod
