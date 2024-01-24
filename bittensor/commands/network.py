@@ -292,12 +292,18 @@ class SubnetListCommand:
 
 HYPERPARAMS = {
     "serving_rate_limit": "sudo_set_serving_rate_limit",
+    "min_difficulty": "sudo_set_min_difficulty",
+    "max_difficulty": "sudo_set_max_difficulty",
     "weights_version": "sudo_set_weights_version_key",
     "weights_rate_limit": "sudo_set_weights_set_rate_limit",
     "max_weight_limit": "sudo_set_max_weight_limit",
     "immunity_period": "sudo_set_immunity_period",
     "min_allowed_weights": "sudo_set_min_allowed_weights",
     "activity_cutoff": "sudo_set_activity_cutoff",
+    "network_registration_allowed": "sudo_set_network_registration_allowed",
+    "network_pow_registration_allowed": "sudo_set_network_pow_registration_allowed",
+    "min_burn": "sudo_set_min_burn",
+    "max_burn": "sudo_set_max_burn",
 }
 
 
@@ -351,6 +357,12 @@ class SubnetSudoCommand:
         if not cli.config.is_set("value") and not cli.config.no_prompt:
             value = Prompt.ask("Enter new value")
             cli.config.value = value
+
+        if (
+            cli.config.param == "network_registration_allowed"
+            or cli.config.param == "network_pow_registration_allowed"
+        ):
+            cli.config.value = bool(cli.config.value)
 
         subtensor.set_hyperparameter(
             wallet,
