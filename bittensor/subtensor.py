@@ -322,8 +322,10 @@ class subtensor:
         instructions on how to run a local subtensor node in the documentation in a subsequent release.
 
         Args:
-            network (str, optional): The network name to connect to (e.g., 'finney', 'local').
-                                     Defaults to the main Bittensor network if not specified.
+            network (str, optional): The network name to connect to (e.g., 'finney', 'local'). This can also be
+                                     the chain endpoint (e.g. wss://entrypoint-finney.opentensor.ai:443) and will
+                                     be correctly parsed into the network and chain endpoint. If not specified,
+                                     defaults to the main Bittensor network.
             config (bittensor.config, optional): Configuration object for the subtensor.
                                                  If not provided, a default configuration is used.
             _mock (bool, optional): If set to True, uses a mocked connection for testing purposes.
@@ -335,6 +337,18 @@ class subtensor:
         # Determine config.subtensor.chain_endpoint and config.subtensor.network config.
         # If chain_endpoint is set, we override the network flag, otherwise, the chain_endpoint is assigned by the network.
         # Argument importance: network > chain_endpoint > config.subtensor.chain_endpoint > config.subtensor.network
+
+        # Check if network is a config object. (Single argument passed as first positional)
+        if isinstance(network, bittensor.config):
+            if network.subtensor == None:
+                bittensor.logging.warning(
+                    "If passing a bittensor config object, it must not be empty. Using default subtensor config."
+                )
+                config = None
+            else:
+                config = network
+            network = None
+
         if config == None:
             config = subtensor.config()
         self.config = copy.deepcopy(config)
