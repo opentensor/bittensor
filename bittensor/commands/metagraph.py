@@ -26,16 +26,18 @@ console = bittensor.__console__
 
 class MetagraphCommand:
     """
-    Executes the 'metagraph' command to retrieve and display the entire metagraph
-    for a specified network. This metagraph contains detailed information about
+    Executes the ``metagraph`` command to retrieve and display the entire metagraph for a specified network.
+
+    This metagraph contains detailed information about
     all the neurons (nodes) participating in the network, including their stakes,
     trust scores, and more.
 
     Optional arguments:
-    --netuid: The netuid of the network to query. Defaults to the default network UID.
-    --subtensor.network: The name of the network to query. Defaults to the default network name.
+        - ``--netuid``: The netuid of the network to query. Defaults to the default network UID.
+        - ``--subtensor.network``: The name of the network to query. Defaults to the default network name.
 
     The table displayed includes the following columns for each neuron:
+
     - UID: Unique identifier of the neuron.
     - STAKE(τ): Total stake of the neuron in Tau (τ).
     - RANK: Rank score of the neuron.
@@ -52,21 +54,20 @@ class MetagraphCommand:
     - HOTKEY: Partial hotkey (public key) of the neuron.
     - COLDKEY: Partial coldkey (public key) of the neuron.
 
-    The command also prints network-wide statistics such as total stake, issuance,
-    and difficulty.
+    The command also prints network-wide statistics such as total stake, issuance, and difficulty.
 
     Usage:
-    The user must specify the network UID to query the metagraph. If not specified,
-    the default network UID is used.
+        The user must specify the network UID to query the metagraph. If not specified, the default network UID is used.
 
-    Example usage:
-    >>> btcli metagraph --netuid 0 # Root network
-    >>> btcli metagraph --netuid 1 --subtensor.network test
+    Example usage::
+
+        btcli subnet metagraph --netuid 0 # Root network
+        btcli subnet metagraph --netuid 1 --subtensor.network test
 
     Note:
-    This command provides a snapshot of the network's state at the time of calling.
-    It is useful for network analysis and diagnostics. It is intended to be used as
-    part of the Bittensor CLI and not as a standalone function within user code.
+        This command provides a snapshot of the network's state at the time of calling.
+        It is useful for network analysis and diagnostics. It is intended to be used as
+        part of the Bittensor CLI and not as a standalone function within user code.
     """
 
     @staticmethod

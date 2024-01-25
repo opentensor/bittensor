@@ -59,20 +59,20 @@ from bittensor.errors import (
 
 class FastAPIThreadedServer(uvicorn.Server):
     """
-    The ``FastAPIThreadedServer`` class is a specialized server implementation for the Axon server in the Bittensor network. 
-    
+    The ``FastAPIThreadedServer`` class is a specialized server implementation for the Axon server in the Bittensor network.
+
     It extends the functionality of :func:`uvicorn.Server` to run the FastAPI application in a separate thread, allowing the Axon server to handle HTTP requests concurrently and non-blocking.
 
     This class is designed to facilitate the integration of FastAPI with the Axon's asynchronous architecture, ensuring efficient and scalable handling of network requests.
 
     Importance and Functionality
         Threaded Execution
-            The class allows the FastAPI application to run in a separate thread, enabling concurrent handling of HTTP requests which is crucial for the performance and scalability of the Axon server.  
+            The class allows the FastAPI application to run in a separate thread, enabling concurrent handling of HTTP requests which is crucial for the performance and scalability of the Axon server.
 
         Seamless Integration
             By running FastAPI in a threaded manner, this class ensures seamless integration of FastAPI's capabilities with the Axon server's asynchronous and multi-threaded architecture.
 
-        Controlled Server Management 
+        Controlled Server Management
             The methods start and stop provide controlled management of the server's lifecycle, ensuring that the server can be started and stopped as needed, which is vital for maintaining the Axon server's reliability and availability.
 
         Signal Handling
@@ -81,7 +81,7 @@ class FastAPIThreadedServer(uvicorn.Server):
     Use Cases
         Starting the Server
             When the Axon server is initialized, it can use this class to start the FastAPI application in a separate thread, enabling it to begin handling HTTP requests immediately.
-            
+
         Stopping the Server
             During shutdown or maintenance of the Axon server, this class can be used to stop the FastAPI application gracefully, ensuring that all resources are properly released.
 
@@ -152,8 +152,8 @@ class FastAPIThreadedServer(uvicorn.Server):
 
 class axon:
     """
-    The ``axon`` class in Bittensor is a fundamental component that serves as the server-side interface for a neuron within the Bittensor network. 
-    
+    The ``axon`` class in Bittensor is a fundamental component that serves as the server-side interface for a neuron within the Bittensor network.
+
     This class is responsible for managing
     incoming requests from other neurons and implements various mechanisms to ensure efficient
     and secure network interactions.
@@ -180,7 +180,7 @@ class axon:
     - Command-line argument support for user-friendly program interaction.
 
     Example Usage::
-    
+
         import bittensor
         # Define your custom synapse class
         class MySyanpse( bittensor.Synapse ):
@@ -428,7 +428,7 @@ class axon:
             priority_fn (Callable, optional): Function to rank requests based on their priority. It should take the same arguments as :func:`forward_fn` and return a numerical value representing the request's priority. Defaults to ``None``, meaning no priority sorting will be applied.
             verify_fn (Callable, optional): Function to verify requests. It should take the same arguments as :func:`forward_fn` and return a boolean value. If ``None``, :func:`self.default_verify` function will be used.
 
-        Note: 
+        Note:
             The methods :func:`forward_fn`, :func:`blacklist_fn`, :func:`priority_fn`, and :func:`verify_fn` should be designed to receive the same parameters.
 
         Raises:
@@ -441,7 +441,7 @@ class axon:
             self: Returns the instance of the AxonServer class for potential method chaining.
 
         Example Usage::
-        
+
             def forward_custom(synapse: MyCustomSynapse) -> MyCustomSynapse:
                 # Custom logic for processing the request
                 return synapse
@@ -679,7 +679,7 @@ class axon:
                         The response includes the detailed error message specifying which field has a hash mismatch.
 
         This method performs several key functions:
-        
+
         1. Decoding and loading the request body for inspection.
         2. Gathering required field names for hash comparison from the Axon configuration.
         3. Loading and parsing the request body into a dictionary.
@@ -780,7 +780,7 @@ class axon:
             bittensor.axon: The Axon instance in the 'started' state.
 
         Example::
-        
+
             my_axon = bittensor.axon(...)
             ... # setup axon, attach functions, etc.
             my_axon.start()  # Starts the axon server
@@ -806,12 +806,12 @@ class axon:
             bittensor.axon: The Axon instance in the 'stopped' state.
 
         Example::
-            
+
             my_axon = bittensor.axon(...)
             my_axon.start()
             ...
             my_axon.stop()  # Stops the axon server
-            
+
 
         Note:
             It is advisable to ensure that all ongoing processes or requests are completed or properly handled before invoking this method.
@@ -837,7 +837,7 @@ class axon:
             bittensor.axon: The Axon instance that is now actively serving on the specified subtensor.
 
         Example::
-            
+
             my_axon = bittensor.axon(...)
             subtensor = bt.subtensor(network="local") # Local by default
             my_axon.serve(netuid=1, subtensor=subtensor)  # Serves the axon on subnet with netuid 1
@@ -962,8 +962,8 @@ def log_and_handle_error(
 
 class AxonMiddleware(BaseHTTPMiddleware):
     """
-    The `AxonMiddleware` class is a key component in the Axon server, responsible for processing all incoming requests. 
-    
+    The `AxonMiddleware` class is a key component in the Axon server, responsible for processing all incoming requests.
+
     It handles the essential tasks of verifying requests, executing blacklist checks,
     running priority functions, and managing the logging of messages and errors. Additionally, the class
     is responsible for updating the headers of the response and executing the requested functions.
@@ -1008,7 +1008,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             Response: The HTTP response generated after processing the request.
 
         This method performs several key functions:
-    
+
         1. Request Preprocessing: Sets up Synapse object from request headers and fills necessary information.
         2. Logging: Logs the start of request processing.
         3. Blacklist Checking: Verifies if the request is blacklisted.
@@ -1120,7 +1120,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             bittensor.Synapse: The Synapse object representing the preprocessed state of the request.
 
         The preprocessing involves:
-    
+
         1. Extracting the request name from the URL path.
         2. Creating a Synapse instance from the request headers using the appropriate class type.
         3. Filling in the Axon and Dendrite information into the Synapse object.
@@ -1188,7 +1188,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             Exception: If the verification process fails due to unmet criteria or security concerns.
 
         The verification process involves:
-    
+
         1. Retrieving the specific verification function for the request's Synapse type.
         2. Executing the verification function and handling any exceptions that arise.
 
@@ -1236,7 +1236,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             Exception: If the request is found in the blacklist.
 
         The blacklist check involves:
-        
+
         1. Retrieving the blacklist checking function for the request's Synapse type.
         2. Executing the check and handling the case where the request is blacklisted.
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 6.6.1 / 2024-01-17
+
+## What's Changed
+* bittensor README update by @Jackalgirl in https://github.com/opentensor/bittensor/pull/1650
+* Bugfix btcli fix args by @ifrit98 in https://github.com/opentensor/bittensor/pull/1654
+
+## New Contributors
+* @Jackalgirl made their first contribution in https://github.com/opentensor/bittensor/pull/1650
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.6.0...v6.6.1
+
+
 ## 6.6.0 / 2024-01-08
 
 ## What's Changed
