@@ -34,28 +34,26 @@ def transfer_extrinsic(
     keep_alive: bool = True,
     prompt: bool = False,
 ) -> bool:
-    r"""Transfers funds from this wallet to the destination public key address
+    r"""Transfers funds from this wallet to the destination public key address.
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object to make transfer from.
         dest (str, ss58_address or ed25519):
             Destination public key address of reciever.
         amount (Union[Balance, int]):
-            Amount to stake as bittensor balance, or float interpreted as Tao.
+            Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
         wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true,
-            or returns false if the extrinsic fails to enter the block within the timeout.
+            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning true,
-            or returns false if the extrinsic fails to be finalized within the timeout.
+            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
         keep_alive (bool):
             If set, keeps the account alive by keeping the balance above the existential deposit.
         prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
+            If ``true``, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            Flag is true if extrinsic was finalized or uncluded in the block.
-            If we did not wait for finalization / inclusion, the response is true.
+            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # Validate destination address.
     if not is_valid_bittensor_address_or_public_key(dest):
