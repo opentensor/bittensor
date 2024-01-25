@@ -35,7 +35,7 @@ Bittensor is still in the Alpha stages, and as such you will likely run into som
 
 Additionally, note that the core implementation of Bittensor consists of two separate repositories: [The core Bittensor code](https://github.com/opentensor/bittensor) and the Bittensor Blockchain [subtensor](https://github.com/opentensor/subtensor).
 
-Supplemental, yet necessary repositories are [openvalidators](https://github.com/opentensor/validators) and [openminers](https://github.com/opentensor/miners) which contain Bittensor Validators and Miners (respectively) designed by the OpenTensor Foundation team and open-sourced for the community to use.
+Supplemental repository for the Bittensor subnet template can be found [here](https://github.com/opentensor/bittensor-subnet-template). This is a great first place to look for getting your hands dirty and started learning and building on Bittensor. See the subnet links [page](https://github.com/opentensor/bittensor-subnet-template/blob/main/subnet_links.json) for a list of all the repositories for the active registered subnets.
 
 ## Getting Started
 New contributors are very welcome and needed.
@@ -43,7 +43,8 @@ Reviewing and testing is highly valued and the most effective way you can contri
 
 Before you start contributing, familiarize yourself with the Bittensor Core build system and tests. Refer to the documentation in the repository on how to build Bittensor core and how to run the unit tests, functional tests.
 
-There are many open issues of varying difficulty waiting to be fixed. If you're looking for somewhere to start contributing, check out the [good first issue](https://github.com/opentensor/bittensor/labels/good%20first%20issue) list or changes that are up for grabs. Some of them might no longer be applicable. So if you are interested, but unsure, you might want to leave a comment on the issue first.
+There are many open issues of varying difficulty waiting to be fixed. If you're looking for somewhere to start contributing, check out the [good first issue](https://github.com/opentensor/bittensor/labels/good%20first%20issue) list or changes that are up for grabs. Some of them might no longer be applicable. So if you are interested, but unsure, you might want to leave a comment on the issue first.  Also peruse the [issues](https://github.com/opentensor/bittensor/issues) tab for all open issues.
+
 ### Good First Issue Label
 The purpose of the good first issue label is to highlight which issues are suitable for a new contributor without a deep understanding of the codebase.
 
@@ -67,10 +68,9 @@ And also here.
 
 ## How Can I Contribute?
 
-You can contribute to Bittensor in one of three main ways (as well as many others):
+You can contribute to Bittensor in one of two main ways (as well as many others):
 1. [Bug](#reporting-bugs) reporting and fixes
 2. New features and Bittensor [enhancements](#suggesting-enhancements)
-3. [Documentation](https://github.com/opentensor/docs) fixes and updates
 
 > Please follow the Bittensor [style guide](./STYLE.md) regardless of your contribution type. 
 
@@ -100,6 +100,7 @@ If you're looking to contribute to Bittensor but unsure where to start, please j
 Patchsets and enhancements should always be focused. A pull request could add a feature, fix a bug, or refactor code, but it should not contain a mixture of these. Please also avoid 'super' pull requests which attempt to do too much, are overly large, or overly complex as this makes review difficult. 
 
 Specifically, pull requests must adhere to the following criteria:
+- **Must** branch off from `staging`. Make sure that all your PRs are using `staging` branch as a base or will be closed.
 - Contain fewer than 50 files. PRs with more than 50 files will be closed.
 - Use the specific [template](./.github/pull_request_template.md) appropriate to your contribution.
 - If a PR introduces a new feature, it *must* include corresponding tests.

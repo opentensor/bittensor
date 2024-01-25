@@ -33,7 +33,7 @@ def __do_remove_stake_single(
 ) -> bool:
     r"""
     Executes an unstake call to the chain using the wallet and the amount specified.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
@@ -81,7 +81,7 @@ def unstake_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Removes stake into the wallet coldkey from the specified hotkey ``uid``.
-    
+
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
@@ -216,7 +216,7 @@ def unstake_multiple_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Removes stake from each ``hotkey_ss58`` in the list, using each amount, to a common coldkey.
-    
+
     Args:
         wallet (bittensor.wallet):
             The wallet with the coldkey to unstake to.
