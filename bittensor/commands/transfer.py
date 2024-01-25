@@ -27,25 +27,26 @@ console = bittensor.__console__
 
 class TransferCommand:
     """
-    Executes the 'transfer' command to transfer TAO tokens from one account to another on the Bittensor network.
+    Executes the ``transfer`` command to transfer TAO tokens from one account to another on the Bittensor network.
+
     This command is used for transactions between different accounts, enabling users to send tokens to other participants on the network.
 
     Usage:
-    The command requires specifying the destination address (public key) and the amount of TAO to be transferred.
-    It checks for sufficient balance and prompts for confirmation before proceeding with the transaction.
+        The command requires specifying the destination address (public key) and the amount of TAO to be transferred.
+        It checks for sufficient balance and prompts for confirmation before proceeding with the transaction.
 
     Optional arguments:
-    - --dest (str): The destination address for the transfer. This can be in the form of an SS58 or ed2519 public key.
-    - --amount (float): The amount of TAO tokens to transfer.
+        - ``--dest`` (str): The destination address for the transfer. This can be in the form of an SS58 or ed2519 public key.
+        - ``--amount`` (float): The amount of TAO tokens to transfer.
 
     The command displays the user's current balance before prompting for the amount to transfer, ensuring transparency and accuracy in the transaction.
 
-    Example usage:
-    >>> btcli wallet transfer --dest 5Dp8... --amount 100
+    Example usage::
+
+        btcli wallet transfer --dest 5Dp8... --amount 100
 
     Note:
-    This command is crucial for executing token transfers within the Bittensor network. Users should verify the destination address and amount
-    before confirming the transaction to avoid errors or loss of funds.
+        This command is crucial for executing token transfers within the Bittensor network. Users should verify the destination address and amount before confirming the transaction to avoid errors or loss of funds.
     """
 
     @staticmethod

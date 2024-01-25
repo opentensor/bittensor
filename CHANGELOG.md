@@ -1,5 +1,28 @@
 # Changelog
 
+
+## 6.7.0 / 2024-01-25
+
+## What's Changed
+* First docstrings formatting PR by @rajkaramchedu in https://github.com/opentensor/bittensor/pull/1663
+* Second docstrings formatting PR by @rajkaramchedu in https://github.com/opentensor/bittensor/pull/1665
+* Third docstrings formatting PR by @rajkaramchedu in https://github.com/opentensor/bittensor/pull/1666
+* updated mac yaml mac yaml by @dougsillars in https://github.com/opentensor/bittensor/pull/1668
+* Fourth docstrings formatting PR by @rajkaramchedu in https://github.com/opentensor/bittensor/pull/1670
+* Fifth docstrings formatting PR by @rajkaramchedu in https://github.com/opentensor/bittensor/pull/1671
+* ensure branch off from staging and rm old docs by @ifrit98 in https://github.com/opentensor/bittensor/pull/1667
+* staging black format fix by @ifrit98 in https://github.com/opentensor/bittensor/pull/1669
+* wallet history url for taostats by @ifrit98 in https://github.com/opentensor/bittensor/pull/1672
+* take bt.config as a first argument regardless if specified by @ifrit98 in https://github.com/opentensor/bittensor/pull/1664
+* Hparams update by @ifrit98 in https://github.com/opentensor/bittensor/pull/1673
+
+## New Contributors
+* @rajkaramchedu made their first contribution in https://github.com/opentensor/bittensor/pull/1663
+* @dougsillars made their first contribution in https://github.com/opentensor/bittensor/pull/1668
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.6.1...v6.7.0
+
+
 ## 6.6.1 / 2024-01-17
 
 ## What's Changed

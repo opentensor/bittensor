@@ -16,8 +16,7 @@ class ValidatorLogger:
     Including console log styling, console table print and prometheus.
 
     Args:
-            config (:obj:`bittensor.Config`, `optional`):
-                bittensor.server.config()
+        config (:func:`bittensor.Config`, optional): ``bittensor.server.config()``
     """
 
     def __init__(self, config=None):
@@ -227,19 +226,19 @@ class ValidatorLogger:
         tasks_per_server: int = 3,
     ):
         r"""
-        Prints the query response table: top prediction probabilities and texts for batch tasks.
+        Prints the query response table with top prediction probabilities and texts for batch tasks.
 
-            Args:
-                batch_predictions (:obj:`List[Union[str, Dict{torch.Tensor, str}]]`, `required`):
-                    Predictions in string per task per uid. In the format of [(task, {uid, "prob: phrase" })] of length batch size.
-                stats (:obj:`Dict{Dict}`, `required`):
-                    Statistics per endpoint for this batch. In the format of {uid, {statistics}}.
-                sort_col (:type:`str`, `required`):
-                    Column name used for sorting. Options from self.neuron_stats_columns[:, 1].
-                task_repeat (:type:`int`, `required`):
-                    The number of servers to compare against under the same set of task.
-                tasks_per_server (:type:`int`, `required`):
-                    How many tasks to show for each server.
+        Args:
+            batch_predictions (:obj:`List[Union[str, Dict{torch.Tensor, str}]]`, required):
+                Predictions in string per task per ``uid``. In the format of ``[(task, {uid, "prob: phrase" })]`` of length batch size.
+            stats (:obj:`Dict{Dict}`, required):
+                Statistics per endpoint for this batch. In the format of ``{uid, {statistics}}``.
+            sort_col (str, required):
+                Column name used for sorting. Options from ``self.neuron_stats_columns[:, 1]``.
+            task_repeat (int, required):
+                The number of servers to compare against under the same set of task.
+            tasks_per_server (int, required):
+                How many tasks to show for each server.
         """
         # === Batch permutation ===
         batch_size = len(batch_predictions)
@@ -325,13 +324,13 @@ class ValidatorLogger:
         r"""
         Prints the synergy loss diff matrix with pairwise loss reduction due to synergy (original loss on diagonal).
 
-            Args:
-                stats (:obj:`Dict{Dict}`, `required`):
-                    Statistics per endpoint for this batch. In the format of {uid, {statistics}}.
-                syn_loss_diff (:obj:`Dict`, `required`):
-                    Dictionary table of pairwise synergies as loss reductions, with direct loss on diagonal.
-                sort_col (:type:`str`, `required`):
-                    Column name used for sorting. Options from self.neuron_stats_columns[:, 1].
+        Args:
+            stats (:obj:`Dict{Dict}`, required):
+                Statistics per endpoint for this batch. In the format of ``{uid, {statistics}}``.
+            syn_loss_diff (:obj:`Dict`, required):
+                Dictionary table of pairwise synergies as loss reductions, with direct loss on diagonal.
+            sort_col (str, required):
+                Column name used for sorting. Options from ``self.neuron_stats_columns[:, 1]``.
         """
         sort = sorted(
             [(uid, s[sort_col]) for uid, s in stats.items() if sort_col in s],
@@ -384,15 +383,15 @@ class ValidatorLogger:
         r"""
         Gathers data and constructs neuron statistics table and prints it.
 
-            Args:
-                stats (:obj:`Dict{Dict}`, `required`):
-                    Statistics per endpoint for this batch. In the format of {uid, {statistics}}.
-                sort_col (:type:`str`, `required`):
-                    Column name used for sorting. Options from self.neuron_stats_columns[:, 1].
-                title (:type:`str`, `required`):
-                    Title of the table.
-                caption (:type:`str`, `required`):
-                    Caption shown at the end of table.
+        Args:
+            stats (:obj:`Dict{Dict}`, required):
+                Statistics per endpoint for this batch. In the format of ``{uid, {statistics}}``.
+            sort_col (str, required):
+                Column name used for sorting. Options from ``self.neuron_stats_columns[:, 1]``.
+            title (str, required):
+                Title of the table.
+            caption (str, required):
+                Caption shown at the end of table.
         """
         # === Gather columns and rows ===
         if mark_uids is None:
@@ -459,17 +458,17 @@ class ValidatorLogger:
         self, name: str, stats: Dict, sort_col: str, start_time: time.time
     ):
         r"""
-        Prints the evaluation of the neuron responses to the validator request
+        Prints the evaluation of the neuron responses to the validator request.
 
-            Args:
-                stats (:obj:`Dict{Dict}`, `required`):
-                    Statistics per endpoint for this batch. In the format of {uid, {statistics}}.
-                sort_col (:type:`str`, `required`):
-                    Column name used for sorting. Options from self.neuron_stats_columns[:, 1].
-                name (:obj:`str`, `required`):
-                    Name of synapse for the title of the table.
-                start_time (:obj:`time.time`, `required`):
-                    Starting time for shapley calculation.
+        Args:
+            stats (Dict{Dict}, required):
+                Statistics per endpoint for this batch. In the format of ``{uid, {statistics}}``.
+            sort_col (str, required):
+                Column name used for sorting. Options from ``self.neuron_stats_columns[:, 1]``.
+            name (str, required):
+                Name of synapse for the title of the table.
+            start_time (time.time, required):
+                Starting time for shapley calculation.
 
         """
         self.print_stats_table(
@@ -496,25 +495,25 @@ class ValidatorLogger:
         r"""
         Prints weights table given sample_uids and sample_weights.
 
-            Args:
-                min_allowed_weights (:type:`int`, `required`):
-                    subtensor minimum allowed weight to set.
-                max_weight_limit (:type:`int`, `required`):
-                    subtensor maximum allowed weight to set.
-                neuron_stats (:obj:`Dict{Dict}`, `required`):
-                    Statistics per endpoint for this batch. In the format of {uid, {statistics}}.
-                title (:type:`str`, `required`):
-                    Title of the table.
-                metagraph_n (:type:`int`, `required`):
-                    Total number of uids in the metagraph.
-                sample_uids (:obj:`torch.Tensor`, `required`):
-                    Uids to set weight for.
-                sample_weights (:obj:`torch.Tensor`, `required`):
-                    Weights to set uids for.
-                include_uids (:type:`list`, `optional`):
-                    Set of uids to inculde in the table.
-                num_rows (:type:`int`, `optional`):
-                    Total number of uids to print in total.
+        Args:
+            min_allowed_weights (int, required):
+                subtensor minimum allowed weight to set.
+            max_weight_limit (int, required):
+                subtensor maximum allowed weight to set.
+            neuron_stats (Dict{Dict}, required):
+                Statistics per endpoint for this batch. In the format of ``{uid, {statistics}}``.
+            title (str, required):
+                Title of the table.
+            metagraph_n (int, required):
+                Total number of ``uid``s in the metagraph.
+            sample_uids (torch.Tensor, required):
+                ``Uid``s to set weight for.
+            sample_weights (torch.Tensor, required):
+                Weights to set ``uid``s for.
+            include_uids (list, optional):
+                Set of ``uid``s to inculde in the table.
+            num_rows (int, optional):
+                Total number of ``uid``s to print in total.
         """
         # === Weight table ===
         # Prints exponential moving average statistics of valid neurons and latest weights
@@ -666,9 +665,10 @@ class ValidatorLogger:
 class ValidatorPrometheus:
     r"""
     Prometheis logging object for validator.
-        Args:
-            config (:obj:`bittensor.Config`, `optional`):
-                bittensor.server.config()
+
+    Args:
+        config (bittensor.Config, optional):
+            ``bittensor.server.config()``
     """
 
     def __init__(self, config):
