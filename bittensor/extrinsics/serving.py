@@ -36,34 +36,32 @@ def serve_extrinsic(
     wait_for_finalization=True,
     prompt: bool = False,
 ) -> bool:
-    r"""Subscribes an bittensor endpoint to the substensor chain.
+    r"""Subscribes a Bittensor endpoint to the subtensor chain.
+
     Args:
         wallet (bittensor.wallet):
-            bittensor wallet object.
+            Bittensor wallet object.
         ip (str):
-            endpoint host port i.e. 192.122.31.4
+            Endpoint host port i.e., ``192.122.31.4``.
         port (int):
-            endpoint port number i.e. 9221
+            Endpoint port number i.e., ``9221``.
         protocol (int):
-            int representation of the protocol
+            An ``int`` representation of the protocol.
         netuid (int):
-            network uid to serve on.
+            The network uid to serve on.
         placeholder1 (int):
-            placeholder for future use.
+            A placeholder for future use.
         placeholder2 (int):
-            placeholder for future use.
+            A placeholder for future use.
         wait_for_inclusion (bool):
-            if set, waits for the extrinsic to enter a block before returning true,
-            or returns false if the extrinsic fails to enter the block within the timeout.
+            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
-            if set, waits for the extrinsic to be finalized on the chain before returning true,
-            or returns false if the extrinsic fails to be finalized within the timeout.
+            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
         prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
+            If ``true``, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block.
-            If we did not wait for finalization / inclusion, the response is true.
+            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # Decrypt hotkey
     wallet.hotkey
@@ -149,23 +147,21 @@ def serve_axon_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""Serves the axon to the network.
+
     Args:
         netuid ( int ):
-            The netuid being served on.
+            The ``netuid`` being served on.
         axon (bittensor.Axon):
             Axon to serve.
         wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning true,
-            or returns false if the extrinsic fails to enter the block within the timeout.
+            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning true,
-            or returns false if the extrinsic fails to be finalized within the timeout.
+            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
         prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
+            If ``true``, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            flag is true if extrinsic was finalized or uncluded in the block.
-            If we did not wait for finalization / inclusion, the response is true.
+            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     axon.wallet.hotkey
     axon.wallet.coldkeypub
@@ -216,32 +212,27 @@ def publish_metadata(
     wait_for_finalization: bool = True,
 ) -> bool:
     """
-    Publishes metadata on the bittensor network using the specified wallet and network identifier.
+    Publishes metadata on the Bittensor network using the specified wallet and network identifier.
 
     Args:
         subtensor (bittensor.subtensor):
-            The subtensor instance representing the bittensor blockchain connection.
+            The subtensor instance representing the Bittensor blockchain connection.
         wallet (bittensor.wallet):
             The wallet object used for authentication in the transaction.
         netuid (int):
             Network UID on which the metadata is to be published.
         type (str):
-            The data type of the information being submitted. It should be one of the following:
-            'Sha256', 'Blake256', 'Keccak256', or 'Raw0-128'. This specifies the format or
-            hashing algorithm used for the data.
+            The data type of the information being submitted. It should be one of the following: ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing algorithm used for the data.
         data (str):
-            The actual metadata content to be published. This should be formatted or hashed
-            according to the 'type' specified. (Note: max str length of 128 bytes)
+            The actual metadata content to be published. This should be formatted or hashed according to the ``type`` specified. (Note: max ``str`` length is 128 bytes)
         wait_for_inclusion (bool, optional):
-            If True, the function will wait for the extrinsic to be included in a block before returning.
-            Defaults to False.
+            If ``True``, the function will wait for the extrinsic to be included in a block before returning. Defaults to ``False``.
         wait_for_finalization (bool, optional):
-            If True, the function will wait for the extrinsic to be finalized on the chain before returning.
-            Defaults to True.
+            If ``True``, the function will wait for the extrinsic to be finalized on the chain before returning. Defaults to ``True``.
 
     Returns:
         bool:
-            True if the metadata was successfully published (and finalized if specified). False otherwise.
+            ``True`` if the metadata was successfully published (and finalized if specified). ``False`` otherwise.
 
     Raises:
         MetadataError:
