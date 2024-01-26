@@ -31,8 +31,9 @@ from typing import Union, Optional, List, Union, AsyncGenerator, Any
 
 class dendrite(torch.nn.Module):
     """
-    The Dendrite class, inheriting from PyTorch's Module class, represents the abstracted
-    implementation of a network client module. In the brain analogy, dendrites receive signals
+    The Dendrite class, inheriting from PyTorch's Module class, represents the abstracted implementation of a network client module. 
+    
+    In the brain analogy, dendrites receive signals
     from other neurons (in this case, network servers or axons), and the Dendrite class here is designed
     to send requests to those endpoint to recieve inputs.
 
@@ -40,15 +41,14 @@ class dendrite(torch.nn.Module):
     HTTP requests to the network servers. It also provides functionalities such as logging
     network requests and processing server responses.
 
-    Attributes:
+    Args:
         keypair: The wallet or keypair used for signing messages.
         external_ip (str): The external IP address of the local system.
         synapse_history (list): A list of Synapse objects representing the historical responses.
 
     Methods:
         __str__(): Returns a string representation of the Dendrite object.
-        __repr__(): Returns a string representation of the Dendrite object, acting as a fallback
-                    for __str__().
+        __repr__(): Returns a string representation of the Dendrite object, acting as a fallback for __str__().
         query(self, *args, **kwargs) -> Union[bittensor.Synapse, List[bittensor.Synapse]]:
             Makes synchronous requests to one or multiple target Axons and returns responses.
 
@@ -59,8 +59,7 @@ class dendrite(torch.nn.Module):
             Asynchronously sends a request to a specified Axon and processes the response.
 
         call_stream(self, target_axon, synapse=bittensor.Synapse(), timeout=12.0, deserialize=True) -> AsyncGenerator[bittensor.Synapse, None]:
-            Sends a request to a specified Axon and yields an AsyncGenerator that contains streaming
-            response chunks before finally yielding the filled Synapse as the final element.
+            Sends a request to a specified Axon and yields an AsyncGenerator that contains streaming response chunks before finally yielding the filled Synapse as the final element.
 
         preprocess_synapse_for_request(self, target_axon_info, synapse, timeout=12.0) -> bittensor.Synapse:
             Preprocesses the synapse for making a request, including building headers and signing.
@@ -74,18 +73,21 @@ class dendrite(torch.nn.Module):
         aclose_session(self):
             Asynchronously closes the internal aiohttp client session.
 
-    NOTE: When working with async aiohttp client sessions, it is recommended to use a context manager.
+    NOTE: 
+        When working with async `aiohttp <https://github.com/aio-libs/aiohttp>`_ client sessions, it is recommended to use a context manager.
 
-    Example with a context manager:
+    Example with a context manager::
+    
         >>> aysnc with dendrite(wallet = bittensor.wallet()) as d:
         >>>     print(d)
         >>>     d( <axon> ) # ping axon
         >>>     d( [<axons>] ) # ping multiple
         >>>     d( bittensor.axon(), bittensor.Synapse )
 
-    However, you are able to safely call dendrite.query() without a context manager in a synchronous setting.
+    However, you are able to safely call :func:`dendrite.query()` without a context manager in a synchronous setting.
 
-    Example without a context manager:
+    Example without a context manager::
+    
         >>> d = dendrite(wallet = bittensor.wallet() )
         >>> print(d)
         >>> d( <axon> ) # ping axon
@@ -101,8 +103,7 @@ class dendrite(torch.nn.Module):
 
         Args:
             wallet (Optional[Union['bittensor.wallet', 'bittensor.keypair']], optional):
-                The user's wallet or keypair used for signing messages. Defaults to None,
-                in which case a new bittensor.wallet().hotkey is generated and used.
+                The user's wallet or keypair used for signing messages. Defaults to ``None``, in which case a new :func:`bittensor.wallet().hotkey` is generated and used.
         """
         # Initialize the parent class
         super(dendrite, self).__init__()
@@ -125,21 +126,22 @@ class dendrite(torch.nn.Module):
     @property
     async def session(self) -> aiohttp.ClientSession:
         """
-        An asynchronous property that provides access to the internal aiohttp client session.
+        An asynchronous property that provides access to the internal `aiohttp <https://github.com/aio-libs/aiohttp>`_ client session.
 
         This property ensures the management of HTTP connections in an efficient way. It lazily
-        initializes the aiohttp.ClientSession on its first use. The session is then reused for subsequent
+        initializes the `aiohttp.ClientSession <https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession>`_ on its first use. The session is then reused for subsequent
         HTTP requests, offering performance benefits by reusing underlying connections.
 
         This is used internally by the dendrite when querying axons, and should not be used directly
         unless absolutely necessary for your application.
 
         Returns:
-            aiohttp.ClientSession: The active aiohttp client session instance. If no session exists, a
+            aiohttp.ClientSession: The active `aiohttp <https://github.com/aio-libs/aiohttp>`_ client session instance. If no session exists, a
             new one is created and returned. This session is used for asynchronous HTTP requests within
             the dendrite, adhering to the async nature of the network interactions in the Bittensor framework.
 
-        Example usage:
+        Example usage::
+        
             import bittensor as bt                    # Import bittensor
             wallet = bt.wallet( ... )                 # Initialize a wallet
             dendrite = bt.dendrite( wallet )          # Initialize a dendrite instance with the wallet
@@ -159,18 +161,18 @@ class dendrite(torch.nn.Module):
 
     def close_session(self):
         """
-        Closes the internal aiohttp client session synchronously.
+        Closes the internal `aiohttp <https://github.com/aio-libs/aiohttp>`_ client session synchronously.
 
         This method ensures the proper closure and cleanup of the aiohttp client session, releasing any
         resources like open connections and internal buffers. It is crucial for preventing resource leakage
         and should be called when the dendrite instance is no longer in use, especially in synchronous contexts.
 
-        Note: This method utilizes asyncio's event loop to close the session asynchronously from a synchronous
-        context. It is advisable to use this method only when asynchronous context management is not feasible.
+        Note: 
+            This method utilizes asyncio's event loop to close the session asynchronously from a synchronous context. It is advisable to use this method only when asynchronous context management is not feasible.
 
         Usage:
-            # When finished with dendrite in a synchronous context
-            dendrite_instance.close_session()
+            When finished with dendrite in a synchronous context
+            :func:`dendrite_instance.close_session()`.
         """
         if self._session:
             loop = asyncio.get_event_loop()
@@ -179,18 +181,19 @@ class dendrite(torch.nn.Module):
 
     async def aclose_session(self):
         """
-        Asynchronously closes the internal aiohttp client session.
+        Asynchronously closes the internal `aiohttp <https://github.com/aio-libs/aiohttp>`_ client session.
 
-        This method is the asynchronous counterpart to the `close_session` method. It should be used in
+        This method is the asynchronous counterpart to the :func:`close_session` method. It should be used in
         asynchronous contexts to ensure that the aiohttp client session is closed properly. The method
         releases resources associated with the session, such as open connections and internal buffers,
         which is essential for resource management in asynchronous applications.
 
         Usage:
-            # When finished with dendrite in an asynchronous context
-            await dendrite_instance.aclose_session()
+            When finished with dendrite in an asynchronous context
+            await :func:`dendrite_instance.aclose_session()`.
 
-        Example:
+        Example::
+        
             async with dendrite_instance:
                 # Operations using dendrite
                 pass
@@ -224,8 +227,7 @@ class dendrite(torch.nn.Module):
 
     def _handle_request_errors(self, synapse, request_name, exception):
         """
-        Handles exceptions that occur during network requests, updating the synapse with appropriate status
-        codes and messages.
+        Handles exceptions that occur during network requests, updating the synapse with appropriate status codes and messages.
 
         This method interprets different types of exceptions and sets the corresponding status code and
         message in the synapse object. It covers common network errors such as connection issues and timeouts.
@@ -235,7 +237,8 @@ class dendrite(torch.nn.Module):
             request_name: The name of the request during which the exception occurred.
             exception: The exception object caught during the request.
 
-        Note: This method updates the synapse object in-place.
+        Note: 
+            This method updates the synapse object in-place.
         """
         if isinstance(exception, aiohttp.ClientConnectorError):
             synapse.dendrite.status_code = "503"
@@ -259,12 +262,10 @@ class dendrite(torch.nn.Module):
         request, the name of the synapse, the axon's details, and a success indicator. This information
         is crucial for monitoring and debugging network activity within the Bittensor network.
 
-        To turn on debug messages, set the environment variable BITTENSOR_DEBUG to 1. or call the bittensor
-        debug method like so:
-        ```python
-        import bittensor
-        bittensor.debug()
-        ```
+        To turn on debug messages, set the environment variable BITTENSOR_DEBUG to ``1``, or call the bittensor debug method like so::
+        
+            import bittensor
+            bittensor.debug()
 
         Args:
             synapse: The synapse object representing the request being sent.
@@ -277,7 +278,7 @@ class dendrite(torch.nn.Module):
         """
         Logs information about incoming responses for debugging and monitoring.
 
-        Similar to `_log_outgoing_request`, this method logs essential details of the incoming responses,
+        Similar to :func:`_log_outgoing_request`, this method logs essential details of the incoming responses,
         including the size of the response, synapse name, axon details, status code, and status message.
         This logging is vital for troubleshooting and understanding the network interactions in Bittensor.
 
@@ -304,13 +305,11 @@ class dendrite(torch.nn.Module):
         Args:
             axons (Union[List[Union['bittensor.AxonInfo', 'bittensor.axon']], Union['bittensor.AxonInfo', 'bittensor.axon']]):
                 The list of target Axon information.
-            synapse (bittensor.Synapse, optional): The Synapse object. Defaults to bittensor.Synapse().
+            synapse (bittensor.Synapse, optional): The Synapse object. Defaults to :func:`bittensor.Synapse()`.
             timeout (float, optional): The request timeout duration in seconds.
-                Defaults to 12.0 seconds.
+                Defaults to ``12.0`` seconds.
         Returns:
-            Union[bittensor.Synapse, List[bittensor.Synapse]]: If a single target axon is provided,
-                returns the response from that axon. If multiple target axons are provided,
-                returns a list of responses from all target axons.
+            Union[bittensor.Synapse, List[bittensor.Synapse]]: If a single target axon is provided, returns the response from that axon. If multiple target axons are provided, returns a list of responses from all target axons.
         """
         result = None
         try:
@@ -349,7 +348,8 @@ class dendrite(torch.nn.Module):
         containing the response data. If multiple Axons are queried, a list of Synapse objects is
         returned, each containing the response from the corresponding Axon.
 
-        For example:
+        For example::
+        
             >>> ...
             >>> wallet = bittensor.wallet()                   # Initialize a wallet
             >>> synapse = bittensor.Synapse(...)              # Create a synapse object that contains query data
@@ -361,7 +361,8 @@ class dendrite(torch.nn.Module):
         returns an AsyncGenerator that yields each chunk as it is received. The generator can be
         iterated over to process each chunk individually.
 
-        For example:
+        For example::
+        
             >>> ...
             >>> dendrte = bittensor.dendrite(wallet = wallet)
             >>> async for chunk in dendrite.forward(axons, synapse, timeout, deserialize, run_async, streaming):
@@ -371,11 +372,11 @@ class dendrite(torch.nn.Module):
         Args:
             axons (Union[List[Union['bittensor.AxonInfo', 'bittensor.axon']], Union['bittensor.AxonInfo', 'bittensor.axon']]):
                 The target Axons to send requests to. Can be a single Axon or a list of Axons.
-            synapse (bittensor.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new bittensor.Synapse instance.
-            timeout (float, optional): Maximum duration to wait for a response from an Axon in seconds. Defaults to 12.0.
-            deserialize (bool, optional): Determines if the received response should be deserialized. Defaults to True.
-            run_async (bool, optional): If True, sends requests concurrently. Otherwise, sends requests sequentially. Defaults to True.
-            streaming (bool, optional): Indicates if the response is expected to be in streaming format. Defaults to False.
+            synapse (bittensor.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new :func:`bittensor.Synapse` instance.
+            timeout (float, optional): Maximum duration to wait for a response from an Axon in seconds. Defaults to ``12.0``.
+            deserialize (bool, optional): Determines if the received response should be deserialized. Defaults to ``True``.
+            run_async (bool, optional): If ``True``, sends requests concurrently. Otherwise, sends requests sequentially. Defaults to ``True``.
+            streaming (bool, optional): Indicates if the response is expected to be in streaming format. Defaults to ``False``.
 
         Returns:
             Union[AsyncGenerator, bittensor.Synapse, List[bittensor.Synapse]]: If a single Axon is targeted, returns its response.
@@ -401,16 +402,15 @@ class dendrite(torch.nn.Module):
             is_stream: bool,
         ) -> Union[AsyncGenerator[Any], bittenst.Synapse, bittensor.StreamingSynapse]:
             """
-            Handles the processing of requests to all targeted axons, accommodating both streaming and
-            non-streaming responses.
+            Handles the processing of requests to all targeted axons, accommodating both streaming and non-streaming responses.
 
             This function manages the concurrent or sequential dispatch of requests to a list of axons.
-            It utilizes the `is_stream` parameter to determine the mode of response handling (streaming
-            or non-streaming). For each axon, it calls 'single_axon_response' and aggregates the responses.
+            It utilizes the ``is_stream`` parameter to determine the mode of response handling (streaming
+            or non-streaming). For each axon, it calls ``single_axon_response`` and aggregates the responses.
 
             Args:
                 is_stream (bool): Flag indicating whether the axon responses are expected to be streamed.
-                If True, responses are handled in streaming mode.
+                If ``True``, responses are handled in streaming mode.
 
             Returns:
                 List[Union[AsyncGenerator, bittensor.Synapse, bittensor.StreamingSynapse]]: A list
@@ -424,17 +424,15 @@ class dendrite(torch.nn.Module):
                 AsyncGenerator[Any], bittenst.Synapse, bittensor.StreamingSynapse
             ]:
                 """
-                Manages the request and response process for a single axon, supporting both streaming and
-                non-streaming modes.
+                Manages the request and response process for a single axon, supporting both streaming and non-streaming modes.
 
                 This function is responsible for initiating a request to a single axon. Depending on the
-                'is_stream' flag, it either uses 'call_stream' for streaming responses or 'call' for
+                ``is_stream`` flag, it either uses ``call_stream`` for streaming responses or ``call`` for
                 standard responses. The function handles the response processing, catering to the specifics
                 of streaming or non-streaming data.
 
                 Args:
-                    target_axon: The target axon object to which the request is to be sent. This object
-                    contains the necessary information like IP address and port to formulate the request.
+                    target_axon: The target axon object to which the request is to be sent. This object contains the necessary information like IP address and port to formulate the request.
 
                 Returns:
                     Union[AsyncGenerator, bittensor.Synapse, bittensor.StreamingSynapse]: The response
@@ -493,9 +491,9 @@ class dendrite(torch.nn.Module):
 
         Args:
             target_axon (Union['bittensor.AxonInfo', 'bittensor.axon']): The target Axon to send the request to.
-            synapse (bittensor.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new bittensor.Synapse instance.
-            timeout (float, optional): Maximum duration to wait for a response from the Axon in seconds. Defaults to 12.0.
-            deserialize (bool, optional): Determines if the received response should be deserialized. Defaults to True.
+            synapse (bittensor.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new :func:`bittensor.Synapse` instance.
+            timeout (float, optional): Maximum duration to wait for a response from the Axon in seconds. Defaults to ``12.0``.
+            deserialize (bool, optional): Determines if the received response should be deserialized. Defaults to ``True``.
 
         Returns:
             bittensor.Synapse: The Synapse object, updated with the response data from the Axon.
@@ -562,16 +560,16 @@ class dendrite(torch.nn.Module):
         """
         Sends a request to a specified Axon and yields streaming responses.
 
-        Similar to `call`, but designed for scenarios where the Axon sends back data in
+        Similar to ``call``, but designed for scenarios where the Axon sends back data in
         multiple chunks or streams. The function yields each chunk as it is received. This is
         useful for processing large responses piece by piece without waiting for the entire
         data to be transmitted.
 
         Args:
             target_axon (Union['bittensor.AxonInfo', 'bittensor.axon']): The target Axon to send the request to.
-            synapse (bittensor.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new bittensor.Synapse instance.
-            timeout (float, optional): Maximum duration to wait for a response (or a chunk of the response) from the Axon in seconds. Defaults to 12.0.
-            deserialize (bool, optional): Determines if each received chunk should be deserialized. Defaults to True.
+            synapse (bittensor.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new :func:`bittensor.Synapse` instance.
+            timeout (float, optional): Maximum duration to wait for a response (or a chunk of the response) from the Axon in seconds. Defaults to ``12.0``.
+            deserialize (bool, optional): Determines if each received chunk should be deserialized. Defaults to ``True``.
 
         Yields:
             object: Each yielded object contains a chunk of the arbitrary response data from the Axon.
@@ -651,7 +649,7 @@ class dendrite(torch.nn.Module):
             target_axon_info (bittensor.AxonInfo): The target axon information.
             synapse (bittensor.Synapse): The synapse object to be preprocessed.
             timeout (float, optional): The request timeout duration in seconds.
-                Defaults to 12.0 seconds.
+                Defaults to ``12.0`` seconds.
 
         Returns:
             bittensor.Synapse: The preprocessed synapse.
@@ -696,12 +694,12 @@ class dendrite(torch.nn.Module):
         server's state and merges headers set by the server.
 
         Args:
-            server_response (object): The aiohttp response object from the server.
+            server_response (object): The `aiohttp <https://github.com/aio-libs/aiohttp>`_ response object from the server.
             json_response (dict): The parsed JSON response from the server.
             local_synapse (bittensor.Synapse): The local synapse object to be updated.
 
         Raises:
-            None, but errors in attribute setting are silently ignored.
+            None: But errors in attribute setting are silently ignored.
         """
         # Check if the server responded with a successful status code
         if server_response.status == 200:
@@ -746,16 +744,16 @@ class dendrite(torch.nn.Module):
         Returns a string representation of the Dendrite object.
 
         Returns:
-            str: The string representation of the Dendrite object in the format "dendrite(<user_wallet_address>)".
+            str: The string representation of the Dendrite object in the format :func:`dendrite(<user_wallet_address>)`.
         """
         return "dendrite({})".format(self.keypair.ss58_address)
 
     def __repr__(self) -> str:
         """
-        Returns a string representation of the Dendrite object, acting as a fallback for __str__().
+        Returns a string representation of the Dendrite object, acting as a fallback for :func:`__str__()`.
 
         Returns:
-            str: The string representation of the Dendrite object in the format "dendrite(<user_wallet_address>)".
+            str: The string representation of the Dendrite object in the format :func:`dendrite(<user_wallet_address>)`.
         """
         return self.__str__()
 
@@ -763,13 +761,14 @@ class dendrite(torch.nn.Module):
         """
         Asynchronous context manager entry method.
 
-        Enables the use of the `async with` statement with the Dendrite instance. When entering the context,
+        Enables the use of the ``async with`` statement with the Dendrite instance. When entering the context,
         the current instance of the class is returned, making it accessible within the asynchronous context.
 
         Returns:
             Dendrite: The current instance of the Dendrite class.
 
-        Usage:
+        Usage::
+        
             async with Dendrite() as dendrite:
                 await dendrite.some_async_method()
         """
@@ -779,20 +778,21 @@ class dendrite(torch.nn.Module):
         """
         Asynchronous context manager exit method.
 
-        Ensures proper cleanup when exiting the `async with` context. This method will close the aiohttp client session
+        Ensures proper cleanup when exiting the ``async with`` context. This method will close the `aiohttp <https://github.com/aio-libs/aiohttp>`_ client session
         asynchronously, releasing any tied resources.
 
         Args:
             exc_type (Type[BaseException], optional): The type of exception that was raised.
             exc_value (BaseException, optional): The instance of exception that was raised.
-            traceback (TracebackType, optional): A traceback object encapsulating the call stack at the point
-                                                where the exception was raised.
+            traceback (TracebackType, optional): A traceback object encapsulating the call stack at the point where the exception was raised.
 
-        Usage:
+        Usage::
+        
             async with bt.dendrite( wallet ) as dendrite:
                 await dendrite.some_async_method()
 
-        Note: This automatically closes the session by calling __aexit__ after the context closes.
+        Note: 
+            This automatically closes the session by calling :func:`__aexit__` after the context closes.
         """
         await self.aclose_session()
 
@@ -803,10 +803,11 @@ class dendrite(torch.nn.Module):
         This method is invoked when the Dendrite instance is about to be destroyed. The destructor ensures that the
         aiohttp client session is closed before the instance is fully destroyed, releasing any remaining resources.
 
-        Note: Relying on the destructor for cleanup can be unpredictable. It's recommended to explicitly close sessions
-        using the provided methods or the `async with` context manager.
+        Note: 
+            Relying on the destructor for cleanup can be unpredictable. It is recommended to explicitly close sessions using the provided methods or the ``async with`` context manager.
 
-        Usage:
+        Usage::
+        
             dendrite = Dendrite()
             # ... some operations ...
             del dendrite  # This will implicitly invoke the __del__ method and close the session.
