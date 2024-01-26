@@ -40,7 +40,7 @@ TORCH_DTYPES = {
 
 def cast_dtype(raw: Union[None, torch.dtype, str]) -> str:
     """
-    Casts the raw value to a string representing the torch data type.
+    Casts the raw value to a string representing the `torch data type <https://pytorch.org/docs/stable/tensor_attributes.html>`_.
 
     Args:
         raw (Union[None, torch.dtype, str]): The raw value to cast.
@@ -110,7 +110,7 @@ class Tensor(pydantic.BaseModel):
     """
     Represents a Tensor object.
 
-    Attributes:
+    Args:
         buffer (Optional[str]): Tensor buffer data.
         dtype (str): Tensor data type.
         shape (List[int]): Tensor shape.
