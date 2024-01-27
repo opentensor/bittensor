@@ -93,8 +93,8 @@ class ParamWithTypes(TypedDict):
 
 class subtensor:
     """
-    The Subtensor class in Bittensor serves as a crucial interface for interacting with the Bittensor blockchain, facilitating a range of operations essential for the decentralized machine learning network. 
-    
+    The Subtensor class in Bittensor serves as a crucial interface for interacting with the Bittensor blockchain, facilitating a range of operations essential for the decentralized machine learning network.
+
     This class enables neurons (network participants) to engage in activities such as registering on the network, managing
     staked weights, setting inter-neuronal weights, and participating in consensus mechanisms.
 
@@ -118,7 +118,7 @@ class subtensor:
         chain_endpoint (str): The blockchain node endpoint URL, enabling direct communication with the Bittensor blockchain for transaction processing and data retrieval.
 
     Example Usage::
-    
+
         # Connect to the main Bittensor network (Finney).
         finney_subtensor = subtensor(network='finney')
 
@@ -204,12 +204,12 @@ class subtensor:
     @staticmethod
     def determine_chain_endpoint_and_network(network: str):
         """Determines the chain endpoint and network from the passed network or chain_endpoint.
-        
+
         Args:
             network (str): The network flag. The choices are: ``-- finney`` (main network), ``-- archive`` (archive network +300 blocks), ``-- local`` (local running network), ``-- test`` (test network).
             chain_endpoint (str): The chain endpoint flag. If set, overrides the network argument.
         Returns:
-            network (str): The network flag. 
+            network (str): The network flag.
             chain_endpoint (str): The chain endpoint flag. If set, overrides the ``network`` argument.
         """
         if network == None:
@@ -310,7 +310,7 @@ class subtensor:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
 
-        NOTE: 
+        NOTE:
             Currently subtensor defaults to the ``finney`` network. This will change in a future release.
 
         We strongly encourage users to run their own local subtensor node whenever possible. This increases
@@ -748,7 +748,7 @@ class subtensor:
         This function is part of Bittensor's onboarding process, ensuring that new neurons have
         the necessary resources to begin their journey in the decentralized AI network.
 
-        Note: 
+        Note:
             This is for testnet ONLY and is disabled currently. You must build your own staging subtensor chain with the ``--features pow-faucet`` argument to enable this.
         """
         return run_faucet_extrinsic(
@@ -776,8 +776,8 @@ class subtensor:
         prompt: bool = False,
     ) -> bool:
         """
-        Registers a neuron on the Bittensor network by burning TAO. This method of registration
-        involves recycling TAO tokens, contributing to the network's deflationary mechanism.
+        Registers a neuron on the Bittensor network by recycling TAO. This method of registration
+        involves recycling TAO tokens, allowing them to be re-mined by performing work on the network.
 
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron to be registered.
@@ -788,9 +788,6 @@ class subtensor:
 
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
-
-        This function offers an alternative registration path, aligning with the network's principles
-        of token circulation and value conservation.
         """
         return burned_register_extrinsic(
             subtensor=self,
@@ -810,7 +807,7 @@ class subtensor:
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
         """Sends a (POW) register extrinsic to the chain.
-        
+
         Args:
             netuid (int): The subnet to register on.
             wallet (bittensor.wallet): The wallet to register.
@@ -1042,7 +1039,7 @@ class subtensor:
         wait_for_finalization: bool = False,
     ) -> Tuple[bool, Optional[str], Optional[str]]:
         """Sends a transfer extrinsic to the chain.
-        
+
         Args:
             wallet (:func:`bittensor.wallet`): Wallet object.
             dest (str): Destination public key address.
@@ -1520,7 +1517,7 @@ class subtensor:
         wait_for_finalization: bool = False,
     ) -> bool:
         """Sends a stake extrinsic to the chain.
-        
+
         Args:
             wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
             hotkey_ss58 (str): Hotkey ``ss58`` address to stake to.
@@ -1647,7 +1644,7 @@ class subtensor:
         wait_for_finalization: bool = False,
     ) -> bool:
         """Sends an unstake extrinsic to the chain.
-        
+
         Args:
             wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
             hotkey_ss58 (str): Hotkey ``ss58`` address to unstake from.
@@ -2055,7 +2052,7 @@ class subtensor:
         detailed identity information about a specific neuron, which is a crucial aspect of the network's decentralized
         identity and governance system.
 
-        NOTE: 
+        NOTE:
             See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity parameters.
 
         Args:
@@ -2098,7 +2095,7 @@ class subtensor:
         Updates the identity of a neuron on the Bittensor blockchain. This function allows neurons to modify their
         identity attributes, reflecting changes in their roles, stakes, or other network-specific parameters.
 
-        NOTE: 
+        NOTE:
             See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity parameters.
 
         Args:
@@ -2474,7 +2471,7 @@ class subtensor:
         Retrieves the 'Rho' hyperparameter for a specified subnet within the Bittensor network. 'Rho' represents the global inflation rate, which directly influences the network's
         token emission rate and economic model.
 
-        Note: 
+        Note:
             This is currently fixed such that the Bittensor blockchain emmits 7200 Tao per day.
 
         Args:
@@ -2547,10 +2544,10 @@ class subtensor:
             return None
         return self.query_subtensor("Difficulty", block, [netuid]).value
 
-    def burn(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
+    def recycle(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the
-        amount of Tao that is effectively removed from circulation within the Bittensor network.
+        amount of Tao that is effectively recycled within the Bittensor network.
 
         Args:
             netuid (int): The unique identifier of the subnet.
@@ -2559,8 +2556,8 @@ class subtensor:
         Returns:
             Optional[Balance]: The value of the 'Burn' hyperparameter if the subnet exists, None otherwise.
 
-        Understanding the 'Burn' rate is essential for analyzing the network's economic model, particularly
-        how it manages inflation and the overall supply of its native token Tao.
+        Understanding the 'Burn' rate is essential for analyzing the network registration usage, particularly
+        how it is correlated with user activity and the overall cost of participation in a given subnet.
         """
         if not self.subnet_exists(netuid, block):
             return None

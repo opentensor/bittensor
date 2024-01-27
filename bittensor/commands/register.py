@@ -38,7 +38,7 @@ class RegisterCommand:
 
         The registration cost is determined by the current recycle amount for the specified subnet. If the balance is insufficient or the subnet does not exist, the command will exit with an appropriate error message.
 
-        If the preconditions are met, and the user confirms the transaction (if ``no_prompt`` is not set), the command proceeds to register the neuron by burning the required amount of TAO.
+        If the preconditions are met, and the user confirms the transaction (if ``no_prompt`` is not set), the command proceeds to register the neuron by recycling the required amount of TAO.
 
     The command structure includes:
 
@@ -87,7 +87,7 @@ class RegisterCommand:
             sys.exit(1)
 
         # Check current recycle amount
-        current_recycle = subtensor.burn(netuid=cli.config.netuid)
+        current_recycle = subtensor.recycle(netuid=cli.config.netuid)
         balance = subtensor.get_balance(address=wallet.coldkeypub.ss58_address)
 
         # Check balance is sufficient
