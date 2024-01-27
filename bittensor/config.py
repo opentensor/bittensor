@@ -247,7 +247,7 @@ class config(DefaultMunch):
         args: List[str], parser: argparse.ArgumentParser = None, strict: bool = False
     ) -> argparse.Namespace:
         """Parses the passed args use the passed parser.
-        
+
         Args:
             args (List[str]):
                 List of arguments to parse.

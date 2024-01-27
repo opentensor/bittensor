@@ -59,7 +59,7 @@ class logging:
         logging_dir: str = None,
     ):
         r"""Instantiate Bittensor logging system backend.
-        
+
         Args:
             config (bittensor.config, optional):
                 bittensor.logging.config()
@@ -131,8 +131,8 @@ class logging:
     @classmethod
     def config(cls):
         """Get config from the argument parser.
-        
-        Return: 
+
+        Return:
             bittensor.config object
         """
         parser = argparse.ArgumentParser()

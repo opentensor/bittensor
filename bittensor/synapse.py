@@ -96,8 +96,8 @@ def cast_float(raw: str) -> float:
 
 class TerminalInfo(pydantic.BaseModel):
     """
-    TerminalInfo encapsulates detailed information about a network synapse (node) involved in a communication process. 
-    
+    TerminalInfo encapsulates detailed information about a network synapse (node) involved in a communication process.
+
     This class serves as a metadata carrier,
     providing essential details about the state and configuration of a terminal during network interactions. This is a crucial class in the Bittensor framework.
 
@@ -122,7 +122,7 @@ class TerminalInfo(pydantic.BaseModel):
         signature (str): Digital signature verifying the tuple of nonce, axon_hotkey, dendrite_hotkey, and uuid, critical for ensuring data authenticity and security.
 
     Usage::
-    
+
         # Creating a TerminalInfo instance
         terminal_info = TerminalInfo(
             status_code=200,
@@ -254,7 +254,7 @@ class TerminalInfo(pydantic.BaseModel):
 class Synapse(pydantic.BaseModel):
     """
     Represents a Synapse in the Bittensor network, serving as a communication schema between neurons (nodes).
-    
+
     Synapses ensure the format and correctness of transmission tensors according to the Bittensor protocol.
     Each Synapse type is tailored for a specific machine learning (ML) task, following unique compression and
     communication processes. This helps maintain sanitized, correct, and useful information flow across the network.
@@ -306,7 +306,7 @@ class Synapse(pydantic.BaseModel):
         the robustness of their applications.
 
     Example usage::
-    
+
         # Creating a Synapse instance with default values
         synapse = Synapse()
 
@@ -377,7 +377,7 @@ class Synapse(pydantic.BaseModel):
         In its default form, this method simply returns the instance of the Synapse itself without any modifications. Subclasses of Synapse can override this method to add specific deserialization behaviors, such as converting serialized data back into complex object types or performing additional data integrity checks.
 
         Example::
-        
+
             class CustomSynapse(Synapse):
                 additional_data: str
 
@@ -584,21 +584,21 @@ class Synapse(pydantic.BaseModel):
 
     def to_headers(self) -> dict:
         """
-        Converts the state of a Synapse instance into a dictionary of HTTP headers. 
-        
+        Converts the state of a Synapse instance into a dictionary of HTTP headers.
+
         This method is essential for
         packaging Synapse data for network transmission in the Bittensor framework, ensuring that each key aspect of
         the Synapse is represented in a format suitable for HTTP communication.
 
         Process:
-        
+
         1. Basic Information: It starts by including the ``name`` and ``timeout`` of the Synapse, which are fundamental for identifying the query and managing its lifespan on the network.
         2. Complex Objects: The method serializes the ``axon`` and ``dendrite`` objects, if present, into strings. This serialization is crucial for preserving the state and structure of these objects over the network.
         3. Encoding: Non-optional complex objects are serialized and encoded in base64, making them safe for HTTP transport.
         4. Size Metrics: The method calculates and adds the size of headers and the total object size, providing valuable information for network bandwidth management.
 
         Example Usage::
-        
+
             synapse = Synapse(name="ExampleSynapse", timeout=30)
             headers = synapse.to_headers()
             # headers now contains a dictionary representing the Synapse instance
@@ -665,20 +665,20 @@ class Synapse(pydantic.BaseModel):
     @property
     def body_hash(self) -> str:
         """
-        Computes a SHA3-256 hash of the serialized body of the Synapse instance. 
-        
+        Computes a SHA3-256 hash of the serialized body of the Synapse instance.
+
         This hash is used to
         ensure the data integrity and security of the Synapse instance when it's transmitted across the
         network. It is a crucial feature for verifying that the data received is the same as the data sent.
 
         Process:
-        
+
         1. Iterates over each required field as specified in ``required_fields_hash``.
         2. Concatenates the string representation of these fields.
         3. Applies SHA3-256 hashing to the concatenated string to produce a unique fingerprint of the data.
 
         Example::
-        
+
             synapse = Synapse(name="ExampleRoute", timeout=10)
             hash_value = synapse.body_hash
             # hash_value is the SHA3-256 hash of the serialized body of the Synapse instance
@@ -703,19 +703,19 @@ class Synapse(pydantic.BaseModel):
     @classmethod
     def parse_headers_to_inputs(cls, headers: dict) -> dict:
         """
-        Interprets and transforms a given dictionary of headers into a structured dictionary, facilitating the reconstruction of Synapse objects. 
-        
+        Interprets and transforms a given dictionary of headers into a structured dictionary, facilitating the reconstruction of Synapse objects.
+
         This method is essential for parsing network-transmitted
         data back into a Synapse instance, ensuring data consistency and integrity.
 
         Process:
-        
+
         1. Separates headers into categories based on prefixes (``axon``, ``dendrite``, etc.).
         2. Decodes and deserializes ``input_obj`` headers into their original objects.
         3. Assigns simple fields directly from the headers to the input dictionary.
 
         Example::
-        
+
             received_headers = {
                 'bt_header_axon_address': '127.0.0.1',
                 'bt_header_dendrite_port': '8080',
@@ -724,7 +724,7 @@ class Synapse(pydantic.BaseModel):
             inputs = Synapse.parse_headers_to_inputs(received_headers)
             # inputs now contains a structured representation of Synapse properties based on the headers
 
-        Note: 
+        Note:
             This is handled automatically when calling :func:`Synapse.from_headers(headers)` and does not need to be called directly.
 
         Args:
@@ -795,14 +795,14 @@ class Synapse(pydantic.BaseModel):
     @classmethod
     def from_headers(cls, headers: dict) -> "Synapse":
         """
-        Constructs a new Synapse instance from a given headers dictionary, enabling the re-creation of the Synapse's state as it was prior to network transmission. 
-        
+        Constructs a new Synapse instance from a given headers dictionary, enabling the re-creation of the Synapse's state as it was prior to network transmission.
+
         This method is a key part of the
         deserialization process in the Bittensor network, allowing nodes to accurately reconstruct Synapse
         objects from received data.
 
         Example::
-        
+
             received_headers = {
                 'bt_header_axon_address': '127.0.0.1',
                 'bt_header_dendrite_port': '8080',
