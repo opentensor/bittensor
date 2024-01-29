@@ -17,15 +17,16 @@
 # DEALINGS IN THE SOFTWARE.
 
 import ast
-import sys
-import torch
-import json
 import base64
-import typing
 import hashlib
-from pydantic import BaseModel, Field, validator, root_validator
-import bittensor
+import json
+import sys
 from typing import Optional, List, Any
+
+import torch
+from pydantic import BaseModel, Field, validator, root_validator
+
+import bittensor
 
 
 def get_size(obj, seen=None) -> int:

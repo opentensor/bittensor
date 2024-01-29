@@ -36,6 +36,9 @@ TORCH_DTYPES = {
     torch.int32: "torch.int32",
     torch.int64: "torch.int64",
     torch.bool: "torch.bool",
+    torch.complex32: "torch.complex32",
+    torch.complex64:"torch.complex64",
+    torch.complex128: "torch.complex128",
 }
 
 
@@ -85,6 +88,24 @@ def old_cast_dtype(raw: Union[None, torch.dtype, str]) -> str:
 
 
 def cast_shape(raw: Union[None, List[int], str]) -> str:
+    """
+    Casts the raw value to a string representing the tensor shape.
+    """
+    if raw is None:
+        return "None"
+    elif isinstance(raw, list):
+        if all(isinstance(item, int) for item in raw):
+            return str(raw)
+        raise ValueError(f"{raw} list elements are not all of type int")
+    elif isinstance(raw, str):
+        return raw
+    raise TypeError(
+        f"{raw} of type {type(raw)} is not a valid type in Union[None, List[int], str]"
+    )
+
+
+
+def old_cast_shape(raw: Union[None, List[int], str]) -> str:
     """
     Casts the raw value to a string representing the tensor shape.
 
@@ -238,6 +259,23 @@ class Tensor(BaseModel):
         repr=True,
     )
 
+    scalar: float
+    vector: List[int]
+    matrix: List[List[float]]
+    tensor: np.ndarray
+
+    @validator('tensor')
+    def validate_tensor_shape(cls, v):
+        if not isinstance(v, np.ndarray):
+            raise TypeError('Tensor must be a numpy array')
+        return v
+
+    @classmethod
+    @validator('matrix')
+    def must_be_rectangular(cls, v):
+        if not all(len(row) == len(v[0]) for row in v):
+            raise ValueError('Matrix must be rectangular')
+        return v
 
 class TensorFactory:
     """
