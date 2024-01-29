@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import base64
+import json
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
 import msgpack
@@ -104,7 +105,6 @@ def cast_shape(raw: Union[None, List[int], str]) -> str:
     )
 
 
-
 def old_cast_shape(raw: Union[None, List[int], str]) -> str:
     """
     Casts the raw value to a string representing the tensor shape.
@@ -154,31 +154,87 @@ class Tensor(BaseModel):
         dtype (str): Tensor data type.
         shape (List[int]): Tensor shape.
     """
+    scalar: Optional[int] = Field(
+        default=None,
+        title="scaler",
+        description="Tensor data of type scaler.",
+        examples="1",
+        frozen=True,
+        repr=True,
+    )
+    vector: Optional[List[int]] = Field(
+        default=None,
+        title="vector",
+        description="Tensor data of type vector.",
+        examples="[1,1,1,1,1]",
+        frozen=True,
+        repr=True,
+    )
+    matrix: Optional[List[List[Union[int, float]]]] = Field(
+        default=None,
+        title="vector",
+        description="Tensor data of type matrix.",
+        examples="[[1,1,1],[2,2,2],[3,3,3]]",
+        frozen=True,
+        repr=True,
+    )
+    tensor: Optional[np.ndarray] = Field(
+        default=None,
+        title="vector",
+        description="Tensor data of type matrix.",
+        examples="[[1,1,1],[2,2,2],[3,3,3]]",
+        frozen=True,
+        repr=True,
+    )
+    buffer: Optional[str] = Field(
+        default=None,
+        title="buffer",
+        description="Tensor buffer data. This field stores the serialized representation of the tensor data.",
+        examples="0x321e13edqwds231231231232131",
+        frozen=True,
+        repr=False,
+    )
 
-    class Config:
-        """
-        Configuration class for the ModelConfig Pydantic model.
+    dtype: str = Field(
+        default="torch.float32",  # Default value or make it mandatory
+        title="dtype",
+        description="Tensor data type. This field specifies the data type of the tensor.",
+        examples="torch.float32",
+        frozen=True,
+        repr=True,
+    )
 
-        Attributes:
-            validate_assignment (bool): Enables validation of attribute assignments.
+    shape: List[int] = Field(
+        default_factory=list,
+        title="shape",
+        description="Tensor shape. This field defines the dimensions of the tensor.",
+        examples="[10,10]",
+        frozen=True,
+        repr=True,
+    )
 
-        Note:
-            In Pydantic v2, the 'ConfigDict' used in earlier versions is deprecated.
-            This 'Config' inner class is used instead to configure the behavior of the model.
-        """
-        validate_assignment = True
+    @validator('tensor')
+    def validate_tensor_shape(cls, v):
+        if not isinstance(v, np.ndarray):
+            raise TypeError('Tensor must be a numpy array')
+        return v
 
     @classmethod
+    @validator('matrix')
+    def must_be_rectangular(cls, v):
+        if not all(len(row) == len(v[0]) for row in v):
+            raise ValueError('Matrix must be rectangular')
+        return v
+
     @validator('dtype', pre=True)
-    def validate_dtype(cls, value):
+    def validate_dtype(self, value):
         return cast_dtype(value)
 
-    @classmethod
     @validator('shape', pre=True)
-    def validate_shape(cls, value):
-        return cast_shape(value)
+    def validate_shape(self, value):
+        return self.cast_shape(value)
 
-    def tensor(self) -> torch.Tensor:
+    def totensor(self) -> torch.Tensor:
         return self.deserialize()
 
     def tolist(self) -> List[object]:
@@ -187,7 +243,66 @@ class Tensor(BaseModel):
     def numpy(self) -> "np.ndarray":
         return self.deserialize().detach().numpy()
 
-    def deserialize(self) -> "torch.Tensor":
+    def cast_shape(self, raw: Union[None, int, List[int], List[List[int]], str]) -> None:
+        """
+        Detects the type of tensor shape (scalar, vector, matrix, etc.), validates it,
+        and saves it to the corresponding attribute.
+
+        Args:
+            raw (Union[None, int, List[int], List[List[int]], str]): The raw value to cast.
+
+        Raises:
+            ValueError: If the raw value is of an invalid type or if list elements are not of the correct type.
+        """
+        if raw is None:
+            return
+        elif isinstance(raw, int):
+            self.scalar = raw
+        elif isinstance(raw, list):
+            if all(isinstance(item, int) for item in raw):
+                self.vector = raw
+            elif all(isinstance(row, list) and all(isinstance(item, int) for item in row) for row in raw):
+                self.matrix = raw
+            else:
+                raise ValueError("Invalid tensor shape: elements are not of the correct type")
+        elif isinstance(raw, str):
+            try:
+                # Transforming the string into a JSON-like format
+                json_like_str = raw.replace('(', '[').replace(')', ']').replace(' ', '')
+                parsed = json.loads(json_like_str)
+                self.cast_shape(parsed)
+            except (json.JSONDecodeError, ValueError):
+                raise ValueError("Invalid string representation of tensor shape")
+        else:
+            raise ValueError(f"Invalid type for tensor shape: {type(raw)}")
+
+    def deserialize(self) -> torch.Tensor:
+        """
+        Deserializes the Tensor object.
+
+        Returns:
+            torch.Tensor: The deserialized tensor object.
+
+        Raises:
+            ValueError: If the deserialization process encounters an error.
+        """
+        # Decode the buffer
+        buffer_bytes = base64.b64decode(self.buffer.encode("utf-8"))
+        numpy_object = msgpack.unpackb(buffer_bytes, object_hook=msgpack_numpy.decode).copy()
+        torch_object = torch.as_tensor(numpy_object)
+
+        # Handle the shape
+        if self.scalar is not None:
+            # If it's a scalar, no need to reshape
+            pass
+        elif self.vector is not None:
+            torch_object = torch_object.reshape(self.vector)
+        elif self.matrix is not None:
+            torch_object = torch_object.reshape(self.matrix)
+        # TODO: higher dimensions
+        return torch_object.type(TORCH_DTYPES[self.dtype])
+
+    def old_deserialize(self) -> "torch.Tensor":
         """
         Deserializes the Tensor object.
 
@@ -232,50 +347,19 @@ class Tensor(BaseModel):
         ).decode("utf-8")
         return Tensor(buffer=data_buffer, shape=shape, dtype=dtype)
 
-    buffer: Optional[str] = Field(
-        default=None,
-        title="buffer",
-        description="Tensor buffer data. This field stores the serialized representation of the tensor data.",
-        examples="0x321e13edqwds231231231232131",
-        frozen=True,
-        repr=False,
-    )
+    class Config:
+        """
+        Configuration class for the ModelConfig Pydantic model.
 
-    dtype: str = Field(
-        default="torch.float32",  # Default value or make it mandatory
-        title="dtype",
-        description="Tensor data type. This field specifies the data type of the tensor.",
-        examples="torch.float32",
-        frozen=True,
-        repr=True,
-    )
+        Attributes:
+            validate_assignment (bool): Enables validation of attribute assignments.
 
-    shape: List[int] = Field(
-        default_factory=list,
-        title="shape",
-        description="Tensor shape. This field defines the dimensions of the tensor.",
-        examples="[10,10]",
-        frozen=True,
-        repr=True,
-    )
+        Note:
+            In Pydantic v2, the 'ConfigDict' used in earlier versions is deprecated.
+            This 'Config' inner class is used instead to configure the behavior of the model.
+        """
+        validate_assignment = True
 
-    scalar: float
-    vector: List[int]
-    matrix: List[List[float]]
-    tensor: np.ndarray
-
-    @validator('tensor')
-    def validate_tensor_shape(cls, v):
-        if not isinstance(v, np.ndarray):
-            raise TypeError('Tensor must be a numpy array')
-        return v
-
-    @classmethod
-    @validator('matrix')
-    def must_be_rectangular(cls, v):
-        if not all(len(row) == len(v[0]) for row in v):
-            raise ValueError('Matrix must be rectangular')
-        return v
 
 class TensorFactory:
     """
