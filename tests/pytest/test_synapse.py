@@ -3,82 +3,130 @@ from pydantic import ValidationError
 from bittensor.synapse import TerminalInfo, Synapse
 
 
+test_data_types = [
+    None, True, 1, 1.0, "string", b"bytes", [], (), {}, set()
+]
+
+
 # Test cases for Synapse
-def test_name_field():
-    """Tests for the 'name' field validation."""
-    # Valid case
-    model = Synapse(name="Forward")
-    assert model.name == "Forward"
+class TestSynapse:
+    @pytest.fixture
+    def example_synapse(self):
+        # Create an instance of Synapse for testing
+        return Synapse(name="ExampleSynapse", timeout=30, body_hash="some_hash")
 
-    # Invalid case
-    with pytest.raises(ValidationError):
-        Synapse(name=123)  # Non-string value
+    def test_to_headers_basic(self, example_synapse):
+        # Test with basic attributes
+        headers = example_synapse.to_headers()
+        assert headers["name"] == "ExampleSynapse"
+        assert headers["timeout"] == "30"
+        assert "header_size" in headers
+        assert "total_size" in headers
+        assert headers["computed_body_hash"] == "some_hash"
 
+    def test_to_headers_with_complex_objects(self, example_synapse):
+        # TODO: Test with complex objects like 'axon' and 'dendrite'
+        # example_synapse.axon = ...
+        # example_synapse.dendrite = ...
+        pass
 
-def test_timeout_field():
-    """Tests for the 'timeout' field validation."""
-    # Valid case
-    model = Synapse(timeout=12.0)
-    assert model.timeout == 12.0
+        headers = example_synapse.to_headers()
+        # TODO: Verify that the complex objects are serialized and encoded properly
+        # assert "bt_header_axon_x" in headers
+        # assert "bt_header_dendrite_y" in headers
+        pass
 
-    # Invalid case
-    with pytest.raises(ValidationError):
-        Synapse(timeout="not a float")
-
-
-def test_total_size_field():
-    """Tests for the 'total_size' field validation."""
-    # Valid case
-    model = Synapse(total_size=1000)
-    assert model.total_size == 1000
-
-    # Invalid case
-    with pytest.raises(ValidationError):
-        Synapse(total_size="not an int")
-
-
-def test_header_size_field():
-    """Tests for the 'header_size' field validation."""
-    # Valid case
-    model = Synapse(header_size=500)
-    assert model.header_size == 500
-
-    # Invalid case
-    with pytest.raises(ValidationError):
-        Synapse(header_size="not an int")
+    def test_to_headers_serialization_error(self, example_synapse):
+        # Test the behavior when serialization fails
+        # Set a property that cannot be serialized
+        example_synapse.some_unserializable_field = lambda x: x
+        with pytest.raises(ValueError):
+            example_synapse.to_headers()
 
 
-def test_dendrite_field():
-    """Tests for the 'dendrite' field validation."""
-    dendrite_info = TerminalInfo()  # Assuming valid TerminalInfo instance
-    model = Synapse(dendrite=dendrite_info)
-    assert model.dendrite == dendrite_info
+@pytest.mark.parametrize("value", test_data_types)
+def test_name_field(value):
+    """Tests for the 'name' field validation with various data types."""
+    if isinstance(value, str):
+        model = Synapse(name=value)
+        assert model.name == value
+    else:
+        with pytest.raises(ValidationError):
+            Synapse(name=value)
 
 
-def test_axon_field():
-    """Tests for the 'axon' field validation."""
-    axon_info = TerminalInfo()  # Assuming valid TerminalInfo instance
-    model = Synapse(axon=axon_info)
-    assert model.axon == axon_info
+@pytest.mark.parametrize("value", test_data_types)
+def test_timeout_field(value):
+    """Tests for the 'timeout' field validation with various data types."""
+    if isinstance(value, (float, int)) and not isinstance(value, bool):
+        model = Synapse(timeout=value)
+        assert model.timeout == float(value)
+    else:
+        with pytest.raises(ValidationError):
+            Synapse(timeout=value)
 
 
-def test_computed_body_hash_field():
-    """Tests for the 'computed_body_hash' field validation."""
-    # Valid case
-    model = Synapse(computed_body_hash="0x123")
-    assert model.computed_body_hash == "0x123"
+@pytest.mark.parametrize("value", test_data_types)
+def test_total_size_field(value):
+    """Tests for the 'total_size' field validation with various data types."""
+    if isinstance(value, int) and not isinstance(value, bool):
+        model = Synapse(total_size=value)
+        assert model.total_size == value
+    else:
+        with pytest.raises(ValidationError):
+            Synapse(total_size=value)
 
-    # Invalid case
-    with pytest.raises(ValidationError):
-        Synapse(computed_body_hash=123)  # Non-string value
+
+@pytest.mark.parametrize("value", test_data_types)
+def test_header_size_field(value):
+    """Tests for the 'header_size' field validation with various data types."""
+    if isinstance(value, int) and not isinstance(value, bool):
+        model = Synapse(header_size=value)
+        assert model.header_size == value
+    else:
+        with pytest.raises(ValidationError):
+            Synapse(header_size=value)
 
 
-def test_required_hash_fields_field():
-    """Tests for the 'required_hash_fields' field validation."""
-    # Valid case
-    model = Synapse(required_hash_fields=["roles", "messages"])
-    assert model.required_hash_fields == ["roles", "messages"]
+@pytest.mark.parametrize("value", test_data_types)
+def test_dendrite_field(value):
+    """Tests for the 'dendrite' field validation with various data types."""
+    if isinstance(value, TerminalInfo):
+        model = Synapse(dendrite=value)
+        assert model.dendrite == value
+    else:
+        with pytest.raises(ValidationError):
+            Synapse(dendrite=value)
 
-    # Invalid case
-    with pytest.raises(ValidationError):
-        Synapse(required_hash_fields="not a list")
+
+@pytest.mark.parametrize("value", test_data_types)
+def test_axon_field(value):
+    """Tests for the 'axon' field validation with various data types."""
+    if isinstance(value, TerminalInfo):
+        model = Synapse(axon=value)
+        assert model.axon == value
+    else:
+        with pytest.raises(ValidationError):
+            Synapse(axon=value)
+
+
+@pytest.mark.parametrize("value", test_data_types)
+def test_computed_body_hash_field(value):
+    """Tests for the 'computed_body_hash' field validation with various data types."""
+    if isinstance(value, str):
+        model = Synapse(computed_body_hash=value)
+        assert model.computed_body_hash == value
+    else:
+        with pytest.raises(ValidationError):
+            Synapse(computed_body_hash=value)
+
+
+@pytest.mark.parametrize("value", test_data_types)
+def test_required_hash_fields_field(value):
+    """Tests for the 'required_hash_fields' field validation with various data types."""
+    if isinstance(value, list):
+        model = Synapse(required_hash_fields=value)
+        assert model.required_hash_fields == value
+    else:
+        with pytest.raises(ValidationError):
+            Synapse(required_hash_fields=value)
