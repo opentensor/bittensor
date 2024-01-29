@@ -478,7 +478,6 @@ class Synapse(BaseModel):
         repr=False
     )
 
-
     def __setattr__(self, name: str, value: Any):
         """
         Override the __setattr__ method to make the `required_hash_fields` property read-only.
@@ -571,82 +570,40 @@ class Synapse(BaseModel):
         return self.dendrite.status_code == 401
 
     def to_headers(self) -> dict:
-        """
-        Converts the state of a Synapse instance into a dictionary of HTTP headers. This method is essential for
-        packaging Synapse data for network transmission in the Bittensor framework, ensuring that each key aspect of
-        the Synapse is represented in a format suitable for HTTP communication.
-
-        Process:
-        1. Basic Information: It starts by including the 'name' and 'timeout' of the Synapse, which are fundamental
-            for identifying the query and managing its lifespan on the network.
-        2. Complex Objects: The method serializes the 'axon' and 'dendrite' objects, if present, into strings. This
-            serialization is crucial for preserving the state and structure of these objects over the network.
-        3. Encoding: Non-optional complex objects are serialized and encoded in base64, making them safe for HTTP
-            transport.
-        4. Size Metrics: The method calculates and adds the size of headers and the total object size, providing
-            valuable information for network bandwidth management.
-
-        Example Usage:
-            synapse = Synapse(name="ExampleSynapse", timeout=30)
-            headers = synapse.to_headers()
-            # headers now contains a dictionary representing the Synapse instance
-
-        Returns:
-            dict: A dictionary containing key-value pairs representing the Synapse's properties, suitable for HTTP communication.
-        """
-        # Initializing headers with 'name' and 'timeout'
         headers = {"name": self.name, "timeout": str(self.timeout)}
 
-        # Adding headers for 'axon' and 'dendrite' if they are not None
-        headers.update(
-            {
+        # Serialize 'axon' and 'dendrite'
+        if self.axon:
+            headers.update({
                 f"bt_header_axon_{k}": str(v)
-                for k, v in self.axon.model_dump().items()
+                for k, v in self.axon.dict().items()
                 if v is not None
-            }
-        )
-        headers.update(
-            {
+            })
+        if self.dendrite:
+            headers.update({
                 f"bt_header_dendrite_{k}": str(v)
-                for k, v in self.dendrite.model_dump().items()
+                for k, v in self.dendrite.dict().items()
                 if v is not None
-            }
-        )
+            })
 
-        # Getting the type hints for the properties of the instance
-        property_type_hints = typing.get_type_hints(self)
+        # Serialize and encode non-optional complex objects
+        required_fields = self.__fields__.values()
+        for field in required_fields:
+            if field.required and field.name not in headers:
+                value = getattr(self, field.name)
+                if value is not None:
+                    try:
+                        serialized_value = json.dumps(value)
+                        encoded_value = base64.b64encode(serialized_value.encode()).decode("utf-8")
+                        headers[f"bt_header_input_obj_{field.name}"] = encoded_value
+                    except TypeError as e:
+                        raise ValueError(
+                            f"Error serializing {field.name} with value {value}. Objects must be json serializable."
+                        ) from e
 
-        # Getting the fields of the instance
-        instance_fields = self.model_dump()
-
-        # Fetch the required fields from the model schema (pydantic v2)
-        required = []
-        for k, v in self.__class__.__dict__["model_fields"].items():
-            if v.is_required():
-                required.append(k)
-
-        # Iterating over the fields of the instance
-        for field, value in instance_fields.items():
-            # Skipping the field if it's already in the headers or its value is None
-            if field in headers or value is None:
-                continue
-
-            elif field in required:
-                try:
-                    # create an empty (dummy) instance of type(value) to pass pydantic validation on the axon side
-                    serialized_value = json.dumps(value.__class__.__call__())
-                    encoded_value = base64.b64encode(serialized_value.encode()).decode(
-                        "utf-8"
-                    )
-                    headers[f"bt_header_input_obj_{field}"] = encoded_value
-                except TypeError as e:
-                    raise ValueError(
-                        f"Error serializing {field} with value {value}. Objects must be json serializable."
-                    ) from e
-
-        # Adding the size of the headers and the total size to the headers
+        # Add size metrics
         headers["header_size"] = str(sys.getsizeof(headers))
-        headers["total_size"] = str(self.get_total_size())
+        headers["total_size"] = str(sys.getsizeof(self))
         headers["computed_body_hash"] = self.body_hash
 
         return headers
@@ -675,7 +632,7 @@ class Synapse(BaseModel):
         hashes = []
 
         # Getting the fields of the instance
-        instance_fields = self.model_dump()
+        instance_fields = self.dict()
 
         for field, value in instance_fields.items():
             # If the field is required in the subclass schema, hash and add it.
