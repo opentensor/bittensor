@@ -16,29 +16,47 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import numpy
-import torch
 import base64
-import pytest
-import msgpack
-import pydantic
-import msgpack_numpy
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
+import msgpack
+import msgpack_numpy
+import numpy as np
+from pydantic import BaseModel, Field, validator
+import torch
+
+
 TORCH_DTYPES = {
-    "torch.float16": torch.float16,
-    "torch.float32": torch.float32,
-    "torch.float64": torch.float64,
-    "torch.uint8": torch.uint8,
-    "torch.int16": torch.int16,
-    "torch.int8": torch.int8,
-    "torch.int32": torch.int32,
-    "torch.int64": torch.int64,
-    "torch.bool": torch.bool,
+    torch.float16: "torch.float16",
+    torch.float32: "torch.float32",
+    torch.float64: "torch.float64",
+    torch.uint8: "torch.uint8",
+    torch.int16: "torch.int16",
+    torch.int8: "torch.int8",
+    torch.int32: "torch.int32",
+    torch.int64: "torch.int64",
+    torch.bool: "torch.bool",
 }
 
 
-def cast_dtype(raw: Union[None, torch.dtype, str]) -> str:
+def cast_dtype(raw: Union[None, torch.dtype, str]) -> Union[str, None]:
+    """
+    Casts the raw value to a string representing the torch data type.
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, torch.dtype):
+        return TORCH_DTYPES.get(raw, str(raw))
+    if isinstance(raw, str):
+        if raw in TORCH_DTYPES.values():
+            return raw
+        raise ValueError(f"{raw} is not a valid torch type in {TORCH_DTYPES.values()}")
+    raise TypeError(
+        f"{raw} of type {type(raw)} is not a valid type in Union[None, torch.dtype, str]"
+    )
+
+
+def old_cast_dtype(raw: Union[None, torch.dtype, str]) -> str:
     """
     Casts the raw value to a string representing the torch data type.
 
@@ -97,16 +115,16 @@ def cast_shape(raw: Union[None, List[int], str]) -> str:
         )
 
 
-class tensor:
-    def __new__(cls, tensor: Union[list, numpy.ndarray, torch.Tensor]):
+class old_tensor_factory:
+    def __new__(cls, tensor: Union[list, np.ndarray, torch.Tensor]):
         if isinstance(tensor, list):
             tensor = torch.tensor(tensor)
-        elif isinstance(tensor, numpy.ndarray):
+        elif isinstance(tensor, np.ndarray):
             tensor = torch.tensor(tensor)
         return Tensor.serialize(tensor=tensor)
 
 
-class Tensor(pydantic.BaseModel):
+class Tensor(BaseModel):
     """
     Represents a Tensor object.
 
@@ -116,7 +134,28 @@ class Tensor(pydantic.BaseModel):
         shape (List[int]): Tensor shape.
     """
 
-    model_config = pydantic.ConfigDict(validate_assignment=True)
+    class Config:
+        """
+        Configuration class for the ModelConfig Pydantic model.
+
+        Attributes:
+            validate_assignment (bool): Enables validation of attribute assignments.
+
+        Note:
+            In Pydantic v2, the 'ConfigDict' used in earlier versions is deprecated.
+            This 'Config' inner class is used instead to configure the behavior of the model.
+        """
+        validate_assignment = True
+
+    @classmethod
+    @validator('dtype', pre=True)
+    def validate_dtype(cls, value):
+        return cast_dtype(value)
+
+    @classmethod
+    @validator('shape', pre=True)
+    def validate_shape(cls, value):
+        return cast_shape(value)
 
     def tensor(self) -> torch.Tensor:
         return self.deserialize()
@@ -124,7 +163,7 @@ class Tensor(pydantic.BaseModel):
     def tolist(self) -> List[object]:
         return self.deserialize().tolist()
 
-    def numpy(self) -> "numpy.ndarray":
+    def numpy(self) -> "np.ndarray":
         return self.deserialize().detach().numpy()
 
     def deserialize(self) -> "torch.Tensor":
@@ -172,28 +211,52 @@ class Tensor(pydantic.BaseModel):
         ).decode("utf-8")
         return Tensor(buffer=data_buffer, shape=shape, dtype=dtype)
 
-    buffer: Optional[str] = pydantic.Field(
+    buffer: Optional[str] = Field(
+        default=None,
         title="buffer",
         description="Tensor buffer data. This field stores the serialized representation of the tensor data.",
         examples="0x321e13edqwds231231231232131",
         frozen=True,
         repr=False,
-    )  # Represents the tensor buffer data.
+    )
 
-    dtype: str = pydantic.Field(
+    dtype: str = Field(
+        default="torch.float32",  # Default value or make it mandatory
         title="dtype",
-        description="Tensor data type. This field specifies the data type of the tensor, such as torch.float32 or torch.int64.",
+        description="Tensor data type. This field specifies the data type of the tensor.",
         examples="torch.float32",
         frozen=True,
         repr=True,
-    )  # Represents the data type of the tensor.
-    _extract_dtype = pydantic.field_validator("dtype", mode="before")(cast_dtype)
+    )
 
-    shape: List[int] = pydantic.Field(
+    shape: List[int] = Field(
+        default_factory=list,
         title="shape",
-        description="Tensor shape. This field defines the dimensions of the tensor as a list of integers, such as [10, 10] for a 2D tensor with shape (10, 10).",
+        description="Tensor shape. This field defines the dimensions of the tensor.",
         examples="[10,10]",
         frozen=True,
         repr=True,
-    )  # Represents the shape of the tensor.
-    _extract_shape = pydantic.field_validator("shape", mode="before")(cast_shape)
+    )
+
+
+class TensorFactory:
+    """
+    Factory class for creating Tensor objects from various input types.
+    """
+
+    @staticmethod
+    def create(tensor: Union[list, np.ndarray, torch.Tensor]) -> Tensor:
+        """
+        Creates a Tensor object from a given input which can be a list, numpy array, or a torch tensor.
+
+        Args:
+            tensor (Union[list, numpy.ndarray, torch.Tensor]): The input tensor data.
+
+        Returns:
+            Tensor: The serialized Tensor object.
+        """
+        if isinstance(tensor, (list, np.ndarray)):
+            tensor = torch.tensor(tensor)
+        return Tensor.serialize(tensor=tensor)
+
+
