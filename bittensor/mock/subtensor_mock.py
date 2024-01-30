@@ -187,7 +187,7 @@ class MockSubtensorState(TypedDict):
 
 class MockChainState(TypedDict):
     System: MockSystemState
-    SubtensorModule: MockSubtensorState
+    Subtensor: MockSubtensorState
 
 
 class MockSubtensor(subtensor):
@@ -213,7 +213,7 @@ class MockSubtensor(subtensor):
             self.chain_state = {
                 "System": {"Account": {}},
                 "Balances": {"ExistentialDeposit": {0: 500}},
-                "SubtensorModule": {
+                "Subtensor": {
                     "NetworksAdded": {},
                     "Rho": {},
                     "Kappa": {},
@@ -283,7 +283,7 @@ class MockSubtensor(subtensor):
         return "0x" + sha256(str(block_id).encode()).hexdigest()[:64]
 
     def create_subnet(self, netuid: int) -> None:
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         if netuid not in subtensor_state["NetworksAdded"]:
             # Per Subnet
             subtensor_state["Rho"][netuid] = {}
@@ -362,14 +362,14 @@ class MockSubtensor(subtensor):
             raise Exception("Subnet already exists")
 
     def set_difficulty(self, netuid: int, difficulty: int) -> None:
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         if netuid not in subtensor_state["NetworksAdded"]:
             raise Exception("Subnet does not exist")
 
         subtensor_state["Difficulty"][netuid][self.block_number] = difficulty
 
     def _register_neuron(self, netuid: int, hotkey: str, coldkey: str) -> int:
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         if netuid not in subtensor_state["NetworksAdded"]:
             raise Exception("Subnet does not exist")
 
@@ -490,7 +490,7 @@ class MockSubtensor(subtensor):
         stake = self._convert_to_balance(stake)
         balance = self._convert_to_balance(balance)
 
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         if netuid not in subtensor_state["NetworksAdded"]:
             raise Exception("Subnet does not exist")
 
@@ -525,9 +525,9 @@ class MockSubtensor(subtensor):
         diff = balance.rao - old_balance.rao
 
         # Update total issuance
-        self.chain_state["SubtensorModule"]["TotalIssuance"][self.block_number] = (
+        self.chain_state["Subtensor"]["TotalIssuance"][self.block_number] = (
             self._get_most_recent_storage(
-                self.chain_state["SubtensorModule"]["TotalIssuance"]
+                self.chain_state["Subtensor"]["TotalIssuance"]
             )
             + diff
         )
@@ -545,7 +545,7 @@ class MockSubtensor(subtensor):
         self.block_number += 1
 
         # Doesn't do epoch
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         for subnet in subtensor_state["NetworksAdded"]:
             subtensor_state["BlocksSinceLastStep"][subnet][self.block_number] = (
                 self._get_most_recent_storage(
@@ -571,7 +571,7 @@ class MockSubtensor(subtensor):
         )
         if uid is None:
             raise Exception("Neuron not found")
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         subtensor_state["Commits"][netuid].setdefault(self.block_number, {})[uid] = data
 
     def get_commitment(self, netuid: int, uid: int, block: Optional[int] = None) -> str:
@@ -579,7 +579,7 @@ class MockSubtensor(subtensor):
             raise Exception("Cannot query block in the future")
         block = block or self.block_number
 
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         return subtensor_state["Commits"][netuid][block][uid]
 
     def query_subtensor(
@@ -595,7 +595,7 @@ class MockSubtensor(subtensor):
         else:
             block = self.block_number
 
-        state = self.chain_state["SubtensorModule"][name]
+        state = self.chain_state["Subtensor"][name]
         if state is not None:
             # Use prefix
             if len(params) > 0:
@@ -634,7 +634,7 @@ class MockSubtensor(subtensor):
         else:
             block = self.block_number
 
-        state = self.chain_state["SubtensorModule"][name]
+        state = self.chain_state["Subtensor"][name]
         if state is not None:
             # Use prefix
             if len(params) > 0:
@@ -751,7 +751,7 @@ class MockSubtensor(subtensor):
         else:
             block = self.block_number
 
-        if netuid not in self.chain_state["SubtensorModule"]["NetworksAdded"]:
+        if netuid not in self.chain_state["Subtensor"]["NetworksAdded"]:
             return None
 
         neuron_info = self._neuron_subnet_exists(uid, netuid, block)
@@ -762,12 +762,12 @@ class MockSubtensor(subtensor):
             return neuron_info
 
     def neurons(self, netuid: int, block: Optional[int] = None) -> List[NeuronInfo]:
-        if netuid not in self.chain_state["SubtensorModule"]["NetworksAdded"]:
+        if netuid not in self.chain_state["Subtensor"]["NetworksAdded"]:
             raise Exception("Subnet does not exist")
 
         neurons = []
         subnet_n = self._get_most_recent_storage(
-            self.chain_state["SubtensorModule"]["SubnetworkN"][netuid], block
+            self.chain_state["Subtensor"]["SubnetworkN"][netuid], block
         )
         for uid in range(subnet_n):
             neuron_info = self.neuron_for_uid(uid, netuid, block)
@@ -801,7 +801,7 @@ class MockSubtensor(subtensor):
         self, netuid: int, hotkey: str, block: Optional[int] = None
     ) -> AxonInfoDict:
         # Axons [netuid][hotkey][block_number]
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         if netuid not in subtensor_state["Axons"]:
             return AxonInfoDict.default()
 
@@ -819,7 +819,7 @@ class MockSubtensor(subtensor):
     def _get_prometheus_info(
         self, netuid: int, hotkey: str, block: Optional[int] = None
     ) -> PrometheusInfoDict:
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         if netuid not in subtensor_state["Prometheus"]:
             return PrometheusInfoDict.default()
 
@@ -837,7 +837,7 @@ class MockSubtensor(subtensor):
     def _neuron_subnet_exists(
         self, uid: int, netuid: int, block: Optional[int] = None
     ) -> Optional[NeuronInfo]:
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         if netuid not in subtensor_state["NetworksAdded"]:
             return None
 
@@ -957,7 +957,7 @@ class MockSubtensor(subtensor):
         else:
             block = self.block_number
 
-        if netuid not in self.chain_state["SubtensorModule"]["NetworksAdded"]:
+        if netuid not in self.chain_state["Subtensor"]["NetworksAdded"]:
             raise Exception("Subnet does not exist")
 
         neuron_info = self._neuron_subnet_exists(uid, netuid, block)
@@ -976,12 +976,12 @@ class MockSubtensor(subtensor):
     def neurons_lite(
         self, netuid: int, block: Optional[int] = None
     ) -> List[NeuronInfoLite]:
-        if netuid not in self.chain_state["SubtensorModule"]["NetworksAdded"]:
+        if netuid not in self.chain_state["Subtensor"]["NetworksAdded"]:
             raise Exception("Subnet does not exist")
 
         neurons = []
         subnet_n = self._get_most_recent_storage(
-            self.chain_state["SubtensorModule"]["SubnetworkN"][netuid]
+            self.chain_state["Subtensor"]["SubnetworkN"][netuid]
         )
         for uid in range(subnet_n):
             neuron_info = self.neuron_for_uid_lite(uid, netuid, block)
@@ -1044,7 +1044,7 @@ class MockSubtensor(subtensor):
         hotkey_ss58 = wallet.hotkey.ss58_address
         coldkey_ss58 = wallet.coldkeypub.ss58_address
 
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         if self.is_hotkey_delegate(hotkey_ss58=hotkey_ss58):
             return True
 
@@ -1103,7 +1103,7 @@ class MockSubtensor(subtensor):
     ) -> Tuple[bool, Optional[str]]:
         # Assume pow result is valid
 
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         if netuid not in subtensor_state["NetworksAdded"]:
             raise Exception("Subnet does not exist")
 
@@ -1122,7 +1122,7 @@ class MockSubtensor(subtensor):
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         if netuid not in subtensor_state["NetworksAdded"]:
             raise Exception("Subnet does not exist")
 
@@ -1154,7 +1154,7 @@ class MockSubtensor(subtensor):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
 
         bal = self.get_balance(wallet.coldkeypub.ss58_address)
         curr_stake = self.get_stake_for_coldkey_and_hotkey(
@@ -1225,7 +1225,7 @@ class MockSubtensor(subtensor):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
 
         bal = self.get_balance(wallet.coldkeypub.ss58_address)
         curr_stake = self.get_stake_for_coldkey_and_hotkey(
@@ -1294,7 +1294,7 @@ class MockSubtensor(subtensor):
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional["DelegateInfo"]:
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
 
         if hotkey_ss58 not in subtensor_state["Delegates"]:
             return None
@@ -1343,7 +1343,7 @@ class MockSubtensor(subtensor):
         return info
 
     def get_delegates(self, block: Optional[int] = None) -> List["DelegateInfo"]:
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         delegates_info = []
         for hotkey in subtensor_state["Delegates"]:
             info = self.get_delegate_by_hotkey(hotkey_ss58=hotkey, block=block)
@@ -1366,7 +1366,7 @@ class MockSubtensor(subtensor):
         return result
 
     def get_all_subnets_info(self, block: Optional[int] = None) -> List[SubnetInfo]:
-        subtensor_state = self.chain_state["SubtensorModule"]
+        subtensor_state = self.chain_state["Subtensor"]
         result = []
         for subnet in subtensor_state["NetworksAdded"]:
             info = self.get_subnet_info(netuid=subnet, block=block)

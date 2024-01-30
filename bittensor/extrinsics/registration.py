@@ -421,7 +421,7 @@ def run_faucet_extrinsic(
                         log_verbose=log_verbose,
                     )
             call = subtensor.substrate.compose_call(
-                call_module="SubtensorModule",
+                call_module="Subtensor",
                 call_function="faucet",
                 call_params={
                     "block_number": pow_result.block_number,

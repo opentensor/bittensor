@@ -58,7 +58,7 @@ def register_senate_extrinsic(
         with subtensor.substrate as substrate:
             # create extrinsic call
             call = substrate.compose_call(
-                call_module="SubtensorModule",
+                call_module="Subtensor",
                 call_function="join_senate",
                 call_params={"hotkey": wallet.hotkey.ss58_address},
             )
@@ -135,7 +135,7 @@ def leave_senate_extrinsic(
         with subtensor.substrate as substrate:
             # create extrinsic call
             call = substrate.compose_call(
-                call_module="SubtensorModule",
+                call_module="Subtensor",
                 call_function="leave_senate",
                 call_params={"hotkey": wallet.hotkey.ss58_address},
             )
@@ -215,7 +215,7 @@ def vote_senate_extrinsic(
         with subtensor.substrate as substrate:
             # create extrinsic call
             call = substrate.compose_call(
-                call_module="SubtensorModule",
+                call_module="Subtensor",
                 call_function="vote",
                 call_params={
                     "hotkey": wallet.hotkey.ss58_address,

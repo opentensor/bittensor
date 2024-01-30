@@ -616,7 +616,7 @@ class subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module="SubtensorModule",
+                    call_module="Subtensor",
                     call_function="set_weights",
                     call_params={
                         "dests": uids,
@@ -827,7 +827,7 @@ class subtensor:
             with self.substrate as substrate:
                 # create extrinsic call
                 call = substrate.compose_call(
-                    call_module="SubtensorModule",
+                    call_module="Subtensor",
                     call_function="register",
                     call_params={
                         "netuid": netuid,
@@ -873,7 +873,7 @@ class subtensor:
             with self.substrate as substrate:
                 # create extrinsic call
                 call = substrate.compose_call(
-                    call_module="SubtensorModule",
+                    call_module="Subtensor",
                     call_function="burned_register",
                     call_params={
                         "netuid": netuid,
@@ -915,7 +915,7 @@ class subtensor:
             with self.substrate as substrate:
                 # create extrinsic call
                 call = substrate.compose_call(
-                    call_module="SubtensorModule",
+                    call_module="Subtensor",
                     call_function="swap_hotkey",
                     call_params={
                         "hotkey": wallet.hotkey.ss58_address,
@@ -1294,7 +1294,7 @@ class subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module="SubtensorModule",
+                    call_module="Subtensor",
                     call_function="serve_axon",
                     call_params=call_params,
                 )
@@ -1357,7 +1357,7 @@ class subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module="SubtensorModule",
+                    call_module="Subtensor",
                     call_function="serve_prometheus",
                     call_params=call_params,
                 )
@@ -1407,7 +1407,7 @@ class subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module="SubtensorModule",
+                    call_module="Subtensor",
                     call_function="associate_ips",
                     call_params={
                         "ip_info_list": [ip_info.encode() for ip_info in ip_info_list],
@@ -1537,7 +1537,7 @@ class subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module="SubtensorModule",
+                    call_module="Subtensor",
                     call_function="add_stake",
                     call_params={"hotkey": hotkey_ss58, "amount_staked": amount.rao},
                 )
@@ -1664,7 +1664,7 @@ class subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module="SubtensorModule",
+                    call_module="Subtensor",
                     call_function="remove_stake",
                     call_params={"hotkey": hotkey_ss58, "amount_unstaked": amount.rao},
                 )
@@ -1972,7 +1972,7 @@ class subtensor:
             with self.substrate as substrate:
                 # create extrinsic call
                 call = substrate.compose_call(
-                    call_module="SubtensorModule",
+                    call_module="Subtensor",
                     call_function="root_register",
                     call_params={"hotkey": wallet.hotkey.ss58_address},
                 )
@@ -2194,7 +2194,7 @@ class subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query(
-                    module="SubtensorModule",
+                    module="Subtensor",
                     storage_function=name,
                     params=params,
                     block_hash=None
@@ -2232,7 +2232,7 @@ class subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query_map(
-                    module="SubtensorModule",
+                    module="Subtensor",
                     storage_function=name,
                     params=params,
                     block_hash=None
@@ -3968,7 +3968,7 @@ class subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module="SubtensorModule",
+                    call_module="Subtensor",
                     call_function="add_stake",
                     call_params={"hotkey": delegate_ss58, "amount_staked": amount.rao},
                 )
@@ -4003,7 +4003,7 @@ class subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module="SubtensorModule",
+                    call_module="Subtensor",
                     call_function="remove_stake",
                     call_params={
                         "hotkey": delegate_ss58,
@@ -4039,7 +4039,7 @@ class subtensor:
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
-                    call_module="SubtensorModule",
+                    call_module="Subtensor",
                     call_function="become_delegate",
                     call_params={"hotkey": wallet.hotkey.ss58_address},
                 )
