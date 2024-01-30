@@ -16,10 +16,10 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import json
 import time
 import pytest
 import shutil
-import unittest
 import bittensor
 import unittest.mock as mock
 from scalecodec import ScaleBytes
@@ -367,6 +367,9 @@ def keyfile_setup_teardown():
 
 
 def test_create(keyfile_setup_teardown):
+    """
+    Test case for creating a keyfile and performing various operations on it.
+    """
     root_path = keyfile_setup_teardown
     keyfile = bittensor.keyfile(path=os.path.join(root_path, "keyfile"))
 
@@ -416,6 +419,9 @@ def test_create(keyfile_setup_teardown):
 
 
 def test_legacy_coldkey(keyfile_setup_teardown):
+    """
+    Test case for legacy cold keyfile.
+    """
     root_path = keyfile_setup_teardown
     legacy_filename = os.path.join(root_path, "coldlegacy_keyfile")
     keyfile = bittensor.keyfile(path=legacy_filename)
@@ -439,6 +445,12 @@ def test_legacy_coldkey(keyfile_setup_teardown):
 
 
 def test_validate_password():
+    """
+    Test case for the validate_password function.
+
+    This function tests the behavior of the validate_password function from the bittensor.keyfile module.
+    It checks various scenarios to ensure that the function correctly validates passwords.
+    """
     from bittensor.keyfile import validate_password
 
     assert validate_password(None) == False
@@ -451,6 +463,16 @@ def test_validate_password():
 
 
 def test_decrypt_keyfile_data_legacy():
+    """
+    Test case for decrypting legacy keyfile data.
+
+    This test case verifies that the `decrypt_keyfile_data` function correctly decrypts
+    encrypted data using a legacy encryption scheme.
+
+    The test generates a key using a password and encrypts a sample data. Then, it decrypts
+    the encrypted data using the same password and asserts that the decrypted data matches
+    the original data.
+    """
     import base64
 
     from cryptography.fernet import Fernet
@@ -484,6 +506,13 @@ def test_decrypt_keyfile_data_legacy():
 
 
 def test_user_interface():
+    """
+    Test the user interface for asking password to encrypt.
+
+    This test case uses the `ask_password_to_encrypt` function from the `bittensor.keyfile` module.
+    It mocks the `getpass.getpass` function to simulate user input of passwords.
+    The expected result is that the `ask_password_to_encrypt` function returns the correct password.
+    """
     from bittensor.keyfile import ask_password_to_encrypt
 
     with mock.patch(
@@ -494,6 +523,9 @@ def test_user_interface():
 
 
 def test_overwriting(keyfile_setup_teardown):
+    """
+    Test case for overwriting a keypair in the keyfile.
+    """
     root_path = keyfile_setup_teardown
     keyfile = bittensor.keyfile(path=os.path.join(root_path, "keyfile"))
     alice = bittensor.Keypair.create_from_uri("/Alice")
@@ -507,3 +539,60 @@ def test_overwriting(keyfile_setup_teardown):
             keyfile.set_keypair(
                 bob, encrypt=True, overwrite=False, password="thisisafakepassword"
             )
+
+
+def test_serialized_keypair_to_keyfile_data(keyfile_setup_teardown):
+    """
+    Test case for serializing a keypair to keyfile data.
+
+    This test case verifies that the `serialized_keypair_to_keyfile_data` function correctly
+    serializes a keypair to keyfile data. It then deserializes the keyfile data and asserts
+    that the deserialized keypair matches the original keypair.
+    """
+    from bittensor.keyfile import serialized_keypair_to_keyfile_data
+
+    root_path = keyfile_setup_teardown
+    keyfile = bittensor.keyfile(path=os.path.join(root_path, "keyfile"))
+
+    mnemonic = bittensor.Keypair.generate_mnemonic(12)
+    keypair = bittensor.Keypair.create_from_mnemonic(mnemonic)
+
+    keyfile.set_keypair(
+        keypair, encrypt=True, overwrite=True, password="thisisafakepassword"
+    )
+    keypair_data = serialized_keypair_to_keyfile_data(keypair)
+    decoded_keypair_data = json.loads(keypair_data.decode())
+
+    assert decoded_keypair_data["secretPhrase"] == keypair.mnemonic
+    assert decoded_keypair_data["ss58Address"] == keypair.ss58_address
+    assert decoded_keypair_data["publicKey"] == f"0x{keypair.public_key.hex()}"
+    assert decoded_keypair_data["accountId"] == f"0x{keypair.public_key.hex()}"
+
+
+def test_deserialize_keypair_from_keyfile_data(keyfile_setup_teardown):
+    """
+    Test case for deserializing a keypair from keyfile data.
+
+    This test case verifies that the `deserialize_keypair_from_keyfile_data` function correctly
+    deserializes keyfile data to a keypair. It first serializes a keypair to keyfile data and
+    then deserializes the keyfile data to a keypair. It then asserts that the deserialized keypair
+    matches the original keypair.
+    """
+    from bittensor.keyfile import serialized_keypair_to_keyfile_data
+    from bittensor.keyfile import deserialize_keypair_from_keyfile_data
+
+    root_path = keyfile_setup_teardown
+    keyfile = bittensor.keyfile(path=os.path.join(root_path, "keyfile"))
+
+    mnemonic = bittensor.Keypair.generate_mnemonic(12)
+    keypair = bittensor.Keypair.create_from_mnemonic(mnemonic)
+
+    keyfile.set_keypair(
+        keypair, encrypt=True, overwrite=True, password="thisisafakepassword"
+    )
+    keypair_data = serialized_keypair_to_keyfile_data(keypair)
+    deserialized_keypair = deserialize_keypair_from_keyfile_data(keypair_data)
+
+    assert deserialized_keypair.ss58_address == keypair.ss58_address
+    assert deserialized_keypair.public_key == keypair.public_key
+    assert deserialized_keypair.private_key == keypair.private_key
