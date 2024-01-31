@@ -80,7 +80,9 @@ __blocktime__ = 12
 __pipaddress__ = "https://pypi.org/pypi/bittensor/json"
 
 # Raw github url for delegates registry file
-__delegates_details_url__: str = "https://raw.githubusercontent.com/opentensor/bittensor-delegates/main/public/delegates.json"
+__delegates_details_url__: str = (
+    "https://raw.githubusercontent.com/opentensor/bittensor-delegates/main/public/delegates.json"
+)
 
 # Substrate ss58_format
 __ss58_format__ = 42
