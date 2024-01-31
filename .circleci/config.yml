@@ -20,7 +20,7 @@ jobs:
       - restore_cache:
           name: Restore cached black venv
           keys:
-            - v1-pypi-py-black-<< parameters.python-version >>
+            - v2-pypi-py-black-<< parameters.python-version >>
 
       - run:
           name: Update & Activate black venv
@@ -34,7 +34,7 @@ jobs:
           name: Save cached black venv
           paths:
             - "env/"
-          key: v1-pypi-py-black-<< parameters.python-version >>
+          key: v2-pypi-py-black-<< parameters.python-version >>
 
       - run:
           name: Black format check
@@ -79,8 +79,8 @@ jobs:
       - restore_cache:
           name: Restore cached venv
           keys:
-            - v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
-            - v1-pypi-py<< parameters.python-version >>
+            - v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
+            - v2-pypi-py<< parameters.python-version >>
 
       - run:
           name: Update & Activate venv
@@ -94,7 +94,7 @@ jobs:
           name: Save cached venv
           paths:
             - "env/"
-          key: v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
+          key: v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
 
       - run:
           name: Install Bittensor
