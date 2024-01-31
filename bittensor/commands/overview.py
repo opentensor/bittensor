@@ -372,11 +372,13 @@ class OverviewCommand:
                     "{:.5f}".format(validator_trust),
                     "*" if validator_permit else "",
                     str(last_update),
-                    bittensor.utils.networking.int_to_ip(nn.axon_info.ip)
-                    + ":"
-                    + str(nn.axon_info.port)
-                    if nn.axon_info.port != 0
-                    else "[yellow]none[/yellow]",
+                    (
+                        bittensor.utils.networking.int_to_ip(nn.axon_info.ip)
+                        + ":"
+                        + str(nn.axon_info.port)
+                        if nn.axon_info.port != 0
+                        else "[yellow]none[/yellow]"
+                    ),
                     nn.hotkey,
                 ]
 

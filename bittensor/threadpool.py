@@ -130,7 +130,7 @@ class PriorityThreadPoolExecutor(_base.Executor):
         initargs=(),
     ):
         """Initializes a new `ThreadPoolExecutor <https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor>`_ instance.
-        
+
         Args:
             max_workers: The maximum number of threads that can be used to
                 execute the given calls.
@@ -195,7 +195,7 @@ class PriorityThreadPoolExecutor(_base.Executor):
     @classmethod
     def config(cls) -> "bittensor.config":
         """Get config from the argument parser.
-        
+
         Return: :func:`bittensor.config` object.
         """
         parser = argparse.ArgumentParser()

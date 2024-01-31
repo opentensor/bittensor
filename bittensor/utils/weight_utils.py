@@ -1,5 +1,6 @@
 """ Conversion for weight between chain representation and torch tensor
 """
+
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 

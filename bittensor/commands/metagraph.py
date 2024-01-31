@@ -124,9 +124,11 @@ class MetagraphCommand:
                 "*" if metagraph.validator_permit[uid] else "",
                 str((metagraph.block.item() - metagraph.last_update[uid].item())),
                 str(metagraph.active[uid].item()),
-                ep.ip + ":" + str(ep.port)
-                if ep.is_serving
-                else "[yellow]none[/yellow]",
+                (
+                    ep.ip + ":" + str(ep.port)
+                    if ep.is_serving
+                    else "[yellow]none[/yellow]"
+                ),
                 ep.hotkey[:10],
                 ep.coldkey[:10],
             ]
