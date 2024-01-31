@@ -108,3 +108,200 @@ def test_normalize_with_max_weight():
     y = weight_utils.normalize_max_weight(x, limit=limit - change)
     z = weight_utils.normalize_max_weight(x, limit=limit + change)
     assert (y - z).abs().sum() < eplison
+
+
+@pytest.mark.parametrize(
+    "test_id, n, uids, weights, expected",
+    [
+        ("happy-path-1", 3, [0, 1, 2], [15, 5, 80], torch.tensor([0.15, 0.05, 0.8])),
+        ("happy-path-2", 4, [1, 3], [50, 50], torch.tensor([0.0, 0.5, 0.0, 0.5])),
+    ],
+)
+def test_convert_weight_uids_and_vals_to_tensor_happy_path(
+    test_id, n, uids, weights, expected
+):
+    # Act
+    result = weight_utils.convert_weight_uids_and_vals_to_tensor(n, uids, weights)
+
+    # Assert
+    assert torch.allclose(result, expected), f"Failed {test_id}"
+
+
+@pytest.mark.parametrize(
+    "test_id, n, uids, weights, expected",
+    [
+        ("edge_case_empty", 5, [], [], torch.zeros(5)),
+        ("edge_case_single", 1, [0], [100], torch.tensor([1.0])),
+        ("edge_case_all_zeros", 4, [0, 1, 2, 3], [0, 0, 0, 0], torch.zeros(4)),
+    ],
+)
+def test_convert_weight_uids_and_vals_to_tensor_edge_cases(
+    test_id, n, uids, weights, expected
+):
+    # Act
+    result = weight_utils.convert_weight_uids_and_vals_to_tensor(n, uids, weights)
+
+    # Assert
+    assert torch.allclose(result, expected), f"Failed {test_id}"
+
+
+@pytest.mark.parametrize(
+    "test_id, n, uids, weights, exception",
+    [
+        ("error-case-mismatched-lengths", 3, [0, 1, 3, 4, 5], [10, 20, 30], IndexError),
+        ("error-case-negative-n", -1, [0, 1], [10, 20], RuntimeError),
+        ("error-case-invalid-uids", 3, [0, 3], [10, 20], IndexError),
+    ],
+)
+def test_convert_weight_uids_and_vals_to_tensor_error_cases(
+    test_id, n, uids, weights, exception
+):
+    # Act / Assert
+    with pytest.raises(exception):
+        weight_utils.convert_weight_uids_and_vals_to_tensor(n, uids, weights)
+
+
+@pytest.mark.parametrize(
+    "test_id, n, uids, weights, subnets, expected",
+    [
+        (
+            "happy-path-1",
+            3,
+            [0, 1, 2],
+            [15, 5, 80],
+            [0, 1, 2],
+            torch.tensor([0.15, 0.05, 0.8]),
+        ),
+        (
+            "happy-path-2",
+            3,
+            [0, 2],
+            [300, 300],
+            [0, 1, 2],
+            torch.tensor([0.5, 0.0, 0.5]),
+        ),
+    ],
+)
+def test_convert_root_weight_uids_and_vals_to_tensor_happy_paths(
+    test_id, n, uids, weights, subnets, expected
+):
+    # Act
+    result = weight_utils.convert_root_weight_uids_and_vals_to_tensor(
+        n, uids, weights, subnets
+    )
+
+    # Assert
+    assert torch.allclose(result, expected, atol=1e-4), f"Failed {test_id}"
+
+
+@pytest.mark.parametrize(
+    "test_id, n, uids, weights, subnets, expected",
+    [
+        (
+            "edge-1",
+            1,
+            [0],
+            [0],
+            [0],
+            torch.tensor([0.0]),
+        ),  # Single neuron with zero weight
+        (
+            "edge-2",
+            2,
+            [0, 1],
+            [0, 0],
+            [0, 1],
+            torch.tensor([0.0, 0.0]),
+        ),  # All zero weights
+    ],
+)
+def test_convert_root_weight_uids_and_vals_to_tensor_edge_cases(
+    test_id, n, uids, weights, subnets, expected
+):
+    # Act
+    result = weight_utils.convert_root_weight_uids_and_vals_to_tensor(
+        n, uids, weights, subnets
+    )
+
+    # Assert
+    assert torch.allclose(result, expected, atol=1e-4), f"Failed {test_id}"
+
+
+@pytest.mark.parametrize(
+    "test_id, n, uids, weights, subnets, exception",
+    [
+        ("error-1", 3, [1, 3], [100, 200], [1, 2], Exception),  # uid not in subnets
+        ("error-2", 3, [1, 2, 3], [100, 200], [1], Exception),  # More uids than subnets
+    ],
+)
+def test_convert_root_weight_uids_and_vals_to_tensor_error_cases(
+    test_id, n, uids, weights, subnets, exception
+):
+    # Act and Assert
+    with pytest.raises(exception):
+        weight_utils.convert_root_weight_uids_and_vals_to_tensor(
+            n, uids, weights, subnets
+        )
+        print(f"Failed {test_id}")
+
+
+@pytest.mark.parametrize(
+    "test_id, n, uids, bonds, expected_output",
+    [
+        (
+            "happy-path-1",
+            5,
+            [1, 3, 4],
+            [10, 20, 30],
+            torch.tensor([0, 10, 0, 20, 30], dtype=torch.int64),
+        ),
+        (
+            "happy-path-2",
+            3,
+            [0, 1, 2],
+            [7, 8, 9],
+            torch.tensor([7, 8, 9], dtype=torch.int64),
+        ),
+        ("happy-path-3", 4, [2], [15], torch.tensor([0, 0, 15, 0], dtype=torch.int64)),
+    ],
+)
+def test_happy_path(test_id, n, uids, bonds, expected_output):
+    # Act
+    result = weight_utils.convert_bond_uids_and_vals_to_tensor(n, uids, bonds)
+
+    # Assert
+    assert torch.equal(result, expected_output), f"Failed {test_id}"
+
+
+@pytest.mark.parametrize(
+    "test_id, n, uids, bonds, expected_output",
+    [
+        ("edge-1", 1, [0], [0], torch.tensor([0], dtype=torch.int64)),  # Single element
+        (
+            "edge-2",
+            10,
+            [],
+            [],
+            torch.zeros(10, dtype=torch.int64),
+        ),  # Empty uids and bonds
+    ],
+)
+def test_edge_cases(test_id, n, uids, bonds, expected_output):
+    # Act
+    result = weight_utils.convert_bond_uids_and_vals_to_tensor(n, uids, bonds)
+
+    # Assert
+    assert torch.equal(result, expected_output), f"Failed {test_id}"
+
+
+@pytest.mark.parametrize(
+    "test_id, n, uids, bonds, exception",
+    [
+        ("error-1", 5, [1, 3, 6], [10, 20, 30], IndexError),  # uid out of bounds
+        ("error-2", -1, [0], [10], RuntimeError),  # Negative number of neurons
+    ],
+)
+def test_error_cases(test_id, n, uids, bonds, exception):
+    # Act / Assert
+    with pytest.raises(exception):
+        weight_utils.convert_bond_uids_and_vals_to_tensor(n, uids, bonds)
