@@ -766,7 +766,7 @@ class DelegateInfo:
         cls, vec_u8: List[int]
     ) -> List[Tuple["DelegateInfo", Balance]]:
         r"""Returns a list of Tuples of DelegateInfo objects, and Balance, from a ``vec_u8``.
-        
+
         This is the list of delegates that the user has delegated to, and the amount of stake delegated.
         """
         decoded = from_scale_encoding(vec_u8, ChainDataType.DelegatedInfo, is_vec=True)
