@@ -362,7 +362,7 @@ class SubnetSudoCommand:
             cli.config.param == "network_registration_allowed"
             or cli.config.param == "network_pow_registration_allowed"
         ):
-            cli.config.value = bool(cli.config.value)
+            cli.config.value = True if cli.config.value.lower() == "true" else False
 
         subtensor.set_hyperparameter(
             wallet,
