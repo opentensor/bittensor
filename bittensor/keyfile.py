@@ -44,7 +44,7 @@ NACL_SALT = b"\x13q\x83\xdf\xf1Z\t\xbc\x9c\x90\xb5Q\x879\xe9\xb1"
 
 def serialized_keypair_to_keyfile_data(keypair: "bittensor.Keypair") -> bytes:
     """Serializes keypair object into keyfile data.
-    
+
     Args:
         keypair (bittensor.Keypair): The keypair object to be serialized.
     Returns:
@@ -54,14 +54,16 @@ def serialized_keypair_to_keyfile_data(keypair: "bittensor.Keypair") -> bytes:
         "accountId": "0x" + keypair.public_key.hex() if keypair.public_key else None,
         "publicKey": "0x" + keypair.public_key.hex() if keypair.public_key else None,
         "secretPhrase": keypair.mnemonic if keypair.mnemonic else None,
-        "secretSeed": "0x"
-        + (
-            keypair.seed_hex
-            if isinstance(keypair.seed_hex, str)
-            else keypair.seed_hex.hex()
-        )
-        if keypair.seed_hex
-        else None,
+        "secretSeed": (
+            "0x"
+            + (
+                keypair.seed_hex
+                if isinstance(keypair.seed_hex, str)
+                else keypair.seed_hex.hex()
+            )
+            if keypair.seed_hex
+            else None
+        ),
         "ss58Address": keypair.ss58_address if keypair.ss58_address else None,
     }
     data = json.dumps(json_data).encode()
@@ -70,7 +72,7 @@ def serialized_keypair_to_keyfile_data(keypair: "bittensor.Keypair") -> bytes:
 
 def deserialize_keypair_from_keyfile_data(keyfile_data: bytes) -> "bittensor.Keypair":
     """Deserializes Keypair object from passed keyfile data.
-    
+
     Args:
         keyfile_data (bytes): The keyfile data as bytes to be loaded.
     Returns:
@@ -118,7 +120,7 @@ def deserialize_keypair_from_keyfile_data(keyfile_data: bytes) -> "bittensor.Key
 
 def validate_password(password: str) -> bool:
     """Validates the password against a password policy.
-    
+
     Args:
         password (str): The password to verify.
     Returns:
@@ -145,7 +147,7 @@ def validate_password(password: str) -> bool:
 
 def ask_password_to_encrypt() -> str:
     """Prompts the user to enter a password for key encryption.
-    
+
     Returns:
         password (str): The valid password entered by the user.
     """
@@ -158,7 +160,7 @@ def ask_password_to_encrypt() -> str:
 
 def keyfile_data_is_encrypted_nacl(keyfile_data: bytes) -> bool:
     """Returns true if the keyfile data is NaCl encrypted.
-    
+
     Args:
         keyfile_data ( bytes, required ):
             Bytes to validate.
@@ -171,7 +173,7 @@ def keyfile_data_is_encrypted_nacl(keyfile_data: bytes) -> bool:
 
 def keyfile_data_is_encrypted_ansible(keyfile_data: bytes) -> bool:
     """Returns true if the keyfile data is ansible encrypted.
-    
+
     Args:
         keyfile_data (bytes): The bytes to validate.
     Returns:
@@ -192,7 +194,7 @@ def keyfile_data_is_encrypted_legacy(keyfile_data: bytes) -> bool:
 
 def keyfile_data_is_encrypted(keyfile_data: bytes) -> bool:
     """Returns ``true`` if the keyfile data is encrypted.
-    
+
     Args:
         keyfile_data (bytes): The bytes to validate.
     Returns:
@@ -207,7 +209,7 @@ def keyfile_data_is_encrypted(keyfile_data: bytes) -> bool:
 
 def keyfile_data_encryption_method(keyfile_data: bytes) -> bool:
     """Returns ``true`` if the keyfile data is encrypted.
-    
+
     Args:
         keyfile_data ( bytes, required ):
             Bytes to validate
@@ -236,7 +238,7 @@ def legacy_encrypt_keyfile_data(keyfile_data: bytes, password: str = None) -> by
 
 def encrypt_keyfile_data(keyfile_data: bytes, password: str = None) -> bytes:
     """Encrypts the passed keyfile data using ansible vault.
-    
+
     Args:
         keyfile_data (bytes): The bytes to encrypt.
         password (str, optional): The password used to encrypt the data. If ``None``, asks for user input.
@@ -260,7 +262,7 @@ def encrypt_keyfile_data(keyfile_data: bytes, password: str = None) -> bytes:
 
 def get_coldkey_password_from_environment(coldkey_name: str) -> Optional[str]:
     """Retrieves the cold key password from the environment variables.
-    
+
     Args:
         coldkey_name (str): The name of the cold key.
     Returns:
@@ -279,7 +281,7 @@ def decrypt_keyfile_data(
     keyfile_data: bytes, password: str = None, coldkey_name: Optional[str] = None
 ) -> bytes:
     """Decrypts the passed keyfile data using ansible vault.
-    
+
     Args:
         keyfile_data (bytes): The bytes to decrypt.
         password (str, optional): The password used to decrypt the data. If ``None``, asks for user input.
@@ -373,7 +375,7 @@ class keyfile:
     @property
     def keypair(self) -> "bittensor.Keypair":
         """Returns the keypair from path, decrypts data if the file is encrypted.
-        
+
         Returns:
             keypair (bittensor.Keypair): The keypair stored under the path.
         Raises:
@@ -384,7 +386,7 @@ class keyfile:
     @property
     def data(self) -> bytes:
         """Returns the keyfile data under path.
-        
+
         Returns:
             keyfile_data (bytes): The keyfile data stored under the path.
         Raises:
@@ -395,7 +397,7 @@ class keyfile:
     @property
     def keyfile_data(self) -> bytes:
         """Returns the keyfile data under path.
-        
+
         Returns:
             keyfile_data (bytes): The keyfile data stored under the path.
         Raises:
@@ -411,7 +413,7 @@ class keyfile:
         password: str = None,
     ):
         """Writes the keypair to the file and optionally encrypts data.
-        
+
         Args:
             keypair (bittensor.Keypair): The keypair to store under the path.
             encrypt (bool, optional): If ``True``, encrypts the file under the path. Default is ``True``.
@@ -428,7 +430,7 @@ class keyfile:
 
     def get_keypair(self, password: str = None) -> "bittensor.Keypair":
         """Returns the keypair from the path, decrypts data if the file is encrypted.
-        
+
         Args:
             password (str, optional): The password used to decrypt the file. If ``None``, asks for user input.
         Returns:
@@ -453,7 +455,7 @@ class keyfile:
 
     def exists_on_device(self) -> bool:
         """Returns ``True`` if the file exists on the device.
-        
+
         Returns:
             on_device (bool): ``True`` if the file is on the device.
         """
@@ -463,7 +465,7 @@ class keyfile:
 
     def is_readable(self) -> bool:
         """Returns ``True`` if the file under path is readable.
-        
+
         Returns:
             readable (bool): ``True`` if the file is readable.
         """
@@ -475,7 +477,7 @@ class keyfile:
 
     def is_writable(self) -> bool:
         """Returns ``True`` if the file under path is writable.
-        
+
         Returns:
             writable (bool): ``True`` if the file is writable.
         """
@@ -485,7 +487,7 @@ class keyfile:
 
     def is_encrypted(self) -> bool:
         """Returns ``True`` if the file under path is encrypted.
-        
+
         Returns:
             encrypted (bool): ``True`` if the file is encrypted.
         """
@@ -497,7 +499,7 @@ class keyfile:
 
     def _may_overwrite(self) -> bool:
         """Asks the user if it is okay to overwrite the file.
-        
+
         Returns:
             may_overwrite (bool): ``True`` if the user allows overwriting the file.
         """
@@ -508,7 +510,7 @@ class keyfile:
         self, print_result: bool = True, no_prompt: bool = False
     ):
         """Check the version of keyfile and update if needed.
-        
+
         Args:
             print_result (bool):
                 Print the checking result or not.
@@ -609,7 +611,7 @@ class keyfile:
 
     def encrypt(self, password: str = None):
         """Encrypts the file under the path.
-        
+
         Args:
             password (str, optional): The password for encryption. If ``None``, asks for user input.
         Raises:
@@ -636,7 +638,7 @@ class keyfile:
 
     def decrypt(self, password: str = None):
         """Decrypts the file under the path.
-        
+
         Args:
             password (str, optional): The password for decryption. If ``None``, asks for user input.
         Raises:
@@ -665,7 +667,7 @@ class keyfile:
 
     def _read_keyfile_data_from_file(self) -> bytes:
         """Reads the keyfile data from the file.
-        
+
         Returns:
             keyfile_data (bytes): The keyfile data stored under the path.
         Raises:
@@ -685,7 +687,7 @@ class keyfile:
 
     def _write_keyfile_data_to_file(self, keyfile_data: bytes, overwrite: bool = False):
         """Writes the keyfile data to the file.
-        
+
         Args:
             keyfile_data (bytes): The byte data to store under the path.
             overwrite (bool, optional): If ``True``, overwrites the data without asking for permission from the user. Default is ``False``.
@@ -707,7 +709,7 @@ class keyfile:
 class Mockkeyfile:
     """
     The Mockkeyfile is a mock object representing a keyfile that does not exist on the device.
-    
+
     It is designed for use in testing scenarios and simulations where actual filesystem operations are not required.
     The keypair stored in the Mockkeyfile is treated as non-encrypted and the data is stored as a serialized string.
     """

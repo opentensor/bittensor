@@ -93,9 +93,11 @@ class SenateCommand:
 
         for ss58_address in senate_members:
             table.add_row(
-                delegate_info[ss58_address].name
-                if ss58_address in delegate_info
-                else "",
+                (
+                    delegate_info[ss58_address].name
+                    if ss58_address in delegate_info
+                    else ""
+                ),
                 ss58_address,
             )
 
@@ -210,9 +212,9 @@ class ProposalsCommand:
         senate_members = subtensor.get_senate_members()
         proposals = subtensor.get_proposals()
 
-        registered_delegate_info: Optional[
-            Dict[str, DelegatesDetails]
-        ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+            get_delegates_details(url=bittensor.__delegates_details_url__)
+        )
 
         table = Table(show_footer=False)
         table.title = (
@@ -341,9 +343,9 @@ class ShowVotesCommand:
             console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
             return
 
-        registered_delegate_info: Optional[
-            Dict[str, DelegatesDetails]
-        ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+            get_delegates_details(url=bittensor.__delegates_details_url__)
+        )
 
         table = Table(show_footer=False)
         table.title = "[white]Votes for Proposal {}".format(proposal_hash)
