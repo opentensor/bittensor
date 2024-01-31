@@ -101,9 +101,9 @@ def show_delegates(
         for prev_delegate in prev_delegates:
             prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
 
-    registered_delegate_info: Optional[
-        Dict[str, DelegatesDetails]
-    ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+        get_delegates_details(url=bittensor.__delegates_details_url__)
+    )
     if registered_delegate_info is None:
         bittensor.__console__.print(
             ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
@@ -793,9 +793,9 @@ class MyDelegatesCommand:
             delegates.sort(key=lambda delegate: delegate[0].total_stake, reverse=True)
             total_delegated += sum(my_delegates.values())
 
-            registered_delegate_info: Optional[
-                DelegatesDetails
-            ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+            registered_delegate_info: Optional[DelegatesDetails] = (
+                get_delegates_details(url=bittensor.__delegates_details_url__)
+            )
             if registered_delegate_info is None:
                 bittensor.__console__.print(
                     ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
@@ -845,7 +845,7 @@ class MyDelegatesCommand:
                         ),
                         # f'{delegate.take * 100:.1f}%',s
                         f"{ delegate[0].total_daily_return.tao * ( 1000 / ( 0.001 + delegate[0].total_stake.tao ) )!s:6.6}",
-                        str(delegate_description)
+                        str(delegate_description),
                         # f'{delegate_profile.description:140.140}',
                     )
 

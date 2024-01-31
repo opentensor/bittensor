@@ -192,9 +192,11 @@ class RootList:
         for neuron_data in root_neurons:
             table.add_row(
                 str(neuron_data.uid),
-                delegate_info[neuron_data.hotkey].name
-                if neuron_data.hotkey in delegate_info
-                else "",
+                (
+                    delegate_info[neuron_data.hotkey].name
+                    if neuron_data.hotkey in delegate_info
+                    else ""
+                ),
                 neuron_data.hotkey,
                 "{:.5f}".format(
                     float(subtensor.get_total_stake_for_hotkey(neuron_data.hotkey))
