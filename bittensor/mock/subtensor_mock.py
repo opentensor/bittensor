@@ -1127,7 +1127,7 @@ class MockSubtensor(subtensor):
             raise Exception("Subnet does not exist")
 
         bal = self.get_balance(wallet.coldkeypub.ss58_address)
-        burn = self.burn(netuid=netuid)
+        burn = self.recycle(netuid=netuid)
         existential_deposit = self.get_existential_deposit()
 
         if bal < burn + existential_deposit:
