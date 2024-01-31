@@ -289,7 +289,9 @@ class dendrite(torch.nn.Module):
             f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
         )
 
-    def query(self, *args, **kwargs) -> Union[
+    def query(
+        self, *args, **kwargs
+    ) -> Union[
         bittensor.Synapse,
         List[bittensor.Synapse],
         bittensor.StreamingSynapse,
