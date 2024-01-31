@@ -669,7 +669,8 @@ class wallet:
         use_password: bool = True,
         overwrite: bool = False,
         suppress: bool = False,
-    ) -> "wallet": ...
+    ) -> "wallet":
+        ...
 
     @overload
     def regenerate_coldkey(
@@ -678,7 +679,8 @@ class wallet:
         use_password: bool = True,
         overwrite: bool = False,
         suppress: bool = False,
-    ) -> "wallet": ...
+    ) -> "wallet":
+        ...
 
     @overload
     def regenerate_coldkey(
@@ -687,7 +689,8 @@ class wallet:
         use_password: bool = True,
         overwrite: bool = False,
         suppress: bool = False,
-    ) -> "wallet": ...
+    ) -> "wallet":
+        ...
 
     def regenerate_coldkey(
         self,
@@ -774,7 +777,8 @@ class wallet:
         use_password: bool = True,
         overwrite: bool = False,
         suppress: bool = False,
-    ) -> "wallet": ...
+    ) -> "wallet":
+        ...
 
     @overload
     def regenerate_hotkey(
@@ -783,7 +787,8 @@ class wallet:
         use_password: bool = True,
         overwrite: bool = False,
         suppress: bool = False,
-    ) -> "wallet": ...
+    ) -> "wallet":
+        ...
 
     @overload
     def regenerate_hotkey(
@@ -792,7 +797,8 @@ class wallet:
         use_password: bool = True,
         overwrite: bool = False,
         suppress: bool = False,
-    ) -> "wallet": ...
+    ) -> "wallet":
+        ...
 
     def regenerate_hotkey(
         self,

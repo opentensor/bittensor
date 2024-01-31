@@ -392,9 +392,9 @@ class StakeShow:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)
         else:
             wallets = [bittensor.wallet(config=cli.config)]
-        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
-            get_delegates_details(url=bittensor.__delegates_details_url__)
-        )
+        registered_delegate_info: Optional[
+            Dict[str, DelegatesDetails]
+        ] = get_delegates_details(url=bittensor.__delegates_details_url__)
 
         def get_stake_accounts(
             wallet, subtensor
