@@ -257,7 +257,7 @@ def burned_register_extrinsic(
 
         old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
 
-        burn_amount = subtensor.burn(netuid=netuid)
+        recycle_amount = subtensor.recycle(netuid=netuid)
         if not neuron.is_null:
             bittensor.__console__.print(
                 ":white_heavy_check_mark: [green]Already Registered[/green]:\n"
@@ -272,7 +272,7 @@ def burned_register_extrinsic(
 
     if prompt:
         # Prompt user for confirmation.
-        if not Confirm.ask(f"Recycle {burn_amount} to register on subnet:{netuid}?"):
+        if not Confirm.ask(f"Recycle {recycle_amount} to register on subnet:{netuid}?"):
             return False
 
     with bittensor.__console__.status(":satellite: Recycling TAO for Registration..."):

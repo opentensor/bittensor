@@ -239,7 +239,7 @@ workflows:
       - check_compatibility:
           python_version: "3.11"
           name: check-compatibility-3.11
-  
+
   pr-requirements:
     jobs:
       - black:
@@ -272,7 +272,7 @@ workflows:
             branches:
               only:
                 - /^(release|hotfix)/.*/
-  
+
   release-requirements:
     jobs:
       - check-version-not-released:
