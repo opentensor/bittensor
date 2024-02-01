@@ -271,7 +271,7 @@ class SubnetListCommand:
         table.add_column("[overline white]MAX_N", style="white", justify="center")
         table.add_column("[overline white]EMISSION", style="white", justify="center")
         table.add_column("[overline white]TEMPO", style="white", justify="center")
-        table.add_column("[overline white]BURN", style="white", justify="center")
+        table.add_column("[overline white]RECYCLE", style="white", justify="center")
         table.add_column("[overline white]POW", style="white", justify="center")
         table.add_column("[overline white]SUDO", style="white")
         for row in rows:
