@@ -338,9 +338,11 @@ class TestWallet(unittest.TestCase):
             mock_set_coldkey.assert_called_once()
             keypair: bittensor.Keypair = mock_set_coldkey.call_args_list[0][0][0]
             self.assertRegex(
-                keypair.seed_hex
-                if isinstance(keypair.seed_hex, str)
-                else keypair.seed_hex.hex(),
+                (
+                    keypair.seed_hex
+                    if isinstance(keypair.seed_hex, str)
+                    else keypair.seed_hex.hex()
+                ),
                 rf"(0x|){seed_str[2:]}",
             )
             self.assertEqual(
@@ -368,9 +370,11 @@ class TestWallet(unittest.TestCase):
             mock_set_hotkey.assert_called_once()
             keypair: bittensor.Keypair = mock_set_hotkey.call_args_list[0][0][0]
             self.assertRegex(
-                keypair.seed_hex
-                if isinstance(keypair.seed_hex, str)
-                else keypair.seed_hex.hex(),
+                (
+                    keypair.seed_hex
+                    if isinstance(keypair.seed_hex, str)
+                    else keypair.seed_hex.hex()
+                ),
                 rf"(0x|){seed_str[2:]}",
             )
             self.assertEqual(
