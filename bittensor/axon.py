@@ -1,5 +1,6 @@
 """ Create and initialize Axon, which services the forward and backward requests from other neurons.
 """
+
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2022 Opentensor Foundation
@@ -1207,9 +1208,11 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 # We attempt to run the verification function using the synapse instance
                 # created from the request. If this function runs without throwing an exception,
                 # it means that the verification was successful.
-                await verify_fn(synapse) if inspect.iscoroutinefunction(
-                    verify_fn
-                ) else verify_fn(synapse)
+                (
+                    await verify_fn(synapse)
+                    if inspect.iscoroutinefunction(verify_fn)
+                    else verify_fn(synapse)
+                )
             except Exception as e:
                 # If there was an exception during the verification process, we log that
                 # there was a verification exception.

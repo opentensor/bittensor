@@ -31,8 +31,8 @@ from typing import Union, Optional, List, Union, AsyncGenerator, Any
 
 class dendrite(torch.nn.Module):
     """
-    The Dendrite class, inheriting from PyTorch's Module class, represents the abstracted implementation of a network client module. 
-    
+    The Dendrite class, inheriting from PyTorch's Module class, represents the abstracted implementation of a network client module.
+
     In the brain analogy, dendrites receive signals
     from other neurons (in this case, network servers or axons), and the Dendrite class here is designed
     to send requests to those endpoint to recieve inputs.
@@ -73,11 +73,11 @@ class dendrite(torch.nn.Module):
         aclose_session(self):
             Asynchronously closes the internal aiohttp client session.
 
-    NOTE: 
+    NOTE:
         When working with async `aiohttp <https://github.com/aio-libs/aiohttp>`_ client sessions, it is recommended to use a context manager.
 
     Example with a context manager::
-    
+
         >>> aysnc with dendrite(wallet = bittensor.wallet()) as d:
         >>>     print(d)
         >>>     d( <axon> ) # ping axon
@@ -87,7 +87,7 @@ class dendrite(torch.nn.Module):
     However, you are able to safely call :func:`dendrite.query()` without a context manager in a synchronous setting.
 
     Example without a context manager::
-    
+
         >>> d = dendrite(wallet = bittensor.wallet() )
         >>> print(d)
         >>> d( <axon> ) # ping axon
@@ -141,7 +141,7 @@ class dendrite(torch.nn.Module):
             the dendrite, adhering to the async nature of the network interactions in the Bittensor framework.
 
         Example usage::
-        
+
             import bittensor as bt                    # Import bittensor
             wallet = bt.wallet( ... )                 # Initialize a wallet
             dendrite = bt.dendrite( wallet )          # Initialize a dendrite instance with the wallet
@@ -167,7 +167,7 @@ class dendrite(torch.nn.Module):
         resources like open connections and internal buffers. It is crucial for preventing resource leakage
         and should be called when the dendrite instance is no longer in use, especially in synchronous contexts.
 
-        Note: 
+        Note:
             This method utilizes asyncio's event loop to close the session asynchronously from a synchronous context. It is advisable to use this method only when asynchronous context management is not feasible.
 
         Usage:
@@ -193,7 +193,7 @@ class dendrite(torch.nn.Module):
             await :func:`dendrite_instance.aclose_session()`.
 
         Example::
-        
+
             async with dendrite_instance:
                 # Operations using dendrite
                 pass
@@ -237,7 +237,7 @@ class dendrite(torch.nn.Module):
             request_name: The name of the request during which the exception occurred.
             exception: The exception object caught during the request.
 
-        Note: 
+        Note:
             This method updates the synapse object in-place.
         """
         if isinstance(exception, aiohttp.ClientConnectorError):
@@ -263,7 +263,7 @@ class dendrite(torch.nn.Module):
         is crucial for monitoring and debugging network activity within the Bittensor network.
 
         To turn on debug messages, set the environment variable BITTENSOR_DEBUG to ``1``, or call the bittensor debug method like so::
-        
+
             import bittensor
             bittensor.debug()
 
@@ -349,7 +349,7 @@ class dendrite(torch.nn.Module):
         returned, each containing the response from the corresponding Axon.
 
         For example::
-        
+
             >>> ...
             >>> wallet = bittensor.wallet()                   # Initialize a wallet
             >>> synapse = bittensor.Synapse(...)              # Create a synapse object that contains query data
@@ -362,7 +362,7 @@ class dendrite(torch.nn.Module):
         iterated over to process each chunk individually.
 
         For example::
-        
+
             >>> ...
             >>> dendrte = bittensor.dendrite(wallet = wallet)
             >>> async for chunk in dendrite.forward(axons, synapse, timeout, deserialize, run_async, streaming):
@@ -768,7 +768,7 @@ class dendrite(torch.nn.Module):
             Dendrite: The current instance of the Dendrite class.
 
         Usage::
-        
+
             async with Dendrite() as dendrite:
                 await dendrite.some_async_method()
         """
@@ -787,11 +787,11 @@ class dendrite(torch.nn.Module):
             traceback (TracebackType, optional): A traceback object encapsulating the call stack at the point where the exception was raised.
 
         Usage::
-        
+
             async with bt.dendrite( wallet ) as dendrite:
                 await dendrite.some_async_method()
 
-        Note: 
+        Note:
             This automatically closes the session by calling :func:`__aexit__` after the context closes.
         """
         await self.aclose_session()
@@ -803,11 +803,11 @@ class dendrite(torch.nn.Module):
         This method is invoked when the Dendrite instance is about to be destroyed. The destructor ensures that the
         aiohttp client session is closed before the instance is fully destroyed, releasing any remaining resources.
 
-        Note: 
+        Note:
             Relying on the destructor for cleanup can be unpredictable. It is recommended to explicitly close sessions using the provided methods or the ``async with`` context manager.
 
         Usage::
-        
+
             dendrite = Dendrite()
             # ... some operations ...
             del dendrite  # This will implicitly invoke the __del__ method and close the session.

@@ -93,8 +93,8 @@ class ParamWithTypes(TypedDict):
 
 class subtensor:
     """
-    The Subtensor class in Bittensor serves as a crucial interface for interacting with the Bittensor blockchain, facilitating a range of operations essential for the decentralized machine learning network. 
-    
+    The Subtensor class in Bittensor serves as a crucial interface for interacting with the Bittensor blockchain, facilitating a range of operations essential for the decentralized machine learning network.
+
     This class enables neurons (network participants) to engage in activities such as registering on the network, managing
     staked weights, setting inter-neuronal weights, and participating in consensus mechanisms.
 
@@ -118,7 +118,7 @@ class subtensor:
         chain_endpoint (str): The blockchain node endpoint URL, enabling direct communication with the Bittensor blockchain for transaction processing and data retrieval.
 
     Example Usage::
-    
+
         # Connect to the main Bittensor network (Finney).
         finney_subtensor = subtensor(network='finney')
 
@@ -204,12 +204,12 @@ class subtensor:
     @staticmethod
     def determine_chain_endpoint_and_network(network: str):
         """Determines the chain endpoint and network from the passed network or chain_endpoint.
-        
+
         Args:
             network (str): The network flag. The choices are: ``-- finney`` (main network), ``-- archive`` (archive network +300 blocks), ``-- local`` (local running network), ``-- test`` (test network).
             chain_endpoint (str): The chain endpoint flag. If set, overrides the network argument.
         Returns:
-            network (str): The network flag. 
+            network (str): The network flag.
             chain_endpoint (str): The chain endpoint flag. If set, overrides the ``network`` argument.
         """
         if network == None:
@@ -310,7 +310,7 @@ class subtensor:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
 
-        NOTE: 
+        NOTE:
             Currently subtensor defaults to the ``finney`` network. This will change in a future release.
 
         We strongly encourage users to run their own local subtensor node whenever possible. This increases
@@ -748,7 +748,7 @@ class subtensor:
         This function is part of Bittensor's onboarding process, ensuring that new neurons have
         the necessary resources to begin their journey in the decentralized AI network.
 
-        Note: 
+        Note:
             This is for testnet ONLY and is disabled currently. You must build your own staging subtensor chain with the ``--features pow-faucet`` argument to enable this.
         """
         return run_faucet_extrinsic(
@@ -810,7 +810,7 @@ class subtensor:
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
         """Sends a (POW) register extrinsic to the chain.
-        
+
         Args:
             netuid (int): The subnet to register on.
             wallet (bittensor.wallet): The wallet to register.
@@ -1042,7 +1042,7 @@ class subtensor:
         wait_for_finalization: bool = False,
     ) -> Tuple[bool, Optional[str], Optional[str]]:
         """Sends a transfer extrinsic to the chain.
-        
+
         Args:
             wallet (:func:`bittensor.wallet`): Wallet object.
             dest (str): Destination public key address.
@@ -1520,7 +1520,7 @@ class subtensor:
         wait_for_finalization: bool = False,
     ) -> bool:
         """Sends a stake extrinsic to the chain.
-        
+
         Args:
             wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
             hotkey_ss58 (str): Hotkey ``ss58`` address to stake to.
@@ -1647,7 +1647,7 @@ class subtensor:
         wait_for_finalization: bool = False,
     ) -> bool:
         """Sends an unstake extrinsic to the chain.
-        
+
         Args:
             wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
             hotkey_ss58 (str): Hotkey ``ss58`` address to unstake from.
@@ -2055,7 +2055,7 @@ class subtensor:
         detailed identity information about a specific neuron, which is a crucial aspect of the network's decentralized
         identity and governance system.
 
-        NOTE: 
+        NOTE:
             See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity parameters.
 
         Args:
@@ -2076,9 +2076,9 @@ class subtensor:
                     module="Registry",
                     storage_function="IdentityOf",
                     params=[key],
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         identity_info = make_substrate_call_with_retry()
@@ -2098,7 +2098,7 @@ class subtensor:
         Updates the identity of a neuron on the Bittensor blockchain. This function allows neurons to modify their
         identity attributes, reflecting changes in their roles, stakes, or other network-specific parameters.
 
-        NOTE: 
+        NOTE:
             See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity parameters.
 
         Args:
@@ -2197,9 +2197,9 @@ class subtensor:
                     module="SubtensorModule",
                     storage_function=name,
                     params=params,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2235,9 +2235,9 @@ class subtensor:
                     module="SubtensorModule",
                     storage_function=name,
                     params=params,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2269,9 +2269,9 @@ class subtensor:
                 return substrate.get_constant(
                     module_name=module_name,
                     constant_name=constant_name,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2310,9 +2310,9 @@ class subtensor:
                     module=module,
                     storage_function=name,
                     params=params,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2350,9 +2350,9 @@ class subtensor:
                     module=module,
                     storage_function=name,
                     params=params,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2420,9 +2420,11 @@ class subtensor:
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
-            data="0x"
-            if params is None
-            else self._encode_params(call_definition=call_definition, params=params),
+            data=(
+                "0x"
+                if params is None
+                else self._encode_params(call_definition=call_definition, params=params)
+            ),
             block=block,
         )
 
@@ -2474,7 +2476,7 @@ class subtensor:
         Retrieves the 'Rho' hyperparameter for a specified subnet within the Bittensor network. 'Rho' represents the global inflation rate, which directly influences the network's
         token emission rate and economic model.
 
-        Note: 
+        Note:
             This is currently fixed such that the Bittensor blockchain emmits 7200 Tao per day.
 
         Args:
@@ -4090,9 +4092,9 @@ class subtensor:
                         module="System",
                         storage_function="Account",
                         params=[address],
-                        block_hash=None
-                        if block == None
-                        else substrate.get_block_hash(block),
+                        block_hash=(
+                            None if block == None else substrate.get_block_hash(block)
+                        ),
                     )
 
             result = make_substrate_call_with_retry()
@@ -4143,9 +4145,9 @@ class subtensor:
                 return substrate.query_map(
                     module="System",
                     storage_function="Account",
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         result = make_substrate_call_with_retry()

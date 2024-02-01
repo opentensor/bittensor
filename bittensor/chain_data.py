@@ -341,6 +341,7 @@ class NeuronInfo:
     r"""
     Dataclass for neuron metadata.
     """
+
     hotkey: str
     coldkey: str
     uid: int
@@ -516,6 +517,7 @@ class NeuronInfoLite:
     r"""
     Dataclass for neuron metadata, but without the weights and bonds.
     """
+
     hotkey: str
     coldkey: str
     uid: int
@@ -673,6 +675,7 @@ class PrometheusInfo:
     r"""
     Dataclass for prometheus info.
     """
+
     block: int
     version: int
     ip: str
@@ -694,6 +697,7 @@ class DelegateInfo:
     r"""
     Dataclass for delegate info.
     """
+
     hotkey_ss58: str  # Hotkey of delegate
     total_stake: Balance  # Total stake of the delegate
     nominators: List[
@@ -766,7 +770,7 @@ class DelegateInfo:
         cls, vec_u8: List[int]
     ) -> List[Tuple["DelegateInfo", Balance]]:
         r"""Returns a list of Tuples of DelegateInfo objects, and Balance, from a ``vec_u8``.
-        
+
         This is the list of delegates that the user has delegated to, and the amount of stake delegated.
         """
         decoded = from_scale_encoding(vec_u8, ChainDataType.DelegatedInfo, is_vec=True)
@@ -787,6 +791,7 @@ class StakeInfo:
     r"""
     Dataclass for stake info.
     """
+
     hotkey_ss58: str  # Hotkey address
     coldkey_ss58: str  # Coldkey address
     stake: Balance  # Stake for the hotkey-coldkey pair
@@ -857,6 +862,7 @@ class SubnetInfo:
     r"""
     Dataclass for subnet info.
     """
+
     netuid: int
     rho: int
     kappa: int
@@ -948,6 +954,7 @@ class SubnetHyperparameters:
     r"""
     Dataclass for subnet hyperparameters.
     """
+
     rho: int
     kappa: int
     immunity_period: int
@@ -1039,6 +1046,7 @@ class IPInfo:
     r"""
     Dataclass for associated IP Info.
     """
+
     ip: str
     ip_type: int
     protocol: int
