@@ -54,14 +54,16 @@ def serialized_keypair_to_keyfile_data(keypair: "bittensor.Keypair") -> bytes:
         "accountId": "0x" + keypair.public_key.hex() if keypair.public_key else None,
         "publicKey": "0x" + keypair.public_key.hex() if keypair.public_key else None,
         "secretPhrase": keypair.mnemonic if keypair.mnemonic else None,
-        "secretSeed": "0x"
-        + (
-            keypair.seed_hex
-            if isinstance(keypair.seed_hex, str)
-            else keypair.seed_hex.hex()
-        )
-        if keypair.seed_hex
-        else None,
+        "secretSeed": (
+            "0x"
+            + (
+                keypair.seed_hex
+                if isinstance(keypair.seed_hex, str)
+                else keypair.seed_hex.hex()
+            )
+            if keypair.seed_hex
+            else None
+        ),
         "ss58Address": keypair.ss58_address if keypair.ss58_address else None,
     }
     data = json.dumps(json_data).encode()

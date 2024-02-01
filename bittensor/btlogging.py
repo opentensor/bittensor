@@ -1,5 +1,6 @@
 """ Standardized logging for Bittensor.
 """
+
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 

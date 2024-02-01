@@ -2073,9 +2073,9 @@ class subtensor:
                     module="Registry",
                     storage_function="IdentityOf",
                     params=[key],
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         identity_info = make_substrate_call_with_retry()
@@ -2194,9 +2194,9 @@ class subtensor:
                     module="SubtensorModule",
                     storage_function=name,
                     params=params,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2232,9 +2232,9 @@ class subtensor:
                     module="SubtensorModule",
                     storage_function=name,
                     params=params,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2266,9 +2266,9 @@ class subtensor:
                 return substrate.get_constant(
                     module_name=module_name,
                     constant_name=constant_name,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2307,9 +2307,9 @@ class subtensor:
                     module=module,
                     storage_function=name,
                     params=params,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2347,9 +2347,9 @@ class subtensor:
                     module=module,
                     storage_function=name,
                     params=params,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2417,9 +2417,11 @@ class subtensor:
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
-            data="0x"
-            if params is None
-            else self._encode_params(call_definition=call_definition, params=params),
+            data=(
+                "0x"
+                if params is None
+                else self._encode_params(call_definition=call_definition, params=params)
+            ),
             block=block,
         )
 
@@ -4087,9 +4089,9 @@ class subtensor:
                         module="System",
                         storage_function="Account",
                         params=[address],
-                        block_hash=None
-                        if block == None
-                        else substrate.get_block_hash(block),
+                        block_hash=(
+                            None if block == None else substrate.get_block_hash(block)
+                        ),
                     )
 
             result = make_substrate_call_with_retry()
@@ -4140,9 +4142,9 @@ class subtensor:
                 return substrate.query_map(
                     module="System",
                     storage_function="Account",
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         result = make_substrate_call_with_retry()

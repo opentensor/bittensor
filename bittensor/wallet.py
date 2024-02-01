@@ -1,5 +1,6 @@
 """ Implementation of the wallet class, which manages balances with staking and transfer. Also manages hotkey and coldkey.
 """
+
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
