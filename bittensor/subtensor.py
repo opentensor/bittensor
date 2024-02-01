@@ -547,6 +547,7 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
+        ttl: int = 100,
     ) -> bool:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the
@@ -579,6 +580,7 @@ class subtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
+            ttl=ttl,
         )
 
     def _do_set_weights(

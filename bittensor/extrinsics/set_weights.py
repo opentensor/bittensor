@@ -41,6 +41,7 @@ def ttl_set_weights_extrinsic(
     prompt: bool = False,
     ttl: int = 100,
 ):
+    r"""Sets the given weights and values on chain for wallet hotkey account."""
     args = (
         subtensor.chain_endpoint,
         wallet,
@@ -72,6 +73,7 @@ def set_weights_extrinsic(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     prompt: bool = False,
+    ttl: int = 100,
 ) -> bool:
     r"""Sets the given weights and values on chain for wallet hotkey account.
 
@@ -94,6 +96,8 @@ def set_weights_extrinsic(
             If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
         prompt (bool):
             If ``true``, the call waits for confirmation from the user before proceeding.
+        ttl (int):
+            The time to live of the process. If the process does not complete within this time, it is terminated.
     Returns:
         success (bool):
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
