@@ -145,15 +145,21 @@ class MockMapResult:
         ] = None,
     ):
         _records = [
-            (MockSubtensorValue(value=record[0]), MockSubtensorValue(value=record[1]))
-            # Make sure record is a tuple of MockSubtensorValue (dict with value attr)
-            if not (
-                isinstance(record, tuple)
-                and all(
-                    isinstance(item, dict) and hasattr(item, "value") for item in record
+            (
+                (
+                    MockSubtensorValue(value=record[0]),
+                    MockSubtensorValue(value=record[1]),
                 )
+                # Make sure record is a tuple of MockSubtensorValue (dict with value attr)
+                if not (
+                    isinstance(record, tuple)
+                    and all(
+                        isinstance(item, dict) and hasattr(item, "value")
+                        for item in record
+                    )
+                )
+                else record
             )
-            else record
             for record in records
         ]
 

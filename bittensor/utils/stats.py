@@ -1,5 +1,6 @@
 """ A exponential moving average that updates values based on time since last update.
 """
+
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 

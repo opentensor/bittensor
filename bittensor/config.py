@@ -1,6 +1,7 @@
 """
 Implementation of the config class, which manages the configuration of different Bittensor modules.
 """
+
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2022 Opentensor Foundation
