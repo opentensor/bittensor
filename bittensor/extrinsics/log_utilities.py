@@ -347,9 +347,11 @@ class ValidatorLogger:
                 (
                     "[bright_cyan]{:.2f}[/bright_cyan]"
                     if t == s
-                    else "[magenta]{:.3f}[/magenta]"
-                    if syn_loss_diff[s[0]][t[0]] > 0
-                    else "[dim]{:.0f}[/dim]"
+                    else (
+                        "[magenta]{:.3f}[/magenta]"
+                        if syn_loss_diff[s[0]][t[0]] > 0
+                        else "[dim]{:.0f}[/dim]"
+                    )
                 )
                 .format(syn_loss_diff[s[0]][t[0]])
                 .replace("0.", ".")
@@ -409,12 +411,18 @@ class ValidatorLogger:
         ]  # available columns intersecting with stats_keys
         rows = [
             [
-                ("", 0)
-                if key not in stat
-                else (
-                    ("* " if key == "uid" and mark_uids and uid in mark_uids else "")
-                    + txt.format(stat[key]),
-                    stat[key],
+                (
+                    ("", 0)
+                    if key not in stat
+                    else (
+                        (
+                            "* "
+                            if key == "uid" and mark_uids and uid in mark_uids
+                            else ""
+                        )
+                        + txt.format(stat[key]),
+                        stat[key],
+                    )
                 )
                 for _, key, txt, _ in columns
             ]
