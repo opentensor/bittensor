@@ -845,7 +845,7 @@ class MyDelegatesCommand:
                         ),
                         # f'{delegate.take * 100:.1f}%',s
                         f"{ delegate[0].total_daily_return.tao * ( 1000 / ( 0.001 + delegate[0].total_stake.tao ) )!s:6.6}",
-                        str(delegate_description)
+                        str(delegate_description),
                         # f'{delegate_profile.description:140.140}',
                     )
 
