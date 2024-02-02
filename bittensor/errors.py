@@ -18,61 +18,73 @@
 
 class ChainError(BaseException):
     r"""Base error for any chain related errors."""
+
     pass
 
 
 class ChainConnectionError(ChainError):
     r"""Error for any chain connection related errors."""
+
     pass
 
 
 class ChainTransactionError(ChainError):
     r"""Error for any chain transaction related errors."""
+
     pass
 
 
 class ChainQueryError(ChainError):
     r"""Error for any chain query related errors."""
+
     pass
 
 
 class StakeError(ChainTransactionError):
     r"""Error raised when a stake transaction fails."""
+
     pass
 
 
 class UnstakeError(ChainTransactionError):
     r"""Error raised when an unstake transaction fails."""
+
     pass
 
 
 class IdentityError(ChainTransactionError):
     r"""Error raised when an identity transaction fails."""
+
     pass
 
 
 class NominationError(ChainTransactionError):
     r"""Error raised when a nomination transaction fails."""
+
     pass
 
 
 class TransferError(ChainTransactionError):
     r"""Error raised when a transfer transaction fails."""
+
     pass
 
 
 class RegistrationError(ChainTransactionError):
     r"""Error raised when a neuron registration transaction fails."""
+
     pass
 
 
 class NotRegisteredError(ChainTransactionError):
     r"""Error raised when a neuron is not registered, and the transaction requires it to be."""
+
     pass
 
 
 class NotDelegateError(StakeError):
     r"""Error raised when a hotkey you are trying to stake to is not a delegate."""
+
     pass
 
 
@@ -84,49 +96,59 @@ class KeyFileError(Exception):
 
 class MetadataError(ChainTransactionError):
     r"""Error raised when metadata commitment transaction fails."""
+
     pass
 
 
 class InvalidRequestNameError(Exception):
     r"""This exception is raised when the request name is invalid. Ususally indicates a broken URL."""
+
     pass
 
 
 class UnknownSynapseError(Exception):
     r"""This exception is raised when the request name is not found in the Axon's forward_fns dictionary."""
+
     pass
 
 
 class SynapseParsingError(Exception):
     r"""This exception is raised when the request headers are unable to be parsed into the synapse type."""
+
     pass
 
 
 class NotVerifiedException(Exception):
     r"""This exception is raised when the request is not verified."""
+
     pass
 
 
 class BlacklistedException(Exception):
     r"""This exception is raised when the request is blacklisted."""
+
     pass
 
 
 class PriorityException(Exception):
     r"""This exception is raised when the request priority is not met."""
+
     pass
 
 
 class PostProcessException(Exception):
     r"""This exception is raised when the response headers cannot be updated."""
+
     pass
 
 
 class RunException(Exception):
     r"""This exception is raised when the requested function cannot be executed. Indicates a server error."""
+
     pass
 
 
 class InternalServerError(Exception):
     r"""This exception is raised when the requested function fails on the server. Indicates a server error."""
+
     pass
