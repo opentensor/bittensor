@@ -65,7 +65,7 @@ from .extrinsics.registration import (
     swap_hotkey_extrinsic,
 )
 from .extrinsics.transfer import transfer_extrinsic
-from .extrinsics.set_weights import set_weights_extrinsic
+from .extrinsics.set_weights import set_weights_extrinsic, ttl_set_weights_extrinsic
 from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import (
     delegate_extrinsic,
@@ -93,9 +93,9 @@ class ParamWithTypes(TypedDict):
 
 class subtensor:
     """
-    The Subtensor class in Bittensor serves as a crucial interface for interacting with the Bittensor blockchain,
-    facilitating a range of operations essential for the decentralized machine learning network. This class
-    enables neurons (network participants) to engage in activities such as registering on the network, managing
+    The Subtensor class in Bittensor serves as a crucial interface for interacting with the Bittensor blockchain, facilitating a range of operations essential for the decentralized machine learning network.
+
+    This class enables neurons (network participants) to engage in activities such as registering on the network, managing
     staked weights, setting inter-neuronal weights, and participating in consensus mechanisms.
 
     The Bittensor network operates on a digital ledger where each neuron holds stakes (S) and learns a set
@@ -103,23 +103,22 @@ class subtensor:
     the ranking and incentive mechanisms within the network. Higher-ranked neurons, as determined by their
     contributions and trust within the network, receive more incentives.
 
-    The Subtensor class connects to various Bittensor networks like the main 'finney' network or local test
+    The Subtensor class connects to various Bittensor networks like the main ``finney`` network or local test
     networks, providing a gateway to the blockchain layer of Bittensor. It leverages a staked weighted trust
     system and consensus to ensure fair and distributed incentive mechanisms, where incentives (I) are
-    primarily allocated to neurons that are trusted by the majority of the network&#8203;``【oaicite:1】``&#8203;.
+    primarily allocated to neurons that are trusted by the majority of the network.
 
     Additionally, Bittensor introduces a speculation-based reward mechanism in the form of bonds (B), allowing
     neurons to accumulate bonds in other neurons, speculating on their future value. This mechanism aligns
     with market-based speculation, incentivizing neurons to make judicious decisions in their inter-neuronal
     investments.
 
-    Attributes:
-        network (str): The name of the Bittensor network (e.g., 'finney', 'test', 'archive', 'local') the instance
-                       is connected to, determining the blockchain interaction context.
-        chain_endpoint (str): The blockchain node endpoint URL, enabling direct communication
-                              with the Bittensor blockchain for transaction processing and data retrieval.
+    Args:
+        network (str): The name of the Bittensor network (e.g., 'finney', 'test', 'archive', 'local') the instance is connected to, determining the blockchain interaction context.
+        chain_endpoint (str): The blockchain node endpoint URL, enabling direct communication with the Bittensor blockchain for transaction processing and data retrieval.
 
-    Example Usage:
+    Example Usage::
+
         # Connect to the main Bittensor network (Finney).
         finney_subtensor = subtensor(network='finney')
 
@@ -144,7 +143,7 @@ class subtensor:
 
     By facilitating these operations, the Subtensor class is instrumental in maintaining the decentralized
     intelligence and dynamic learning environment of the Bittensor network, as envisioned in its foundational
-    principles and mechanisms described in the NeurIPS paper.
+    principles and mechanisms described in the `NeurIPS paper <https://bittensor.com/pdfs/academia/NeurIPS_DAO_Workshop_2022_3_3.pdf>`_. paper.
     """
 
     @staticmethod
@@ -205,16 +204,13 @@ class subtensor:
     @staticmethod
     def determine_chain_endpoint_and_network(network: str):
         """Determines the chain endpoint and network from the passed network or chain_endpoint.
+
         Args:
-            network (str): The network flag. The likely choices are:
-                    -- finney (main network)
-                    -- archive (archive network +300 blocks)
-                    -- local (local running network)
-                    -- test (test network)
+            network (str): The network flag. The choices are: ``-- finney`` (main network), ``-- archive`` (archive network +300 blocks), ``-- local`` (local running network), ``-- test`` (test network).
             chain_endpoint (str): The chain endpoint flag. If set, overrides the network argument.
         Returns:
-            network (str): The network flag. The likely choices are:
-            chain_endpoint (str): The chain endpoint flag. If set, overrides the network argument.
+            network (str): The network flag.
+            chain_endpoint (str): The chain endpoint flag. If set, overrides the ``network`` argument.
         """
         if network == None:
             return None, None
@@ -314,21 +310,18 @@ class subtensor:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
 
-        NOTE: Currently subtensor defaults to the finney network. This will change in a future release.
+        NOTE:
+            Currently subtensor defaults to the ``finney`` network. This will change in a future release.
 
         We strongly encourage users to run their own local subtensor node whenever possible. This increases
         decentralization and resilience of the network. In a future release, local subtensor will become the
-        default and the fallback to finney removed. Please plan ahead for this change. We will provide detailed
+        default and the fallback to ``finney`` removed. Please plan ahead for this change. We will provide detailed
         instructions on how to run a local subtensor node in the documentation in a subsequent release.
 
         Args:
-            network (str, optional): The network name to connect to (e.g., 'finney', 'local'). This can also be
-                                     the chain endpoint (e.g. wss://entrypoint-finney.opentensor.ai:443) and will
-                                     be correctly parsed into the network and chain endpoint. If not specified,
-                                     defaults to the main Bittensor network.
-            config (bittensor.config, optional): Configuration object for the subtensor.
-                                                 If not provided, a default configuration is used.
-            _mock (bool, optional): If set to True, uses a mocked connection for testing purposes.
+            network (str, optional): The network name to connect to (e.g., ``finney``, ``local``). This can also be the chain endpoint (e.g., ``wss://entrypoint-finney.opentensor.ai:443``) and will be correctly parsed into the network and chain endpoint. If not specified, defaults to the main Bittensor network.
+            config (bittensor.config, optional): Configuration object for the subtensor. If not provided, a default configuration is used.
+            _mock (bool, optional): If set to ``True``, uses a mocked connection for testing purposes.
 
         This initialization sets up the connection to the specified Bittensor network, allowing for various
         blockchain operations such as neuron registration, stake management, and setting weights.
@@ -453,11 +446,11 @@ class subtensor:
 
         Args:
             wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
-            wait_for_finalization (bool, optional): If True, waits until the transaction is finalized on the blockchain.
-            wait_for_inclusion (bool, optional): If True, waits until the transaction is included in a block.
+            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the blockchain.
+            wait_for_inclusion (bool, optional): If ``True``, waits until the transaction is included in a block.
 
         Returns:
-            bool: True if the nomination process is successful, False otherwise.
+            bool: ``True`` if the nomination process is successful, ``False`` otherwise.
 
         This function is a key part of the decentralized governance mechanism of Bittensor, allowing for the
         dynamic selection and participation of validators in the network's consensus process.
@@ -485,11 +478,11 @@ class subtensor:
 
         Args:
             wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
-            wait_for_finalization (bool, optional): If True, waits until the transaction is finalized on the blockchain.
-            wait_for_inclusion (bool, optional): If True, waits until the transaction is included in a block.
+            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the blockchain.
+            wait_for_inclusion (bool, optional): If ``True``, waits until the transaction is included in a block.
 
         Returns:
-            bool: True if the nomination process is successful, False otherwise.
+            bool: ``True`` if the nomination process is successful, False otherwise.
 
         This function is a key part of the decentralized governance mechanism of Bittensor, allowing for the
         dynamic selection and participation of validators in the network's consensus process.
@@ -519,14 +512,14 @@ class subtensor:
 
         Args:
             wallet (bittensor.wallet): The wallet used for the undelegation process.
-            delegate_ss58 (Optional[str]): The SS58 address of the delegate neuron.
+            delegate_ss58 (Optional[str]): The ``SS58`` address of the delegate neuron.
             amount (Union[Balance, float]): The amount of TAO to undelegate.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the undelegation is successful, False otherwise.
+            bool: ``True`` if the undelegation is successful, False otherwise.
 
         This function reflects the dynamic and speculative nature of the Bittensor network, allowing neurons
         to adjust their stakes and investments based on changing perceptions and performances within the network.
@@ -554,6 +547,7 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
+        ttl: int = 100,
     ) -> bool:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the
@@ -568,15 +562,15 @@ class subtensor:
             version_key (int, optional): Version key for compatibility with the network.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the setting of weights is successful, False otherwise.
+            bool: ``True`` if the setting of weights is successful, False otherwise.
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's
         learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        return set_weights_extrinsic(
+        return ttl_set_weights_extrinsic(
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
@@ -586,6 +580,7 @@ class subtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
+            ttl=ttl,
         )
 
     def _do_set_weights(
@@ -685,7 +680,7 @@ class subtensor:
             Other arguments: Various optional parameters to customize the registration process.
 
         Returns:
-            bool: True if the registration is successful, False otherwise.
+            bool: ``True`` if the registration is successful, False otherwise.
 
         This function facilitates the entry of new neurons into the network, supporting the decentralized
         growth and scalability of the Bittensor ecosystem.
@@ -750,13 +745,13 @@ class subtensor:
             Other arguments: Various optional parameters to customize the faucet transaction process.
 
         Returns:
-            bool: True if the faucet transaction is successful, False otherwise.
+            bool: ``True`` if the faucet transaction is successful, False otherwise.
 
         This function is part of Bittensor's onboarding process, ensuring that new neurons have
         the necessary resources to begin their journey in the decentralized AI network.
 
-        Note: This is for testnet ONLY and is disabled currently. You must build your own
-        staging subtensor chain with the `--features pow-faucet` argument to enable this.
+        Note:
+            This is for testnet ONLY and is disabled currently. You must build your own staging subtensor chain with the ``--features pow-faucet`` argument to enable this.
         """
         return run_faucet_extrinsic(
             subtensor=self,
@@ -783,21 +778,18 @@ class subtensor:
         prompt: bool = False,
     ) -> bool:
         """
-        Registers a neuron on the Bittensor network by burning TAO. This method of registration
-        involves recycling TAO tokens, contributing to the network's deflationary mechanism.
+        Registers a neuron on the Bittensor network by recycling TAO. This method of registration
+        involves recycling TAO tokens, allowing them to be re-mined by performing work on the network.
 
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron to be registered.
             netuid (int): The unique identifier of the subnet.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the registration is successful, False otherwise.
-
-        This function offers an alternative registration path, aligning with the network's principles
-        of token circulation and value conservation.
+            bool: ``True`` if the registration is successful, False otherwise.
         """
         return burned_register_extrinsic(
             subtensor=self,
@@ -817,15 +809,16 @@ class subtensor:
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
         """Sends a (POW) register extrinsic to the chain.
+
         Args:
-            netuid (int): the subnet to register on.
-            wallet (bittensor.wallet): the wallet to register.
-            pow_result (POWSolution): the pow result to register.
-            wait_for_inclusion (bool): if true, waits for the extrinsic to be included in a block.
-            wait_for_finalization (bool): if true, waits for the extrinsic to be finalized.
+            netuid (int): The subnet to register on.
+            wallet (bittensor.wallet): The wallet to register.
+            pow_result (POWSolution): The PoW result to register.
+            wait_for_inclusion (bool): If ``true``, waits for the extrinsic to be included in a block.
+            wait_for_finalization (bool): If ``true``, waits for the extrinsic to be finalized.
         Returns:
-            success (bool): True if the extrinsic was included in a block.
-            error (Optional[str]): None on success or not waiting for inclusion/finalization, otherwise the error message.
+            success (bool): ``True`` if the extrinsic was included in a block.
+            error (Optional[str]): ``None`` on success or not waiting for inclusion/finalization, otherwise the error message.
         """
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -974,10 +967,10 @@ class subtensor:
             amount (Union[Balance, float]): The amount of TAO to be transferred.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the transfer is successful, False otherwise.
+            bool: ``True`` if the transfer is successful, False otherwise.
 
         This function is essential for the fluid movement of tokens in the network, supporting
         various economic activities such as staking, delegation, and reward distribution.
@@ -1002,9 +995,8 @@ class subtensor:
 
         Args:
             wallet (bittensor.wallet): The wallet from which the transfer is initiated.
-            dest (str): The SS58 address of the destination account.
-            value (Union[Balance, float, int]): The amount of tokens to be transferred, specified as a Balance object,
-                                                or in Tao (float) or Rao (int) units.
+            dest (str): The ``SS58`` address of the destination account.
+            value (Union[Balance, float, int]): The amount of tokens to be transferred, specified as a Balance object, or in Tao (float) or Rao (int) units.
 
         Returns:
             Balance: The estimated transaction fee for the transfer, represented as a Balance object.
@@ -1049,17 +1041,17 @@ class subtensor:
         wait_for_finalization: bool = False,
     ) -> Tuple[bool, Optional[str], Optional[str]]:
         """Sends a transfer extrinsic to the chain.
+
         Args:
-            wallet (:obj:`bittensor.wallet`): Wallet object.
-            dest (:obj:`str`): Destination public key address.
-            transfer_balance (:obj:`Balance`): Amount to transfer.
-            wait_for_inclusion (:obj:`bool`): If true, waits for inclusion.
-            wait_for_finalization (:obj:`bool`): If true, waits for finalization.
+            wallet (:func:`bittensor.wallet`): Wallet object.
+            dest (str): Destination public key address.
+            transfer_balance (:func:`Balance`): Amount to transfer.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion.
+            wait_for_finalization (bool): If ``true``, waits for finalization.
         Returns:
-            success (:obj:`bool`): True if transfer was successful.
-            block_hash (:obj:`str`): Block hash of the transfer.
-                (On success and if wait_for_ finalization/inclusion is True)
-            error (:obj:`str`): Error message if transfer failed.
+            success (bool): ``True`` if transfer was successful.
+            block_hash (str): Block hash of the transfer. On success and if wait_for_ finalization/inclusion is ``True``.
+            error (str): Error message if transfer failed.
         """
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -1099,11 +1091,10 @@ class subtensor:
         balances below this threshold can be reaped to conserve network resources.
 
         Args:
-            block (Optional[int], optional): Block number at which to query the deposit amount. If None,
-                                            the current block is used.
+            block (Optional[int], optional): Block number at which to query the deposit amount. If ``None``, the current block is used.
 
         Returns:
-            Optional[Balance]: The existential deposit amount, or None if the query fails.
+            Optional[Balance]: The existential deposit amount, or ``None`` if the query fails.
 
         The existential deposit is a fundamental economic parameter in the Bittensor network, ensuring
         efficient use of storage and preventing the proliferation of dust accounts.
@@ -1136,10 +1127,10 @@ class subtensor:
             wallet (bittensor.wallet): The wallet to be used for registration.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the subnetwork registration is successful, False otherwise.
+            bool: ``True`` if the subnetwork registration is successful, False otherwise.
 
         This function allows for the expansion and diversification of the Bittensor network, supporting
         its decentralized and adaptable architecture.
@@ -1174,10 +1165,10 @@ class subtensor:
             value: The new value for the hyperparameter.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the hyperparameter setting is successful, False otherwise.
+            bool: ``True`` if the hyperparameter setting is successful, False otherwise.
 
         This function plays a critical role in the dynamic governance and adaptability of the Bittensor
         network, allowing for fine-tuning of network operations and characteristics.
@@ -1223,10 +1214,10 @@ class subtensor:
             Other arguments: Placeholder parameters for future extensions.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the serve registration is successful, False otherwise.
+            bool: ``True`` if the serve registration is successful, False otherwise.
 
         This function is essential for establishing the neuron's presence in the network, enabling
         it to participate in the decentralized machine learning processes of Bittensor.
@@ -1262,10 +1253,10 @@ class subtensor:
             axon (bittensor.Axon): The Axon instance to be registered for serving.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the Axon serve registration is successful, False otherwise.
+            bool: ``True`` if the Axon serve registration is successful, False otherwise.
 
         By registering an Axon, the neuron becomes an active part of the network's distributed
         computing infrastructure, contributing to the collective intelligence of Bittensor.
@@ -1352,13 +1343,13 @@ class subtensor:
         """
         Sends a serve prometheus extrinsic to the chain.
         Args:
-            wallet (:obj:`bittensor.wallet`): Wallet object.
-            call_params (:obj:`PrometheusServeCallParams`): Prometheus serve call parameters.
-            wait_for_inclusion (:obj:`bool`): If true, waits for inclusion.
-            wait_for_finalization (:obj:`bool`): If true, waits for finalization.
+            wallet (:func:`bittensor.wallet`): Wallet object.
+            call_params (:func:`PrometheusServeCallParams`): Prometheus serve call parameters.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion.
+            wait_for_finalization (bool): If ``true``, waits for finalization.
         Returns:
-            success (:obj:`bool`): True if serve prometheus was successful.
-            error (:obj:`Optional[str]`): Error message if serve prometheus failed, None otherwise.
+            success (bool): ``True`` if serve prometheus was successful.
+            error (:func:`Optional[str]`): Error message if serve prometheus failed, ``None`` otherwise.
         """
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -1400,15 +1391,15 @@ class subtensor:
         Sends an associate IPs extrinsic to the chain.
 
         Args:
-            wallet (:obj:`bittensor.wallet`): Wallet object.
-            ip_info_list (:obj:`List[IPInfo]`): List of IPInfo objects.
-            netuid (:obj:`int`): Netuid to associate IPs to.
-            wait_for_inclusion (:obj:`bool`): If true, waits for inclusion.
-            wait_for_finalization (:obj:`bool`): If true, waits for finalization.
+            wallet (:func:`bittensor.wallet`): Wallet object.
+            ip_info_list (:func:`List[IPInfo]`): List of IPInfo objects.
+            netuid (int): Netuid to associate IPs to.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion.
+            wait_for_finalization (bool): If ``true``, waits for finalization.
 
         Returns:
-            success (:obj:`bool`): True if associate IPs was successful.
-            error (:obj:`Optional[str]`): Error message if associate IPs failed, None otherwise.
+            success (bool): ``True`` if associate IPs was successful.
+            error (:func:`Optional[str]`): Error message if associate IPs failed, None otherwise.
         """
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -1454,20 +1445,20 @@ class subtensor:
         prompt: bool = False,
     ) -> bool:
         """
-        Adds the specified amount of stake to a neuron identified by the hotkey SS58 address. Staking
+        Adds the specified amount of stake to a neuron identified by the hotkey ``SS58`` address. Staking
         is a fundamental process in the Bittensor network that enables neurons to participate actively
         and earn incentives.
 
         Args:
             wallet (bittensor.wallet): The wallet to be used for staking.
-            hotkey_ss58 (Optional[str]): The SS58 address of the hotkey associated with the neuron.
+            hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey associated with the neuron.
             amount (Union[Balance, float]): The amount of TAO to stake.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the staking is successful, False otherwise.
+            bool: ``True`` if the staking is successful, False otherwise.
 
         This function enables neurons to increase their stake in the network, enhancing their influence
         and potential rewards in line with Bittensor's consensus and reward mechanisms.
@@ -1497,14 +1488,14 @@ class subtensor:
 
         Args:
             wallet (bittensor.wallet): The wallet used for staking.
-            hotkey_ss58s (List[str]): List of SS58 addresses of hotkeys to stake to.
+            hotkey_ss58s (List[str]): List of ``SS58`` addresses of hotkeys to stake to.
             amounts (List[Union[Balance, float]], optional): Corresponding amounts of TAO to stake for each hotkey.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the staking is successful for all specified neurons, False otherwise.
+            bool: ``True`` if the staking is successful for all specified neurons, False otherwise.
 
         This function is essential for managing stakes across multiple neurons, reflecting the dynamic
         and collaborative nature of the Bittensor network.
@@ -1528,14 +1519,15 @@ class subtensor:
         wait_for_finalization: bool = False,
     ) -> bool:
         """Sends a stake extrinsic to the chain.
+
         Args:
-            wallet (:obj:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-            hotkey_ss58 (:obj:`str`): Hotkey ss58 address to stake to.
-            amount (:obj:`Balance`): Amount to stake.
-            wait_for_inclusion (:obj:`bool`): If true, waits for inclusion before returning.
-            wait_for_finalization (:obj:`bool`): If true, waits for finalization before returning.
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey_ss58 (str): Hotkey ``ss58`` address to stake to.
+            amount (:func:`Balance`): Amount to stake.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
         Returns:
-            success (:obj:`bool`): True if the extrinsic was successful.
+            success (bool): ``True`` if the extrinsic was successful.
         Raises:
             StakeError: If the extrinsic failed.
         """
@@ -1586,15 +1578,14 @@ class subtensor:
 
         Args:
             wallet (bittensor.wallet): The wallet linked to the coldkey from which the stakes are being withdrawn.
-            hotkey_ss58s (List[str]): A list of hotkey SS58 addresses to unstake from.
-            amounts (List[Union[Balance, float]], optional): The amounts of TAO to unstake from each hotkey.
-                                                            If not provided, unstakes all available stakes.
+            hotkey_ss58s (List[str]): A list of hotkey ``SS58`` addresses to unstake from.
+            amounts (List[Union[Balance, float]], optional): The amounts of TAO to unstake from each hotkey. If not provided, unstakes all available stakes.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the batch unstaking is successful, False otherwise.
+            bool: ``True`` if the batch unstaking is successful, False otherwise.
 
         This function allows for strategic reallocation or withdrawal of stakes, aligning with the dynamic
         stake management aspect of the Bittensor network.
@@ -1624,14 +1615,14 @@ class subtensor:
 
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron from which the stake is being removed.
-            hotkey_ss58 (Optional[str]): The SS58 address of the hotkey account to unstake from.
+            hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
             amount (Union[Balance, float], optional): The amount of TAO to unstake. If not specified, unstakes all.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the unstaking process is successful, False otherwise.
+            bool: ``True`` if the unstaking process is successful, False otherwise.
 
         This function supports flexible stake management, allowing neurons to adjust their network participation
         and potential reward accruals.
@@ -1655,14 +1646,15 @@ class subtensor:
         wait_for_finalization: bool = False,
     ) -> bool:
         """Sends an unstake extrinsic to the chain.
+
         Args:
-            wallet (:obj:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-            hotkey_ss58 (:obj:`str`): Hotkey ss58 address to unstake from.
-            amount (:obj:`Balance`): Amount to unstake.
-            wait_for_inclusion (:obj:`bool`): If true, waits for inclusion before returning.
-            wait_for_finalization (:obj:`bool`): If true, waits for finalization before returning.
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey_ss58 (str): Hotkey ``ss58`` address to unstake from.
+            amount (:func:`Balance`): Amount to unstake.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
         Returns:
-            success (:obj:`bool`): True if the extrinsic was successful.
+            success (bool): ``True`` if the extrinsic was successful.
         Raises:
             StakeError: If the extrinsic failed.
         """
@@ -1712,14 +1704,14 @@ class subtensor:
 
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron from which the stake is being removed.
-            hotkey_ss58 (Optional[str]): The SS58 address of the hotkey account to unstake from.
+            hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
             amount (Union[Balance, float], optional): The amount of TAO to unstake. If not specified, unstakes all.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the unstaking process is successful, False otherwise.
+            bool: ``True`` if the unstaking process is successful, False otherwise.
 
         This function supports flexible stake management, allowing neurons to adjust their network participation
         and potential reward accruals.
@@ -1741,14 +1733,14 @@ class subtensor:
 
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron from which the stake is being removed.
-            hotkey_ss58 (Optional[str]): The SS58 address of the hotkey account to unstake from.
+            hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
             amount (Union[Balance, float], optional): The amount of TAO to unstake. If not specified, unstakes all.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the unstaking process is successful, False otherwise.
+            bool: ``True`` if the unstaking process is successful, False otherwise.
 
         This function supports flexible stake management, allowing neurons to adjust their network participation
         and potential reward accruals.
@@ -1773,14 +1765,14 @@ class subtensor:
 
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron from which the stake is being removed.
-            hotkey_ss58 (Optional[str]): The SS58 address of the hotkey account to unstake from.
+            hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
             amount (Union[Balance, float], optional): The amount of TAO to unstake. If not specified, unstakes all.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the unstaking process is successful, False otherwise.
+            bool: ``True`` if the unstaking process is successful, False otherwise.
 
         This function supports flexible stake management, allowing neurons to adjust their network participation
         and potential reward accruals.
@@ -1803,11 +1795,11 @@ class subtensor:
         approving various network operations and proposals.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             block (Optional[int], optional): The blockchain block number at which to check senate membership.
 
         Returns:
-            bool: True if the neuron is a senate member at the given block, False otherwise.
+            bool: ``True`` if the neuron is a senate member at the given block, False otherwise.
 
         This function is crucial for understanding the governance dynamics of the Bittensor network and for
         identifying the neurons that hold decision-making power within the network.
@@ -1829,7 +1821,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number to query the voting data.
 
         Returns:
-            Optional[ProposalVoteData]: An object containing the proposal's voting data, or None if not found.
+            Optional[ProposalVoteData]: An object containing the proposal's voting data, or ``None`` if not found.
 
         This function is important for tracking and understanding the decision-making processes within
         the Bittensor network, particularly how proposals are received and acted upon by the governing body.
@@ -1850,7 +1842,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number at which to retrieve the senate members.
 
         Returns:
-            Optional[List[str]]: A list of SS58 addresses of current senate members, or None if not available.
+            Optional[List[str]]: A list of ``SS58`` addresses of current senate members, or ``None`` if not available.
 
         Understanding the composition of the senate is key to grasping the governance structure and
         decision-making authority within the Bittensor network.
@@ -1871,7 +1863,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number at which to query the proposal call data.
 
         Returns:
-            Optional[bittensor.ProposalCallData]: An object containing the proposal's call data, or None if not found.
+            Optional[bittensor.ProposalCallData]: An object containing the proposal's call data, or ``None`` if not found.
 
         This function is crucial for analyzing the types of proposals made within the network and the
         specific changes or actions they intend to implement or address.
@@ -1891,7 +1883,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number to query the proposal hashes.
 
         Returns:
-            Optional[List[str]]: A list of proposal hashes, or None if not available.
+            Optional[List[str]]: A list of proposal hashes, or ``None`` if not available.
 
         This function enables tracking and reviewing the proposals made in the network, offering insights
         into the active governance and decision-making processes.
@@ -1917,7 +1909,7 @@ class subtensor:
 
         Returns:
             Optional[Dict[str, Tuple[bittensor.ProposalCallData, bittensor.ProposalVoteData]]]:
-                A dictionary mapping proposal hashes to their corresponding call and vote data, or None if not available.
+                A dictionary mapping proposal hashes to their corresponding call and vote data, or ``None`` if not available.
 
         This function is integral for analyzing the governance activity on the Bittensor network,
         providing a holistic view of the proposals and their impact or potential changes within the network.
@@ -1952,10 +1944,10 @@ class subtensor:
             wallet (bittensor.wallet): The wallet associated with the neuron to be registered on the root network.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the registration on the root network is successful, False otherwise.
+            bool: ``True`` if the registration on the root network is successful, False otherwise.
 
         This function enables neurons to engage in the most critical and influential aspects of the network's
         governance, signifying a high level of commitment and responsibility in the Bittensor ecosystem.
@@ -2027,10 +2019,10 @@ class subtensor:
             version_key (int, optional): Version key for compatibility with the network.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: True if the setting of root-level weights is successful, False otherwise.
+            bool: ``True`` if the setting of root-level weights is successful, False otherwise.
 
         This function plays a pivotal role in shaping the root network's collective intelligence and decision-making
         processes, reflecting the principles of decentralized governance and collaborative learning in Bittensor.
@@ -2062,14 +2054,15 @@ class subtensor:
         detailed identity information about a specific neuron, which is a crucial aspect of the network's decentralized
         identity and governance system.
 
-        NOTE: See the bittensor cli documentation for supported identity parameters.
+        NOTE:
+            See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity parameters.
 
         Args:
-            key (str): The key used to query the neuron's identity, typically the neuron's SS58 address.
+            key (str): The key used to query the neuron's identity, typically the neuron's ``SS58`` address.
             block (Optional[int], optional): The blockchain block number at which to perform the query.
 
         Returns:
-            Optional[object]: An object containing the identity information of the neuron if found, None otherwise.
+            Optional[object]: An object containing the identity information of the neuron if found, ``None`` otherwise.
 
         The identity information can include various attributes such as the neuron's stake, rank, and other
         network-specific details, providing insights into the neuron's role and status within the Bittensor network.
@@ -2082,9 +2075,9 @@ class subtensor:
                     module="Registry",
                     storage_function="IdentityOf",
                     params=[key],
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         identity_info = make_substrate_call_with_retry()
@@ -2104,17 +2097,18 @@ class subtensor:
         Updates the identity of a neuron on the Bittensor blockchain. This function allows neurons to modify their
         identity attributes, reflecting changes in their roles, stakes, or other network-specific parameters.
 
-        NOTE: See the bittensor cli documentation for supported identity parameters.
+        NOTE:
+            See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity parameters.
 
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron whose identity is being updated.
-            identified (str, optional): The identified SS58 address of the neuron. Defaults to the wallet's coldkey address.
+            identified (str, optional): The identified ``SS58`` address of the neuron. Defaults to the wallet's coldkey address.
             params (dict, optional): A dictionary of parameters to update in the neuron's identity.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            bool: True if the identity update is successful, False otherwise.
+            bool: ``True`` if the identity update is successful, False otherwise.
 
         This function plays a vital role in maintaining the accuracy and currency of neuron identities in the
         Bittensor network, ensuring that the network's governance and consensus mechanisms operate effectively.
@@ -2189,7 +2183,7 @@ class subtensor:
             params (Optional[List[object]], optional): A list of parameters to pass to the query function.
 
         Returns:
-            Optional[object]: An object containing the requested data if found, None otherwise.
+            Optional[object]: An object containing the requested data if found, ``None`` otherwise.
 
         This query function is essential for accessing detailed information about the network and its neurons,
         providing valuable insights into the state and dynamics of the Bittensor ecosystem.
@@ -2202,9 +2196,9 @@ class subtensor:
                     module="SubtensorModule",
                     storage_function=name,
                     params=params,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2227,7 +2221,7 @@ class subtensor:
             params (Optional[List[object]], optional): A list of parameters to pass to the query function.
 
         Returns:
-            QueryMapResult: An object containing the map-like data structure, or None if not found.
+            QueryMapResult: An object containing the map-like data structure, or ``None`` if not found.
 
         This function is particularly useful for analyzing and understanding complex network structures and
         relationships within the Bittensor ecosystem, such as inter-neuronal connections and stake distributions.
@@ -2240,9 +2234,9 @@ class subtensor:
                     module="SubtensorModule",
                     storage_function=name,
                     params=params,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2261,7 +2255,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number at which to query the constant.
 
         Returns:
-            Optional[object]: The value of the constant if found, None otherwise.
+            Optional[object]: The value of the constant if found, ``None`` otherwise.
 
         Constants queried through this function can include critical network parameters such as inflation rates,
         consensus rules, or validation thresholds, providing a deeper understanding of the Bittensor network's
@@ -2274,9 +2268,9 @@ class subtensor:
                 return substrate.get_constant(
                     module_name=module_name,
                     constant_name=constant_name,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2302,7 +2296,7 @@ class subtensor:
             params (Optional[List[object]], optional): A list of parameters to pass to the query function.
 
         Returns:
-            Optional[object]: An object containing the requested data if found, None otherwise.
+            Optional[object]: An object containing the requested data if found, ``None`` otherwise.
 
         This versatile query function is key to accessing a wide range of data and insights from different
         parts of the Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
@@ -2315,9 +2309,9 @@ class subtensor:
                     module=module,
                     storage_function=name,
                     params=params,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2342,7 +2336,7 @@ class subtensor:
             params (Optional[List[object]], optional): Parameters to be passed to the query.
 
         Returns:
-            Optional[object]: A data structure representing the map storage if found, None otherwise.
+            Optional[object]: A data structure representing the map storage if found, ``None`` otherwise.
 
         This function is particularly useful for retrieving detailed and structured data from various blockchain
         modules, offering insights into the network's state and the relationships between its different components.
@@ -2355,9 +2349,9 @@ class subtensor:
                     module=module,
                     storage_function=name,
                     params=params,
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         return make_substrate_call_with_retry()
@@ -2378,7 +2372,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number at which to perform the state call.
 
         Returns:
-            Optional[object]: The result of the state call if successful, None otherwise.
+            Optional[object]: The result of the state call if successful, ``None`` otherwise.
 
         The state call function provides a more direct and flexible way of querying blockchain data,
         useful for specific use cases where standard queries are insufficient.
@@ -2414,7 +2408,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number at which to perform the query.
 
         Returns:
-            Optional[bytes]: The Scale Bytes encoded result from the runtime API call, or None if the call fails.
+            Optional[bytes]: The Scale Bytes encoded result from the runtime API call, or ``None`` if the call fails.
 
         This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed
         and specific interactions with the network's runtime environment.
@@ -2425,9 +2419,11 @@ class subtensor:
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
-            data="0x"
-            if params is None
-            else self._encode_params(call_definition=call_definition, params=params),
+            data=(
+                "0x"
+                if params is None
+                else self._encode_params(call_definition=call_definition, params=params)
+            ),
             block=block,
         )
 
@@ -2476,25 +2472,25 @@ class subtensor:
 
     def rho(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
         """
-        Retrieves the 'Rho' hyperparameter for a specified subnet within the Bittensor network.
-        'Rho' represents the global inflation rate, which directly influences the network's
+        Retrieves the 'Rho' hyperparameter for a specified subnet within the Bittensor network. 'Rho' represents the global inflation rate, which directly influences the network's
         token emission rate and economic model.
 
-        Note: This is currently fixed such that the Bittensor blockchain emmits 7200 Tao per day.
+        Note:
+            This is currently fixed such that the Bittensor blockchain emmits 7200 Tao per day.
 
         Args:
             netuid (int): The unique identifier of the subnet.
             block (Optional[int], optional): The blockchain block number at which to query the parameter.
 
         Returns:
-            Optional[int]: The value of the 'Rho' hyperparameter if the subnet exists, None otherwise.
+            Optional[int]: The value of the 'Rho' hyperparameter if the subnet exists, ``None`` otherwise.
 
         Mathematical Context:
             Rho (p) is calculated based on the network's target inflation and actual neuron staking.
             It adjusts the emission rate of the TAO token to balance the network's economy and dynamics.
             The formula for Rho is defined as: p = (Staking_Target / Staking_Actual) * Inflation_Target.
             Here, Staking_Target and Staking_Actual represent the desired and actual total stakes in the network,
-            while Inflation_Target is the predefined inflation rate goal&#8203;``【oaicite:0】``&#8203;.
+            while Inflation_Target is the predefined inflation rate goal.
 
         'Rho' is essential for understanding the network's economic dynamics, affecting the reward distribution
         and incentive structures across the network's neurons.
@@ -2521,7 +2517,7 @@ class subtensor:
             It is derived from the softmax function applied to the inter-neuronal weights set by each neuron.
             The formula for Kappa is: κ_i = exp(w_i) / Σ(exp(w_j)), where w_i represents the weight set by neuron i,
             and the denominator is the sum of exponential weights set by all neurons.
-            This mechanism ensures a normalized and probabilistic distribution of ranks based on relative weights&#8203;``【oaicite:0】``&#8203;.
+            This mechanism ensures a normalized and probabilistic distribution of ranks based on relative weights.
 
         Understanding 'Kappa' is crucial for analyzing stake dynamics and the consensus mechanism within the network,
         as it plays a significant role in neuron ranking and incentive allocation processes.
@@ -2543,7 +2539,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            Optional[int]: The value of the 'Difficulty' hyperparameter if the subnet exists, None otherwise.
+            Optional[int]: The value of the 'Difficulty' hyperparameter if the subnet exists, ``None`` otherwise.
 
         The 'Difficulty' parameter directly impacts the network's security and integrity by setting the
         computational effort required for validating transactions and participating in the network's consensus mechanism.
@@ -2552,10 +2548,10 @@ class subtensor:
             return None
         return self.query_subtensor("Difficulty", block, [netuid]).value
 
-    def burn(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
+    def recycle(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the
-        amount of Tao that is effectively removed from circulation within the Bittensor network.
+        amount of Tao that is effectively recycled within the Bittensor network.
 
         Args:
             netuid (int): The unique identifier of the subnet.
@@ -2564,8 +2560,8 @@ class subtensor:
         Returns:
             Optional[Balance]: The value of the 'Burn' hyperparameter if the subnet exists, None otherwise.
 
-        Understanding the 'Burn' rate is essential for analyzing the network's economic model, particularly
-        how it manages inflation and the overall supply of its native token Tao.
+        Understanding the 'Burn' rate is essential for analyzing the network registration usage, particularly
+        how it is correlated with user activity and the overall cost of participation in a given subnet.
         """
         if not self.subnet_exists(netuid, block):
             return None
@@ -2585,7 +2581,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            Optional[int]: The value of the 'ImmunityPeriod' hyperparameter if the subnet exists, None otherwise.
+            Optional[int]: The value of the 'ImmunityPeriod' hyperparameter if the subnet exists, ``None`` otherwise.
 
         The 'ImmunityPeriod' is a critical aspect of the network's governance system, ensuring that new
         participants have a grace period to establish themselves and contribute to the network without facing
@@ -2868,7 +2864,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number at which to perform the query.
 
         Returns:
-            Optional[int]: The serving rate limit of the subnet if it exists, None otherwise.
+            Optional[int]: The serving rate limit of the subnet if it exists, ``None`` otherwise.
 
         The serving rate limit is a crucial parameter for maintaining network efficiency and preventing
         overuse of resources by individual neurons. It helps ensure a balanced distribution of service
@@ -2910,7 +2906,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number at which to check the subnet's existence.
 
         Returns:
-            bool: True if the subnet exists, False otherwise.
+            bool: ``True`` if the subnet exists, False otherwise.
 
         This function is critical for verifying the presence of specific subnets in the network,
         enabling a deeper understanding of the network's structure and composition.
@@ -3080,7 +3076,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            Optional[SubnetInfo]: Detailed information about the subnet, or None if not found.
+            Optional[SubnetInfo]: Detailed information about the subnet, or ``None`` if not found.
 
         This function is essential for neurons and stakeholders interested in the specifics of a particular
         subnet, including its governance, performance, and role within the broader network.
@@ -3118,7 +3114,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            Optional[SubnetHyperparameters]: The subnet's hyperparameters, or None if not available.
+            Optional[SubnetHyperparameters]: The subnet's hyperparameters, or ``None`` if not available.
 
         Understanding the hyperparameters is crucial for comprehending how subnets are configured and
         managed, and how they interact with the network's consensus and incentive mechanisms.
@@ -3152,7 +3148,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            Optional[str]: The SS58 address of the subnet's owner, or None if not available.
+            Optional[str]: The SS58 address of the subnet's owner, or ``None`` if not available.
 
         Knowing the subnet owner provides insights into the governance and operational control of the subnet,
         which can be important for decision-making and collaboration within the network.
@@ -3172,7 +3168,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            bool: True if the hotkey is a delegate, False otherwise.
+            bool: ``True`` if the hotkey is a delegate, ``False`` otherwise.
 
         Being a delegate is a significant status within the Bittensor network, indicating a neuron's
         involvement in consensus and governance processes.
@@ -3189,7 +3185,7 @@ class subtensor:
         represents the percentage of rewards that the delegate claims from its nominators' stakes.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
@@ -3210,7 +3206,7 @@ class subtensor:
         Nominators are neurons that stake their tokens on a delegate to support its operations.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
@@ -3233,11 +3229,11 @@ class subtensor:
         a comprehensive view of the delegate's status, including its stakes, nominators, and reward distribution.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the delegate's hotkey.
+            hotkey_ss58 (str): The ``SS58`` address of the delegate's hotkey.
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            Optional[DelegateInfo]: Detailed information about the delegate neuron, None if not found.
+            Optional[DelegateInfo]: Detailed information about the delegate neuron, ``None`` if not found.
 
         This function is essential for understanding the roles and influence of delegate neurons within
         the Bittensor network's consensus and governance structures.
@@ -3307,7 +3303,7 @@ class subtensor:
         identifies the delegates that a specific account has staked tokens on.
 
         Args:
-            coldkey_ss58 (str): The SS58 address of the account's coldkey.
+            coldkey_ss58 (str): The ``SS58`` address of the account's coldkey.
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
@@ -3350,7 +3346,7 @@ class subtensor:
         about the stakes held by an account, including the staked amounts and associated delegates.
 
         Args:
-            coldkey_ss58 (str): The SS58 address of the account's coldkey.
+            coldkey_ss58 (str): The ``SS58`` address of the account's coldkey.
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
@@ -3386,7 +3382,7 @@ class subtensor:
         accounts, providing a collective view of their stakes and delegations.
 
         Args:
-            coldkey_ss58_list (List[str]): A list of SS58 addresses of the accounts' coldkeys.
+            coldkey_ss58_list (List[str]): A list of ``SS58`` addresses of the accounts' coldkeys.
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
@@ -3427,11 +3423,11 @@ class subtensor:
         Checks if a neuron's hotkey is registered on any subnet within the Bittensor network.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             block (Optional[int], optional): The blockchain block number at which to perform the check.
 
         Returns:
-            bool: True if the hotkey is registered on any subnet, False otherwise.
+            bool: ``True`` if the hotkey is registered on any subnet, False otherwise.
 
         This function is essential for determining the network-wide presence and participation of a neuron.
         """
@@ -3444,12 +3440,12 @@ class subtensor:
         Checks if a neuron's hotkey is registered on a specific subnet within the Bittensor network.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             netuid (int): The unique identifier of the subnet.
             block (Optional[int], optional): The blockchain block number at which to perform the check.
 
         Returns:
-            bool: True if the hotkey is registered on the specified subnet, False otherwise.
+            bool: ``True`` if the hotkey is registered on the specified subnet, False otherwise.
 
         This function helps in assessing the participation of a neuron in a particular subnet,
         indicating its specific area of operation or influence within the network.
@@ -3470,13 +3466,11 @@ class subtensor:
 
         Args:
             hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
-            netuid (Optional[int], optional): The unique identifier of the subnet to check the registration.
-                                            If None, the registration is checked across all subnets.
+            netuid (Optional[int], optional): The unique identifier of the subnet to check the registration. If ``None``, the registration is checked across all subnets.
             block (Optional[int], optional): The blockchain block number at which to perform the query.
 
         Returns:
-            bool: True if the hotkey is registered in the specified context (either any subnet or a specific subnet),
-                False otherwise.
+            bool: ``True`` if the hotkey is registered in the specified context (either any subnet or a specific subnet), ``False`` otherwise.
 
         This function is important for verifying the active status of neurons in the Bittensor network. It aids
         in understanding whether a neuron is eligible to participate in network processes such as consensus,
@@ -3494,12 +3488,12 @@ class subtensor:
         Retrieves the unique identifier (UID) for a neuron's hotkey on a specific subnet.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             netuid (int): The unique identifier of the subnet.
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            Optional[int]: The UID of the neuron if it is registered on the subnet, None otherwise.
+            Optional[int]: The UID of the neuron if it is registered on the subnet, ``None`` otherwise.
 
         The UID is a critical identifier within the network, linking the neuron's hotkey to its
         operational and governance activities on a particular subnet.
@@ -3515,7 +3509,7 @@ class subtensor:
         linked to a specific hotkey.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             block (Optional[int], optional): The blockchain block number at which to perform the query.
 
         Returns:
@@ -3538,7 +3532,7 @@ class subtensor:
         the hotkey is active.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             block (Optional[int], optional): The blockchain block number at which to perform the query.
 
         Returns:
@@ -3556,12 +3550,12 @@ class subtensor:
         the Bittensor network.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             netuid (int): The unique identifier of the subnet.
             block (Optional[int], optional): The blockchain block number at which to perform the query.
 
         Returns:
-            Optional[NeuronInfo]: Detailed information about the neuron if found, None otherwise.
+            Optional[NeuronInfo]: Detailed information about the neuron if found, ``None`` otherwise.
 
         This function is crucial for accessing specific neuron data and understanding its status, stake,
         and other attributes within a particular subnet of the Bittensor ecosystem.
@@ -3576,12 +3570,12 @@ class subtensor:
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> List[NeuronInfo]:
         """
-        Retrieves information about all neuron instances associated with a given public key (hotkey SS58
+        Retrieves information about all neuron instances associated with a given public key (hotkey ``SS58``
         address) across different subnets of the Bittensor network. This function aggregates neuron data
         from various subnets to provide a comprehensive view of a neuron's presence and status within the network.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
@@ -3608,7 +3602,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            Optional[bool]: True if the neuron has a validator permit, False otherwise.
+            Optional[bool]: ``True`` if the neuron has a validator permit, False otherwise.
 
         This function is essential for understanding a neuron's role and capabilities within a specific
         subnet, particularly regarding its involvement in network validation and governance.
@@ -3629,7 +3623,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number at which to perform the query.
 
         Returns:
-            Optional[NeuronInfo]: Detailed information about the neuron if found, None otherwise.
+            Optional[NeuronInfo]: Detailed information about the neuron if found, ``None`` otherwise.
 
         This function is important for wallet owners to understand and manage their neuron's presence
         and activities within a particular subnet of the Bittensor network.
@@ -3652,7 +3646,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            Optional[NeuronInfo]: Detailed information about the neuron if found, None otherwise.
+            Optional[NeuronInfo]: Detailed information about the neuron if found, ``None`` otherwise.
 
         This function is crucial for analyzing individual neurons' contributions and status within a specific
         subnet, offering insights into their roles in the network's consensus and validation mechanisms.
@@ -3724,7 +3718,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            Optional[NeuronInfoLite]: A simplified version of neuron information if found, None otherwise.
+            Optional[NeuronInfoLite]: A simplified version of neuron information if found, ``None`` otherwise.
 
         This function is useful for quick and efficient analyses of neuron status and activities within a
         subnet without the need for comprehensive data retrieval.
@@ -3800,7 +3794,7 @@ class subtensor:
         Args:
             netuid (int): The network UID of the subnet to query.
             lite (bool, default=True): If true, returns a metagraph using a lightweight sync (no weights, no bonds).
-            block (Optional[int]): Block number for synchronization, or None for the latest block.
+            block (Optional[int]): Block number for synchronization, or ``None`` for the latest block.
 
         Returns:
             bittensor.Metagraph: The metagraph representing the subnet's structure and neuron relationships.
@@ -3911,7 +3905,7 @@ class subtensor:
             block (Optional[int]): The blockchain block number for the query.
 
         Returns:
-            Optional[List[IPInfo]]: A list of IPInfo objects for validator nodes in the subnet, or None if no validators are associated.
+            Optional[List[IPInfo]]: A list of IPInfo objects for validator nodes in the subnet, or ``None`` if no validators are associated.
 
         Validator IP information is key for establishing secure and reliable connections within the network,
         facilitating consensus and validation processes critical for the network's integrity and performance.
@@ -4079,7 +4073,7 @@ class subtensor:
         the blockchain to determine the amount of Tao held by a given account.
 
         Args:
-            address (str): The Substrate address in ss58 format.
+            address (str): The Substrate address in ``ss58`` format.
             block (int, optional): The blockchain block number at which to perform the query.
 
         Returns:
@@ -4097,9 +4091,9 @@ class subtensor:
                         module="System",
                         storage_function="Account",
                         params=[address],
-                        block_hash=None
-                        if block == None
-                        else substrate.get_block_hash(block),
+                        block_hash=(
+                            None if block == None else substrate.get_block_hash(block)
+                        ),
                     )
 
             result = make_substrate_call_with_retry()
@@ -4138,7 +4132,7 @@ class subtensor:
             block (int, optional): The blockchain block number at which to perform the query.
 
         Returns:
-            Dict[str, Balance]: A dictionary mapping each account's ss58 address to its balance.
+            Dict[str, Balance]: A dictionary mapping each account's ``ss58`` address to its balance.
 
         This function is valuable for analyzing the overall economic landscape of the Bittensor network,
         including the distribution of financial resources and the financial status of network participants.
@@ -4150,9 +4144,9 @@ class subtensor:
                 return substrate.query_map(
                     module="System",
                     storage_function="Account",
-                    block_hash=None
-                    if block == None
-                    else substrate.get_block_hash(block),
+                    block_hash=(
+                        None if block == None else substrate.get_block_hash(block)
+                    ),
                 )
 
         result = make_substrate_call_with_retry()

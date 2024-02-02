@@ -321,6 +321,7 @@ class TestSubtensor(unittest.TestCase):
             def process_events(self):
                 return True
 
+        self.subtensor.set_weights = MagicMock(return_value=True)
         self.subtensor._do_set_weights = MagicMock(return_value=(True, None))
 
         success = self.subtensor.set_weights(
@@ -334,6 +335,7 @@ class TestSubtensor(unittest.TestCase):
     def test_set_weights_inclusion(self):
         chain_weights = [0]
         self.subtensor._do_set_weights = MagicMock(return_value=(True, None))
+        self.subtensor.set_weights = MagicMock(return_value=True)
 
         success = self.subtensor.set_weights(
             wallet=self.wallet,
@@ -349,6 +351,7 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor._do_set_weights = MagicMock(
             return_value=(False, "Mock failure message")
         )
+        self.subtensor.set_weights = MagicMock(return_value=False)
 
         fail = self.subtensor.set_weights(
             wallet=self.wallet,
