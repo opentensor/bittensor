@@ -65,7 +65,7 @@ from .extrinsics.registration import (
     swap_hotkey_extrinsic,
 )
 from .extrinsics.transfer import transfer_extrinsic
-from .extrinsics.set_weights import set_weights_extrinsic
+from .extrinsics.set_weights import set_weights_extrinsic, ttl_set_weights_extrinsic
 from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import (
     delegate_extrinsic,
@@ -547,6 +547,7 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
+        ttl: int = 100,
     ) -> bool:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the
@@ -569,7 +570,7 @@ class subtensor:
         This function is crucial in shaping the network's collective intelligence, where each neuron's
         learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        return set_weights_extrinsic(
+        return ttl_set_weights_extrinsic(
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
@@ -579,6 +580,7 @@ class subtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
+            ttl=ttl,
         )
 
     def _do_set_weights(
