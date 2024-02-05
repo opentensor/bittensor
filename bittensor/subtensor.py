@@ -65,7 +65,7 @@ from .extrinsics.registration import (
     swap_hotkey_extrinsic,
 )
 from .extrinsics.transfer import transfer_extrinsic
-from .extrinsics.set_weights import set_weights_extrinsic
+from .extrinsics.set_weights import set_weights_extrinsic, ttl_set_weights_extrinsic
 from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import (
     delegate_extrinsic,
@@ -547,6 +547,7 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
+        ttl: int = 100,
     ) -> bool:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the
@@ -569,7 +570,7 @@ class subtensor:
         This function is crucial in shaping the network's collective intelligence, where each neuron's
         learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        return set_weights_extrinsic(
+        return ttl_set_weights_extrinsic(
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
@@ -579,6 +580,7 @@ class subtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
+            ttl=ttl,
         )
 
     def _do_set_weights(
@@ -776,8 +778,8 @@ class subtensor:
         prompt: bool = False,
     ) -> bool:
         """
-        Registers a neuron on the Bittensor network by burning TAO. This method of registration
-        involves recycling TAO tokens, contributing to the network's deflationary mechanism.
+        Registers a neuron on the Bittensor network by recycling TAO. This method of registration
+        involves recycling TAO tokens, allowing them to be re-mined by performing work on the network.
 
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron to be registered.
@@ -788,9 +790,6 @@ class subtensor:
 
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
-
-        This function offers an alternative registration path, aligning with the network's principles
-        of token circulation and value conservation.
         """
         return burned_register_extrinsic(
             subtensor=self,
@@ -2549,10 +2548,10 @@ class subtensor:
             return None
         return self.query_subtensor("Difficulty", block, [netuid]).value
 
-    def burn(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
+    def recycle(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the
-        amount of Tao that is effectively removed from circulation within the Bittensor network.
+        amount of Tao that is effectively recycled within the Bittensor network.
 
         Args:
             netuid (int): The unique identifier of the subnet.
@@ -2561,8 +2560,8 @@ class subtensor:
         Returns:
             Optional[Balance]: The value of the 'Burn' hyperparameter if the subnet exists, None otherwise.
 
-        Understanding the 'Burn' rate is essential for analyzing the network's economic model, particularly
-        how it manages inflation and the overall supply of its native token Tao.
+        Understanding the 'Burn' rate is essential for analyzing the network registration usage, particularly
+        how it is correlated with user activity and the overall cost of participation in a given subnet.
         """
         if not self.subnet_exists(netuid, block):
             return None

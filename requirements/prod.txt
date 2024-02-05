@@ -26,7 +26,7 @@ requests
 rich
 scalecodec==1.2.7
 shtab==1.6.5
-substrate-interface==1.5.2
+substrate-interface==1.7.5
 termcolor
 torch>=1.13.1
 tqdm
