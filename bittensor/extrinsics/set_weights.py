@@ -40,7 +40,7 @@ def ttl_set_weights_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
     ttl: int = 100,
-):
+) -> Tuple[bool, str]:
     r"""Sets the given weights and values on chain for wallet hotkey account."""
 
     def target(queue, *args):
