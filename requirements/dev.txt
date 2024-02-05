@@ -1,4 +1,5 @@
 pytest==7.2.0
+pytest-mock==3.12.0
 pytest-split==0.8.0
 pytest-xdist==3.0.2
 pytest-rerunfailures==10.2
