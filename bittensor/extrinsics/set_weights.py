@@ -148,7 +148,10 @@ def set_weights_extrinsic(
             )
 
             if not wait_for_finalization and not wait_for_inclusion:
-                return True, "Not waiting for finalization or inclusion. Assume successful."
+                return (
+                    True,
+                    "Not waiting for finalization or inclusion. Assume successful.",
+                )
 
             if success == True:
                 bittensor.__console__.print(
