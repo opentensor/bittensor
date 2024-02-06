@@ -17,7 +17,6 @@
 
 import argparse
 import bittensor
-from rich.prompt import Prompt
 from rich.table import Table
 from .utils import check_netuid_set
 
