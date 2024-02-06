@@ -24,7 +24,7 @@ import argparse
 import bittensor
 from termcolor import colored
 from substrateinterface import Keypair
-from typing import Optional, Union, List, Tuple, Dict, overload
+from typing import Optional, Union, Tuple, Dict, overload
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 
 
