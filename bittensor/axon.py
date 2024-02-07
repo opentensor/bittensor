@@ -1029,7 +1029,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             synapse: bittensor.Synapse = await self.preprocess(request)
 
             # Logs the start of the request processing
-            bittensor.logging.debug(
+            bittensor.logging.trace(
                 f"axon     | <-- | {request.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success "
             )
 
@@ -1101,7 +1101,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         finally:
             # Log the details of the processed synapse, including total size, name, hotkey, IP, port,
             # status code, and status message, using the debug level of the logger.
-            bittensor.logging.debug(
+            bittensor.logging.trace(
                 f"axon     | --> | {response.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}"
             )
 
