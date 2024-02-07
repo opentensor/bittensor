@@ -41,3 +41,6 @@ jobs:
     - name: Unit Tests with pytest
       run: |
         pytest tests/unit
+    - name: type-check with mypy
+      run: |
+        mypy .
