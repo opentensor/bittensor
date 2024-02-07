@@ -23,7 +23,8 @@ from typing import Dict, Optional, Tuple, Union, List, Callable
 import msgpack
 import msgpack_numpy
 import numpy as np
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
+from pydantic.functional_validators import model_validator,field_validator
 import torch
 
 
@@ -38,7 +39,7 @@ TORCH_DTYPES = {
     torch.int64: "torch.int64",
     torch.bool: "torch.bool",
     torch.complex32: "torch.complex32",
-    torch.complex64:"torch.complex64",
+    torch.complex64: "torch.complex64",
     torch.complex128: "torch.complex128",
 }
 
@@ -145,92 +146,94 @@ class old_tensor_factory:
         return Tensor.serialize(tensor=tensor)
 
 
+
 class Tensor(BaseModel):
     """
-    Represents a Tensor object.
+    A model representing a tensor with support for scalars, vectors, matrices, and higher-dimensional data.
 
     Attributes:
-        buffer (Optional[str]): Tensor buffer data.
-        dtype (str): Tensor data type.
-        shape (List[int]): Tensor shape.
+        scalar (Optional[int]): Scalar value of the tensor, if applicable.
+        vector (Optional[List[int]]): Vector representation of the tensor, if applicable.
+        matrix (Optional[List[List[Union[int, float]]]]): Matrix representation of the tensor, if applicable.
+        tensor (Optional[np.ndarray]): Higher-dimensional tensor data, if applicable.
+        buffer (Optional[str]): Serialized tensor data for storage or transmission.
+        dtype (str): Data type of the tensor elements.
+        shape (List[int]): Dimensions of the tensor.
     """
     scalar: Optional[int] = Field(
         default=None,
-        title="scaler",
-        description="Tensor data of type scaler.",
-        examples="1",
+        title="Scalar",
+        description="Scalar value of the tensor.",
+        examples=[1],
         frozen=True,
         repr=True,
     )
     vector: Optional[List[int]] = Field(
         default=None,
-        title="vector",
-        description="Tensor data of type vector.",
-        examples="[1,1,1,1,1]",
+        title="Vector",
+        description="Vector representation of the tensor.",
+        examples=[[1, 2, 3, 4, 5]],
         frozen=True,
         repr=True,
     )
     matrix: Optional[List[List[Union[int, float]]]] = Field(
         default=None,
-        title="vector",
-        description="Tensor data of type matrix.",
-        examples="[[1,1,1],[2,2,2],[3,3,3]]",
+        title="Matrix",
+        description="Matrix representation of the tensor.",
+        examples=[[[1, 2], [3, 4], [5, 6]]],
         frozen=True,
         repr=True,
     )
     tensor: Optional[np.ndarray] = Field(
         default=None,
-        title="vector",
-        description="Tensor data of type matrix.",
-        examples="[[1,1,1],[2,2,2],[3,3,3]]",
+        title="Tensor",
+        description="Higher-dimensional tensor data.",
+        examples=[np.array([[[1, 2, 3], [4, 5, 6]]])],
         frozen=True,
         repr=True,
     )
     buffer: Optional[str] = Field(
         default=None,
-        title="buffer",
-        description="Tensor buffer data. This field stores the serialized representation of the tensor data.",
-        examples="0x321e13edqwds231231231232131",
+        title="Buffer",
+        description="Serialized tensor data for storage or transmission.",
+        examples=["0x321e13edqwds231231231232131"],
         frozen=True,
         repr=False,
     )
-
     dtype: str = Field(
-        default="torch.float32",  # Default value or make it mandatory
-        title="dtype",
-        description="Tensor data type. This field specifies the data type of the tensor.",
-        examples="torch.float32",
+        default="float32",
+        title="Data Type",
+        description="Data type of the tensor elements.",
+        examples=["float32"],
         frozen=True,
         repr=True,
     )
-
     shape: List[int] = Field(
         default_factory=list,
-        title="shape",
-        description="Tensor shape. This field defines the dimensions of the tensor.",
-        examples="[10,10]",
+        title="Shape",
+        description="Dimensions of the tensor.",
+        examples=[10, 10],
         frozen=True,
         repr=True,
     )
 
-    @validator('tensor')
+    @field_validator("tensor")
     def validate_tensor_shape(cls, v):
         if not isinstance(v, np.ndarray):
-            raise TypeError('Tensor must be a numpy array')
+            raise TypeError("Tensor must be a numpy array")
         return v
 
-    @classmethod
-    @validator('matrix')
+    @field_validator("matrix")
     def must_be_rectangular(cls, v):
         if not all(len(row) == len(v[0]) for row in v):
-            raise ValueError('Matrix must be rectangular')
+            raise ValueError("Matrix must be rectangular")
         return v
 
-    @validator('dtype', pre=True)
+    @field_validator("dtype")
     def validate_dtype(self, value):
         return cast_dtype(value)
 
-    @validator('shape', pre=True)
+    @field_validator("shape")
     def validate_shape(self, value):
         return self.cast_shape(value)
 
@@ -243,7 +246,9 @@ class Tensor(BaseModel):
     def numpy(self) -> "np.ndarray":
         return self.deserialize().detach().numpy()
 
-    def cast_shape(self, raw: Union[None, int, List[int], List[List[int]], str]) -> None:
+    def cast_shape(
+        self, raw: Union[None, int, List[int], List[List[int]], str]
+    ) -> None:
         """
         Detects the type of tensor shape (scalar, vector, matrix, etc.), validates it,
         and saves it to the corresponding attribute.
@@ -261,14 +266,19 @@ class Tensor(BaseModel):
         elif isinstance(raw, list):
             if all(isinstance(item, int) for item in raw):
                 self.vector = raw
-            elif all(isinstance(row, list) and all(isinstance(item, int) for item in row) for row in raw):
+            elif all(
+                isinstance(row, list) and all(isinstance(item, int) for item in row)
+                for row in raw
+            ):
                 self.matrix = raw
             else:
-                raise ValueError("Invalid tensor shape: elements are not of the correct type")
+                raise ValueError(
+                    "Invalid tensor shape: elements are not of the correct type"
+                )
         elif isinstance(raw, str):
             try:
                 # Transforming the string into a JSON-like format
-                json_like_str = raw.replace('(', '[').replace(')', ']').replace(' ', '')
+                json_like_str = raw.replace("(", "[").replace(")", "]").replace(" ", "")
                 parsed = json.loads(json_like_str)
                 self.cast_shape(parsed)
             except (json.JSONDecodeError, ValueError):
@@ -288,7 +298,9 @@ class Tensor(BaseModel):
         """
         # Decode the buffer
         buffer_bytes = base64.b64decode(self.buffer.encode("utf-8"))
-        numpy_object = msgpack.unpackb(buffer_bytes, object_hook=msgpack_numpy.decode).copy()
+        numpy_object = msgpack.unpackb(
+            buffer_bytes, object_hook=msgpack_numpy.decode
+        ).copy()
         torch_object = torch.as_tensor(numpy_object)
 
         # Handle the shape
@@ -358,6 +370,7 @@ class Tensor(BaseModel):
             In Pydantic v2, the 'ConfigDict' used in earlier versions is deprecated.
             This 'Config' inner class is used instead to configure the behavior of the model.
         """
+
         validate_assignment = True
 
 
@@ -380,5 +393,3 @@ class TensorFactory:
         if isinstance(tensor, (list, np.ndarray)):
             tensor = torch.tensor(tensor)
         return Tensor.serialize(tensor=tensor)
-
-

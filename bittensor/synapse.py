@@ -16,15 +16,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import ast
+from typing import Optional, List, Any
 import base64
 import hashlib
 import json
 import sys
-from typing import Optional, List, Any
 
-import torch
-from pydantic import BaseModel, Field, validator, root_validator
+from pydantic import BaseModel, Field
+from pydantic.functional_validators import model_validator, field_validator
 
 import bittensor
 
@@ -54,9 +53,9 @@ def get_size(obj, seen=None) -> int:
 
     if isinstance(obj, dict):
         size += sum(get_size(k, seen) + get_size(v, seen) for k, v in obj.items())
-    elif hasattr(obj, '__dict__'):
+    elif hasattr(obj, "__dict__"):
         size += get_size(obj.__dict__, seen)
-    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+    elif hasattr(obj, "__iter__") and not isinstance(obj, (str, bytes, bytearray)):
         size += sum(get_size(i, seen) for i in obj)
 
     return size
@@ -151,7 +150,7 @@ class TerminalInfo(BaseModel):
         title="status_code",
         description="The HTTP status code",
         examples=["200"],
-        frozen=False
+        frozen=False,
     )
 
     status_message: Optional[str] = Field(
@@ -159,7 +158,7 @@ class TerminalInfo(BaseModel):
         title="status_message",
         description="The status_message associated with the status_code",
         examples=["Success"],
-        frozen=False
+        frozen=False,
     )
 
     process_time: Optional[float] = Field(
@@ -167,7 +166,7 @@ class TerminalInfo(BaseModel):
         title="process_time",
         description="Process time on this terminal side of call",
         examples=["0.1"],
-        frozen=False
+        frozen=False,
     )
 
     ip: Optional[str] = Field(
@@ -175,7 +174,7 @@ class TerminalInfo(BaseModel):
         title="ip",
         description="The ip of the axon receiving the request.",
         examples=["198.123.23.1"],
-        frozen=False
+        frozen=False,
     )
 
     port: Optional[int] = Field(
@@ -183,7 +182,7 @@ class TerminalInfo(BaseModel):
         title="port",
         description="The port of the terminal.",
         examples=["9282"],
-        frozen=False
+        frozen=False,
     )
 
     version: Optional[int] = Field(
@@ -191,7 +190,7 @@ class TerminalInfo(BaseModel):
         title="version",
         description="The bittensor version on the axon as str(int)",
         examples=["111"],
-        frozen=False
+        frozen=False,
     )
 
     nonce: Optional[int] = Field(
@@ -199,7 +198,7 @@ class TerminalInfo(BaseModel):
         title="nonce",
         description="A unique monotonically increasing integer nonce associate with the terminal",
         examples=["111111"],
-        frozen=False
+        frozen=False,
     )
 
     uuid: Optional[str] = Field(
@@ -207,7 +206,7 @@ class TerminalInfo(BaseModel):
         title="uuid",
         description="A unique identifier associated with the terminal",
         examples=["5ecbd69c-1cec-11ee-b0dc-e29ce36fec1a"],
-        frozen=False
+        frozen=False,
     )
 
     hotkey: Optional[str] = Field(
@@ -215,7 +214,7 @@ class TerminalInfo(BaseModel):
         title="hotkey",
         description="The ss58 encoded hotkey string of the terminal wallet.",
         examples=["5EnjDGNqqWnuL2HCAdxeEtN2oqtXZw6BMBe936Kfy2PFz1J1"],
-        frozen=False
+        frozen=False,
     )
 
     signature: Optional[str] = Field(
@@ -223,11 +222,10 @@ class TerminalInfo(BaseModel):
         title="signature",
         description="A signature verifying the tuple (nonce, axon_hotkey, dendrite_hotkey, uuid)",
         examples=["0x0813029319030129u4120u10841824y0182u091u230912u"],
-        frozen=False
+        frozen=False,
     )
 
-    @classmethod
-    @validator('status_code', 'process_time', 'port', 'version', 'nonce', pre=True)
+    @field_validator("status_code", "process_time", "port", "version", "nonce")
     def cast_to_type(cls, v, field):
         """
         Validator to cast the input value to the appropriate type based on the field.
@@ -354,6 +352,7 @@ class Synapse(BaseModel):
             In Pydantic v2, the 'ConfigDict' used in earlier versions is deprecated.
             This 'Config' inner class is used instead to configure the behavior of the model.
         """
+
         validate_assignment = True
 
     def deserialize(self) -> "Synapse":
@@ -392,7 +391,7 @@ class Synapse(BaseModel):
         """
         return self
 
-    @root_validator(pre=True)
+    @model_validator(pre=True)
     def set_name_and_cast_types(cls, values):
         """
         Root validator to set the name field and cast other fields to appropriate types.
@@ -413,7 +412,7 @@ class Synapse(BaseModel):
         description="Defines the http route name",
         examples=["Forward"],
         frozen=False,
-        repr=False
+        repr=False,
     )
 
     timeout: Optional[float] = Field(
@@ -422,7 +421,7 @@ class Synapse(BaseModel):
         description="Defines the total query length.",
         examples=[12.0],
         frozen=False,
-        repr=False
+        repr=False,
     )
 
     total_size: Optional[int] = Field(
@@ -431,7 +430,7 @@ class Synapse(BaseModel):
         description="Total size of request body in bytes.",
         examples=[1000],
         frozen=False,
-        repr=False
+        repr=False,
     )
 
     header_size: Optional[int] = Field(
@@ -440,7 +439,7 @@ class Synapse(BaseModel):
         description="Size of request header in bytes.",
         examples=[1000],
         frozen=False,
-        repr=False
+        repr=False,
     )
 
     dendrite: Optional["TerminalInfo"] = Field(
@@ -449,7 +448,7 @@ class Synapse(BaseModel):
         description="Dendrite Terminal Information",
         examples=["bittensor.TerminalInfo"],
         frozen=False,
-        repr=False
+        repr=False,
     )
 
     axon: Optional["TerminalInfo"] = Field(
@@ -458,7 +457,7 @@ class Synapse(BaseModel):
         description="Axon Terminal Information",
         examples=["bittensor.TerminalInfo"],
         frozen=False,
-        repr=False
+        repr=False,
     )
 
     computed_body_hash: Optional[str] = Field(
@@ -467,7 +466,7 @@ class Synapse(BaseModel):
         description="The computed body hash of the request.",
         examples=["0x0813029319030129u4120u10841824y0182u091u230912u"],
         frozen=True,
-        repr=False
+        repr=False,
     )
 
     required_hash_fields: Optional[List[str]] = Field(
@@ -476,7 +475,7 @@ class Synapse(BaseModel):
         description="The list of required fields to compute the body hash.",
         examples=[["roles", "messages"]],
         frozen=True,
-        repr=False
+        repr=False,
     )
 
     def __setattr__(self, name: str, value: Any):
@@ -575,17 +574,21 @@ class Synapse(BaseModel):
 
         # Serialize 'axon' and 'dendrite'
         if self.axon:
-            headers.update({
-                f"bt_header_axon_{k}": str(v)
-                for k, v in self.axon.dict().items()
-                if v is not None
-            })
+            headers.update(
+                {
+                    f"bt_header_axon_{k}": str(v)
+                    for k, v in self.axon.dict().items()
+                    if v is not None
+                }
+            )
         if self.dendrite:
-            headers.update({
-                f"bt_header_dendrite_{k}": str(v)
-                for k, v in self.dendrite.dict().items()
-                if v is not None
-            })
+            headers.update(
+                {
+                    f"bt_header_dendrite_{k}": str(v)
+                    for k, v in self.dendrite.dict().items()
+                    if v is not None
+                }
+            )
 
         # Serialize and encode non-optional complex objects
         required_fields = self.__fields__.values()
@@ -595,7 +598,9 @@ class Synapse(BaseModel):
                 if value is not None:
                     try:
                         serialized_value = json.dumps(value)
-                        encoded_value = base64.b64encode(serialized_value.encode()).decode("utf-8")
+                        encoded_value = base64.b64encode(
+                            serialized_value.encode()
+                        ).decode("utf-8")
                         headers[f"bt_header_input_obj_{field.name}"] = encoded_value
                     except TypeError as e:
                         raise ValueError(
