@@ -270,7 +270,7 @@ class dendrite(torch.nn.Module):
         Args:
             synapse: The synapse object representing the request being sent.
         """
-        bittensor.logging.debug(
+        bittensor.logging.trace(
             f"dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success"
         )
 
@@ -285,7 +285,7 @@ class dendrite(torch.nn.Module):
         Args:
             synapse: The synapse object representing the received response.
         """
-        bittensor.logging.debug(
+        bittensor.logging.trace(
             f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
         )
 
