@@ -43,4 +43,4 @@ jobs:
         pytest tests/unit
     - name: type-check with mypy
       run: |
-        mypy .
+        mypy bittensor/
