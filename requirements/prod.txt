@@ -1,4 +1,4 @@
-aiohttp==3.9.0
+aiohttp==3.9.0b0
 ansible==6.7.0
 ansible_vault==2.1.0
 backoff
