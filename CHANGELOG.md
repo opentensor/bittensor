@@ -1,5 +1,19 @@
 # Changelog
 
+## 6.7.2 / 2024-02-08
+
+## What's Changed
+* Release/6.7.1 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1688
+* Increases test coverage for cli & chain_data by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1690
+* Subtensor/update pysubstrate latest/phil by @ifrit98 in https://github.com/opentensor/bittensor/pull/1684
+* Update staging to latest master by @ifrit98 in https://github.com/opentensor/bittensor/pull/1691
+* return messages with subtensor extrinsic to set weights by @ifrit98 in https://github.com/opentensor/bittensor/pull/1692
+* Logging/debug to trace axon by @ifrit98 in https://github.com/opentensor/bittensor/pull/1694
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.7.1...v6.7.2
+
+
 ## 6.7.1 / 2024-02-02
 
 ## What's Changed
