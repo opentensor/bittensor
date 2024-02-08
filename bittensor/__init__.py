@@ -232,6 +232,8 @@ from .mock.keyfile_mock import MockKeyfile as MockKeyfile
 from .mock.subtensor_mock import MockSubtensor as MockSubtensor
 from .mock.wallet_mock import MockWallet as MockWallet
 
+from . import subnets
+
 configs = [
     axon.config(),
     subtensor.config(),
