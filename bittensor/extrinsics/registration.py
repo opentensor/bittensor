@@ -466,7 +466,7 @@ def run_faucet_extrinsic(
         except MaxSuccessException:
             return True, f"Max successes reached: {3}"
 
-        except MaxAttemptedException:
+        except MaxAttemptsException:
             return False, f"Max attempts reached: {max_allowed_attempts}"
 
 
