@@ -67,7 +67,6 @@ def test_register_senate_extrinsic(
     ) as mock_submit_extrinsic, patch.object(
         mock_wallet, "is_senate_member", return_value=is_registered
     ):
-
         # Act
         result = register_senate_extrinsic(
             subtensor=mock_subtensor,
