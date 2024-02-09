@@ -325,10 +325,6 @@ class MaxAttemptsException(Exception):
     pass
 
 
-class MaxAttemptedException(Exception):
-    pass
-
-
 def run_faucet_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
