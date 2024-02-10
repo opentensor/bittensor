@@ -534,6 +534,73 @@ class subtensor:
             prompt=prompt,
         )
 
+
+    
+        
+    # not sure if we're going to store nonce in db
+    ''' # Use redis as a store for wallet info
+    def get_key_nonce(self, address: str) -> int:
+        db = redis_serialization.get_database()
+        key = [key for key in db.scan_iter(f"*{address}:nonce")][0]
+
+        return int(db.get(key))
+
+    # this ensures that txn nonce is not pulled from the chain (slow AF) and doens't matter as long as it's monotonically increasing
+    def incr_key_nonce(self, address: str):
+        db = redis_serialization.get_database()
+        key = [key for key in db.scan_iter(f"*{address}:nonce")][0]
+
+        db.incrby(key)
+    '''
+    
+    def send_extrinsic(
+        self,
+        substrate: SubstrateInterface,
+        keypair: Keypair,
+        module: str,
+        function: str,
+        params: dict,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+    ) -> ExtrinsicReceipt | None: # unsure
+        call = substrate.compose_call(
+            call_module=module,
+            call_function=function,
+            call_params=params,
+        )
+
+        nonce = substrate.get_account_nonce(keypair.ss58_address)
+
+        # parity tech sux, because you have to init_runtime EVERY GODDAMN TIME.
+        old_init_runtime = substrate.init_runtime
+        substrate.init_runtime = lambda : None
+
+        extrinsic = substrate.create_signed_extrinsic(
+            call=call, 
+            keypair=keypair, 
+            era={"period": 10}, # this shaves off time and fixes priority too low errors
+            nonce=nonce # this also shaves off time
+        )
+        
+        substrate.init_runtime = old_init_runtime
+        #self.incr_key_nonce(address)
+        #nonce = nonce + 1
+
+        try:
+            response = substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+
+
+            return response
+        except substrate.SubstrateRequestException as e:
+            print(f"Error sending extrinsic: {e}")
+
+        return None
+
     #####################
     #### Set Weights ####
     #####################
@@ -613,40 +680,24 @@ class subtensor:
         This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
         trust in other neurons based on observed performance and contributions.
         """
-
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="set_weights",
-                    call_params={
-                        "dests": uids,
-                        "weights": vals,
-                        "netuid": netuid,
-                        "version_key": version_key,
-                    },
-                )
-                # Period dictates how long the extrinsic will stay as part of waiting pool
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.hotkey, era={"period": 100}
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True, None
-
-                response.process_events()
-                if response.is_success:
-                    return True, None
-                else:
-                    return False, response.error_message
-
-        return make_substrate_call_with_retry()
+        
+        
+        response = self.send_tx(
+            substrate=self.substrate,
+            keypair=wallet.get_hotkey(),
+            module="SubtensorModule",
+            function="set_weights",
+            params={
+                "dests": uids,
+                "weights": vals,
+                "netuid": netuid,
+                "version_key": version_key
+            },
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization
+        )
+        
+        return response
 
     ######################
     #### Registration ####
