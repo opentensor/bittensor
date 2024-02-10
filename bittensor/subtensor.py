@@ -556,7 +556,7 @@ class subtensor:
     def send_extrinsic(
         self,
         substrate: SubstrateInterface,
-        keypair: Keypair,
+        wallet: "bittensor.wallet",
         module: str,
         function: str,
         params: dict,
@@ -569,15 +569,17 @@ class subtensor:
             call_params=params,
         )
 
-        nonce = substrate.get_account_nonce(keypair.ss58_address)
+        nonce = substrate.get_account_nonce(wallet.get_hotkey().ss58_address)
 
         # parity tech sux, because you have to init_runtime EVERY GODDAMN TIME.
         old_init_runtime = substrate.init_runtime
         substrate.init_runtime = lambda : None
+        
+        #base.Keypair
 
         extrinsic = substrate.create_signed_extrinsic(
             call=call, 
-            keypair=keypair, 
+            keypair=wallet.hotkey, 
             era={"period": 10}, # this shaves off time and fixes priority too low errors
             nonce=nonce # this also shaves off time
         )
@@ -684,7 +686,7 @@ class subtensor:
         
         response = self.send_tx(
             substrate=self.substrate,
-            keypair=wallet.get_hotkey(),
+            wallet=wallet,
             module="SubtensorModule",
             function="set_weights",
             params={
