@@ -54,7 +54,7 @@ def solve_cuda(
 
     def _create_seal_hash(block_hotkey_hash_hex: bytes, nonce: np.int64) -> bytes:
         """Create a seal hash."""
-        nonce_bytes = binascii.hexlify(nonce.to_bytes(8, "little"))
+        nonce_bytes = binascii.hexlify(int(nonce).to_bytes(8, "little"))
         pre_seal = nonce_bytes + block_hotkey_hash_hex
         seal_sha256 = hashlib.sha256(bytearray(_hex_bytes_to_u8_list(pre_seal))).digest()
         kec = keccak.new(digest_bits=256)
