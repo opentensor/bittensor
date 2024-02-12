@@ -250,7 +250,7 @@ class Subtensor:
 
     @staticmethod
     def setup_config(network: str, config: bittensor.config):
-        if network != None:
+        if network is not None:
             (
                 evaluated_network,
                 evaluated_endpoint,
