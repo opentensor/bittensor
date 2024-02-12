@@ -450,12 +450,15 @@ class Subtensor:
                 url=self.chain_endpoint,
                 type_registry=bittensor.__type_registry__,
             )
-        except ConnectionRefusedError as e:
+        except ConnectionRefusedError as exc:
             bittensor.logging.error(
-                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting..."
+                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. {exc} "
             )
             bittensor.logging.info(
                 f"You can check if you have connectivity by runing this command: nc -vz localhost {self.chain_endpoint.split(':')[2]}"
+            )
+            bittensor.logging.info(
+                "Existing..."
             )
             exit(1)
             # TODO (edu/phil): Advise to run local subtensor and point to dev docs.
