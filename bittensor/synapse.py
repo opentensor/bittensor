@@ -16,7 +16,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Optional, List, Any, Union, Callable, Literal
+from typing import Optional, List, Any, Union, Callable, Literal, ClassVar, Dict, Type
 import base64
 import hashlib
 import json
@@ -225,8 +225,16 @@ class TerminalInfo(BaseModel):
         frozen=False,
     )
 
+    # Mapping of field names to their expected types
+    _field_types: ClassVar[Dict[str, Type]] = {
+        "status_code": int,
+        "process_time": float,
+        "port": int,
+        "version": str,
+        "nonce": str,
+    }
+
     @classmethod
-    @field_validator("status_code", "process_time", "port", "version", "nonce")
     def cast_to_type(
         cls,
         v: Union[str, float, int],
@@ -235,8 +243,14 @@ class TerminalInfo(BaseModel):
         """
         Validator to cast the input value to the appropriate type based on the field.
         """
-        if v is not None:
-            return field.type_(v)
+        if v is not None and field in cls._field_types:
+            # Cast the value to the type defined in _field_types
+            target_type = cls._field_types[field]
+            try:
+                return target_type(v)
+            except ValueError:
+                # Handle or log the error appropriately
+                pass
         return v
 
 
