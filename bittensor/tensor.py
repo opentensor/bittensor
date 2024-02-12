@@ -275,7 +275,7 @@ class Tensor(BaseModel):
         elif self.matrix is not None:
             torch_object = torch_object.reshape(self.matrix)
         # TODO: higher dimensions
-        return torch_object.type(TORCH_DTYPES[self.dtype])
+        return torch_object.type(self.dtype)
 
     class Config:
         """
