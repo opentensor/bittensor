@@ -98,3 +98,29 @@ def test_cast_dtype_invalid(invalid_dtype):
     else:
         with pytest.raises(TypeError):
             cast_dtype(invalid_dtype)
+
+
+@pytest.mark.parametrize("input_shape, expected_output", [
+    (None, "None"),
+    ([1, 2, 3], "[1, 2, 3]"),
+    ([10, 20], "[10, 20]"),
+    ("1, 2, 3", "1, 2, 3"),  # Direct string input
+    ("[10, 20]", "[10, 20]"),  # String representation of a list
+])
+def test_cast_shape_valid(input_shape, expected_output):
+    assert cast_shape(input_shape) == expected_output
+
+
+@pytest.mark.parametrize("invalid_shape", [
+    [1, "two", 3],  # Mixed types, should raise ValueError
+    ["1", "2", "3"],  # All strings, should raise ValueError
+    {},  # Wrong type (dict), should raise TypeError
+    (1, 2, 3),  # Wrong type (tuple), should raise TypeError
+])
+def test_cast_shape_invalid(invalid_shape):
+    if isinstance(invalid_shape, list) and any(isinstance(item, str) for item in invalid_shape):
+        with pytest.raises(ValueError):
+            cast_shape(invalid_shape)
+    else:
+        with pytest.raises(TypeError):
+            cast_shape(invalid_shape)
