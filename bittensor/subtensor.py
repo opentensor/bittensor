@@ -16,21 +16,21 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
-import copy
-import torch
 import argparse
-import bittensor
-import scalecodec
-
-from retry import retry
-from loguru import logger
+import copy
+import os
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
-from substrateinterface.base import QueryMapResult, SubstrateInterface
+
+from loguru import logger
+from retry import retry
+import scalecodec
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
+from substrateinterface.base import QueryMapResult, SubstrateInterface
+import torch
 
 # Local imports.
+import bittensor
 from .chain_data import (
     NeuronInfo,
     DelegateInfo,
@@ -91,7 +91,7 @@ class ParamWithTypes(TypedDict):
     type: str  # ScaleType string of the parameter.
 
 
-class subtensor:
+class Subtensor:
     """
     The Subtensor class in Bittensor serves as a crucial interface for interacting with the Bittensor blockchain,
     facilitating a range of operations essential for the decentralized machine learning network. This class
