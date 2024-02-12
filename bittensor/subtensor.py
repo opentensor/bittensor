@@ -216,7 +216,7 @@ class Subtensor:
             network (str): The network flag. The likely choices are:
             chain_endpoint (str): The chain endpoint flag. If set, overrides the network argument.
         """
-        if network == None:
+        if not network:
             return None, None
         if network in ["finney", "local", "test", "archive"]:
             if network == "finney":
