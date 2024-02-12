@@ -458,7 +458,7 @@ class Subtensor:
                 f"You can check if you have connectivity by runing this command: nc -vz localhost {self.chain_endpoint.split(':')[2]}"
             )
             bittensor.logging.info(
-                "Existing..."
+                "Existing."
             )
             exit(1)
             # TODO (edu/phil): Advise to run local subtensor and point to dev docs.
