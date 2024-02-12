@@ -418,7 +418,7 @@ class Synapse(BaseModel):
 
     @classmethod
     @model_validator(mode="wrap")
-    def set_name_and_cast_types(cls, values):
+    def set_name_and_cast_types(cls, values: Dict):
         """
         Root validator to set the name field and cast other fields to appropriate types.
         """
