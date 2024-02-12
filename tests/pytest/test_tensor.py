@@ -205,3 +205,15 @@ def test_tensor_serialization_deserialization():
 def test_tensor_shape_validation():
     with pytest.raises(ValueError):
         Tensor(matrix=[[1], [2, 3]], dtype='int32', shape=[2])
+
+
+def test_tensor_dtype_validation():
+    with pytest.raises(ValueError):
+        Tensor(vector=[1, 2, 3], dtype='unsupported_dtype', shape=[3])
+
+
+def test_tensor_deserialization_error():
+    broken_tensor = Tensor(buffer="invalid", dtype='float32', shape=[3])
+    with pytest.raises(ValueError):
+        broken_tensor.deserialize()
+
