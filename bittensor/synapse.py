@@ -228,10 +228,15 @@ class TerminalInfo(BaseModel):
     # Mapping of field names to their expected types
     _field_types: ClassVar[Dict[str, Type]] = {
         "status_code": int,
+        "status_message": str,
         "process_time": float,
+        "ip": str,
         "port": int,
-        "version": str,
-        "nonce": str,
+        "version": int,
+        "nonce": int,
+        "uuid": str,
+        "hotkey": str,
+        "signature": str,
     }
 
     @classmethod
