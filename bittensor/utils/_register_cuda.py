@@ -64,12 +64,13 @@ def solve_cuda(
         created_seal = kec.update(seal_sh256).digest()
         return created_seal
 
-    def _seal_meets_difficulty(seal: bytes, difficulty: int):
-        seal_number = int.from_bytes(seal, "big")
-        product = seal_number * difficulty
-        limit = int(math.pow(2, 256)) - 1
 
-        return product < limit
+    def _seal_meets_difficulty(check_seal: bytes, difficulty: int):
+        seal_number = int.from_bytes(check_seal, "big")
+        product = seal_number * difficulty
+        check_limit = int(math.pow(2, 256)) - 1
+
+        return product < check_limit
 
     # Call cython function
     # int blockSize, uint64 nonce_start, uint64 update_interval, const unsigned char[:] limit,
