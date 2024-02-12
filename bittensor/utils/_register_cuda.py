@@ -88,7 +88,7 @@ def solve_cuda(
     return np.int64(-1), b"\x00" * 32
 
 
-def reset_cuda():
+def reset_cuda() -> None:
     """
     Resets the CUDA environment.
     """
