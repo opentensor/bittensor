@@ -150,7 +150,7 @@ class Subtensor:
     @staticmethod
     def config() -> "bittensor.config":
         parser = argparse.ArgumentParser()
-        subtensor.add_args(parser)
+        Subtensor.add_args(parser)
         return bittensor.config(parser, args=[])
 
     @classmethod
