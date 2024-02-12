@@ -1,7 +1,7 @@
 import pytest
 from typing import Union, List
 import torch
-from bittensor.tensor import cast_dtype, cast_shape, TORCH_DTYPES
+from bittensor.tensor import cast_dtype, cast_shape, TORCH_DTYPES, Tensor
 
 
 # Unit tests for cast_dtype
@@ -165,3 +165,17 @@ def test_cast_shape_str_valid(valid_str_shape):
 )
 def test_cast_shape_complex_valid(complex_input):
     assert cast_shape(complex_input) == str(complex_input)
+
+
+def test_tensor_scalar_initialization():
+    tensor = Tensor(scalar=5, dtype='int32', shape=[1])
+    assert tensor.scalar == 5
+    assert tensor.dtype == 'int32'
+    assert tensor.shape == [1]
+
+
+def test_tensor_vector_initialization():
+    tensor = Tensor(vector=[1, 2, 3], dtype='int32', shape=[3])
+    assert tensor.vector == [1, 2, 3]
+    assert tensor.dtype == 'int32'
+    assert tensor.shape == [3]
