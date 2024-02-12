@@ -316,8 +316,9 @@ class Dendrite(torch.nn.Module):
                 returns a list of responses from all target axons.
         """
         result = None
+        loop = asyncio.get_event_loop()
+
         try:
-            loop = asyncio.get_event_loop()
             result = loop.run_until_complete(self.forward(*args, **kwargs))
         except:
             new_loop = asyncio.new_event_loop()
@@ -339,7 +340,7 @@ class Dendrite(torch.nn.Module):
         deserialize: bool = True,
         run_async: bool = True,
         streaming: bool = False,
-    ) -> List[Union[AsyncGenerator[Any], bittenst.Synapse, bittensor.StreamingSynapse]]:
+    ) -> List[Union[AsyncGenerator[Any], bittensor.Synapse, bittensor.StreamingSynapse]]:
         """
         Asynchronously sends requests to one or multiple Axons and collates their responses.
 
