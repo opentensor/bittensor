@@ -16,7 +16,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Optional, List, Any, Union
+from typing import Optional, List, Any, Union, Callable
 import base64
 import hashlib
 import json
@@ -227,7 +227,7 @@ class TerminalInfo(BaseModel):
 
     @classmethod
     @field_validator("status_code", "process_time", "port", "version", "nonce")
-    def cast_to_type(cls, v: Union[str, float, int], field):
+    def cast_to_type(cls, v: Union[str, float, int], field: Callable):
         """
         Validator to cast the input value to the appropriate type based on the field.
         """
