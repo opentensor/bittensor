@@ -123,7 +123,7 @@ class Dendrite(torch.nn.Module):
 
         self.synapse_history: list = []
 
-        self._session: aiohttp.ClientSession = None
+        self._session: Optional[aiohttp.ClientSession] = None
 
     @property
     async def session(self) -> aiohttp.ClientSession:
