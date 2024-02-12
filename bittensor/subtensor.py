@@ -516,7 +516,7 @@ class Subtensor:
         """
         (Re)creates the websocket connection, if the URL contains a 'ws' or 'wss' scheme
         """
-        self.subtensor.connect_websocket()
+        self.subtensor.connect_websocket
 
     def close(self):
         """
