@@ -1,7 +1,7 @@
 import pytest
 from typing import Union, List
 import torch
-from bittensor.tensor import cast_dtype, cast_shape
+from bittensor.tensor import cast_dtype, cast_shape, TORCH_DTYPES
 
 
 # Unit tests for cast_dtype
@@ -48,3 +48,53 @@ def test_cast_shape_list_non_int():
 def test_cast_shape_type_error():
     with pytest.raises(TypeError):
         cast_shape(123)
+
+
+@pytest.mark.parametrize("dtype, expected", [
+    (torch.float16, "torch.float16"),
+    (torch.float32, "torch.float32"),
+    (torch.float64, "torch.float64"),
+    (torch.uint8, "torch.uint8"),
+    (torch.int16, "torch.int16"),
+    (torch.int8, "torch.int8"),
+    (torch.int32, "torch.int32"),
+    (torch.int64, "torch.int64"),
+    (torch.bool, "torch.bool"),
+    (torch.complex32, "torch.complex32"),
+    (torch.complex64, "torch.complex64"),
+    (torch.complex128, "torch.complex128"),
+])
+def test_cast_dtype_with_torch_dtype(dtype, expected):
+    assert cast_dtype(dtype) == expected
+
+
+@pytest.mark.parametrize("dtype_str, expected", [
+    ("torch.float16", "torch.float16"),
+    ("torch.float32", "torch.float32"),
+    ("torch.float64", "torch.float64"),
+    ("torch.uint8", "torch.uint8"),
+    ("torch.int16", "torch.int16"),
+    ("torch.int8", "torch.int8"),
+    ("torch.int32", "torch.int32"),
+    ("torch.int64", "torch.int64"),
+    ("torch.bool", "torch.bool"),
+    ("torch.complex32", "torch.complex32"),
+    ("torch.complex64", "torch.complex64"),
+    ("torch.complex128", "torch.complex128"),
+])
+def test_cast_dtype_with_string(dtype_str, expected):
+    assert cast_dtype(dtype_str) == expected
+
+
+@pytest.mark.parametrize("invalid_dtype", [
+    "nonexistent_dtype",
+    123,  # Non-string, non-dtype value
+    [],  # Another non-string, non-dtype value
+])
+def test_cast_dtype_invalid(invalid_dtype):
+    if isinstance(invalid_dtype, str):
+        with pytest.raises(ValueError):
+            cast_dtype(invalid_dtype)
+    else:
+        with pytest.raises(TypeError):
+            cast_dtype(invalid_dtype)
