@@ -17,20 +17,22 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from __future__ import annotations
 
+from __future__ import annotations
 import asyncio
 import json
 import uuid
 import time
-import torch
-import aiohttp
-import bittensor
-from fastapi import Response
 from typing import Union, Optional, List, Union, AsyncGenerator, Any
 
+import aiohttp
+from fastapi import Response
+import torch
 
-class dendrite(torch.nn.Module):
+import bittensor
+
+
+class Dendrite(torch.nn.Module):
     """
     The Dendrite class, inheriting from PyTorch's Module class, represents the abstracted
     implementation of a network client module. In the brain analogy, dendrites receive signals
