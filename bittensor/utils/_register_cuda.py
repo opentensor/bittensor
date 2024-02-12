@@ -50,19 +50,19 @@ def solve_cuda(
 
     upper_bytes = upper.to_bytes(32, byteorder="little", signed=False)
 
-    def _hex_bytes_to_u8_list(hex_bytes: bytes):
+    def _hex_bytes_to_u8_list(hex_bytes: bytes) -> List[int]:
         hex_chunks = [
-            int(hex_bytes[i : i + 2], 16) for i in range(0, len(hex_bytes), 2)
+            int(hex_bytes[i: i + 2], 16) for i in range(0, len(hex_bytes), 2)
         ]
         return hex_chunks
 
-    def _create_seal_hash(block_and_hotkey_hash_hex: bytes, nonce: int) -> bytes:
+    def _create_seal_hash(block_hotkey_hash_hex: bytes, nonce: int) -> bytes:
         nonce_bytes = binascii.hexlify(nonce.to_bytes(8, "little"))
-        pre_seal = nonce_bytes + block_and_hotkey_hash_hex
+        pre_seal = nonce_bytes + block_hotkey_hash_hex
         seal_sh256 = hashlib.sha256(bytearray(_hex_bytes_to_u8_list(pre_seal))).digest()
         kec = keccak.new(digest_bits=256)
-        seal = kec.update(seal_sh256).digest()
-        return seal
+        created_seal = kec.update(seal_sh256).digest()
+        return created_seal
 
     def _seal_meets_difficulty(seal: bytes, difficulty: int):
         seal_number = int.from_bytes(seal, "big")
