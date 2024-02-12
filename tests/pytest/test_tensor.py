@@ -179,3 +179,17 @@ def test_tensor_vector_initialization():
     assert tensor.vector == [1, 2, 3]
     assert tensor.dtype == 'int32'
     assert tensor.shape == [3]
+
+
+def test_tensor_matrix_initialization():
+    tensor = Tensor(matrix=[[1, 2], [3, 4]], dtype='float32', shape=[2, 2])
+    assert tensor.matrix == [[1, 2], [3, 4]]
+    assert tensor.dtype == 'float32'
+    assert tensor.shape == [2, 2]
+
+def test_tensor_tensor_initialization():
+    np_array = np.array([[[1, 2], [3, 4]]], dtype=np.float32)
+    tensor = Tensor(tensor=np_array, dtype='float32', shape=[1, 2, 2])
+    assert np.array_equal(tensor.tensor, np_array)
+    assert tensor.dtype == 'float32'
+    assert tensor.shape == [1, 2, 2]
