@@ -74,7 +74,7 @@ def solve_cuda(
     # Call cython function
     # int blockSize, uint64 nonce_start, uint64 update_interval, const unsigned char[:] limit,
     # const unsigned char[:] block_bytes, int dev_id
-    block_and_hotkey_hash_hex = binascii.hexlify(block_and_hotkey_hash_bytes)[:64]
+    block_and_hotkey_hash_hex: bytes = binascii.hexlify(block_and_hotkey_hash_bytes)[:64]
 
     solution = cubit.solve_cuda(
         tpb,
