@@ -225,3 +225,26 @@ def test_create_from_list():
     assert isinstance(tensor, Tensor)
     deserialized_tensor = tensor.deserialize()
     assert torch.equal(deserialized_tensor, torch.tensor(tensor_data))
+
+
+def test_create_from_numpy_array():
+    tensor_data = np.array([1.0, 2.0, 3.0], dtype=np.float32)
+    tensor = TensorFactory.create(tensor=tensor_data)
+    assert isinstance(tensor, Tensor)
+    deserialized_tensor = tensor.deserialize()
+    assert torch.allclose(deserialized_tensor, torch.tensor(tensor_data))
+
+
+def test_create_from_torch_tensor():
+    tensor_data = torch.tensor([1, 2, 3])
+    tensor = TensorFactory.create(tensor=tensor_data)
+    assert isinstance(tensor, Tensor)
+    deserialized_tensor = tensor.deserialize()
+    assert torch.equal(deserialized_tensor, tensor_data)
+
+def test_create_with_empty_list():
+    tensor_data = []
+    tensor = TensorFactory.create(tensor=tensor_data)
+    assert isinstance(tensor, Tensor)
+    deserialized_tensor = tensor.deserialize()
+    assert len(deserialized_tensor) == 0
