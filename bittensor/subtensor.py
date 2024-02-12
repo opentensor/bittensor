@@ -465,8 +465,8 @@ class Subtensor:
 
         try:
             self.substrate.websocket.settimeout(600)
-        except:
-            bittensor.logging.warning("Could not set websocket timeout.")
+        except Exception as e:
+            bittensor.logging.warning(f"Could not set websocket timeout: {e}")
 
         if log_verbose:
             bittensor.logging.info(
