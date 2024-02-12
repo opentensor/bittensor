@@ -1,7 +1,8 @@
 import pytest
 from typing import Union, List
 import torch
-from bittensor.tensor import cast_dtype, cast_shape, TORCH_DTYPES, Tensor
+from bittensor.tensor import cast_dtype, cast_shape, TORCH_DTYPES, Tensor, TensorFactory
+import numpy as np
 
 
 # Unit tests for cast_dtype
@@ -217,3 +218,10 @@ def test_tensor_deserialization_error():
     with pytest.raises(ValueError):
         broken_tensor.deserialize()
 
+
+def test_create_from_list():
+    tensor_data = [1, 2, 3]
+    tensor = TensorFactory.create(tensor=tensor_data)
+    assert isinstance(tensor, Tensor)
+    deserialized_tensor = tensor.deserialize()
+    assert torch.equal(deserialized_tensor, torch.tensor(tensor_data))
