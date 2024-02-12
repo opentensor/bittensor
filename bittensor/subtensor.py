@@ -471,21 +471,29 @@ class Subtensor:
             )
 
     def __new__(
-            cls,
-            network: str = None,
-            config: "bittensor.config" = None,
-            _mock: bool = False,
+            cls: Type[Any],
+            network: Optional[str] = None,
+            config: Optional[bittensor.config] = None,
+            _mock: Optional[bool] = False,
             log_verbose: bool = True
-    ):
-        # Returns a mocked connection with a background chain connection.
-        cls.config.subtensor._mock = (
-            _mock
-            if _mock is not None
-            else cls.config.subtensor.get("_mock", bittensor.defaults.subtensor._mock)
-        )
-        if cls.config.subtensor._mock:
-            config.subtensor._mock = True
+    ) -> Any:
+        """Creates a new instance of Subtensor, potentially returning a mock object if specified.
+
+        Args:
+            cls (Type[Any]): The class type to instantiate.
+            network (Optional[str], optional): Network identifier. Defaults to None.
+            config (Optional[bittensor.config], optional): Configuration object. Defaults to None.
+            _mock (Optional[bool], optional): Flag to use a mock object instead of a real connection. Defaults to False.
+            log_verbose (bool, optional): Flag for verbose logging. Defaults to True.
+
+        Returns:
+            Any: An instance of Subtensor or a mock object.
+        """
+        config = config or bittensor.config()  # Assuming bittensor.config() returns a default config object
+        config.subtensor._mock = _mock or config.subtensor.get("_mock", bittensor.defaults.subtensor._mock)
+        if config.subtensor._mock:
             return bittensor.subtensor_mock.MockSubtensor()
+        return super().__new__(cls)
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
@@ -505,7 +513,7 @@ class Subtensor:
         """
         (Re)creates the websocket connection, if the URL contains a 'ws' or 'wss' scheme
         """
-        self.subtensor.connect_websocket
+        self.subtensor.connect_websocket()
 
     def close(self):
         """
