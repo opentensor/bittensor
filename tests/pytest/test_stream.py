@@ -21,3 +21,21 @@ class TestStreamingSynapse(StreamingSynapse):
 
     def extract_response_json(self, response: Response) -> dict:
         return {}
+
+
+# Test case for StreamingSynapse.create_streaming_response
+@pytest.mark.asyncio
+async def test_create_streaming_response():
+    synapse = TestStreamingSynapse()
+
+    async def token_streamer(send):
+        await send(b"test data")
+
+    response = synapse.create_streaming_response(token_streamer=token_streamer)
+    send_mock = AsyncMock()
+
+    await response.stream_response(send=send_mock)
+
+    send_mock.assert_called()
+    assert send_mock.call_count >= 2  # Ensure headers and body are sent
+
