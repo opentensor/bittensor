@@ -52,7 +52,7 @@ def solve_cuda(
         """Convert hex bytes to a list of unsigned 8-bit integers."""
         return [int(hex_bytes[i: i + 2], 16) for i in range(0, len(hex_bytes), 2)]
 
-    def _create_seal_hash(block_hotkey_hash_hex: bytes, nonce: int) -> bytes:
+    def _create_seal_hash(block_hotkey_hash_hex: bytes, nonce: np.int64) -> bytes:
         """Create a seal hash."""
         nonce_bytes = binascii.hexlify(nonce.to_bytes(8, "little"))
         pre_seal = nonce_bytes + block_hotkey_hash_hex
