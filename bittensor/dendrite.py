@@ -422,44 +422,44 @@ class Dendrite(torch.nn.Module):
                 streaming mode and the type of synapse used.
             """
 
-            async def single_axon_response(
-                target_axon,
-            ) -> Union[AsyncGenerator[Any, None], bittensor.Synapse, bittensor.StreamingSynapse]:
-                """
-                Manages the request and response process for a single axon, supporting both streaming and
-                non-streaming modes.
+        async def single_axon_response(
+            target_axon,
+        ) -> Union[AsyncGenerator[Any, None], bittensor.Synapse, bittensor.StreamingSynapse]:
+            """
+            Manages the request and response process for a single axon, supporting both streaming and
+            non-streaming modes.
 
-                This function is responsible for initiating a request to a single axon. Depending on the
-                'is_stream' flag, it either uses 'call_stream' for streaming responses or 'call' for
-                standard responses. The function handles the response processing, catering to the specifics
-                of streaming or non-streaming data.
+            This function is responsible for initiating a request to a single axon. Depending on the
+            'is_stream' flag, it either uses 'call_stream' for streaming responses or 'call' for
+            standard responses. The function handles the response processing, catering to the specifics
+            of streaming or non-streaming data.
 
-                Args:
-                    target_axon: The target axon object to which the request is to be sent. This object
-                    contains the necessary information like IP address and port to formulate the request.
+            Args:
+                target_axon: The target axon object to which the request is to be sent. This object
+                contains the necessary information like IP address and port to formulate the request.
 
-                Returns:
-                    Union[AsyncGenerator, bittensor.Synapse, bittensor.StreamingSynapse]: The response
-                    from the targeted axon. In streaming mode, an AsyncGenerator is returned, yielding
-                    data chunks. In non-streaming mode, a Synapse or StreamingSynapse object is returned
-                    containing the response.
-                """
-                if is_stream:
-                    # If in streaming mode, return the async_generator
-                    return self.call_stream(
-                        target_axon=target_axon,
-                        synapse=synapse.model_copy(),
-                        timeout=timeout,
-                        deserialize=deserialize,
-                    )
-                else:
-                    # If not in streaming mode, simply call the axon and get the response.
-                    return await self.call(
-                        target_axon=target_axon,
-                        synapse=synapse.model_copy(),
-                        timeout=timeout,
-                        deserialize=deserialize,
-                    )
+            Returns:
+                Union[AsyncGenerator, bittensor.Synapse, bittensor.StreamingSynapse]: The response
+                from the targeted axon. In streaming mode, an AsyncGenerator is returned, yielding
+                data chunks. In non-streaming mode, a Synapse or StreamingSynapse object is returned
+                containing the response.
+            """
+            if is_stream:
+                # If in streaming mode, return the async_generator
+                return self.call_stream(
+                    target_axon=target_axon,
+                    synapse=synapse.model_copy(),
+                    timeout=timeout,
+                    deserialize=deserialize,
+                )
+            else:
+                # If not in streaming mode, simply call the axon and get the response.
+                return await self.call(
+                    target_axon=target_axon,
+                    synapse=synapse.model_copy(),
+                    timeout=timeout,
+                    deserialize=deserialize,
+                )
 
             # If run_async flag is False, get responses one by one.
             if not run_async:
