@@ -18,20 +18,23 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-import unittest
 from copy import deepcopy
+import os
+import random
+import shutil
 from types import SimpleNamespace
 from typing import Dict
+import unittest
 from unittest.mock import MagicMock, patch
 
-import random
-
 import pytest
-from substrateinterface.base import Keypair
 
 import bittensor
-from bittensor.mock import MockSubtensor
 from bittensor import Balance
+from bittensor.commands.delegates import _get_coldkey_wallets_for_path
+from bittensor.commands.identity import SetIdentityCommand
+from bittensor.mock import MockSubtensor
+from bittensor.wallet import wallet as Wallet
 from tests.helpers import (
     MockConsole,
     _get_mock_keypair,
@@ -2206,6 +2209,182 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
 
         new_balance = _subtensor_mock.get_balance(mock_wallet.coldkey.ss58_address)
         self.assertAlmostEqual(new_balance.tao, old_balance.tao - 10.0, delta=1e-6)
+
+
+# Test directory for creating mock wallets
+TEST_DIR = "/tmp/test_bittensor_wallets"
+
+
+@pytest.fixture(scope="function")
+def setup_wallets():
+    # Arrange: Create a temporary directory to simulate wallet paths
+    if not os.path.exists(TEST_DIR):
+        os.makedirs(TEST_DIR)
+    yield
+    # Teardown: Remove the temporary directory after tests
+    shutil.rmtree(TEST_DIR)
+
+
+@pytest.mark.parametrize(
+    "test_id, wallet_names, expected_wallet_count",
+    [
+        ("happy_path_single_wallet", ["wallet1"], 1),  # Single wallet
+        (
+            "happy_path_multiple_wallets",
+            ["wallet1", "wallet2", "wallet3"],
+            3,
+        ),  # Multiple wallets
+        ("happy_path_no_wallets", [], 0),  # No wallets
+    ],
+)
+def test_get_coldkey_wallets_for_path(
+    test_id, wallet_names, expected_wallet_count, setup_wallets
+):
+    # Arrange: Create mock wallet directories
+    for name in wallet_names:
+        wallet_path = os.path.join(TEST_DIR, name)
+        os.makedirs(wallet_path)
+
+    # Act: Call the function with the test directory
+    wallets = _get_coldkey_wallets_for_path(TEST_DIR)
+
+    # Assert: Check if the correct number of wallet objects are returned
+    assert len(wallets) == expected_wallet_count
+    for wallet in wallets:
+        assert isinstance(
+            wallet, Wallet
+        ), "The returned object should be an instance of bittensor.wallet"
+
+
+@pytest.mark.parametrize(
+    "test_id, exception, mock_path, expected_result",
+    [
+        (
+            "error_case_invalid_path",
+            StopIteration,
+            "/invalid/path",
+            [],
+        ),  # Invalid path causing StopIteration
+    ],
+)
+def test_get_coldkey_wallets_for_path_errors(
+    test_id, exception, mock_path, expected_result
+):
+    # Arrange: Patch os.walk to raise an exception
+    with patch("os.walk", side_effect=exception):
+        # Act: Call the function with an invalid path
+        wallets = _get_coldkey_wallets_for_path(mock_path)
+
+        # Assert: Check if an empty list is returned
+        assert (
+            wallets == expected_result
+        ), "Function should return an empty list on error"
+
+
+@pytest.mark.parametrize(
+    "test_id, display, legal, web, riot, email, pgp_fingerprint, image, info, twitter, expected_exception, expected_message",
+    [
+        (
+            "test-run-happy-path-1",
+            "Alice",
+            "Alice Doe",
+            "https://alice.example.com",
+            "@alice:matrix",
+            "alice@example.com",
+            "ABCD1234ABCD1234ABCD",
+            "https://alice.image",
+            "Alice in Wonderland",
+            "@liceTwitter",
+            None,
+            "",
+        ),
+        # Edge cases
+        (
+            "test_run_edge_case_002",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            None,
+            "",
+        ),  # Empty strings as input
+        # Error cases
+        # Each field has a maximum size of 64 bytes, PGP fingerprint has a maximum size of 20 bytes
+        (
+            "test_run_error_case_003",
+            "A" * 65,
+            "B" * 65,
+            "C" * 65,
+            "D" * 65,
+            "E" * 65,
+            "F" * 21,
+            "G" * 65,
+            "H" * 65,
+            "I" * 65,
+            ValueError,
+            "Identity value `display` must be <= 64 raw bytes",
+        ),
+    ],
+)
+def test_set_identity_command(
+    test_id,
+    display,
+    legal,
+    web,
+    riot,
+    email,
+    pgp_fingerprint,
+    image,
+    info,
+    twitter,
+    expected_exception,
+    expected_message,
+):
+    # Arrange
+    mock_cli = MagicMock()
+    mock_cli.config = MagicMock(
+        display=display,
+        legal=legal,
+        web=web,
+        riot=riot,
+        email=email,
+        pgp_fingerprint=pgp_fingerprint,
+        image=image,
+        info=info,
+        twitter=twitter,
+    )
+    mock_subtensor = MagicMock()
+    mock_subtensor.update_identity = MagicMock()
+    mock_subtensor.query_identity = MagicMock(return_value={})
+    mock_subtensor.close = MagicMock()
+    mock_wallet = MagicMock()
+    mock_wallet.hotkey.ss58_address = "fake_ss58_address"
+    mock_wallet.coldkey.ss58_address = "fake_coldkey_ss58_address"
+    mock_wallet.coldkey = MagicMock()
+
+    with patch("bittensor.subtensor", return_value=mock_subtensor), patch(
+        "bittensor.wallet", return_value=mock_wallet
+    ), patch("bittensor.__console__", MagicMock()), patch(
+        "rich.prompt.Prompt.ask", side_effect=["y", "y"]
+    ), patch(
+        "sys.exit"
+    ) as mock_exit:
+        # Act
+        if expected_exception:
+            with pytest.raises(expected_exception) as exc_info:
+                SetIdentityCommand._run(mock_cli, mock_subtensor)
+            # Assert
+            assert str(exc_info.value) == expected_message
+        else:
+            SetIdentityCommand._run(mock_cli, mock_subtensor)
+            # Assert
+            mock_subtensor.update_identity.assert_called_once()
+            assert mock_exit.call_count == 0
 
 
 if __name__ == "__main__":

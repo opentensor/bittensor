@@ -270,7 +270,7 @@ class dendrite(torch.nn.Module):
         Args:
             synapse: The synapse object representing the request being sent.
         """
-        bittensor.logging.debug(
+        bittensor.logging.trace(
             f"dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success"
         )
 
@@ -285,7 +285,7 @@ class dendrite(torch.nn.Module):
         Args:
             synapse: The synapse object representing the received response.
         """
-        bittensor.logging.debug(
+        bittensor.logging.trace(
             f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
         )
 
@@ -335,7 +335,9 @@ class dendrite(torch.nn.Module):
         deserialize: bool = True,
         run_async: bool = True,
         streaming: bool = False,
-    ) -> List[Union[AsyncGenerator[Any], bittenst.Synapse, bittensor.StreamingSynapse]]:
+    ) -> List[
+        Union[AsyncGenerator[Any], bittensor.Synapse, bittensor.StreamingSynapse]
+    ]:
         """
         Asynchronously sends requests to one or multiple Axons and collates their responses.
 
