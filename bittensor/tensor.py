@@ -267,13 +267,9 @@ class Tensor(BaseModel):
         torch_object = torch.as_tensor(numpy_object)
 
         # Handle the shape
-        if self.scalar is not None:
-            # If it's a scalar, no need to reshape
-            pass
-        elif self.vector is not None:
-            torch_object = torch_object.reshape(self.vector)
-        elif self.matrix is not None:
-            torch_object = torch_object.reshape(self.matrix)
+        if not self.scalar:
+            if self.vector is not None:
+                torch_object = torch_object.reshape(self.vector)
         # TODO: higher dimensions
         return torch_object.type(self.dtype)
 

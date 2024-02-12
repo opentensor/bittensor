@@ -150,7 +150,7 @@ class FastAPIThreadedServer(uvicorn.Server):
             self.should_exit = True
 
 
-class axon:
+class Axon:
     """
     The ``axon`` class in Bittensor is a fundamental component that serves as the server-side interface for a neuron within the Bittensor network.
 
