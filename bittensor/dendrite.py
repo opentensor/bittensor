@@ -424,7 +424,7 @@ class Dendrite(torch.nn.Module):
 
             async def single_axon_response(
                 target_axon,
-            ) -> Union[AsyncGenerator[Any, None], bittensor.Synapse, bittensor.StreamingSynapse]::
+            ) -> Union[AsyncGenerator[Any, None], bittensor.Synapse, bittensor.StreamingSynapse]:
                 """
                 Manages the request and response process for a single axon, supporting both streaming and
                 non-streaming modes.
