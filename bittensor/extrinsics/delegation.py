@@ -19,9 +19,8 @@
 import bittensor
 from ..errors import *
 from rich.prompt import Confirm
-from typing import List, Dict, Union, Optional
+from typing import Union, Optional
 from bittensor.utils.balance import Balance
-from .staking import __do_add_stake_single
 
 from loguru import logger
 

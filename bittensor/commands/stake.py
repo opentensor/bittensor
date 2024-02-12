@@ -292,15 +292,13 @@ class StakeCommand:
 
 
 ### Stake list.
-import json
 import argparse
 import bittensor
 from tqdm import tqdm
 from rich.table import Table
 from rich.prompt import Prompt
 from typing import Dict, Union, List, Tuple
-from concurrent.futures import ThreadPoolExecutor
-from .utils import check_netuid_set, get_delegates_details, DelegatesDetails
+from .utils import get_delegates_details, DelegatesDetails
 from . import defaults
 
 console = bittensor.__console__

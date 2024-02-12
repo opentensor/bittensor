@@ -25,7 +25,6 @@ import uuid
 import copy
 import json
 import time
-import base64
 import asyncio
 import inspect
 import uvicorn
@@ -39,11 +38,10 @@ from inspect import signature, Signature, Parameter
 from fastapi.responses import JSONResponse
 from substrateinterface import Keypair
 from fastapi import FastAPI, APIRouter, Request, Response, Depends
-from starlette.types import Scope, Message
 from starlette.responses import Response
 from starlette.requests import Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from typing import Dict, Optional, Tuple, Union, List, Callable, Any
+from typing import Optional, Tuple, Callable, Any
 
 from bittensor.errors import (
     InvalidRequestNameError,
@@ -647,7 +645,7 @@ class axon:
             parser.add_argument(
                 "--" + prefix_str + "axon.max_workers",
                 type=int,
-                help="""The maximum number connection handler threads working simultaneously on this endpoint. 
+                help="""The maximum number connection handler threads working simultaneously on this endpoint.
                         The grpc server distributes new worker threads to service requests up to this number.""",
                 default=default_axon_max_workers,
             )

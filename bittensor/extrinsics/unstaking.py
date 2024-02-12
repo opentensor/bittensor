@@ -19,7 +19,7 @@
 import bittensor
 from rich.prompt import Confirm
 from time import sleep
-from typing import List, Dict, Union, Optional
+from typing import List, Union, Optional
 from bittensor.utils.balance import Balance
 
 
