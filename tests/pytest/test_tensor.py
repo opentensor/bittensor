@@ -50,47 +50,56 @@ def test_cast_shape_type_error():
         cast_shape(123)
 
 
-@pytest.mark.parametrize("dtype, expected", [
-    (torch.float16, "torch.float16"),
-    (torch.float32, "torch.float32"),
-    (torch.float64, "torch.float64"),
-    (torch.uint8, "torch.uint8"),
-    (torch.int16, "torch.int16"),
-    (torch.int8, "torch.int8"),
-    (torch.int32, "torch.int32"),
-    (torch.int64, "torch.int64"),
-    (torch.bool, "torch.bool"),
-    (torch.complex32, "torch.complex32"),
-    (torch.complex64, "torch.complex64"),
-    (torch.complex128, "torch.complex128"),
-])
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        (torch.float16, "torch.float16"),
+        (torch.float32, "torch.float32"),
+        (torch.float64, "torch.float64"),
+        (torch.uint8, "torch.uint8"),
+        (torch.int16, "torch.int16"),
+        (torch.int8, "torch.int8"),
+        (torch.int32, "torch.int32"),
+        (torch.int64, "torch.int64"),
+        (torch.bool, "torch.bool"),
+        (torch.complex32, "torch.complex32"),
+        (torch.complex64, "torch.complex64"),
+        (torch.complex128, "torch.complex128"),
+    ],
+)
 def test_cast_dtype_with_torch_dtype(dtype, expected):
     assert cast_dtype(dtype) == expected
 
 
-@pytest.mark.parametrize("dtype_str, expected", [
-    ("torch.float16", "torch.float16"),
-    ("torch.float32", "torch.float32"),
-    ("torch.float64", "torch.float64"),
-    ("torch.uint8", "torch.uint8"),
-    ("torch.int16", "torch.int16"),
-    ("torch.int8", "torch.int8"),
-    ("torch.int32", "torch.int32"),
-    ("torch.int64", "torch.int64"),
-    ("torch.bool", "torch.bool"),
-    ("torch.complex32", "torch.complex32"),
-    ("torch.complex64", "torch.complex64"),
-    ("torch.complex128", "torch.complex128"),
-])
+@pytest.mark.parametrize(
+    "dtype_str, expected",
+    [
+        ("torch.float16", "torch.float16"),
+        ("torch.float32", "torch.float32"),
+        ("torch.float64", "torch.float64"),
+        ("torch.uint8", "torch.uint8"),
+        ("torch.int16", "torch.int16"),
+        ("torch.int8", "torch.int8"),
+        ("torch.int32", "torch.int32"),
+        ("torch.int64", "torch.int64"),
+        ("torch.bool", "torch.bool"),
+        ("torch.complex32", "torch.complex32"),
+        ("torch.complex64", "torch.complex64"),
+        ("torch.complex128", "torch.complex128"),
+    ],
+)
 def test_cast_dtype_with_string(dtype_str, expected):
     assert cast_dtype(dtype_str) == expected
 
 
-@pytest.mark.parametrize("invalid_dtype", [
-    "nonexistent_dtype",
-    123,  # Non-string, non-dtype value
-    [],  # Another non-string, non-dtype value
-])
+@pytest.mark.parametrize(
+    "invalid_dtype",
+    [
+        "nonexistent_dtype",
+        123,  # Non-string, non-dtype value
+        [],  # Another non-string, non-dtype value
+    ],
+)
 def test_cast_dtype_invalid(invalid_dtype):
     if isinstance(invalid_dtype, str):
         with pytest.raises(ValueError):
@@ -100,25 +109,33 @@ def test_cast_dtype_invalid(invalid_dtype):
             cast_dtype(invalid_dtype)
 
 
-@pytest.mark.parametrize("input_shape, expected_output", [
-    (None, "None"),
-    ([1, 2, 3], "[1, 2, 3]"),
-    ([10, 20], "[10, 20]"),
-    ("1, 2, 3", "1, 2, 3"),  # Direct string input
-    ("[10, 20]", "[10, 20]"),  # String representation of a list
-])
+@pytest.mark.parametrize(
+    "input_shape, expected_output",
+    [
+        (None, "None"),
+        ([1, 2, 3], "[1, 2, 3]"),
+        ([10, 20], "[10, 20]"),
+        ("1, 2, 3", "1, 2, 3"),  # Direct string input
+        ("[10, 20]", "[10, 20]"),  # String representation of a list
+    ],
+)
 def test_cast_shape_valid(input_shape, expected_output):
     assert cast_shape(input_shape) == expected_output
 
 
-@pytest.mark.parametrize("invalid_shape", [
-    [1, "two", 3],  # Mixed types, should raise ValueError
-    ["1", "2", "3"],  # All strings, should raise ValueError
-    {},  # Wrong type (dict), should raise TypeError
-    (1, 2, 3),  # Wrong type (tuple), should raise TypeError
-])
+@pytest.mark.parametrize(
+    "invalid_shape",
+    [
+        [1, "two", 3],  # Mixed types, should raise ValueError
+        ["1", "2", "3"],  # All strings, should raise ValueError
+        {},  # Wrong type (dict), should raise TypeError
+        (1, 2, 3),  # Wrong type (tuple), should raise TypeError
+    ],
+)
 def test_cast_shape_invalid(invalid_shape):
-    if isinstance(invalid_shape, list) and any(isinstance(item, str) for item in invalid_shape):
+    if isinstance(invalid_shape, list) and any(
+        isinstance(item, str) for item in invalid_shape
+    ):
         with pytest.raises(ValueError):
             cast_shape(invalid_shape)
     else:
@@ -126,20 +143,25 @@ def test_cast_shape_invalid(invalid_shape):
             cast_shape(invalid_shape)
 
 
-@pytest.mark.parametrize("valid_str_shape", [
-    "[]",  # Empty list as a string
-    "[100]",  # Single element list as a string
-    "[2, 2, 2]",  # Multiple elements list as a string
-])
+@pytest.mark.parametrize(
+    "valid_str_shape",
+    [
+        "[]",  # Empty list as a string
+        "[100]",  # Single element list as a string
+        "[2, 2, 2]",  # Multiple elements list as a string
+    ],
+)
 def test_cast_shape_str_valid(valid_str_shape):
     assert cast_shape(valid_str_shape) == valid_str_shape
 
 
-@pytest.mark.parametrize("complex_input", [
-    [100, -100],  # Negative numbers
-    [2147483647],  # INT_MAX
-    [0],  # Zero
-])
+@pytest.mark.parametrize(
+    "complex_input",
+    [
+        [100, -100],  # Negative numbers
+        [2147483647],  # INT_MAX
+        [0],  # Zero
+    ],
+)
 def test_cast_shape_complex_valid(complex_input):
     assert cast_shape(complex_input) == str(complex_input)
-

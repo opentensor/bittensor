@@ -38,4 +38,3 @@ async def test_create_streaming_response():
 
     send_mock.assert_called()
     assert send_mock.call_count >= 2  # Ensure headers and body are sent
-

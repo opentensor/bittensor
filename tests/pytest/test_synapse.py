@@ -3,9 +3,7 @@ from pydantic import ValidationError
 from bittensor.synapse import TerminalInfo, Synapse
 
 
-test_data_types = [
-    None, True, 1, 1.0, "string", b"bytes", [], (), {}, set()
-]
+test_data_types = [None, True, 1, 1.0, "string", b"bytes", [], (), {}, set()]
 
 
 # Test cases for Synapse

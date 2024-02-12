@@ -24,7 +24,7 @@ import msgpack
 import msgpack_numpy
 import numpy as np
 from pydantic import BaseModel, Field
-from pydantic.functional_validators import model_validator,field_validator
+from pydantic.functional_validators import model_validator, field_validator
 import torch
 
 
@@ -91,6 +91,7 @@ class Tensor(BaseModel):
         dtype (str): Data type of the tensor elements.
         shape (List[int]): Dimensions of the tensor.
     """
+
     scalar: Optional[int] = Field(
         default=None,
         title="Scalar",
