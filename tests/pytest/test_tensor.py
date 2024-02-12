@@ -124,3 +124,22 @@ def test_cast_shape_invalid(invalid_shape):
     else:
         with pytest.raises(TypeError):
             cast_shape(invalid_shape)
+
+
+@pytest.mark.parametrize("valid_str_shape", [
+    "[]",  # Empty list as a string
+    "[100]",  # Single element list as a string
+    "[2, 2, 2]",  # Multiple elements list as a string
+])
+def test_cast_shape_str_valid(valid_str_shape):
+    assert cast_shape(valid_str_shape) == valid_str_shape
+
+
+@pytest.mark.parametrize("complex_input", [
+    [100, -100],  # Negative numbers
+    [2147483647],  # INT_MAX
+    [0],  # Zero
+])
+def test_cast_shape_complex_valid(complex_input):
+    assert cast_shape(complex_input) == str(complex_input)
+
