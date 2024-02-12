@@ -108,7 +108,7 @@ class Dendrite(torch.nn.Module):
                 in which case a new bittensor.wallet().hotkey is generated and used.
         """
         # Initialize the parent class
-        super(dendrite, self).__init__()
+        super(Dendrite, self).__init__()
 
         # Unique identifier for the instance
         self.uuid = str(uuid.uuid1())
