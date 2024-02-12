@@ -225,6 +225,7 @@ class TerminalInfo(BaseModel):
         frozen=False,
     )
 
+    @classmethod
     @field_validator("status_code", "process_time", "port", "version", "nonce")
     def cast_to_type(cls, v, field):
         """
