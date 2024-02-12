@@ -193,3 +193,15 @@ def test_tensor_tensor_initialization():
     assert np.array_equal(tensor.tensor, np_array)
     assert tensor.dtype == 'float32'
     assert tensor.shape == [1, 2, 2]
+
+
+def test_tensor_serialization_deserialization():
+    original_tensor = torch.tensor([1.0, 2.0, 3.0])
+    serialized_tensor = Tensor.serialize(original_tensor)
+    deserialized_tensor = serialized_tensor.deserialize()
+    assert torch.equal(deserialized_tensor, original_tensor)
+
+
+def test_tensor_shape_validation():
+    with pytest.raises(ValueError):
+        Tensor(matrix=[[1], [2, 3]], dtype='int32', shape=[2])
