@@ -273,3 +273,12 @@ def test_create_with_high_dimension_numpy_array():
     assert isinstance(tensor, Tensor)
     deserialized_tensor = tensor.deserialize()
     assert np.array_equal(deserialized_tensor.numpy(), tensor_data)
+
+
+def test_create_with_high_dimension_torch_tensor():
+    tensor_data = torch.tensor([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+    tensor = TensorFactory.create(tensor=tensor_data)
+    assert isinstance(tensor, Tensor)
+    deserialized_tensor = tensor.deserialize()
+    assert torch.equal(deserialized_tensor, tensor_data)
+
