@@ -403,12 +403,13 @@ class Subtensor:
 
         """
         # Determine config.subtensor.chain_endpoint and config.subtensor.network config.
-        # If chain_endpoint is set, we override the network flag, otherwise, the chain_endpoint is assigned by the network.
+        # If chain_endpoint is set, we override the network flag, otherwise, the chain_endpoint
+        # is assigned by the network.
         # Argument importance: network > chain_endpoint > config.subtensor.chain_endpoint > config.subtensor.network
 
         # Check if network is a config object. (Single argument passed as first positional)
         if isinstance(network, bittensor.config):
-            if network.subtensor == None:
+            if network.subtensor is None:
                 bittensor.logging.warning(
                     "If passing a bittensor config object, it must not be empty. Using default subtensor config."
                 )
@@ -417,12 +418,12 @@ class Subtensor:
                 config = network
             network = None
 
-        if config == None:
-            config = subtensor.config()
+        if config is None:
+            config = Subtensor.config()
         self.config = copy.deepcopy(config)
 
         # Setup config.subtensor.network and config.subtensor.chain_endpoint
-        self.chain_endpoint, self.network = subtensor.setup_config(network, config)
+        self.chain_endpoint, self.network = Subtensor.setup_config(network, config)
 
         if (
             self.network == "finney"
@@ -439,16 +440,6 @@ class Subtensor:
                 "In a future release, local subtensor will become the default endpoint. "
                 "To get ahead of this change, please run a local subtensor node and point to it."
             )
-
-        # Returns a mocked connection with a background chain connection.
-        self.config.subtensor._mock = (
-            _mock
-            if _mock != None
-            else self.config.subtensor.get("_mock", bittensor.defaults.subtensor._mock)
-        )
-        if self.config.subtensor._mock:
-            config.subtensor._mock = True
-            return bittensor.subtensor_mock.MockSubtensor()
 
         # Attempt to connect to chosen endpoint. Fallback to finney if local unavailable.
         try:
@@ -478,6 +469,23 @@ class Subtensor:
             bittensor.logging.info(
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
+
+    def __new__(
+            cls,
+            network: str = None,
+            config: "bittensor.config" = None,
+            _mock: bool = False,
+            log_verbose: bool = True
+    ):
+        # Returns a mocked connection with a background chain connection.
+        cls.config.subtensor._mock = (
+            _mock
+            if _mock is not None
+            else cls.config.subtensor.get("_mock", bittensor.defaults.subtensor._mock)
+        )
+        if cls.config.subtensor._mock:
+            config.subtensor._mock = True
+            return bittensor.subtensor_mock.MockSubtensor()
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:

@@ -214,9 +214,9 @@ from .keyfile import *
 from .wallet import *
 
 from .utils import *
-from .utils.balance import Balance as Balance
+from .utils.balance import Balance
 from .chain_data import *
-from .subtensor import subtensor as subtensor
+from .subtensor import Subtensor
 from .cli import cli as cli, COMMANDS as ALL_COMMANDS
 from .btlogging import logging as logging
 from .metagraph import metagraph as metagraph
@@ -225,8 +225,8 @@ from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 from .synapse import *
 from .stream import *
 from .tensor import *
-from .axon import axon as axon
-from .dendrite import dendrite as dendrite
+from .axon import Axon
+from .dendrite import dendrite
 
 from .mock.keyfile_mock import MockKeyfile as MockKeyfile
 from .mock.subtensor_mock import MockSubtensor as MockSubtensor
