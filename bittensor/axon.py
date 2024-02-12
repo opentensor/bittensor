@@ -329,7 +329,7 @@ class Axon:
         """
         # Build and check config.
         if config is None:
-            config = axon.config()
+            config = Axon.config()
         config = copy.deepcopy(config)
         config.axon.ip = ip or config.axon.get("ip", bittensor.defaults.axon.ip)
         config.axon.port = port or config.axon.get("port", bittensor.defaults.axon.port)
@@ -342,7 +342,7 @@ class Axon:
         config.axon.max_workers = max_workers or config.axon.get(
             "max_workers", bittensor.defaults.axon.max_workers
         )
-        axon.check_config(config)
+        Axon.check_config(config)
         self.config = config
 
         # Get wallet or use default.
