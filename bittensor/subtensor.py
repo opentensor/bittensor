@@ -211,7 +211,6 @@ class Subtensor:
                     -- archive (archive network +300 blocks)
                     -- local (local running network)
                     -- test (test network)
-            chain_endpoint (str): The chain endpoint flag. If set, overrides the network argument.
         Returns:
             network (str): The network flag. The likely choices are:
             chain_endpoint (str): The chain endpoint flag. If set, overrides the network argument.
@@ -255,13 +254,13 @@ class Subtensor:
             (
                 evaluated_network,
                 evaluated_endpoint,
-            ) = subtensor.determine_chain_endpoint_and_network(network)
+            ) = Subtensor.determine_chain_endpoint_and_network(network)
         else:
             if config.get("__is_set", {}).get("subtensor.chain_endpoint"):
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.chain_endpoint
                 )
 
@@ -269,7 +268,7 @@ class Subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.network
                 )
 
@@ -277,7 +276,7 @@ class Subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.chain_endpoint
                 )
 
@@ -285,7 +284,7 @@ class Subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.network
                 )
 
@@ -293,7 +292,7 @@ class Subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     bittensor.defaults.subtensor.network
                 )
 
