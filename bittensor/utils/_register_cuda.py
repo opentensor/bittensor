@@ -37,10 +37,10 @@ def solve_cuda(
         created_seal = kec.update(seal_sha256).digest()
         return created_seal
 
-    def _seal_meets_difficulty(check_seal: bytes, difficulty: int) -> bool:
+    def _seal_meets_difficulty(check_seal: bytes, seal_difficulty: int) -> bool:
         """Check if seal meets the difficulty."""
         seal_number = int.from_bytes(check_seal, "big")
-        product = seal_number * difficulty
+        product = seal_number * seal_difficulty
         check_limit = int(math.pow(2, 256)) - 1
         return product < check_limit
 
