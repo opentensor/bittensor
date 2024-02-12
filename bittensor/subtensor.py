@@ -19,7 +19,7 @@
 import argparse
 import copy
 import os
-from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
+from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any, Type
 
 from loguru import logger
 from retry import retry
