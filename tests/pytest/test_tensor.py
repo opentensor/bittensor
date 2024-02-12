@@ -242,9 +242,34 @@ def test_create_from_torch_tensor():
     deserialized_tensor = tensor.deserialize()
     assert torch.equal(deserialized_tensor, tensor_data)
 
+
 def test_create_with_empty_list():
     tensor_data = []
     tensor = TensorFactory.create(tensor=tensor_data)
     assert isinstance(tensor, Tensor)
     deserialized_tensor = tensor.deserialize()
     assert len(deserialized_tensor) == 0
+
+
+def test_create_with_empty_numpy_array():
+    tensor_data = np.array([])
+    tensor = TensorFactory.create(tensor=tensor_data)
+    assert isinstance(tensor, Tensor)
+    deserialized_tensor = tensor.deserialize()
+    assert deserialized_tensor.nelement() == 0
+
+
+def test_create_with_empty_torch_tensor():
+    tensor_data = torch.tensor([])
+    tensor = TensorFactory.create(tensor=tensor_data)
+    assert isinstance(tensor, Tensor)
+    deserialized_tensor = tensor.deserialize()
+    assert deserialized_tensor.nelement() == 0
+
+
+def test_create_with_high_dimension_numpy_array():
+    tensor_data = np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+    tensor = TensorFactory.create(tensor=tensor_data)
+    assert isinstance(tensor, Tensor)
+    deserialized_tensor = tensor.deserialize()
+    assert np.array_equal(deserialized_tensor.numpy(), tensor_data)
