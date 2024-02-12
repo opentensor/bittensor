@@ -13,3 +13,11 @@ def test_bt_streaming_response_model():
     model = BTStreamingResponseModel(token_streamer=sample_token_streamer)
     assert model.token_streamer == sample_token_streamer
 
+
+# Mock StreamingSynapse to test abstract methods
+class TestStreamingSynapse(StreamingSynapse):
+    async def process_streaming_response(self, response: Response):
+        pass
+
+    def extract_response_json(self, response: Response) -> dict:
+        return {}
