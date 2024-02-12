@@ -20,7 +20,6 @@ import base64
 import json
 from typing import Dict, Optional, Tuple, Union, List, Callable
 
-import pyarrow as pa
 import msgpack
 import msgpack_numpy
 import numpy as np
@@ -77,45 +76,6 @@ def cast_shape(raw: Union[None, List[int], str]) -> str:
     raise TypeError(
         f"{raw} of type {type(raw)} is not a valid type in Union[None, List[int], str]"
     )
-
-
-class TensorSerializer:
-    def serialize_with_version(self, tensor: torch.Tensor, method: str = 'arrow') -> bytes:
-        """
-        Serializes a PyTorch tensor with versioning, supporting both Apache Arrow and msgpack formats.
-
-        Args:
-            tensor (torch.Tensor): The tensor to serialize.
-            method (str, optional): The serialization method ('arrow' or 'msgpack'). Defaults to 'arrow'.
-
-        Returns:
-            bytes: The serialized tensor with a method prefix.
-        """
-        if method == 'arrow':
-            # Convert the tensor to a NumPy array
-            np_array = tensor.numpy()
-
-            # Convert the NumPy array to a PyArrow array
-            arrow_array = pa.array(np_array)
-
-            # Create a RecordBatch with a single column named 'tensor'
-            record_batch = pa.record_batch([arrow_array], names=['tensor'])
-
-            # Serialize the RecordBatch to an Arrow IPC message stream
-            sink = pa.BufferOutputStream()
-            writer = pa.ipc.new_stream(sink, record_batch.schema)
-            writer.write_batch(record_batch)
-            writer.close()
-
-            # Prefix with 'arrow'
-            return b'arrow' + sink.getvalue().to_pybytes()
-        else:  # Fallback to msgpack + base64 for backward compatibility
-            # Serialize the tensor using msgpack and base64 encode
-            np_array = tensor.numpy()
-            packed = msgpack.packb(np_array.tolist())
-            encoded = base64.b64encode(packed)
-            # Prefix with 'msgpack'
-            return b'msgpack' + encoded
 
 
 class Tensor(BaseModel):
@@ -257,77 +217,8 @@ class Tensor(BaseModel):
         else:
             raise ValueError(f"Invalid type for tensor shape: {type(raw)}")
 
-    def serialize_tensor(self, tensor: torch.Tensor) -> bytes:
-        """
-        Serializes a PyTorch tensor to a binary format using Apache Arrow.
-
-        Args:
-            tensor (torch.Tensor): The tensor to serialize.
-
-        Returns:
-            bytes: The serialized tensor in binary format.
-        """
-        # Convert PyTorch tensor to NumPy array
-        np_array = tensor.numpy()
-
-        # Convert NumPy array to pyarrow Array
-        arrow_array = pa.array(np_array)
-
-        # Serialize pyarrow Array to a buffer
-        sink = pa.BufferOutputStream()
-        writer = pa.ipc.new_stream(sink, arrow_array.type)
-        writer.write_batch(pa.RecordBatch.from_arrays([arrow_array], ['tensor']))
-        writer.close()
-        buffer = sink.getvalue()
-
-        return buffer.to_pybytes()
-
-    def serialize_with_version(self, tensor, method='arrow'):
-        if method == 'arrow':
-            arrow_tensor = pa.Tensor.from_numpy(tensor.numpy())
-            buffer = pa.serialize(arrow_tensor).to_buffer()
-            return b'arrow' + buffer
-        else:  # Fallback to msgpack + base64 for backward compatibility
-            data_buffer = base64.b64encode(msgpack.packb(tensor.numpy().tolist()))
-            return b'msgpack' + data_buffer
-
-    def deserialize_with_version(self, serialized_tensor):
-        if serialized_tensor.startswith(b'arrow'):
-            arrow_tensor = pa.deserialize(serialized_tensor[5:])
-            return torch.tensor(arrow_tensor.to_numpy())
-        elif serialized_tensor.startswith(b'msgpack'):
-            data_list = msgpack.unpackb(base64.b64decode(serialized_tensor[7:]))
-            return torch.tensor(data_list)
-        else:
-            raise ValueError("Unsupported serialization format")
-
     @staticmethod
-    def pa_serialize(tensor: torch.Tensor) -> bytes:
-        """
-        Serializes a PyTorch tensor to an Apache Arrow binary format.
-        The conditional shape casting in the original class was designed to handle different tensor representations
-        (scalar, vector, matrix, etc.) based on the data provided. Apache Arrow inherently preserves the tensor's shape
-        during the serialization and deserialization processes, making explicit conditional shape casting unnecessary.
-
-        Args:
-            tensor (torch.Tensor): The tensor to serialize.
-
-        Returns:
-            bytes: The serialized tensor in Apache Arrow binary format.
-        """
-        # Ensure tensor is on CPU and convert to NumPy
-        np_array = tensor.cpu().numpy()
-
-        # Convert NumPy array to Arrow Tensor
-        arrow_tensor = pa.Tensor.from_numpy(np_array)
-
-        # Serialize Arrow Tensor to bytes
-        sink = pa.BufferOutputStream()
-        pa.ipc.write_tensor(arrow_tensor, sink)
-        return sink.getvalue().to_pybytes()
-
-    @staticmethod
-    def mp_serialize(tensor: "torch.Tensor") -> "Tensor":
+    def serialize(tensor: "torch.Tensor") -> "Tensor":
         """
         Serializes the given tensor.
 
@@ -383,48 +274,6 @@ class Tensor(BaseModel):
         elif self.matrix is not None:
             torch_object = torch_object.reshape(self.matrix)
         # TODO: higher dimensions
-        return torch_object.type(TORCH_DTYPES[self.dtype])
-
-    @staticmethod
-    def pa_deserialize(serialized_tensor: bytes) -> torch.Tensor:
-        """
-        Deserializes a tensor from Apache Arrow binary format to a PyTorch tensor.
-
-        Args:
-            serialized_tensor (bytes): The tensor in Apache Arrow binary format.
-
-        Returns:
-            torch.Tensor: The deserialized PyTorch tensor.
-        """
-        # Read the Arrow Tensor from serialized bytes
-        reader = pa.BufferReader(serialized_tensor)
-        arrow_tensor = pa.ipc.read_tensor(reader)
-
-        # Convert Arrow Tensor to NumPy
-        np_array = arrow_tensor.to_numpy()
-
-        # Convert NumPy array to PyTorch tensor
-        return torch.tensor(np_array)
-
-    def mp_deserialize(self) -> "torch.Tensor":
-        """
-        Deserializes the Tensor object.
-
-        Returns:
-            torch.Tensor: The deserialized tensor object.
-
-        Raises:
-            Exception: If the deserialization process encounters an error.
-        """
-        shape = tuple(self.shape)
-        buffer_bytes = base64.b64decode(self.buffer.encode("utf-8"))
-        numpy_object = msgpack.unpackb(
-            buffer_bytes, object_hook=msgpack_numpy.decode
-        ).copy()
-        torch_object = torch.as_tensor(numpy_object)
-        # Reshape does not work for (0) or [0]
-        if not (len(shape) == 1 and shape[0] == 0):
-            torch_object = torch_object.reshape(shape)
         return torch_object.type(TORCH_DTYPES[self.dtype])
 
     class Config:
