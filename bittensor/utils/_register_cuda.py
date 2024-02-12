@@ -8,6 +8,11 @@ from typing import Tuple, List, Any, Dict
 import numpy as np
 from Crypto.Hash import keccak
 
+try:
+    import cubit
+except ImportError:
+    raise ImportError("Please install cubit")
+
 
 def solve_cuda(
     nonce_start: np.int64,
@@ -20,6 +25,25 @@ def solve_cuda(
 ) -> Tuple[np.int64, bytes]:
     """
     Solves the PoW problem using CUDA.
+    Args:
+        nonce_start: int64
+            Starting nonce.
+        update_interval: int64
+            Number of nonces to solve before updating block information.
+        tpb: int
+            Threads per block.
+        block_and_hotkey_hash_bytes: bytes
+            Keccak(Bytes of the block hash + bytes of the hotkey) 64 bytes.
+        difficulty: int256
+            Difficulty of the PoW problem.
+        limit: int256
+            Upper limit of the nonce.
+        dev_id: int (default=0)
+            The CUDA device ID
+    Returns:
+        Tuple[int64, bytes]
+            Tuple of the nonce and the seal corresponding to the solution.
+            Returns -1 for nonce if no solution is found.
     """
     upper = int(limit // difficulty)
     upper_bytes = upper.to_bytes(32, byteorder="little", signed=False)
