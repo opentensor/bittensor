@@ -2378,8 +2378,8 @@ class Subtensor:
         module: str,
         name: str,
         block: Optional[int] = None,
-        params: Optional[List[object]] = [],
-    ) -> Optional[object]:
+        params: Optional[List[object]] = None,
+    ) -> Optional[ScaleType]:
         """
         Queries any module storage on the Bittensor blockchain with the specified parameters and block number.
         This function is a generic query interface that allows for flexible and diverse data retrieval from
@@ -2397,6 +2397,8 @@ class Subtensor:
         This versatile query function is key to accessing a wide range of data and insights from different
         parts of the Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
         """
+        block = [] if not block else block
+        params = [] if not params else params
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
