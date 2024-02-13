@@ -362,8 +362,8 @@ class NeuronInfo:
     validator_permit: bool
     weights: List[List[int]]
     bonds: List[List[int]]
-    prometheus_info: "PrometheusInfo"
-    axon_info: "AxonInfo"
+    prometheus_info: Optional["PrometheusInfo"]
+    axon_info: Optional["AxonInfo"]
     pruning_score: int
     is_null: bool = False
 
@@ -822,7 +822,7 @@ class StakeInfo:
     ) -> Dict[str, List["StakeInfo"]]:
         r"""Returns a list of StakeInfo objects from a vec_u8."""
         decoded: Optional[
-            List[Tuple(str, List[object])]
+            List[Tuple[str, List[object]]]
         ] = from_scale_encoding_using_type_string(
             input=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
         )
