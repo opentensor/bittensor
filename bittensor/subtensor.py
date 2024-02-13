@@ -2339,7 +2339,7 @@ class Subtensor:
 
     def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
-    ) -> Optional[object]:
+    ) -> Optional[ScaleType]:
         """
         Retrieves a constant from the specified module on the Bittensor blockchain. This function is used to
         access fixed parameters or values defined within the blockchain's modules, which are essential for
