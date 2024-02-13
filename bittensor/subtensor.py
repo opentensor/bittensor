@@ -203,7 +203,76 @@ class Subtensor:
             pass
 
     @staticmethod
-    def determine_chain_endpoint_and_network(network: str):
+    def determine_chain_endpoint_and_network(network: str) -> Tuple[Optional[str], Optional[str]]:
+        """Determines the chain endpoint and network from the passed network or chain_endpoint.
+
+        Args:
+            network (str): The network flag. The likely choices are:
+                    -- finney (main network)
+                    -- archive (archive network +300 blocks)
+                    -- local (local running network)
+                    -- test (test network)
+
+        Returns:
+            Tuple[Optional[str], Optional[str]]: The network flag and the chain endpoint flag.
+        """
+        network_mappings = {
+            "finney": bittensor.__finney_entrypoint__,
+            "local": bittensor.__local_entrypoint__,
+            "test": bittensor.__finney_test_entrypoint__,
+            "archive": bittensor.__archive_entrypoint__
+        }
+        entrypoint_mappings = {
+            bittensor.__finney_entrypoint__: "finney",
+            bittensor.__finney_test_entrypoint__: "test",
+            bittensor.__archive_entrypoint__: "archive"
+        }
+
+        if network in network_mappings:
+            return network, network_mappings[network]
+        elif network in entrypoint_mappings:
+            return entrypoint_mappings[network], network
+        elif "entrypoint-finney.opentensor.ai" in network or "test.finney.opentensor.ai" in network or "archive.chain.opentensor.ai" in network:
+            for key, value in entrypoint_mappings.items():
+                if key in network:
+                    return value, key
+        elif "127.0.0.1" in network or "localhost" in network:
+            return "local", network
+        else:
+            return "unknown", network
+
+    @staticmethod
+    def setup_config(network: str, config: bittensor.config) -> Tuple[str, str]:
+        """Setup configuration based on network and config parameters.
+
+        Args:
+            network (str): The network flag.
+            config (bittensor.config): The bittensor config object.
+
+        Returns:
+            Tuple[str, str]: Formatted websocket endpoint URL and network flag.
+        """
+        network_settings = [
+            network,
+            config.subtensor.chain_endpoint if config.get("__is_set", {}).get("subtensor.chain_endpoint") else None,
+            config.subtensor.network if config.get("__is_set", {}).get("subtensor.network") else None,
+            config.subtensor.chain_endpoint,
+            config.subtensor.network,
+            bittensor.defaults.subtensor.network
+        ]
+
+        for setting in network_settings:
+            if setting:
+                evaluated_network, evaluated_endpoint = Subtensor.determine_chain_endpoint_and_network(setting)
+                if evaluated_network:
+                    break
+        else:
+            evaluated_network, evaluated_endpoint = None, None
+
+        return bittensor.utils.networking.get_formatted_ws_endpoint_url(evaluated_endpoint), evaluated_network
+
+    @staticmethod
+    def old_determine_chain_endpoint_and_network(network: str):
         """Determines the chain endpoint and network from the passed network or chain_endpoint.
         Args:
             network (str): The network flag. The likely choices are:
@@ -249,7 +318,7 @@ class Subtensor:
                 return "unknown", network
 
     @staticmethod
-    def setup_config(network: str, config: bittensor.config):
+    def old_setup_config(network: str, config: bittensor.config):
         if network is not None:
             (
                 evaluated_network,
