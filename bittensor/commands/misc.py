@@ -16,10 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import sys
 import argparse
 import bittensor
-from typing import List
 from rich.prompt import Prompt
 from rich.table import Table
 

@@ -26,8 +26,6 @@ import json
 import netaddr
 import requests
 
-from loguru import logger
-
 
 def int_to_ip(int_val: int) -> str:
     r"""Maps an integer to a unique ip-string

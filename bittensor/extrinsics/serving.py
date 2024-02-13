@@ -17,7 +17,6 @@
 # DEALINGS IN THE SOFTWARE.
 import json
 import bittensor
-from dataclasses import asdict
 import bittensor.utils.networking as net
 from rich.prompt import Confirm
 from ..errors import MetadataError
@@ -65,7 +64,7 @@ def serve_extrinsic(
     """
     # Decrypt hotkey
     wallet.hotkey
-    params: "AxonServeCallParams" = {
+    params: "bittensor.AxonServeCallParams" = {
         "version": bittensor.__version_as_int__,
         "ip": net.ip_to_int(ip),
         "port": port,

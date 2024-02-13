@@ -21,7 +21,6 @@ import bittensor
 
 import time
 from rich.prompt import Confirm
-from ..errors import *
 
 
 def register_senate_extrinsic(
