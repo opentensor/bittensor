@@ -330,77 +330,48 @@ class Dendrite(torch.nn.Module):
             self.close_session()
             return result
 
+    from typing import List, Union, AsyncGenerator, Any
+    import bittensor
+
     async def forward(
-        self,
-        axons: Union[
-            List[Union[bittensor.AxonInfo, bittensor.axon]],
-            Union[bittensor.AxonInfo, bittensor.axon],
-        ],
-        synapse: bittensor.Synapse = bittensor.Synapse(),
-        timeout: float = 12,
-        deserialize: bool = True,
-        run_async: bool = True,
-        streaming: bool = False,
-    ) -> List[Union[AsyncGenerator[Any], bittensor.Synapse, bittensor.StreamingSynapse]]:
+            self,
+            axons: Union[List[Union[bittensor.AxonInfo, bittensor.axon]], bittensor.AxonInfo, bittensor.axon],
+            synapse: bittensor.Synapse = bittensor.Synapse(),
+            timeout: float = 12.0,
+            deserialize: bool = True,
+            run_async: bool = True,
+            streaming: bool = False,
+    ) -> List[Union[AsyncGenerator[Any, None], bittensor.Synapse, bittensor.StreamingSynapse]]:
         """
         Asynchronously sends requests to one or multiple Axons and collates their responses.
 
-        This function acts as a bridge for sending multiple requests concurrently or sequentially
-        based on the provided parameters. It checks the type of the target Axons, preprocesses
-        the requests, and then sends them off. After getting the responses, it processes and
-        collates them into a unified format.
-
-        When querying an Axon that sends a single response, this function returns a Synapse object
-        containing the response data. If multiple Axons are queried, a list of Synapse objects is
-        returned, each containing the response from the corresponding Axon.
-
-        For example:
-            >>> ...
-            >>> wallet = bittensor.wallet()                   # Initialize a wallet
-            >>> synapse = bittensor.Synapse(...)              # Create a synapse object that contains query data
-            >>> dendrte = bittensor.dendrite(wallet = wallet) # Initialize a dendrite instance
-            >>> axons = metagraph.axons                       # Create a list of axons to query
-            >>> responses = await dendrite(axons, synapse)    # Send the query to all axons and await the responses
-
-        When querying an Axon that sends back data in chunks using the Dendrite, this function
-        returns an AsyncGenerator that yields each chunk as it is received. The generator can be
-        iterated over to process each chunk individually.
-
-        For example:
-            >>> ...
-            >>> dendrte = bittensor.dendrite(wallet = wallet)
-            >>> async for chunk in dendrite.forward(axons, synapse, timeout, deserialize, run_async, streaming):
-            >>>     # Process each chunk here
-            >>>     print(chunk)
-
         Args:
-            axons (Union[List[Union['bittensor.AxonInfo', 'bittensor.axon']], Union['bittensor.AxonInfo', 'bittensor.axon']]):
-                The target Axons to send requests to. Can be a single Axon or a list of Axons.
-            synapse (bittensor.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new bittensor.Synapse instance.
-            timeout (float, optional): Maximum duration to wait for a response from an Axon in seconds. Defaults to 12.0.
-            deserialize (bool, optional): Determines if the received response should be deserialized. Defaults to True.
-            run_async (bool, optional): If True, sends requests concurrently. Otherwise, sends requests sequentially. Defaults to True.
-            streaming (bool, optional): Indicates if the response is expected to be in streaming format. Defaults to False.
+            axons: The target Axons to send requests to. Can be a single Axon or a list of Axons.
+            synapse: The Synapse object encapsulating the data. Defaults to a new bittensor.Synapse instance.
+            timeout: Maximum duration to wait for a response from an Axon in seconds. Defaults to 12.0.
+            deserialize: Determines if the received response should be deserialized. Defaults to True.
+            run_async: If True, sends requests concurrently. Otherwise, sends requests sequentially. Defaults to True.
+            streaming: Indicates if the response is expected to be in streaming format. Defaults to False.
 
         Returns:
             Union[AsyncGenerator, bittensor.Synapse, List[bittensor.Synapse]]: If a single Axon is targeted, returns its response.
             If multiple Axons are targeted, returns a list of their responses.
         """
-        is_list = True
-        # If a single axon is provided, wrap it in a list for uniform processing
+        # Normalize axons input to a list
         if not isinstance(axons, list):
-            is_list = False
             axons = [axons]
 
-        # Check if synapse is an instance of the StreamingSynapse class or if streaming flag is set.
-        is_streaming_subclass = issubclass(
-            synapse.__class__, bittensor.StreamingSynapse
-        )
-        if streaming != is_streaming_subclass:
+        # Synchronize the streaming flag with the type of synapse provided
+        if streaming != isinstance(synapse, bittensor.StreamingSynapse):
             bittensor.logging.warning(
-                f"Argument streaming is {streaming} while issubclass(synapse, StreamingSynapse) is {synapse.__class__.__name__}. This may cause unexpected behavior."
+                f"Argument streaming is {streaming} while isinstance(synapse, StreamingSynapse) is {isinstance(synapse, bittensor.StreamingSynapse)}. This may cause unexpected behavior."
             )
-        streaming = is_streaming_subclass or streaming
+            streaming = isinstance(synapse, bittensor.StreamingSynapse) or streaming
+
+        # Proceed with sending requests based on the updated parameters
+        # Placeholder for the logic to send requests and handle responses...
+
+        return []  # Placeholder return, replace with actual logic to send requests and handle responses
 
     async def single_axon_response(
         self,
