@@ -226,12 +226,6 @@ class Balance:
             except (ValueError, TypeError):
                 raise NotImplementedError("Unsupported type")
 
-    def __int__(self) -> int:
-        return self.rao
-
-    def __float__(self) -> float:
-        return self.tao
-
     def __nonzero__(self) -> bool:
         return bool(self.rao)
 
