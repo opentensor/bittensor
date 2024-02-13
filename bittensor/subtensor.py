@@ -41,7 +41,6 @@ from .chain_data import (
     NeuronInfoLite,
     AxonInfo,
     ProposalVoteData,
-    ProposalCallData,
     IPInfo,
     custom_rpc_type_registry,
 )
@@ -65,7 +64,7 @@ from .extrinsics.registration import (
     swap_hotkey_extrinsic,
 )
 from .extrinsics.transfer import transfer_extrinsic
-from .extrinsics.set_weights import set_weights_extrinsic, ttl_set_weights_extrinsic
+from .extrinsics.set_weights import ttl_set_weights_extrinsic
 from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import (
     delegate_extrinsic,

@@ -16,13 +16,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import ast
-import sys
-import torch
-import json
+
 import base64
-import typing
-import hashlib
+import json
+import sys
+
 import pydantic
 from pydantic.schema import schema
 import bittensor
@@ -624,9 +622,6 @@ class Synapse(pydantic.BaseModel):
                 if v is not None
             }
         )
-
-        # Getting the type hints for the properties of the instance
-        property_type_hints = typing.get_type_hints(self)
 
         # Getting the fields of the instance
         instance_fields = self.dict()
