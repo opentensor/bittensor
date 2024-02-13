@@ -2282,6 +2282,7 @@ class Subtensor:
         """
         block = [] if not block else block
         params = [] if not params else params
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
@@ -2302,7 +2303,7 @@ class Subtensor:
         self,
         name: str,
         block: Optional[int] = None,
-        params: Optional[List[object]] = [],
+        params: Optional[List[object]] = None,
     ) -> QueryMapResult:
         """
         Queries map storage from the Subtensor module on the Bittensor blockchain. This function is designed to
@@ -2319,6 +2320,8 @@ class Subtensor:
         This function is particularly useful for analyzing and understanding complex network structures and
         relationships within the Bittensor ecosystem, such as inter-neuronal connections and stake distributions.
         """
+        block = [] if not block else block
+        params = [] if not params else params
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
