@@ -163,7 +163,7 @@ class Subtensor:
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
-        prefix_str = "" if prefix == None else prefix + "."
+        prefix_str = "" if prefix is None else prefix + "."
         try:
             default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "finney"
             default_chain_endpoint = (
@@ -1922,7 +1922,7 @@ class Subtensor:
         vote_data = self.query_module(
             module="Triumvirate", name="Voting", block=block, params=[proposal_hash]
         )
-        return vote_data.serialize() if vote_data != None else None
+        return vote_data.serialize() if vote_data else None
 
     get_proposal_vote_data = get_vote_data
 
@@ -1942,7 +1942,7 @@ class Subtensor:
         """
         senate_members = self.query_module("SenateMembers", "Members", block=block)
 
-        return senate_members.serialize() if senate_members != None else None
+        return senate_members.serialize() if senate_members else None
 
     def get_proposal_call_data(
         self, proposal_hash: str, block: Optional[int] = None
@@ -1965,7 +1965,7 @@ class Subtensor:
             module="Triumvirate", name="ProposalOf", block=block, params=[proposal_hash]
         )
 
-        return proposal_data.serialize() if proposal_data != None else None
+        return proposal_data.serialize() if proposal_data else None
 
     def get_proposal_hashes(self, block: Optional[int] = None) -> Optional[List[str]]:
         """
@@ -1985,7 +1985,7 @@ class Subtensor:
             module="Triumvirate", name="Proposals", block=block
         )
 
-        return proposal_hashes.serialize() if proposal_hashes != None else None
+        return proposal_hashes.serialize() if proposal_hashes else None
 
     def get_proposals(
         self, block: Optional[int] = None
@@ -2168,7 +2168,7 @@ class Subtensor:
                     storage_function="IdentityOf",
                     params=[key],
                     block_hash=None
-                    if block == None
+                    if block is None
                     else substrate.get_block_hash(block),
                 )
 
@@ -2204,7 +2204,7 @@ class Subtensor:
         This function plays a vital role in maintaining the accuracy and currency of neuron identities in the
         Bittensor network, ensuring that the network's governance and consensus mechanisms operate effectively.
         """
-        if identified == None:
+        if identified is None:
             identified = wallet.coldkey.ss58_address
 
         call_params = bittensor.utils.wallet_utils.create_identity_dict(**params)
@@ -2288,7 +2288,7 @@ class Subtensor:
                     storage_function=name,
                     params=params,
                     block_hash=None
-                    if block == None
+                    if block is None
                     else substrate.get_block_hash(block),
                 )
 
@@ -2326,7 +2326,7 @@ class Subtensor:
                     storage_function=name,
                     params=params,
                     block_hash=None
-                    if block == None
+                    if block is None
                     else substrate.get_block_hash(block),
                 )
 
@@ -2360,7 +2360,7 @@ class Subtensor:
                     module_name=module_name,
                     constant_name=constant_name,
                     block_hash=None
-                    if block == None
+                    if block is None
                     else substrate.get_block_hash(block),
                 )
 
@@ -2401,7 +2401,7 @@ class Subtensor:
                     storage_function=name,
                     params=params,
                     block_hash=None
-                    if block == None
+                    if block is None
                     else substrate.get_block_hash(block),
                 )
 
@@ -2441,7 +2441,7 @@ class Subtensor:
                     storage_function=name,
                     params=params,
                     block_hash=None
-                    if block == None
+                    if block is None
                     else substrate.get_block_hash(block),
                 )
 
@@ -2472,7 +2472,7 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
+                block_hash = None if block is None else substrate.get_block_hash(block)
                 params = [method, data]
                 if block_hash:
                     params = params + [block_hash]
@@ -2865,7 +2865,7 @@ class Subtensor:
     ) -> Optional[AxonInfo]:
         """Returns the axon information for this hotkey account"""
         result = self.query_subtensor("Axons", block, [netuid, hotkey_ss58])
-        if result != None:
+        if result is not None:
             return AxonInfo(
                 ip=bittensor.utils.networking.int_to_ip(result.value["ip"]),
                 ip_type=result.value["ip_type"],
@@ -2883,7 +2883,7 @@ class Subtensor:
     ) -> Optional[AxonInfo]:
         """Returns the prometheus information for this hotkey account"""
         result = self.query_subtensor("Prometheus", block, [netuid, hotkey_ss58])
-        if result != None:
+        if result is not None:
             return PrometheusInfo(
                 ip=bittensor.utils.networking.int_to_ip(result.value["ip"]),
                 ip_type=result.value["ip_type"],
@@ -3136,7 +3136,7 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
+                block_hash = None if block is None else substrate.get_block_hash(block)
                 params = []
                 if block_hash:
                     params = params + [block_hash]
@@ -3174,7 +3174,7 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
+                block_hash = None if block is None else substrate.get_block_hash(block)
                 params = [netuid]
                 if block_hash:
                     params = params + [block_hash]
@@ -3215,7 +3215,7 @@ class Subtensor:
             block=block,
         )
 
-        if hex_bytes_result == None:
+        if hex_bytes_result is None:
             return []
 
         if hex_bytes_result.startswith("0x"):
@@ -3331,7 +3331,7 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry(encoded_hotkey: List[int]):
             with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
+                block_hash = None if block is None else substrate.get_block_hash(block)
                 params = [encoded_hotkey]
                 if block_hash:
                     params = params + [block_hash]
@@ -3367,7 +3367,7 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
+                block_hash = None if block is None else substrate.get_block_hash(block)
                 params = []
                 if block_hash:
                     params = params + [block_hash]
@@ -3405,7 +3405,7 @@ class Subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry(encoded_coldkey: List[int]):
             with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
+                block_hash = None if block is None else substrate.get_block_hash(block)
                 params = [encoded_coldkey]
                 if block_hash:
                     params = params + [block_hash]
@@ -3453,7 +3453,7 @@ class Subtensor:
             block=block,
         )
 
-        if hex_bytes_result == None:
+        if hex_bytes_result is None:
             return None
 
         if hex_bytes_result.startswith("0x"):
@@ -3491,7 +3491,7 @@ class Subtensor:
             block=block,
         )
 
-        if hex_bytes_result == None:
+        if hex_bytes_result is None:
             return None
 
         if hex_bytes_result.startswith("0x"):
@@ -3539,7 +3539,7 @@ class Subtensor:
         This function helps in assessing the participation of a neuron in a particular subnet,
         indicating its specific area of operation or influence within the network.
         """
-        return self.get_uid_for_hotkey_on_subnet(hotkey_ss58, netuid, block) != None
+        return self.get_uid_for_hotkey_on_subnet(hotkey_ss58, netuid, block) is not None
 
     def is_hotkey_registered(
         self,
@@ -3567,7 +3567,7 @@ class Subtensor:
         in understanding whether a neuron is eligible to participate in network processes such as consensus,
         validation, and incentive distribution based on its registration status.
         """
-        if netuid == None:
+        if netuid is None:
             return self.is_hotkey_registered_any(hotkey_ss58, block)
         else:
             return self.is_hotkey_registered_on_subnet(hotkey_ss58, netuid, block)
@@ -3742,13 +3742,13 @@ class Subtensor:
         This function is crucial for analyzing individual neurons' contributions and status within a specific
         subnet, offering insights into their roles in the network's consensus and validation mechanisms.
         """
-        if uid == None:
+        if uid is None:
             return NeuronInfo._null_neuron()
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
+                block_hash = None if block is None else substrate.get_block_hash(block)
                 params = [netuid, uid]
                 if block_hash:
                     params = params + [block_hash]
@@ -3814,7 +3814,7 @@ class Subtensor:
         This function is useful for quick and efficient analyses of neuron status and activities within a
         subnet without the need for comprehensive data retrieval.
         """
-        if uid == None:
+        if uid is None:
             return NeuronInfoLite._null_neuron()
 
         hex_bytes_result = self.query_runtime_api(
@@ -3827,7 +3827,7 @@ class Subtensor:
             block=block,
         )
 
-        if hex_bytes_result == None:
+        if hex_bytes_result is None:
             return NeuronInfoLite._null_neuron()
 
         if hex_bytes_result.startswith("0x"):
@@ -3862,7 +3862,7 @@ class Subtensor:
             block=block,
         )
 
-        if hex_bytes_result == None:
+        if hex_bytes_result is None:
             return []
 
         if hex_bytes_result.startswith("0x"):
@@ -4008,7 +4008,7 @@ class Subtensor:
             block=block,
         )
 
-        if hex_bytes_result == None:
+        if hex_bytes_result is None:
             return None
 
         if hex_bytes_result.startswith("0x"):
@@ -4039,7 +4039,7 @@ class Subtensor:
             block=block,
         )
 
-        if lock_cost == None:
+        if lock_cost is None:
             return None
 
         return lock_cost
@@ -4183,7 +4183,7 @@ class Subtensor:
                         storage_function="Account",
                         params=[address],
                         block_hash=None
-                        if block == None
+                        if block is None
                         else substrate.get_block_hash(block),
                     )
 
@@ -4236,7 +4236,7 @@ class Subtensor:
                     module="System",
                     storage_function="Account",
                     block_hash=None
-                    if block == None
+                    if block is None
                     else substrate.get_block_hash(block),
                 )
 
