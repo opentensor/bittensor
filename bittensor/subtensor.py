@@ -1047,7 +1047,7 @@ class Subtensor:
         self,
         wallet: "bittensor.wallet",
         dest: str,
-        amount: Union[Balance, float],
+        amount: Union[Balance, int, float],
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -1198,10 +1198,7 @@ class Subtensor:
             module_name="Balances", constant_name="ExistentialDeposit", block=block
         )
 
-        if result is None:
-            return None
-
-        return Balance.from_rao(result.value)
+        return None if not result else Balance.from_rao(result.value)
 
     #################
     #### Network ####
@@ -1534,7 +1531,7 @@ class Subtensor:
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58: Optional[str] = None,
-        amount: Union[Balance, float] = None,
+        amount: Union[Balance, float, None] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -2182,7 +2179,7 @@ class Subtensor:
         self,
         wallet: "bittensor.wallet",
         identified: str = None,
-        params: dict = {},
+        params: Optional[Dict] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -2205,11 +2202,9 @@ class Subtensor:
         This function plays a vital role in maintaining the accuracy and currency of neuron identities in the
         Bittensor network, ensuring that the network's governance and consensus mechanisms operate effectively.
         """
-        if identified is None:
-            identified = wallet.coldkey.ss58_address
-
+        params = {} if not params else params
         call_params = bittensor.utils.wallet_utils.create_identity_dict(**params)
-        call_params["identified"] = identified
+        call_params["identified"] = wallet.coldkey.ss58_address if not identified else identified
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
@@ -2241,7 +2236,7 @@ class Subtensor:
     """ Make some commitment on-chain about arbitary data """
 
     def commit(self, wallet, netuid: int, data: str):
-        publish_metadata(self, wallet, netuid, f"Raw{len(data)}", data.encode())
+        publish_metadata(self, wallet, netuid, f"Raw{len(data)}", data)
 
     def get_commitment(self, netuid: int, uid: int, block: Optional[int] = None) -> str:
         metagraph = self.metagraph(netuid)
@@ -2421,7 +2416,7 @@ class Subtensor:
         module: str,
         name: str,
         block: Optional[int] = None,
-        params: Optional[List[object]] = [],
+        params: Optional[List[object]] = None,
     ) -> Optional[object]:
         """
         Queries map storage from any module on the Bittensor blockchain. This function retrieves data structures
@@ -2439,6 +2434,7 @@ class Subtensor:
         This function is particularly useful for retrieving detailed and structured data from various blockchain
         modules, offering insights into the network's state and the relationships between its different components.
         """
+        params = [] if not params else params
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
@@ -2459,7 +2455,7 @@ class Subtensor:
         method: str,
         data: str,
         block: Optional[int] = None,
-    ) -> Optional[object]:
+    ) -> Optional[Dict]:
         """
         Makes a state call to the Bittensor blockchain, allowing for direct queries of the blockchain's state.
         This function is typically used for advanced queries that require specific method calls and data inputs.
@@ -2470,14 +2466,14 @@ class Subtensor:
             block (Optional[int], optional): The blockchain block number at which to perform the state call.
 
         Returns:
-            Optional[object]: The result of the state call if successful, None otherwise.
+            Optional[Dict]: The result of the state call if successful, None otherwise.
 
         The state call function provides a more direct and flexible way of querying blockchain data,
         useful for specific use cases where standard queries are insufficient.
         """
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
+        def make_substrate_call_with_retry() -> Dict:
             with self.substrate as substrate:
                 block_hash = None if block is None else substrate.get_block_hash(block)
                 params = [method, data]

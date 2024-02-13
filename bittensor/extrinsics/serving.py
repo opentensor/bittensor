@@ -16,10 +16,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import json
-import bittensor
 from dataclasses import asdict
-import bittensor.utils.networking as net
+from typing import Optional
+
 from rich.prompt import Confirm
+from retry import retry
+from scalecodec.base import ScaleDecoder, ScaleBytes, ScaleType
+
+import bittensor
+import bittensor.utils.networking as net
 from ..errors import MetadataError
 
 
@@ -264,11 +269,7 @@ def publish_metadata(
             raise MetadataError(response.error_message)
 
 
-from retry import retry
-from typing import Optional
-
-
-def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> str:
+def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> Optional[ScaleType]:
     @retry(delay=2, tries=3, backoff=2, max_delay=4)
     def make_substrate_call_with_retry():
         with self.substrate as substrate:
