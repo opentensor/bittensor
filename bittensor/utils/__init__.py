@@ -16,17 +16,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Callable, Union, List, Optional, Dict, Literal, Type, Any
+from typing import Callable, Union, List, Optional, Dict, Literal
 
 import bittensor
 import hashlib
 import requests
 import torch
 import scalecodec
-from substrateinterface.utils import ss58 as ss58
 
-from .wallet_utils import *
-from .registration import create_pow as create_pow
+from .wallet_utils import *  # noqa F401
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
