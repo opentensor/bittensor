@@ -272,7 +272,7 @@ class Balance:
         return Balance(rao)
 
     @staticmethod
-    def from_rao(amount: int):
+    def from_rao(amount: float):
         """
         Given rao (int), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
 
