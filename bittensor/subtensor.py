@@ -26,6 +26,7 @@ from retry import retry
 import scalecodec
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
+from scalecodec.base import ScaleDecoder, ScaleBytes, RuntimeConfigurationObject, ScaleType
 from substrateinterface.base import QueryMapResult, SubstrateInterface
 import torch
 
@@ -2263,7 +2264,7 @@ class Subtensor:
         name: str,
         block: Optional[int] = None,
         params: Optional[List[object]] = [],
-    ) -> Optional[object]:
+    ) -> Optional[ScaleType]:
         """
         Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to retrieve
         specific data or parameters from the blockchain, such as stake, rank, or other neuron-specific attributes.
@@ -2865,18 +2866,17 @@ class Subtensor:
     ) -> Optional[AxonInfo]:
         """Returns the axon information for this hotkey account"""
         result = self.query_subtensor("Axons", block, [netuid, hotkey_ss58])
-        if result is not None:
-            return AxonInfo(
-                ip=bittensor.utils.networking.int_to_ip(result.value["ip"]),
-                ip_type=result.value["ip_type"],
-                port=result.value["port"],
-                protocol=result.value["protocol"],
-                version=result.value["version"],
-                placeholder1=result.value["placeholder1"],
-                placeholder2=result.value["placeholder2"],
-            )
-        else:
+        if not result:
             return None
+        return AxonInfo(
+            ip=bittensor.utils.networking.int_to_ip(result.value["ip"]),
+            ip_type=result.value["ip_type"],
+            port=result.value["port"],
+            protocol=result.value["protocol"],
+            version=result.value["version"],
+            placeholder1=result.value["placeholder1"],
+            placeholder2=result.value["placeholder2"],
+        )
 
     def get_prometheus_info(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
