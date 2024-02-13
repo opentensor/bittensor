@@ -2263,7 +2263,7 @@ class Subtensor:
         self,
         name: str,
         block: Optional[int] = None,
-        params: Optional[List[object]] = [],
+        params: Optional[List[object]] = None,
     ) -> Optional[ScaleType]:
         """
         Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to retrieve
@@ -2280,7 +2280,8 @@ class Subtensor:
         This query function is essential for accessing detailed information about the network and its neurons,
         providing valuable insights into the state and dynamics of the Bittensor ecosystem.
         """
-
+        block = [] if not block else block
+        params = [] if not params else params
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
