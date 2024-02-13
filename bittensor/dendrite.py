@@ -401,83 +401,81 @@ class Dendrite(torch.nn.Module):
             )
         streaming = is_streaming_subclass or streaming
 
-        async def query_all_axons(
-            is_stream: bool,
-        ) -> Union[AsyncGenerator[Any, None], bittensor.Synapse, bittensor.StreamingSynapse]:
-            """
-            Handles the processing of requests to all targeted axons, accommodating both streaming and
-            non-streaming responses.
+    async def single_axon_response(
+        self,
+        target_axon,
+        is_stream: bool,
+        synapse,
+        timeout: int,
+        deserialize: bool,
+    ) -> Union[AsyncGenerator[Any, None], bittensor.Synapse, bittensor.StreamingSynapse]:
+        """
+        Manages the request and response process for a single axon, supporting both streaming and
+        non-streaming modes.
 
-            This function manages the concurrent or sequential dispatch of requests to a list of axons.
-            It utilizes the `is_stream` parameter to determine the mode of response handling (streaming
-            or non-streaming). For each axon, it calls 'single_axon_response' and aggregates the responses.
+        Args:
+            target_axon: The target axon object for the request.
+            is_stream: Flag indicating if the response is streamed.
+            synapse: The synapse object for the request.
+            timeout: Request timeout.
+            deserialize: Flag indicating if the response should be deserialized.
 
-            Args:
-                is_stream (bool): Flag indicating whether the axon responses are expected to be streamed.
-                If True, responses are handled in streaming mode.
-
-            Returns:
-                List[Union[AsyncGenerator, bittensor.Synapse, bittensor.StreamingSynapse]]: A list
-                containing the responses from each axon. The type of each response depends on the
-                streaming mode and the type of synapse used.
-            """
-
-        async def single_axon_response(
-            target_axon,
-        ) -> Union[AsyncGenerator[Any, None], bittensor.Synapse, bittensor.StreamingSynapse]:
-            """
-            Manages the request and response process for a single axon, supporting both streaming and
-            non-streaming modes.
-
-            This function is responsible for initiating a request to a single axon. Depending on the
-            'is_stream' flag, it either uses 'call_stream' for streaming responses or 'call' for
-            standard responses. The function handles the response processing, catering to the specifics
-            of streaming or non-streaming data.
-
-            Args:
-                target_axon: The target axon object to which the request is to be sent. This object
-                contains the necessary information like IP address and port to formulate the request.
-
-            Returns:
-                Union[AsyncGenerator, bittensor.Synapse, bittensor.StreamingSynapse]: The response
-                from the targeted axon. In streaming mode, an AsyncGenerator is returned, yielding
-                data chunks. In non-streaming mode, a Synapse or StreamingSynapse object is returned
-                containing the response.
-            """
-            if is_stream:
-                # If in streaming mode, return the async_generator
-                return self.call_stream(
-                    target_axon=target_axon,
-                    synapse=synapse.model_copy(),
-                    timeout=timeout,
-                    deserialize=deserialize,
-                )
-            else:
-                # If not in streaming mode, simply call the axon and get the response.
-                return await self.call(
-                    target_axon=target_axon,
-                    synapse=synapse.model_copy(),
-                    timeout=timeout,
-                    deserialize=deserialize,
-                )
-
-            # If run_async flag is False, get responses one by one.
-            if not run_async:
-                return [
-                    await single_axon_response(target_axon) for target_axon in axons
-                ]
-            # If run_async flag is True, get responses concurrently using asyncio.gather().
-            return await asyncio.gather(
-                *(single_axon_response(target_axon) for target_axon in axons)
+        Returns:
+            Response from the targeted axon, either as an AsyncGenerator or a Synapse/StreamingSynapse.
+        """
+        if is_stream:
+            return self.call_stream(
+                target_axon=target_axon,
+                synapse=synapse.model_copy(),
+                timeout=timeout,
+                deserialize=deserialize,
+            )
+        else:
+            return await self.call(
+                target_axon=target_axon,
+                synapse=synapse.model_copy(),
+                timeout=timeout,
+                deserialize=deserialize,
             )
 
-        # Get responses for all axons.
-        responses = await query_all_axons(streaming)
-        # Return the single response if only one axon was targeted, else return all responses
-        if len(responses) == 1 and not is_list:
-            return responses[0]
+    async def query_all_axons(
+        self,
+        axons: List,
+        is_stream: bool,
+        synapse,
+        timeout: int,
+        deserialize: bool,
+        run_async: bool,
+    ) -> Union[Any, List[Any]]:
+        """
+        Queries all axons either concurrently or sequentially, based on the run_async flag.
+
+        Args:
+            axons: List of axons to query.
+            is_stream: Flag indicating if the response is streamed.
+            synapse: The synapse object for the request.
+            timeout: Request timeout.
+            deserialize: Flag indicating if the response should be deserialized.
+            run_async: Flag indicating if the axon queries should run asynchronously.
+
+        Returns:
+            A list of responses or a single response, depending on the number of axons.
+        """
+        async def get_response(target_axon):
+            return await self.single_axon_response(
+                target_axon,
+                is_stream=is_stream,
+                synapse=synapse,
+                timeout=timeout,
+                deserialize=deserialize
+            )
+
+        if not run_async:
+            responses = [await get_response(target_axon) for target_axon in axons]
         else:
-            return responses
+            responses = await asyncio.gather(*(get_response(target_axon) for target_axon in axons))
+
+        return responses if len(responses) > 1 else responses[0]
 
     async def call(
         self,
