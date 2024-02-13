@@ -1,6 +1,7 @@
 """
-Implementation of the config class, which manages the config of different bittensor modules.
+Implementation of the config class, which manages the configuration of different Bittensor modules.
 """
+
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2022 Opentensor Foundation
@@ -37,21 +38,22 @@ class InvalidConfigFile(Exception):
 
 class config(DefaultMunch):
     """
-    Implementation of the config class, which manages the config of different bittensor modules.
+    Implementation of the config class, which manages the configuration of different Bittensor modules.
     """
 
     __is_set: Dict[str, bool]
 
     r""" Translates the passed parser into a nested Bittensor config.
+    
         Args:
             parser (argparse.ArgumentParser):
                 Command line parser object.
             strict (bool):
-                If true, the command line arguments are strictly parsed.
+                If ``true``, the command line arguments are strictly parsed.
             args (list of str):
                 Command line arguments.
             default (Optional[Any]):
-                Default value for the Config. Defaults to None.
+                Default value for the Config. Defaults to ``None``.
                 This default will be returned for attributes that are undefined.
         Returns:
             config (bittensor.config):
@@ -98,7 +100,7 @@ class config(DefaultMunch):
             parser.add_argument(
                 "--no_version_checking",
                 action="store_true",
-                help="Set true to stop cli version checking.",
+                help="Set ``true`` to stop cli version checking.",
                 default=False,
             )
         except:
@@ -110,7 +112,7 @@ class config(DefaultMunch):
                 "--no_prompt",
                 dest="no_prompt",
                 action="store_true",
-                help="Set true to stop cli from prompting the user.",
+                help="Set ``true`` to stop cli from prompting the user.",
                 default=False,
             )
         except:
@@ -246,13 +248,14 @@ class config(DefaultMunch):
         args: List[str], parser: argparse.ArgumentParser = None, strict: bool = False
     ) -> argparse.Namespace:
         """Parses the passed args use the passed parser.
+
         Args:
             args (List[str]):
                 List of arguments to parse.
             parser (argparse.ArgumentParser):
                 Command line parser object.
             strict (bool):
-                If true, the command line arguments are strictly parsed.
+                If ``true``, the command line arguments are strictly parsed.
         Returns:
             Namespace:
                 Namespace object created from parser arguments.

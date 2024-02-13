@@ -1,5 +1,6 @@
-""" Standardize logging for bittensor
+""" Standardized logging for Bittensor.
 """
+
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -42,7 +43,7 @@ def _remove_loguru_ansi_directive(text: str) -> str:
 
 
 class logging:
-    """Standardize logging for bittensor"""
+    """Standardized logging for Bittensor."""
 
     __has_been_inited__: bool = False
     __debug_on__: bool = False
@@ -58,17 +59,18 @@ class logging:
         record_log: bool = None,
         logging_dir: str = None,
     ):
-        r"""Instantiate bittensor logging system backend.
+        r"""Instantiate Bittensor logging system backend.
+
         Args:
-            config (:obj:`bittensor.config`, `optional`):
+            config (bittensor.config, optional):
                 bittensor.logging.config()
-            debug (:obj:`bool`, `optional`):
+            debug (bool, optional):
                 Turn on debug.
-            trace (:obj:`bool`, `optional`):
+            trace (bool, optional):
                 Turn on trace.
-            record_log (:obj:`bool`, `optional`):
+            record_log (bool, optional):
                 If true, logs are saved to loggind dir.
-            logging_dir (:obj:`str`, `optional`):
+            logging_dir (str, optional):
                 Directory where logs are sunk.
         """
 
@@ -129,8 +131,10 @@ class logging:
 
     @classmethod
     def config(cls):
-        """Get config from the argument parser
-        Return: bittensor.config object
+        """Get config from the argument parser.
+
+        Return:
+            bittensor.config object
         """
         parser = argparse.ArgumentParser()
         logging.add_args(parser)

@@ -93,9 +93,11 @@ class SenateCommand:
 
         for ss58_address in senate_members:
             table.add_row(
-                delegate_info[ss58_address].name
-                if ss58_address in delegate_info
-                else "",
+                (
+                    delegate_info[ss58_address].name
+                    if ss58_address in delegate_info
+                    else ""
+                ),
                 ss58_address,
             )
 

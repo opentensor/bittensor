@@ -46,7 +46,16 @@ TORCH_DTYPES = {
 
 def cast_dtype(raw: Union[None, torch.dtype, str]) -> Union[str, None]:
     """
-    Casts the raw value to a string representing the torch data type.
+    Casts the raw value to a string representing the `torch data type <https://pytorch.org/docs/stable/tensor_attributes.html>`_.
+
+    Args:
+        raw (Union[None, torch.dtype, str]): The raw value to cast.
+
+    Returns:
+        str: The string representing the torch data type.
+
+    Raises:
+        Exception: If the raw value is of an invalid type.
     """
     if raw is None:
         return None

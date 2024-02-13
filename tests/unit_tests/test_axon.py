@@ -104,6 +104,29 @@ def test_attach():
         server.attach(wrong_forward_fn)
 
 
+def test_log_and_handle_error():
+    from bittensor.axon import log_and_handle_error
+
+    synapse = SynapseMock()
+
+    synapse = log_and_handle_error(synapse, Exception("Error"), 500, 100)
+    assert synapse.axon.status_code == 500
+    assert synapse.axon.status_message == "Error"
+    assert synapse.axon.process_time is not None
+
+
+def test_create_error_response():
+    from bittensor.axon import create_error_response
+
+    synapse = SynapseMock()
+    synapse.axon.status_code = 500
+    synapse.axon.status_message = "Error"
+
+    response = create_error_response(synapse)
+    assert response.status_code == 500
+    assert response.body == b'{"message":"Error"}'
+
+
 # Mock synapse class for testing
 
 

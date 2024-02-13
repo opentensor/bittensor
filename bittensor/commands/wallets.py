@@ -199,9 +199,9 @@ class RegenColdkeypubCommand:
             else:
                 config.ss58_address = prompt_answer
         if not bittensor.utils.is_valid_bittensor_address_or_public_key(
-            address=config.ss58_address
-            if config.ss58_address
-            else config.public_key_hex
+            address=(
+                config.ss58_address if config.ss58_address else config.public_key_hex
+            )
         ):
             sys.exit(1)
 
