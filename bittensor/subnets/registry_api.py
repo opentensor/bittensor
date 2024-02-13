@@ -22,7 +22,7 @@ import torch
 import random
 import bittensor as bt
 from abc import ABC, abstractmethod
-from typing import Any, List, Union
+from typing import Any, List, Union, Optional
 
 
 class RegistryMeta(type):
@@ -172,7 +172,7 @@ class SubnetsAPI(ABC):
 
     async def query_api(
         self,
-        metagraph: bt.metagraph,
+        metagraph: Optional[bt.metagraph] = None,
         deserialize: bool = False,
         timeout: int = 12,
         n: float = 0.1,
@@ -183,7 +183,7 @@ class SubnetsAPI(ABC):
         Queries the API nodes of a subnet using the given synapse and bespoke query function.
 
         Args:
-            metagraph (bittensor.metagraph): The metagraph instance containing network information.
+            metagraph (bittensor.metagraph, optional): The metagraph instance containing network information.
             deserialize (bool, optional): Whether to deserialize the responses. Defaults to False.
             timeout (int, optional): The timeout in seconds for the query. Defaults to 12.
             n (float, optional): The fraction of top nodes to consider based on stake. Defaults to 0.1.
@@ -193,6 +193,9 @@ class SubnetsAPI(ABC):
         Returns:
             Any: The result of the process_responses_fn.
         """
+        if metagraph is None:
+            metagraph = bt.metagraph(self.netuid)
+
         synapse = self.prepare_synapse(**kwargs)
         axons = await self.get_query_api_axons(
             metagraph=metagraph, n=n, timeout=timeout, uid=uid
