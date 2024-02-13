@@ -537,8 +537,8 @@ class NeuronInfoLite:
     validator_permit: bool
     # weights: List[List[int]]
     # bonds: List[List[int]] No weights or bonds in lite version
-    prometheus_info: "PrometheusInfo"
-    axon_info: "axon_info"
+    prometheus_info: Optional["PrometheusInfo"]
+    axon_info: Optional["axon_info"]
     pruning_score: int
     is_null: bool = False
 
