@@ -814,4 +814,4 @@ class dendrite(torch.nn.Module):
             # ... some operations ...
             del dendrite  # This will implicitly invoke the __del__ method and close the session.
         """
-        asyncio.run(self.aclose_session())
+        self.close_session()
