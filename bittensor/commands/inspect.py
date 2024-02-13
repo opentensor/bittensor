@@ -15,18 +15,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import json
 import argparse
 import bittensor
 from tqdm import tqdm
 from rich.table import Table
 from rich.prompt import Prompt
 from .utils import (
-    check_netuid_set,
     get_delegates_details,
     DelegatesDetails,
     get_hotkey_wallets_for_wallet,
-    get_coldkey_wallets_for_path,
     get_all_wallets_for_path,
     filter_netuids_by_registered_hotkeys,
 )

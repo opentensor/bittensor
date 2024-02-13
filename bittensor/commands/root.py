@@ -15,7 +15,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
 import re
 import torch
 import typing
@@ -23,7 +22,7 @@ import argparse
 import numpy as np
 import bittensor
 from typing import List, Optional, Dict
-from rich.prompt import Prompt, Confirm
+from rich.prompt import Prompt
 from rich.table import Table
 from .utils import get_delegates_details, DelegatesDetails
 
