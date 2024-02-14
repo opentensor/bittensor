@@ -535,7 +535,6 @@ class subtensor:
             prompt=prompt,
         )
 
-
     def send_extrinsic(
         self,
         wallet: "bittensor.wallet",
@@ -578,15 +577,15 @@ class subtensor:
 
         # <3 parity tech
         old_init_runtime = self.substrate.init_runtime
-        self.substrate.init_runtime = lambda : None
+        self.substrate.init_runtime = lambda: None
         self.substrate.init_runtime = old_init_runtime
 
         for attempt in range(1, max_retries + 1):
             try:
                 # Create the extrinsic with new nonce
                 extrinsic = self.substrate.create_signed_extrinsic(
-                    call=call, 
-                    keypair=wallet.hotkey, 
+                    call=call,
+                    keypair=wallet.hotkey,
                     era={"period": period},
                     nonce=nonce,
                 )
@@ -614,9 +613,11 @@ class subtensor:
 
             # This dies because user is spamming... incr and try again
             except SubstrateRequestException as e:
-                if 'Priority is too low' in e.args[0]['message']:
+                if "Priority is too low" in e.args[0]["message"]:
                     wait = min(wait_time * attempt, max_wait)
-                    bittensor.logging.warning(f"Priority is too low, retrying with new nonce: {nonce} in {wait} seconds.")
+                    bittensor.logging.warning(
+                        f"Priority is too low, retrying with new nonce: {nonce} in {wait} seconds."
+                    )
                     nonce = nonce + 1
                     time.sleep(wait)
                     continue
@@ -713,7 +714,7 @@ class subtensor:
                 "dests": uids,
                 "weights": vals,
                 "netuid": netuid,
-                "version_key": version_key
+                "version_key": version_key,
             },
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,

@@ -758,7 +758,7 @@ class WalletBalanceCommand:
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        #console = bittensor.__console__
+        # console = bittensor.__console__
         wallet = bittensor.wallet(config=cli.config)
 
         wallet_names = []
@@ -768,22 +768,22 @@ class WalletBalanceCommand:
         total_free_balance = 0
         total_staked_balance = 0
         balances = {}
-        
-        #total_balance = bittensor.Balance(0)
-        
+
+        # total_balance = bittensor.Balance(0)
+
         if cli.config.get("all", d=None):
             wallet_names = os.listdir(os.path.expanduser(cli.config.wallet.path))
             coldkeys = _get_coldkey_ss58_addresses_for_path(cli.config.wallet.path)
-            
+
             free_balances = [
                 subtensor.get_balance(coldkeys[i]) for i in range(len(coldkeys))
             ]
-            
+
             staked_balances = [
                 subtensor.get_total_stake_for_coldkey(coldkeys[i])
                 for i in range(len(coldkeys))
             ]
-            
+
             total_free_balance = sum(free_balances)
             total_staked_balance = sum(staked_balances)
 
@@ -801,26 +801,26 @@ class WalletBalanceCommand:
             ):
                 coldkeys = [coldkey_wallet.coldkeypub.ss58_address]
                 wallet_names = [coldkey_wallet.name]
-                
+
                 free_balances = [
                     subtensor.get_balance(coldkeys[i]) for i in range(len(coldkeys))
                 ]
-                
+
                 staked_balances = [
                     subtensor.get_total_stake_for_coldkey(coldkeys[i])
                     for i in range(len(coldkeys))
                 ]
-                
+
                 total_free_balance = sum(free_balances)
                 total_staked_balance = sum(staked_balances)
-                
+
                 balances = {
                     name: (coldkey, free, staked)
                     for name, coldkey, free, staked in sorted(
                         zip(wallet_names, coldkeys, free_balances, staked_balances)
                     )
                 }
-                
+
             if not coldkey_wallet.coldkeypub_file.exists_on_device():
                 bittensor.__console__.print("[bold red]No wallets found.")
                 return
@@ -888,32 +888,31 @@ class WalletBalanceCommand:
             help="""View balance for all wallets.""",
             default=False,
         )
-        
+
         bittensor.wallet.add_args(balance_parser)
         bittensor.subtensor.add_args(balance_parser)
 
     @staticmethod
     def check_config(config: "bittensor.config"):
         if (
-            not config.is_set("wallet.path") 
+            not config.is_set("wallet.path")
             and not config.no_prompt
-            and not config.get("all", d=None) 
+            and not config.get("all", d=None)
         ):
             path = Prompt.ask("Enter wallets path", default=defaults.wallet.path)
             config.wallet.path = str(path)
 
             if (
-                not config.is_set("wallet.name") 
-                and not config.no_prompt 
+                not config.is_set("wallet.name")
+                and not config.no_prompt
                 and not config.get("all", d=None)
             ):
-                wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+                wallet_name = Prompt.ask(
+                    "Enter wallet name", default=defaults.wallet.name
+                )
                 config.wallet.name = str(wallet_name)
 
-        if (
-            not config.is_set("subtensor.network") 
-            and not config.no_prompt
-        ):
+        if not config.is_set("subtensor.network") and not config.no_prompt:
             network = Prompt.ask(
                 "Enter network",
                 default=defaults.subtensor.network,
