@@ -704,10 +704,8 @@ class subtensor:
         This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
         trust in other neurons based on observed performance and contributions.
         """
-        
-        
-        response = self.send_tx(
-            substrate=self.substrate,
+
+        response = self.send_extrinsic(
             wallet=wallet,
             module="SubtensorModule",
             function="set_weights",
@@ -718,10 +716,17 @@ class subtensor:
                 "version_key": version_key
             },
             wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization
+            wait_for_finalization=wait_for_finalization,
         )
-        
-        return response
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True, None
+        else:
+            return False, response.error_message
 
     ######################
     #### Registration ####
