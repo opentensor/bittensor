@@ -18,6 +18,7 @@
 
 import os
 import copy
+import time
 import torch
 import argparse
 import bittensor
@@ -27,6 +28,7 @@ from retry import retry
 from loguru import logger
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 from substrateinterface.base import QueryMapResult, SubstrateInterface, ExtrinsicReceipt
+from substrateinterface.exceptions import SubstrateRequestException
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 
@@ -534,73 +536,94 @@ class subtensor:
         )
 
 
-    
-        
-    # not sure if we're going to store nonce in db
-    ''' # Use redis as a store for wallet info
-    def get_key_nonce(self, address: str) -> int:
-        db = redis_serialization.get_database()
-        key = [key for key in db.scan_iter(f"*{address}:nonce")][0]
-
-        return int(db.get(key))
-
-    # this ensures that txn nonce is not pulled from the chain (slow AF) and doens't matter as long as it's monotonically increasing
-    def incr_key_nonce(self, address: str):
-        db = redis_serialization.get_database()
-        key = [key for key in db.scan_iter(f"*{address}:nonce")][0]
-
-        db.incrby(key)
-    '''
-    
     def send_extrinsic(
         self,
-        substrate: SubstrateInterface,
         wallet: "bittensor.wallet",
         module: str,
         function: str,
         params: dict,
+        period: int = 5,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-    ) -> ExtrinsicReceipt | None: # unsure
-        call = substrate.compose_call(
+        max_retries: int = 3,
+        wait_time: int = 3,
+        max_wait: int = 20,
+    ) -> Optional[ExtrinsicReceipt]:
+        """
+        Sends an extrinsic to the Bittensor blockchain using the provided wallet and parameters. This method
+        constructs and submits the extrinsic, handling retries and blockchain communication.
+
+        Args:
+            wallet (bittensor.wallet): The wallet associated with the extrinsic.
+            module (str): The module name for the extrinsic.
+            function (str): The function name for the extrinsic.
+            params (dict): The parameters for the extrinsic.
+            period (int, optional): The number of blocks for the extrinsic to live in the mempool. Defaults to 5.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+            max_retries (int, optional): The maximum number of retries for the extrinsic. Defaults to 3.
+            wait_time (int, optional): The wait time between retries. Defaults to 3.
+            max_wait (int, optional): The maximum wait time for the extrinsic. Defaults to 20.
+
+        Returns:
+            Optional[ExtrinsicReceipt]: The receipt of the extrinsic if successful, None otherwise.
+        """
+        call = self.substrate.compose_call(
             call_module=module,
             call_function=function,
             call_params=params,
         )
 
-        nonce = substrate.get_account_nonce(wallet.get_hotkey().ss58_address)
+        nonce = self.substrate.get_account_nonce(wallet.get_hotkey().ss58_address)
 
-        # parity tech sux, because you have to init_runtime EVERY GODDAMN TIME.
-        old_init_runtime = substrate.init_runtime
-        substrate.init_runtime = lambda : None
-        
-        #base.Keypair
+        # <3 parity tech
+        old_init_runtime = self.substrate.init_runtime
+        self.substrate.init_runtime = lambda : None
+        self.substrate.init_runtime = old_init_runtime
 
-        extrinsic = substrate.create_signed_extrinsic(
-            call=call, 
-            keypair=wallet.hotkey, 
-            era={"period": 10}, # this shaves off time and fixes priority too low errors
-            nonce=nonce # this also shaves off time
-        )
-        
-        substrate.init_runtime = old_init_runtime
-        #self.incr_key_nonce(address)
-        #nonce = nonce + 1
+        for attempt in range(1, max_retries + 1):
+            try:
+                # Create the extrinsic with new nonce
+                extrinsic = self.substrate.create_signed_extrinsic(
+                    call=call, 
+                    keypair=wallet.hotkey, 
+                    era={"period": period},
+                    nonce=nonce,
+                )
 
-        try:
-            response = substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
+                # Submit the extrinsic
+                response = self.substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
 
+                # Return immediately if we don't wait
+                if not wait_for_inclusion and not wait_for_finalization:
+                    return response
 
+                # If we wait for finalization or inclusion, check if it is successful
+                if response.is_success:
+                    return response
+                else:
+                    # Incr the nonce and try again
+                    nonce = nonce + 1
+                    wait = min(wait_time * attempt, max_wait)
+                    time.sleep(wait)
+                    continue
 
-            return response
-        except substrate.SubstrateRequestException as e:
-            print(f"Error sending extrinsic: {e}")
+            # This dies because user is spamming... incr and try again
+            except SubstrateRequestException as e:
+                if 'Priority is too low' in e.args[0]['message']:
+                    wait = min(wait_time * attempt, max_wait)
+                    bittensor.logging.warning(f"Priority is too low, retrying with new nonce: {nonce} in {wait} seconds.")
+                    nonce = nonce + 1
+                    time.sleep(wait)
+                    continue
+                else:
+                    bittensor.logging.error(f"Error sending extrinsic: {e}")
 
-        return None
+        return response
 
     #####################
     #### Set Weights ####
