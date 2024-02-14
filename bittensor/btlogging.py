@@ -50,6 +50,52 @@ class logging:
     __trace_on__: bool = False
     __std_sink__: int = None
     __file_sink__: int = None
+    __off__: bool = False
+
+    @classmethod
+    def off(cls):
+        """Turn off all logging output."""
+        if not cls.__has_been_inited__:
+            cls()
+        cls.__off__ = True
+
+        for handler_id in list(logger._core.handlers):
+            logger.remove(handler_id)
+
+    @classmethod
+    def on(cls):
+        """Turn on logging output by re-adding the sinks."""
+        if cls.__off__:
+            cls.__off__ = False
+
+            cls.__std_sink__ = logger.add(
+                sys.stdout,
+                level=0,
+                filter=cls.log_filter,
+                colorize=True,
+                enqueue=True,
+                backtrace=True,
+                diagnose=True,
+                format=cls.log_formatter,
+            )
+
+            # Check if logging to file was originally enabled and re-add the file sink
+            if cls.__file_sink__ is not None:
+                config = cls.config()
+                filepath = config.logging.logging_dir + "/logs.log"
+                cls.__file_sink__ = logger.add(
+                    filepath,
+                    filter=cls.log_save_filter,
+                    enqueue=True,
+                    backtrace=True,
+                    diagnose=True,
+                    format=cls.log_save_formatter,
+                    rotation="25 MB",
+                    retention="10 days",
+                )
+
+            cls.set_debug(cls.__debug_on__)
+            cls.set_trace(cls.__trace_on__)
 
     def __new__(
         cls,
