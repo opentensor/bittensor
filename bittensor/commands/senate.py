@@ -15,13 +15,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
+
 import argparse
 import bittensor
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
-from rich.console import Console
-from typing import List, Union, Optional, Dict, Tuple
+from typing import Optional, Dict
 from .utils import get_delegates_details, DelegatesDetails
 from . import defaults
 
