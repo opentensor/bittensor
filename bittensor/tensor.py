@@ -19,11 +19,10 @@
 import numpy
 import torch
 import base64
-import pytest
 import msgpack
 import pydantic
 import msgpack_numpy
-from typing import Dict, Optional, Tuple, Union, List, Callable
+from typing import Optional, Union, List
 
 TORCH_DTYPES = {
     "torch.float16": torch.float16,
