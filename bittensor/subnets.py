@@ -25,7 +25,6 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Union, Optional
 
 
-
 class SubnetsAPI(ABC):
     def __init__(self, wallet: "bt.wallet"):
         self.wallet = wallet
@@ -47,7 +46,6 @@ class SubnetsAPI(ABC):
         Process the responses from the network.
         """
         ...
-
 
     async def query_api(
         self,
