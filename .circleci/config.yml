@@ -197,6 +197,12 @@ jobs:
             . env/bin/activate
             python -m flake8 bittensor/ --count
 
+      - run:
+          name: Type check with mypy
+          command: |
+            . env/bin/activate
+            python -m mypy --ignore-missing-imports bittensor/
+
   unit-tests-all-python-versions:
     docker:
       - image: cimg/python:3.10
