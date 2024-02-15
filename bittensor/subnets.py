@@ -17,9 +17,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import json
-import torch
-import random
 import bittensor as bt
 from abc import ABC, abstractmethod
 from typing import Any, List, Union, Optional
@@ -50,17 +47,17 @@ class SubnetsAPI(ABC):
     async def query_api(
         self,
         axons: Union[bt.axon, List[bt.axon]],
-        deserialize: bool = False,
-        timeout: int = 12,
-        n: float = 0.1,
-        uid: int = None,
-        **kwargs: Any,
+        deserialize: Optional[bool] = False,
+        timeout: Optional[int] = 12,
+        n: Optional[float] = 0.1,
+        uid: Optional[int] = None,
+        **kwargs: Optional[Any],
     ) -> Any:
         """
         Queries the API nodes of a subnet using the given synapse and bespoke query function.
 
         Args:
-            axons (List[bt.axon]): The list of axons to query.
+            axons (Union[bt.axon, List[bt.axon]]): The list of axon(s) to query.
             deserialize (bool, optional): Whether to deserialize the responses. Defaults to False.
             timeout (int, optional): The timeout in seconds for the query. Defaults to 12.
             n (float, optional): The fraction of top nodes to consider based on stake. Defaults to 0.1.
