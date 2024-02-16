@@ -370,6 +370,45 @@ y
 ⠏ 📡 Setting root weights on test ...
 ```
 
+## Bittensor Subnets API
+
+This guide provides instructions on how to extend the Bittensor Subnets API, a powerful interface for interacting with the Bittensor network across subnets. The Bittensor Subnets API facilitates querying across any subnet that has exposed API endpoints to unlock utility of the Bittensor decentralized network.
+
+The Bittensor Subnets API consists of abstract classes and a registry system to dynamically handle API interactions. It allows developers to implement custom logic for storing and retrieving data, while also providing a straightforward way for end users to interact with these functionalities.
+
+### Core Components
+
+- **APIRegistry**: A central registry that manages API handlers. It allows for dynamic retrieval of handlers based on keys.
+- **SubnetsAPI (Abstract Base Class)**: Defines the structure for API implementations, including methods for querying the network and processing responses.
+- **StoreUserAPI & RetrieveUserAPI**: Concrete implementations of the `SubnetsAPI` for storing and retrieving user data.
+
+### Implementing Custom Subnet APIs
+
+To implement your own subclasses of `bittensor.SubnetsAPI` to integrate an API into your subnet.
+
+1. **Inherit from `SubnetsAPI`**: Your class should inherit from the `SubnetsAPI` abstract base class.
+
+2. **Implement Required Methods**: Implement the `prepare_synapse` and `process_responses` abstract methods with your custom logic.
+
+That's it! For example:
+
+```python
+import bittensor
+
+class CustomSubnetAPI(bittensor.SubnetsAPI):
+    def __init__(self, wallet: "bittensor.wallet"):
+        super().__init__(wallet)
+        # Custom initialization here
+
+    def prepare_synapse(self, *args, **kwargs):
+        # Custom synapse preparation logic
+        pass
+
+    def process_responses(self, responses):
+        # Custom response processing logic
+        pass
+```
+
 ## Release
 The release manager should follow the instructions of the [RELEASE_GUIDELINES.md](./RELEASE_GUIDELINES.md) document.
 
