@@ -145,6 +145,13 @@ class wallet:
             default_hotkey = os.getenv("BT_WALLET_NAME") or "default"
             default_path = os.getenv("BT_WALLET_PATH") or "~/.bittensor/wallets/"
             parser.add_argument(
+                "--no_prompt",
+                dest="no_prompt",
+                action="store_true",
+                help="""Set true to avoid prompting the user.""",
+                default=False,
+            )
+            parser.add_argument(
                 "--" + prefix_str + "wallet.name",
                 required=False,
                 default=default_name,
