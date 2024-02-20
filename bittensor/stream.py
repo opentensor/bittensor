@@ -1,3 +1,4 @@
+from aiohttp import ClientResponse
 import bittensor
 
 from starlette.responses import StreamingResponse as _StreamingResponse
@@ -98,7 +99,7 @@ class StreamingSynapse(bittensor.Synapse, ABC):
             await self.stream_response(send)
 
     @abstractmethod
-    async def process_streaming_response(self, response: Response):
+    async def process_streaming_response(self, response: ClientResponse):
         """
         Abstract method that must be implemented by the subclass.
         This method should provide logic to handle the streaming response, such as parsing and accumulating data.
@@ -111,7 +112,7 @@ class StreamingSynapse(bittensor.Synapse, ABC):
         ...
 
     @abstractmethod
-    def extract_response_json(self, response: Response) -> dict:
+    def extract_response_json(self, response: ClientResponse) -> dict:
         """
         Abstract method that must be implemented by the subclass.
         This method should provide logic to extract JSON data from the response, including headers and content.
