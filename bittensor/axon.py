@@ -41,7 +41,7 @@ from fastapi import FastAPI, APIRouter, Request, Response, Depends
 from starlette.responses import Response
 from starlette.requests import Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from typing import Coroutine, List, Optional, Tuple, Callable, Any, Dict, Union
+from typing import List, Optional, Tuple, Callable, Any, Dict
 
 from bittensor.errors import (
     InvalidRequestNameError,
