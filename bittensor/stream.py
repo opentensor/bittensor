@@ -2,7 +2,6 @@ from aiohttp import ClientResponse
 import bittensor
 
 from starlette.responses import StreamingResponse as _StreamingResponse
-from starlette.responses import Response
 from starlette.types import Send, Receive, Scope
 from typing import Callable, Awaitable
 from pydantic import BaseModel
