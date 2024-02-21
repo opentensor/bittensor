@@ -1,5 +1,24 @@
 # Changelog
 
+## 6.8.0 / 2024-02-16
+
+## What's Changed
+* Release/6.7.2 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1695
+* close synchronosuly on __del__ by @ifrit98 in https://github.com/opentensor/bittensor/pull/1700
+* CI: Flake8 by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1701
+* logging off switch by @ifrit98 in https://github.com/opentensor/bittensor/pull/1704
+* Extrinsic update by @ifrit98 in https://github.com/opentensor/bittensor/pull/1703
+* Bittensor shared request layer by @ifrit98 in https://github.com/opentensor/bittensor/pull/1698
+* Add no_prompt argument to help printout in https://github.com/opentensor/bittensor/pull/1707 
+* Adds mypi typechecking to circleci by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1705 
+* Remove set weights ttl now that we have a better extrinsic method by @ifrit98
+* Bug fix in overview command for dereg stake with outdated `stake_info` object fields by @ifrit98 in https://github.com/opentensor/bittensor/pull/1712 
+* Moves mock wallet creation to temp dir by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1711 
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.7.2...v6.8.0
+
+
 ## 6.7.2 / 2024-02-08
 
 ## What's Changed

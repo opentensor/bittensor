@@ -24,7 +24,7 @@ import argparse
 import bittensor
 from termcolor import colored
 from substrateinterface import Keypair
-from typing import Optional, Union, List, Tuple, Dict, overload
+from typing import Optional, Union, Tuple, Dict, overload
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 
 
@@ -144,6 +144,13 @@ class wallet:
             default_name = os.getenv("BT_WALLET_NAME") or "default"
             default_hotkey = os.getenv("BT_WALLET_NAME") or "default"
             default_path = os.getenv("BT_WALLET_PATH") or "~/.bittensor/wallets/"
+            parser.add_argument(
+                "--no_prompt",
+                dest="no_prompt",
+                action="store_true",
+                help="""Set true to avoid prompting the user.""",
+                default=False,
+            )
             parser.add_argument(
                 "--" + prefix_str + "wallet.name",
                 required=False,

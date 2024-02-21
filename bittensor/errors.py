@@ -152,3 +152,9 @@ class InternalServerError(Exception):
     r"""This exception is raised when the requested function fails on the server. Indicates a server error."""
 
     pass
+
+
+class SynapseDendriteNoneException(Exception):
+    def __init__(self, message="Synapse Dendrite is None"):
+        self.message = message
+        super().__init__(self.message)

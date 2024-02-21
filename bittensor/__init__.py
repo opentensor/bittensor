@@ -27,7 +27,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = "6.7.2"
+__version__ = "6.8.0"
 
 version_split = __version__.split(".")
 __version_as_int__ = (
@@ -231,6 +231,8 @@ from .dendrite import dendrite as dendrite
 from .mock.keyfile_mock import MockKeyfile as MockKeyfile
 from .mock.subtensor_mock import MockSubtensor as MockSubtensor
 from .mock.wallet_mock import MockWallet as MockWallet
+
+from .subnets import SubnetsAPI as SubnetsAPI
 
 configs = [
     axon.config(),

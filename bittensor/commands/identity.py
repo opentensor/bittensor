@@ -1,5 +1,4 @@
 import argparse
-from rich import print
 from rich.table import Table
 from rich.prompt import Prompt
 from sys import getsizeof

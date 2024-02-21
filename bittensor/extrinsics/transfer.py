@@ -19,7 +19,7 @@
 import bittensor
 
 from rich.prompt import Confirm
-from typing import List, Dict, Union
+from typing import Union
 from ..utils.balance import Balance
 from ..utils import is_valid_bittensor_address_or_public_key
 
