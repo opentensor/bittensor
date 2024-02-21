@@ -635,7 +635,10 @@ class OverviewCommand:
 
             all_staked_hotkeys = filter(_filter_stake_info, all_stake_info_for_coldkey)
             result = [
-                (stake_info.hotkey_ss58, stake_info.stake.tao) # stake is a Balance object
+                (
+                    stake_info.hotkey_ss58,
+                    stake_info.stake.tao,
+                )  # stake is a Balance object
                 for stake_info in all_staked_hotkeys
             ]
 
