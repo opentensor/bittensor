@@ -762,8 +762,6 @@ class WalletBalanceCommand:
         total_staked_balance = 0
         balances = {}
 
-        # total_balance = bittensor.Balance(0)
-
         if cli.config.get("all", d=None):
             wallet_names = os.listdir(os.path.expanduser(cli.config.wallet.path))
             coldkeys = _get_coldkey_ss58_addresses_for_path(cli.config.wallet.path)
