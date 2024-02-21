@@ -25,7 +25,6 @@ import time
 import torch
 import aiohttp
 import bittensor
-from fastapi import Response
 from typing import Union, Optional, List, Union, AsyncGenerator, Any
 
 
