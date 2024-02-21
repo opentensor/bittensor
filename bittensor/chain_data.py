@@ -362,9 +362,9 @@ class NeuronInfo:
     validator_permit: bool
     weights: List[List[int]]
     bonds: List[List[int]]
-    prometheus_info: "PrometheusInfo"
-    axon_info: "AxonInfo"
     pruning_score: int
+    prometheus_info: Optional["PrometheusInfo"] = None
+    axon_info: Optional[AxonInfo] = None
     is_null: bool = False
 
     @classmethod
