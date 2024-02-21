@@ -20,7 +20,7 @@ import os
 import torch
 import bittensor
 from typing import List, Dict, Any, Optional
-from rich.prompt import Confirm, Prompt, PromptBase
+from rich.prompt import Confirm, PromptBase
 import requests
 from dataclasses import dataclass
 from . import defaults

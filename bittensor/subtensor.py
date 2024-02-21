@@ -18,6 +18,7 @@
 
 import os
 import copy
+import time
 import torch
 import argparse
 import bittensor
@@ -26,7 +27,8 @@ import scalecodec
 from retry import retry
 from loguru import logger
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
-from substrateinterface.base import QueryMapResult, SubstrateInterface
+from substrateinterface.base import QueryMapResult, SubstrateInterface, ExtrinsicReceipt
+from substrateinterface.exceptions import SubstrateRequestException
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 
@@ -41,7 +43,6 @@ from .chain_data import (
     NeuronInfoLite,
     AxonInfo,
     ProposalVoteData,
-    ProposalCallData,
     IPInfo,
     custom_rpc_type_registry,
 )
@@ -65,7 +66,7 @@ from .extrinsics.registration import (
     swap_hotkey_extrinsic,
 )
 from .extrinsics.transfer import transfer_extrinsic
-from .extrinsics.set_weights import set_weights_extrinsic, ttl_set_weights_extrinsic
+from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import (
     delegate_extrinsic,
@@ -534,6 +535,97 @@ class subtensor:
             prompt=prompt,
         )
 
+    def send_extrinsic(
+        self,
+        wallet: "bittensor.wallet",
+        module: str,
+        function: str,
+        params: dict,
+        period: int = 5,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+        max_retries: int = 3,
+        wait_time: int = 3,
+        max_wait: int = 20,
+    ) -> Optional[ExtrinsicReceipt]:
+        """
+        Sends an extrinsic to the Bittensor blockchain using the provided wallet and parameters. This method
+        constructs and submits the extrinsic, handling retries and blockchain communication.
+
+        Args:
+            wallet (bittensor.wallet): The wallet associated with the extrinsic.
+            module (str): The module name for the extrinsic.
+            function (str): The function name for the extrinsic.
+            params (dict): The parameters for the extrinsic.
+            period (int, optional): The number of blocks for the extrinsic to live in the mempool. Defaults to 5.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+            max_retries (int, optional): The maximum number of retries for the extrinsic. Defaults to 3.
+            wait_time (int, optional): The wait time between retries. Defaults to 3.
+            max_wait (int, optional): The maximum wait time for the extrinsic. Defaults to 20.
+
+        Returns:
+            Optional[ExtrinsicReceipt]: The receipt of the extrinsic if successful, None otherwise.
+        """
+        call = self.substrate.compose_call(
+            call_module=module,
+            call_function=function,
+            call_params=params,
+        )
+
+        nonce = self.substrate.get_account_nonce(wallet.get_hotkey().ss58_address)
+
+        # <3 parity tech
+        old_init_runtime = self.substrate.init_runtime
+        self.substrate.init_runtime = lambda: None
+        self.substrate.init_runtime = old_init_runtime
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                # Create the extrinsic with new nonce
+                extrinsic = self.substrate.create_signed_extrinsic(
+                    call=call,
+                    keypair=wallet.hotkey,
+                    era={"period": period},
+                    nonce=nonce,
+                )
+
+                # Submit the extrinsic
+                response = self.substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+
+                # Return immediately if we don't wait
+                if not wait_for_inclusion and not wait_for_finalization:
+                    return response
+
+                # If we wait for finalization or inclusion, check if it is successful
+                if response.is_success:
+                    return response
+                else:
+                    # Incr the nonce and try again
+                    nonce = nonce + 1
+                    wait = min(wait_time * attempt, max_wait)
+                    time.sleep(wait)
+                    continue
+
+            # This dies because user is spamming... incr and try again
+            except SubstrateRequestException as e:
+                if "Priority is too low" in e.args[0]["message"]:
+                    wait = min(wait_time * attempt, max_wait)
+                    bittensor.logging.warning(
+                        f"Priority is too low, retrying with new nonce: {nonce} in {wait} seconds."
+                    )
+                    nonce = nonce + 1
+                    time.sleep(wait)
+                    continue
+                else:
+                    bittensor.logging.error(f"Error sending extrinsic: {e}")
+
+        return response
+
     #####################
     #### Set Weights ####
     #####################
@@ -547,7 +639,6 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
-        ttl: int = 100,
     ) -> bool:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the
@@ -570,7 +661,7 @@ class subtensor:
         This function is crucial in shaping the network's collective intelligence, where each neuron's
         learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        return ttl_set_weights_extrinsic(
+        return set_weights_extrinsic(
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
@@ -580,7 +671,6 @@ class subtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
-            ttl=ttl,
         )
 
     def _do_set_weights(
@@ -614,39 +704,28 @@ class subtensor:
         trust in other neurons based on observed performance and contributions.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="set_weights",
-                    call_params={
-                        "dests": uids,
-                        "weights": vals,
-                        "netuid": netuid,
-                        "version_key": version_key,
-                    },
-                )
-                # Period dictates how long the extrinsic will stay as part of waiting pool
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.hotkey, era={"period": 100}
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True, None
+        response = self.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="set_weights",
+            params={
+                "dests": uids,
+                "weights": vals,
+                "netuid": netuid,
+                "version_key": version_key,
+            },
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
-                response.process_events()
-                if response.is_success:
-                    return True, None
-                else:
-                    return False, response.error_message
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
 
-        return make_substrate_call_with_retry()
+        response.process_events()
+        if response.is_success:
+            return True, None
+        else:
+            return False, response.error_message
 
     ######################
     #### Registration ####

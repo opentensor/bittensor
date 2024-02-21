@@ -270,7 +270,7 @@ class AxonInfo:
     @classmethod
     def from_parameter_dict(
         cls, parameter_dict: "torch.nn.ParameterDict"
-    ) -> "axon_info":
+    ) -> "AxonInfo":
         r"""Returns an axon_info object from a torch parameter_dict."""
         return cls(**dict(parameter_dict))
 
@@ -362,9 +362,9 @@ class NeuronInfo:
     validator_permit: bool
     weights: List[List[int]]
     bonds: List[List[int]]
-    prometheus_info: "PrometheusInfo"
-    axon_info: "AxonInfo"
     pruning_score: int
+    prometheus_info: Optional["PrometheusInfo"] = None
+    axon_info: Optional[AxonInfo] = None
     is_null: bool = False
 
     @classmethod

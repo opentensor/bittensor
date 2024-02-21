@@ -15,7 +15,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import time
 import argparse
 import bittensor
 from . import defaults
@@ -491,6 +490,13 @@ class SubnetHyperparamsCommand:
         parser.add_argument(
             "--netuid", dest="netuid", type=int, required=False, default=False
         )
+        parser.add_argument(
+            "--no_prompt",
+            dest="no_prompt",
+            action="store_true",
+            help="""Set true to avoid prompting the user.""",
+            default=False,
+        )
         bittensor.subtensor.add_args(parser)
 
 
@@ -585,5 +591,12 @@ class SubnetGetHyperparamsCommand:
         parser = parser.add_parser("get", help="""View subnet hyperparameters""")
         parser.add_argument(
             "--netuid", dest="netuid", type=int, required=False, default=False
+        )
+        parser.add_argument(
+            "--no_prompt",
+            dest="no_prompt",
+            action="store_true",
+            help="""Set true to avoid prompting the user.""",
+            default=False,
         )
         bittensor.subtensor.add_args(parser)
