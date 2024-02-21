@@ -41,11 +41,10 @@ from inspect import signature, Signature, Parameter
 from fastapi.responses import JSONResponse
 from substrateinterface import Keypair
 from fastapi import FastAPI, APIRouter, Request, Response, Depends
-from starlette.types import Scope, Message
 from starlette.responses import Response
 from starlette.requests import Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from typing import Dict, Optional, Tuple, Union, List, Callable, Any
+from typing import Optional, Tuple, Callable, Any
 
 from bittensor.errors import (
     InvalidRequestNameError,
@@ -925,7 +924,7 @@ class axon:
             parser.add_argument(
                 "--" + prefix_str + "axon.max_workers",
                 type=int,
-                help="""The maximum number connection handler threads working simultaneously on this endpoint. 
+                help="""The maximum number connection handler threads working simultaneously on this endpoint.
                         The grpc server distributes new worker threads to service requests up to this number.""",
                 default=default_axon_max_workers,
             )
@@ -1329,7 +1328,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             synapse: bittensor.Synapse = await self.preprocess(request)
 
             # Logs the start of the request processing
-            bittensor.logging.debug(
+            bittensor.logging.trace(
                 f"axon     | <-- | {request.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success "
             )
 
@@ -1401,7 +1400,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         finally:
             # Log the details of the processed synapse, including total size, name, hotkey, IP, port,
             # status code, and status message, using the debug level of the logger.
-            bittensor.logging.debug(
+            bittensor.logging.trace(
                 f"axon     | --> | {response.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}"
             )
 

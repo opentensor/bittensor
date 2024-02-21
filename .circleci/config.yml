@@ -20,7 +20,7 @@ jobs:
       - restore_cache:
           name: Restore cached black venv
           keys:
-            - v1-pypi-py-black-<< parameters.python-version >>
+            - v2-pypi-py-black-<< parameters.python-version >>
 
       - run:
           name: Update & Activate black venv
@@ -34,7 +34,7 @@ jobs:
           name: Save cached black venv
           paths:
             - "env/"
-          key: v1-pypi-py-black-<< parameters.python-version >>
+          key: v2-pypi-py-black-<< parameters.python-version >>
 
       - run:
           name: Black format check
@@ -79,8 +79,8 @@ jobs:
       - restore_cache:
           name: Restore cached venv
           keys:
-            - v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
-            - v1-pypi-py<< parameters.python-version >>
+            - v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
+            - v2-pypi-py<< parameters.python-version >>
 
       - run:
           name: Update & Activate venv
@@ -94,7 +94,7 @@ jobs:
           name: Save cached venv
           paths:
             - "env/"
-          key: v1-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
+          key: v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
 
       - run:
           name: Install Bittensor
@@ -151,6 +151,51 @@ jobs:
                   #CI_BRANCH: $CIRCLE_BRANCH
                   #CI_JOB_ID: $CIRCLE_NODE_INDEX
                   #COVERALLS_PARALLEL: true
+
+  lint-and-type-check:
+    resource_class: medium
+    parallelism: 2
+    parameters:
+      python-version:
+        type: string
+    docker:
+      - image: cimg/python:<< parameters.python-version >>
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          name: Restore cached venv
+          keys:
+            - v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
+            - v2-pypi-py<< parameters.python-version >>
+
+      - run:
+          name: Update & Activate venv
+          command: |
+            python -m venv env/
+            . env/bin/activate
+            python -m pip install --upgrade pip
+            python -m pip install '.[dev]'
+            pip install flake8
+
+      - save_cache:
+          name: Save cached venv
+          paths:
+            - "env/"
+          key: v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
+
+      - run:
+          name: Install Bittensor
+          command: |
+            . env/bin/activate
+            pip install -e '.[dev]'
+
+      - run:
+          name: Lint with flake8
+          command: |
+            . env/bin/activate
+            python -m flake8 bittensor/ --count
 
   unit-tests-all-python-versions:
     docker:
@@ -249,6 +294,12 @@ workflows:
             parameters:
               python-version: ["3.9.13", "3.10.6", "3.11.4"]
       - unit-tests-all-python-versions:
+          requires:
+            - build-and-test
+      - lint-and-type-check:
+          matrix:
+            parameters:
+              python-version: ["3.8.12", "3.9.13", "3.10.6"]
           requires:
             - build-and-test
       #- coveralls:

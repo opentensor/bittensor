@@ -270,7 +270,7 @@ class AxonInfo:
     @classmethod
     def from_parameter_dict(
         cls, parameter_dict: "torch.nn.ParameterDict"
-    ) -> "axon_info":
+    ) -> "AxonInfo":
         r"""Returns an axon_info object from a torch parameter_dict."""
         return cls(**dict(parameter_dict))
 

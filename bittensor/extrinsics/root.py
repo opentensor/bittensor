@@ -21,7 +21,7 @@ import bittensor
 import time
 import torch
 from rich.prompt import Confirm
-from typing import Union, List
+from typing import Union
 import bittensor.utils.weight_utils as weight_utils
 
 from loguru import logger

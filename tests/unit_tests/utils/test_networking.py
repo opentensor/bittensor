@@ -4,7 +4,7 @@ import pytest
 import requests
 import unittest.mock as mock
 from bittensor import utils
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 
 
 # Test conversion functions for IPv4

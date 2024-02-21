@@ -1,5 +1,39 @@
 # Changelog
 
+## 6.7.2 / 2024-02-08
+
+## What's Changed
+* Release/6.7.1 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1688
+* Increases test coverage for cli & chain_data by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1690
+* Subtensor/update pysubstrate latest/phil by @ifrit98 in https://github.com/opentensor/bittensor/pull/1684
+* Update staging to latest master by @ifrit98 in https://github.com/opentensor/bittensor/pull/1691
+* return messages with subtensor extrinsic to set weights by @ifrit98 in https://github.com/opentensor/bittensor/pull/1692
+* Logging/debug to trace axon by @ifrit98 in https://github.com/opentensor/bittensor/pull/1694
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.7.1...v6.7.2
+
+
+## 6.7.1 / 2024-02-02
+
+## What's Changed
+* Release/6.7.0 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1674
+* Eighth (final) docstrings formatting PR by @rajkaramchedu in https://github.com/opentensor/bittensor/pull/1678
+* Sixth docstrings formatting PR by @rajkaramchedu in https://github.com/opentensor/bittensor/pull/1676
+* Seventh docstrings formatting PR by @rajkaramchedu in https://github.com/opentensor/bittensor/pull/1677
+* Update README.md by @unconst in https://github.com/opentensor/bittensor/pull/1679
+* Update README.md by @unconst in https://github.com/opentensor/bittensor/pull/1680
+* black formatting by @ifrit98 in https://github.com/opentensor/bittensor/pull/1685
+* burn -> recycle for public facing code by @ifrit98 in https://github.com/opentensor/bittensor/pull/1681
+* Expands test coverage and coverts python unittest classes to pure pytest by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1686
+* wrap set weights in a ttl multiprocessing call so we don't hang past TTL by @ifrit98 in https://github.com/opentensor/bittensor/pull/1687
+
+## New Contributors
+* @gus-opentensor made their first contribution in https://github.com/opentensor/bittensor/pull/1686
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.7.0...v6.7.1
+
+
 
 ## 6.7.0 / 2024-01-25
 
