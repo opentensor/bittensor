@@ -41,10 +41,11 @@ from fastapi import FastAPI, APIRouter, Request, Response, Depends
 from starlette.responses import Response
 from starlette.requests import Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from typing import Optional, Tuple, Callable, Any
+from typing import List, Optional, Tuple, Callable, Any, Dict
 
 from bittensor.errors import (
     InvalidRequestNameError,
+    SynapseDendriteNoneException,
     SynapseParsingError,
     UnknownSynapseError,
     NotVerifiedException,
@@ -54,6 +55,7 @@ from bittensor.errors import (
     PostProcessException,
     InternalServerError,
 )
+from bittensor.threadpool import PriorityThreadPoolExecutor
 
 
 class FastAPIThreadedServer(uvicorn.Server):
@@ -285,30 +287,16 @@ class axon:
 
     """
 
-    def info(self) -> "bittensor.AxonInfo":
-        """Returns the axon info object associated with this axon."""
-        return bittensor.AxonInfo(
-            version=bittensor.__version_as_int__,
-            ip=self.external_ip,
-            ip_type=4,
-            port=self.external_port,
-            hotkey=self.wallet.hotkey.ss58_address,
-            coldkey=self.wallet.coldkeypub.ss58_address,
-            protocol=4,
-            placeholder1=0,
-            placeholder2=0,
-        )
-
     def __init__(
         self,
-        wallet: "bittensor.wallet" = None,
+        wallet: Optional["bittensor.wallet"] = None,
         config: Optional["bittensor.config"] = None,
         port: Optional[int] = None,
         ip: Optional[str] = None,
         external_ip: Optional[str] = None,
         external_port: Optional[int] = None,
         max_workers: Optional[int] = None,
-    ) -> "bittensor.axon":
+    ):
         r"""Creates a new bittensor.Axon object from passed arguments.
         Args:
             config (:obj:`Optional[bittensor.config]`, `optional`):
@@ -342,7 +330,7 @@ class axon:
             "max_workers", bittensor.defaults.axon.max_workers
         )
         axon.check_config(config)
-        self.config = config
+        self.config = config  # type: ignore [method-assign]
 
         # Get wallet or use default.
         self.wallet = wallet or bittensor.wallet()
@@ -368,15 +356,15 @@ class axon:
         self.thread_pool = bittensor.PriorityThreadPoolExecutor(
             max_workers=self.config.axon.max_workers
         )
-        self.nonces = {}
+        self.nonces: Dict[str, int] = {}
 
         # Request default functions.
-        self.forward_class_types = {}
-        self.blacklist_fns = {}
-        self.priority_fns = {}
-        self.forward_fns = {}
-        self.verify_fns = {}
-        self.required_hash_fields = {}
+        self.forward_class_types: Dict[str, List[Signature]] = {}
+        self.blacklist_fns: Dict[str, Optional[Callable]] = {}
+        self.priority_fns: Dict[str, Optional[Callable]] = {}
+        self.forward_fns: Dict[str, Optional[Callable]] = {}
+        self.verify_fns: Dict[str, Optional[Callable]] = {}
+        self.required_hash_fields: Dict[str, str] = {}
 
         # Instantiate FastAPI
         self.app = FastAPI()
@@ -399,12 +387,26 @@ class axon:
             forward_fn=ping, verify_fn=None, blacklist_fn=None, priority_fn=None
         )
 
+    def info(self) -> "bittensor.AxonInfo":
+        """Returns the axon info object associated with this axon."""
+        return bittensor.AxonInfo(
+            version=bittensor.__version_as_int__,
+            ip=self.external_ip,
+            ip_type=4,
+            port=self.external_port,
+            hotkey=self.wallet.hotkey.ss58_address,
+            coldkey=self.wallet.coldkeypub.ss58_address,
+            protocol=4,
+            placeholder1=0,
+            placeholder2=0,
+        )
+
     def attach(
         self,
         forward_fn: Callable,
-        blacklist_fn: Callable = None,
-        priority_fn: Callable = None,
-        verify_fn: Callable = None,
+        blacklist_fn: Optional[Callable] = None,
+        priority_fn: Optional[Callable] = None,
+        verify_fn: Optional[Callable] = None,
     ) -> "bittensor.axon":
         """
 
@@ -595,7 +597,7 @@ class axon:
         parser.print_help()  # Print parser's help text
 
     @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: Optional[str] = None):
         """
         Adds AxonServer-specific command-line arguments to the argument parser.
 
@@ -702,7 +704,7 @@ class axon:
         body_dict = json.loads(request_body)
 
         # Reconstruct the synapse object from the body dict and recompute the hash
-        syn = self.forward_class_types[request_name](**body_dict)
+        syn = self.forward_class_types[request_name](**body_dict)  # type: ignore
         parsed_body_hash = syn.body_hash  # Rehash the body from request
 
         body_hash = request.headers.get("computed_body_hash", "")
@@ -820,7 +822,7 @@ class axon:
         return self
 
     def serve(
-        self, netuid: int, subtensor: bittensor.subtensor = None
+        self, netuid: int, subtensor: Optional[bittensor.subtensor] = None
     ) -> "bittensor.axon":
         """
         Serves the Axon on the specified subtensor connection using the configured wallet. This method
@@ -845,9 +847,8 @@ class axon:
             The ``serve`` method is crucial for integrating the Axon into the Bittensor network, allowing it
             to start receiving and processing requests from other neurons.
         """
-        if subtensor == None:
-            subtensor = bittensor.subtensor()
-        subtensor.serve_axon(netuid=netuid, axon=self)
+        if subtensor is not None and hasattr(subtensor, "serve_axon"):
+            subtensor.serve_axon(netuid=netuid, axon=self)
         return self
 
     async def default_verify(self, synapse: bittensor.Synapse):
@@ -904,39 +905,55 @@ class axon:
             signature using the sender's public key.
         """
         # Build the keypair from the dendrite_hotkey
-        keypair = Keypair(ss58_address=synapse.dendrite.hotkey)
+        if synapse.dendrite is not None:
+            keypair = Keypair(ss58_address=synapse.dendrite.hotkey)
 
-        # Build the signature messages.
-        message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}.{synapse.computed_body_hash}"
+            # Build the signature messages.
+            message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{self.wallet.hotkey.ss58_address}.{synapse.dendrite.uuid}.{synapse.computed_body_hash}"
 
-        # Build the unique endpoint key.
-        endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
+            # Build the unique endpoint key.
+            endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
 
-        # Check the nonce from the endpoint key.
-        if endpoint_key in self.nonces.keys():
-            # Ensure the nonce increases.
-            if synapse.dendrite.nonce <= self.nonces[endpoint_key]:
+            # Check the nonce from the endpoint key.
+            if (
+                endpoint_key in self.nonces.keys()
+                and self.nonces[endpoint_key] is not None
+                and synapse.dendrite.nonce is not None
+                and synapse.dendrite.nonce <= self.nonces[endpoint_key]
+            ):
                 raise Exception("Nonce is too small")
 
-        if not keypair.verify(message, synapse.dendrite.signature):
-            raise Exception(
-                f"Signature mismatch with {message} and {synapse.dendrite.signature}"
-            )
+            if not keypair.verify(message, synapse.dendrite.signature):
+                raise Exception(
+                    f"Signature mismatch with {message} and {synapse.dendrite.signature}"
+                )
 
-        # Success
-        self.nonces[endpoint_key] = synapse.dendrite.nonce
+            # Success
+            self.nonces[endpoint_key] = synapse.dendrite.nonce  # type: ignore
+        else:
+            raise SynapseDendriteNoneException()
 
 
 def create_error_response(synapse: bittensor.Synapse):
-    return JSONResponse(
-        status_code=int(synapse.axon.status_code),
-        headers=synapse.to_headers(),
-        content={"message": synapse.axon.status_message},
-    )
+    if synapse.axon is None:
+        return JSONResponse(
+            status_code=400,
+            headers=synapse.to_headers(),
+            content={"message": "Invalid request name"},
+        )
+    else:
+        return JSONResponse(
+            status_code=synapse.axon.status_code or 400,
+            headers=synapse.to_headers(),
+            content={"message": synapse.axon.status_message},
+        )
 
 
 def log_and_handle_error(
-    synapse: bittensor.synapse, exception: Exception, status_code: int, start_time: int
+    synapse: bittensor.Synapse,
+    exception: Exception,
+    status_code: int,
+    start_time: float,
 ):
     # Display the traceback for user clarity.
     bittensor.logging.trace(f"Forward exception: {traceback.format_exc()}")
@@ -949,12 +966,14 @@ def log_and_handle_error(
     # Log the detailed error message for internal use
     bittensor.logging.error(detailed_error_message)
 
+    if synapse.axon is None:
+        raise SynapseParsingError(detailed_error_message)
     # Set a user-friendly error message
-    synapse.axon.status_code = str(status_code)
+    synapse.axon.status_code = status_code
     synapse.axon.status_message = error_message
 
     # Calculate the processing time by subtracting the start time from the current time.
-    synapse.axon.process_time = str(time.time() - start_time)
+    synapse.axon.process_time = str(time.time() - start_time)  # type: ignore
 
     return synapse
 
@@ -993,7 +1012,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Request:
+    ) -> Response:
         """
         Asynchronously processes incoming HTTP requests and returns the corresponding responses. This
         method acts as the central processing unit of the AxonMiddleware, handling each step in the
@@ -1027,9 +1046,14 @@ class AxonMiddleware(BaseHTTPMiddleware):
             synapse: bittensor.Synapse = await self.preprocess(request)
 
             # Logs the start of the request processing
-            bittensor.logging.trace(
-                f"axon     | <-- | {request.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success "
-            )
+            if synapse.dendrite is not None:
+                bittensor.logging.trace(
+                    f"axon     | <-- | {request.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port} | 200 | Success "
+                )
+            else:
+                bittensor.logging.trace(
+                    f"axon     | <-- | {request.headers.get('content-length', -1)} B | {synapse.name} | None | None | 200 | Success "
+                )
 
             # Call the blacklist function
             await self.blacklist(synapse)
@@ -1049,7 +1073,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Handle errors related to preprocess.
         except InvalidRequestNameError as e:
             if "synapse" not in locals():
-                synapse: bittensor.Synapse = bittensor.Synapse()
+                synapse: bittensor.Synapse = bittensor.Synapse()  # type: ignore
             log_and_handle_error(synapse, e, 400, start_time)
             response = create_error_response(synapse)
 
@@ -1099,9 +1123,18 @@ class AxonMiddleware(BaseHTTPMiddleware):
         finally:
             # Log the details of the processed synapse, including total size, name, hotkey, IP, port,
             # status code, and status message, using the debug level of the logger.
-            bittensor.logging.trace(
-                f"axon     | --> | {response.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}"
-            )
+            if synapse.dendrite is not None and synapse.axon is not None:
+                bittensor.logging.trace(
+                    f"axon     | --> | {response.headers.get('content-length', -1)} B | {synapse.name} | {synapse.dendrite.hotkey} | {synapse.dendrite.ip}:{synapse.dendrite.port}  | {synapse.axon.status_code} | {synapse.axon.status_message}"
+                )
+            elif synapse.axon is not None:
+                bittensor.logging.trace(
+                    f"axon     | --> | {response.headers.get('content-length', -1)} B | {synapse.name} | None | None | {synapse.axon.status_code} | {synapse.axon.status_message}"
+                )
+            else:
+                bittensor.logging.trace(
+                    f"axon     | --> | {response.headers.get('content-length', -1)} B | {synapse.name} | None | None | 200 | Success "
+                )
 
             # Return the response to the requester.
             return response
@@ -1145,7 +1178,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             )
 
         try:
-            synapse = request_synapse.from_headers(request.headers)
+            synapse = request_synapse.from_headers(request.headers)  # type: ignore
         except Exception as e:
             raise SynapseParsingError(
                 f"Improperly formatted request. Could not parse headers {request.headers} into synapse of type {request_name}."
@@ -1165,7 +1198,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         # Fills the dendrite information into the synapse.
         synapse.dendrite.__dict__.update(
-            {"port": str(request.client.port), "ip": str(request.client.host)}
+            {"port": str(request.client.port), "ip": str(request.client.host)}  # type: ignore
         )
 
         # Signs the synapse from the axon side using the wallet hotkey.
@@ -1198,7 +1231,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # the incoming request is from a trusted source or fulfills certain requirements.
         # We get a specific verification function from 'verify_fns' dictionary that corresponds
         # to our request's name. Each request name (synapse name) has its unique verification function.
-        verify_fn = self.axon.verify_fns.get(synapse.name)
+        verify_fn = (
+            self.axon.verify_fns.get(synapse.name) if synapse.name is not None else None
+        )
 
         # If a verification function exists for the request's name
         if verify_fn:
@@ -1216,8 +1251,13 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 # there was a verification exception.
                 bittensor.logging.trace(f"Verify exception {str(e)}")
 
-                # We set the status code of the synapse to "401" which denotes an unauthorized access.
-                synapse.axon.status_code = "401"
+                # Check if the synapse.axon object exists
+                if synapse.axon is not None:
+                    # We set the status code of the synapse to "401" which denotes an unauthorized access.
+                    synapse.axon.status_code = 401
+                else:
+                    # If the synapse.axon object doesn't exist, raise an exception.
+                    raise Exception("Synapse.axon object is None")
 
                 # We raise an exception to stop the process and return the error to the requester.
                 # The error message includes the original exception message.
@@ -1247,7 +1287,11 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # that are prohibited from accessing certain resources.
         # We retrieve the blacklist checking function from the 'blacklist_fns' dictionary
         # that corresponds to the request's name (synapse name).
-        blacklist_fn = self.axon.blacklist_fns.get(synapse.name)
+        blacklist_fn = (
+            self.axon.blacklist_fns.get(synapse.name)
+            if synapse.name is not None
+            else None
+        )
 
         # If a blacklist checking function exists for the request's name
         if blacklist_fn:
@@ -1262,8 +1306,13 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 # We log that the key or identifier is blacklisted.
                 bittensor.logging.trace(f"Blacklisted: {blacklisted}, {reason}")
 
-                # We set the status code of the synapse to "403" which indicates a forbidden access.
-                synapse.axon.status_code = "403"
+                # Check if the synapse.axon object exists
+                if synapse.axon is not None:
+                    # We set the status code of the synapse to "403" which indicates a forbidden access.
+                    synapse.axon.status_code = 403
+                else:
+                    # If the synapse.axon object doesn't exist, raise an exception.
+                    raise Exception("Synapse.axon object is None")
 
                 # We raise an exception to halt the process and return the error message to the requester.
                 raise BlacklistedException(f"Forbidden. Key is blacklisted: {reason}.")
@@ -1284,10 +1333,10 @@ class AxonMiddleware(BaseHTTPMiddleware):
         """
         # Retrieve the priority function from the 'priority_fns' dictionary that corresponds
         # to the request's name (synapse name).
-        priority_fn = self.axon.priority_fns.get(synapse.name)
+        priority_fn = self.axon.priority_fns.get(str(synapse.name), None)
 
         async def submit_task(
-            executor: bittensor.threadpool, priority: float
+            executor: PriorityThreadPoolExecutor, priority: float
         ) -> Tuple[float, Any]:
             """
             Submits the given priority function to the specified executor for asynchronous execution.
@@ -1324,8 +1373,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 # it raises an exception to handle the timeout error.
                 bittensor.logging.trace(f"TimeoutError: {str(e)}")
 
-                # Set the status code of the synapse to "408" which indicates a timeout error.
-                synapse.axon.status_code = "408"
+                # Set the status code of the synapse to 408 which indicates a timeout error.
+                if synapse.axon is not None:
+                    synapse.axon.status_code = 408
 
                 # Raise an exception to stop the process and return an appropriate error message to the requester.
                 raise PriorityException(f"Response timeout after: {synapse.timeout}s")
@@ -1365,7 +1415,8 @@ class AxonMiddleware(BaseHTTPMiddleware):
             bittensor.logging.trace(f"Run exception: {str(e)}")
 
             # Set the status code of the synapse to "500" which indicates an internal server error.
-            synapse.axon.status_code = "500"
+            if synapse.axon is not None:
+                synapse.axon.status_code = 500
 
             # Raise an exception to stop the process and return an appropriate error message to the requester.
             raise RunException(f"Internal server error with error: {str(e)}")
@@ -1392,10 +1443,11 @@ class AxonMiddleware(BaseHTTPMiddleware):
         properly formatted and contains all necessary information.
         """
         # Set the status code of the synapse to "200" which indicates a successful response.
-        synapse.axon.status_code = "200"
+        if synapse.axon is not None:
+            synapse.axon.status_code = 200
 
-        # Set the status message of the synapse to "Success".
-        synapse.axon.status_message = "Success"
+            # Set the status message of the synapse to "Success".
+            synapse.axon.status_message = "Success"
 
         try:
             # Update the response headers with the headers from the synapse.
@@ -1408,6 +1460,6 @@ class AxonMiddleware(BaseHTTPMiddleware):
             )
 
         # Calculate the processing time by subtracting the start time from the current time.
-        synapse.axon.process_time = str(time.time() - start_time)
+        synapse.axon.process_time = str(time.time() - start_time)  # type: ignore
 
         return response

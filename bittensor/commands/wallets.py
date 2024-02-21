@@ -667,7 +667,7 @@ class UpdateWalletCommand:
     def add_args(parser: argparse.ArgumentParser):
         update_wallet_parser = parser.add_parser(
             "update",
-            help="""Updates the wallet security using NaCL instead of anvisible vault.""",
+            help="""Updates the wallet security using NaCL instead of ansible vault.""",
         )
         update_wallet_parser.add_argument("--all", action="store_true")
         bittensor.wallet.add_args(update_wallet_parser)

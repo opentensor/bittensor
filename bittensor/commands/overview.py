@@ -288,11 +288,14 @@ class OverviewCommand:
                     de_registered_neurons.append(de_registered_neuron)
 
                     # Add this hotkey to the wallets dict
-                    wallet_ = bittensor.Wallet(
+                    wallet_ = bittensor.wallet(
                         name=wallet,
                     )
-                    wallet_.hotkey = hotkey_addr
+                    wallet_.hotkey_ss58 = hotkey_addr
                     wallet.hotkey_str = hotkey_addr[:5]  # Max length of 5 characters
+                    # Indicates a hotkey not on local machine but exists in stake_info obj on-chain
+                    if hotkey_coldkey_to_hotkey_wallet.get(hotkey_addr) == None:
+                        hotkey_coldkey_to_hotkey_wallet[hotkey_addr] = {}
                     hotkey_coldkey_to_hotkey_wallet[hotkey_addr][
                         coldkey_wallet.coldkeypub.ss58_address
                     ] = wallet_
@@ -632,7 +635,10 @@ class OverviewCommand:
 
             all_staked_hotkeys = filter(_filter_stake_info, all_stake_info_for_coldkey)
             result = [
-                (stake_info.hotkey, stake_info.stake)
+                (
+                    stake_info.hotkey_ss58,
+                    stake_info.stake.tao,
+                )  # stake is a Balance object
                 for stake_info in all_staked_hotkeys
             ]
 
