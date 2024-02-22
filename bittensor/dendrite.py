@@ -605,7 +605,7 @@ class dendrite(torch.nn.Module):
                 timeout=timeout,
             ) as response:
                 # Use synapse subclass' process_streaming_response method to yield the response chunks
-                async for chunk in synapse.process_streaming_response(response):
+                async for chunk in synapse.process_streaming_response(response): # type: ignore
                     yield chunk  # Yield each chunk as it's processed
                 json_response = synapse.extract_response_json(response)
 
