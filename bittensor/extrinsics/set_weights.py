@@ -22,61 +22,14 @@ import torch
 from rich.prompt import Confirm
 from typing import Union, Tuple
 import bittensor.utils.weight_utils as weight_utils
-import multiprocessing
 
 from loguru import logger
 
 logger = logger.opt(colors=True)
 
 
-def ttl_set_weights_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
-    netuid: int,
-    uids: Union[torch.LongTensor, list],
-    weights: Union[torch.FloatTensor, list],
-    version_key: int = 0,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = False,
-    prompt: bool = False,
-    ttl: int = 100,
-) -> Tuple[bool, str]:
-    r"""Sets the given weights and values on chain for wallet hotkey account."""
-
-    def target(queue, *args):
-        result = set_weights_extrinsic(*args)
-        queue.put(result)
-
-    queue = multiprocessing.Queue()
-
-    args = (
-        queue,
-        subtensor.chain_endpoint,
-        wallet,
-        netuid,
-        uids,
-        weights,
-        version_key,
-        wait_for_inclusion,
-        wait_for_finalization,
-        prompt,
-    )
-    process = multiprocessing.Process(target=target, args=args)
-    process.start()
-    process.join(timeout=ttl)
-    success, error_message = False, "Timeout or unknown error"
-
-    if process.is_alive():
-        process.terminate()
-        process.join()
-    else:
-        success, error_message = queue.get()
-
-    return success, error_message
-
-
 def set_weights_extrinsic(
-    subtensor_endpoint: str,
+    subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
     uids: Union[torch.LongTensor, list],
@@ -111,7 +64,6 @@ def set_weights_extrinsic(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
-    subtensor = bittensor.subtensor(subtensor_endpoint)
 
     # First convert types.
     if isinstance(uids, list):
