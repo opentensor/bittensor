@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.8.1 / 2024-02-22
+
+## What's Changed
+* Hotfix revert dendrite streaming call to use `synapse.process_streaming_response` func instead of Starlette `iter_any()` from response object.
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.8.0...v6.8.1
+
+
 ## 6.8.0 / 2024-02-16
 
 ## What's Changed
