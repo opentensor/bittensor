@@ -650,17 +650,18 @@ class NominateCommand:
             )
 
             # Prompt use to set identity on chain.
-            do_set_identity = Prompt.ask(
-                f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
-                choices=["y", "n"],
-            )
+            if not cli.config.no_prompt:
+                do_set_identity = Prompt.ask(
+                    f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
+                    choices=["y", "n"],
+                )
 
-            if do_set_identity.lower() == "y":
-                subtensor.close()
-                config = cli.config.copy()
-                SetIdentityCommand.check_config(config)
-                cli.config = config
-                SetIdentityCommand.run(cli)
+                if do_set_identity.lower() == "y":
+                    subtensor.close()
+                    config = cli.config.copy()
+                    SetIdentityCommand.check_config(config)
+                    cli.config = config
+                    SetIdentityCommand.run(cli)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):

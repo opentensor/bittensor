@@ -82,7 +82,7 @@ class RegisterSubnetworkCommand:
             wallet=wallet,
             prompt=not cli.config.no_prompt,
         )
-        if success:
+        if success and not cli.config.no_prompt:
             # Prompt for user to set identity.
             do_set_identity = Prompt.ask(
                 f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
