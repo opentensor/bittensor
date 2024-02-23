@@ -20,7 +20,7 @@ import bittensor
 
 import torch
 from rich.prompt import Confirm
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional
 import bittensor.utils.weight_utils as weight_utils
 
 from loguru import logger
@@ -65,6 +65,47 @@ def set_weights_extrinsic(
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
 
+    def _do_set_weights() -> Tuple[bool, Optional[str]]:  # (success, error_message)
+        """
+        Internal method to send a transaction to the Bittensor blockchain, setting weights
+        for specified neurons. This method constructs and submits the transaction, handling
+        retries and blockchain communication.
+
+        Returns:
+            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+        This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
+        trust in other neurons based on observed performance and contributions.
+        """
+
+        # Reformat and normalize.
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+            uids, weights
+        )
+
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="set_weights",
+            params={
+                "dests": weight_uids,
+                "weights": weight_vals,
+                "netuid": netuid,
+                "version_key": version_key,
+            },
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True, None
+        else:
+            return False, response.error_message
+
     # First convert types.
     if isinstance(uids, list):
         uids = torch.tensor(uids, dtype=torch.int64)
@@ -89,15 +130,7 @@ def set_weights_extrinsic(
         ":satellite: Setting weights on [white]{}[/white] ...".format(subtensor.network)
     ):
         try:
-            success, error_message = subtensor._do_set_weights(
-                wallet=wallet,
-                netuid=netuid,
-                uids=weight_uids,
-                vals=weight_vals,
-                version_key=version_key,
-                wait_for_finalization=wait_for_finalization,
-                wait_for_inclusion=wait_for_inclusion,
-            )
+            success, error_message = _do_set_weights()
 
             if not wait_for_finalization and not wait_for_inclusion:
                 return (

@@ -21,7 +21,7 @@ import bittensor
 import time
 import torch
 from rich.prompt import Confirm
-from typing import Union
+from typing import Union, Tuple, Optional
 import bittensor.utils.weight_utils as weight_utils
 
 from loguru import logger
@@ -52,6 +52,25 @@ def root_register_extrinsic(
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
 
+    def _do_root_register() -> Tuple[bool, Optional[str]]:
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="root_register",
+            params={"hotkey": wallet.hotkey.ss58_address},
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True, None
+        else:
+            return False, response.error_message
+
     wallet.coldkey  # unlock coldkey
 
     is_registered = subtensor.is_hotkey_registered(
@@ -69,11 +88,7 @@ def root_register_extrinsic(
             return False
 
     with bittensor.__console__.status(":satellite: Registering to root network..."):
-        success, err_msg = subtensor._do_root_register(
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        success, err_msg = _do_root_register()
 
         if success != True or success == False:
             bittensor.__console__.print(
@@ -129,6 +144,48 @@ def set_root_weights_extrinsic(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
+
+    def _do_set_weights() -> Tuple[bool, Optional[str]]:  # (success, error_message)
+        """
+        Internal method to send a transaction to the Bittensor blockchain, setting weights
+        for specified neurons. This method constructs and submits the transaction, handling
+        retries and blockchain communication.
+
+        Returns:
+            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+        This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
+        trust in other neurons based on observed performance and contributions.
+        """
+
+        # Reformat and normalize.
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+            netuids, weights
+        )
+
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="set_weights",
+            params={
+                "dests": weight_uids,
+                "weights": weight_vals,
+                "netuid": 0,
+                "version_key": version_key,
+            },
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True, None
+        else:
+            return False, response.error_message
+
     # First convert types.
     if isinstance(netuids, list):
         netuids = torch.tensor(netuids, dtype=torch.int64)
@@ -173,18 +230,7 @@ def set_root_weights_extrinsic(
         )
     ):
         try:
-            weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
-                netuids, weights
-            )
-            success, error_message = subtensor._do_set_weights(
-                wallet=wallet,
-                netuid=0,
-                uids=weight_uids,
-                vals=weight_vals,
-                version_key=version_key,
-                wait_for_finalization=wait_for_finalization,
-                wait_for_inclusion=wait_for_inclusion,
-            )
+            success, error_message = _do_set_weights()
 
             bittensor.__console__.print(success, error_message)
 

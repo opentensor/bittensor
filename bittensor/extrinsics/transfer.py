@@ -19,7 +19,7 @@
 import bittensor
 
 from rich.prompt import Confirm
-from typing import Union
+from typing import Union, Optional, Tuple
 from ..utils.balance import Balance
 from ..utils import is_valid_bittensor_address_or_public_key
 
@@ -55,6 +55,34 @@ def transfer_extrinsic(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
+
+    def _do_transfer() -> Tuple[bool, Optional[str], Optional[str]]:
+        """Sends a transfer extrinsic to the chain.
+
+        Returns:
+            success (bool): ``True`` if transfer was successful.
+            block_hash (str): Block hash of the transfer. On success and if wait_for_ finalization/inclusion is ``True``.
+            error (str): Error message if transfer failed.
+        """
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="Balances",
+            function="transfer",
+            params={"dest": dest, "value": transfer_balance.rao},
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            block_hash = response.block_hash
+            return True, block_hash, None
+        else:
+            return False, None, response.error_message
+
     # Validate destination address.
     if not is_valid_bittensor_address_or_public_key(dest):
         bittensor.__console__.print(
@@ -111,13 +139,7 @@ def transfer_extrinsic(
             return False
 
     with bittensor.__console__.status(":satellite: Transferring..."):
-        success, block_hash, err_msg = subtensor._do_transfer(
-            wallet,
-            dest,
-            transfer_balance,
-            wait_for_finalization=wait_for_finalization,
-            wait_for_inclusion=wait_for_inclusion,
-        )
+        success, block_hash, err_msg = _do_transfer()
 
         if success:
             bittensor.__console__.print(

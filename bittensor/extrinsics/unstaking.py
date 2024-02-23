@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
+from ..errors import *
 from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional
@@ -57,16 +58,38 @@ def __do_remove_stake_single(
             If the hotkey is not registered in any subnets.
 
     """
+
+    def _do_unstake() -> bool:
+        """Sends an unstake extrinsic to the chain.
+
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        Raises:
+            StakeError: If the extrinsic failed.
+        """
+
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="remove_stake",
+            params={"hotkey": hotkey_ss58, "amount_unstaked": amount.rao},
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True
+        else:
+            raise StakeError(response.error_message)
+
     # Decrypt keys,
     wallet.coldkey
 
-    success = subtensor._do_unstake(
-        wallet=wallet,
-        hotkey_ss58=hotkey_ss58,
-        amount=amount,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
+    success = _do_unstake()
 
     return success
 
@@ -194,7 +217,7 @@ def unstake_extrinsic(
             )
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except NotRegisteredError as e:
         bittensor.__console__.print(
             ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                 wallet.hotkey_str

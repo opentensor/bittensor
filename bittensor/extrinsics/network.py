@@ -62,42 +62,36 @@ def register_subnetwork_extrinsic(
     wallet.coldkey  # unlock coldkey
 
     with bittensor.__console__.status(":satellite: Registering subnet..."):
-        with subtensor.substrate as substrate:
-            # create extrinsic call
-            call = substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="register_network",
-                call_params={"immunity_period": 0, "reg_allowed": True},
-            )
-            extrinsic = substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.coldkey
-            )
-            response = substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
+        # create extrinsic call
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="register_network",
+            params={"immunity_period": 0, "reg_allowed": True},
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
 
-            # process if registration successful
-            response.process_events()
-            if not response.is_success:
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+        # process if registration successful
+        response.process_events()
+        if not response.is_success:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(
+                    response.error_message
                 )
-                time.sleep(0.5)
+            )
+            time.sleep(0.5)
 
-            # Successful registration, final check for membership
-            else:
-                bittensor.__console__.print(
-                    f":white_heavy_check_mark: [green]Registered subnetwork with netuid: {response.triggered_events[1].value['event']['attributes'][0]}[/green]"
-                )
-                return True
+        # Successful registration, final check for membership
+        else:
+            bittensor.__console__.print(
+                f":white_heavy_check_mark: [green]Registered subnetwork with netuid: {response.triggered_events[1].value['event']['attributes'][0]}[/green]"
+            )
+            return True
 
 
 from ..commands.network import HYPERPARAMS
@@ -161,17 +155,11 @@ def set_hyperparameter_extrinsic(
                 len(extrinsic_params["fields"]) - 1
             ]
 
-            # create extrinsic call
-            call = substrate.compose_call(
-                call_module="AdminUtils",
-                call_function=extrinsic,
-                call_params={"netuid": netuid, str(value_argument["name"]): value},
-            )
-            extrinsic = substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.coldkey
-            )
-            response = substrate.submit_extrinsic(
-                extrinsic,
+            response = subtensor.send_extrinsic(
+                wallet=wallet,
+                module="AdminUtils",
+                function=extrinsic,
+                params={"netuid": netuid, str(value_argument["name"]): value},
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )

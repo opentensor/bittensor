@@ -19,7 +19,9 @@ import json
 import bittensor
 import bittensor.utils.networking as net
 from rich.prompt import Confirm
+from typing import Tuple, Optional
 from ..errors import MetadataError
+from ..types import AxonServeCallParams
 
 
 def serve_extrinsic(
@@ -62,6 +64,40 @@ def serve_extrinsic(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
+
+    def _do_serve_axon(call_params: AxonServeCallParams) -> Tuple[bool, Optional[str]]:
+        """
+        Internal method to submit a serve axon transaction to the Bittensor blockchain. This method
+        creates and submits a transaction, enabling a neuron's Axon to serve requests on the network.
+
+        Args:
+            call_params (AxonServeCallParams): Parameters required for the serve axon call.
+
+        Returns:
+            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+        This function is crucial for initializing and announcing a neuron's Axon service on the network,
+        enhancing the decentralized computation capabilities of Bittensor.
+        """
+
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="serve_axon",
+            params=call_params,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True, None
+        else:
+            return False, response.error_message
+
     # Decrypt hotkey
     wallet.hotkey
     params: "bittensor.AxonServeCallParams" = {
@@ -115,12 +151,8 @@ def serve_extrinsic(
     bittensor.logging.debug(
         f"Serving axon with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) -> {subtensor.network}:{netuid}"
     )
-    success, error_message = subtensor._do_serve_axon(
-        wallet=wallet,
-        call_params=params,
-        wait_for_finalization=wait_for_finalization,
-        wait_for_inclusion=wait_for_inclusion,
-    )
+
+    success, error_message = _do_serve_axon(call_params=params)
 
     if wait_for_inclusion or wait_for_finalization:
         if success == True:
@@ -240,31 +272,26 @@ def publish_metadata(
 
     wallet.hotkey
 
-    with subtensor.substrate as substrate:
-        call = substrate.compose_call(
-            call_module="Commitments",
-            call_function="set_commitment",
-            call_params={"netuid": netuid, "info": {"fields": [[{f"{type}": data}]]}},
-        )
+    response = subtensor.send_extrinsic(
+        wallet=wallet,
+        module="Commitments",
+        function="set_commitment",
+        params={"netuid": netuid, "info": {"fields": [[{f"{type}": data}]]}},
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
 
-        extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
-        response = substrate.submit_extrinsic(
-            extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-        # We only wait here if we expect finalization.
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True
-        response.process_events()
-        if response.is_success:
-            return True
-        else:
-            raise MetadataError(response.error_message)
+    if not wait_for_inclusion and not wait_for_finalization:
+        return True, "Not waiting for inclusion or finalization."
+
+    response.process_events()
+    if response.is_success:
+        return True
+    else:
+        raise MetadataError(response.error_message)
 
 
 from retry import retry
-from typing import Optional
 
 
 def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> str:

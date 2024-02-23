@@ -431,6 +431,97 @@ class subtensor:
         """
         self.substrate.close()
 
+    def send_extrinsic(
+        self,
+        wallet: "bittensor.wallet",
+        module: str,
+        function: str,
+        params: dict,
+        period: int = 5,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+        max_retries: int = 3,
+        wait_time: int = 3,
+        max_wait: int = 20,
+    ) -> Optional[ExtrinsicReceipt]:
+        """
+        Sends an extrinsic to the Bittensor blockchain using the provided wallet and parameters. This method
+        constructs and submits the extrinsic, handling retries and blockchain communication.
+
+        Args:
+            wallet (bittensor.wallet): The wallet associated with the extrinsic.
+            module (str): The module name for the extrinsic.
+            function (str): The function name for the extrinsic.
+            params (dict): The parameters for the extrinsic.
+            period (int, optional): The number of blocks for the extrinsic to live in the mempool. Defaults to 5.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+            max_retries (int, optional): The maximum number of retries for the extrinsic. Defaults to 3.
+            wait_time (int, optional): The wait time between retries. Defaults to 3.
+            max_wait (int, optional): The maximum wait time for the extrinsic. Defaults to 20.
+
+        Returns:
+            Optional[ExtrinsicReceipt]: The receipt of the extrinsic if successful, None otherwise.
+        """
+        call = self.substrate.compose_call(
+            call_module=module,
+            call_function=function,
+            call_params=params,
+        )
+
+        nonce = self.substrate.get_account_nonce(wallet.get_hotkey().ss58_address)
+
+        # <3 parity tech
+        old_init_runtime = self.substrate.init_runtime
+        self.substrate.init_runtime = lambda: None
+        self.substrate.init_runtime = old_init_runtime
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                # Create the extrinsic with new nonce
+                extrinsic = self.substrate.create_signed_extrinsic(
+                    call=call,
+                    keypair=wallet.hotkey,
+                    era={"period": period},
+                    nonce=nonce,
+                )
+
+                # Submit the extrinsic
+                response = self.substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+
+                # Return immediately if we don't wait
+                if not wait_for_inclusion and not wait_for_finalization:
+                    return response
+
+                # If we wait for finalization or inclusion, check if it is successful
+                if response.is_success:
+                    return response
+                else:
+                    # Incr the nonce and try again
+                    nonce = nonce + 1
+                    wait = min(wait_time * attempt, max_wait)
+                    time.sleep(wait)
+                    continue
+
+            # This dies because user is spamming... incr and try again
+            except SubstrateRequestException as e:
+                if "Priority is too low" in e.args[0]["message"]:
+                    wait = min(wait_time * attempt, max_wait)
+                    bittensor.logging.warning(
+                        f"Priority is too low, retrying with new nonce: {nonce} in {wait} seconds."
+                    )
+                    nonce = nonce + 1
+                    time.sleep(wait)
+                    continue
+                else:
+                    bittensor.logging.error(f"Error sending extrinsic: {e}")
+
+        return response
+
     #####################
     #### Delegation #####
     #####################
@@ -535,97 +626,6 @@ class subtensor:
             prompt=prompt,
         )
 
-    def send_extrinsic(
-        self,
-        wallet: "bittensor.wallet",
-        module: str,
-        function: str,
-        params: dict,
-        period: int = 5,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = False,
-        max_retries: int = 3,
-        wait_time: int = 3,
-        max_wait: int = 20,
-    ) -> Optional[ExtrinsicReceipt]:
-        """
-        Sends an extrinsic to the Bittensor blockchain using the provided wallet and parameters. This method
-        constructs and submits the extrinsic, handling retries and blockchain communication.
-
-        Args:
-            wallet (bittensor.wallet): The wallet associated with the extrinsic.
-            module (str): The module name for the extrinsic.
-            function (str): The function name for the extrinsic.
-            params (dict): The parameters for the extrinsic.
-            period (int, optional): The number of blocks for the extrinsic to live in the mempool. Defaults to 5.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            max_retries (int, optional): The maximum number of retries for the extrinsic. Defaults to 3.
-            wait_time (int, optional): The wait time between retries. Defaults to 3.
-            max_wait (int, optional): The maximum wait time for the extrinsic. Defaults to 20.
-
-        Returns:
-            Optional[ExtrinsicReceipt]: The receipt of the extrinsic if successful, None otherwise.
-        """
-        call = self.substrate.compose_call(
-            call_module=module,
-            call_function=function,
-            call_params=params,
-        )
-
-        nonce = self.substrate.get_account_nonce(wallet.get_hotkey().ss58_address)
-
-        # <3 parity tech
-        old_init_runtime = self.substrate.init_runtime
-        self.substrate.init_runtime = lambda: None
-        self.substrate.init_runtime = old_init_runtime
-
-        for attempt in range(1, max_retries + 1):
-            try:
-                # Create the extrinsic with new nonce
-                extrinsic = self.substrate.create_signed_extrinsic(
-                    call=call,
-                    keypair=wallet.hotkey,
-                    era={"period": period},
-                    nonce=nonce,
-                )
-
-                # Submit the extrinsic
-                response = self.substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-
-                # Return immediately if we don't wait
-                if not wait_for_inclusion and not wait_for_finalization:
-                    return response
-
-                # If we wait for finalization or inclusion, check if it is successful
-                if response.is_success:
-                    return response
-                else:
-                    # Incr the nonce and try again
-                    nonce = nonce + 1
-                    wait = min(wait_time * attempt, max_wait)
-                    time.sleep(wait)
-                    continue
-
-            # This dies because user is spamming... incr and try again
-            except SubstrateRequestException as e:
-                if "Priority is too low" in e.args[0]["message"]:
-                    wait = min(wait_time * attempt, max_wait)
-                    bittensor.logging.warning(
-                        f"Priority is too low, retrying with new nonce: {nonce} in {wait} seconds."
-                    )
-                    nonce = nonce + 1
-                    time.sleep(wait)
-                    continue
-                else:
-                    bittensor.logging.error(f"Error sending extrinsic: {e}")
-
-        return response
-
     #####################
     #### Set Weights ####
     #####################
@@ -672,60 +672,6 @@ class subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
-
-    def _do_set_weights(
-        self,
-        wallet: "bittensor.wallet",
-        uids: List[int],
-        vals: List[int],
-        netuid: int,
-        version_key: int = bittensor.__version_as_int__,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
-        """
-        Internal method to send a transaction to the Bittensor blockchain, setting weights
-        for specified neurons. This method constructs and submits the transaction, handling
-        retries and blockchain communication.
-
-        Args:
-            wallet (bittensor.wallet): The wallet associated with the neuron setting the weights.
-            uids (List[int]): List of neuron UIDs for which weights are being set.
-            vals (List[int]): List of weight values corresponding to each UID.
-            netuid (int): Unique identifier for the network.
-            version_key (int, optional): Version key for compatibility with the network.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-
-        Returns:
-            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
-
-        This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
-        trust in other neurons based on observed performance and contributions.
-        """
-
-        response = self.send_extrinsic(
-            wallet=wallet,
-            module="SubtensorModule",
-            function="set_weights",
-            params={
-                "dests": uids,
-                "weights": vals,
-                "netuid": netuid,
-                "version_key": version_key,
-            },
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-
-        if not wait_for_inclusion and not wait_for_finalization:
-            return True, "Not waiting for inclusion or finalization."
-
-        response.process_events()
-        if response.is_success:
-            return True, None
-        else:
-            return False, response.error_message
 
     ######################
     #### Registration ####
@@ -879,150 +825,6 @@ class subtensor:
             prompt=prompt,
         )
 
-    def _do_pow_register(
-        self,
-        netuid: int,
-        wallet: "bittensor.wallet",
-        pow_result: POWSolution,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        """Sends a (POW) register extrinsic to the chain.
-
-        Args:
-            netuid (int): The subnet to register on.
-            wallet (bittensor.wallet): The wallet to register.
-            pow_result (POWSolution): The PoW result to register.
-            wait_for_inclusion (bool): If ``true``, waits for the extrinsic to be included in a block.
-            wait_for_finalization (bool): If ``true``, waits for the extrinsic to be finalized.
-        Returns:
-            success (bool): ``True`` if the extrinsic was included in a block.
-            error (Optional[str]): ``None`` on success or not waiting for inclusion/finalization, otherwise the error message.
-        """
-
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                # create extrinsic call
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="register",
-                    call_params={
-                        "netuid": netuid,
-                        "block_number": pow_result.block_number,
-                        "nonce": pow_result.nonce,
-                        "work": [int(byte_) for byte_ in pow_result.seal],
-                        "hotkey": wallet.hotkey.ss58_address,
-                        "coldkey": wallet.coldkeypub.ss58_address,
-                    },
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.hotkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True, None
-
-                # process if registration successful, try again if pow is still valid
-                response.process_events()
-                if not response.is_success:
-                    return False, response.error_message
-                # Successful registration
-                else:
-                    return True, None
-
-        return make_substrate_call_with_retry()
-
-    def _do_burned_register(
-        self,
-        netuid: int,
-        wallet: "bittensor.wallet",
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                # create extrinsic call
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="burned_register",
-                    call_params={
-                        "netuid": netuid,
-                        "hotkey": wallet.hotkey.ss58_address,
-                    },
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-
-                # process if registration successful, try again if pow is still valid
-                response.process_events()
-                if not response.is_success:
-                    return False, response.error_message
-                # Successful registration
-                else:
-                    return True, None
-
-        return make_substrate_call_with_retry()
-
-    def _do_swap_hotkey(
-        self,
-        wallet: "bittensor.wallet",
-        new_wallet: "bittensor.wallet",
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                # create extrinsic call
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="swap_hotkey",
-                    call_params={
-                        "hotkey": wallet.hotkey.ss58_address,
-                        "new_hotkey": new_wallet.hotkey.ss58_address,
-                    },
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-
-                # process if registration successful, try again if pow is still valid
-                response.process_events()
-                if not response.is_success:
-                    return False, response.error_message
-                # Successful registration
-                else:
-                    return True, None
-
-        return make_substrate_call_with_retry()
-
     ##################
     #### Transfer ####
     ##################
@@ -1110,58 +912,6 @@ class subtensor:
 
         fee = Balance.from_rao(payment_info["partialFee"])
         return fee
-
-    def _do_transfer(
-        self,
-        wallet: "bittensor.wallet",
-        dest: str,
-        transfer_balance: Balance,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
-        """Sends a transfer extrinsic to the chain.
-
-        Args:
-            wallet (:func:`bittensor.wallet`): Wallet object.
-            dest (str): Destination public key address.
-            transfer_balance (:func:`Balance`): Amount to transfer.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion.
-            wait_for_finalization (bool): If ``true``, waits for finalization.
-        Returns:
-            success (bool): ``True`` if transfer was successful.
-            block_hash (str): Block hash of the transfer. On success and if wait_for_ finalization/inclusion is ``True``.
-            error (str): Error message if transfer failed.
-        """
-
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="Balances",
-                    call_function="transfer",
-                    call_params={"dest": dest, "value": transfer_balance.rao},
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True, None, None
-
-                # Otherwise continue with finalization.
-                response.process_events()
-                if response.is_success:
-                    block_hash = response.block_hash
-                    return True, block_hash, None
-                else:
-                    return False, None, response.error_message
-
-        return make_substrate_call_with_retry()
 
     def get_existential_deposit(self, block: Optional[int] = None) -> Optional[Balance]:
         """
@@ -1344,57 +1094,6 @@ class subtensor:
             self, netuid, axon, wait_for_inclusion, wait_for_finalization
         )
 
-    def _do_serve_axon(
-        self,
-        wallet: "bittensor.wallet",
-        call_params: AxonServeCallParams,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        """
-        Internal method to submit a serve axon transaction to the Bittensor blockchain. This method
-        creates and submits a transaction, enabling a neuron's Axon to serve requests on the network.
-
-        Args:
-            wallet (bittensor.wallet): The wallet associated with the neuron.
-            call_params (AxonServeCallParams): Parameters required for the serve axon call.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-
-        Returns:
-            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
-
-        This function is crucial for initializing and announcing a neuron's Axon service on the network,
-        enhancing the decentralized computation capabilities of Bittensor.
-        """
-
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="serve_axon",
-                    call_params=call_params,
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.hotkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                if wait_for_inclusion or wait_for_finalization:
-                    response.process_events()
-                    if response.is_success:
-                        return True, None
-                    else:
-                        return False, response.error_message
-                else:
-                    return True, None
-
-        return make_substrate_call_with_retry()
-
     def serve_prometheus(
         self,
         wallet: "bittensor.wallet",
@@ -1411,52 +1110,6 @@ class subtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
-
-    def _do_serve_prometheus(
-        self,
-        wallet: "bittensor.wallet",
-        call_params: PrometheusServeCallParams,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        """
-        Sends a serve prometheus extrinsic to the chain.
-        Args:
-            wallet (:func:`bittensor.wallet`): Wallet object.
-            call_params (:func:`PrometheusServeCallParams`): Prometheus serve call parameters.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion.
-            wait_for_finalization (bool): If ``true``, waits for finalization.
-        Returns:
-            success (bool): ``True`` if serve prometheus was successful.
-            error (:func:`Optional[str]`): Error message if serve prometheus failed, ``None`` otherwise.
-        """
-
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="serve_prometheus",
-                    call_params=call_params,
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.hotkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                if wait_for_inclusion or wait_for_finalization:
-                    response.process_events()
-                    if response.is_success:
-                        return True, None
-                    else:
-                        return False, response.error_message
-                else:
-                    return True, None
-
-        return make_substrate_call_with_retry()
 
     def _do_associate_ips(
         self,
@@ -1481,35 +1134,26 @@ class subtensor:
             error (:func:`Optional[str]`): Error message if associate IPs failed, None otherwise.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="associate_ips",
-                    call_params={
-                        "ip_info_list": [ip_info.encode() for ip_info in ip_info_list],
-                        "netuid": netuid,
-                    },
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.hotkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                if wait_for_inclusion or wait_for_finalization:
-                    response.process_events()
-                    if response.is_success:
-                        return True, None
-                    else:
-                        return False, response.error_message
-                else:
-                    return True, None
+        response = self.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="associate_ips",
+            params={
+                "ip_info_list": [ip_info.encode() for ip_info in ip_info_list],
+                "netuid": netuid,
+            },
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
-        return make_substrate_call_with_retry()
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True, None
+        else:
+            return False, response.error_message
 
     #################
     #### Staking ####
@@ -1589,96 +1233,9 @@ class subtensor:
             prompt,
         )
 
-    def _do_stake(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey_ss58: str,
-        amount: Balance,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        """Sends a stake extrinsic to the chain.
-
-        Args:
-            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-            hotkey_ss58 (str): Hotkey ``ss58`` address to stake to.
-            amount (:func:`Balance`): Amount to stake.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
-            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
-        Returns:
-            success (bool): ``True`` if the extrinsic was successful.
-        Raises:
-            StakeError: If the extrinsic failed.
-        """
-
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="add_stake",
-                    call_params={"hotkey": hotkey_ss58, "amount_staked": amount.rao},
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise StakeError(response.error_message)
-
-        return make_substrate_call_with_retry()
-
     ###################
     #### Unstaking ####
     ###################
-    def unstake_multiple(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey_ss58s: List[str],
-        amounts: List[Union[Balance, float]] = None,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        prompt: bool = False,
-    ) -> bool:
-        """
-        Performs batch unstaking from multiple hotkey accounts, allowing a neuron to reduce its staked amounts
-        efficiently. This function is useful for managing the distribution of stakes across multiple neurons.
-
-        Args:
-            wallet (bittensor.wallet): The wallet linked to the coldkey from which the stakes are being withdrawn.
-            hotkey_ss58s (List[str]): A list of hotkey ``SS58`` addresses to unstake from.
-            amounts (List[Union[Balance, float]], optional): The amounts of TAO to unstake from each hotkey. If not provided, unstakes all available stakes.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
-
-        Returns:
-            bool: ``True`` if the batch unstaking is successful, False otherwise.
-
-        This function allows for strategic reallocation or withdrawal of stakes, aligning with the dynamic
-        stake management aspect of the Bittensor network.
-        """
-        return unstake_multiple_extrinsic(
-            self,
-            wallet,
-            hotkey_ss58s,
-            amounts,
-            wait_for_inclusion,
-            wait_for_finalization,
-            prompt,
-        )
-
     def unstake(
         self,
         wallet: "bittensor.wallet",
@@ -1716,55 +1273,42 @@ class subtensor:
             prompt,
         )
 
-    def _do_unstake(
+    def unstake_multiple(
         self,
         wallet: "bittensor.wallet",
-        hotkey_ss58: str,
-        amount: Balance,
+        hotkey_ss58s: List[str],
+        amounts: List[Union[Balance, float]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        prompt: bool = False,
     ) -> bool:
-        """Sends an unstake extrinsic to the chain.
+        """
+        Performs batch unstaking from multiple hotkey accounts, allowing a neuron to reduce its staked amounts
+        efficiently. This function is useful for managing the distribution of stakes across multiple neurons.
 
         Args:
-            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-            hotkey_ss58 (str): Hotkey ``ss58`` address to unstake from.
-            amount (:func:`Balance`): Amount to unstake.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
-            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+            wallet (bittensor.wallet): The wallet linked to the coldkey from which the stakes are being withdrawn.
+            hotkey_ss58s (List[str]): A list of hotkey ``SS58`` addresses to unstake from.
+            amounts (List[Union[Balance, float]], optional): The amounts of TAO to unstake from each hotkey. If not provided, unstakes all available stakes.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+
         Returns:
-            success (bool): ``True`` if the extrinsic was successful.
-        Raises:
-            StakeError: If the extrinsic failed.
+            bool: ``True`` if the batch unstaking is successful, False otherwise.
+
+        This function allows for strategic reallocation or withdrawal of stakes, aligning with the dynamic
+        stake management aspect of the Bittensor network.
         """
-
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="remove_stake",
-                    call_params={"hotkey": hotkey_ss58, "amount_unstaked": amount.rao},
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise StakeError(response.error_message)
-
-        return make_substrate_call_with_retry()
+        return unstake_multiple_extrinsic(
+            self,
+            wallet,
+            hotkey_ss58s,
+            amounts,
+            wait_for_inclusion,
+            wait_for_finalization,
+            prompt,
+        )
 
     ################
     #### Senate ####
@@ -2039,44 +1583,6 @@ class subtensor:
             prompt=prompt,
         )
 
-    def _do_root_register(
-        self,
-        wallet: "bittensor.wallet",
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                # create extrinsic call
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="root_register",
-                    call_params={"hotkey": wallet.hotkey.ss58_address},
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-
-                # process if registration successful, try again if pow is still valid
-                response.process_events()
-                if not response.is_success:
-                    return False, response.error_message
-                # Successful registration
-                else:
-                    return True, None
-
-        return make_substrate_call_with_retry()
-
     def root_set_weights(
         self,
         wallet: "bittensor.wallet",
@@ -2198,32 +1704,23 @@ class subtensor:
         call_params = bittensor.utils.wallet_utils.create_identity_dict(**params)
         call_params["identified"] = identified
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="Registry",
-                    call_function="set_identity",
-                    call_params=call_params,
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise IdentityError(response.error_message)
+        response = self.send_extrinsic(
+            wallet=wallet,
+            module="Registry",
+            function="set_identity",
+            params=call_params,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
-        return make_substrate_call_with_retry()
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True, None
+        else:
+            return False, response.error_message
 
     """ Make some commitment on-chain about arbitary data """
 
@@ -4031,116 +3528,6 @@ class subtensor:
             return None
 
         return lock_cost
-
-    ################
-    ## Extrinsics ##
-    ################
-
-    def _do_delegation(
-        self,
-        wallet: "bittensor.wallet",
-        delegate_ss58: str,
-        amount: "Balance",
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="add_stake",
-                    call_params={"hotkey": delegate_ss58, "amount_staked": amount.rao},
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise StakeError(response.error_message)
-
-        return make_substrate_call_with_retry()
-
-    def _do_undelegation(
-        self,
-        wallet: "bittensor.wallet",
-        delegate_ss58: str,
-        amount: "Balance",
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="remove_stake",
-                    call_params={
-                        "hotkey": delegate_ss58,
-                        "amount_unstaked": amount.rao,
-                    },
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise StakeError(response.error_message)
-
-        return make_substrate_call_with_retry()
-
-    def _do_nominate(
-        self,
-        wallet: "bittensor.wallet",
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="become_delegate",
-                    call_params={"hotkey": wallet.hotkey.ss58_address},
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )  # sign with coldkey
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise NominationError(response.error_message)
-
-        return make_substrate_call_with_retry()
 
     ################
     #### Legacy ####
