@@ -727,11 +727,28 @@ class WalletBalanceCommand:
     Optional arguments:
         None. The command uses the wallet and subtensor configurations to fetch balance data.
 
-    Example usage::
+    Example usages:
 
-        btcli wallet balance
+        - To display the balance of a single wallet, use the command with the `--wallet.name` argument to specify the wallet name:
+
+        ```
+        btcli w balance --wallet.name WALLET
+        ```
+
+        - Alternatively, you can invoke the command without specifying a wallet name, which will prompt you to enter the wallets path:
+
+        ```
+        btcli w balance
+        ```
+
+        - To display the balances of all wallets, use the `--all` argument:
+
+        ```
+        btcli w balance --all
+        ```
 
     Note:
+        When using `btcli`, `w` is used interchangeably with `wallet`. You may use either based on your preference for brevity or clarity.
         This command is essential for users to monitor their financial status on the Bittensor network.
         It helps in keeping track of assets and ensuring the wallet's financial health.
     """
