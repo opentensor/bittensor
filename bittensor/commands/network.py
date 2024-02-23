@@ -89,12 +89,11 @@ class RegisterSubnetworkCommand:
                 choices=["y", "n"],
             )
 
-            config = cli.config.copy()
-            cli.config = config
-
             if do_set_identity.lower() == "y":
                 subtensor.close()
+                config = cli.config.copy()
                 SetIdentityCommand.check_config(config)
+                cli.config = config
                 SetIdentityCommand.run(cli)
 
     @classmethod
