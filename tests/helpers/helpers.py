@@ -14,7 +14,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
+import time
 from typing import Union
 from bittensor import Balance, NeuronInfo, AxonInfo, PrometheusInfo, __ss58_format__
 from bittensor.mock.wallet_mock import MockWallet as _MockWallet
@@ -23,9 +23,10 @@ from bittensor.mock.wallet_mock import get_mock_hotkey as _get_mock_hotkey
 from bittensor.mock.wallet_mock import get_mock_keypair as _get_mock_keypair
 from bittensor.mock.wallet_mock import get_mock_wallet as _get_mock_wallet
 
-from rich.console import Console
 from rich.text import Text
 
+from bittensor.cli_logging import ConsoleLogger
+from io import StringIO
 
 def __mock_wallet_factory__(*args, **kwargs) -> _MockWallet:
     """Returns a mock wallet object."""
@@ -146,17 +147,45 @@ class MockConsole:
     """
 
     captured_print = None
+    handler = None
 
     def status(self, *args, **kwargs):
         return MockStatus()
 
+    def success(self, *args, **kwargs):
+        self.handler = StringIO()
+        console = ConsoleLogger(file=self.handler)
+        console.success(*args, **kwargs)
+        time.sleep(.05)
+        self.captured_print = self.handler.getvalue()
+
+    def error(self, *args, **kwargs):
+        self.handler = StringIO()
+        console = ConsoleLogger(file=self.handler)
+        console.error(*args, **kwargs)
+        time.sleep(.05)
+        self.captured_print = self.handler.getvalue()
+
+    def info(self, *args, **kwargs):
+        self.handler = StringIO()
+        console = ConsoleLogger(file=self.handler)
+        console.info(*args, **kwargs)
+        time.sleep(.1)
+        self.captured_print = self.handler.getvalue()
+
     def print(self, *args, **kwargs):
-        console = Console(
-            width=1000, no_color=True, markup=False
-        )  # set width to 1000 to avoid truncation
-        console.begin_capture()
+        self.handler = StringIO()
+        console = ConsoleLogger(file=self.handler)
         console.print(*args, **kwargs)
-        self.captured_print = console.end_capture()
+        time.sleep(.05)
+        self.captured_print = self.handler.getvalue()
+
+    def rich_print(self, *args, **kwargs):
+        self.handler = StringIO()
+        console = ConsoleLogger(file=self.handler, width=1000)
+        console.rich_print(*args, **kwargs)
+        time.sleep(2)
+        self.captured_print = self.handler.getvalue()
 
     def clear(self, *args, **kwargs):
         pass
