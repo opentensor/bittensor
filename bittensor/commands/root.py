@@ -25,7 +25,6 @@ from typing import List, Optional, Dict
 from rich.prompt import Prompt
 from rich.table import Table
 from .utils import get_delegates_details, DelegatesDetails
-
 from . import defaults
 
 console = bittensor.__console__
@@ -139,8 +138,8 @@ class RootList:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""List the root network"""
-        console.print(
-            ":satellite: Syncing with chain: [white]{}[/white] ...".format(
+        console.status(
+            "Syncing with chain: <w>{}</w> ...".format(
                 subtensor.network
             )
         )
@@ -206,7 +205,7 @@ class RootList:
         table.box = None
         table.pad_edge = False
         table.width = None
-        bittensor.__console__.print(table)
+        console.rich_print(table)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -289,7 +288,7 @@ class RootSetBoostCommand:
         try:
             my_uid = root.hotkeys.index(wallet.hotkey.ss58_address)
         except ValueError:
-            bittensor.__console__.print(
+            console.info(
                 "Wallet hotkey: {} not found in root metagraph".format(wallet.hotkey)
             )
             exit()
@@ -297,13 +296,13 @@ class RootSetBoostCommand:
         prev_weight = my_weights[cli.config.netuid]
         new_weight = prev_weight + cli.config.amount
 
-        bittensor.__console__.print(
+        console.info(
             f"Boosting weight for netuid {cli.config.netuid} from {prev_weight} -> {new_weight}"
         )
         my_weights[cli.config.netuid] = new_weight
         all_netuids = torch.tensor(list(range(len(my_weights))))
 
-        bittensor.__console__.print("Setting root weights...")
+        console.info("Setting root weights...")
         subtensor.root_set_weights(
             wallet=wallet,
             netuids=all_netuids,
@@ -403,7 +402,7 @@ class RootSetSlashCommand:
         wallet = bittensor.wallet(config=cli.config)
         subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
-        bittensor.__console__.print(
+        console.info(
             "Slashing weight for subnet: {} by amount: {}".format(
                 cli.config.netuid, cli.config.amount
             )
@@ -412,7 +411,7 @@ class RootSetSlashCommand:
         try:
             my_uid = root.hotkeys.index(wallet.hotkey.ss58_address)
         except ValueError:
-            bittensor.__console__.print(
+            console.info(
                 "Wallet hotkey: {} not found in root metagraph".format(wallet.hotkey)
             )
             exit()
@@ -668,7 +667,7 @@ class RootGetWeightsCommand:
         table.box = None
         table.pad_edge = False
         table.width = None
-        bittensor.__console__.print(table)
+        console.rich_print(table)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):

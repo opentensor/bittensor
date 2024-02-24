@@ -20,6 +20,8 @@ import bittensor
 import json
 import bittensor.utils.networking as net
 
+console = bittensor.__console__
+
 
 def prometheus_extrinsic(
     subtensor: "bittensor.subtensor",
@@ -57,11 +59,7 @@ def prometheus_extrinsic(
     if ip == None:
         try:
             external_ip = net.get_external_ip()
-            bittensor.__console__.print(
-                ":white_heavy_check_mark: [green]Found external ip: {}[/green]".format(
-                    external_ip
-                )
-            )
+            console.success(f"Found external ip: {external_ip}")
             bittensor.logging.success(
                 prefix="External IP", sufix="<blue>{}</blue>".format(external_ip)
             )
@@ -81,7 +79,7 @@ def prometheus_extrinsic(
         "ip_type": net.ip_version(external_ip),
     }
 
-    with bittensor.__console__.status(":satellite: Checking Prometheus..."):
+    with console.status("Checking Prometheus..."):
         neuron = subtensor.get_neuron_for_pubkey_and_subnet(
             wallet.hotkey.ss58_address, netuid=netuid
         )
@@ -93,27 +91,25 @@ def prometheus_extrinsic(
         }
 
     if neuron_up_to_date:
-        bittensor.__console__.print(
-            f":white_heavy_check_mark: [green]Prometheus already Served[/green]\n"
-            f"[green not bold]- Status: [/green not bold] |"
-            f"[green not bold] ip: [/green not bold][white not bold]{net.int_to_ip(neuron.prometheus_info.ip)}[/white not bold] |"
-            f"[green not bold] ip_type: [/green not bold][white not bold]{neuron.prometheus_info.ip_type}[/white not bold] |"
-            f"[green not bold] port: [/green not bold][white not bold]{neuron.prometheus_info.port}[/white not bold] | "
-            f"[green not bold] version: [/green not bold][white not bold]{neuron.prometheus_info.version}[/white not bold] |"
+        console.print(
+            f"\u2714 <g>Prometheus already Served</g>\n"
+            f"<g>- Status: </g> | "
+            f"<g>ip: </g><w>{net.int_to_ip(neuron.prometheus_info.ip)}</w> | "
+            f"<g>ip_type: </g><w>{neuron.prometheus_info.ip_type}</w> | "
+            f"<g>port: </g><w>{neuron.prometheus_info.port}</w> | "
+            f"<g>version: </g><w>{neuron.prometheus_info.version}</w>\n"
         )
 
-        bittensor.__console__.print(
-            ":white_heavy_check_mark: [white]Prometheus already served.[/white]".format(
-                external_ip
-            )
+        console.info(
+            "\u2714 <w>Prometheus already served.</w>"
         )
         return True
 
     # Add netuid, not in prometheus_info
     call_params["netuid"] = netuid
 
-    with bittensor.__console__.status(
-        ":satellite: Serving prometheus on: [white]{}:{}[/white] ...".format(
+    with console.status(
+        "Serving prometheus on: <w>{}:{}</w> ...".format(
             subtensor.network, netuid
         )
     ):
@@ -126,18 +122,15 @@ def prometheus_extrinsic(
 
         if wait_for_inclusion or wait_for_finalization:
             if success == True:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Served prometheus[/green]\n  [bold white]{}[/bold white]".format(
+                console.success(
+                    "Served prometheus",
+                    "\n  <w><b>{}</b></w>".format(
                         json.dumps(call_params, indent=4, sort_keys=True)
                     )
                 )
                 return True
             else:
-                bittensor.__console__.print(
-                    ":cross_mark: [green]Failed to serve prometheus[/green] error: {}".format(
-                        err
-                    )
-                )
+                console.error("Failed to serve prometheus", err)
                 return False
         else:
             return True

@@ -121,7 +121,7 @@ class OverviewCommand:
                     coldkey_wallet.coldkeypub.ss58_address
                 )
             if not coldkey_wallet.coldkeypub_file.exists_on_device():
-                console.print("[bold red]No wallets found.")
+                console.error("No wallets found.")
                 return
             all_hotkeys = get_hotkey_wallets_for_wallet(coldkey_wallet)
 
@@ -145,7 +145,7 @@ class OverviewCommand:
 
         # Check we have keys to display.
         if len(all_hotkeys) == 0:
-            console.print("[red]No wallets found.[/red]")
+            console.error("No wallets found.")
             return
 
         # Pull neuron info for all keys.
@@ -177,7 +177,7 @@ class OverviewCommand:
 
         all_hotkey_addresses = list(hotkey_coldkey_to_hotkey_wallet.keys())
         with console.status(
-            ":satellite: Syncing with chain: [white]{}[/white] ...".format(
+            "Syncing with chain: <w>{}</w> ...".format(
                 cli.config.subtensor.get(
                     "network", bittensor.defaults.subtensor.network
                 )
@@ -201,7 +201,7 @@ class OverviewCommand:
                 for result in results:
                     netuid, neurons_result, err_msg = result
                     if err_msg is not None:
-                        console.print(f"netuid '{netuid}': {err_msg}")
+                        console.info(f"netuid '{netuid}': {err_msg}")
 
                     if len(neurons_result) == 0:
                         # Remove netuid from overview if no neurons are found.
@@ -270,7 +270,7 @@ class OverviewCommand:
             for result in results:
                 coldkey_wallet, de_registered_stake, err_msg = result
                 if err_msg is not None:
-                    console.print(err_msg)
+                    console.error(err_msg)
 
                 if len(de_registered_stake) == 0:
                     continue  # We have no de-registered stake with this coldkey.
@@ -570,7 +570,7 @@ class OverviewCommand:
         grid.add_row(Align(caption, vertical="middle", align="center"))
 
         # Print the entire table/grid
-        console.print(grid, width=cli.config.get("width", None))
+        console.rich_print(grid, width=cli.config.get("width", None))
 
     @staticmethod
     def _get_neurons_for_netuid(

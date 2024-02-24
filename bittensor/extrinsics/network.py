@@ -20,6 +20,8 @@ import bittensor
 
 from rich.prompt import Confirm
 
+console = bittensor.__console__
+
 
 def register_subnetwork_extrinsic(
     subtensor: "bittensor.subtensor",
@@ -47,13 +49,13 @@ def register_subnetwork_extrinsic(
     your_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
     burn_cost = bittensor.utils.balance.Balance(subtensor.get_subnet_burn_cost())
     if burn_cost > your_balance:
-        bittensor.__console__.print(
-            f"Your balance of: [green]{your_balance}[/green] is not enough to pay the subnet lock cost of: [green]{burn_cost}[/green]"
+        console.info(
+            f"Your balance of: <g>{your_balance}</> is not enough to pay the subnet lock cost of: <g>{burn_cost}</>"
         )
         return False
 
     if prompt:
-        bittensor.__console__.print(f"Your balance is: [green]{your_balance}[/green]")
+        console.info(f"Your balance is: <g>{your_balance}</>")
         if not Confirm.ask(
             f"Do you want to register a subnet for [green]{ burn_cost }[/green]?"
         ):
@@ -61,7 +63,7 @@ def register_subnetwork_extrinsic(
 
     wallet.coldkey  # unlock coldkey
 
-    with bittensor.__console__.status(":satellite: Registering subnet..."):
+    with console.status("Registering subnet..."):
         with subtensor.substrate as substrate:
             # create extrinsic call
             call = substrate.compose_call(
@@ -85,17 +87,13 @@ def register_subnetwork_extrinsic(
             # process if registration successful
             response.process_events()
             if not response.is_success:
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
-                )
+                console.error("Failed", response.error_message)
                 time.sleep(0.5)
 
             # Successful registration, final check for membership
             else:
-                bittensor.__console__.print(
-                    f":white_heavy_check_mark: [green]Registered subnetwork with netuid: {response.triggered_events[1].value['event']['attributes'][0]}[/green]"
+                console.success(
+                    f"Registered subnetwork with netuid: {response.triggered_events[1].value['event']['attributes'][0]}"
                 )
                 return True
 
@@ -136,22 +134,18 @@ def set_hyperparameter_extrinsic(
             If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if subtensor.get_subnet_owner(netuid) != wallet.coldkeypub.ss58_address:
-        bittensor.__console__.print(
-            ":cross_mark: [red]This wallet doesn't own the specified subnet.[/red]"
-        )
+        console.error("This wallet doesn't own the specified subnet.")
         return False
 
     wallet.coldkey  # unlock coldkey
 
     extrinsic = HYPERPARAMS.get(parameter)
     if extrinsic == None:
-        bittensor.__console__.print(
-            ":cross_mark: [red]Invalid hyperparameter specified.[/red]"
-        )
+        console.error("Invalid hyperparameter specified.")
         return False
 
-    with bittensor.__console__.status(
-        f":satellite: Setting hyperparameter {parameter} to {value} on subnet: {netuid} ..."
+    with console.status(
+        f"Setting hyperparameter {parameter} to {value} on subnet: {netuid} ..."
     ):
         with subtensor.substrate as substrate:
             extrinsic_params = substrate.get_metadata_call_function(
@@ -183,16 +177,12 @@ def set_hyperparameter_extrinsic(
             # process if registration successful
             response.process_events()
             if not response.is_success:
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
-                )
+                console.error("Failed", response.error_message)
                 time.sleep(0.5)
 
             # Successful registration, final check for membership
             else:
-                bittensor.__console__.print(
-                    f":white_heavy_check_mark: [green]Hyper parameter {parameter} changed to {value}[/green]"
+                console.success(
+                    f"Hyper parameter {parameter} changed to {value}"
                 )
                 return True

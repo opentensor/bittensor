@@ -62,9 +62,8 @@ class SenateCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""View Bittensor's governance protocol proposals"""
-        console = bittensor.__console__
-        console.print(
-            ":satellite: Syncing with chain: [white]{}[/white] ...".format(
+        console.status(
+            "Syncing with chain: <w>{}</w> ...".format(
                 cli.config.subtensor.network
             )
         )
@@ -103,7 +102,7 @@ class SenateCommand:
         table.box = None
         table.pad_edge = False
         table.width = None
-        console.print(table)
+        console.rich_print(table)
 
     @classmethod
     def check_config(cls, config: "bittensor.config"):
@@ -201,11 +200,8 @@ class ProposalsCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""View Bittensor's governance protocol proposals"""
-        console = bittensor.__console__
-        console.print(
-            ":satellite: Syncing with chain: [white]{}[/white] ...".format(
-                subtensor.network
-            )
+        console.status(
+            "Syncing with chain: <w>{}</w> ...".format(subtensor.network)
         )
 
         senate_members = subtensor.get_senate_members()
@@ -265,7 +261,7 @@ class ProposalsCommand:
         table.box = None
         table.pad_edge = False
         table.width = None
-        console.print(table)
+        console.rich_print(table)
 
     @classmethod
     def check_config(cls, config: "bittensor.config"):
@@ -324,22 +320,21 @@ class ShowVotesCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""View Bittensor's governance protocol proposals active votes"""
-        console.print(
-            ":satellite: Syncing with chain: [white]{}[/white] ...".format(
-                cli.config.subtensor.network
-            )
+
+        console.status(
+            "Syncing with chain: <w>{}</w> ...".format(subtensor.network)
         )
 
         proposal_hash = cli.config.proposal_hash
         if len(proposal_hash) == 0:
-            console.print(
+            console.info(
                 'Aborting: Proposal hash not specified. View all proposals with the "proposals" command.'
             )
             return
 
         proposal_vote_data = subtensor.get_vote_data(proposal_hash)
         if proposal_vote_data == None:
-            console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
+            console.error("Failed", "Proposal not found.")
             return
 
         registered_delegate_info: Optional[
@@ -367,7 +362,7 @@ class ShowVotesCommand:
         table.box = None
         table.pad_edge = False
         table.min_width = 64
-        console.print(table)
+        console.rich_print(table)
 
     @classmethod
     def check_config(cls, config: "bittensor.config"):
@@ -436,7 +431,7 @@ class SenateRegisterCommand:
 
         # Check if the hotkey is a delegate.
         if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
-            console.print(
+            console.info(
                 "Aborting: Hotkey {} isn't a delegate.".format(
                     wallet.hotkey.ss58_address
                 )
@@ -444,7 +439,7 @@ class SenateRegisterCommand:
             return
 
         if subtensor.is_senate_member(hotkey_ss58=wallet.hotkey.ss58_address):
-            console.print(
+            console.info(
                 "Aborting: Hotkey {} is already a senate member.".format(
                     wallet.hotkey.ss58_address
                 )
@@ -517,7 +512,7 @@ class SenateLeaveCommand:
         wallet.coldkey
 
         if not subtensor.is_senate_member(hotkey_ss58=wallet.hotkey.ss58_address):
-            console.print(
+            console.info(
                 "Aborting: Hotkey {} isn't a senate member.".format(
                     wallet.hotkey.ss58_address
                 )
@@ -588,13 +583,13 @@ class VoteCommand:
 
         proposal_hash = cli.config.proposal_hash
         if len(proposal_hash) == 0:
-            console.print(
+            console.info(
                 'Aborting: Proposal hash not specified. View all proposals with the "proposals" command.'
             )
             return
 
         if not subtensor.is_senate_member(hotkey_ss58=wallet.hotkey.ss58_address):
-            console.print(
+            console.info(
                 "Aborting: Hotkey {} isn't a senate member.".format(
                     wallet.hotkey.ss58_address
                 )
@@ -607,7 +602,7 @@ class VoteCommand:
 
         vote_data = subtensor.get_vote_data(proposal_hash)
         if vote_data == None:
-            console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
+            console.error("Failed", "Proposal not found.")
             return
 
         vote = Confirm.ask("Desired vote for proposal")

@@ -17,7 +17,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from rich.console import Console
+from bittensor.cli_logging import ConsoleLogger as Console
 from rich.traceback import install
 
 # Install and apply nest asyncio to allow the async functions
@@ -51,7 +51,7 @@ def turn_console_off():
     from io import StringIO
 
     __use_console__ = False
-    __console__ = Console(file=StringIO(), stderr=False)
+    __console__ = Console(file=StringIO())
 
 
 def turn_console_on():

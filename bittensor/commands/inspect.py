@@ -29,11 +29,11 @@ from .utils import (
 )
 from . import defaults
 
-console = bittensor.__console__
-
 import os
 import bittensor
 from typing import List, Tuple, Optional, Dict
+
+console = bittensor.__console__
 
 
 def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
@@ -142,8 +142,8 @@ class InspectCommand:
             Dict[str, DelegatesDetails]
         ] = get_delegates_details(url=bittensor.__delegates_details_url__)
         if registered_delegate_info is None:
-            bittensor.__console__.print(
-                ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
+            console.warning(
+                "Could not get delegate info from chain."
             )
             registered_delegate_info = {}
 
@@ -237,7 +237,7 @@ class InspectCommand:
                             str(bittensor.Balance.from_tao(neuron.emission)),
                         )
 
-        bittensor.__console__.print(table)
+        console.rich_print(table)
 
     @staticmethod
     def check_config(config: "bittensor.config"):

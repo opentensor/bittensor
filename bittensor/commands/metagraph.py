@@ -85,8 +85,8 @@ class MetagraphCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an entire metagraph."""
         console = bittensor.__console__
-        console.print(
-            ":satellite: Syncing with chain: [white]{}[/white] ...".format(
+        console.status(
+            "Syncing with chain: <w>{}</w> ...".format(
                 cli.config.subtensor.network
             )
         )
@@ -241,7 +241,7 @@ class MetagraphCommand:
         table.box = None
         table.pad_edge = False
         table.width = None
-        console.print(table)
+        console.rich_print(table)
 
     @staticmethod
     def check_config(config: "bittensor.config"):

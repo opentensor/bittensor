@@ -25,7 +25,6 @@ import bittensor
 import scalecodec
 
 from retry import retry
-from loguru import logger
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 from substrateinterface.base import QueryMapResult, SubstrateInterface, ExtrinsicReceipt
 from substrateinterface.exceptions import SubstrateRequestException
@@ -84,7 +83,7 @@ from .utils import U16_NORMALIZED_FLOAT, ss58_to_vec_u8
 from .utils.balance import Balance
 from .utils.registration import POWSolution
 
-logger = logger.opt(colors=True)
+console = bittensor.__console__
 
 KEY_NONCE = {}
 
@@ -1137,8 +1136,8 @@ class subtensor:
                     call=call, keypair=wallet.coldkeypub
                 )
             except Exception as e:
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {}[/bold white]".format(
+                console.error(
+                    "Failed to get payment info:<w><b>\n  {}</b></w>".format(
                         e
                     )
                 )

@@ -22,9 +22,7 @@ from rich.prompt import Confirm
 from typing import Union, Optional
 from bittensor.utils.balance import Balance
 
-from loguru import logger
-
-logger = logger.opt(colors=True)
+console = bittensor.__console__
 
 
 def nominate_extrinsic(
@@ -46,13 +44,13 @@ def nominate_extrinsic(
 
     # Check if the hotkey is already a delegate.
     if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
-        logger.error(
+        console.error(
             "Hotkey {} is already a delegate.".format(wallet.hotkey.ss58_address)
         )
         return False
 
-    with bittensor.__console__.status(
-        ":satellite: Sending nominate call on [white]{}[/white] ...".format(
+    with console.status(
+        "Sending nominate call on <w>{}</w> ...".format(
             subtensor.network
         )
     ):
@@ -64,9 +62,7 @@ def nominate_extrinsic(
             )
 
             if success == True:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Finalized[/green]"
-                )
+                console.success("Finalized")
                 bittensor.logging.success(
                     prefix="Become Delegate",
                     sufix="<green>Finalized: </green>" + str(success),
@@ -76,16 +72,12 @@ def nominate_extrinsic(
             return success
 
         except Exception as e:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-            )
+            console.error("Failed", e)
             bittensor.logging.warning(
                 prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
             )
         except NominationError as e:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-            )
+            console.error("Failed", e)
             bittensor.logging.warning(
                 prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
             )
@@ -148,8 +140,8 @@ def delegate_extrinsic(
 
     # Check enough balance to stake.
     if staking_balance > my_prev_coldkey_balance:
-        bittensor.__console__.print(
-            ":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance:{}\n  amount: {}\n  coldkey: {}[/bold white]".format(
+        console.print(
+            "\u274c <r>Not enough balance</r>:<w><b>\n  balance:{}\n  amount: {}\n  coldkey: {}</b></w>\n".format(
                 my_prev_coldkey_balance, staking_balance, wallet.name
             )
         )
@@ -165,8 +157,8 @@ def delegate_extrinsic(
             return False
 
     try:
-        with bittensor.__console__.status(
-            ":satellite: Staking to: [bold white]{}[/bold white] ...".format(
+        with console.status(
+            "Staking to: <w><b>{}</b></w> ...".format(
                 subtensor.network
             )
         ):
@@ -183,11 +175,10 @@ def delegate_extrinsic(
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
 
-            bittensor.__console__.print(
-                ":white_heavy_check_mark: [green]Finalized[/green]"
-            )
-            with bittensor.__console__.status(
-                ":satellite: Checking Balance on: [white]{}[/white] ...".format(
+            console.success("Finalized")
+
+            with console.status(
+                "Checking Balance on: <w>{}</w> ...".format(
                     subtensor.network
                 )
             ):
@@ -199,32 +190,28 @@ def delegate_extrinsic(
                     block=block,
                 )  # Get current stake
 
-                bittensor.__console__.print(
-                    "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
+                console.print(
+                    "Balance:\n  <e>{}</e> \u27A1 <g>{}</g>\n".format(
                         my_prev_coldkey_balance, new_balance
                     )
                 )
-                bittensor.__console__.print(
-                    "Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
+                console.print(
+                    "Stake:\n  <e>{}</e> \u27A1 <g>{}</g>\n".format(
                         my_prev_delegated_stake, new_delegate_stake
                     )
                 )
                 return True
         else:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: Error unknown."
-            )
+            console.print("Failed", "Error unknown")
             return False
 
     except NotRegisteredError as e:
-        bittensor.__console__.print(
-            ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
-                wallet.hotkey_str
-            )
+        console.error(
+            "Hotkey: {} is not registered.".format(wallet.hotkey_str)
         )
         return False
     except StakeError as e:
-        bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
+        console.error("Stake Error: {}".format(e))
         return False
 
 
@@ -279,8 +266,8 @@ def undelegate_extrinsic(
 
     # Check enough stake to unstake.
     if unstaking_balance > my_prev_delegated_stake:
-        bittensor.__console__.print(
-            ":cross_mark: [red]Not enough delegated stake[/red]:[bold white]\n  stake:{}\n  amount: {}\n coldkey: {}[/bold white]".format(
+        console.print(
+            "\u274c <red>Not enough delegated stake</red>:<white><b>\n  stake:{}\n  amount: {}\n coldkey: {}</b></white>\n".format(
                 my_prev_delegated_stake, unstaking_balance, wallet.name
             )
         )
@@ -296,8 +283,8 @@ def undelegate_extrinsic(
             return False
 
     try:
-        with bittensor.__console__.status(
-            ":satellite: Unstaking from: [bold white]{}[/bold white] ...".format(
+        with console.status(
+            "Unstaking from: <white><b>{}</b></white> ...".format(
                 subtensor.network
             )
         ):
@@ -314,11 +301,9 @@ def undelegate_extrinsic(
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
 
-            bittensor.__console__.print(
-                ":white_heavy_check_mark: [green]Finalized[/green]"
-            )
-            with bittensor.__console__.status(
-                ":satellite: Checking Balance on: [white]{}[/white] ...".format(
+            console.success("Finalized")
+            with console.status(
+                "Checking Balance on: <white>{}</white> ...".format(
                     subtensor.network
                 )
             ):
@@ -330,30 +315,26 @@ def undelegate_extrinsic(
                     block=block,
                 )  # Get current stake
 
-                bittensor.__console__.print(
-                    "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
+                console.print(
+                    "Balance:\n  <e>{}</e> \u27A1 <g>{}</g>\n".format(
                         my_prev_coldkey_balance, new_balance
                     )
                 )
-                bittensor.__console__.print(
-                    "Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
+                console.print(
+                    "Stake:\n  <e>{}</e> \u27A1 <g>{}</g>\n".format(
                         my_prev_delegated_stake, new_delegate_stake
                     )
                 )
                 return True
         else:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: Error unknown."
-            )
+            console.print("Failed", "Error unknown")
             return False
 
     except NotRegisteredError as e:
-        bittensor.__console__.print(
-            ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
-                wallet.hotkey_str
-            )
+        console.error(
+            "Hotkey: {} is not registered.".format(wallet.hotkey_str)
         )
         return False
     except StakeError as e:
-        bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
+        console.error("Stake Error: {}".format(e))
         return False

@@ -38,8 +38,9 @@ from substrateinterface.utils.ss58 import ss58_encode
 from termcolor import colored
 from rich.prompt import Confirm
 
-
 NACL_SALT = b"\x13q\x83\xdf\xf1Z\t\xbc\x9c\x90\xb5Q\x879\xe9\xb1"
+
+console = bittensor.__console__
 
 
 def serialized_keypair_to_keyfile_data(keypair: "bittensor.Keypair") -> bytes:
@@ -228,9 +229,8 @@ def keyfile_data_encryption_method(keyfile_data: bytes) -> bool:
 
 def legacy_encrypt_keyfile_data(keyfile_data: bytes, password: str = None) -> bytes:
     password = ask_password_to_encrypt() if password is None else password
-    console = bittensor.__console__
     with console.status(
-        ":exclamation_mark: Encrypting key with legacy encrpytion method..."
+        "Encrypting key with legacy encrpytion method...", icon="\u2757"
     ):
         vault = Vault(password)
     return vault.vault.encrypt(keyfile_data)
@@ -300,8 +300,7 @@ def decrypt_keyfile_data(
             if password is None
             else password
         )
-        console = bittensor.__console__
-        with console.status(":key: Decrypting key..."):
+        with console.status("Decrypting key...", icon="\U0001F511"):
             # NaCl SecretBox decrypt.
             if keyfile_data_is_encrypted_nacl(keyfile_data):
                 password = bytes(password, "utf-8")
@@ -525,15 +524,15 @@ class keyfile:
         """
         if not self.exists_on_device():
             if print_result:
-                bittensor.__console__.print(f"Keyfile does not exist. {self.path}")
+                console.info(f"Keyfile does not exist. {self.path}")
             return False
         if not self.is_readable():
             if print_result:
-                bittensor.__console__.print(f"Keyfile is not redable. {self.path}")
+                console.info(f"Keyfile is not redable. {self.path}")
             return False
         if not self.is_writable():
             if print_result:
-                bittensor.__console__.print(f"Keyfile is not writable. {self.path}")
+                console.info(f"Keyfile is not writable. {self.path}")
             return False
 
         update_keyfile = False
@@ -545,16 +544,15 @@ class keyfile:
                 keyfile_data
             ) and not keyfile_data_is_encrypted_nacl(keyfile_data):
                 terminate = False
-                bittensor.__console__.print(
+                console.info(
                     f"You may update the keyfile to improve the security for storing your keys.\nWhile the key and the password stays the same, it would require providing your password once.\n:key:{self}\n"
                 )
                 update_keyfile = Confirm.ask("Update keyfile?")
                 if update_keyfile:
                     stored_mnemonic = False
                     while not stored_mnemonic:
-                        bittensor.__console__.print(
-                            f"\nPlease make sure you have the mnemonic stored in case an error occurs during the transfer.",
-                            style="white on red",
+                        console.info(
+                            f"\n<R><w>Please make sure you have the mnemonic stored in case an error occurs during the transfer.</w></R>"
                         )
                         stored_mnemonic = Confirm.ask("Have you stored the mnemonic?")
                         if not stored_mnemonic and not Confirm.ask(
@@ -591,20 +589,20 @@ class keyfile:
             keyfile_data = self._read_keyfile_data_from_file()
             if not keyfile_data_is_encrypted(keyfile_data):
                 if print_result:
-                    bittensor.__console__.print(
+                    console.info(
                         f"\nKeyfile is not encrypted. \n:key: {self}"
                     )
                 return False
             elif keyfile_data_is_encrypted_nacl(keyfile_data):
                 if print_result:
-                    bittensor.__console__.print(
-                        f"\n:white_heavy_check_mark: Keyfile is updated. \n:key: {self}"
+                    console.success(
+                        f"\nKeyfile is updated. \n:key: {self}"
                     )
                 return True
             else:
                 if print_result:
-                    bittensor.__console__.print(
-                        f'\n:cross_mark: Keyfile is outdated, please update with "btcli wallet update" \n:key: {self}'
+                    console.error(
+                        f'\nKeyfile is outdated, please update with "btcli wallet update" \n\U0001F511 {self}'
                     )
                 return False
         return False

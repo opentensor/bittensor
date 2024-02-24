@@ -21,6 +21,8 @@ import bittensor.utils.networking as net
 from rich.prompt import Confirm
 from ..errors import MetadataError
 
+console = bittensor.__console__
+
 
 def serve_extrinsic(
     subtensor: "bittensor.subtensor",
@@ -170,11 +172,7 @@ def serve_axon_extrinsic(
     if axon.external_ip == None:
         try:
             external_ip = net.get_external_ip()
-            bittensor.__console__.print(
-                ":white_heavy_check_mark: [green]Found external ip: {}[/green]".format(
-                    external_ip
-                )
-            )
+            console.success(f"Found external ip: {external_ip}")
             bittensor.logging.success(
                 prefix="External IP", sufix="<blue>{}</blue>".format(external_ip)
             )

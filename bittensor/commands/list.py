@@ -21,8 +21,6 @@ import bittensor
 from rich import print
 from rich.tree import Tree
 
-console = bittensor.__console__
-
 
 class ListCommand:
     """

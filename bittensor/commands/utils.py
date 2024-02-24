@@ -51,7 +51,7 @@ def check_netuid_set(
     if subtensor.network != "nakamoto":
         all_netuids = [str(netuid) for netuid in subtensor.get_subnets()]
         if len(all_netuids) == 0:
-            console.print(":cross_mark:[red]There are no open networks.[/red]")
+            console.error("There are no open networks.")
             sys.exit()
 
         # Make sure netuid is set.
@@ -95,11 +95,11 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
                     torch.cuda.get_device_name(x)
                     for x in range(torch.cuda.device_count())
                 ]
-                console.print("Available CUDA devices:")
+                console.info("Available CUDA devices:")
                 choices_str: str = ""
                 for i, device in enumerate(devices):
                     choices_str += "  {}: {}\n".format(device, device_names[i])
-                console.print(choices_str)
+                console.info(choices_str)
                 dev_id = IntListPrompt.ask(
                     "Which GPU(s) would you like to use? Please list one, or comma-separated",
                     choices=devices,
@@ -116,8 +116,9 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
                             for dev_id in dev_id.replace(",", " ").split()
                         ]
                     except ValueError:
-                        console.log(
-                            ":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(
+                        console.error(
+                            "Invalid GPU device",
+                            "<w><b>{}</b></w>\nAvailable CUDA devices:{}".format(
                                 dev_id, choices_str
                             )
                         )

@@ -14,8 +14,7 @@ import backoff
 import bittensor
 import torch
 from Crypto.Hash import keccak
-from rich import console as rich_console
-from rich import status as rich_status
+from bittensor.cli_logging import ConsoleLogger, StatusLogger
 
 from .formatting import get_human_readable, millify
 from ._register_cuda import solve_cuda
@@ -398,11 +397,11 @@ class RegistrationStatistics:
 class RegistrationStatisticsLogger:
     """Logs statistics for a registration."""
 
-    console: rich_console.Console
-    status: Optional[rich_status.Status]
+    console: ConsoleLogger
+    status: Optional[StatusLogger]
 
     def __init__(
-        self, console: rich_console.Console, output_in_place: bool = True
+        self, console: ConsoleLogger, output_in_place: bool = True
     ) -> None:
         self.console = console
 
@@ -424,26 +423,26 @@ class RegistrationStatisticsLogger:
     ) -> str:
         message = (
             "Solving\n"
-            + f"Time Spent (total): [bold white]{timedelta(seconds=stats.time_spent_total)}[/bold white]\n"
+            + f"Time Spent (total): <w><b>{timedelta(seconds=stats.time_spent_total)}</b></w>\n"
             + (
                 f"Time Spent This Round: {timedelta(seconds=stats.time_spent)}\n"
                 + f"Time Spent Average: {timedelta(seconds=stats.time_average)}\n"
                 if verbose
                 else ""
             )
-            + f"Registration Difficulty: [bold white]{millify(stats.difficulty)}[/bold white]\n"
-            + f"Iters (Inst/Perp): [bold white]{get_human_readable(stats.hash_rate, 'H')}/s / "
-            + f"{get_human_readable(stats.hash_rate_perpetual, 'H')}/s[/bold white]\n"
-            + f"Block Number: [bold white]{stats.block_number}[/bold white]\n"
-            + f"Block Hash: [bold white]{stats.block_hash.encode('utf-8')}[/bold white]\n"
+            + f"Registration Difficulty: <w><b>{millify(stats.difficulty)}</b></w>\n"
+            + f"Iters (Inst/Perp): <w><b>{get_human_readable(stats.hash_rate, 'H')}/s / "
+            + f"{get_human_readable(stats.hash_rate_perpetual, 'H')}/s</b></w>\n"
+            + f"Block Number: <w><b>{stats.block_number}</b></w>\n"
+            + f"Block Hash: <w><b>{stats.block_hash.encode('utf-8')}</b></w>\n"
         )
         return message
 
     def update(self, stats: RegistrationStatistics, verbose: bool = False) -> None:
         if self.status is not None:
-            self.status.update(self.get_status_message(stats, verbose=verbose))
+            self.console.print(self.get_status_message(stats, verbose=verbose))
         else:
-            self.console.log(self.get_status_message(stats, verbose=verbose))
+            self.console.print(self.get_status_message(stats, verbose=verbose))
 
 
 def _solve_for_difficulty_fast(

@@ -23,9 +23,7 @@ from rich.prompt import Confirm
 from typing import Union, Tuple
 import bittensor.utils.weight_utils as weight_utils
 
-from loguru import logger
-
-logger = logger.opt(colors=True)
+console = bittensor.__console__
 
 
 def set_weights_extrinsic(
@@ -85,8 +83,8 @@ def set_weights_extrinsic(
         ):
             return False, "Prompt refused."
 
-    with bittensor.__console__.status(
-        ":satellite: Setting weights on [white]{}[/white] ...".format(subtensor.network)
+    with console.status(
+        "Setting weights on <w>{}</w>] ...".format(subtensor.network)
     ):
         try:
             success, error_message = subtensor._do_set_weights(
@@ -106,18 +104,14 @@ def set_weights_extrinsic(
                 )
 
             if success == True:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Finalized[/green]"
-                )
+                console.success("Finalized")
                 bittensor.logging.success(
                     prefix="Set weights",
                     sufix="<green>Finalized: </green>" + str(success),
                 )
                 return True, "Success."
             else:
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(error_message)
-                )
+                console.error("Failed", error_message)
                 bittensor.logging.warning(
                     prefix="Set weights",
                     sufix="<red>Failed: </red>" + str(error_message),
@@ -125,10 +119,7 @@ def set_weights_extrinsic(
                 return False, str(error_message)
 
         except Exception as e:
-            # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with loguru.
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-            )
+            console.error("Failed", e)
             bittensor.logging.warning(
                 prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
             )

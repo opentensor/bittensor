@@ -34,6 +34,8 @@ import os
 import bittensor
 from typing import List, Dict, Optional
 
+console = bittensor.__console__
+
 
 def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     try:
@@ -43,9 +45,6 @@ def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
         # No wallet files found.
         wallets = []
     return wallets
-
-
-console = bittensor.__console__
 
 
 # Uses rich console to pretty print a table of delegates.
@@ -106,9 +105,7 @@ def show_delegates(
         Dict[str, DelegatesDetails]
     ] = get_delegates_details(url=bittensor.__delegates_details_url__)
     if registered_delegate_info is None:
-        bittensor.__console__.print(
-            ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
-        )
+        console.warning("Could not get delegate info from chain.")
         registered_delegate_info = {}
 
     table = Table(show_footer=True, width=width, pad_edge=False, box=None, expand=True)
@@ -210,7 +207,7 @@ def show_delegates(
             str(delegate_description),
             end_section=True,
         )
-    bittensor.__console__.print(table)
+    console.rich_print(table)
 
 
 class DelegateStakeCommand:
@@ -286,7 +283,7 @@ class DelegateStakeCommand:
     def check_config(config: "bittensor.config"):
         if not config.get("delegate_ss58key"):
             # Check for delegates.
-            with bittensor.__console__.status(":satellite: Loading delegates..."):
+            with console.status("Loading delegates..."):
                 subtensor = bittensor.subtensor(config=config, log_verbose=False)
                 delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
                 try:
@@ -297,15 +294,11 @@ class DelegateStakeCommand:
                     prev_delegates = None
 
             if prev_delegates is None:
-                bittensor.__console__.print(
-                    ":warning: [yellow]Could not fetch delegates history[/yellow]"
-                )
+                console.warning("Could not fetch delegates history")
 
             if len(delegates) == 0:
-                console.print(
-                    ":cross_mark: [red]There are no delegates on {}[/red]".format(
-                        subtensor.network
-                    )
+                console.error(
+                    f"There are no delegates on {subtensor.network}"
                 )
                 sys.exit(1)
 
@@ -313,8 +306,8 @@ class DelegateStakeCommand:
             show_delegates(delegates, prev_delegates=prev_delegates)
             delegate_index = Prompt.ask("Enter delegate index")
             config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
-            console.print(
-                "Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key)
+            console.info(
+                "Selected: <y>{}</y>".format(config.delegate_ss58key)
             )
 
         if not config.is_set("wallet.name") and not config.no_prompt:
@@ -332,10 +325,8 @@ class DelegateStakeCommand:
                 try:
                     config.amount = float(amount)
                 except ValueError:
-                    console.print(
-                        ":cross_mark: [red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
+                    console.error(
+                        f"Invalid Tao amount: <w><b>{amount}</b></w>"
                     )
                     sys.exit()
             else:
@@ -425,7 +416,7 @@ class DelegateUnstakeCommand:
 
         if not config.get("delegate_ss58key"):
             # Check for delegates.
-            with bittensor.__console__.status(":satellite: Loading delegates..."):
+            with console.status("Loading delegates..."):
                 subtensor = bittensor.subtensor(config=config, log_verbose=False)
                 delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
                 try:
@@ -436,13 +427,13 @@ class DelegateUnstakeCommand:
                     prev_delegates = None
 
             if prev_delegates is None:
-                bittensor.__console__.print(
-                    ":warning: [yellow]Could not fetch delegates history[/yellow]"
+                console.warning(
+                    "Could not fetch delegates history"
                 )
 
             if len(delegates) == 0:
-                console.print(
-                    ":cross_mark: [red]There are no delegates on {}[/red]".format(
+                console.error(
+                    "There are no delegates on {}".format(
                         subtensor.network
                     )
                 )
@@ -452,8 +443,8 @@ class DelegateUnstakeCommand:
             show_delegates(delegates, prev_delegates=prev_delegates)
             delegate_index = Prompt.ask("Enter delegate index")
             config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
-            console.print(
-                "Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key)
+            console.info(
+                "Selected: <y>{}</y>".format(config.delegate_ss58key)
             )
 
         # Get amount.
@@ -467,10 +458,8 @@ class DelegateUnstakeCommand:
                 try:
                     config.amount = float(amount)
                 except ValueError:
-                    console.print(
-                        ":cross_mark: [red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
+                    console.error(
+                        f"Invalid Tao amount: <w><b>{amount}</b></w>"
                     )
                     sys.exit()
             else:
@@ -536,7 +525,7 @@ class ListDelegatesCommand:
         """
         cli.config.subtensor.network = "archive"
         cli.config.subtensor.chain_endpoint = "wss://archive.chain.opentensor.ai:443"
-        with bittensor.__console__.status(":satellite: Loading delegates..."):
+        with console.status("Loading delegates..."):
             delegates: bittensor.DelegateInfo = subtensor.get_delegates()
             try:
                 prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
@@ -544,8 +533,8 @@ class ListDelegatesCommand:
                 prev_delegates = None
 
         if prev_delegates is None:
-            bittensor.__console__.print(
-                ":warning: [yellow]Could not fetch delegates history[/yellow]"
+            console.warning(
+                "Could not fetch delegates history"
             )
 
         show_delegates(
@@ -619,7 +608,7 @@ class NominateCommand:
 
         # Check if the hotkey is already a delegate.
         if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
-            bittensor.__console__.print(
+            console.info(
                 "Aborting: Hotkey {} is already a delegate.".format(
                     wallet.hotkey.ss58_address
                 )
@@ -628,8 +617,8 @@ class NominateCommand:
 
         result: bool = subtensor.nominate(wallet)
         if not result:
-            bittensor.__console__.print(
-                "Could not became a delegate on [white]{}[/white]".format(
+            console.info(
+                "Could not became a delegate on <w>{}</w>".format(
                     subtensor.network
                 )
             )
@@ -637,14 +626,15 @@ class NominateCommand:
             # Check if we are a delegate.
             is_delegate: bool = subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address)
             if not is_delegate:
-                bittensor.__console__.print(
-                    "Could not became a delegate on [white]{}[/white]".format(
+
+                console.info(
+                    "Could not became a delegate on <w>{}</w>".format(
                         subtensor.network
                     )
                 )
                 return
-            bittensor.__console__.print(
-                "Successfully became a delegate on [white]{}[/white]".format(
+            console.success(
+                "Successfully became a delegate on <w>{}</w>".format(
                     subtensor.network
                 )
             )
@@ -812,8 +802,8 @@ class MyDelegatesCommand:
                 DelegatesDetails
             ] = get_delegates_details(url=bittensor.__delegates_details_url__)
             if registered_delegate_info is None:
-                bittensor.__console__.print(
-                    ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
+                console.warning(
+                    "Could not get delegate info from chain."
                 )
                 registered_delegate_info = {}
 
@@ -864,8 +854,8 @@ class MyDelegatesCommand:
                         # f'{delegate_profile.description:140.140}',
                     )
 
-        bittensor.__console__.print(table)
-        bittensor.__console__.print("Total delegated Tao: {}".format(total_delegated))
+        console.rich_print(table)
+        console.info("Total delegated Tao: {}".format(total_delegated))
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):

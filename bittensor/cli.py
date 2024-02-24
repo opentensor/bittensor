@@ -22,7 +22,6 @@ import bittensor
 from typing import List, Optional
 from .commands import *
 
-# Create a console instance for CLI display.
 console = bittensor.__console__
 
 ALIAS_TO_COMMAND = {
@@ -189,9 +188,7 @@ class cli:
         if self.config.command in ALIAS_TO_COMMAND:
             self.config.command = ALIAS_TO_COMMAND[self.config.command]
         else:
-            console.print(
-                f":cross_mark:[red]Unknown command: {self.config.command}[/red]"
-            )
+            console.error(f"Unknown command: {self.config.command}")
             sys.exit()
 
         # Check if the config is valid.
@@ -286,14 +283,12 @@ class cli:
                 if config["subcommand"] != None:
                     command_data["commands"][config["subcommand"]].check_config(config)
                 else:
-                    console.print(
-                        f":cross_mark:[red]Missing subcommand for: {config.command}[/red]"
-                    )
+                    console.error(f"Missing subcommand for: {config.command}")
                     sys.exit(1)
             else:
                 command_data.check_config(config)
         else:
-            console.print(f":cross_mark:[red]Unknown command: {config.command}[/red]")
+            console.error(f"Unknown command: {config.command}")
             sys.exit(1)
 
     def run(self):
@@ -317,7 +312,5 @@ class cli:
             else:
                 command_data.run(self)
         else:
-            console.print(
-                f":cross_mark:[red]Unknown command: {self.config.command}[/red]"
-            )
+            console.error(f"Unknown command: {self.config.command}")
             sys.exit()

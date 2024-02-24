@@ -24,9 +24,7 @@ from rich.prompt import Confirm
 from typing import Union
 import bittensor.utils.weight_utils as weight_utils
 
-from loguru import logger
-
-logger = logger.opt(colors=True)
+console = bittensor.__console__
 
 
 def root_register_extrinsic(
@@ -58,9 +56,7 @@ def root_register_extrinsic(
         netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
     )
     if is_registered:
-        bittensor.__console__.print(
-            f":white_heavy_check_mark: [green]Already registered on root network.[/green]"
-        )
+        console.success("Already registered on root network.")
         return True
 
     if prompt:
@@ -68,7 +64,7 @@ def root_register_extrinsic(
         if not Confirm.ask(f"Register to root network?"):
             return False
 
-    with bittensor.__console__.status(":satellite: Registering to root network..."):
+    with console.status("Registering to root network..."):
         success, err_msg = subtensor._do_root_register(
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -76,9 +72,7 @@ def root_register_extrinsic(
         )
 
         if success != True or success == False:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
-            )
+            console.error("Failed", err_msg)
             time.sleep(0.5)
 
         # Successful registration, final check for neuron and pubkey
@@ -87,15 +81,11 @@ def root_register_extrinsic(
                 netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
             )
             if is_registered:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Registered[/green]"
-                )
+                console.success("Registered")
                 return True
             else:
                 # neuron not found, try again
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
-                )
+                console.error("Unknown error. Neuron not found.")
 
 
 def set_root_weights_extrinsic(
@@ -154,7 +144,7 @@ def set_root_weights_extrinsic(
     formatted_weights = bittensor.utils.weight_utils.normalize_max_weight(
         x=weights, limit=max_weight_limit
     )
-    bittensor.__console__.print(
+    console.info(
         f"\nRaw Weights -> Normalized weights: \n\t{weights} -> \n\t{formatted_weights}\n"
     )
 
@@ -167,10 +157,8 @@ def set_root_weights_extrinsic(
         ):
             return False
 
-    with bittensor.__console__.status(
-        ":satellite: Setting root weights on [white]{}[/white] ...".format(
-            subtensor.network
-        )
+    with console.status(
+        "Setting root weights on <w>{}</w>...".format(subtensor.network)
     ):
         try:
             weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
@@ -186,24 +174,21 @@ def set_root_weights_extrinsic(
                 wait_for_inclusion=wait_for_inclusion,
             )
 
-            bittensor.__console__.print(success, error_message)
+            console.info(success)
+            console.info(error_message)
 
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
 
             if success == True:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Finalized[/green]"
-                )
+                console.success("Finalized")
                 bittensor.logging.success(
                     prefix="Set weights",
                     sufix="<green>Finalized: </green>" + str(success),
                 )
                 return True
             else:
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(error_message)
-                )
+                console.error("Failed", error_message)
                 bittensor.logging.warning(
                     prefix="Set weights",
                     sufix="<red>Failed: </red>" + str(error_message),
@@ -211,10 +196,7 @@ def set_root_weights_extrinsic(
                 return False
 
         except Exception as e:
-            # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with loguru.
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-            )
+            console.error("Failed", error_message)
             bittensor.logging.warning(
                 prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
             )

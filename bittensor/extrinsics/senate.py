@@ -22,6 +22,8 @@ import bittensor
 import time
 from rich.prompt import Confirm
 
+console = bittensor.__console__
+
 
 def register_senate_extrinsic(
     subtensor: "bittensor.subtensor",
@@ -53,7 +55,7 @@ def register_senate_extrinsic(
         if not Confirm.ask(f"Register delegate hotkey to senate?"):
             return False
 
-    with bittensor.__console__.status(":satellite: Registering with senate..."):
+    with console.status("Registering with senate..."):
         with subtensor.substrate as substrate:
             # create extrinsic call
             call = substrate.compose_call(
@@ -77,11 +79,7 @@ def register_senate_extrinsic(
             # process if registration successful
             response.process_events()
             if not response.is_success:
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
-                )
+                console.error("Failed", response.error_message)
                 time.sleep(0.5)
 
             # Successful registration, final check for membership
@@ -89,14 +87,12 @@ def register_senate_extrinsic(
                 is_registered = wallet.is_senate_member(subtensor)
 
                 if is_registered:
-                    bittensor.__console__.print(
-                        ":white_heavy_check_mark: [green]Registered[/green]"
-                    )
+                    console.success("Registered")
                     return True
                 else:
                     # neuron not found, try again
-                    bittensor.__console__.print(
-                        ":cross_mark: [red]Unknown error. Senate membership not found.[/red]"
+                    console.error(
+                        "Unknown error. Senate membership not found."
                     )
 
 
@@ -130,7 +126,7 @@ def leave_senate_extrinsic(
         if not Confirm.ask(f"Remove delegate hotkey from senate?"):
             return False
 
-    with bittensor.__console__.status(":satellite: Leaving senate..."):
+    with console.status("Leaving senate..."):
         with subtensor.substrate as substrate:
             # create extrinsic call
             call = substrate.compose_call(
@@ -154,11 +150,7 @@ def leave_senate_extrinsic(
             # process if registration successful
             response.process_events()
             if not response.is_success:
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
-                )
+                console.error("Failed", response.error_message)
                 time.sleep(0.5)
 
             # Successful registration, final check for membership
@@ -166,14 +158,12 @@ def leave_senate_extrinsic(
                 is_registered = wallet.is_senate_member(subtensor)
 
                 if not is_registered:
-                    bittensor.__console__.print(
-                        ":white_heavy_check_mark: [green]Left senate[/green]"
-                    )
+                    console.success("Left senate")
                     return True
                 else:
                     # neuron not found, try again
-                    bittensor.__console__.print(
-                        ":cross_mark: [red]Unknown error. Senate membership still found.[/red]"
+                    console.error(
+                        "Unknown error. Senate membership still found."
                     )
 
 
@@ -210,7 +200,7 @@ def vote_senate_extrinsic(
         if not Confirm.ask("Cast a vote of {}?".format(vote)):
             return False
 
-    with bittensor.__console__.status(":satellite: Casting vote.."):
+    with console.status("Casting vote.."):
         with subtensor.substrate as substrate:
             # create extrinsic call
             call = substrate.compose_call(
@@ -239,11 +229,7 @@ def vote_senate_extrinsic(
             # process if vote successful
             response.process_events()
             if not response.is_success:
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
-                )
+                console.error("Failed", response.error_message)
                 time.sleep(0.5)
 
             # Successful vote, final check for data
@@ -255,12 +241,8 @@ def vote_senate_extrinsic(
                 )
 
                 if has_voted:
-                    bittensor.__console__.print(
-                        ":white_heavy_check_mark: [green]Vote cast.[/green]"
-                    )
+                    console.success("Vote cast")
                     return True
                 else:
                     # hotkey not found in ayes/nays
-                    bittensor.__console__.print(
-                        ":cross_mark: [red]Unknown error. Couldn't find vote.[/red]"
-                    )
+                    console.error("Unknown error. Couldn't find vote.")

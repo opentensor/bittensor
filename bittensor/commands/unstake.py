@@ -93,10 +93,9 @@ class UnStakeCommand:
                 try:
                     config.amount = float(amount)
                 except ValueError:
-                    console.print(
-                        ":cross_mark:[red] Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
+                    console.error(
+                        "Invalid TAO amount",
+                        "<w><b>{}</b></w>".format(amount)
                     )
                     sys.exit()
             else:
@@ -258,7 +257,7 @@ class UnStakeCommand:
 
         if len(final_hotkeys) == 0:
             # No hotkeys to unstake from.
-            bittensor.__console__.print(
+            console.info(
                 "Not enough stake to unstake from any hotkeys or max_stake is more than current stake."
             )
             return None

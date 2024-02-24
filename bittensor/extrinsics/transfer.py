@@ -55,12 +55,15 @@ def transfer_extrinsic(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
+
+    console = bittensor.__console__
+
     # Validate destination address.
     if not is_valid_bittensor_address_or_public_key(dest):
-        bittensor.__console__.print(
-            ":cross_mark: [red]Invalid destination address[/red]:[bold white]\n  {}[/bold white]".format(
-                dest
-            )
+
+        console.error(
+            "Invalid destination address",
+            f"\n<w><b>  {dest}</b></w>"
         )
         return False
 
@@ -78,12 +81,12 @@ def transfer_extrinsic(
         transfer_balance = amount
 
     # Check balance.
-    with bittensor.__console__.status(":satellite: Checking Balance..."):
+    with console.status("Checking Balance..."):
         account_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
         # check existential deposit.
         existential_deposit = subtensor.get_existential_deposit()
 
-    with bittensor.__console__.status(":satellite: Transferring..."):
+    with console.status("Transferring..."):
         fee = subtensor.get_transfer_fee(
             wallet=wallet, dest=dest, value=transfer_balance.rao
         )
@@ -94,8 +97,9 @@ def transfer_extrinsic(
 
     # Check if we have enough balance.
     if account_balance < (transfer_balance + fee + existential_deposit):
-        bittensor.__console__.print(
-            ":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}\n  for fee: {}[/bold white]".format(
+        console.error(
+            "Not enough balance",
+            "<w><b>\n  balance: {}\n  amount: {}\n  for fee: {}</b></w>".format(
                 account_balance, transfer_balance, fee
             )
         )
@@ -110,7 +114,7 @@ def transfer_extrinsic(
         ):
             return False
 
-    with bittensor.__console__.status(":satellite: Transferring..."):
+    with console.status("Transferring..."):
         success, block_hash, err_msg = subtensor._do_transfer(
             wallet,
             dest,
@@ -120,37 +124,33 @@ def transfer_extrinsic(
         )
 
         if success:
-            bittensor.__console__.print(
-                ":white_heavy_check_mark: [green]Finalized[/green]"
-            )
-            bittensor.__console__.print(
-                "[green]Block Hash: {}[/green]".format(block_hash)
+            console.success("Finalized")
+            console.info(
+                "<g>Block Hash: {}</g>".format(block_hash)
             )
 
             explorer_urls = bittensor.utils.get_explorer_url_for_network(
                 subtensor.network, block_hash, bittensor.__network_explorer_map__
             )
             if explorer_urls != {}:
-                bittensor.__console__.print(
-                    "[green]Opentensor Explorer Link: {}[/green]".format(
+                console.info(
+                    "<g>Opentensor Explorer Link: {}</g>".format(
                         explorer_urls.get("opentensor")
                     )
                 )
-                bittensor.__console__.print(
-                    "[green]Taostats   Explorer Link: {}[/green]".format(
+                console.info(
+                    "<g>Taostats   Explorer Link: {}</g>".format(
                         explorer_urls.get("taostats")
                     )
                 )
         else:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
-            )
+            console.error("Failed", err_msg)
 
     if success:
-        with bittensor.__console__.status(":satellite: Checking Balance..."):
+        with console.status("Checking Balance..."):
             new_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
-            bittensor.__console__.print(
-                "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
+            console.print(
+                "Balance:\n  <e>{}</e> \u27A1 <g>{}</g>\n".format(
                     account_balance, new_balance
                 )
             )

@@ -5,6 +5,8 @@ from sys import getsizeof
 
 import bittensor
 
+console = bittensor.__console__
+
 
 class SetIdentityCommand:
     """
@@ -69,8 +71,6 @@ class SetIdentityCommand:
 
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Create a new or update existing identity on-chain."""
-        console = bittensor.__console__
-
         wallet = bittensor.wallet(config=cli.config)
 
         id_dict = {
@@ -112,11 +112,11 @@ class SetIdentityCommand:
             ).lower()
             == "n"
         ):
-            console.print(":cross_mark: Aborted!")
+            console.error("Aborted!")
             exit(0)
 
         wallet.coldkey  # unlock coldkey
-        with console.status(":satellite: [bold green]Updating identity on-chain..."):
+        with console.status("<g><b>Updating identity on-chain...</b></g>"):
             try:
                 subtensor.update_identity(
                     identified=identified,
@@ -124,10 +124,10 @@ class SetIdentityCommand:
                     params=id_dict,
                 )
             except Exception as e:
-                console.print(f"[red]:cross_mark: Failed![/red] {e}")
+                console.error("Failed!", e)
                 exit(1)
 
-            console.print(":white_heavy_check_mark: Success!")
+            console.success("Success!")
 
         identity = subtensor.query_identity(identified or wallet.coldkey.ss58_address)
 
@@ -139,7 +139,7 @@ class SetIdentityCommand:
         for key, value in identity.items():
             table.add_row(key, str(value) if value is not None else "None")
 
-        console.print(table)
+        console.rich_print(table)
 
     @staticmethod
     def check_config(config: "bittensor.config"):
@@ -285,9 +285,7 @@ class GetIdentityCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        console = bittensor.__console__
-
-        with console.status(":satellite: [bold green]Querying chain identity..."):
+        with console.status("<g><b>Querying chain identity...</b></g>"):
             identity = subtensor.query_identity(cli.config.key)
 
         table = Table(title="[bold white italic]On-Chain Identity")
@@ -298,7 +296,7 @@ class GetIdentityCommand:
         for key, value in identity.items():
             table.add_row(key, str(value) if value is not None else "None")
 
-        console.print(table)
+        console.rich_print(table)
 
     @staticmethod
     def check_config(config: "bittensor.config"):

@@ -164,13 +164,12 @@ class SubnetLockCostCommand:
         r"""View locking cost of creating a new subnetwork"""
         config = cli.config.copy()
         try:
-            bittensor.__console__.print(
-                f"Subnet lock cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]"
+            console.info(
+                f"Subnet lock cost: <g>{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}</g>"
             )
         except Exception as e:
-            bittensor.__console__.print(
-                f"Subnet lock cost: [red]Failed to get subnet lock cost[/red]"
-                f"Error: {e}"
+            console.error(
+                "Subnet lock cost: Failed to get subnet lock cost", e
             )
 
     @classmethod
@@ -290,7 +289,7 @@ class SubnetListCommand:
         table.add_column("[overline white]SUDO", style="white")
         for row in rows:
             table.add_row(*row)
-        bittensor.__console__.print(table)
+        console.rich_print(table)
 
     @staticmethod
     def check_config(config: "bittensor.config"):
@@ -488,7 +487,7 @@ class SubnetHyperparamsCommand:
         for param in subnet.__dict__:
             table.add_row("  " + param, str(subnet.__dict__[param]))
 
-        bittensor.__console__.print(table)
+        console.rich_print(table)
 
     @staticmethod
     def check_config(config: "bittensor.config"):
@@ -592,7 +591,7 @@ class SubnetGetHyperparamsCommand:
         for param in subnet.__dict__:
             table.add_row(param, str(subnet.__dict__[param]))
 
-        bittensor.__console__.print(table)
+        console.rich_print(table)
 
     @staticmethod
     def check_config(config: "bittensor.config"):

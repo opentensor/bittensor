@@ -26,6 +26,8 @@ from . import defaults
 import requests
 from ..utils import RAOPERTAO
 
+console = bittensor.__console__
+
 
 class RegenColdkeyCommand:
     """
@@ -832,7 +834,7 @@ class WalletBalanceCommand:
                 }
 
             if not coldkey_wallet.coldkeypub_file.exists_on_device():
-                bittensor.__console__.print("[bold red]No wallets found.")
+                console.error("No wallets found.")
                 return
 
         table = Table(show_footer=False)
@@ -884,7 +886,7 @@ class WalletBalanceCommand:
         table.box = None
         table.pad_edge = False
         table.width = None
-        bittensor.__console__.print(table)
+        console.rich_print(table)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -991,7 +993,7 @@ class GetWalletHistoryCommand:
         # Create output table
         table = create_transfer_history_table(transfers)
 
-        bittensor.__console__.print(table)
+        console.rich_print(table)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):

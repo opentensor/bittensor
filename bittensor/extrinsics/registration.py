@@ -23,6 +23,7 @@ import time
 from rich.prompt import Confirm
 from typing import List, Union, Optional, Tuple
 from bittensor.utils.registration import POWSolution, create_pow
+console = bittensor.__console__
 
 
 def register_extrinsic(
@@ -73,15 +74,14 @@ def register_extrinsic(
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if not subtensor.subnet_exists(netuid):
-        bittensor.__console__.print(
-            ":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{}[/bold white] does not exist.".format(
-                netuid
-            )
+        console.error(
+            "Failed",
+            "<w><b>subnet:{}</b></w> does not exist.".format(netuid)
         )
         return False
 
-    with bittensor.__console__.status(
-        f":satellite: Checking Account on [bold]subnet:{netuid}[/bold]..."
+    with console.status(
+        f"Checking Account on <b>subnet:{netuid}</b>..."
     ):
         neuron = subtensor.get_neuron_for_pubkey_and_subnet(
             wallet.hotkey.ss58_address, netuid=netuid
@@ -105,14 +105,14 @@ def register_extrinsic(
     # Attempt rolling registration.
     attempts = 1
     while True:
-        bittensor.__console__.print(
-            ":satellite: Registering...({}/{})".format(attempts, max_allowed_attempts)
+        console.status(
+            "Registering...({}/{})".format(attempts, max_allowed_attempts)
         )
         # Solve latest POW.
         if cuda:
             if not torch.cuda.is_available():
                 if prompt:
-                    bittensor.__console__.error("CUDA is not available.")
+                    console.error("CUDA is not available.")
                 return False
             pow_result: Optional[POWSolution] = create_pow(
                 subtensor,
@@ -145,14 +145,14 @@ def register_extrinsic(
                 netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
             )
             if is_registered:
-                bittensor.__console__.print(
-                    f":white_heavy_check_mark: [green]Already registered on netuid:{netuid}[/green]"
+                console.success(
+                    f"Already registered on netuid:{netuid}"
                 )
                 return True
 
         # pow successful, proceed to submit pow to chain for registration
         else:
-            with bittensor.__console__.status(":satellite: Submitting POW..."):
+            with console.status("Submitting POW..."):
                 # check if pow result is still valid
                 while not pow_result.is_stale(subtensor=subtensor):
                     result: Tuple[bool, Optional[str]] = subtensor._do_pow_register(
@@ -167,50 +167,46 @@ def register_extrinsic(
                     if success != True or success == False:
                         if "key is already registered" in err_msg:
                             # Error meant that the key is already registered.
-                            bittensor.__console__.print(
-                                f":white_heavy_check_mark: [green]Already Registered on [bold]subnet:{netuid}[/bold][/green]"
+                            console.success(
+                                f"Already Registered on <b>subnet:{netuid}</b>"
                             )
                             return True
 
-                        bittensor.__console__.print(
-                            ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
-                        )
+                        console.error("Failed", err_msg)
                         time.sleep(0.5)
 
                     # Successful registration, final check for neuron and pubkey
                     else:
-                        bittensor.__console__.print(":satellite: Checking Balance...")
+                        console.status("Checking Balance...")
                         is_registered = subtensor.is_hotkey_registered(
                             netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
                         )
                         if is_registered:
-                            bittensor.__console__.print(
-                                ":white_heavy_check_mark: [green]Registered[/green]"
-                            )
+                            console.success("Registered")
                             return True
                         else:
                             # neuron not found, try again
-                            bittensor.__console__.print(
-                                ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
+                            console.error(
+                                 "Unknown error. Neuron not found."
                             )
                             continue
                 else:
                     # Exited loop because pow is no longer valid.
-                    bittensor.__console__.print("[red]POW is stale.[/red]")
+                    console.error("POW is stale.")
                     # Try again.
                     continue
 
         if attempts < max_allowed_attempts:
             # Failed registration, retry pow
             attempts += 1
-            bittensor.__console__.print(
-                ":satellite: Failed registration, retrying pow ...({}/{})".format(
+            console.status(
+                "Failed registration, retrying pow ...({}/{})".format(
                     attempts, max_allowed_attempts
                 )
             )
         else:
             # Failed to register after max attempts.
-            bittensor.__console__.print("[red]No more attempts.[/red]")
+            console.error("No more attempts.")
             return False
 
 
@@ -240,16 +236,16 @@ def burned_register_extrinsic(
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if not subtensor.subnet_exists(netuid):
-        bittensor.__console__.print(
-            ":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{}[/bold white] does not exist.".format(
-                netuid
-            )
+
+        console.error(
+            "Failed",
+            "<w><b>subnet:{}</b></w> does not exist.".format(netuid)
         )
         return False
 
     wallet.coldkey  # unlock coldkey
-    with bittensor.__console__.status(
-        f":satellite: Checking Account on [bold]subnet:{netuid}[/bold]..."
+    with console.status(
+        f"Checking Account on <b>subnet:{netuid}</b>..."
     ):
         neuron = subtensor.get_neuron_for_pubkey_and_subnet(
             wallet.hotkey.ss58_address, netuid=netuid
@@ -259,12 +255,12 @@ def burned_register_extrinsic(
 
         recycle_amount = subtensor.recycle(netuid=netuid)
         if not neuron.is_null:
-            bittensor.__console__.print(
-                ":white_heavy_check_mark: [green]Already Registered[/green]:\n"
-                "uid: [bold white]{}[/bold white]\n"
-                "netuid: [bold white]{}[/bold white]\n"
-                "hotkey: [bold white]{}[/bold white]\n"
-                "coldkey: [bold white]{}[/bold white]".format(
+            console.success("Already Registered")
+            console.print(
+                "uid: <w><b>{}</b></w>\n"
+                "netuid: <w><b>{}</b></w>\n"
+                "hotkey: <w><b>{}</b></w>\n"
+                "coldkey: <w><b>{}</b></w>\n".format(
                     neuron.uid, neuron.netuid, neuron.hotkey, neuron.coldkey
                 )
             )
@@ -275,7 +271,7 @@ def burned_register_extrinsic(
         if not Confirm.ask(f"Recycle {recycle_amount} to register on subnet:{netuid}?"):
             return False
 
-    with bittensor.__console__.status(":satellite: Recycling TAO for Registration..."):
+    with console.status("Recycling TAO for Registration..."):
         success, err_msg = subtensor._do_burned_register(
             netuid=netuid,
             wallet=wallet,
@@ -284,21 +280,19 @@ def burned_register_extrinsic(
         )
 
         if success != True or success == False:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
-            )
+            console.error("Failed", err_msg)
             time.sleep(0.5)
 
         # Successful registration, final check for neuron and pubkey
         else:
-            bittensor.__console__.print(":satellite: Checking Balance...")
+            console.status("Checking Balance...")
             block = subtensor.get_current_block()
             new_balance = subtensor.get_balance(
                 wallet.coldkeypub.ss58_address, block=block
             )
 
-            bittensor.__console__.print(
-                "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
+            console.print(
+                "Balance:\n  <blue>{}</blue> \u27A1 <green>{}</green>\n".format(
                     old_balance, new_balance
                 )
             )
@@ -306,15 +300,11 @@ def burned_register_extrinsic(
                 netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
             )
             if is_registered:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Registered[/green]"
-                )
+                console.success("Registered")
                 return True
             else:
                 # neuron not found, try again
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
-                )
+                console.error("Unknown error. Neuron not found.")
 
 
 class MaxSuccessException(Exception):
@@ -395,7 +385,7 @@ def run_faucet_extrinsic(
                 if cuda:
                     if not torch.cuda.is_available():
                         if prompt:
-                            bittensor.__console__.error("CUDA is not available.")
+                            console.error("CUDA is not available.")
                         return False
                     pow_result: Optional[POWSolution] = create_pow(
                         subtensor,
@@ -441,9 +431,8 @@ def run_faucet_extrinsic(
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                bittensor.__console__.print(
-                    f":cross_mark: [red]Failed[/red]: Error: {response.error_message}"
-                )
+
+                console.error("Failed", response.error_message)
                 if attempts == max_allowed_attempts:
                     raise MaxAttemptsException
                 attempts += 1
@@ -451,8 +440,10 @@ def run_faucet_extrinsic(
             # Successful registration
             else:
                 new_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-                bittensor.__console__.print(
-                    f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+                console.print(
+                    "Balance:\n  <blue>{}</blue> \u27A1 <green>{}</green>\n".format(
+                        old_balance, new_balance
+                    )
                 )
                 old_balance = new_balance
 
@@ -486,7 +477,7 @@ def swap_hotkey_extrinsic(
         ):
             return False
 
-    with bittensor.__console__.status(":satellite: Swapping hotkeys..."):
+    with console.status("Swapping hotkeys..."):
         success, err_msg = subtensor._do_swap_hotkey(
             wallet=wallet,
             new_wallet=new_wallet,
@@ -495,12 +486,10 @@ def swap_hotkey_extrinsic(
         )
 
         if success != True or success == False:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
-            )
+            console.error("Failed", err_msg)
             time.sleep(0.5)
 
         else:
-            bittensor.__console__.print(
+            console.info(
                 f"Hotkey {wallet.hotkey} swapped for new hotkey: {new_wallet.hotkey}"
             )

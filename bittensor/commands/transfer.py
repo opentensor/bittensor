@@ -92,11 +92,9 @@ class TransferCommand:
         if not config.no_prompt:
             wallet = bittensor.wallet(config=config)
             subtensor = bittensor.subtensor(config=config, log_verbose=False)
-            with bittensor.__console__.status(":satellite: Checking Balance..."):
+            with console.status("Checking Balance..."):
                 account_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-                bittensor.__console__.print(
-                    "Balance: [green]{}[/green]".format(account_balance)
-                )
+                console.info(f"Balance: <g>{account_balance}</g>")
 
         # Get amount.
         if not config.get("amount"):
@@ -105,17 +103,15 @@ class TransferCommand:
                 try:
                     config.amount = float(amount)
                 except ValueError:
-                    console.print(
-                        ":cross_mark:[red] Invalid TAO amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
+                    console.error(
+                        "Invalid TAO amount",
+                        "<w><b>{}</b></w>".format(amount)
                     )
                     sys.exit()
             else:
-                console.print(
-                    ":cross_mark:[red] Invalid TAO amount[/red] [bold white]{}[/bold white]".format(
-                        amount
-                    )
+                console.error(
+                    "Invalid TAO amount",
+                    "<w><b>{}</b></w>".format(amount)
                 )
                 sys.exit(1)
 

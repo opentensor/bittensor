@@ -138,14 +138,14 @@ class StakeCommand:
                 # Hotkey is not registered.
                 if len(hotkeys_to_stake_to) == 1:
                     # Only one hotkey, error
-                    bittensor.__console__.print(
-                        f"[red]Hotkey [bold]{hotkey[1]}[/bold] is not registered. Aborting.[/red]"
+                    console.error(
+                        f"Hotkey <b>{hotkey[1]}</b> is not registered. Aborting."
                     )
                     return None
                 else:
                     # Otherwise, print warning and skip
-                    bittensor.__console__.print(
-                        f"[yellow]Hotkey [bold]{hotkey[1]}[/bold] is not registered. Skipping.[/yellow]"
+                    console.warning(
+                        f"Hotkey <b>{hotkey[1]}</b> is not registered. Skipping."
                     )
                     continue
 
@@ -175,7 +175,7 @@ class StakeCommand:
 
         if len(final_hotkeys) == 0:
             # No hotkeys to stake to.
-            bittensor.__console__.print(
+            console.info(
                 "Not enough balance to stake to any hotkeys or max_stake is less than current stake."
             )
             return None
@@ -241,10 +241,9 @@ class StakeCommand:
                 try:
                     config.amount = float(amount)
                 except ValueError:
-                    console.print(
-                        ":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
+                    console.error(
+                        "Invalid Tao amount",
+                        "<w><b>{}</b></w>".format(amount)
                     )
                     sys.exit()
             else:
@@ -300,8 +299,6 @@ from rich.prompt import Prompt
 from typing import Dict, Union, List, Tuple
 from .utils import get_delegates_details, DelegatesDetails
 from . import defaults
-
-console = bittensor.__console__
 
 import os
 import bittensor
@@ -549,7 +546,7 @@ class StakeShow:
                 table.add_row(
                     "", "", value["name"], value["stake"], str(value["rate"]) + "/d"
                 )
-        bittensor.__console__.print(table)
+        console.rich_print(table)
 
     @staticmethod
     def check_config(config: "bittensor.config"):

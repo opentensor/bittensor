@@ -81,9 +81,7 @@ class RegisterCommand:
 
         # Verify subnet exists
         if not subtensor.subnet_exists(netuid=cli.config.netuid):
-            bittensor.__console__.print(
-                f"[red]Subnet {cli.config.netuid} does not exist[/red]"
-            )
+            console.error(f"Subnet {cli.config.netuid} does not exist")
             sys.exit(1)
 
         # Check current recycle amount
@@ -92,8 +90,8 @@ class RegisterCommand:
 
         # Check balance is sufficient
         if balance < current_recycle:
-            bittensor.__console__.print(
-                f"[red]Insufficient balance {balance} to register neuron. Current recycle is {current_recycle} TAO[/red]"
+            console.error(
+                f"Insufficient balance {balance} to register neuron. Current recycle is {current_recycle} TAO"
             )
             sys.exit(1)
 
@@ -211,8 +209,8 @@ class PowRegisterCommand:
 
         # Verify subnet exists
         if not subtensor.subnet_exists(netuid=cli.config.netuid):
-            bittensor.__console__.print(
-                f"[red]Subnet {cli.config.netuid} does not exist[/red]"
+            console.error(
+                f"Subnet {cli.config.netuid} does not exist"
             )
             sys.exit(1)
 
