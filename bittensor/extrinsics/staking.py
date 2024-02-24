@@ -69,9 +69,7 @@ def add_stake_extrinsic(
     # Flag to indicate if we are using the wallet's own hotkey.
     own_hotkey: bool
 
-    with console.status(
-        "Syncing with chain: <w>{}</w> ...".format(subtensor.network)
-    ):
+    with console.status("Syncing with chain: <w>{}</w> ...".format(subtensor.network)):
         old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
         # Get hotkey owner
         hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
@@ -135,9 +133,7 @@ def add_stake_extrinsic(
 
     try:
         with console.status(
-            "Staking to: <w><b>{}</b></w> ...".format(
-                subtensor.network
-            )
+            "Staking to: <w><b>{}</b></w> ...".format(subtensor.network)
         ):
             staking_response: bool = __do_add_stake_single(
                 subtensor=subtensor,
@@ -155,9 +151,7 @@ def add_stake_extrinsic(
 
             console.success("Finalized")
             with console.status(
-                "Checking Balance on: <w>{}</w> ...".format(
-                    subtensor.network
-                )
+                "Checking Balance on: <w>{}</w> ...".format(subtensor.network)
             ):
                 new_balance = subtensor.get_balance(
                     address=wallet.coldkeypub.ss58_address
@@ -257,9 +251,7 @@ def add_stake_multiple_extrinsic(
 
     old_stakes = []
 
-    with console.status(
-        "Syncing with chain: <w>{}</w> ...".format(subtensor.network)
-    ):
+    with console.status("Syncing with chain: <w>{}</w> ...".format(subtensor.network)):
         old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
 
         # Get the old stakes.
@@ -312,7 +304,7 @@ def add_stake_multiple_extrinsic(
                 "Not enough balance",
                 "<g>{}</g> to stake: <e>{}</e> from coldkey: <w>{}</w>".format(
                     old_balance, staking_balance, wallet.name
-                )
+                ),
             )
             continue
 
@@ -385,16 +377,13 @@ def add_stake_multiple_extrinsic(
                 continue
 
         except bittensor.errors.NotRegisteredError as e:
-            console.error(
-                 f"Hotkey: {hotkey_ss58} is not registered."
-            )
+            console.error(f"Hotkey: {hotkey_ss58} is not registered.")
             continue
         except bittensor.errors.StakeError as e:
             console.error(f"Stake Error: {e}")
             continue
 
     if successful_stakes != 0:
-
         with console.status(
             "Checking Balance on: (<w>{}</w>) ...".format(subtensor.network)
         ):

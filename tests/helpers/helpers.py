@@ -28,6 +28,7 @@ from rich.text import Text
 from bittensor.cli_logging import ConsoleLogger
 from io import StringIO
 
+
 def __mock_wallet_factory__(*args, **kwargs) -> _MockWallet:
     """Returns a mock wallet object."""
 
@@ -156,28 +157,28 @@ class MockConsole:
         self.handler = StringIO()
         console = ConsoleLogger(file=self.handler)
         console.success(*args, **kwargs)
-        time.sleep(.05)
+        time.sleep(0.05)
         self.captured_print = self.handler.getvalue()
 
     def error(self, *args, **kwargs):
         self.handler = StringIO()
         console = ConsoleLogger(file=self.handler)
         console.error(*args, **kwargs)
-        time.sleep(.05)
+        time.sleep(0.05)
         self.captured_print = self.handler.getvalue()
 
     def info(self, *args, **kwargs):
         self.handler = StringIO()
         console = ConsoleLogger(file=self.handler)
         console.info(*args, **kwargs)
-        time.sleep(.1)
+        time.sleep(0.1)
         self.captured_print = self.handler.getvalue()
 
     def print(self, *args, **kwargs):
         self.handler = StringIO()
         console = ConsoleLogger(file=self.handler)
         console.print(*args, **kwargs)
-        time.sleep(.05)
+        time.sleep(0.05)
         self.captured_print = self.handler.getvalue()
 
     def rich_print(self, *args, **kwargs):

@@ -242,8 +242,7 @@ class StakeCommand:
                     config.amount = float(amount)
                 except ValueError:
                     console.error(
-                        "Invalid Tao amount",
-                        "<w><b>{}</b></w>".format(amount)
+                        "Invalid Tao amount", "<w><b>{}</b></w>".format(amount)
                     )
                     sys.exit()
             else:

@@ -142,9 +142,7 @@ class InspectCommand:
             Dict[str, DelegatesDetails]
         ] = get_delegates_details(url=bittensor.__delegates_details_url__)
         if registered_delegate_info is None:
-            console.warning(
-                "Could not get delegate info from chain."
-            )
+            console.warning("Could not get delegate info from chain.")
             registered_delegate_info = {}
 
         neuron_state_dict = {}

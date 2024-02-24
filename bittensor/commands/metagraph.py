@@ -86,9 +86,7 @@ class MetagraphCommand:
         r"""Prints an entire metagraph."""
         console = bittensor.__console__
         console.status(
-            "Syncing with chain: <w>{}</w> ...".format(
-                cli.config.subtensor.network
-            )
+            "Syncing with chain: <w>{}</w> ...".format(cli.config.subtensor.network)
         )
         metagraph: bittensor.metagraph = subtensor.metagraph(netuid=cli.config.netuid)
         metagraph.save()

@@ -91,9 +91,7 @@ def register_senate_extrinsic(
                     return True
                 else:
                     # neuron not found, try again
-                    console.error(
-                        "Unknown error. Senate membership not found."
-                    )
+                    console.error("Unknown error. Senate membership not found.")
 
 
 def leave_senate_extrinsic(
@@ -162,9 +160,7 @@ def leave_senate_extrinsic(
                     return True
                 else:
                     # neuron not found, try again
-                    console.error(
-                        "Unknown error. Senate membership still found."
-                    )
+                    console.error("Unknown error. Senate membership still found.")
 
 
 def vote_senate_extrinsic(

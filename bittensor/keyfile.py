@@ -589,15 +589,11 @@ class keyfile:
             keyfile_data = self._read_keyfile_data_from_file()
             if not keyfile_data_is_encrypted(keyfile_data):
                 if print_result:
-                    console.info(
-                        f"\nKeyfile is not encrypted. \n:key: {self}"
-                    )
+                    console.info(f"\nKeyfile is not encrypted. \n:key: {self}")
                 return False
             elif keyfile_data_is_encrypted_nacl(keyfile_data):
                 if print_result:
-                    console.success(
-                        f"\nKeyfile is updated. \n:key: {self}"
-                    )
+                    console.success(f"\nKeyfile is updated. \n:key: {self}")
                 return True
             else:
                 if print_result:

@@ -94,8 +94,7 @@ class UnStakeCommand:
                     config.amount = float(amount)
                 except ValueError:
                     console.error(
-                        "Invalid TAO amount",
-                        "<w><b>{}</b></w>".format(amount)
+                        "Invalid TAO amount", "<w><b>{}</b></w>".format(amount)
                     )
                     sys.exit()
             else:

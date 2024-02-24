@@ -23,6 +23,7 @@ import time
 from rich.prompt import Confirm
 from typing import List, Union, Optional, Tuple
 from bittensor.utils.registration import POWSolution, create_pow
+
 console = bittensor.__console__
 
 
@@ -75,14 +76,11 @@ def register_extrinsic(
     """
     if not subtensor.subnet_exists(netuid):
         console.error(
-            "Failed",
-            "<w><b>subnet:{}</b></w> does not exist.".format(netuid)
+            "Failed", "<w><b>subnet:{}</b></w> does not exist.".format(netuid)
         )
         return False
 
-    with console.status(
-        f"Checking Account on <b>subnet:{netuid}</b>..."
-    ):
+    with console.status(f"Checking Account on <b>subnet:{netuid}</b>..."):
         neuron = subtensor.get_neuron_for_pubkey_and_subnet(
             wallet.hotkey.ss58_address, netuid=netuid
         )
@@ -105,9 +103,7 @@ def register_extrinsic(
     # Attempt rolling registration.
     attempts = 1
     while True:
-        console.status(
-            "Registering...({}/{})".format(attempts, max_allowed_attempts)
-        )
+        console.status("Registering...({}/{})".format(attempts, max_allowed_attempts))
         # Solve latest POW.
         if cuda:
             if not torch.cuda.is_available():
@@ -145,9 +141,7 @@ def register_extrinsic(
                 netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
             )
             if is_registered:
-                console.success(
-                    f"Already registered on netuid:{netuid}"
-                )
+                console.success(f"Already registered on netuid:{netuid}")
                 return True
 
         # pow successful, proceed to submit pow to chain for registration
@@ -186,9 +180,7 @@ def register_extrinsic(
                             return True
                         else:
                             # neuron not found, try again
-                            console.error(
-                                 "Unknown error. Neuron not found."
-                            )
+                            console.error("Unknown error. Neuron not found.")
                             continue
                 else:
                     # Exited loop because pow is no longer valid.
@@ -236,17 +228,13 @@ def burned_register_extrinsic(
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if not subtensor.subnet_exists(netuid):
-
         console.error(
-            "Failed",
-            "<w><b>subnet:{}</b></w> does not exist.".format(netuid)
+            "Failed", "<w><b>subnet:{}</b></w> does not exist.".format(netuid)
         )
         return False
 
     wallet.coldkey  # unlock coldkey
-    with console.status(
-        f"Checking Account on <b>subnet:{netuid}</b>..."
-    ):
+    with console.status(f"Checking Account on <b>subnet:{netuid}</b>..."):
         neuron = subtensor.get_neuron_for_pubkey_and_subnet(
             wallet.hotkey.ss58_address, netuid=netuid
         )
@@ -431,7 +419,6 @@ def run_faucet_extrinsic(
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-
                 console.error("Failed", response.error_message)
                 if attempts == max_allowed_attempts:
                     raise MaxAttemptsException

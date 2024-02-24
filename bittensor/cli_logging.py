@@ -12,7 +12,8 @@ consolelogger = copy.deepcopy(logger)
 
 
 class ConsoleLogger:
-    """ CLI logging using loguru """
+    """CLI logging using loguru"""
+
     # todo: highlighting (tensors, json), table printing, mock console
     logger: object = None
     file: object = None
@@ -130,7 +131,7 @@ class ConsoleLogger:
 
 
 class StatusLogger:
-    """ Replicates rich status command, and spinner animation"""
+    """Replicates rich status command, and spinner animation"""
 
     ANIMATION_FRAMES: str = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 
@@ -156,14 +157,10 @@ class StatusLogger:
     def start(self):
         # make cursor invisible
         self.logger.info("\033[?25l")
-        self.logger.info(
-             f"{self.ANIMATION_FRAMES[0]} {self.icon} {self.message}"
-        )
+        self.logger.info(f"{self.ANIMATION_FRAMES[0]} {self.icon} {self.message}")
 
         # Start animation thread
-        self.thread = Thread(
-            target=self._update_animation, args=(self.done,)
-        )
+        self.thread = Thread(target=self._update_animation, args=(self.done,))
         self.thread.start()
 
     def stop(self):
@@ -172,11 +169,9 @@ class StatusLogger:
         self.done.set()
 
     def _update_animation(self, event):
-        """ Updates the frames, deletes the current line, stopped by event """
+        """Updates the frames, deletes the current line, stopped by event"""
         while not self.done.is_set():
             self.frame_index = (self.frame_index + 1) % len(self.ANIMATION_FRAMES)
             frame = self.ANIMATION_FRAMES[self.frame_index]
-            self.logger.info(
-                f"\033[2K\r{frame} {self.icon} {self.message}"
-            )
+            self.logger.info(f"\033[2K\r{frame} {self.icon} {self.message}")
             time.sleep(0.1)

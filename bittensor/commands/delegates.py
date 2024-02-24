@@ -297,18 +297,14 @@ class DelegateStakeCommand:
                 console.warning("Could not fetch delegates history")
 
             if len(delegates) == 0:
-                console.error(
-                    f"There are no delegates on {subtensor.network}"
-                )
+                console.error(f"There are no delegates on {subtensor.network}")
                 sys.exit(1)
 
             delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
             show_delegates(delegates, prev_delegates=prev_delegates)
             delegate_index = Prompt.ask("Enter delegate index")
             config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
-            console.info(
-                "Selected: <y>{}</y>".format(config.delegate_ss58key)
-            )
+            console.info("Selected: <y>{}</y>".format(config.delegate_ss58key))
 
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
@@ -325,9 +321,7 @@ class DelegateStakeCommand:
                 try:
                     config.amount = float(amount)
                 except ValueError:
-                    console.error(
-                        f"Invalid Tao amount: <w><b>{amount}</b></w>"
-                    )
+                    console.error(f"Invalid Tao amount: <w><b>{amount}</b></w>")
                     sys.exit()
             else:
                 config.stake_all = True
@@ -427,25 +421,17 @@ class DelegateUnstakeCommand:
                     prev_delegates = None
 
             if prev_delegates is None:
-                console.warning(
-                    "Could not fetch delegates history"
-                )
+                console.warning("Could not fetch delegates history")
 
             if len(delegates) == 0:
-                console.error(
-                    "There are no delegates on {}".format(
-                        subtensor.network
-                    )
-                )
+                console.error("There are no delegates on {}".format(subtensor.network))
                 sys.exit(1)
 
             delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
             show_delegates(delegates, prev_delegates=prev_delegates)
             delegate_index = Prompt.ask("Enter delegate index")
             config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
-            console.info(
-                "Selected: <y>{}</y>".format(config.delegate_ss58key)
-            )
+            console.info("Selected: <y>{}</y>".format(config.delegate_ss58key))
 
         # Get amount.
         if not config.get("amount") and not config.get("unstake_all"):
@@ -458,9 +444,7 @@ class DelegateUnstakeCommand:
                 try:
                     config.amount = float(amount)
                 except ValueError:
-                    console.error(
-                        f"Invalid Tao amount: <w><b>{amount}</b></w>"
-                    )
+                    console.error(f"Invalid Tao amount: <w><b>{amount}</b></w>")
                     sys.exit()
             else:
                 config.unstake_all = True
@@ -533,9 +517,7 @@ class ListDelegatesCommand:
                 prev_delegates = None
 
         if prev_delegates is None:
-            console.warning(
-                "Could not fetch delegates history"
-            )
+            console.warning("Could not fetch delegates history")
 
         show_delegates(
             delegates,
@@ -618,25 +600,18 @@ class NominateCommand:
         result: bool = subtensor.nominate(wallet)
         if not result:
             console.info(
-                "Could not became a delegate on <w>{}</w>".format(
-                    subtensor.network
-                )
+                "Could not became a delegate on <w>{}</w>".format(subtensor.network)
             )
         else:
             # Check if we are a delegate.
             is_delegate: bool = subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address)
             if not is_delegate:
-
                 console.info(
-                    "Could not became a delegate on <w>{}</w>".format(
-                        subtensor.network
-                    )
+                    "Could not became a delegate on <w>{}</w>".format(subtensor.network)
                 )
                 return
             console.success(
-                "Successfully became a delegate on <w>{}</w>".format(
-                    subtensor.network
-                )
+                "Successfully became a delegate on <w>{}</w>".format(subtensor.network)
             )
 
             # Prompt use to set identity on chain.
@@ -802,9 +777,7 @@ class MyDelegatesCommand:
                 DelegatesDetails
             ] = get_delegates_details(url=bittensor.__delegates_details_url__)
             if registered_delegate_info is None:
-                console.warning(
-                    "Could not get delegate info from chain."
-                )
+                console.warning("Could not get delegate info from chain.")
                 registered_delegate_info = {}
 
             for i, delegate in enumerate(delegates):

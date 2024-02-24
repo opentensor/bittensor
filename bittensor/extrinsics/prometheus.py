@@ -100,18 +100,14 @@ def prometheus_extrinsic(
             f"<g>version: </g><w>{neuron.prometheus_info.version}</w>\n"
         )
 
-        console.info(
-            "\u2714 <w>Prometheus already served.</w>"
-        )
+        console.info("\u2714 <w>Prometheus already served.</w>")
         return True
 
     # Add netuid, not in prometheus_info
     call_params["netuid"] = netuid
 
     with console.status(
-        "Serving prometheus on: <w>{}:{}</w> ...".format(
-            subtensor.network, netuid
-        )
+        "Serving prometheus on: <w>{}:{}</w> ...".format(subtensor.network, netuid)
     ):
         success, err = subtensor._do_serve_prometheus(
             wallet=wallet,
@@ -126,7 +122,7 @@ def prometheus_extrinsic(
                     "Served prometheus",
                     "\n  <w><b>{}</b></w>".format(
                         json.dumps(call_params, indent=4, sort_keys=True)
-                    )
+                    ),
                 )
                 return True
             else:

@@ -60,11 +60,7 @@ def transfer_extrinsic(
 
     # Validate destination address.
     if not is_valid_bittensor_address_or_public_key(dest):
-
-        console.error(
-            "Invalid destination address",
-            f"\n<w><b>  {dest}</b></w>"
-        )
+        console.error("Invalid destination address", f"\n<w><b>  {dest}</b></w>")
         return False
 
     if isinstance(dest, bytes):
@@ -101,7 +97,7 @@ def transfer_extrinsic(
             "Not enough balance",
             "<w><b>\n  balance: {}\n  amount: {}\n  for fee: {}</b></w>".format(
                 account_balance, transfer_balance, fee
-            )
+            ),
         )
         return False
 
@@ -125,9 +121,7 @@ def transfer_extrinsic(
 
         if success:
             console.success("Finalized")
-            console.info(
-                "<g>Block Hash: {}</g>".format(block_hash)
-            )
+            console.info("<g>Block Hash: {}</g>".format(block_hash))
 
             explorer_urls = bittensor.utils.get_explorer_url_for_network(
                 subtensor.network, block_hash, bittensor.__network_explorer_map__

@@ -400,9 +400,7 @@ class RegistrationStatisticsLogger:
     console: ConsoleLogger
     status: Optional[StatusLogger]
 
-    def __init__(
-        self, console: ConsoleLogger, output_in_place: bool = True
-    ) -> None:
+    def __init__(self, console: ConsoleLogger, output_in_place: bool = True) -> None:
         self.console = console
 
         if output_in_place:

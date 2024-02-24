@@ -168,9 +168,7 @@ class SubnetLockCostCommand:
                 f"Subnet lock cost: <g>{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}</g>"
             )
         except Exception as e:
-            console.error(
-                "Subnet lock cost: Failed to get subnet lock cost", e
-            )
+            console.error("Subnet lock cost: Failed to get subnet lock cost", e)
 
     @classmethod
     def check_config(cls, config: "bittensor.config"):

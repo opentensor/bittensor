@@ -63,9 +63,7 @@ class SenateCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""View Bittensor's governance protocol proposals"""
         console.status(
-            "Syncing with chain: <w>{}</w> ...".format(
-                cli.config.subtensor.network
-            )
+            "Syncing with chain: <w>{}</w> ...".format(cli.config.subtensor.network)
         )
 
         senate_members = subtensor.get_senate_members()
@@ -200,9 +198,7 @@ class ProposalsCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""View Bittensor's governance protocol proposals"""
-        console.status(
-            "Syncing with chain: <w>{}</w> ...".format(subtensor.network)
-        )
+        console.status("Syncing with chain: <w>{}</w> ...".format(subtensor.network))
 
         senate_members = subtensor.get_senate_members()
         proposals = subtensor.get_proposals()
@@ -321,9 +317,7 @@ class ShowVotesCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""View Bittensor's governance protocol proposals active votes"""
 
-        console.status(
-            "Syncing with chain: <w>{}</w> ...".format(subtensor.network)
-        )
+        console.status("Syncing with chain: <w>{}</w> ...".format(subtensor.network))
 
         proposal_hash = cli.config.proposal_hash
         if len(proposal_hash) == 0:

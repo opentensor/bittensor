@@ -1137,9 +1137,7 @@ class subtensor:
                 )
             except Exception as e:
                 console.error(
-                    "Failed to get payment info:<w><b>\n  {}</b></w>".format(
-                        e
-                    )
+                    "Failed to get payment info:<w><b>\n  {}</b></w>".format(e)
                 )
                 payment_info = {"partialFee": 2e7}  # assume  0.02 Tao
 

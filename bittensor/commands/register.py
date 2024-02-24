@@ -209,9 +209,7 @@ class PowRegisterCommand:
 
         # Verify subnet exists
         if not subtensor.subnet_exists(netuid=cli.config.netuid):
-            console.error(
-                f"Subnet {cli.config.netuid} does not exist"
-            )
+            console.error(f"Subnet {cli.config.netuid} does not exist")
             sys.exit(1)
 
         subtensor.register(

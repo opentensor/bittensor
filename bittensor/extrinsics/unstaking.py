@@ -107,9 +107,7 @@ def unstake_extrinsic(
     if hotkey_ss58 is None:
         hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
 
-    with console.status(
-        "Syncing with chain: <w>{}</w> ...".format(subtensor.network)
-    ):
+    with console.status("Syncing with chain: <w>{}</w> ...".format(subtensor.network)):
         old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
         old_stake = subtensor.get_stake_for_coldkey_and_hotkey(
             coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
@@ -131,7 +129,7 @@ def unstake_extrinsic(
             "Not enough stake",
             "<g>{}</g> to unstake: <e>{}</e> from hotkey: <w>{}</w>".format(
                 stake_on_uid, unstaking_balance, wallet.hotkey_str
-            )
+            ),
         )
         return False
 
@@ -190,9 +188,7 @@ def unstake_extrinsic(
             return False
 
     except bittensor.errors.NotRegisteredError as e:
-        console.error(
-            f"Hotkey: {wallet.hotkey_str} is not registered."
-        )
+        console.error(f"Hotkey: {wallet.hotkey_str} is not registered.")
         return False
     except bittensor.errors.StakeError as e:
         console.error("Stake Error", e)
@@ -263,9 +259,7 @@ def unstake_multiple_extrinsic(
 
     old_stakes = []
 
-    with console.status(
-        "Syncing with chain: <w>{}</w> ...".format(subtensor.network)
-    ):
+    with console.status("Syncing with chain: <w>{}</w> ...".format(subtensor.network)):
         old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
 
         for hotkey_ss58 in hotkey_ss58s:
@@ -294,7 +288,7 @@ def unstake_multiple_extrinsic(
                 "Not enough stake",
                 "<g>{}</g> to unstake: <e>{}</e> from hotkey: <w>{}</w>".format(
                     stake_on_uid, unstaking_balance, wallet.hotkey_str
-                )
+                ),
             )
             continue
 
@@ -356,7 +350,6 @@ def unstake_multiple_extrinsic(
                     )
                     successful_unstakes += 1
             else:
-
                 console.error("Failed", "Error unknown")
                 continue
 

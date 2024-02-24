@@ -7,8 +7,8 @@ console = MockConsole()
 
 
 def escape_ansi(line):
-    ansi_escape = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]')
-    return ansi_escape.sub('', line)
+    ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
+    return ansi_escape.sub("", line)
 
 
 def test_console_success():
@@ -34,9 +34,7 @@ def test_console_status(capsys):
         time.sleep(1)
 
     expected_length = len(ending)
-    actual_ending = escape_ansi(
-        console.captured_print
-    ).strip()[-expected_length:]
+    actual_ending = escape_ansi(console.captured_print).strip()[-expected_length:]
 
     assert ending == actual_ending
 

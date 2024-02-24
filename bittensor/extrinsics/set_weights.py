@@ -83,9 +83,7 @@ def set_weights_extrinsic(
         ):
             return False, "Prompt refused."
 
-    with console.status(
-        "Setting weights on <w>{}</w>] ...".format(subtensor.network)
-    ):
+    with console.status("Setting weights on <w>{}</w>] ...".format(subtensor.network)):
         try:
             success, error_message = subtensor._do_set_weights(
                 wallet=wallet,

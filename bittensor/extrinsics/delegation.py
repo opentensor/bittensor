@@ -50,9 +50,7 @@ def nominate_extrinsic(
         return False
 
     with console.status(
-        "Sending nominate call on <w>{}</w> ...".format(
-            subtensor.network
-        )
+        "Sending nominate call on <w>{}</w> ...".format(subtensor.network)
     ):
         try:
             success = subtensor._do_nominate(
@@ -158,9 +156,7 @@ def delegate_extrinsic(
 
     try:
         with console.status(
-            "Staking to: <w><b>{}</b></w> ...".format(
-                subtensor.network
-            )
+            "Staking to: <w><b>{}</b></w> ...".format(subtensor.network)
         ):
             staking_response: bool = subtensor._do_delegation(
                 wallet=wallet,
@@ -178,9 +174,7 @@ def delegate_extrinsic(
             console.success("Finalized")
 
             with console.status(
-                "Checking Balance on: <w>{}</w> ...".format(
-                    subtensor.network
-                )
+                "Checking Balance on: <w>{}</w> ...".format(subtensor.network)
             ):
                 new_balance = subtensor.get_balance(address=wallet.coldkey.ss58_address)
                 block = subtensor.get_current_block()
@@ -206,9 +200,7 @@ def delegate_extrinsic(
             return False
 
     except NotRegisteredError as e:
-        console.error(
-            "Hotkey: {} is not registered.".format(wallet.hotkey_str)
-        )
+        console.error("Hotkey: {} is not registered.".format(wallet.hotkey_str))
         return False
     except StakeError as e:
         console.error("Stake Error: {}".format(e))
@@ -284,9 +276,7 @@ def undelegate_extrinsic(
 
     try:
         with console.status(
-            "Unstaking from: <white><b>{}</b></white> ...".format(
-                subtensor.network
-            )
+            "Unstaking from: <white><b>{}</b></white> ...".format(subtensor.network)
         ):
             staking_response: bool = subtensor._do_undelegation(
                 wallet=wallet,
@@ -303,9 +293,7 @@ def undelegate_extrinsic(
 
             console.success("Finalized")
             with console.status(
-                "Checking Balance on: <white>{}</white> ...".format(
-                    subtensor.network
-                )
+                "Checking Balance on: <white>{}</white> ...".format(subtensor.network)
             ):
                 new_balance = subtensor.get_balance(address=wallet.coldkey.ss58_address)
                 block = subtensor.get_current_block()
@@ -331,9 +319,7 @@ def undelegate_extrinsic(
             return False
 
     except NotRegisteredError as e:
-        console.error(
-            "Hotkey: {} is not registered.".format(wallet.hotkey_str)
-        )
+        console.error("Hotkey: {} is not registered.".format(wallet.hotkey_str))
         return False
     except StakeError as e:
         console.error("Stake Error: {}".format(e))

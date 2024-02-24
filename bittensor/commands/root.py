@@ -138,11 +138,7 @@ class RootList:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""List the root network"""
-        console.status(
-            "Syncing with chain: <w>{}</w> ...".format(
-                subtensor.network
-            )
-        )
+        console.status("Syncing with chain: <w>{}</w> ...".format(subtensor.network))
 
         senate_members = subtensor.get_senate_members()
         root_neurons: typing.List[bittensor.NeuronInfoLite] = subtensor.neurons_lite(

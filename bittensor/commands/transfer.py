@@ -104,15 +104,11 @@ class TransferCommand:
                     config.amount = float(amount)
                 except ValueError:
                     console.error(
-                        "Invalid TAO amount",
-                        "<w><b>{}</b></w>".format(amount)
+                        "Invalid TAO amount", "<w><b>{}</b></w>".format(amount)
                     )
                     sys.exit()
             else:
-                console.error(
-                    "Invalid TAO amount",
-                    "<w><b>{}</b></w>".format(amount)
-                )
+                console.error("Invalid TAO amount", "<w><b>{}</b></w>".format(amount))
                 sys.exit(1)
 
     @staticmethod

@@ -182,7 +182,5 @@ def set_hyperparameter_extrinsic(
 
             # Successful registration, final check for membership
             else:
-                console.success(
-                    f"Hyper parameter {parameter} changed to {value}"
-                )
+                console.success(f"Hyper parameter {parameter} changed to {value}")
                 return True

@@ -120,7 +120,7 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
                             "Invalid GPU device",
                             "<w><b>{}</b></w>\nAvailable CUDA devices:{}".format(
                                 dev_id, choices_str
-                            )
+                            ),
                         )
                         sys.exit(1)
                 config.pow_register.cuda.dev_id = dev_id
