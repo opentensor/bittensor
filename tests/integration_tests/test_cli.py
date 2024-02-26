@@ -18,6 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 
+import contextlib
 from copy import deepcopy
 import os
 import random
@@ -2432,7 +2433,8 @@ def test_get_coldkey_ss58_addresses_for_path(
 
 # Cleanup after tests
 def teardown_module(module):
-    shutil.rmtree(TEST_DIR)
+    with contextlib.suppress(FileNotFoundError):
+        shutil.rmtree(TEST_DIR)
 
 
 if __name__ == "__main__":
