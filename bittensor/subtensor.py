@@ -86,7 +86,8 @@ from .utils.registration import POWSolution
 
 logger = logger.opt(colors=True)
 
-KEY_NONCE= {}
+KEY_NONCE = {}
+
 
 class ParamWithTypes(TypedDict):
     name: str  # Name of the parameter.
@@ -605,12 +606,12 @@ class subtensor:
 
                 # Return immediately if we don't wait
                 if not wait_for_inclusion and not wait_for_finalization:
-                    KEY_NONCE[hotkey] = nonce + 1 # update the nonce cache
+                    KEY_NONCE[hotkey] = nonce + 1  # update the nonce cache
                     return response
 
                 # If we wait for finalization or inclusion, check if it is successful
                 if response.is_success:
-                    KEY_NONCE[hotkey] = nonce + 1 # update the nonce cache
+                    KEY_NONCE[hotkey] = nonce + 1  # update the nonce cache
                     return response
                 else:
                     # Wait for a while
