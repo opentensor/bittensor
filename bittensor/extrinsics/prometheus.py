@@ -19,6 +19,8 @@ import bittensor
 
 import json
 import bittensor.utils.networking as net
+from typing import Tuple, Optional
+from ..types import PrometheusServeCallParams
 
 
 def prometheus_extrinsic(
@@ -52,6 +54,38 @@ def prometheus_extrinsic(
             Flag is ``true`` if extrinsic was finalized or uncluded in the block.
             If we did not wait for finalization / inclusion, the response is ``true``.
     """
+
+    def _do_serve_prometheus(
+        call_params: PrometheusServeCallParams,
+    ) -> Tuple[bool, Optional[str]]:
+        """
+        Sends a serve prometheus extrinsic to the chain.
+
+        Args:
+            call_params (:func:`PrometheusServeCallParams`): Prometheus serve call parameters.
+
+        Returns:
+            success (bool): ``True`` if serve prometheus was successful.
+            error (:func:`Optional[str]`): Error message if serve prometheus failed, ``None`` otherwise.
+        """
+
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="serve_prometheus",
+            params=call_params,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True, None
+        else:
+            return False, response.error_message
 
     # ---- Get external ip ----
     if ip == None:
@@ -117,12 +151,7 @@ def prometheus_extrinsic(
             subtensor.network, netuid
         )
     ):
-        success, err = subtensor._do_serve_prometheus(
-            wallet=wallet,
-            call_params=call_params,
-            wait_for_finalization=wait_for_finalization,
-            wait_for_inclusion=wait_for_inclusion,
-        )
+        success, err = _do_serve_prometheus(call_params=call_params)
 
         if wait_for_inclusion or wait_for_finalization:
             if success == True:

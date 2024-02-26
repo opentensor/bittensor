@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
+from ..errors import *
 from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional
@@ -188,14 +189,14 @@ def add_stake_extrinsic(
             )
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except NotRegisteredError as e:
         bittensor.__console__.print(
             ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                 wallet.hotkey_str
             )
         )
         return False
-    except bittensor.errors.StakeError as e:
+    except StakeError as e:
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
 
@@ -395,14 +396,14 @@ def add_stake_multiple_extrinsic(
                 )
                 continue
 
-        except bittensor.errors.NotRegisteredError as e:
+        except NotRegisteredError as e:
             bittensor.__console__.print(
                 ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                     hotkey_ss58
                 )
             )
             continue
-        except bittensor.errors.StakeError as e:
+        except StakeError as e:
             bittensor.__console__.print(
                 ":cross_mark: [red]Stake Error: {}[/red]".format(e)
             )
@@ -461,6 +462,33 @@ def __do_add_stake_single(
             If the hotkey is not registered in any subnets.
 
     """
+
+    def _do_stake() -> bool:
+        """Sends a stake extrinsic to the chain.
+
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        Raises:
+            StakeError: If the extrinsic failed.
+        """
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="add_stake",
+            params={"hotkey": hotkey_ss58, "amount_staked": amount.rao},
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True
+        else:
+            raise StakeError(response.error_message)
+
     # Decrypt keys,
     wallet.coldkey
 
@@ -470,16 +498,8 @@ def __do_add_stake_single(
         # We are delegating.
         # Verify that the hotkey is a delegate.
         if not subtensor.is_hotkey_delegate(hotkey_ss58=hotkey_ss58):
-            raise bittensor.errors.NotDelegateError(
-                "Hotkey: {} is not a delegate.".format(hotkey_ss58)
-            )
+            raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
 
-    success = subtensor._do_stake(
-        wallet=wallet,
-        hotkey_ss58=hotkey_ss58,
-        amount=amount,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
+    success = _do_stake()
 
     return success

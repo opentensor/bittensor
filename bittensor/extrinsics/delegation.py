@@ -33,6 +33,25 @@ def nominate_extrinsic(
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True,
 ) -> bool:
+    def _do_nominate() -> bool:
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="become_delegate",
+            params={"hotkey": wallet.hotkey.ss58_address},
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True
+        else:
+            raise NominationError(response.error_message)
+
     r"""Becomes a delegate for the hotkey.
 
     Args:
@@ -57,11 +76,7 @@ def nominate_extrinsic(
         )
     ):
         try:
-            success = subtensor._do_nominate(
-                wallet=wallet,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
+            success = _do_nominate()
 
             if success == True:
                 bittensor.__console__.print(
@@ -118,6 +133,26 @@ def delegate_extrinsic(
         NotRegisteredError: If the wallet is not registered on the chain.
         NotDelegateError: If the hotkey is not a delegate on the chain.
     """
+
+    def _do_delegation(amount: "Balance") -> bool:
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="add_stake",
+            params={"hotkey": delegate_ss58, "amount_staked": amount.rao},
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True
+        else:
+            raise StakeError(response.error_message)
+
     # Decrypt keys,
     wallet.coldkey
     if not subtensor.is_hotkey_delegate(delegate_ss58):
@@ -170,13 +205,7 @@ def delegate_extrinsic(
                 subtensor.network
             )
         ):
-            staking_response: bool = subtensor._do_delegation(
-                wallet=wallet,
-                delegate_ss58=delegate_ss58,
-                amount=staking_balance,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
+            staking_response: bool = _do_delegation(amount=staking_balance)
 
         if staking_response == True:  # If we successfully staked.
             # We only wait here if we expect finalization.
@@ -253,6 +282,26 @@ def undelegate_extrinsic(
         NotRegisteredError: If the wallet is not registered on the chain.
         NotDelegateError: If the hotkey is not a delegate on the chain.
     """
+
+    def _do_undelegation(amount: "Balance") -> bool:
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="remove_stake",
+            params={"hotkey": delegate_ss58, "amount_staked": amount.rao},
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True
+        else:
+            raise StakeError(response.error_message)
+
     # Decrypt keys,
     wallet.coldkey
     if not subtensor.is_hotkey_delegate(delegate_ss58):
@@ -301,13 +350,7 @@ def undelegate_extrinsic(
                 subtensor.network
             )
         ):
-            staking_response: bool = subtensor._do_undelegation(
-                wallet=wallet,
-                delegate_ss58=delegate_ss58,
-                amount=unstaking_balance,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
+            staking_response: bool = _do_undelegation(amount=unstaking_balance)
 
         if staking_response == True:  # If we successfully staked.
             # We only wait here if we expect finalization.

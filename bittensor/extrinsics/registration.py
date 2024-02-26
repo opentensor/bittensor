@@ -72,6 +72,40 @@ def register_extrinsic(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
+
+    def _do_pow_register() -> Tuple[bool, Optional[str]]:
+        """Sends a (POW) register extrinsic to the chain.
+
+        Returns:
+            success (bool): ``True`` if the extrinsic was included in a block.
+            error (Optional[str]): ``None`` on success or not waiting for inclusion/finalization, otherwise the error message.
+        """
+
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="register",
+            params={
+                "netuid": netuid,
+                "block_number": pow_result.block_number,
+                "nonce": pow_result.nonce,
+                "work": [int(byte_) for byte_ in pow_result.seal],
+                "hotkey": wallet.hotkey.ss58_address,
+                "coldkey": wallet.coldkeypub.ss58_address,
+            },
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True, None
+        else:
+            return False, response.error_message
+
     if not subtensor.subnet_exists(netuid):
         bittensor.__console__.print(
             ":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{}[/bold white] does not exist.".format(
@@ -155,13 +189,7 @@ def register_extrinsic(
             with bittensor.__console__.status(":satellite: Submitting POW..."):
                 # check if pow result is still valid
                 while not pow_result.is_stale(subtensor=subtensor):
-                    result: Tuple[bool, Optional[str]] = subtensor._do_pow_register(
-                        netuid=netuid,
-                        wallet=wallet,
-                        pow_result=pow_result,
-                        wait_for_inclusion=wait_for_inclusion,
-                        wait_for_finalization=wait_for_finalization,
-                    )
+                    result: Tuple[bool, Optional[str]] = _do_pow_register()
                     success, err_msg = result
 
                     if success != True or success == False:
@@ -239,6 +267,26 @@ def burned_register_extrinsic(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
+
+    def _do_burned_register() -> Tuple[bool, Optional[str]]:
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="burned_register",
+            params={"netuid": netuid, "hotkey": wallet.hotkey.ss58_address},
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True, None
+        else:
+            return False, response.error_message
+
     if not subtensor.subnet_exists(netuid):
         bittensor.__console__.print(
             ":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{}[/bold white] does not exist.".format(
@@ -276,7 +324,7 @@ def burned_register_extrinsic(
             return False
 
     with bittensor.__console__.status(":satellite: Recycling TAO for Registration..."):
-        success, err_msg = subtensor._do_burned_register(
+        success, err_msg = _do_burned_register(
             netuid=netuid,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -420,20 +468,16 @@ def run_faucet_extrinsic(
                         update_interval=update_interval,
                         log_verbose=log_verbose,
                     )
-            call = subtensor.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="faucet",
-                call_params={
+
+            response = subtensor.send_extrinsic(
+                wallet=wallet,
+                module="SubtensorModule",
+                function="faucet",
+                params={
                     "block_number": pow_result.block_number,
                     "nonce": pow_result.nonce,
                     "work": [int(byte_) for byte_ in pow_result.seal],
                 },
-            )
-            extrinsic = subtensor.substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.coldkey
-            )
-            response = subtensor.substrate.submit_extrinsic(
-                extrinsic,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
@@ -478,6 +522,28 @@ def swap_hotkey_extrinsic(
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
+    def _do_swap_hotkey() -> Tuple[bool, Optional[str]]:
+        response = subtensor.send_extrinsic(
+            wallet=wallet,
+            module="SubtensorModule",
+            function="swap_hotkey",
+            params={
+                "hotkey": wallet.hotkey.ss58_address,
+                "new_hotkey": new_wallet.hotkey.ss58_address,
+            },
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_inclusion and not wait_for_finalization:
+            return True, "Not waiting for inclusion or finalization."
+
+        response.process_events()
+        if response.is_success:
+            return True, None
+        else:
+            return False, response.error_message
+
     wallet.coldkey  # unlock coldkey
     if prompt:
         # Prompt user for confirmation.
@@ -487,12 +553,7 @@ def swap_hotkey_extrinsic(
             return False
 
     with bittensor.__console__.status(":satellite: Swapping hotkeys..."):
-        success, err_msg = subtensor._do_swap_hotkey(
-            wallet=wallet,
-            new_wallet=new_wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        success, err_msg = _do_swap_hotkey()
 
         if success != True or success == False:
             bittensor.__console__.print(
