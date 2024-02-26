@@ -499,6 +499,12 @@ class metagraph(torch.nn.Module):
 
                 subtensor = bittensor.subtensor(network='archive')
         """
+
+        if block > 300:
+            raise ValueError(
+                "Block number is greater than 300. Please use the 'archive' network for subtensor and retry."
+            )
+
         # Initialize subtensor
         subtensor = self._initialize_subtensor(subtensor)
 
