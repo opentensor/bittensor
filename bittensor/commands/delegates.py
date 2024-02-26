@@ -27,6 +27,7 @@ from rich.console import Text
 from tqdm import tqdm
 from substrateinterface.exceptions import SubstrateRequestException
 from .utils import get_delegates_details, DelegatesDetails
+from .identity import SetIdentityCommand
 from . import defaults
 
 import os
@@ -647,6 +648,20 @@ class NominateCommand:
                     subtensor.network
                 )
             )
+
+            # Prompt use to set identity on chain.
+            if not cli.config.no_prompt:
+                do_set_identity = Prompt.ask(
+                    f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
+                    choices=["y", "n"],
+                )
+
+                if do_set_identity.lower() == "y":
+                    subtensor.close()
+                    config = cli.config.copy()
+                    SetIdentityCommand.check_config(config)
+                    cli.config = config
+                    SetIdentityCommand.run(cli)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
