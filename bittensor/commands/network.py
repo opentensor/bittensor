@@ -22,6 +22,7 @@ from rich.prompt import Prompt
 from rich.table import Table
 from typing import List, Optional, Dict
 from .utils import get_delegates_details, DelegatesDetails, check_netuid_set
+from .identity import SetIdentityCommand
 
 console = bittensor.__console__
 
@@ -75,11 +76,25 @@ class RegisterSubnetworkCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Register a subnetwork"""
         wallet = bittensor.wallet(config=cli.config)
+
         # Call register command.
-        subtensor.register_subnetwork(
+        success = subtensor.register_subnetwork(
             wallet=wallet,
             prompt=not cli.config.no_prompt,
         )
+        if success and not cli.config.no_prompt:
+            # Prompt for user to set identity.
+            do_set_identity = Prompt.ask(
+                f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
+                choices=["y", "n"],
+            )
+
+            if do_set_identity.lower() == "y":
+                subtensor.close()
+                config = cli.config.copy()
+                SetIdentityCommand.check_config(config)
+                cli.config = config
+                SetIdentityCommand.run(cli)
 
     @classmethod
     def check_config(cls, config: "bittensor.config"):
