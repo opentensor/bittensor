@@ -17,7 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
-from ..errors import *
+from ..errors import NominationError, NotDelegateError, NotRegisteredError, StakeError
 from rich.prompt import Confirm
 from typing import Union, Optional
 from bittensor.utils.balance import Balance

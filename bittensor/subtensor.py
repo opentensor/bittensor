@@ -46,7 +46,7 @@ from .chain_data import (
     IPInfo,
     custom_rpc_type_registry,
 )
-from .errors import *
+from .errors import IdentityError, NominationError, StakeError
 from .extrinsics.network import (
     register_subnetwork_extrinsic,
     set_hyperparameter_extrinsic,
