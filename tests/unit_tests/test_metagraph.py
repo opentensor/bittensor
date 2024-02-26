@@ -133,7 +133,7 @@ def mock_subtensor():
 # Mocking the metagraph instance for testing purposes
 @pytest.fixture
 def metagraph_instance():
-    metagraph = Metagraph(netuid=1, sync=False)
+    metagraph = Metagraph(netuid=1337, sync=False)
     metagraph._initialize_subtensor = MagicMock()
     metagraph._assign_neurons = MagicMock()
     metagraph._set_metagraph_attributes = MagicMock()
