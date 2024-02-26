@@ -73,7 +73,7 @@ def cast_int(raw: str) -> int:
         int or None: The converted integer, or ``None`` if the input was ``None``.
 
     """
-    return int(raw) if raw != None else raw
+    return int(raw) if raw != None else raw  # type: ignore
 
 
 def cast_float(raw: str) -> float:
@@ -89,7 +89,7 @@ def cast_float(raw: str) -> float:
         float or None: The converted float, or ``None`` if the input was ``None``.
 
     """
-    return float(raw) if raw != None else raw
+    return float(raw) if raw != None else raw  # type: ignore
 
 
 class TerminalInfo(pydantic.BaseModel):
@@ -399,7 +399,7 @@ class Synapse(pydantic.BaseModel):
 
     @pydantic.root_validator(pre=True)
     def set_name_type(cls, values) -> dict:
-        values["name"] = cls.__name__
+        values["name"] = cls.__name__  # type: ignore
         return values
 
     # Defines the http route name which is set on axon.attach( callable( request: RequestName ))
@@ -526,7 +526,7 @@ class Synapse(pydantic.BaseModel):
         Returns:
             bool: ``True`` if dendrite's status code is ``200``, ``False`` otherwise.
         """
-        return self.dendrite.status_code == 200
+        return self.dendrite is not None and self.dendrite.status_code == 200
 
     @property
     def is_failure(self) -> bool:
@@ -539,7 +539,7 @@ class Synapse(pydantic.BaseModel):
         Returns:
             bool: ``True`` if dendrite's status code is not ``200``, ``False`` otherwise.
         """
-        return self.dendrite.status_code != 200
+        return self.dendrite is not None and self.dendrite.status_code != 200
 
     @property
     def is_timeout(self) -> bool:
@@ -552,7 +552,7 @@ class Synapse(pydantic.BaseModel):
         Returns:
             bool: ``True`` if dendrite's status code is ``408``, ``False`` otherwise.
         """
-        return self.dendrite.status_code == 408
+        return self.dendrite is not None and self.dendrite.status_code == 408
 
     @property
     def is_blacklist(self) -> bool:
@@ -565,7 +565,7 @@ class Synapse(pydantic.BaseModel):
         Returns:
             bool: ``True`` if dendrite's status code is ``403``, ``False`` otherwise.
         """
-        return self.dendrite.status_code == 403
+        return self.dendrite is not None and self.dendrite.status_code == 403
 
     @property
     def failed_verification(self) -> bool:
@@ -578,7 +578,7 @@ class Synapse(pydantic.BaseModel):
         Returns:
             bool: ``True`` if dendrite's status code is ``401``, ``False`` otherwise.
         """
-        return self.dendrite.status_code == 401
+        return self.dendrite is not None and self.dendrite.status_code == 401
 
     def to_headers(self) -> dict:
         """
@@ -608,20 +608,22 @@ class Synapse(pydantic.BaseModel):
         headers = {"name": self.name, "timeout": str(self.timeout)}
 
         # Adding headers for 'axon' and 'dendrite' if they are not None
-        headers.update(
-            {
-                f"bt_header_axon_{k}": str(v)
-                for k, v in self.axon.dict().items()
-                if v is not None
-            }
-        )
-        headers.update(
-            {
-                f"bt_header_dendrite_{k}": str(v)
-                for k, v in self.dendrite.dict().items()
-                if v is not None
-            }
-        )
+        if self.axon:
+            headers.update(
+                {
+                    f"bt_header_axon_{k}": str(v)
+                    for k, v in self.axon.dict().items()
+                    if v is not None
+                }
+            )
+        if self.dendrite:
+            headers.update(
+                {
+                    f"bt_header_dendrite_{k}": str(v)
+                    for k, v in self.dendrite.dict().items()
+                    if v is not None
+                }
+            )
 
         # Getting the fields of the instance
         instance_fields = self.dict()
@@ -689,7 +691,10 @@ class Synapse(pydantic.BaseModel):
 
         for field, value in instance_fields.items():
             # If the field is required in the subclass schema, hash and add it.
-            if field in self.required_hash_fields:
+            if (
+                self.required_hash_fields is not None
+                and field in self.required_hash_fields
+            ):
                 hashes.append(bittensor.utils.hash(str(value)))
 
         # Hash and return the hashes that have been concatenated
@@ -730,7 +735,7 @@ class Synapse(pydantic.BaseModel):
         """
 
         # Initialize the input dictionary with empty sub-dictionaries for 'axon' and 'dendrite'
-        inputs_dict = {"axon": {}, "dendrite": {}}
+        inputs_dict: dict[str, dict[str, str]] = {"axon": {}, "dendrite": {}}
 
         # Iterate over each item in the headers
         for key, value in headers.items():
