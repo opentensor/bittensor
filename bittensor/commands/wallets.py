@@ -699,9 +699,11 @@ def _get_coldkey_ss58_addresses_for_path(path: str) -> List[str]:
         abspath = os.path.abspath(os.path.expanduser(dir_path))
         coldkey_files = []
 
-        for file in os.listdir(abspath):
-            coldkey_path = os.path.join(abspath, file, "coldkeypub.txt")
-            if os.path.exists(coldkey_path):
+        for dir in os.listdir(abspath):
+            coldkey_path = os.path.join(abspath, dir, "coldkeypub.txt")
+            if os.path.isdir(os.path.join(abspath, dir)) and os.path.exists(
+                coldkey_path
+            ):
                 coldkey_files.append(coldkey_path)
             else:
                 bittensor.logging.warning(
