@@ -182,7 +182,7 @@ class cli:
         bittensor.turn_console_on()
 
         # If no config is provided, create a new one from args.
-        if config == None:
+        if config is None:
             config = cli.create_config(args)
 
         self.config = config
