@@ -86,6 +86,7 @@ from .utils.registration import POWSolution
 
 logger = logger.opt(colors=True)
 
+KEY_NONCE= {}
 
 class ParamWithTypes(TypedDict):
     name: str  # Name of the parameter.
@@ -573,7 +574,12 @@ class subtensor:
             call_params=params,
         )
 
-        nonce = self.substrate.get_account_nonce(wallet.get_hotkey().ss58_address)
+        hotkey = wallet.get_hotkey().ss58_address
+        # Periodically update the nonce cache
+        if hotkey not in KEY_NONCE or self.get_current_block() % 5 == 0:
+            KEY_NONCE[hotkey] = self.substrate.get_account_nonce(hotkey)
+
+        nonce = KEY_NONCE[hotkey]
 
         # <3 parity tech
         old_init_runtime = self.substrate.init_runtime
@@ -599,16 +605,19 @@ class subtensor:
 
                 # Return immediately if we don't wait
                 if not wait_for_inclusion and not wait_for_finalization:
+                    KEY_NONCE[hotkey] = nonce + 1 # update the nonce cache
                     return response
 
                 # If we wait for finalization or inclusion, check if it is successful
                 if response.is_success:
+                    KEY_NONCE[hotkey] = nonce + 1 # update the nonce cache
                     return response
                 else:
-                    # Incr the nonce and try again
-                    nonce = nonce + 1
+                    # Wait for a while
                     wait = min(wait_time * attempt, max_wait)
                     time.sleep(wait)
+                    # Incr the nonce and try again
+                    nonce = nonce + 1
                     continue
 
             # This dies because user is spamming... incr and try again
@@ -623,6 +632,7 @@ class subtensor:
                     continue
                 else:
                     bittensor.logging.error(f"Error sending extrinsic: {e}")
+                    response = None
 
         return response
 
