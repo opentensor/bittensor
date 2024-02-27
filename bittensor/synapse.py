@@ -24,7 +24,7 @@ import sys
 import pydantic
 from pydantic.schema import schema
 import bittensor
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Dict
 
 
 def get_size(obj, seen=None) -> int:
@@ -735,7 +735,7 @@ class Synapse(pydantic.BaseModel):
         """
 
         # Initialize the input dictionary with empty sub-dictionaries for 'axon' and 'dendrite'
-        inputs_dict: dict[str, dict[str, str]] = {"axon": {}, "dendrite": {}}
+        inputs_dict: Dict[str, Dict[str, str]] = {"axon": {}, "dendrite": {}}
 
         # Iterate over each item in the headers
         for key, value in headers.items():
