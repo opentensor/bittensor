@@ -647,10 +647,12 @@ class subtensor:
         uids: Union[torch.LongTensor, list],
         weights: Union[torch.FloatTensor, list],
         version_key: int = bittensor.__version_as_int__,
+        uid: int = None,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
-    ) -> bool:
+        max_retries: int = 5,
+    ) -> Tuple[bool, str]:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the
         influence or trust a neuron places on other neurons in the network, which is a fundamental aspect
@@ -659,30 +661,53 @@ class subtensor:
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron setting the weights.
             netuid (int): The unique identifier of the subnet.
+            uid (int): Unique identifier for the caller on the subnet specified by `netuid`.
             uids (Union[torch.LongTensor, list]): The list of neuron UIDs that the weights are being set for.
             weights (Union[torch.FloatTensor, list]): The corresponding weights to be set for each UID.
             version_key (int, optional): Version key for compatibility with the network.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
             prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+            max_retries (int, optional): The number of maximum attempts to set weights. (Default: 5)
 
         Returns:
-            bool: ``True`` if the setting of weights is successful, False otherwise.
+            Tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string
+            value describing the success or potential error.
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's
         learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        return set_weights_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            netuid=netuid,
-            uids=uids,
-            weights=weights,
-            version_key=version_key,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
-        )
+        uid = uid or self.metagraph(netuid).hotkeys.index(wallet.hotkey.ss58_address)
+
+        retries = 0
+        success = False
+        msg = "No attempt made. Perhaps it is too soon to set weights!"
+        while (
+            self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)
+            and retries < max_retries
+        ):
+            success, msg = set_weights_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                netuid=netuid,
+                uids=uids,
+                weights=weights,
+                version_key=version_key,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                prompt=prompt,
+            )
+            time.sleep(5)
+            retries += 1
+
+        if success and self.blocks_since_last_update(
+            netuid, uid
+        ) < self.weights_rate_limit(netuid):
+            msg = f"Set weights successful on SN{netuid} for UID {uid}."
+        elif retries == max_retries - 1:
+            msg = "Maximum retries exceeded."
+
+        return success, msg
 
     def _do_set_weights(
         self,
@@ -2801,6 +2826,19 @@ class subtensor:
         if not self.subnet_exists(netuid, block):
             return None
         return self.query_subtensor("BlocksSinceLastStep", block, [netuid]).value
+
+    def blocks_since_last_update(self, netuid: int, uid: int) -> int:
+        if not self.subnet_exists(netuid):
+            return None
+        return (
+            self.get_current_block()
+            - self.query_subtensor("LastUpdate", None, [netuid]).value[uid]
+        )
+
+    def weights_rate_limit(self, netuid: int) -> int:
+        if not self.subnet_exists(netuid):
+            return None
+        return self.query_subtensor("WeightsSetRateLimit", None, [netuid]).value
 
     def tempo(self, netuid: int, block: Optional[int] = None) -> int:
         """Returns network Tempo hyper parameter"""
