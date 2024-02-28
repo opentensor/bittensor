@@ -348,6 +348,7 @@ class cli:
         """
         # Check for print-completion argument
         if self.config.print_completion:
+            parser = cli.__create_parser__()
             shell = self.config.print_completion
             print(shtab.complete(parser, shell))
             return
