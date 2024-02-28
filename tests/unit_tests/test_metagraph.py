@@ -20,6 +20,9 @@ import pytest
 import torch
 import bittensor
 
+from bittensor.metagraph import metagraph as Metagraph
+from unittest.mock import MagicMock
+
 
 @pytest.fixture
 def mock_environment():
@@ -119,3 +122,36 @@ def test_process_weights_or_bonds(mock_environment):
     )  # Number of columns should be equal to number of neurons
 
     # TODO: Add more checks to ensure the bonds have been processed correctly
+
+
+# Mocking the bittensor.subtensor class for testing purposes
+@pytest.fixture
+def mock_subtensor():
+    return MagicMock()
+
+
+# Mocking the metagraph instance for testing purposes
+@pytest.fixture
+def metagraph_instance():
+    metagraph = Metagraph(netuid=1337, sync=False)
+    metagraph._initialize_subtensor = MagicMock()
+    metagraph._assign_neurons = MagicMock()
+    metagraph._set_metagraph_attributes = MagicMock()
+    metagraph._set_weights_and_bonds = MagicMock()
+    return metagraph
+
+
+@pytest.mark.parametrize(
+    "block, test_id",
+    [
+        (301, "error_case_block_greater_than_300"),
+    ],
+)
+def test_sync_error_cases(block, test_id, metagraph_instance, mock_subtensor):
+    # Arrange
+    # Act & Assert
+    with pytest.raises(ValueError) as excinfo:
+        metagraph_instance.sync(block=block, lite=True, subtensor=mock_subtensor)
+    assert "Block number is greater than 300." in str(
+        excinfo.value
+    ), f"Test ID: {test_id}"
