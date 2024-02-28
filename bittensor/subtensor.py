@@ -546,9 +546,9 @@ class subtensor:
         period: int = 3,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-        max_retries: int = 3,
-        wait_time: int = 12,
-        max_wait: int = 24,
+        max_retries: int = 5,
+        wait_time: int = 3,
+        max_wait: int = 20,
     ) -> Optional[ExtrinsicReceipt]:
         """
         Sends an extrinsic to the Bittensor blockchain using the provided wallet and parameters. This method
@@ -686,6 +686,9 @@ class subtensor:
             self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)
             and retries < max_retries
         ):
+            print(f"attempt {retries + 1} of {max_retries} to set weights.")
+            print(f"blocks since last update: {self.blocks_since_last_update(netuid, uid)}")
+            print(f"weights rate limit: {self.weights_rate_limit(netuid)}")
             success, msg = set_weights_extrinsic(
                 subtensor=self,
                 wallet=wallet,
@@ -697,14 +700,16 @@ class subtensor:
                 wait_for_finalization=wait_for_finalization,
                 prompt=prompt,
             )
-            time.sleep(12)
+            time.sleep(5)
             retries += 1
 
         if success and self.blocks_since_last_update(
             netuid, uid
         ) < self.weights_rate_limit(netuid):
+            print("Blocks since last update < weights rate limit!")
             msg = f"Set weights successful on SN{netuid} for UID {uid}."
         elif retries == max_retries - 1:
+            print("Maximum retries exceeded!")
             msg = "Maximum retries exceeded."
 
         return success, msg
