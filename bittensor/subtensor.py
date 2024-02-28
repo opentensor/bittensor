@@ -703,6 +703,7 @@ class subtensor:
             time.sleep(5)
             retries += 1
 
+        print(f"Successful try? {success}")
         if success and self.blocks_since_last_update(
             netuid, uid
         ) < self.weights_rate_limit(netuid):
@@ -711,6 +712,8 @@ class subtensor:
         elif retries == max_retries - 1:
             print("Maximum retries exceeded!")
             msg = "Maximum retries exceeded."
+        else:
+            print("Else condition reached...")
 
         return success, msg
 
