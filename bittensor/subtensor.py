@@ -543,7 +543,7 @@ class subtensor:
         module: str,
         function: str,
         params: dict,
-        period: int = 5,
+        period: int = 3,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 3,
