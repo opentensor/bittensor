@@ -697,7 +697,7 @@ class subtensor:
                 wait_for_finalization=wait_for_finalization,
                 prompt=prompt,
             )
-            time.sleep(5)
+            time.sleep(12)
             retries += 1
 
         if success and self.blocks_since_last_update(
