@@ -21,6 +21,11 @@ def test_console_error(capsys):
     assert console.captured_print == "❌ \x1b[31mError message\x1b[0m\n"
 
 
+def test_console_info(capsys):
+    console.info("Info message")
+    assert console.captured_print == "Info message\n"
+
+
 def test_console_print(capsys):
     console.print("Random unformatted message")
     assert console.captured_print == "Random unformatted message"
