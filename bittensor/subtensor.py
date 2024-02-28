@@ -547,8 +547,8 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 3,
-        wait_time: int = 3,
-        max_wait: int = 20,
+        wait_time: int = 12,
+        max_wait: int = 24,
     ) -> Optional[ExtrinsicReceipt]:
         """
         Sends an extrinsic to the Bittensor blockchain using the provided wallet and parameters. This method
