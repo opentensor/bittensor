@@ -107,7 +107,7 @@ def set_weights_extrinsic(
                     prefix="Set weights",
                     sufix="<green>Finalized: </green>" + str(success),
                 )
-                return True
+                return True, "Successfully set weights and Finalized."
             else:
                 bittensor.__console__.print(
                     ":cross_mark: [red]Failed[/red]: error:{}".format(error_message)
@@ -116,7 +116,7 @@ def set_weights_extrinsic(
                     prefix="Set weights",
                     sufix="<red>Failed: </red>" + str(error_message),
                 )
-                return False
+                return False, error_message
 
         except Exception as e:
             # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with loguru.
@@ -126,4 +126,4 @@ def set_weights_extrinsic(
             bittensor.logging.warning(
                 prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
             )
-            return False
+            return False, str(e)
