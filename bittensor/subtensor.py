@@ -616,9 +616,11 @@ class subtensor:
                 else:
                     # Wait for a while
                     wait = min(wait_time * attempt, max_wait)
+                    print("Waiting for", wait, "seconds")
                     time.sleep(wait)
                     # Incr the nonce and try again
                     nonce = nonce + 1
+                    print("Incremented nonce", nonce)
                     continue
 
             # This dies because user is spamming... incr and try again
@@ -629,6 +631,7 @@ class subtensor:
                         f"Priority is too low, retrying with new nonce: {nonce} in {wait} seconds."
                     )
                     nonce = nonce + 1
+                    print("Incremented nonce", nonce)
                     time.sleep(wait)
                     continue
                 else:
