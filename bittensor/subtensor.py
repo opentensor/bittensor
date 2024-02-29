@@ -610,11 +610,9 @@ class subtensor:
                 else:
                     # Wait for a while
                     wait = min(wait_time * attempt, max_wait)
-                    print("Waiting for", wait, "seconds")
                     time.sleep(wait)
                     # Incr the nonce and try again
                     nonce = nonce + 1
-                    print("Incremented nonce", nonce)
                     continue
 
             # This dies because user is spamming... incr and try again
@@ -625,7 +623,6 @@ class subtensor:
                         f"Priority is too low, retrying with new nonce: {nonce} in {wait} seconds."
                     )
                     nonce = nonce + 1
-                    print("Incremented nonce", nonce)
                     time.sleep(wait)
                     continue
                 else:
@@ -683,9 +680,6 @@ class subtensor:
             self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)
             and retries < max_retries
         ):
-            print(f"attempt {retries + 1} of {max_retries} to set weights.")
-            print(f"blocks since last update: {self.blocks_since_last_update(netuid, uid)}")
-            print(f"weights rate limit: {self.weights_rate_limit(netuid)}")
             success, msg = set_weights_extrinsic(
                 subtensor=self,
                 wallet=wallet,
@@ -700,17 +694,14 @@ class subtensor:
             time.sleep(5)
             retries += 1
 
-        print(f"Successful try? {success}")
         if success and self.blocks_since_last_update(
             netuid, uid
         ) < self.weights_rate_limit(netuid):
-            print("Blocks since last update < weights rate limit!")
             msg = f"Set weights successful on SN{netuid} for UID {uid}."
         elif retries == max_retries - 1:
-            print("Maximum retries exceeded!")
             msg = "Maximum retries exceeded."
         else:
-            print("Else condition reached...")
+            msg = "Failed to set weights. Please try again."
 
         return success, msg
 
