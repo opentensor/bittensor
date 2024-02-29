@@ -554,6 +554,7 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
+        max_retries: int = 5,
     ) -> bool:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the
@@ -569,6 +570,7 @@ class subtensor:
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
             prompt (bool, optional): If True, prompts for user confirmation before proceeding.
+            max_retries (bool, optional): The maximum number of retries for setting weights.
 
         Returns:
             bool: True if the setting of weights is successful, False otherwise.
@@ -576,17 +578,34 @@ class subtensor:
         This function is crucial in shaping the network's collective intelligence, where each neuron's
         learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        return set_weights_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            netuid=netuid,
-            uids=uids,
-            weights=weights,
-            version_key=version_key,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
+        uid = self.get_uid_for_hotkey_on_subnet(
+             wallet.hotkey.ss58_address, netuid
         )
+        retries = 0
+        success = False
+        message = "No attempt made. Perhaps it is too soon to set weights!"
+        while (
+            self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)
+            and retries < max_retries
+        ):
+            try:
+                success, message = set_weights_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    netuid=netuid,
+                    uids=uids,
+                    weights=weights,
+                    version_key=version_key,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                    prompt=prompt,
+                )
+            except Exception as e:
+                bittensor.logging.error(f"Error setting weights: {e}")
+            finally:
+                retries += 1
+
+        return success, message
 
     def _do_set_weights(
         self,
@@ -634,7 +653,7 @@ class subtensor:
                 )
                 # Period dictates how long the extrinsic will stay as part of waiting pool
                 extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.hotkey, era={"period": 100}
+                    call=call, keypair=wallet.hotkey, era={"period": 5},
                 )
                 response = substrate.submit_extrinsic(
                     extrinsic,
@@ -643,11 +662,11 @@ class subtensor:
                 )
                 # We only wait here if we expect finalization.
                 if not wait_for_finalization and not wait_for_inclusion:
-                    return True, None
+                    return True, "Not waiting for finalziation or inclusion."
 
                 response.process_events()
                 if response.is_success:
-                    return True, None
+                    return True, "Successfully set weights."
                 else:
                     return False, response.error_message
 
@@ -2721,6 +2740,19 @@ class subtensor:
         if not self.subnet_exists(netuid, block):
             return None
         return self.query_subtensor("Tempo", block, [netuid]).value
+
+    def blocks_since_last_update(self, netuid: int, uid: int) -> int:
+            if not self.subnet_exists(netuid):
+                return None
+            return (
+                self.get_current_block()
+                - self.query_subtensor("LastUpdate", None, [netuid]).value[uid]
+            )
+
+    def weights_rate_limit(self, netuid: int) -> int:
+        if not self.subnet_exists(netuid):
+            return None
+        return self.query_subtensor("WeightsSetRateLimit", None, [netuid]).value
 
     ##########################
     #### Account functions ###
