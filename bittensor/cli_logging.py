@@ -152,7 +152,6 @@ class StatusLogger:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stop()
-        pass
 
     def start(self):
         # make cursor invisible
