@@ -698,7 +698,7 @@ class subtensor:
         netuid: int,
         version_key: int = bittensor.__version_as_int__,
         wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
+        wait_for_finalization: bool = False,
     ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
         """
         Internal method to send a transaction to the Bittensor blockchain, setting weights
@@ -755,11 +755,7 @@ class subtensor:
                 else:
                     return False, response.error_message
 
-        response.process_events()
-        if response.is_success:
-            return True, None
-        else:
-            return False, response.error_message
+        return make_substrate_call_with_retry()
 
     ######################
     #### Registration ####
