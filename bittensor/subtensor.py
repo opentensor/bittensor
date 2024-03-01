@@ -663,9 +663,7 @@ class subtensor:
         This function is crucial in shaping the network's collective intelligence, where each neuron's
         learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        uid = self.get_uid_for_hotkey_on_subnet(
-             wallet.hotkey.ss58_address, netuid
-        )
+        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to set weights!"
@@ -738,7 +736,9 @@ class subtensor:
                 )
                 # Period dictates how long the extrinsic will stay as part of waiting pool
                 extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.hotkey, era={"period": 5},
+                    call=call,
+                    keypair=wallet.hotkey,
+                    era={"period": 5},
                 )
                 response = substrate.submit_extrinsic(
                     extrinsic,
@@ -2832,12 +2832,12 @@ class subtensor:
         return self.query_subtensor("Tempo", block, [netuid]).value
 
     def blocks_since_last_update(self, netuid: int, uid: int) -> int:
-            if not self.subnet_exists(netuid):
-                return None
-            return (
-                self.get_current_block()
-                - self.query_subtensor("LastUpdate", None, [netuid]).value[uid]
-            )
+        if not self.subnet_exists(netuid):
+            return None
+        return (
+            self.get_current_block()
+            - self.query_subtensor("LastUpdate", None, [netuid]).value[uid]
+        )
 
     def weights_rate_limit(self, netuid: int) -> int:
         if not self.subnet_exists(netuid):
