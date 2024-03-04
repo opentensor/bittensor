@@ -26,7 +26,7 @@ import scalecodec
 
 from retry import retry
 from loguru import logger
-from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any, TypeVar, Generic
+from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any, TypeVar
 from substrateinterface.base import QueryMapResult, SubstrateInterface, ExtrinsicReceipt
 from substrateinterface.exceptions import SubstrateRequestException
 from scalecodec.base import RuntimeConfiguration
