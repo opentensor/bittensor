@@ -100,10 +100,7 @@ def set_weights_extrinsic(
             )
 
             if not wait_for_finalization and not wait_for_inclusion:
-                return (
-                    True,
-                    "Not waiting for finalization or inclusion. Assume successful.",
-                )
+                return True, "Not waiting for finalization or inclusion."
 
             if success == True:
                 bittensor.__console__.print(
@@ -113,7 +110,7 @@ def set_weights_extrinsic(
                     prefix="Set weights",
                     sufix="<green>Finalized: </green>" + str(success),
                 )
-                return True, "Success."
+                return True, "Successfully set weights and Finalized."
             else:
                 bittensor.__console__.print(
                     ":cross_mark: [red]Failed[/red]: error:{}".format(error_message)
@@ -122,7 +119,7 @@ def set_weights_extrinsic(
                     prefix="Set weights",
                     sufix="<red>Failed: </red>" + str(error_message),
                 )
-                return False, str(error_message)
+                return False, error_message
 
         except Exception as e:
             # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with loguru.
