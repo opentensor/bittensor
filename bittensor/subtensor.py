@@ -2563,7 +2563,7 @@ class subtensor:
             block=block,
         )
 
-        if json_result is None or not hasattr(json_result, "result"):
+        if json_result is None:
             return None
 
         return_type = call_definition["type"]
@@ -4408,7 +4408,7 @@ class subtensor:
 
     @staticmethod
     def _null_neuron() -> NeuronInfo:
-        neuron = NeuronInfo(
+        neuron = NeuronInfo(  # type: ignore
             uid=0,
             netuid=0,
             active=0,
@@ -4429,9 +4429,6 @@ class subtensor:
             is_null=True,
             coldkey="000000000000000000000000000000000000000000000000",
             hotkey="000000000000000000000000000000000000000000000000",
-            stake_dict={},
-            total_stake=Balance(0),
-            pruning_score=0,
         )
         return neuron
 
