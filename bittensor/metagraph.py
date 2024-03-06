@@ -748,7 +748,7 @@ class metagraph(torch.nn.Module):
 
         """
         data_array = []
-        n_subnets = subtensor.get_total_subnets()
+        n_subnets = subtensor.get_total_subnets() or 0
         subnets = subtensor.get_subnets()
         for item in data:
             if len(item) == 0:
