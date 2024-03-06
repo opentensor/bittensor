@@ -682,37 +682,32 @@ class subtensor:
         This function is crucial in shaping the network's collective intelligence, where each neuron's
         learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        uid = uid or self.metagraph(netuid).hotkeys.index(wallet.hotkey.ss58_address)
-
+        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
         retries = 0
         success = False
-        msg = "No attempt made. Perhaps it is too soon to set weights!"
+        message = "No attempt made. Perhaps it is too soon to set weights!"
         while (
             self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)  # type: ignore
             and retries < max_retries
         ):
-            success, msg = set_weights_extrinsic(
-                subtensor=self,
-                wallet=wallet,
-                netuid=netuid,
-                uids=uids,
-                weights=weights,
-                version_key=version_key,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-                prompt=prompt,
-            )
-            time.sleep(5)
-            retries += 1
+            try:
+                success, message = set_weights_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    netuid=netuid,
+                    uids=uids,
+                    weights=weights,
+                    version_key=version_key,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                    prompt=prompt,
+                )
+            except Exception as e:
+                bittensor.logging.error(f"Error setting weights: {e}")
+            finally:
+                retries += 1
 
-        if success and self.blocks_since_last_update(  # type: ignore
-            netuid, uid
-        ) < self.weights_rate_limit(netuid):
-            msg = f"Set weights successful on SN{netuid} for UID {uid}."
-        elif retries == max_retries - 1:
-            msg = "Maximum retries exceeded."
-
-        return success, msg
+        return success, message
 
     def _do_set_weights(
         self,
@@ -722,7 +717,7 @@ class subtensor:
         netuid: int,
         version_key: int = bittensor.__version_as_int__,
         wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
+        wait_for_finalization: bool = False,
     ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
         """
         Internal method to send a transaction to the Bittensor blockchain, setting weights
@@ -745,30 +740,41 @@ class subtensor:
         trust in other neurons based on observed performance and contributions.
         """
 
-        response = self.send_extrinsic(
-            wallet=wallet,
-            module="SubtensorModule",
-            function="set_weights",
-            params={
-                "dests": uids,
-                "weights": vals,
-                "netuid": netuid,
-                "version_key": version_key,
-            },
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="set_weights",
+                    call_params={
+                        "dests": uids,
+                        "weights": vals,
+                        "netuid": netuid,
+                        "version_key": version_key,
+                    },
+                )
+                # Period dictates how long the extrinsic will stay as part of waiting pool
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call,
+                    keypair=wallet.hotkey,
+                    era={"period": 5},
+                )
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True, "Not waiting for finalziation or inclusion."
 
-        if not wait_for_inclusion and not wait_for_finalization:
-            return True, "Not waiting for inclusion or finalization."
+                response.process_events()
+                if response.is_success:
+                    return True, "Successfully set weights."
+                else:
+                    return False, response.error_message
 
-        if response is None:
-            return False, "No response from the blockchain."
-        response.process_events()
-        if response.is_success:
-            return True, None
-        else:
-            return False, response.error_message
+        return make_substrate_call_with_retry()
 
     ######################
     #### Registration ####
@@ -2928,6 +2934,19 @@ class subtensor:
         if not hasattr(_result, "value") or _result is None:
             return None
         return _result.value
+
+    def blocks_since_last_update(self, netuid: int, uid: int) -> int:
+        if not self.subnet_exists(netuid):
+            return None
+        return (
+            self.get_current_block()
+            - self.query_subtensor("LastUpdate", None, [netuid]).value[uid]
+        )
+
+    def weights_rate_limit(self, netuid: int) -> int:
+        if not self.subnet_exists(netuid):
+            return None
+        return self.query_subtensor("WeightsSetRateLimit", None, [netuid]).value
 
     ##########################
     #### Account functions ###
