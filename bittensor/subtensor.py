@@ -2935,19 +2935,6 @@ class subtensor:
             return None
         return _result.value
 
-    def blocks_since_last_update(self, netuid: int, uid: int) -> int:
-        if not self.subnet_exists(netuid):
-            return None
-        return (
-            self.get_current_block()
-            - self.query_subtensor("LastUpdate", None, [netuid]).value[uid]
-        )
-
-    def weights_rate_limit(self, netuid: int) -> int:
-        if not self.subnet_exists(netuid):
-            return None
-        return self.query_subtensor("WeightsSetRateLimit", None, [netuid]).value
-
     ##########################
     #### Account functions ###
     ##########################
