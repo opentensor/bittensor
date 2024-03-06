@@ -235,59 +235,27 @@ class subtensor:
         return "unknown", network
 
     @staticmethod
-    def setup_config(network: str, config: bittensor.config):
-        if network != None:
-            (
-                evaluated_network,
-                evaluated_endpoint,
-            ) = subtensor.determine_chain_endpoint_and_network(network)
-        else:
-            if config.get("__is_set", {}).get("subtensor.chain_endpoint"):
-                (
-                    evaluated_network,
-                    evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
-                    config.subtensor.chain_endpoint
-                )
+    def setup_config(network: Optional[str], config: 'bittensor.config') -> Tuple[str, str]:
+        """Setups the network configuration based on the provided network or configuration settings.
 
-            elif config.get("__is_set", {}).get("subtensor.network"):
-                (
-                    evaluated_network,
-                    evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
-                    config.subtensor.network
-                )
+        Args:
+            network (Optional[str]): The network name or endpoint.
+            config (bittensor.config): The configuration object.
 
-            elif config.subtensor.get("chain_endpoint"):
-                (
-                    evaluated_network,
-                    evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
-                    config.subtensor.chain_endpoint
-                )
+        Returns:
+            Tuple[str, str]: A tuple containing the formatted WebSocket endpoint URL and the evaluated network name.
+        """
+        evaluated_network, evaluated_endpoint = None, None
 
-            elif config.subtensor.get("network"):
-                (
-                    evaluated_network,
-                    evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
-                    config.subtensor.network
-                )
+        # Check and determine network and endpoint based on input or configuration defaults.
+        network_source = network or config.subtensor.get("chain_endpoint") or config.subtensor.get(
+            "network") or bittensor.defaults.subtensor.network
+        evaluated_network, evaluated_endpoint = subtensor.determine_chain_endpoint_and_network(network_source)
 
-            else:
-                (
-                    evaluated_network,
-                    evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
-                    bittensor.defaults.subtensor.network
-                )
+        # Format the endpoint URL.
+        formatted_endpoint_url = bittensor.utils.networking.get_formatted_ws_endpoint_url(evaluated_endpoint)
 
-        return (
-            bittensor.utils.networking.get_formatted_ws_endpoint_url(
-                evaluated_endpoint
-            ),
-            evaluated_network,
-        )
+        return formatted_endpoint_url, evaluated_network
 
     def __init__(
         self,
