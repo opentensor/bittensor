@@ -206,7 +206,7 @@ def publish_metadata(
     wallet: "bittensor.wallet",
     netuid: int,
     type: str,
-    data: str,
+    data: bytes,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
 ) -> bool:
