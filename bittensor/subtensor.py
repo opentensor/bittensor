@@ -203,48 +203,36 @@ class subtensor:
             pass
 
     @staticmethod
-    def determine_chain_endpoint_and_network(network: str):
-        """Determines the chain endpoint and network from the passed network or chain_endpoint.
+    def determine_chain_endpoint_and_network(network: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
+        """Determines the chain endpoint and network from the provided network or chain_endpoint string.
 
         Args:
-            network (str): The network flag. The choices are: ``-- finney`` (main network), ``-- archive`` (archive network +300 blocks), ``-- local`` (local running network), ``-- test`` (test network).
-            chain_endpoint (str): The chain endpoint flag. If set, overrides the network argument.
+            network (Optional[str]): Network or chain endpoint identifier.
+
         Returns:
-            network (str): The network flag.
-            chain_endpoint (str): The chain endpoint flag. If set, overrides the ``network`` argument.
+            Tuple[Optional[str], Optional[str]]: A tuple containing the network name and chain endpoint URL.
         """
-        if network == None:
-            return None, None
-        if network in ["finney", "local", "test", "archive"]:
-            if network == "finney":
-                # Kiru Finney stagin network.
-                return network, bittensor.__finney_entrypoint__
-            elif network == "local":
-                return network, bittensor.__local_entrypoint__
-            elif network == "test":
-                return network, bittensor.__finney_test_entrypoint__
-            elif network == "archive":
-                return network, bittensor.__archive_entrypoint__
-        else:
-            if (
-                network == bittensor.__finney_entrypoint__
-                or "entrypoint-finney.opentensor.ai" in network
-            ):
-                return "finney", bittensor.__finney_entrypoint__
-            elif (
-                network == bittensor.__finney_test_entrypoint__
-                or "test.finney.opentensor.ai" in network
-            ):
-                return "test", bittensor.__finney_test_entrypoint__
-            elif (
-                network == bittensor.__archive_entrypoint__
-                or "archive.chain.opentensor.ai" in network
-            ):
-                return "archive", bittensor.__archive_entrypoint__
-            elif "127.0.0.1" in network or "localhost" in network:
-                return "local", network
-            else:
-                return "unknown", network
+        endpoints = {
+            "finney": bittensor.__finney_entrypoint__,
+            "local": bittensor.__local_entrypoint__,
+            "test": bittensor.__finney_test_entrypoint__,
+            "archive": bittensor.__archive_entrypoint__,
+        }
+        reverse_endpoints = {v: k for k, v in endpoints.items()}
+
+        if network in endpoints:
+            return network, endpoints[network]
+        elif network in reverse_endpoints:
+            return reverse_endpoints[network], network
+        elif "entrypoint-finney.opentensor.ai" in network:
+            return "finney", endpoints["finney"]
+        elif "test.finney.opentensor.ai" in network:
+            return "test", endpoints["test"]
+        elif "archive.chain.opentensor.ai" in network:
+            return "archive", endpoints["archive"]
+        elif "127.0.0.1" in network or "localhost" in network:
+            return "local", network
+        return "unknown", network
 
     @staticmethod
     def setup_config(network: str, config: bittensor.config):
