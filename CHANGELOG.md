@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.8.2 / 2024-03-01
+
+## What's Changed
+* Set weights fix retry and check mechanism by @ifrit98 in https://github.com/opentensor/bittensor/pull/1729
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.8.1...v6.8.2
+
+
 ## 6.8.1 / 2024-02-22
 
 ## What's Changed

@@ -96,10 +96,7 @@ def set_weights_extrinsic(
             )
 
             if not wait_for_finalization and not wait_for_inclusion:
-                return (
-                    True,
-                    "Not waiting for finalization or inclusion. Assume successful.",
-                )
+                return True, "Not waiting for finalization or inclusion."
 
             if success == True:
                 console.success("Finalized")
@@ -107,14 +104,14 @@ def set_weights_extrinsic(
                     prefix="Set weights",
                     sufix="<green>Finalized: </green>" + str(success),
                 )
-                return True, "Success."
+                return True, "Successfully set weights and Finalized."
             else:
                 console.error("Failed", error_message)
                 bittensor.logging.warning(
                     prefix="Set weights",
                     sufix="<red>Failed: </red>" + str(error_message),
                 )
-                return False, str(error_message)
+                return False, error_message
 
         except Exception as e:
             console.error("Failed", e)
