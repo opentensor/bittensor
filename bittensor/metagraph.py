@@ -24,6 +24,8 @@ from os import listdir
 from os.path import join
 from typing import List, Optional
 
+from bittensor.chain_data import AxonInfo
+
 
 def get_save_dir(network: str, netuid: int) -> str:
     """
@@ -41,7 +43,7 @@ def get_save_dir(network: str, netuid: int) -> str:
     )
 
 
-def latest_block_path(dir_path: str) -> int:
+def latest_block_path(dir_path: str) -> str:
     """
     Get the latest block path from the directory.
 
@@ -49,7 +51,7 @@ def latest_block_path(dir_path: str) -> int:
         dir_path (str): Directory path.
 
     Returns:
-        int: Latest block path.
+        str: Latest block path.
     """
     latest_block = -1
     latest_file_full_path = None
@@ -126,7 +128,7 @@ class metagraph(torch.nn.Module):
     """
 
     @property
-    def S(self) -> torch.FloatTensor:
+    def S(self) -> torch.nn.Parameter:
         """
         Represents the stake of each neuron in the Bittensor network. Stake is an important concept in the
         Bittensor ecosystem, signifying the amount of network weight (or “stake”) each neuron holds,
@@ -134,12 +136,12 @@ class metagraph(torch.nn.Module):
         from the network, playing a crucial role in the distribution of incentives and decision-making processes.
 
         Returns:
-            torch.FloatTensor: A tensor representing the stake of each neuron in the network. Higher values signify a greater stake held by the respective neuron.
+            torch.nn.Parameter: A tensor representing the stake of each neuron in the network. Higher values signify a greater stake held by the respective neuron.
         """
         return self.total_stake
 
     @property
-    def R(self) -> torch.FloatTensor:
+    def R(self) -> torch.nn.Parameter:
         """
         Contains the ranks of neurons in the Bittensor network. Ranks are determined by the network based
         on each neuron's performance and contributions. Higher ranks typically indicate a greater level of
@@ -147,12 +149,12 @@ class metagraph(torch.nn.Module):
         incentives within the network, with higher-ranked neurons receiving more incentive.
 
         Returns:
-            torch.FloatTensor: A tensor where each element represents the rank of a neuron. Higher values indicate higher ranks within the network.
+            torch.nn.Parameter: A tensor where each element represents the rank of a neuron. Higher values indicate higher ranks within the network.
         """
         return self.ranks
 
     @property
-    def I(self) -> torch.FloatTensor:
+    def I(self) -> torch.nn.Parameter:
         """
         Incentive values of neurons represent the rewards they receive for their contributions to the network.
         The Bittensor network employs an incentive mechanism that rewards neurons based on their
@@ -160,12 +162,12 @@ class metagraph(torch.nn.Module):
         trusted contributions are incentivized.
 
         Returns:
-            torch.FloatTensor: A tensor of incentive values, indicating the rewards or benefits accrued by each neuron based on their contributions and network consensus.
+            torch.nn.Parameter: A tensor of incentive values, indicating the rewards or benefits accrued by each neuron based on their contributions and network consensus.
         """
         return self.incentive
 
     @property
-    def E(self) -> torch.FloatTensor:
+    def E(self) -> torch.nn.Parameter:
         """
         Denotes the emission values of neurons in the Bittensor network. Emissions refer to the distribution or
         release of rewards (often in the form of cryptocurrency) to neurons, typically based on their stake and
@@ -173,12 +175,12 @@ class metagraph(torch.nn.Module):
         contributing neurons are appropriately rewarded.
 
         Returns:
-            torch.FloatTensor: A tensor where each element represents the emission value for a neuron, indicating the amount of reward distributed to that neuron.
+            torch.nn.Parameter: A tensor where each element represents the emission value for a neuron, indicating the amount of reward distributed to that neuron.
         """
         return self.emission
 
     @property
-    def C(self) -> torch.FloatTensor:
+    def C(self) -> torch.nn.Parameter:
         """
         Represents the consensus values of neurons in the Bittensor network. Consensus is a measure of how
         much a neuron's contributions are trusted and agreed upon by the majority of the network. It is
@@ -187,13 +189,13 @@ class metagraph(torch.nn.Module):
         are more widely trusted and valued across the network.
 
         Returns:
-            torch.FloatTensor: A tensor of consensus values, where each element reflects the level of trust and agreement a neuron has achieved within the network.
+            torch.nn.Parameter: A tensor of consensus values, where each element reflects the level of trust and agreement a neuron has achieved within the network.
 
         """
         return self.consensus
 
     @property
-    def T(self) -> torch.FloatTensor:
+    def T(self) -> torch.nn.Parameter:
         """
         Represents the trust values assigned to each neuron in the Bittensor network. Trust is a key metric that
         reflects the reliability and reputation of a neuron based on its past behavior and contributions. It is
@@ -204,12 +206,12 @@ class metagraph(torch.nn.Module):
         has in others. A higher value in the trust matrix suggests a stronger trust relationship between neurons.
 
         Returns:
-            torch.FloatTensor: A tensor of trust values, where each element represents the trust level of a neuron. Higher values denote a higher level of trust within the network.
+            torch.nn.Parameter: A tensor of trust values, where each element represents the trust level of a neuron. Higher values denote a higher level of trust within the network.
         """
         return self.trust
 
     @property
-    def Tv(self) -> torch.FloatTensor:
+    def Tv(self) -> torch.nn.Parameter:
         """
         Contains the validator trust values of neurons in the Bittensor network. Validator trust is specifically
         associated with neurons that act as validators within the network. This specialized form of trust reflects
@@ -220,24 +222,24 @@ class metagraph(torch.nn.Module):
         determining the validators' influence and responsibilities in these critical functions.
 
         Returns:
-            torch.FloatTensor: A tensor of validator trust values, specifically applicable to neurons serving as validators, where higher values denote greater trustworthiness in their validation roles.
+            torch.nn.Parameter: A tensor of validator trust values, specifically applicable to neurons serving as validators, where higher values denote greater trustworthiness in their validation roles.
         """
         return self.validator_trust
 
     @property
-    def D(self) -> torch.FloatTensor:
+    def D(self) -> torch.nn.Parameter:
         """
         Represents the dividends received by neurons in the Bittensor network. Dividends are a form of reward or
         distribution, typically given to neurons based on their stake, performance, and contribution to the network.
         They are an integral part of the network's incentive structure, encouraging active and beneficial participation.
 
         Returns:
-            torch.FloatTensor: A tensor of dividend values, where each element indicates the dividends received by a neuron, reflecting their share of network rewards.
+            torch.nn.Parameter: A tensor of dividend values, where each element indicates the dividends received by a neuron, reflecting their share of network rewards.
         """
         return self.dividends
 
     @property
-    def B(self) -> torch.FloatTensor:
+    def B(self) -> torch.nn.Parameter:
         """
         Bonds in the Bittensor network represent a speculative reward mechanism where neurons can accumulate
         bonds in other neurons. Bonds are akin to investments or stakes in other neurons, reflecting a belief in
@@ -245,12 +247,12 @@ class metagraph(torch.nn.Module):
         among neurons while providing an additional layer of incentive.
 
         Returns:
-            torch.FloatTensor: A tensor representing the bonds held by each neuron, where each value signifies the proportion of bonds owned by one neuron in another.
+            torch.nn.Parameter: A tensor representing the bonds held by each neuron, where each value signifies the proportion of bonds owned by one neuron in another.
         """
         return self.bonds
 
     @property
-    def W(self) -> torch.FloatTensor:
+    def W(self) -> torch.nn.Parameter:
         """
         Represents the weights assigned to each neuron in the Bittensor network. In the context of Bittensor,
         weights are crucial for determining the influence and interaction between neurons. Each neuron is responsible
@@ -263,7 +265,7 @@ class metagraph(torch.nn.Module):
         placed on that neuron's contributions.
 
         Returns:
-            torch.FloatTensor: A tensor of inter-peer weights, where each element :math:`w_{ij}` represents the weight assigned by neuron :math:`i` to neuron :math:`j`. This matrix is fundamental to the network's functioning, influencing the distribution of incentives and the inter-neuronal dynamics.
+            torch.nn.Parameter: A tensor of inter-peer weights, where each element :math:`w_{ij}` represents the weight assigned by neuron :math:`i` to neuron :math:`j`. This matrix is fundamental to the network's functioning, influencing the distribution of incentives and the inter-neuronal dynamics.
         """
         return self.weights
 
@@ -380,7 +382,7 @@ class metagraph(torch.nn.Module):
 
     def __init__(
         self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
-    ) -> "metagraph":
+    ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
 
@@ -405,37 +407,37 @@ class metagraph(torch.nn.Module):
             torch.tensor([bittensor.__version_as_int__], dtype=torch.int64),
             requires_grad=False,
         )
-        self.n = torch.nn.Parameter(
+        self.n: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([0], dtype=torch.int64), requires_grad=False
         )
-        self.block = torch.nn.Parameter(
+        self.block: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([0], dtype=torch.int64), requires_grad=False
         )
         self.stake = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
-        self.total_stake = torch.nn.Parameter(
+        self.total_stake: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
-        self.ranks = torch.nn.Parameter(
+        self.ranks: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
-        self.trust = torch.nn.Parameter(
+        self.trust: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
-        self.consensus = torch.nn.Parameter(
+        self.consensus: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
-        self.validator_trust = torch.nn.Parameter(
+        self.validator_trust: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
-        self.incentive = torch.nn.Parameter(
+        self.incentive: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
-        self.emission = torch.nn.Parameter(
+        self.emission: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
-        self.dividends = torch.nn.Parameter(
+        self.dividends: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
         self.active = torch.nn.Parameter(
@@ -447,16 +449,16 @@ class metagraph(torch.nn.Module):
         self.validator_permit = torch.nn.Parameter(
             torch.tensor([], dtype=torch.bool), requires_grad=False
         )
-        self.weights = torch.nn.Parameter(
+        self.weights: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
-        self.bonds = torch.nn.Parameter(
+        self.bonds: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
         self.uids = torch.nn.Parameter(
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
-        self.axons = []
+        self.axons: List[AxonInfo] = []
         if sync:
             self.sync(block=None, lite=lite)
 
@@ -465,7 +467,7 @@ class metagraph(torch.nn.Module):
         block: Optional[int] = None,
         lite: bool = True,
         subtensor: Optional["bittensor.subtensor"] = None,
-    ) -> "metagraph":
+    ):
         """
         Synchronizes the metagraph with the Bittensor network's current state. It updates the metagraph's attributes
         to reflect the latest data from the network, ensuring the metagraph represents the most current state of the network.
@@ -499,6 +501,15 @@ class metagraph(torch.nn.Module):
 
                 subtensor = bittensor.subtensor(network='archive')
         """
+
+        if block and block > 300:
+            bittensor.logging.error(
+                "Block number is greater than 300. Please use the 'archive' network for subtensor and retry."
+            )
+            raise ValueError(
+                "Block number is greater than 300. Please use the 'archive' network for subtensor and retry."
+            )
+
         # Initialize subtensor
         subtensor = self._initialize_subtensor(subtensor)
 
@@ -643,7 +654,7 @@ class metagraph(torch.nn.Module):
         # TODO: Check and test the creation of tensor
         return torch.nn.Parameter(torch.tensor(data, dtype=dtype), requires_grad=False)
 
-    def _set_weights_and_bonds(self, subtensor: bittensor.subtensor = None):
+    def _set_weights_and_bonds(self, subtensor: Optional[bittensor.subtensor] = None):
         """
         Computes and sets the weights and bonds for each neuron in the metagraph. This method is responsible for processing the raw weight and bond data obtained from the network and converting it into a structured format suitable for the metagraph model.
 
@@ -658,7 +669,7 @@ class metagraph(torch.nn.Module):
         # TODO: Check and test the computation of weights and bonds
         if self.netuid == 0:
             self.weights = self._process_root_weights(
-                [neuron.weights for neuron in self.neurons], "weights", subtensor
+                [neuron.weights for neuron in self.neurons], "weights", subtensor  # type: ignore
             )
         else:
             self.weights = self._process_weights_or_bonds(
@@ -694,13 +705,13 @@ class metagraph(torch.nn.Module):
                 if attribute == "weights":
                     data_array.append(
                         bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor(
-                            len(self.neurons), uids, values
+                            len(self.neurons), list(uids), list(values)
                         )
                     )
                 else:
                     data_array.append(
                         bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor(
-                            len(self.neurons), uids, values
+                            len(self.neurons), list(uids), list(values)
                         )
                     )
         tensor_param = (
@@ -737,7 +748,7 @@ class metagraph(torch.nn.Module):
 
         """
         data_array = []
-        n_subnets = subtensor.get_total_subnets()
+        n_subnets = subtensor.get_total_subnets() or 0
         subnets = subtensor.get_subnets()
         for item in data:
             if len(item) == 0:
@@ -747,7 +758,7 @@ class metagraph(torch.nn.Module):
                 # TODO: Validate and test the conversion of uids and values to tensor
                 data_array.append(
                     bittensor.utils.weight_utils.convert_root_weight_uids_and_vals_to_tensor(
-                        n_subnets, uids, values, subnets
+                        n_subnets, list(uids), list(values), subnets
                     )
                 )
 
@@ -793,7 +804,7 @@ class metagraph(torch.nn.Module):
         state_dict = torch.load(graph_file)
         return self
 
-    def load(self) -> "metagraph":
+    def load(self):
         """
         Loads the state of the metagraph from the default save directory. This method is instrumental for restoring the metagraph to its last saved state. It automatically identifies the save directory based on the ``network`` and ``netuid`` properties of the metagraph, locates the latest block file in that directory, and loads all metagraph parameters from it.
 

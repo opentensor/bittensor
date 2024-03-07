@@ -26,11 +26,12 @@ import scalecodec
 
 from retry import retry
 from loguru import logger
-from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
+from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any, TypeVar
 from substrateinterface.base import QueryMapResult, SubstrateInterface, ExtrinsicReceipt
 from substrateinterface.exceptions import SubstrateRequestException
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
+from scalecodec.types import GenericCall
 
 # Local imports.
 from .chain_data import (
@@ -85,6 +86,10 @@ from .utils.balance import Balance
 from .utils.registration import POWSolution
 
 logger = logger.opt(colors=True)
+
+KEY_NONCE: Dict[str, int] = {}
+
+T = TypeVar("T")
 
 
 class ParamWithTypes(TypedDict):
@@ -162,8 +167,8 @@ class subtensor:
         parser.print_help()
 
     @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
-        prefix_str = "" if prefix == None else prefix + "."
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: Optional[str] = None):
+        prefix_str = "" if prefix is None else f"{prefix}."
         try:
             default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "finney"
             default_chain_endpoint = (
@@ -213,7 +218,7 @@ class subtensor:
             network (str): The network flag.
             chain_endpoint (str): The chain endpoint flag. If set, overrides the ``network`` argument.
         """
-        if network == None:
+        if network is None:
             return None, None
         if network in ["finney", "local", "test", "archive"]:
             if network == "finney":
@@ -303,8 +308,8 @@ class subtensor:
 
     def __init__(
         self,
-        network: str = None,
-        config: "bittensor.config" = None,
+        network: Optional[str] = None,
+        config: Optional[bittensor.config] = None,
         _mock: bool = False,
         log_verbose: bool = True,
     ) -> None:
@@ -334,7 +339,7 @@ class subtensor:
 
         # Check if network is a config object. (Single argument passed as first positional)
         if isinstance(network, bittensor.config):
-            if network.subtensor == None:
+            if network.subtensor is None:
                 bittensor.logging.warning(
                     "If passing a bittensor config object, it must not be empty. Using default subtensor config."
                 )
@@ -343,12 +348,12 @@ class subtensor:
                 config = network
             network = None
 
-        if config == None:
+        if config is None:
             config = subtensor.config()
-        self.config = copy.deepcopy(config)
+        self.config = copy.deepcopy(config)  # type: ignore
 
         # Setup config.subtensor.network and config.subtensor.chain_endpoint
-        self.chain_endpoint, self.network = subtensor.setup_config(network, config)
+        self.chain_endpoint, self.network = subtensor.setup_config(network, config)  # type: ignore
 
         if (
             self.network == "finney"
@@ -372,9 +377,11 @@ class subtensor:
             if _mock != None
             else self.config.subtensor.get("_mock", bittensor.defaults.subtensor._mock)
         )
-        if self.config.subtensor._mock:
+        if (
+            self.config.subtensor._mock
+        ):  # TODO: review this doesn't appear to be used anywhere.
             config.subtensor._mock = True
-            return bittensor.subtensor_mock.MockSubtensor()
+            return bittensor.MockSubtensor()  # type: ignore
 
         # Attempt to connect to chosen endpoint. Fallback to finney if local unavailable.
         try:
@@ -467,7 +474,7 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         delegate_ss58: Optional[str] = None,
-        amount: Union[Balance, float] = None,
+        amount: Optional[Union[Balance, float]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -502,7 +509,7 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         delegate_ss58: Optional[str] = None,
-        amount: Union[Balance, float] = None,
+        amount: Optional[Union[Balance, float]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -573,7 +580,12 @@ class subtensor:
             call_params=params,
         )
 
-        nonce = self.substrate.get_account_nonce(wallet.get_hotkey().ss58_address)
+        hotkey = wallet.get_hotkey().ss58_address
+        # Periodically update the nonce cache
+        if hotkey not in KEY_NONCE or self.get_current_block() % 5 == 0:
+            KEY_NONCE[hotkey] = self.substrate.get_account_nonce(hotkey)
+
+        nonce = KEY_NONCE[hotkey]
 
         # <3 parity tech
         old_init_runtime = self.substrate.init_runtime
@@ -599,16 +611,19 @@ class subtensor:
 
                 # Return immediately if we don't wait
                 if not wait_for_inclusion and not wait_for_finalization:
+                    KEY_NONCE[hotkey] = nonce + 1  # update the nonce cache
                     return response
 
                 # If we wait for finalization or inclusion, check if it is successful
                 if response.is_success:
+                    KEY_NONCE[hotkey] = nonce + 1  # update the nonce cache
                     return response
                 else:
-                    # Incr the nonce and try again
-                    nonce = nonce + 1
+                    # Wait for a while
                     wait = min(wait_time * attempt, max_wait)
                     time.sleep(wait)
+                    # Incr the nonce and try again
+                    nonce = nonce + 1
                     continue
 
             # This dies because user is spamming... incr and try again
@@ -623,6 +638,7 @@ class subtensor:
                     continue
                 else:
                     bittensor.logging.error(f"Error sending extrinsic: {e}")
+                    response = None
 
         return response
 
@@ -636,11 +652,12 @@ class subtensor:
         uids: Union[torch.LongTensor, list],
         weights: Union[torch.FloatTensor, list],
         version_key: int = bittensor.__version_as_int__,
+        uid: Optional[int] = None,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
         max_retries: int = 5,
-    ) -> bool:
+    ) -> Tuple[bool, str]:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the
         influence or trust a neuron places on other neurons in the network, which is a fundamental aspect
@@ -649,16 +666,18 @@ class subtensor:
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron setting the weights.
             netuid (int): The unique identifier of the subnet.
+            uid (int): Unique identifier for the caller on the subnet specified by `netuid`.
             uids (Union[torch.LongTensor, list]): The list of neuron UIDs that the weights are being set for.
             weights (Union[torch.FloatTensor, list]): The corresponding weights to be set for each UID.
             version_key (int, optional): Version key for compatibility with the network.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If True, prompts for user confirmation before proceeding.
-            max_retries (bool, optional): The maximum number of retries for setting weights.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+            max_retries (int, optional): The number of maximum attempts to set weights. (Default: 5)
 
         Returns:
-            bool: ``True`` if the setting of weights is successful, False otherwise.
+            Tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string
+            value describing the success or potential error.
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's
         learning and contribution are influenced by the weights it sets towards others【81†source】.
@@ -668,7 +687,7 @@ class subtensor:
         success = False
         message = "No attempt made. Perhaps it is too soon to set weights!"
         while (
-            self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)
+            self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)  # type: ignore
             and retries < max_retries
         ):
             try:
@@ -1212,7 +1231,7 @@ class subtensor:
             module_name="Balances", constant_name="ExistentialDeposit", block=block
         )
 
-        if result is None:
+        if result is None or not hasattr(result, "value"):
             return None
 
         return Balance.from_rao(result.value)
@@ -1347,7 +1366,7 @@ class subtensor:
     def serve_axon(
         self,
         netuid: int,
-        axon: "bittensor.Axon",
+        axon: "bittensor.axon",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False,
@@ -1548,7 +1567,7 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58: Optional[str] = None,
-        amount: Union[Balance, float] = None,
+        amount: Optional[Union[Balance, float]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -1586,7 +1605,7 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58s: List[str],
-        amounts: List[Union[Balance, float]] = None,
+        amounts: Optional[List[Union[Balance, float]]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -1676,7 +1695,7 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58s: List[str],
-        amounts: List[Union[Balance, float]] = None,
+        amounts: Optional[List[Union[Balance, float]]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -1713,7 +1732,7 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58: Optional[str] = None,
-        amount: Union[Balance, float] = None,
+        amount: Optional[Union[Balance, float]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -1915,8 +1934,15 @@ class subtensor:
         """
         senate_members = self.query_module(
             module="SenateMembers", name="Members", block=block
-        ).serialize()
-        return senate_members.count(hotkey_ss58) > 0
+        )
+        if not hasattr(senate_members, "serialize"):
+            return False
+        senate_members_serialized = senate_members.serialize()
+
+        if not hasattr(senate_members_serialized, "count"):
+            return False
+
+        return senate_members_serialized.count(hotkey_ss58) > 0
 
     def get_vote_data(
         self, proposal_hash: str, block: Optional[int] = None
@@ -1938,6 +1964,8 @@ class subtensor:
         vote_data = self.query_module(
             module="Triumvirate", name="Voting", block=block, params=[proposal_hash]
         )
+        if not hasattr(vote_data, "serialize"):
+            return None
         return vote_data.serialize() if vote_data != None else None
 
     get_proposal_vote_data = get_vote_data
@@ -1957,12 +1985,13 @@ class subtensor:
         decision-making authority within the Bittensor network.
         """
         senate_members = self.query_module("SenateMembers", "Members", block=block)
-
+        if not hasattr(senate_members, "serialize"):
+            return None
         return senate_members.serialize() if senate_members != None else None
 
     def get_proposal_call_data(
         self, proposal_hash: str, block: Optional[int] = None
-    ) -> Optional["bittensor.ProposalCallData"]:
+    ) -> Optional[GenericCall]:
         """
         Retrieves the call data of a specific proposal on the Bittensor blockchain. This data provides
         detailed information about the proposal, including its purpose and specifications.
@@ -1980,6 +2009,8 @@ class subtensor:
         proposal_data = self.query_module(
             module="Triumvirate", name="ProposalOf", block=block, params=[proposal_hash]
         )
+        if not hasattr(proposal_data, "serialize"):
+            return None
 
         return proposal_data.serialize() if proposal_data != None else None
 
@@ -2000,14 +2031,14 @@ class subtensor:
         proposal_hashes = self.query_module(
             module="Triumvirate", name="Proposals", block=block
         )
+        if not hasattr(proposal_hashes, "serialize"):
+            return None
 
         return proposal_hashes.serialize() if proposal_hashes != None else None
 
     def get_proposals(
         self, block: Optional[int] = None
-    ) -> Optional[
-        Dict[str, Tuple["bittensor.ProposalCallData", "bittensor.ProposalVoteData"]]
-    ]:
+    ) -> Optional[Dict[str, Tuple[GenericCall, ProposalVoteData]]]:
         """
         Retrieves all active proposals on the Bittensor blockchain, along with their call and voting data.
         This comprehensive view allows for a thorough understanding of the proposals and their reception
@@ -2023,16 +2054,16 @@ class subtensor:
         This function is integral for analyzing the governance activity on the Bittensor network,
         providing a holistic view of the proposals and their impact or potential changes within the network.
         """
-        proposals = {}
-        proposal_hashes: List = self.get_proposal_hashes(block=block)
-
-        for proposal_hash in proposal_hashes:
-            proposals[proposal_hash] = (
+        proposal_hashes: Optional[List[str]] = self.get_proposal_hashes(block=block)
+        if proposal_hashes is None:
+            return None
+        return {
+            proposal_hash: (  # type: ignore
                 self.get_proposal_call_data(proposal_hash, block=block),
                 self.get_proposal_vote_data(proposal_hash, block=block),
             )
-
-        return proposals
+            for proposal_hash in proposal_hashes
+        }
 
     ##############
     #### Root ####
@@ -2185,7 +2216,7 @@ class subtensor:
                     storage_function="IdentityOf",
                     params=[key],
                     block_hash=(
-                        None if block == None else substrate.get_block_hash(block)
+                        None if block is None else substrate.get_block_hash(block)
                     ),
                 )
 
@@ -2197,7 +2228,7 @@ class subtensor:
     def update_identity(
         self,
         wallet: "bittensor.wallet",
-        identified: str = None,
+        identified: Optional[str] = None,
         params: dict = {},
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -2222,7 +2253,7 @@ class subtensor:
         This function plays a vital role in maintaining the accuracy and currency of neuron identities in the
         Bittensor network, ensuring that the network's governance and consensus mechanisms operate effectively.
         """
-        if identified == None:
+        if identified is None:
             identified = wallet.coldkey.ss58_address
 
         call_params = bittensor.utils.wallet_utils.create_identity_dict(**params)
@@ -2265,8 +2296,8 @@ class subtensor:
         hotkey = metagraph.hotkeys[uid]
 
         metadata = get_metadata(self, netuid, hotkey, block)
-        commitment = metadata["info"]["fields"][0]
-        hex_data = commitment[list(commitment.keys())[0]][2:]
+        commitment = metadata["info"]["fields"][0]  # type: ignore
+        hex_data = commitment[list(commitment.keys())[0]][2:]  # type: ignore
 
         return bytes.fromhex(hex_data).decode()
 
@@ -2281,7 +2312,7 @@ class subtensor:
         name: str,
         block: Optional[int] = None,
         params: Optional[List[object]] = [],
-    ) -> Optional[object]:
+    ) -> Optional[T]:
         """
         Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to retrieve
         specific data or parameters from the blockchain, such as stake, rank, or other neuron-specific attributes.
@@ -2306,7 +2337,7 @@ class subtensor:
                     storage_function=name,
                     params=params,
                     block_hash=(
-                        None if block == None else substrate.get_block_hash(block)
+                        None if block is None else substrate.get_block_hash(block)
                     ),
                 )
 
@@ -2344,7 +2375,7 @@ class subtensor:
                     storage_function=name,
                     params=params,
                     block_hash=(
-                        None if block == None else substrate.get_block_hash(block)
+                        None if block is None else substrate.get_block_hash(block)
                     ),
                 )
 
@@ -2378,7 +2409,7 @@ class subtensor:
                     module_name=module_name,
                     constant_name=constant_name,
                     block_hash=(
-                        None if block == None else substrate.get_block_hash(block)
+                        None if block is None else substrate.get_block_hash(block)
                     ),
                 )
 
@@ -2419,7 +2450,7 @@ class subtensor:
                     storage_function=name,
                     params=params,
                     block_hash=(
-                        None if block == None else substrate.get_block_hash(block)
+                        None if block is None else substrate.get_block_hash(block)
                     ),
                 )
 
@@ -2459,7 +2490,7 @@ class subtensor:
                     storage_function=name,
                     params=params,
                     block_hash=(
-                        None if block == None else substrate.get_block_hash(block)
+                        None if block is None else substrate.get_block_hash(block)
                     ),
                 )
 
@@ -2490,7 +2521,7 @@ class subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
+                block_hash = None if block is None else substrate.get_block_hash(block)
                 params = [method, data]
                 if block_hash:
                     params = params + [block_hash]
@@ -2502,9 +2533,9 @@ class subtensor:
         self,
         runtime_api: str,
         method: str,
-        params: Optional[List[ParamWithTypes]],
+        params: Optional[Union[List[int], Dict[str, int]]],
         block: Optional[int] = None,
-    ) -> Optional[bytes]:
+    ) -> Optional[str]:
         """
         Queries the runtime API of the Bittensor blockchain, providing a way to interact with the underlying
         runtime and retrieve data encoded in Scale Bytes format. This function is essential for advanced users
@@ -2522,9 +2553,11 @@ class subtensor:
         This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed
         and specific interactions with the network's runtime environment.
         """
-        call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][
-            "methods"
-        ][method]
+        call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
+            "methods"  # type: ignore
+        ][
+            method
+        ]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
@@ -2541,7 +2574,7 @@ class subtensor:
 
         return_type = call_definition["type"]
 
-        as_scale_bytes = scalecodec.ScaleBytes(json_result["result"])
+        as_scale_bytes = scalecodec.ScaleBytes(json_result["result"])  # type: ignore
 
         rpc_runtime_config = RuntimeConfiguration()
         rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
@@ -2556,14 +2589,14 @@ class subtensor:
     def _encode_params(
         self,
         call_definition: List[ParamWithTypes],
-        params: Union[List[Any], Dict[str, str]],
+        params: Union[List[Any], Dict[str, Any]],
     ) -> str:
         """
         Returns a hex encoded string of the params using their types.
         """
         param_data = scalecodec.ScaleBytes(b"")
 
-        for i, param in enumerate(call_definition["params"]):
+        for i, param in enumerate(call_definition["params"]):  # type: ignore
             scale_obj = self.substrate.create_scale_object(param["type"])
             if type(params) is list:
                 param_data += scale_obj.encode(params[i])
@@ -2606,7 +2639,10 @@ class subtensor:
         """
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("Rho", block, [netuid]).value
+        _result = self.query_subtensor("Rho", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def kappa(self, netuid: int, block: Optional[int] = None) -> Optional[float]:
         """
@@ -2633,9 +2669,11 @@ class subtensor:
         """
         if not self.subnet_exists(netuid, block):
             return None
-        return U16_NORMALIZED_FLOAT(
-            self.query_subtensor("Kappa", block, [netuid]).value
-        )
+
+        _result = self.query_subtensor("Kappa", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return U16_NORMALIZED_FLOAT(_result.value)
 
     def difficulty(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
         """
@@ -2655,7 +2693,10 @@ class subtensor:
         """
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("Difficulty", block, [netuid]).value
+        _result = self.query_subtensor("Difficulty", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def recycle(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
         """
@@ -2674,7 +2715,10 @@ class subtensor:
         """
         if not self.subnet_exists(netuid, block):
             return None
-        return Balance.from_rao(self.query_subtensor("Burn", block, [netuid]).value)
+        _result = self.query_subtensor("Burn", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return Balance.from_rao(_result.value)
 
     """ Returns network ImmunityPeriod hyper parameter """
 
@@ -2698,7 +2742,10 @@ class subtensor:
         """
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("ImmunityPeriod", block, [netuid]).value
+        _result = self.query_subtensor("ImmunityPeriod", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def validator_batch_size(
         self, netuid: int, block: Optional[int] = None
@@ -2706,13 +2753,21 @@ class subtensor:
         """Returns network ValidatorBatchSize hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("ValidatorBatchSize", block, [netuid]).value
+        _result = self.query_subtensor("ValidatorBatchSize", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
-    def validator_prune_len(self, netuid: int, block: Optional[int] = None) -> int:
+    def validator_prune_len(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
         """Returns network ValidatorPruneLen hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("ValidatorPruneLen", block, [netuid]).value
+        _result = self.query_subtensor("ValidatorPruneLen", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def validator_logits_divergence(
         self, netuid: int, block: Optional[int] = None
@@ -2720,9 +2775,10 @@ class subtensor:
         """Returns network ValidatorLogitsDivergence hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return U16_NORMALIZED_FLOAT(
-            self.query_subtensor("ValidatorLogitsDivergence", block, [netuid]).value
-        )
+        _result = self.query_subtensor("ValidatorLogitsDivergence", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return U16_NORMALIZED_FLOAT(_result.value)
 
     def validator_sequence_length(
         self, netuid: int, block: Optional[int] = None
@@ -2730,7 +2786,10 @@ class subtensor:
         """Returns network ValidatorSequenceLength hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("ValidatorSequenceLength", block, [netuid]).value
+        _result = self.query_subtensor("ValidatorSequenceLength", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def validator_epochs_per_reset(
         self, netuid: int, block: Optional[int] = None
@@ -2738,7 +2797,10 @@ class subtensor:
         """Returns network ValidatorEpochsPerReset hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("ValidatorEpochsPerReset", block, [netuid]).value
+        _result = self.query_subtensor("ValidatorEpochsPerReset", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def validator_epoch_length(
         self, netuid: int, block: Optional[int] = None
@@ -2746,7 +2808,11 @@ class subtensor:
         """Returns network ValidatorEpochLen hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("ValidatorEpochLen", block, [netuid]).value
+        _result = self.query_subtensor("ValidatorEpochLen", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+
+        return _result.value
 
     def validator_exclude_quantile(
         self, netuid: int, block: Optional[int] = None
@@ -2754,9 +2820,10 @@ class subtensor:
         """Returns network ValidatorEpochLen hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return U16_NORMALIZED_FLOAT(
-            self.query_subtensor("ValidatorExcludeQuantile", block, [netuid]).value
-        )
+        _result = self.query_subtensor("ValidatorExcludeQuantile", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return U16_NORMALIZED_FLOAT(_result.value)
 
     def max_allowed_validators(
         self, netuid: int, block: Optional[int] = None
@@ -2764,7 +2831,10 @@ class subtensor:
         """Returns network MaxAllowedValidators hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("MaxAllowedValidators", block, [netuid]).value
+        _result = self.query_subtensor("MaxAllowedValidators", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def min_allowed_weights(
         self, netuid: int, block: Optional[int] = None
@@ -2772,7 +2842,10 @@ class subtensor:
         """Returns network MinAllowedWeights hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("MinAllowedWeights", block, [netuid]).value
+        _result = self.query_subtensor("MinAllowedWeights", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def max_weight_limit(
         self, netuid: int, block: Optional[int] = None
@@ -2780,9 +2853,10 @@ class subtensor:
         """Returns network MaxWeightsLimit hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return U16_NORMALIZED_FLOAT(
-            self.query_subtensor("MaxWeightsLimit", block, [netuid]).value
-        )
+        _result = self.query_subtensor("MaxWeightsLimit", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return U16_NORMALIZED_FLOAT(_result.value)
 
     def scaling_law_power(
         self, netuid: int, block: Optional[int] = None
@@ -2790,7 +2864,10 @@ class subtensor:
         """Returns network ScalingLawPower hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("ScalingLawPower", block, [netuid]).value / 100.0
+        _result = self.query_subtensor("ScalingLawPower", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value / 100.0
 
     def synergy_scaling_law_power(
         self, netuid: int, block: Optional[int] = None
@@ -2798,47 +2875,65 @@ class subtensor:
         """Returns network SynergyScalingLawPower hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return (
-            self.query_subtensor("SynergyScalingLawPower", block, [netuid]).value
-            / 100.0
-        )
+        _result = self.query_subtensor("SynergyScalingLawPower", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value / 100.0
 
-    def subnetwork_n(self, netuid: int, block: Optional[int] = None) -> int:
+    def subnetwork_n(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
         """Returns network SubnetworkN hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("SubnetworkN", block, [netuid]).value
+        _result = self.query_subtensor("SubnetworkN", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def max_n(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
         """Returns network MaxAllowedUids hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("MaxAllowedUids", block, [netuid]).value
+        _result = self.query_subtensor("MaxAllowedUids", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
-    def blocks_since_epoch(self, netuid: int, block: Optional[int] = None) -> int:
+    def blocks_since_epoch(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
         """Returns network BlocksSinceLastStep hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("BlocksSinceLastStep", block, [netuid]).value
+        _result = self.query_subtensor("BlocksSinceEpoch", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
-    def tempo(self, netuid: int, block: Optional[int] = None) -> int:
+    def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
+        if not self.subnet_exists(netuid):
+            return None
+        _result = self.query_subtensor("LastUpdate", None, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+
+        return self.get_current_block() - _result.value[uid]
+
+    def weights_rate_limit(self, netuid: int) -> Optional[int]:
+        if not self.subnet_exists(netuid):
+            return None
+        _result = self.query_subtensor("WeightsSetRateLimit", None, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
+
+    def tempo(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
         """Returns network Tempo hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor("Tempo", block, [netuid]).value
-
-    def blocks_since_last_update(self, netuid: int, uid: int) -> int:
-        if not self.subnet_exists(netuid):
+        _result = self.query_subtensor("Tempo", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
             return None
-        return (
-            self.get_current_block()
-            - self.query_subtensor("LastUpdate", None, [netuid]).value[uid]
-        )
-
-    def weights_rate_limit(self, netuid: int) -> int:
-        if not self.subnet_exists(netuid):
-            return None
-        return self.query_subtensor("WeightsSetRateLimit", None, [netuid]).value
+        return _result.value
 
     ##########################
     #### Account functions ###
@@ -2848,25 +2943,28 @@ class subtensor:
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
         """Returns the total stake held on a hotkey including delegative"""
-        return Balance.from_rao(
-            self.query_subtensor("TotalHotkeyStake", block, [ss58_address]).value
-        )
+        _result = self.query_subtensor("TotalHotkeyStake", block, [ss58_address])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return Balance.from_rao(_result.value)
 
     def get_total_stake_for_coldkey(
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
         """Returns the total stake held on a coldkey across all hotkeys including delegates"""
-        return Balance.from_rao(
-            self.query_subtensor("TotalColdkeyStake", block, [ss58_address]).value
-        )
+        _result = self.query_subtensor("TotalColdkeyStake", block, [ss58_address])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return Balance.from_rao(_result.value)
 
     def get_stake_for_coldkey_and_hotkey(
         self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
         """Returns the stake under a coldkey - hotkey pairing"""
-        return Balance.from_rao(
-            self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58]).value
-        )
+        _result = self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return Balance.from_rao(_result.value)
 
     def get_stake(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -2879,26 +2977,28 @@ class subtensor:
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """Returns true if the hotkey is known by the chain and there are accounts."""
-        return (
-            self.query_subtensor("Owner", block, [hotkey_ss58]).value
-            != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
-        )
+        _result = self.query_subtensor("Owner", block, [hotkey_ss58])
+        if not hasattr(_result, "value") or _result is None:
+            return False
+
+        return _result.value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
 
     def get_hotkey_owner(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[str]:
         """Returns the coldkey owner of the passed hotkey"""
-        if self.does_hotkey_exist(hotkey_ss58, block):
-            return self.query_subtensor("Owner", block, [hotkey_ss58]).value
-        else:
+        _result = self.query_subtensor("Owner", block, [hotkey_ss58])
+        if not hasattr(_result, "value") or _result is None:
             return None
+        if self.does_hotkey_exist(hotkey_ss58, block):
+            return _result.value
 
     def get_axon_info(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[AxonInfo]:
         """Returns the axon information for this hotkey account"""
         result = self.query_subtensor("Axons", block, [netuid, hotkey_ss58])
-        if result != None:
+        if result is not None and hasattr(result, "value"):
             return AxonInfo(
                 ip=bittensor.utils.networking.int_to_ip(result.value["ip"]),
                 ip_type=result.value["ip_type"],
@@ -2907,16 +3007,18 @@ class subtensor:
                 version=result.value["version"],
                 placeholder1=result.value["placeholder1"],
                 placeholder2=result.value["placeholder2"],
+                hotkey=hotkey_ss58,
+                coldkey="",
             )
-        else:
-            return None
+
+        return None
 
     def get_prometheus_info(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
-    ) -> Optional[AxonInfo]:
+    ) -> Optional[PrometheusInfo]:
         """Returns the prometheus information for this hotkey account"""
         result = self.query_subtensor("Prometheus", block, [netuid, hotkey_ss58])
-        if result != None:
+        if result is not None:
             return PrometheusInfo(
                 ip=bittensor.utils.networking.int_to_ip(result.value["ip"]),
                 ip_type=result.value["ip_type"],
@@ -2940,7 +3042,7 @@ class subtensor:
         """
         return self.get_current_block()
 
-    def total_issuance(self, block: Optional[int] = None) -> "Balance":
+    def total_issuance(self, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the total issuance of the Bittensor network's native token (Tao) as of a specific
         blockchain block. This represents the total amount of currency that has been issued or mined on the network.
@@ -2954,9 +3056,12 @@ class subtensor:
         The total issuance is a key economic indicator in the Bittensor network, reflecting the overall supply
         of the currency and providing insights into the network's economic health and inflationary trends.
         """
-        return Balance.from_rao(self.query_subtensor("TotalIssuance", block).value)
+        _result = self.query_subtensor("TotalIssuance", block)
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return Balance.from_rao(_result.value)
 
-    def total_stake(self, block: Optional[int] = None) -> "Balance":
+    def total_stake(self, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the total amount of TAO staked on the Bittensor network as of a specific blockchain block.
         This represents the cumulative stake across all neurons in the network, indicating the overall level
@@ -2972,7 +3077,10 @@ class subtensor:
         and the level of commitment by its participants. It is also a critical factor in the network's
         consensus and incentive mechanisms.
         """
-        return Balance.from_rao(self.query_subtensor("TotalStake", block).value)
+        _result = self.query_subtensor("TotalStake", block)
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return Balance.from_rao(_result.value)
 
     def serving_rate_limit(
         self, netuid: int, block: Optional[int] = None
@@ -2994,9 +3102,10 @@ class subtensor:
         """
         if not self.subnet_exists(netuid, block):
             return None
-        return self.query_subtensor(
-            "ServingRateLimit", block=block, params=[netuid]
-        ).value
+        _result = self.query_subtensor("ServingRateLimit", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def tx_rate_limit(self, block: Optional[int] = None) -> Optional[int]:
         """
@@ -3013,7 +3122,10 @@ class subtensor:
         of the Bittensor network. It helps in managing network load and preventing congestion, thereby
         maintaining efficient and timely transaction processing.
         """
-        return self.query_subtensor("TxRateLimit", block).value
+        _result = self.query_subtensor("TxRateLimit", block)
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     #####################################
     #### Network Parameters ####
@@ -3033,7 +3145,10 @@ class subtensor:
         This function is critical for verifying the presence of specific subnets in the network,
         enabling a deeper understanding of the network's structure and composition.
         """
-        return self.query_subtensor("NetworksAdded", block, [netuid]).value
+        _result = self.query_subtensor("NetworksAdded", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return False
+        return _result.value
 
     def get_all_subnet_netuids(self, block: Optional[int] = None) -> List[int]:
         """
@@ -3057,7 +3172,7 @@ class subtensor:
 
         return subnet_netuids
 
-    def get_total_subnets(self, block: Optional[int] = None) -> int:
+    def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
         """
         Retrieves the total number of subnets within the Bittensor network as of a specific blockchain block.
 
@@ -3070,17 +3185,26 @@ class subtensor:
         Understanding the total number of subnets is essential for assessing the network's growth and
         the extent of its decentralized infrastructure.
         """
-        return self.query_subtensor("TotalNetworks", block).value
+        _result = self.query_subtensor("TotalNetworks", block)
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def get_subnet_modality(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[int]:
-        return self.query_subtensor("NetworkModality", block, [netuid]).value
+        _result = self.query_subtensor("NetworkModality", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def get_subnet_connection_requirement(
         self, netuid_0: int, netuid_1: int, block: Optional[int] = None
     ) -> Optional[int]:
-        return self.query_subtensor("NetworkConnect", block, [netuid_0, netuid_1]).value
+        _result = self.query_subtensor("NetworkConnect", block, [netuid_0, netuid_1])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def get_emission_value_by_subnet(
         self, netuid: int, block: Optional[int] = None
@@ -3099,9 +3223,10 @@ class subtensor:
         The emission value is a critical economic parameter, influencing the incentive distribution and
         reward mechanisms within the subnet.
         """
-        return Balance.from_rao(
-            self.query_subtensor("EmissionValues", block, [netuid]).value
-        )
+        _result = self.query_subtensor("EmissionValues", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return Balance.from_rao(_result.value)
 
     def get_subnet_connection_requirements(
         self, netuid: int, block: Optional[int] = None
@@ -3122,9 +3247,7 @@ class subtensor:
         """
         result = self.query_map_subtensor("NetworkConnect", block, [netuid])
         if result.records:
-            requirements = {}
-            for tuple in result.records:
-                requirements[str(tuple[0].value)] = tuple[1].value
+            return {str(tuple[0].value): tuple[1].value for tuple in result.records}
         else:
             return {}
 
@@ -3169,7 +3292,7 @@ class subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
+                block_hash = None if block is None else substrate.get_block_hash(block)
                 params = []
                 if block_hash:
                     params = params + [block_hash]
@@ -3207,7 +3330,7 @@ class subtensor:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
+                block_hash = None if block is None else substrate.get_block_hash(block)
                 params = [netuid]
                 if block_hash:
                     params = params + [block_hash]
@@ -3226,7 +3349,7 @@ class subtensor:
 
     def get_subnet_hyperparameters(
         self, netuid: int, block: Optional[int] = None
-    ) -> Optional[SubnetHyperparameters]:
+    ) -> Optional[Union[List, SubnetHyperparameters]]:
         """
         Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters
         define the operational settings and rules governing the subnet's behavior.
@@ -3244,19 +3367,19 @@ class subtensor:
         hex_bytes_result = self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
             method="get_subnet_hyperparams",
-            params=[netuid],
+            params=[netuid],  # type: ignore
             block=block,
         )
 
-        if hex_bytes_result == None:
+        if hex_bytes_result is None:
             return []
 
-        if hex_bytes_result.startswith("0x"):
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        if hex_bytes_result.startswith("0x"):  # type: ignore
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])  # type: ignore
         else:
-            bytes_result = bytes.fromhex(hex_bytes_result)
+            bytes_result = bytes.fromhex(hex_bytes_result)  # type: ignore
 
-        return SubnetHyperparameters.from_vec_u8(bytes_result)
+        return SubnetHyperparameters.from_vec_u8(bytes_result)  # type: ignore
 
     def get_subnet_owner(
         self, netuid: int, block: Optional[int] = None
@@ -3275,7 +3398,10 @@ class subtensor:
         Knowing the subnet owner provides insights into the governance and operational control of the subnet,
         which can be important for decision-making and collaboration within the network.
         """
-        return self.query_subtensor("SubnetOwner", block, [netuid]).value
+        _result = self.query_subtensor("SubnetOwner", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     ####################
     #### Nomination ####
@@ -3316,13 +3442,14 @@ class subtensor:
         The delegate take is a critical parameter in the network's incentive structure, influencing
         the distribution of rewards among neurons and their nominators.
         """
-        return U16_NORMALIZED_FLOAT(
-            self.query_subtensor("Delegates", block, [hotkey_ss58]).value
-        )
+        _result = self.query_subtensor("Delegates", block, [hotkey_ss58])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return U16_NORMALIZED_FLOAT(_result.value)
 
     def get_nominators_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
-    ) -> List[Tuple[str, Balance]]:
+    ) -> Union[List[Tuple[str, Balance]], int]:
         """
         Retrieves a list of nominators and their stakes for a neuron identified by its hotkey.
         Nominators are neurons that stake their tokens on a delegate to support its operations.
@@ -3332,7 +3459,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            List[Tuple[str, Balance]]: A list of tuples containing each nominator's address and staked amount.
+           Union[List[Tuple[str, Balance]], int]: A list of tuples containing each nominator's address and staked amount or 0.
 
         This function provides insights into the neuron's support network within the Bittensor ecosystem,
         indicating its trust and collaboration relationships.
@@ -3462,7 +3589,7 @@ class subtensor:
 
     def get_stake_info_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> List[StakeInfo]:
+    ) -> Optional[List[StakeInfo]]:
         """
         Retrieves stake information associated with a specific coldkey. This function provides details
         about the stakes held by an account, including the staked amounts and associated delegates.
@@ -3482,23 +3609,23 @@ class subtensor:
         hex_bytes_result = self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
             method="get_stake_info_for_coldkey",
-            params=[encoded_coldkey],
+            params=[encoded_coldkey],  # type: ignore
             block=block,
         )
 
-        if hex_bytes_result == None:
+        if hex_bytes_result is None:
             return None
 
         if hex_bytes_result.startswith("0x"):
             bytes_result = bytes.fromhex(hex_bytes_result[2:])
         else:
             bytes_result = bytes.fromhex(hex_bytes_result)
-
-        return StakeInfo.list_from_vec_u8(bytes_result)
+        # TODO: review if this is the correct type / works
+        return StakeInfo.list_from_vec_u8(bytes_result)  # type: ignore
 
     def get_stake_info_for_coldkeys(
         self, coldkey_ss58_list: List[str], block: Optional[int] = None
-    ) -> Dict[str, List[StakeInfo]]:
+    ) -> Optional[Dict[str, List[StakeInfo]]]:
         """
         Retrieves stake information for a list of coldkeys. This function aggregates stake data for multiple
         accounts, providing a collective view of their stakes and delegations.
@@ -3513,6 +3640,7 @@ class subtensor:
         This function is useful for analyzing the stake distribution and delegation patterns of multiple
         accounts simultaneously, offering a broader perspective on network participation and investment strategies.
         """
+        # TODO: review - ss58_to_vec_u8 returns List[int] but the runtime api expects List[List[int]]
         encoded_coldkeys = [
             ss58_to_vec_u8(coldkey_ss58) for coldkey_ss58 in coldkey_ss58_list
         ]
@@ -3520,11 +3648,11 @@ class subtensor:
         hex_bytes_result = self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
             method="get_stake_info_for_coldkeys",
-            params=[encoded_coldkeys],
+            params=[encoded_coldkeys],  # type: ignore
             block=block,
         )
 
-        if hex_bytes_result == None:
+        if hex_bytes_result is None:
             return None
 
         if hex_bytes_result.startswith("0x"):
@@ -3532,7 +3660,7 @@ class subtensor:
         else:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
-        return StakeInfo.list_of_tuple_from_vec_u8(bytes_result)
+        return StakeInfo.list_of_tuple_from_vec_u8(bytes_result)  # type: ignore
 
     ########################################
     #### Neuron information per subnet ####
@@ -3598,7 +3726,7 @@ class subtensor:
         in understanding whether a neuron is eligible to participate in network processes such as consensus,
         validation, and incentive distribution based on its registration status.
         """
-        if netuid == None:
+        if netuid is None:
             return self.is_hotkey_registered_any(hotkey_ss58, block)
         else:
             return self.is_hotkey_registered_on_subnet(hotkey_ss58, netuid, block)
@@ -3620,7 +3748,10 @@ class subtensor:
         The UID is a critical identifier within the network, linking the neuron's hotkey to its
         operational and governance activities on a particular subnet.
         """
-        return self.query_subtensor("Uids", block, [netuid, hotkey_ss58]).value
+        _result = self.query_subtensor("Uids", block, [netuid, hotkey_ss58])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def get_all_uids_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -3641,7 +3772,7 @@ class subtensor:
         subnets within the Bittensor ecosystem.
         """
         return [
-            self.get_uid_for_hotkey_on_subnet(hotkey_ss58, netuid, block)
+            self.get_uid_for_hotkey_on_subnet(hotkey_ss58, netuid, block) or 0
             for netuid in self.get_netuids_for_hotkey(hotkey_ss58, block)
         ]
 
@@ -3690,7 +3821,7 @@ class subtensor:
 
     def get_all_neurons_for_pubkey(
         self, hotkey_ss58: str, block: Optional[int] = None
-    ) -> List[NeuronInfo]:
+    ) -> Optional[List[NeuronInfo]]:
         """
         Retrieves information about all neuron instances associated with a given public key (hotkey ``SS58``
         address) across different subnets of the Bittensor network. This function aggregates neuron data
@@ -3708,7 +3839,7 @@ class subtensor:
         """
         netuids = self.get_netuids_for_hotkey(hotkey_ss58, block)
         uids = [self.get_uid_for_hotkey_on_subnet(hotkey_ss58, net) for net in netuids]
-        return [self.neuron_for_uid(uid, net) for uid, net in list(zip(uids, netuids))]
+        return [self.neuron_for_uid(uid, net) for uid, net in list(zip(uids, netuids))]  # type: ignore
 
     def neuron_has_validator_permit(
         self, uid: int, netuid: int, block: Optional[int] = None
@@ -3729,7 +3860,10 @@ class subtensor:
         This function is essential for understanding a neuron's role and capabilities within a specific
         subnet, particularly regarding its involvement in network validation and governance.
         """
-        return self.query_subtensor("ValidatorPermit", block, [netuid, uid]).value
+        _result = self.query_subtensor("ValidatorPermit", block, [netuid, uid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def neuron_for_wallet(
         self, wallet: "bittensor.wallet", netuid: int, block: Optional[int] = None
@@ -3755,7 +3889,7 @@ class subtensor:
         )
 
     def neuron_for_uid(
-        self, uid: int, netuid: int, block: Optional[int] = None
+        self, uid: Optional[int], netuid: int, block: Optional[int] = None
     ) -> Optional[NeuronInfo]:
         """
         Retrieves detailed information about a specific neuron identified by its unique identifier (UID)
@@ -3773,7 +3907,7 @@ class subtensor:
         This function is crucial for analyzing individual neurons' contributions and status within a specific
         subnet, offering insights into their roles in the network's consensus and validation mechanisms.
         """
-        if uid == None:
+        if uid is None:
             return NeuronInfo._null_neuron()
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
@@ -3845,7 +3979,7 @@ class subtensor:
         This function is useful for quick and efficient analyses of neuron status and activities within a
         subnet without the need for comprehensive data retrieval.
         """
-        if uid == None:
+        if uid is None:
             return NeuronInfoLite._null_neuron()
 
         hex_bytes_result = self.query_runtime_api(
@@ -3858,7 +3992,7 @@ class subtensor:
             block=block,
         )
 
-        if hex_bytes_result == None:
+        if hex_bytes_result is None:
             return NeuronInfoLite._null_neuron()
 
         if hex_bytes_result.startswith("0x"):
@@ -3866,7 +4000,7 @@ class subtensor:
         else:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
-        return NeuronInfoLite.from_vec_u8(bytes_result)
+        return NeuronInfoLite.from_vec_u8(bytes_result)  # type: ignore
 
     def neurons_lite(
         self, netuid: int, block: Optional[int] = None
@@ -3893,7 +4027,7 @@ class subtensor:
             block=block,
         )
 
-        if hex_bytes_result == None:
+        if hex_bytes_result is None:
             return []
 
         if hex_bytes_result.startswith("0x"):
@@ -3901,14 +4035,14 @@ class subtensor:
         else:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
-        return NeuronInfoLite.list_from_vec_u8(bytes_result)
+        return NeuronInfoLite.list_from_vec_u8(bytes_result)  # type: ignore
 
     def metagraph(
         self,
         netuid: int,
         lite: bool = True,
         block: Optional[int] = None,
-    ) -> "bittensor.Metagraph":
+    ) -> "bittensor.metagraph":
         """
         Returns a synced metagraph for a specified subnet within the Bittensor network. The metagraph
         represents the network's structure, including neuron connections and interactions.
@@ -4035,11 +4169,11 @@ class subtensor:
         hex_bytes_result = self.query_runtime_api(
             runtime_api="ValidatorIPRuntimeApi",
             method="get_associated_validator_ip_info_for_subnet",
-            params=[netuid],
+            params=[netuid],  # type: ignore
             block=block,
         )
 
-        if hex_bytes_result == None:
+        if hex_bytes_result is None:
             return None
 
         if hex_bytes_result.startswith("0x"):
@@ -4047,9 +4181,9 @@ class subtensor:
         else:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
-        return IPInfo.list_from_vec_u8(bytes_result)
+        return IPInfo.list_from_vec_u8(bytes_result)  # type: ignore
 
-    def get_subnet_burn_cost(self, block: Optional[int] = None) -> int:
+    def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[str]:
         """
         Retrieves the burn cost for registering a new subnet within the Bittensor network. This cost
         represents the amount of Tao that needs to be locked or burned to establish a new subnet.
@@ -4070,7 +4204,7 @@ class subtensor:
             block=block,
         )
 
-        if lock_cost == None:
+        if lock_cost is None:
             return None
 
         return lock_cost
@@ -4189,7 +4323,7 @@ class subtensor:
     #### Legacy ####
     ################
 
-    def get_balance(self, address: str, block: int = None) -> Balance:
+    def get_balance(self, address: str, block: Optional[int] = None) -> Balance:
         """
         Retrieves the token balance of a specific address within the Bittensor network. This function queries
         the blockchain to determine the amount of Tao held by a given account.
@@ -4214,7 +4348,7 @@ class subtensor:
                         storage_function="Account",
                         params=[address],
                         block_hash=(
-                            None if block == None else substrate.get_block_hash(block)
+                            None if block is None else substrate.get_block_hash(block)
                         ),
                     )
 
@@ -4245,7 +4379,7 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
-    def get_balances(self, block: int = None) -> Dict[str, Balance]:
+    def get_balances(self, block: Optional[int] = None) -> Dict[str, Balance]:
         """
         Retrieves the token balances of all accounts within the Bittensor network as of a specific blockchain block.
         This function provides a comprehensive view of the token distribution among different accounts.
@@ -4267,7 +4401,7 @@ class subtensor:
                     module="System",
                     storage_function="Account",
                     block_hash=(
-                        None if block == None else substrate.get_block_hash(block)
+                        None if block is None else substrate.get_block_hash(block)
                     ),
                 )
 
@@ -4280,11 +4414,11 @@ class subtensor:
 
     @staticmethod
     def _null_neuron() -> NeuronInfo:
-        neuron = NeuronInfo(
+        neuron = NeuronInfo(  # type: ignore
             uid=0,
             netuid=0,
             active=0,
-            stake="0",
+            stake=Balance(0),
             rank=0,
             emission=0,
             incentive=0,
