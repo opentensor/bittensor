@@ -12,7 +12,8 @@
 * Expands type checking to subtensor by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1731
 * Feature: Synapse passing type check by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1725
 * bump req for security vulnerability in crpytography by @ifrit98 in https://github.com/opentensor/bittensor/pull/1718
-
+* Fix: proper association with wallet dir and coldkey addr #1739 by @gus-opentensor & @sepehr-opentensor 
+* Fixed event lookup on new network added #1741 by @shibshib 
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.8.2...v6.9.0
 
