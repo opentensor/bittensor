@@ -505,7 +505,7 @@ class metagraph(torch.nn.Module):
         # Initialize subtensor
         subtensor = self._initialize_subtensor(subtensor)
 
-        cur_block = subtensor.get_current_block() # type: ignore
+        cur_block = subtensor.get_current_block()  # type: ignore
         if block and block > (cur_block - 300):
             bittensor.logging.error(
                 "Block number is greater than 300. Please use the 'archive' network for subtensor and retry."
