@@ -740,7 +740,7 @@ class subtensor:
         trust in other neurons based on observed performance and contributions.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
@@ -949,7 +949,7 @@ class subtensor:
             error (Optional[str]): ``None`` on success or not waiting for inclusion/finalization, otherwise the error message.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 # create extrinsic call
@@ -995,7 +995,7 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 # create extrinsic call
@@ -1037,7 +1037,7 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 # create extrinsic call
@@ -1182,7 +1182,7 @@ class subtensor:
             error (str): Error message if transfer failed.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
@@ -1417,7 +1417,7 @@ class subtensor:
         enhancing the decentralized computation capabilities of Bittensor.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
@@ -1480,7 +1480,7 @@ class subtensor:
             error (:func:`Optional[str]`): Error message if serve prometheus failed, ``None`` otherwise.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
@@ -1530,7 +1530,7 @@ class subtensor:
             error (:func:`Optional[str]`): Error message if associate IPs failed, None otherwise.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
@@ -1660,7 +1660,7 @@ class subtensor:
             StakeError: If the extrinsic failed.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
@@ -1787,7 +1787,7 @@ class subtensor:
             StakeError: If the extrinsic failed.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
@@ -2106,7 +2106,7 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 # create extrinsic call
@@ -2208,7 +2208,7 @@ class subtensor:
         network-specific details, providing insights into the neuron's role and status within the Bittensor network.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query(
@@ -2259,7 +2259,7 @@ class subtensor:
         call_params = bittensor.utils.wallet_utils.create_identity_dict(**params)
         call_params["identified"] = identified
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
@@ -2329,7 +2329,7 @@ class subtensor:
         providing valuable insights into the state and dynamics of the Bittensor ecosystem.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query(
@@ -2367,7 +2367,7 @@ class subtensor:
         relationships within the Bittensor ecosystem, such as inter-neuronal connections and stake distributions.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query_map(
@@ -2402,7 +2402,7 @@ class subtensor:
         operational parameters.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.get_constant(
@@ -2442,7 +2442,7 @@ class subtensor:
         parts of the Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query(
@@ -2482,7 +2482,7 @@ class subtensor:
         modules, offering insights into the network's state and the relationships between its different components.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query_map(
@@ -2518,7 +2518,7 @@ class subtensor:
         useful for specific use cases where standard queries are insufficient.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 block_hash = None if block is None else substrate.get_block_hash(block)
@@ -3289,7 +3289,7 @@ class subtensor:
         the roles of different subnets, and their unique features.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 block_hash = None if block is None else substrate.get_block_hash(block)
@@ -3327,7 +3327,7 @@ class subtensor:
         subnet, including its governance, performance, and role within the broader network.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 block_hash = None if block is None else substrate.get_block_hash(block)
@@ -3488,7 +3488,7 @@ class subtensor:
         the Bittensor network's consensus and governance structures.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry(encoded_hotkey: List[int]):
             with self.substrate as substrate:
                 block_hash = None if block == None else substrate.get_block_hash(block)
@@ -3524,7 +3524,7 @@ class subtensor:
         distribution of trust and responsibility among participating neurons.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 block_hash = None if block == None else substrate.get_block_hash(block)
@@ -3562,7 +3562,7 @@ class subtensor:
         involvement in the network's delegation and consensus mechanisms.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry(encoded_coldkey: List[int]):
             with self.substrate as substrate:
                 block_hash = None if block == None else substrate.get_block_hash(block)
@@ -3910,7 +3910,7 @@ class subtensor:
         if uid is None:
             return NeuronInfo._null_neuron()
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 block_hash = None if block == None else substrate.get_block_hash(block)
@@ -4221,7 +4221,7 @@ class subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
@@ -4256,7 +4256,7 @@ class subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
@@ -4292,7 +4292,7 @@ class subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 call = substrate.compose_call(
@@ -4340,7 +4340,7 @@ class subtensor:
         """
         try:
 
-            @retry(delay=2, tries=3, backoff=2, max_delay=4)
+            @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
             def make_substrate_call_with_retry():
                 with self.substrate as substrate:
                     return substrate.query(
@@ -4372,7 +4372,7 @@ class subtensor:
         operations on the blockchain. It serves as a reference point for network activities and data synchronization.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.get_block_number(None)
@@ -4394,7 +4394,7 @@ class subtensor:
         including the distribution of financial resources and the financial status of network participants.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
                 return substrate.query_map(
