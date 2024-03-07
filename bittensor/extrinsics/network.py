@@ -103,7 +103,7 @@ def register_subnetwork_extrinsic(
                 return True
 
 
-def find_event_attributes_in_extrinsic_receipt(response, event_name):
+def find_event_attributes_in_extrinsic_receipt(response, event_name) -> list:
     for event in response.triggered_events:
         # Access the event details
         event_details = event.value["event"]
@@ -111,7 +111,7 @@ def find_event_attributes_in_extrinsic_receipt(response, event_name):
         if event_details["event_id"] == event_name:
             # Once found, you can access the attributes of the event_name
             return event_details["attributes"]
-    return None
+    return [-1]
 
 
 from ..commands.network import HYPERPARAMS
