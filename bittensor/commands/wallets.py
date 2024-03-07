@@ -692,29 +692,35 @@ class UpdateWalletCommand:
             config.wallet.name = str(wallet_name)
 
 
-def _get_coldkey_ss58_addresses_for_path(path: str) -> List[str]:
+def _get_coldkey_ss58_addresses_for_path(path: str) -> tuple[list[str], list[str]]:
     """Get all coldkey ss58 addresses from path."""
 
     def list_coldkeypub_files(dir_path):
         abspath = os.path.abspath(os.path.expanduser(dir_path))
         coldkey_files = []
+        wallet_names = []
 
-        for dir in os.listdir(abspath):
-            coldkey_path = os.path.join(abspath, dir, "coldkeypub.txt")
-            if os.path.isdir(os.path.join(abspath, dir)) and os.path.exists(
-                coldkey_path
-            ):
+        for potential_wallet_name in os.listdir(abspath):
+            coldkey_path = os.path.join(
+                abspath, potential_wallet_name, "coldkeypub.txt"
+            )
+            if os.path.isdir(
+                os.path.join(abspath, potential_wallet_name)
+            ) and os.path.exists(coldkey_path):
                 coldkey_files.append(coldkey_path)
+                wallet_names.append(potential_wallet_name)
             else:
                 bittensor.logging.warning(
                     f"{coldkey_path} does not exist. Excluding..."
                 )
-        return coldkey_files
+        return coldkey_files, wallet_names
 
-    return [
-        bittensor.keyfile(file).keypair.ss58_address
-        for file in list_coldkeypub_files(path)
+    coldkey_files, wallet_names = list_coldkeypub_files(path)
+    addresses = [
+        bittensor.keyfile(coldkey_path).keypair.ss58_address
+        for coldkey_path in coldkey_files
     ]
+    return addresses, wallet_names
 
 
 class WalletBalanceCommand:
@@ -770,7 +776,6 @@ class WalletBalanceCommand:
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        # console = bittensor.__console__
         wallet = bittensor.wallet(config=cli.config)
 
         wallet_names = []
@@ -782,8 +787,9 @@ class WalletBalanceCommand:
         balances = {}
 
         if cli.config.get("all", d=None):
-            wallet_names = os.listdir(os.path.expanduser(cli.config.wallet.path))
-            coldkeys = _get_coldkey_ss58_addresses_for_path(cli.config.wallet.path)
+            coldkeys, wallet_names = _get_coldkey_ss58_addresses_for_path(
+                cli.config.wallet.path
+            )
 
             free_balances = [
                 subtensor.get_balance(coldkeys[i]) for i in range(len(coldkeys))
