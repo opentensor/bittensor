@@ -18,6 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 
+import contextlib
 from copy import deepcopy
 import os
 import random
@@ -33,6 +34,7 @@ import bittensor
 from bittensor import Balance
 from bittensor.commands.delegates import _get_coldkey_wallets_for_path
 from bittensor.commands.identity import SetIdentityCommand
+from bittensor.commands.wallets import _get_coldkey_ss58_addresses_for_path
 from bittensor.mock import MockSubtensor
 from bittensor.wallet import wallet as Wallet
 from tests.helpers import (
@@ -2385,6 +2387,58 @@ def test_set_identity_command(
             # Assert
             mock_subtensor.update_identity.assert_called_once()
             assert mock_exit.call_count == 0
+
+
+TEST_DIR = "/tmp/test_bittensor_wallets"
+if not os.path.exists(TEST_DIR):
+    os.makedirs(TEST_DIR)
+
+
+@pytest.fixture
+def setup_files(tmp_path):
+    def _setup_files(files):
+        for file_path, content in files.items():
+            full_path = tmp_path / file_path
+            os.makedirs(full_path.parent, exist_ok=True)
+            with open(full_path, "w") as f:
+                f.write(content)
+        return tmp_path
+
+    return _setup_files
+
+
+@pytest.mark.parametrize(
+    "test_id, setup_data, expected",
+    [
+        # Error cases
+        (
+            "error_case_nonexistent_dir",
+            {"just_a_file.txt": ""},
+            ([], []),
+        ),  # Nonexistent dir
+    ],
+)
+def test_get_coldkey_ss58_addresses_for_path(
+    setup_files, test_id, setup_data, expected
+):
+    path = setup_files(setup_data)
+
+    # Arrange
+    # Setup done in setup_files fixture and parametrize
+
+    # Act
+    result = _get_coldkey_ss58_addresses_for_path(str(path))
+
+    # Assert
+    assert (
+        result == expected
+    ), f"Test ID: {test_id} failed. Expected {expected}, got {result}"
+
+
+# Cleanup after tests
+def teardown_module(module):
+    with contextlib.suppress(FileNotFoundError):
+        shutil.rmtree(TEST_DIR)
 
 
 if __name__ == "__main__":

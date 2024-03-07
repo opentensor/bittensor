@@ -20,7 +20,7 @@ import bittensor
 from rich.table import Table
 from .utils import check_netuid_set
 
-console = bittensor.__console__
+console = bittensor.__console__  # type: ignore
 
 
 class MetagraphCommand:
