@@ -505,7 +505,10 @@ class metagraph(torch.nn.Module):
         # Initialize subtensor
         subtensor = self._initialize_subtensor(subtensor)
 
-        if subtensor.chain_endpoint != bittensor.__archive_entrypoint__ or subtensor.network != "archive":
+        if (
+            subtensor.chain_endpoint != bittensor.__archive_entrypoint__
+            or subtensor.network != "archive"
+        ):
             cur_block = subtensor.get_current_block()  # type: ignore
             if block and block < (cur_block - 300):
                 bittensor.logging.warning(
