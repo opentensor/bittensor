@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.9.1 / 2024-03-08
+
+## What's Changed
+* Hotfix for reversing comparison operator for block checking to raise error if not using archive nodes
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.9.0...v6.9.1
+
+
 ## 6.9.0 / 2024-03-07
 
 ## What's Changed
