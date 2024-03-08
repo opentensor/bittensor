@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.9.2 / 2024-03-08
+
+## What's Changed
+* Change error into a warning if not using archive. Impossible to tell if local is lite or full node.
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.9.1...v6.9.2
+
+
 ## 6.9.1 / 2024-03-08
 
 ## What's Changed
