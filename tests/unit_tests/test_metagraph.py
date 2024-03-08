@@ -136,7 +136,6 @@ def mock_subtensor():
 @pytest.fixture
 def metagraph_instance():
     metagraph = Metagraph(netuid=1337, sync=False)
-    # metagraph._initialize_subtensor = MagicMock()
     metagraph._assign_neurons = MagicMock()
     metagraph._set_metagraph_attributes = MagicMock()
     metagraph._set_weights_and_bonds = MagicMock()
@@ -154,6 +153,6 @@ def test_sync_error_cases(block, test_id, metagraph_instance, mock_subtensor):
     # Act & Assert
     with pytest.raises(ValueError) as excinfo:
         metagraph_instance.sync(block=block, lite=True, subtensor=mock_subtensor)
-    assert "Attempting to sync longer than 300 block ago on a non-archive node. Please use the 'archive' network for subtensor and retry." in str(
+    assert "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' network for subtensor and retry." in str(
         excinfo.value
     ), f"Test ID: {test_id}"
