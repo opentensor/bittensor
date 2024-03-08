@@ -508,7 +508,7 @@ class metagraph(torch.nn.Module):
         if subtensor.chain_endpoint != bittensor.__archive_entrypoint__ or subtensor.network != "archive":
             cur_block = subtensor.get_current_block()  # type: ignore
             if block and block < (cur_block - 300):
-                bittensor.logging.error(
+                bittensor.logging.warning(
                     "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' network for subtensor and retry."
                 )
 
