@@ -128,9 +128,7 @@ def test_process_weights_or_bonds(mock_environment):
 @pytest.fixture
 def mock_subtensor():
     subtensor = MagicMock()
-    subtensor.get_current_block = MagicMock(return_value=601, type=int)
-    subtensor.return_value.get_current_block.return_value = 601
-    subtensor.get_current_block.side_effect = lambda: 601
+    subtensor.get_current_block.return_value = 601
     return subtensor
 
 
@@ -138,18 +136,17 @@ def mock_subtensor():
 @pytest.fixture
 def metagraph_instance():
     metagraph = Metagraph(netuid=1337, sync=False)
-    metagraph._initialize_subtensor = MagicMock()
+    # metagraph._initialize_subtensor = MagicMock()
     metagraph._assign_neurons = MagicMock()
     metagraph._set_metagraph_attributes = MagicMock()
     metagraph._set_weights_and_bonds = MagicMock()
     return metagraph
 
 
-@pytest.mark.skip("MagicMock not returning correct value")
 @pytest.mark.parametrize(
     "block, test_id",
     [
-        (301, "error_case_block_greater_than_300"),
+        (300, "error_case_block_greater_than_300"),
     ],
 )
 def test_sync_error_cases(block, test_id, metagraph_instance, mock_subtensor):
@@ -157,6 +154,6 @@ def test_sync_error_cases(block, test_id, metagraph_instance, mock_subtensor):
     # Act & Assert
     with pytest.raises(ValueError) as excinfo:
         metagraph_instance.sync(block=block, lite=True, subtensor=mock_subtensor)
-    assert "Block number is greater than 300." in str(
+    assert "Attempting to sync longer than 300 block ago on a non-archive node. Please use the 'archive' network for subtensor and retry." in str(
         excinfo.value
     ), f"Test ID: {test_id}"
