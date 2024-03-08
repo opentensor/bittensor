@@ -2411,7 +2411,11 @@ def setup_files(tmp_path):
     "test_id, setup_data, expected",
     [
         # Error cases
-        ("error_case_nonexistent_dir", {"just_a_file.txt": ""}, []),
+        (
+            "error_case_nonexistent_dir",
+            {"just_a_file.txt": ""},
+            ([], []),
+        ),  # Nonexistent dir
     ],
 )
 def test_get_coldkey_ss58_addresses_for_path(
