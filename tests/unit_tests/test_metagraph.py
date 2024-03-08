@@ -153,6 +153,7 @@ def test_sync_error_cases(block, test_id, metagraph_instance, mock_subtensor):
     # Act & Assert
     with pytest.raises(ValueError) as excinfo:
         metagraph_instance.sync(block=block, lite=True, subtensor=mock_subtensor)
-    assert "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' network for subtensor and retry." in str(
-        excinfo.value
+    assert (
+        "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' network for subtensor and retry."
+        in str(excinfo.value)
     ), f"Test ID: {test_id}"
