@@ -20,7 +20,7 @@ import bittensor
 from ..errors import *
 from rich.prompt import Confirm
 from time import sleep
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
 from bittensor.utils.balance import Balance
 
 
@@ -463,7 +463,7 @@ def __do_add_stake_single(
 
     """
 
-    def _do_stake() -> bool:
+    def _do_stake() -> Tuple[bool, Optional[str]]:
         """Sends a stake extrinsic to the chain.
 
         Returns:

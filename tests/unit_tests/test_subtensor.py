@@ -146,7 +146,7 @@ def test_stake_multiple():
         is_null=False,
     )
 
-    mock__do_add_stake_single = MagicMock(side_effect=ExitEarly)
+    mock_add_stake = MagicMock(side_effect=ExitEarly)
 
     mock_subtensor = MagicMock(
         spec=bittensor.subtensor,
@@ -155,7 +155,7 @@ def test_stake_multiple():
             return_value=bittensor.Balance.from_tao(mock_amount.tao + 20.0)
         ),  # enough balance to stake
         get_neuron_for_pubkey_and_subnet=MagicMock(return_value=mock_neuron),
-        __do_add_stake_single=mock__do_add_stake_single,
+        add_stake=mock_add_stake,
     )
 
     with pytest.raises(ExitEarly):
@@ -166,9 +166,9 @@ def test_stake_multiple():
             amounts=mock_amounts,
         )
 
-        mock__do_add_stake_single.assert_called_once()
+        mock_add_stake.assert_called_once()
         # args, kwargs
-        _, kwargs = mock__do_add_stake_single.call_args
+        _, kwargs = mock_add_stake.call_args
 
         assert kwargs["ammount"] == pytest.approx(
             mock_amount.rao, rel=1e9
