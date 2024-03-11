@@ -155,7 +155,7 @@ def test_stake_multiple():
             return_value=bittensor.Balance.from_tao(mock_amount.tao + 20.0)
         ),  # enough balance to stake
         get_neuron_for_pubkey_and_subnet=MagicMock(return_value=mock_neuron),
-        _do_stake=mock_do_stake,
+        __do_add_stake_single=mock_do_stake,
     )
 
     with pytest.raises(ExitEarly):
