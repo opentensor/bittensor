@@ -1398,6 +1398,7 @@ class MockSubtensor(subtensor):
             immunity_period=query_subnet_info(name="ImmunityPeriod"),
             max_allowed_validators=query_subnet_info(name="MaxAllowedValidators"),
             min_allowed_weights=query_subnet_info(name="MinAllowedWeights"),
+            adjustment_alpha=query_subnet_info(name="AdjustmentAlpha"),
             max_weight_limit=query_subnet_info(name="MaxWeightLimit"),
             scaling_law_power=query_subnet_info(name="ScalingLawPower"),
             subnetwork_n=query_subnet_info(name="SubnetworkN"),

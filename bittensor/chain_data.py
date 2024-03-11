@@ -41,6 +41,7 @@ custom_rpc_type_registry = {
                 ["immunity_period", "Compact<u16>"],
                 ["max_allowed_validators", "Compact<u16>"],
                 ["min_allowed_weights", "Compact<u16>"],
+                ["adjustment_alpha", "Compact<u64>"],
                 ["max_weights_limit", "Compact<u16>"],
                 ["scaling_law_power", "Compact<u16>"],
                 ["subnetwork_n", "Compact<u16>"],
@@ -160,6 +161,7 @@ custom_rpc_type_registry = {
                 ["kappa", "Compact<u16>"],
                 ["immunity_period", "Compact<u16>"],
                 ["min_allowed_weights", "Compact<u16>"],
+                ["adjustment_alpha", "Compact<u64>"],
                 ["max_weights_limit", "Compact<u16>"],
                 ["tempo", "Compact<u16>"],
                 ["min_difficulty", "Compact<u64>"],
@@ -871,6 +873,7 @@ class SubnetInfo:
     max_allowed_validators: int
     min_allowed_weights: int
     max_weight_limit: float
+    adjustment_alpha: int
     scaling_law_power: float
     subnetwork_n: int
     max_n: int
@@ -922,6 +925,7 @@ class SubnetInfo:
             max_allowed_validators=decoded["max_allowed_validators"],
             min_allowed_weights=decoded["min_allowed_weights"],
             max_weight_limit=decoded["max_weights_limit"],
+            adjustment_alpha=decoded["adjustment_alpha"],
             scaling_law_power=decoded["scaling_law_power"],
             subnetwork_n=decoded["subnetwork_n"],
             max_n=decoded["max_allowed_uids"],
@@ -965,6 +969,7 @@ class SubnetHyperparameters:
     max_difficulty: int
     weights_version: int
     weights_rate_limit: int
+    adjustment_alpha: int
     adjustment_interval: int
     activity_cutoff: int
     registration_allowed: bool
@@ -1012,6 +1017,7 @@ class SubnetHyperparameters:
             immunity_period=decoded["immunity_period"],
             min_allowed_weights=decoded["min_allowed_weights"],
             max_weight_limit=decoded["max_weights_limit"],
+            adjustment_alpha=decoded["adjustment_alpha"],
             tempo=decoded["tempo"],
             min_difficulty=decoded["min_difficulty"],
             max_difficulty=decoded["max_difficulty"],
