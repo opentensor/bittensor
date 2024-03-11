@@ -178,6 +178,7 @@ custom_rpc_type_registry = {
                 ["serving_rate_limit", "Compact<u64>"],
                 ["max_validators", "Compact<u16>"],
                 ["adjustment_alpha", "Compact<u64>"],
+                ["difficulty", "Compact<u64>"],
             ],
         },
     }
@@ -873,7 +874,6 @@ class SubnetInfo:
     max_allowed_validators: int
     min_allowed_weights: int
     max_weight_limit: float
-    adjustment_alpha: int
     scaling_law_power: float
     subnetwork_n: int
     max_n: int
@@ -885,6 +885,8 @@ class SubnetInfo:
     emission_value: float
     burn: Balance
     owner_ss58: str
+    adjustment_alpha: int
+    difficulty: int
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetInfo"]:
@@ -970,7 +972,6 @@ class SubnetHyperparameters:
     max_difficulty: int
     weights_version: int
     weights_rate_limit: int
-    adjustment_alpha: int
     adjustment_interval: int
     activity_cutoff: int
     registration_allowed: bool
@@ -981,6 +982,8 @@ class SubnetHyperparameters:
     max_regs_per_block: int
     serving_rate_limit: int
     max_validators: int
+    adjustment_alpha: int
+    difficulty: int
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetHyperparameters"]:
@@ -1029,11 +1032,12 @@ class SubnetHyperparameters:
             target_regs_per_interval=decoded["target_regs_per_interval"],
             min_burn=decoded["min_burn"],
             max_burn=decoded["max_burn"],
-            bonds_moving_avg=decoded["bonds_moving_avg"],
             max_regs_per_block=decoded["max_regs_per_block"],
             max_validators=decoded["max_validators"],
-            adjustment_alpha=decoded["adjustment_alpha"],
             serving_rate_limit=decoded["serving_rate_limit"],
+            bonds_moving_avg=decoded["bonds_moving_avg"],
+            adjustment_alpha=decoded["adjustment_alpha"],
+            difficulty=decoded["difficulty"],
         )
 
     def to_parameter_dict(self) -> "torch.nn.ParameterDict":
