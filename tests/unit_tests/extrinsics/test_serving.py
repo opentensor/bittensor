@@ -142,7 +142,7 @@ def test_serve_extrinsic_edge_cases(
     test_id,
 ):
     # Arrange
-    mock_subtensor._do_serve_axon.return_value = (True, "")
+    mock_subtensor.serve_axon.return_value = (True, "")
     with patch("bittensor.extrinsics.serving.Confirm.ask", return_value=True):
         # Act
         result = serve_extrinsic(
@@ -199,7 +199,7 @@ def test_serve_extrinsic_error_cases(
     test_id,
 ):
     # Arrange
-    mock_subtensor._do_serve_axon.return_value = (False, "Error serving axon")
+    mock_subtensor.serve_axon.return_value = (False, "Error serving axon")
     with patch("bittensor.extrinsics.serving.Confirm.ask", return_value=True):
         # Act
         result = serve_extrinsic(

@@ -139,7 +139,7 @@ def test_prometheus_extrinsic_error_cases(
     neuron = MagicMock()
     neuron.is_null = True
     subtensor.get_neuron_for_pubkey_and_subnet.return_value = neuron
-    subtensor._do_serve_prometheus.return_value = (True,)
+    subtensor.serve_prometheus.return_value = (True,)
 
     # Act & Assert
     with pytest.raises(ValueError):
