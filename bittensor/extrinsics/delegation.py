@@ -19,7 +19,7 @@
 import bittensor
 from ..errors import *
 from rich.prompt import Confirm
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 from bittensor.utils.balance import Balance
 
 from loguru import logger
@@ -33,7 +33,7 @@ def nominate_extrinsic(
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True,
 ) -> bool:
-    def _do_nominate() -> bool:
+    def _do_nominate() -> Tuple[bool, Optional[str]]:
         response = subtensor.send_extrinsic(
             wallet=wallet,
             module="SubtensorModule",
