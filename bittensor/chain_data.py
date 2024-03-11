@@ -161,7 +161,6 @@ custom_rpc_type_registry = {
                 ["kappa", "Compact<u16>"],
                 ["immunity_period", "Compact<u16>"],
                 ["min_allowed_weights", "Compact<u16>"],
-                ["adjustment_alpha", "Compact<u64>"],
                 ["max_weights_limit", "Compact<u16>"],
                 ["tempo", "Compact<u16>"],
                 ["min_difficulty", "Compact<u64>"],
@@ -178,6 +177,7 @@ custom_rpc_type_registry = {
                 ["max_regs_per_block", "Compact<u16>"],
                 ["serving_rate_limit", "Compact<u64>"],
                 ["max_validators", "Compact<u16>"],
+                ["adjustment_alpha", "Compact<u64>"],
             ],
         },
     }
@@ -1017,7 +1017,6 @@ class SubnetHyperparameters:
             immunity_period=decoded["immunity_period"],
             min_allowed_weights=decoded["min_allowed_weights"],
             max_weight_limit=decoded["max_weights_limit"],
-            adjustment_alpha=decoded["adjustment_alpha"],
             tempo=decoded["tempo"],
             min_difficulty=decoded["min_difficulty"],
             max_difficulty=decoded["max_difficulty"],
@@ -1032,6 +1031,7 @@ class SubnetHyperparameters:
             bonds_moving_avg=decoded["bonds_moving_avg"],
             max_regs_per_block=decoded["max_regs_per_block"],
             max_validators=decoded["max_validators"],
+            adjustment_alpha=decoded["adjustment_alpha"],
             serving_rate_limit=decoded["serving_rate_limit"],
         )
 
