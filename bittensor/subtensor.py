@@ -2869,6 +2869,17 @@ class subtensor:
             return None
         return U64_NORMALIZED_FLOAT(_result.value)
 
+    def bonds_moving_avg(
+            self, netuid: int, block: Optional[int] = None
+    ) -> Optional[float]:
+        """ Returns network BondsMovingAverage hyper parameter"""
+        if not self.subnet_exists(netuid, block):
+            return None
+        _result = self.query_subtensor("BondsMovingAverage", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return U64_NORMALIZED_FLOAT(_result.value)
+
     def scaling_law_power(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[float]:
