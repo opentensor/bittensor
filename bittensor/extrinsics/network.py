@@ -88,24 +88,10 @@ def register_subnetwork_extrinsic(
 
         # Successful registration, final check for membership
         else:
-            attributes = find_event_attributes_in_extrinsic_receipt(
-                response, "NetworkAdded"
-            )
             bittensor.__console__.print(
-                f":white_heavy_check_mark: [green]Registered subnetwork with netuid: {attributes[0]}[/green]"
+                f":white_heavy_check_mark: [green]Registered subnetwork with netuid: {response.triggered_events[1].value['event']['attributes'][0]}[/green]"
             )
             return True
-
-
-def find_event_attributes_in_extrinsic_receipt(response, event_name) -> list:
-    for event in response.triggered_events:
-        # Access the event details
-        event_details = event.value["event"]
-        # Check if the event_id is 'NetworkAdded'
-        if event_details["event_id"] == event_name:
-            # Once found, you can access the attributes of the event_name
-            return event_details["attributes"]
-    return [-1]
 
 
 from ..commands.network import HYPERPARAMS
