@@ -37,6 +37,7 @@ custom_rpc_type_registry = {
                 ["netuid", "Compact<u16>"],
                 ["rho", "Compact<u16>"],
                 ["kappa", "Compact<u16>"],
+                ["difficulty", "Compact<u64>"],
                 ["immunity_period", "Compact<u16>"],
                 ["max_allowed_validators", "Compact<u16>"],
                 ["min_allowed_weights", "Compact<u16>"],
@@ -51,8 +52,6 @@ custom_rpc_type_registry = {
                 ["emission_values", "Compact<u64>"],
                 ["burn", "Compact<u64>"],
                 ["owner", "AccountId"],
-                ["adjustment_alpha", "Compact<u64>"],
-                ["difficulty", "Compact<u64>"],
             ],
         },
         "DelegateInfo": {
@@ -885,7 +884,6 @@ class SubnetInfo:
     emission_value: float
     burn: Balance
     owner_ss58: str
-    adjustment_alpha: int
     difficulty: int
 
     @classmethod
@@ -927,8 +925,6 @@ class SubnetInfo:
             max_allowed_validators=decoded["max_allowed_validators"],
             min_allowed_weights=decoded["min_allowed_weights"],
             max_weight_limit=decoded["max_weights_limit"],
-            adjustment_alpha=decoded["adjustment_alpha"],
-            bonds_moving_avg=decoded["bonds_moving_average"],
             scaling_law_power=decoded["scaling_law_power"],
             subnetwork_n=decoded["subnetwork_n"],
             max_n=decoded["max_allowed_uids"],

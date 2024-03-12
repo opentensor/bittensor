@@ -322,7 +322,7 @@ HYPERPARAMS = {
     "rho": "sudo_set_rho",
     "kappa": "sudo_set_kappa",
     "difficulty": "sudo_set_difficulty",
-    "bonds_moving_avg": "sudo_set_bonds_moving_average"
+    "bonds_moving_avg": "sudo_set_bonds_moving_average",
 }
 
 

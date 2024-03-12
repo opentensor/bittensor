@@ -270,6 +270,8 @@ class MockSubtensor(subtensor):
                     "Prometheus": {},
                     "SubnetOwner": {},
                     "Commits": {},
+                    "AdjustmentAlpha": {},
+                    "BondsMovingAverage": {},
                 },
             }
 
@@ -328,6 +330,7 @@ class MockSubtensor(subtensor):
             subtensor_state["BlocksSinceLastStep"][netuid][0] = 0
             subtensor_state["Tempo"][netuid] = {}
             subtensor_state["Tempo"][netuid][0] = 99
+
             # subtensor_state['NetworkConnect'][netuid] = {}
             # subtensor_state['NetworkConnect'][netuid][0] = {}
             subtensor_state["EmissionValues"][netuid] = {}
@@ -364,6 +367,11 @@ class MockSubtensor(subtensor):
             subtensor_state["NetworksAdded"][netuid] = {}
             subtensor_state["NetworksAdded"][netuid][0] = True
 
+            subtensor_state["AdjustmentAlpha"][netuid] = {}
+            subtensor_state["AdjustmentAlpha"][netuid][0] = 1000
+
+            subtensor_state["BondsMovingAverage"][netuid] = {}
+            subtensor_state["BondsMovingAverage"][netuid][0] = 1000
         else:
             raise Exception("Subnet already exists")
 
@@ -1414,9 +1422,6 @@ class MockSubtensor(subtensor):
             emission_value=query_subnet_info(name="EmissionValues"),
             burn=query_subnet_info(name="Burn"),
             owner_ss58=query_subnet_info(name="SubnetOwner"),
-            adjustment_alpha=query_subnet_info(name="AdjustmentAlpha"),
-            bonds_moving_avg=query_subnet_info(name="BondsMovingAverage")
-            
         )
 
         return info

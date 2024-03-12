@@ -2859,9 +2859,9 @@ class subtensor:
         return U16_NORMALIZED_FLOAT(_result.value)
 
     def adjustment_alpha(
-            self, netuid: int, block: Optional[int] = None
+        self, netuid: int, block: Optional[int] = None
     ) -> Optional[float]:
-        """ Returns network AdjustmentAlpha hyper parameter"""
+        """Returns network AdjustmentAlpha hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
         _result = self.query_subtensor("AdjustmentAlpha", block, [netuid])
@@ -2870,9 +2870,9 @@ class subtensor:
         return U64_NORMALIZED_FLOAT(_result.value)
 
     def bonds_moving_avg(
-            self, netuid: int, block: Optional[int] = None
+        self, netuid: int, block: Optional[int] = None
     ) -> Optional[float]:
-        """ Returns network BondsMovingAverage hyper parameter"""
+        """Returns network BondsMovingAverage hyper parameter"""
         if not self.subnet_exists(netuid, block):
             return None
         _result = self.query_subtensor("BondsMovingAverage", block, [netuid])
