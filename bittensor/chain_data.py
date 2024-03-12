@@ -884,7 +884,7 @@ class SubnetInfo:
     emission_value: float
     burn: Balance
     owner_ss58: str
-    #adjustment_alpha: int
+    # adjustment_alpha: int
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetInfo"]:
@@ -925,8 +925,8 @@ class SubnetInfo:
             max_allowed_validators=decoded["max_allowed_validators"],
             min_allowed_weights=decoded["min_allowed_weights"],
             max_weight_limit=decoded["max_weights_limit"],
-            #adjustment_alpha=decoded["adjustment_alpha"],
-            #bonds_moving_avg=decoded["bonds_moving_average"],
+            # adjustment_alpha=decoded["adjustment_alpha"],
+            # bonds_moving_avg=decoded["bonds_moving_average"],
             scaling_law_power=decoded["scaling_law_power"],
             subnetwork_n=decoded["subnetwork_n"],
             max_n=decoded["max_allowed_uids"],
