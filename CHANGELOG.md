@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.9.3 / 2024-03-12
+
+## What's Changed
+* Release/6.9.2 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1743
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.9.2...v6.9.3
+
+
 ## 6.9.2 / 2024-03-08
 
 ## What's Changed

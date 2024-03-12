@@ -318,6 +318,11 @@ HYPERPARAMS = {
     "network_pow_registration_allowed": "sudo_set_network_pow_registration_allowed",
     "min_burn": "sudo_set_min_burn",
     "max_burn": "sudo_set_max_burn",
+    "adjustment_alpha": "sudo_set_adjustment_alpha",
+    "rho": "sudo_set_rho",
+    "kappa": "sudo_set_kappa",
+    "difficulty": "sudo_set_difficulty",
+    "bonds_moving_avg": "sudo_set_bonds_moving_average",
 }
 
 
