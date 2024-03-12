@@ -37,6 +37,7 @@ custom_rpc_type_registry = {
                 ["netuid", "Compact<u16>"],
                 ["rho", "Compact<u16>"],
                 ["kappa", "Compact<u16>"],
+                ["difficulty", "Compact<u64>"],
                 ["immunity_period", "Compact<u16>"],
                 ["max_allowed_validators", "Compact<u16>"],
                 ["min_allowed_weights", "Compact<u16>"],
