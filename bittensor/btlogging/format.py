@@ -7,14 +7,12 @@ from colorama import (
     Style
 )
 
-from bittensor.logging.helpers import get_max_logger_name_length
+from bittensor.btlogging.helpers import get_max_logger_name_length
 
 init(autoreset=True)
 
-
 TRACE_LEVELV_NUM = 5
 SUCCESS_LEVELV_NUM = 21
-
 
 def trace(self, message, *args, **kws):
     if self.isEnabledFor(TRACE_LEVELV_NUM):
@@ -81,7 +79,6 @@ class BtStreamFormatter(logging.Formatter):
         format_orig = self._style._fmt
         spacing = get_max_logger_name_length() + 2
         record.levelname = f"{record.levelname:^16}"
-        # record.name = f"{record.name:^28}"
         if self.trace is True:
             self._style._fmt = LOG_TRACE_FORMATS[record.levelno]
         else:
