@@ -128,18 +128,6 @@ class LoggingMachine(StateMachine):
             if config.logging_dir and config.record_log:
                 # TODO: handle multiple loggers logging to the same file.
                 pass
-                # file_formatter = logging.Formatter(BASE_LOG_FORMAT, DATE_FORMAT)
-                # filepath = os.path.join(config.logging_dir, DEFAULT_LOG_FILE_NAME)
-                # fh = logging.handlers.RotatingFileHandler(
-                #     filepath, 
-                #     maxBytes=DEFAULT_MAX_ROTATING_LOG_FILE_SIZE,
-                #     backupCount=DEFAULT_LOG_BACKUP_COUNT
-                # )
-                # fh.setFormatter(file_formatter)
-                # self._logger.addHandler(fh)
-    
-    def get_logger(self, name: str) -> stdlogging.Logger:
-        return self._logger
 
     # state transitions
     # Default Logging
