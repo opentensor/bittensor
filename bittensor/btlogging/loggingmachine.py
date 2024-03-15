@@ -137,7 +137,9 @@ class LoggingMachine(StateMachine):
                 # )
                 # fh.setFormatter(file_formatter)
                 # self._logger.addHandler(fh)
-
+    
+    def get_logger(self, name: str) -> stdlogging.Logger:
+        return self._logger
 
     # state transitions
     # Default Logging
