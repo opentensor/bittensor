@@ -19,13 +19,13 @@
 import bittensor
 
 import torch
+import logging
 from rich.prompt import Confirm
 from typing import Union, Tuple
 import bittensor.utils.weight_utils as weight_utils
+from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 
-from loguru import logger
-
-logger = logger.opt(colors=True)
+logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
 
 def set_weights_extrinsic(
