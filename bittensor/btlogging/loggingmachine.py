@@ -1,5 +1,9 @@
+import os
 import sys
+import atexit
 import logging as stdlogging
+import multiprocessing as mp
+from typing import NamedTuple
 from statemachine import StateMachine, State
 
 from bittensor.btlogging.format import BtStreamFormatter
@@ -13,6 +17,13 @@ from bittensor.btlogging.defines import (
     DEFAULT_MAX_ROTATING_LOG_FILE_SIZE,
     DEFAULT_LOG_BACKUP_COUNT
 )
+
+
+class LoggingConfig(NamedTuple):
+    debug: bool
+    trace: bool
+    record_log: bool
+    logging_dir: str
 
 
 class LoggingMachine(StateMachine):
@@ -67,18 +78,43 @@ class LoggingMachine(StateMachine):
 
         self._name = name
         self._stream_formatter = BtStreamFormatter()
-        self._file_formatter = stdlogging.Formatter(BASE_LOG_FORMAT, DATE_FORMAT)
+        self._file_formatter = stdlogging.Formatter(TRACE_LOG_FORMAT, DATE_FORMAT)
 
         self._logger = self._initialize_bt_logger(name, config)
         self._initialize_external_loggers(config)
-        self.config = config
+        self.set_config(config)
+    
+    def get_config(self):
+        return self._config
 
-        # set file handler logic
+    def set_config(self, config):
+        self._config = config
+        if config.logging_dir and config.record_log:
+            logfile = os.path.abspath(os.path.join(config.logging_dir, DEFAULT_LOG_FILE_NAME))
+            self.info(f"Enabling file logging to: {logfile}")
+            self._enable_file_logging(logfile)
         if config.trace:
             self.enable_trace()
         elif config.debug:
             self.enable_debug()
-    
+
+    def _create_file_listener(self, logfile: str):
+        self._queue = mp.Queue(-1)
+        self._file_handler = stdlogging.handlers.RotatingFileHandler(
+                logfile, 
+                maxBytes=DEFAULT_MAX_ROTATING_LOG_FILE_SIZE,
+                backupCount=DEFAULT_LOG_BACKUP_COUNT
+            )
+        self._file_handler.setFormatter(self._file_formatter)
+        listener = stdlogging.handlers.QueueListener(self._queue, self._file_handler, respect_handler_level=True)
+        return listener
+
+    def get_queue(self):
+        if hasattr(self, "_queue"):
+            return self._queue
+        else:
+            raise AttributeError("File logging is not enabled, no queue available.")
+
     def _initialize_bt_logger(self, name, config):
         """
         Initialize logging for bittensor.
@@ -94,19 +130,6 @@ class LoggingMachine(StateMachine):
         sh.setFormatter(self._stream_formatter)
         logger.addHandler(sh)
         logger.setLevel(stdlogging.INFO)
-
-        # set file handler, if applicable
-        if config.logging_dir and config.record_log:
-            file_formatter = stdlogging.Formatter(BASE_LOG_FORMAT, DATE_FORMAT)
-            filepath = os.path.join(config.logging_dir, DEFAULT_LOG_FILE_NAME)
-            fh = stdlogging.handlers.RotatingFileHandler(
-                filepath, 
-                maxBytes=DEFAULT_MAX_ROTATING_LOG_FILE_SIZE,
-                backupCount=DEFAULT_LOG_BACKUP_COUNT
-            )
-            fh.setFormatter(file_formatter)
-            logger.addHandler(fh)
-            
         
         return logger
 
@@ -126,14 +149,22 @@ class LoggingMachine(StateMachine):
             logger.setLevel(stdlogging.CRITICAL)
 
             if config.logging_dir and config.record_log:
-                # TODO: handle multiple loggers logging to the same file.
-                pass
+                queue_handler = stdlogging.handlers.QueueHandler(self._queue)
+                logger.addHandler(queue_handler)
+
+    def _enable_file_logging(self, logfile:str):
+        self._listener = self._create_file_listener(logfile)
+        atexit.register(self._listener.stop)
+        self._listener.start()
+        queue_handler = stdlogging.handlers.QueueHandler(self._queue)
+        
+        for logger in all_loggers():
+            logger.addHandler(queue_handler)
 
     # state transitions
     # Default Logging
     def before_enable_default(self):
-        if self.current_state_value == "Default":
-            return
+        self._logger.info(f"Enabling default logging.")
         self._logger.setLevel(stdlogging.INFO)
         self._stream_formatter.set_trace(False)
         for logger in all_loggers():
@@ -143,11 +174,14 @@ class LoggingMachine(StateMachine):
 
     def after_enable_default(self):
         pass
+
+    
+    def __del__(self):
+        self._listener.stop()
+        super().__del__()
             
     # Trace
     def before_enable_trace(self):
-        if self.current_state_value == "Trace":
-            return 
         self._logger.info("Enabling trace.")
         self._stream_formatter.set_trace(True)
         for logger in all_loggers():
@@ -157,7 +191,7 @@ class LoggingMachine(StateMachine):
         self._logger.info("Trace enabled.")
 
     def before_disable_trace(self):
-        self._logger.info("Disabling trace.")
+        self._logger.info(f"Disabling trace.")
         self._stream_formatter.set_trace(False)
         self.enable_default()
     
@@ -166,8 +200,6 @@ class LoggingMachine(StateMachine):
 
     # Debug
     def before_enable_debug(self):
-        if self.current_state_value == "Debug":
-            return
         self._logger.info("Enabling debug.")
         self._stream_formatter.set_trace(True)
         for logger in all_loggers():
@@ -218,23 +250,24 @@ class LoggingMachine(StateMachine):
         self._logger.exception(msg, *args, **kwargs)
 
     def on(self):
+        self._logger.info("Logging enabled.")
         self.enable_default()
 
     def off(self):
         self.disable_logging()
 
     def set_debug(self, on: bool=True):
-        if on:
+        if on and not self.current_state_value == "Debug":
             self.enable_debug()
-        else:
+        elif not on:
             if self.current_state_value == "Debug":
                 self.disable_debug()
             
 
     def set_trace(self, on: bool=True):
-        if on:
+        if on and not self.current_state_value == "Trace":
             self.enable_trace()
-        else:
+        elif not on:
             if self.current_state_value == "Trace":
                 self.disable_trace()
     

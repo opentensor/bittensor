@@ -309,6 +309,6 @@ configs = [
     subtensor.config(),
     PriorityThreadPoolExecutor.config(),
     wallet.config(),
-    logging.config,
+    logging.get_config(),
 ]
 defaults = config.merge_all(configs)

@@ -1,7 +1,7 @@
 import logging
 import pytest
 
-from bittensor.logging import (
+from bittensor.btlogging import (
     getLogger, 
     trace, 
     __enable_non_bt_loggers, 
@@ -12,7 +12,7 @@ from bittensor.logging import (
     __set_bt_format_logger, 
     BITTENSOR_LOGGER_NAME
 )
-from bittensor.logging.format import BtStreamFormatter
+from bittensor.btlogging.format import BtStreamFormatter
 
 
 # Mock for all_loggers function
