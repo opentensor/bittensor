@@ -288,7 +288,6 @@ from .chain_data import (
 from .subtensor import subtensor as subtensor
 from .cli import cli as cli, COMMANDS as ALL_COMMANDS
 from .btlogging import logging
-# from .logging import LoggingMachine, 
 from .metagraph import metagraph as metagraph
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
