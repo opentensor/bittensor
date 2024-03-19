@@ -77,7 +77,6 @@ class BtStreamFormatter(logging.Formatter):
         # Save the original format configured by the user
         # when the logger formatter was instantiated
         format_orig = self._style._fmt
-        spacing = get_max_logger_name_length() + 2
         record.levelname = f"{record.levelname:^16}"
         if self.trace is True:
             self._style._fmt = LOG_TRACE_FORMATS[record.levelno]
@@ -89,5 +88,22 @@ class BtStreamFormatter(logging.Formatter):
         return result
     
     def set_trace(self, state: bool = True):
-
         self.trace = state
+
+class BtFileFormatter(logging.Formatter):
+    def formatTime(self, record, datefmt=None):
+        """
+        Override formatTime to add milliseconds.
+        """
+        created = self.converter(record.created)
+        if datefmt:
+            s = time.strftime(datefmt, created)
+        else:
+            s = time.strftime("%Y-%m-%d %H:%M:%S", created)
+        s += ".{:03d}".format(int(record.msecs))
+        return s
+    
+    def format(self, record):
+        record.levelname = f"{record.levelname:^16}"
+        record.name
+        return super().format(record)
