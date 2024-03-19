@@ -1,5 +1,7 @@
+import os
 import time
 import logging
+import threading
 from colorama import (
     init,
     Fore,
@@ -59,7 +61,11 @@ LOG_TRACE_FORMATS = {
 
 
 class BtStreamFormatter(logging.Formatter):
-    trace = False
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.trace = False
+        self.lock = threading.Lock()
 
     def formatTime(self, record, datefmt=None):
         """
@@ -78,17 +84,23 @@ class BtStreamFormatter(logging.Formatter):
         # when the logger formatter was instantiated
         format_orig = self._style._fmt
         record.levelname = f"{record.levelname:^16}"
-        if self.trace is True:
-            self._style._fmt = LOG_TRACE_FORMATS[record.levelno]
-        else:
-            self._style._fmt = LOG_FORMATS[record.levelno]
+        with self.lock:
+            if self.trace is True:
+                self._style._fmt = LOG_TRACE_FORMATS[record.levelno]
+            else:
+                self._style._fmt = LOG_FORMATS[record.levelno]
+
         result = super().format(record)
         self._style._fmt = format_orig
 
         return result
     
     def set_trace(self, state: bool = True):
-        self.trace = state
+        print(f"setting trace: {state}")
+        with self.lock:
+            print(f"lock acquired...")
+            self.trace = state
+            print(f"trace set to {state}")
 
 class BtFileFormatter(logging.Formatter):
     def formatTime(self, record, datefmt=None):
@@ -105,5 +117,4 @@ class BtFileFormatter(logging.Formatter):
     
     def format(self, record):
         record.levelname = f"{record.levelname:^16}"
-        record.name
         return super().format(record)
