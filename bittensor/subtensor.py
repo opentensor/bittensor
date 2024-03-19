@@ -1018,7 +1018,7 @@ class subtensor:
 
                 # We only wait here if we expect finalization.
                 if not wait_for_finalization and not wait_for_inclusion:
-                    return True
+                    return True, None
 
                 # process if registration successful, try again if pow is still valid
                 response.process_events()
@@ -1060,7 +1060,7 @@ class subtensor:
 
                 # We only wait here if we expect finalization.
                 if not wait_for_finalization and not wait_for_inclusion:
-                    return True
+                    return True, None
 
                 # process if registration successful, try again if pow is still valid
                 response.process_events()
