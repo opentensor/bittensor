@@ -81,7 +81,7 @@ from .extrinsics.senate import (
 )
 from .extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
 from .types import AxonServeCallParams, PrometheusServeCallParams
-from .utils import U16_NORMALIZED_FLOAT, ss58_to_vec_u8
+from .utils import U16_NORMALIZED_FLOAT, ss58_to_vec_u8, U64_NORMALIZED_FLOAT
 from .utils.balance import Balance
 from .utils.registration import POWSolution
 
@@ -1018,7 +1018,7 @@ class subtensor:
 
                 # We only wait here if we expect finalization.
                 if not wait_for_finalization and not wait_for_inclusion:
-                    return True
+                    return True, None
 
                 # process if registration successful, try again if pow is still valid
                 response.process_events()
@@ -1060,7 +1060,7 @@ class subtensor:
 
                 # We only wait here if we expect finalization.
                 if not wait_for_finalization and not wait_for_inclusion:
-                    return True
+                    return True, None
 
                 # process if registration successful, try again if pow is still valid
                 response.process_events()
@@ -2858,6 +2858,28 @@ class subtensor:
             return None
         return U16_NORMALIZED_FLOAT(_result.value)
 
+    def adjustment_alpha(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[float]:
+        """Returns network AdjustmentAlpha hyper parameter"""
+        if not self.subnet_exists(netuid, block):
+            return None
+        _result = self.query_subtensor("AdjustmentAlpha", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return U64_NORMALIZED_FLOAT(_result.value)
+
+    def bonds_moving_avg(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[float]:
+        """Returns network BondsMovingAverage hyper parameter"""
+        if not self.subnet_exists(netuid, block):
+            return None
+        _result = self.query_subtensor("BondsMovingAverage", block, [netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return U64_NORMALIZED_FLOAT(_result.value)
+
     def scaling_law_power(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[float]:
@@ -3087,7 +3109,7 @@ class subtensor:
     ) -> Optional[int]:
         """
         Retrieves the serving rate limit for a specific subnet within the Bittensor network.
-        This rate limit determines the maximum number of requests a neuron can serve within a given time frame.
+        This rate limit determines how often you can change your node's IP address on the blockchain. Expressed in number of blocks. Applies to both subnet validator and subnet miner nodes. Used when you move your node to a new machine.
 
         Args:
             netuid (int): The unique identifier of the subnet.
