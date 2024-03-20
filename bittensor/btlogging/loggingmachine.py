@@ -1,7 +1,6 @@
 import os
 import sys
 import atexit
-import inspect
 import threading
 import multiprocessing as mp
 import logging as stdlogging
@@ -18,7 +17,7 @@ from bittensor.btlogging.defines import (
     BITTENSOR_LOGGER_NAME,
     DEFAULT_LOG_FILE_NAME,
     DEFAULT_MAX_ROTATING_LOG_FILE_SIZE,
-    DEFAULT_LOG_BACKUP_COUNT
+    DEFAULT_LOG_BACKUP_COUNT,
 )
 
 
@@ -80,46 +79,56 @@ class LoggingMachine(StateMachine):
         super(LoggingMachine, self).__init__()
 
         # basics
-        self._queue = mp.Queue(-1) # all 
+        self._queue = mp.Queue(-1)
         self._name = name
-        # self._lock = threading.Lock()
-        self._state_change_event = threading.Event()
-        self._state_change_event.set()
-
-        # handlers
-        # TODO: change this to a list of handlers, so that self.listener.handlers
-        #   can be updated to modify sinks
-        # self._handlers = list()
-
+        self._config = config
+        
         self._stream_formatter = BtStreamFormatter()
         self._file_formatter = BtFileFormatter(TRACE_LOG_FORMAT, DATE_FORMAT)
 
-        self.set_config(config)
+        # start with handlers
+        # In the future, we may want to add options to introduce other handlers
+        # for things like log aggregation by external services.
+        self._handlers = list()
 
+        # stream handler, a given
+        stream_handler = stdlogging.StreamHandler(sys.stdout)
+        stream_handler.setFormatter(self._stream_formatter)
+        self._handlers.append(stream_handler)
+
+        # file handler, maybe
+        if config.record_log and config.logging_dir:
+            logfile = os.path.abspath(os.path.join(config.logging_dir, DEFAULT_LOG_FILE_NAME))
+            file_handler = self._create_file_handler(logfile)
+            self._handlers.append(file_handler)
+
+        # configure and start the queue listener
+        self._listener = self._create_and_start_listener(self._handlers)
         self._logger = self._initialize_bt_logger(name, config)
         self._initialize_external_loggers(config)
-        
     
     def get_config(self):
         return self._config
 
     def set_config(self, config):
+        """
+        Set config after initialization, if desired.
+        """
         self._config = config
         if config.logging_dir and config.record_log:
             logfile = os.path.abspath(os.path.join(config.logging_dir, DEFAULT_LOG_FILE_NAME))
-            # self.info(f"Enabling file logging to: {logfile}")
             self._enable_file_logging(logfile)
         if config.trace:
             self.enable_trace()
         elif config.debug:
             self.enable_debug()
 
-    def _create_listener(self, handlers):
+    def _create_and_start_listener(self, handlers):
         """
         A listener to receive and publish log records.
         
         This listener receives records from a queue populated by the main bittensor
-        logger, as well as 3rd party loggers. The output sinks 
+        logger, as well as 3rd party loggers.
         """
 
         listener = QueueListener(
@@ -127,6 +136,8 @@ class LoggingMachine(StateMachine):
             *handlers,
             respect_handler_level=True
         )
+        listener.start()
+        atexit.register(listener.stop)
         return listener
 
     def get_queue(self):
@@ -146,23 +157,6 @@ class LoggingMachine(StateMachine):
         logger = stdlogging.getLogger(name)
         queue_handler = QueueHandler(self._queue)
         logger.addHandler(queue_handler)
-        handlers = list()
-
-        # main handler
-        stream_handler = stdlogging.StreamHandler(sys.stdout)
-        stream_handler.setFormatter(self._stream_formatter)
-        handlers.append(stream_handler)
-
-        if config.record_log and config.logging_dir:
-            # logfile = os.path.abspath(os.path.join(config.logging_dir, DEFAULT_LOG_FILE_NAME))
-            # handlers.append(self._create_file_handler(logfile))
-            pass
-
-        self._handlers = handlers
-        self._listener = self._create_listener(handlers)
-        self._listener.start()
-        atexit.register(self._listener.stop)
-        
         return logger
 
     def _create_file_handler(self, logfile: str):
@@ -193,22 +187,23 @@ class LoggingMachine(StateMachine):
             return
         file_handler = self._create_file_handler(logfile)
         self._handlers.append(file_handler)
-        self._listener.stop()
         self._listener.handlers = tuple(self._handlers)
-        self._listener.start()
 
     # state transitions
+    def before_transition(self, event, state):
+        self._listener.stop()
+    
+    def after_transition(self, event, state):
+        self._listener.start()
+
     # Default Logging
     def before_enable_default(self):
         self._logger.info(f"Enabling default logging.")
-        self._state_change_event.clear()
         self._logger.setLevel(stdlogging.INFO)
-        self._stream_formatter.set_trace(False)
         for logger in all_loggers():
             if logger.name == self._name:
                 continue
             logger.setLevel(stdlogging.CRITICAL)
-        self._state_change_event.set()
 
     def after_enable_default(self):
         pass
@@ -216,22 +211,17 @@ class LoggingMachine(StateMachine):
     # Trace
     def before_enable_trace(self):
         self._logger.info("Enabling trace.")
-        self._state_change_event.clear()
         self._stream_formatter.set_trace(True)
         for logger in all_loggers():
             logger.setLevel(stdlogging.TRACE)
-        self._state_change_event.set()
 
     def after_enable_trace(self):
         self._logger.info("Trace enabled.")
 
     def before_disable_trace(self):
-        # with self._lock:
         self._logger.info(f"Disabling trace.")
-        self._state_change_event.clear()
         self._stream_formatter.set_trace(False)
         self.enable_default()
-        self._state_change_event.set()
     
     def after_disable_trace(self):
         self._logger.info("Trace disabled.")
@@ -239,9 +229,7 @@ class LoggingMachine(StateMachine):
     # Debug
     def before_enable_debug(self):
         self._logger.info("Enabling debug.")
-        self._state_change_event.clear()
         self._stream_formatter.set_trace(True)
-        self._state_change_event.set()
         for logger in all_loggers():
             logger.setLevel(stdlogging.DEBUG)
 
@@ -250,10 +238,8 @@ class LoggingMachine(StateMachine):
 
     def before_disable_debug(self):
         self._logger.info("Disabling debug.")
-        self._state_change_event.clear()
         self._stream_formatter.set_trace(False)
         self.enable_default()
-        self._state_change_event.set()
 
     def after_disable_debug(self):
         self._logger.info("Debug disabled.")
@@ -261,9 +247,7 @@ class LoggingMachine(StateMachine):
     # Disable Logging
     def before_disable_logging(self):
         self._logger.info("Disabling logging.")        
-        self._state_change_event.set()
         self._stream_formatter.set_trace(False)
-        self._state_change_event.clear()
         
         for logger in all_loggers():
             logger.setLevel(stdlogging.CRITICAL)
@@ -271,35 +255,27 @@ class LoggingMachine(StateMachine):
     # Required API
     # support log commands for API backwards compatibility 
     def trace(self, msg, *args, **kwargs):
-        self._state_change_event.wait()
         self._logger.trace(msg, *args, **kwargs)
 
     def debug(self, msg, *args, **kwargs):
-        self._state_change_event.wait()
         self._logger.debug(msg, *args, **kwargs)
 
     def info(self, msg, *args, **kwargs):
-        self._state_change_event.wait()
         self._logger.info(msg, *args, **kwargs)
 
     def success(self, msg, *args, **kwargs):
-        self._state_change_event.wait()
         self._logger.success(msg, *args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
-        self._state_change_event.wait()
         self._logger.warning(msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
-        self._state_change_event.wait()
         self._logger.error(msg, *args, **kwargs)
 
     def critical(self, msg, *args, **kwargs):
-        self._state_change_event.wait()
         self._logger.critical(msg, *args, **kwargs)
     
     def exception(self, msg, *args, **kwargs):
-        self._state_change_event.wait()
         self._logger.exception(msg, *args, **kwargs)
 
     def on(self):
