@@ -189,8 +189,8 @@ class LoggingMachine(StateMachine):
     def _enable_file_logging(self, logfile:str):
         # preserve idempotency; do not create extra filehandlers
         # if one already exists
-        # if any([isinstance(handler, RotatingFileHandler) for handler in self._handlers]):
-        #     return
+        if any([isinstance(handler, RotatingFileHandler) for handler in self._handlers]):
+            return
         file_handler = self._create_file_handler(logfile)
         self._handlers.append(file_handler)
         self._listener.stop()
@@ -200,7 +200,6 @@ class LoggingMachine(StateMachine):
     # state transitions
     # Default Logging
     def before_enable_default(self):
-        # with self._lock:
         self._logger.info(f"Enabling default logging.")
         self._state_change_event.clear()
         self._logger.setLevel(stdlogging.INFO)
@@ -216,7 +215,6 @@ class LoggingMachine(StateMachine):
 
     # Trace
     def before_enable_trace(self):
-        # with self._lock:
         self._logger.info("Enabling trace.")
         self._state_change_event.clear()
         self._stream_formatter.set_trace(True)
@@ -240,7 +238,6 @@ class LoggingMachine(StateMachine):
 
     # Debug
     def before_enable_debug(self):
-        # with self._lock:
         self._logger.info("Enabling debug.")
         self._state_change_event.clear()
         self._stream_formatter.set_trace(True)
@@ -252,7 +249,6 @@ class LoggingMachine(StateMachine):
         self._logger.info("Debug enabled.")
 
     def before_disable_debug(self):
-        # with self._lock:
         self._logger.info("Disabling debug.")
         self._state_change_event.clear()
         self._stream_formatter.set_trace(False)
@@ -264,7 +260,6 @@ class LoggingMachine(StateMachine):
     
     # Disable Logging
     def before_disable_logging(self):
-        # with self._lock:
         self._logger.info("Disabling logging.")        
         self._state_change_event.set()
         self._stream_formatter.set_trace(False)
