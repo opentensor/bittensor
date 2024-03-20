@@ -296,6 +296,7 @@ class axon:
         external_ip: Optional[str] = None,
         external_port: Optional[int] = None,
         max_workers: Optional[int] = None,
+        acceptable_time_window_ms: Optional[int] = 50,
     ):
         r"""Creates a new bittensor.Axon object from passed arguments.
         Args:
@@ -313,6 +314,8 @@ class axon:
                 The external port of the server to broadcast to the network.
             max_workers (:type:`Optional[int]`, `optional`):
                 Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
+            acceptable_time_window_ms (:type:`Optional[int]`, `optional`):
+                The acceptable time window in milliseconds for the request to be serviced based on nonce.
         """
         # Build and check config.
         if config is None:
@@ -922,6 +925,11 @@ class axon:
                 and synapse.dendrite.nonce <= self.nonces[endpoint_key]
             ):
                 raise Exception("Nonce is too small")
+
+            # Check if nonce falls within the acceptable time window
+            current_time_ms = bittensor.utils.get_nonce_timestamp()
+            if not (current_time_ms - acceptable_time_window_ms <= synapse.dendrite.nonce <= current_time_ms + acceptable_time_window_ms):
+                raise Exception("Nonce timestamp is outside the acceptable time window")
 
             if not keypair.verify(message, synapse.dendrite.signature):
                 raise Exception(
