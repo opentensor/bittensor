@@ -502,16 +502,18 @@ class metagraph(torch.nn.Module):
                 subtensor = bittensor.subtensor(network='archive')
         """
 
-        if block and block > 300:
-            bittensor.logging.error(
-                "Block number is greater than 300. Please use the 'archive' network for subtensor and retry."
-            )
-            raise ValueError(
-                "Block number is greater than 300. Please use the 'archive' network for subtensor and retry."
-            )
-
         # Initialize subtensor
         subtensor = self._initialize_subtensor(subtensor)
+
+        if (
+            subtensor.chain_endpoint != bittensor.__archive_entrypoint__  # type: ignore
+            or subtensor.network != "archive"  # type: ignore
+        ):
+            cur_block = subtensor.get_current_block()  # type: ignore
+            if block and block < (cur_block - 300):
+                bittensor.logging.warning(
+                    "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' network for subtensor and retry."
+                )
 
         # Assign neurons based on 'lite' flag
         self._assign_neurons(block, lite, subtensor)
