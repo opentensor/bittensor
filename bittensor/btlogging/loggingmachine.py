@@ -1,6 +1,7 @@
 import os
 import sys
 import atexit
+import inspect
 import threading
 import multiprocessing as mp
 import logging as stdlogging
@@ -81,7 +82,9 @@ class LoggingMachine(StateMachine):
         # basics
         self._queue = mp.Queue(-1) # all 
         self._name = name
-        self._lock = threading.Lock()
+        # self._lock = threading.Lock()
+        self._state_change_event = threading.Event()
+        self._state_change_event.set()
 
         # handlers
         # TODO: change this to a list of handlers, so that self.listener.handlers
@@ -104,7 +107,7 @@ class LoggingMachine(StateMachine):
         self._config = config
         if config.logging_dir and config.record_log:
             logfile = os.path.abspath(os.path.join(config.logging_dir, DEFAULT_LOG_FILE_NAME))
-            self.info(f"Enabling file logging to: {logfile}")
+            # self.info(f"Enabling file logging to: {logfile}")
             self._enable_file_logging(logfile)
         if config.trace:
             self.enable_trace()
@@ -188,24 +191,25 @@ class LoggingMachine(StateMachine):
         # if one already exists
         # if any([isinstance(handler, RotatingFileHandler) for handler in self._handlers]):
         #     return
-        with self._lock:
-            file_handler = self._create_file_handler(logfile)
-            self._handlers.append(file_handler)
-            self._listener.stop()
-            self._listener.handlers = tuple(self._handlers)
-            self._listener.start()
+        file_handler = self._create_file_handler(logfile)
+        self._handlers.append(file_handler)
+        self._listener.stop()
+        self._listener.handlers = tuple(self._handlers)
+        self._listener.start()
 
     # state transitions
     # Default Logging
     def before_enable_default(self):
         # with self._lock:
         self._logger.info(f"Enabling default logging.")
+        self._state_change_event.clear()
         self._logger.setLevel(stdlogging.INFO)
         self._stream_formatter.set_trace(False)
         for logger in all_loggers():
             if logger.name == self._name:
                 continue
             logger.setLevel(stdlogging.CRITICAL)
+        self._state_change_event.set()
 
     def after_enable_default(self):
         pass
@@ -214,9 +218,11 @@ class LoggingMachine(StateMachine):
     def before_enable_trace(self):
         # with self._lock:
         self._logger.info("Enabling trace.")
+        self._state_change_event.clear()
         self._stream_formatter.set_trace(True)
         for logger in all_loggers():
             logger.setLevel(stdlogging.TRACE)
+        self._state_change_event.set()
 
     def after_enable_trace(self):
         self._logger.info("Trace enabled.")
@@ -224,8 +230,10 @@ class LoggingMachine(StateMachine):
     def before_disable_trace(self):
         # with self._lock:
         self._logger.info(f"Disabling trace.")
+        self._state_change_event.clear()
         self._stream_formatter.set_trace(False)
         self.enable_default()
+        self._state_change_event.set()
     
     def after_disable_trace(self):
         self._logger.info("Trace disabled.")
@@ -234,7 +242,9 @@ class LoggingMachine(StateMachine):
     def before_enable_debug(self):
         # with self._lock:
         self._logger.info("Enabling debug.")
+        self._state_change_event.clear()
         self._stream_formatter.set_trace(True)
+        self._state_change_event.set()
         for logger in all_loggers():
             logger.setLevel(stdlogging.DEBUG)
 
@@ -244,8 +254,10 @@ class LoggingMachine(StateMachine):
     def before_disable_debug(self):
         # with self._lock:
         self._logger.info("Disabling debug.")
+        self._state_change_event.clear()
         self._stream_formatter.set_trace(False)
         self.enable_default()
+        self._state_change_event.set()
 
     def after_disable_debug(self):
         self._logger.info("Debug disabled.")
@@ -253,35 +265,46 @@ class LoggingMachine(StateMachine):
     # Disable Logging
     def before_disable_logging(self):
         # with self._lock:
-        self._logger.info("Disabling logging.")
+        self._logger.info("Disabling logging.")        
+        self._state_change_event.set()
         self._stream_formatter.set_trace(False)
+        self._state_change_event.clear()
+        
         for logger in all_loggers():
             logger.setLevel(stdlogging.CRITICAL)
     
     # Required API
     # support log commands for API backwards compatibility 
     def trace(self, msg, *args, **kwargs):
+        self._state_change_event.wait()
         self._logger.trace(msg, *args, **kwargs)
 
     def debug(self, msg, *args, **kwargs):
+        self._state_change_event.wait()
         self._logger.debug(msg, *args, **kwargs)
 
     def info(self, msg, *args, **kwargs):
+        self._state_change_event.wait()
         self._logger.info(msg, *args, **kwargs)
 
     def success(self, msg, *args, **kwargs):
+        self._state_change_event.wait()
         self._logger.success(msg, *args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
+        self._state_change_event.wait()
         self._logger.warning(msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
+        self._state_change_event.wait()
         self._logger.error(msg, *args, **kwargs)
 
     def critical(self, msg, *args, **kwargs):
+        self._state_change_event.wait()
         self._logger.critical(msg, *args, **kwargs)
     
     def exception(self, msg, *args, **kwargs):
+        self._state_change_event.wait()
         self._logger.exception(msg, *args, **kwargs)
 
     def on(self):
