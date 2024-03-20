@@ -213,3 +213,10 @@ def hash(content, encoding="utf-8"):
 
     # Produce the hash
     return sha3.hexdigest()
+
+
+def get_nonce_timestamp():
+    """
+    Generate a UNIX timestamp with millisecond precision
+    """
+    return int(time.time() * 1000)

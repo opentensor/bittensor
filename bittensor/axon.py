@@ -1190,7 +1190,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             {
                 "version": str(bittensor.__version_as_int__),
                 "uuid": str(self.axon.uuid),
-                "nonce": f"{time.monotonic_ns()}",
+                "nonce": f"{bittensor.utils.get_nonce_timestamp()}",
                 "status_message": "Success",
                 "status_code": "100",
             }
