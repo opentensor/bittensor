@@ -84,11 +84,11 @@ class BtStreamFormatter(logging.Formatter):
         # when the logger formatter was instantiated
         format_orig = self._style._fmt
         record.levelname = f"{record.levelname:^16}"
-        with self.lock:
-            if self.trace is True:
-                self._style._fmt = LOG_TRACE_FORMATS[record.levelno]
-            else:
-                self._style._fmt = LOG_FORMATS[record.levelno]
+        # with self.lock:
+        if self.trace is True:
+            self._style._fmt = LOG_TRACE_FORMATS[record.levelno]
+        else:
+            self._style._fmt = LOG_FORMATS[record.levelno]
 
         result = super().format(record)
         self._style._fmt = format_orig
@@ -96,11 +96,10 @@ class BtStreamFormatter(logging.Formatter):
         return result
     
     def set_trace(self, state: bool = True):
-        print(f"setting trace: {state}")
-        with self.lock:
-            print(f"lock acquired...")
-            self.trace = state
-            print(f"trace set to {state}")
+        print(f"Setting trace value: {state}")
+        self.trace = state
+        print(f"State value set.")
+
 
 class BtFileFormatter(logging.Formatter):
     def formatTime(self, record, datefmt=None):
