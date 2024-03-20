@@ -1,5 +1,6 @@
 import logging
 
+
 def all_loggers():
     """
     Generator that yields all logger instances in the application.
