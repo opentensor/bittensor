@@ -176,6 +176,8 @@ custom_rpc_type_registry = {
                 ["max_regs_per_block", "Compact<u16>"],
                 ["serving_rate_limit", "Compact<u64>"],
                 ["max_validators", "Compact<u16>"],
+                ["adjustment_alpha", "Compact<u64>"],
+                ["difficulty", "Compact<u64>"],
             ],
         },
     }
@@ -882,6 +884,7 @@ class SubnetInfo:
     emission_value: float
     burn: Balance
     owner_ss58: str
+    # adjustment_alpha: int
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetInfo"]:
@@ -922,6 +925,8 @@ class SubnetInfo:
             max_allowed_validators=decoded["max_allowed_validators"],
             min_allowed_weights=decoded["min_allowed_weights"],
             max_weight_limit=decoded["max_weights_limit"],
+            # adjustment_alpha=decoded["adjustment_alpha"],
+            # bonds_moving_avg=decoded["bonds_moving_average"],
             scaling_law_power=decoded["scaling_law_power"],
             subnetwork_n=decoded["subnetwork_n"],
             max_n=decoded["max_allowed_uids"],
@@ -975,6 +980,8 @@ class SubnetHyperparameters:
     max_regs_per_block: int
     serving_rate_limit: int
     max_validators: int
+    adjustment_alpha: int
+    difficulty: int
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetHyperparameters"]:
@@ -1023,10 +1030,12 @@ class SubnetHyperparameters:
             target_regs_per_interval=decoded["target_regs_per_interval"],
             min_burn=decoded["min_burn"],
             max_burn=decoded["max_burn"],
-            bonds_moving_avg=decoded["bonds_moving_avg"],
             max_regs_per_block=decoded["max_regs_per_block"],
             max_validators=decoded["max_validators"],
             serving_rate_limit=decoded["serving_rate_limit"],
+            bonds_moving_avg=decoded["bonds_moving_avg"],
+            adjustment_alpha=decoded["adjustment_alpha"],
+            difficulty=decoded["difficulty"],
         )
 
     def to_parameter_dict(self) -> "torch.nn.ParameterDict":

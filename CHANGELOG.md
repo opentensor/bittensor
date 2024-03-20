@@ -1,5 +1,50 @@
 # Changelog
 
+## 6.9.3 / 2024-03-12
+
+## What's Changed
+* Release/6.9.2 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1743
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.9.2...v6.9.3
+
+
+## 6.9.2 / 2024-03-08
+
+## What's Changed
+* Change error into a warning if not using archive. Impossible to tell if local is lite or full node.
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.9.1...v6.9.2
+
+
+## 6.9.1 / 2024-03-08
+
+## What's Changed
+* Hotfix for reversing comparison operator for block checking to raise error if not using archive nodes
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.9.0...v6.9.1
+
+
+## 6.9.0 / 2024-03-07
+
+## What's Changed
+* Doc: Updates WalletBalanceCommand docstring by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1716
+* feature: metapgraph.py now passing type check by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1721
+* fix: Updates `btcli wallet balance --all` to get proper Wallet Name & Coldkey Address sets by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1720
+* Feature/prompt set identity on btcli/phil by @ifrit98 in https://github.com/opentensor/bittensor/pull/1719
+* Fix: Raises error when exceeding block max on metagraph by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1722
+* Release/6.8.2 by @ifrit98 in https://github.com/opentensor/bittensor/pull/1730
+* Expands type checking to subtensor by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1731
+* Feature: Synapse passing type check by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1725
+* bump req for security vulnerability in crpytography by @ifrit98 in https://github.com/opentensor/bittensor/pull/1718
+* Fix: proper association with wallet dir and coldkey addr #1739 by @gus-opentensor & @sepehr-opentensor 
+* Fixed event lookup on new network added #1741 by @shibshib 
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.8.2...v6.9.0
+
+
 ## 6.8.2 / 2024-03-01
 
 ## What's Changed
