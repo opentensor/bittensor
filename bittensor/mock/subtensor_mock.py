@@ -270,6 +270,8 @@ class MockSubtensor(subtensor):
                     "Prometheus": {},
                     "SubnetOwner": {},
                     "Commits": {},
+                    "AdjustmentAlpha": {},
+                    "BondsMovingAverage": {},
                 },
             }
 
@@ -328,6 +330,7 @@ class MockSubtensor(subtensor):
             subtensor_state["BlocksSinceLastStep"][netuid][0] = 0
             subtensor_state["Tempo"][netuid] = {}
             subtensor_state["Tempo"][netuid][0] = 99
+
             # subtensor_state['NetworkConnect'][netuid] = {}
             # subtensor_state['NetworkConnect'][netuid][0] = {}
             subtensor_state["EmissionValues"][netuid] = {}
@@ -364,6 +367,11 @@ class MockSubtensor(subtensor):
             subtensor_state["NetworksAdded"][netuid] = {}
             subtensor_state["NetworksAdded"][netuid][0] = True
 
+            subtensor_state["AdjustmentAlpha"][netuid] = {}
+            subtensor_state["AdjustmentAlpha"][netuid][0] = 1000
+
+            subtensor_state["BondsMovingAverage"][netuid] = {}
+            subtensor_state["BondsMovingAverage"][netuid][0] = 1000
         else:
             raise Exception("Subnet already exists")
 

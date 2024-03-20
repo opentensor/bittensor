@@ -21,7 +21,7 @@ import os
 import sys
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from . import defaults
 import requests
 from ..utils import RAOPERTAO
@@ -692,7 +692,7 @@ class UpdateWalletCommand:
             config.wallet.name = str(wallet_name)
 
 
-def _get_coldkey_ss58_addresses_for_path(path: str) -> tuple[list[str], list[str]]:
+def _get_coldkey_ss58_addresses_for_path(path: str) -> Tuple[List[str], List[str]]:
     """Get all coldkey ss58 addresses from path."""
 
     def list_coldkeypub_files(dir_path):
