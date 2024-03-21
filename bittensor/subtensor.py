@@ -1018,7 +1018,7 @@ class subtensor:
 
                 # We only wait here if we expect finalization.
                 if not wait_for_finalization and not wait_for_inclusion:
-                    return True
+                    return True, None
 
                 # process if registration successful, try again if pow is still valid
                 response.process_events()
@@ -1060,7 +1060,7 @@ class subtensor:
 
                 # We only wait here if we expect finalization.
                 if not wait_for_finalization and not wait_for_inclusion:
-                    return True
+                    return True, None
 
                 # process if registration successful, try again if pow is still valid
                 response.process_events()
@@ -3109,7 +3109,7 @@ class subtensor:
     ) -> Optional[int]:
         """
         Retrieves the serving rate limit for a specific subnet within the Bittensor network.
-        This rate limit determines the maximum number of requests a neuron can serve within a given time frame.
+        This rate limit determines how often you can change your node's IP address on the blockchain. Expressed in number of blocks. Applies to both subnet validator and subnet miner nodes. Used when you move your node to a new machine.
 
         Args:
             netuid (int): The unique identifier of the subnet.
