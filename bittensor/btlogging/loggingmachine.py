@@ -75,38 +75,48 @@ class LoggingMachine(StateMachine):
     )
 
     def __init__(self, config: "bittensor.config", name: str=BITTENSOR_LOGGER_NAME):
-        # set initial state based on config
-        super(LoggingMachine, self).__init__()
 
         # basics
+        super(LoggingMachine, self).__init__()
         self._queue = mp.Queue(-1)
         self._name = name
         self._config = config
         
+        # Formatters
+        #
+        # In the future, this may be expanded to a dictionary mapping handler
+        # types to their respective formatters.
         self._stream_formatter = BtStreamFormatter()
         self._file_formatter = BtFileFormatter(TRACE_LOG_FORMAT, DATE_FORMAT)
 
-        # start with handlers
+        # start with handlers for the QueueListener.
+        #
         # In the future, we may want to add options to introduce other handlers
         # for things like log aggregation by external services.
-        self._handlers = list()
+        self._handlers = self._configure_handlers(config)
+
+        # configure and start the queue listener
+        self._listener = self._create_and_start_listener(self._handlers)
+
+        # set up all the loggers
+        self._logger = self._initialize_bt_logger(name, config)
+        self._initialize_external_loggers(config)
+    
+    def _configure_handlers(self, config) -> list[stdlogging.Handler]:
+        handlers = list()
 
         # stream handler, a given
         stream_handler = stdlogging.StreamHandler(sys.stdout)
         stream_handler.setFormatter(self._stream_formatter)
-        self._handlers.append(stream_handler)
-
+        handlers.append(stream_handler)
+        
         # file handler, maybe
         if config.record_log and config.logging_dir:
             logfile = os.path.abspath(os.path.join(config.logging_dir, DEFAULT_LOG_FILE_NAME))
             file_handler = self._create_file_handler(logfile)
-            self._handlers.append(file_handler)
+            handlers.append(file_handler)
+        return handlers
 
-        # configure and start the queue listener
-        self._listener = self._create_and_start_listener(self._handlers)
-        self._logger = self._initialize_bt_logger(name, config)
-        self._initialize_external_loggers(config)
-    
     def get_config(self):
         return self._config
 
