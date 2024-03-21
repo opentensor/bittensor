@@ -23,6 +23,7 @@ import hashlib
 import requests
 import torch
 import scalecodec
+import time
 
 from .wallet_utils import *  # noqa F401
 
