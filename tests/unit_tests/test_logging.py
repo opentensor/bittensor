@@ -1,66 +1,169 @@
-import logging
 import pytest
-
-from bittensor.btlogging import (
-    getLogger, 
-    trace, 
-    __enable_non_bt_loggers, 
-    __disable_non_bt_loggers,
-    __enable_trace, 
-    __disable_logger, 
-    __set_default_logging,
-    __set_bt_format_logger, 
-    BITTENSOR_LOGGER_NAME
-)
-from bittensor.btlogging.format import BtStreamFormatter
+import multiprocessing
+import logging as stdlogging
+from unittest.mock import MagicMock, patch
+from bittensor.btlogging import LoggingMachine
+from bittensor.btlogging.defines import DEFAULT_LOG_FILE_NAME, BITTENSOR_LOGGER_NAME
+from bittensor.btlogging.loggingmachine import LoggingConfig
 
 
-# Mock for all_loggers function
-@pytest.fixture
-def all_loggers_mock(mocker):
-    mock = mocker.patch('your_module.all_loggers')
-    mock.return_value = [logging.getLogger(name) for name in ['test_logger1', 'test_logger2']]
-    return mock
-
-def test_getLogger(mock_stdout):
-    logger = getLogger('testLogger')
+@pytest.fixture(autouse=True, scope="session")
+def disable_stdout_streaming():
+    # Backup original handlers
+    original_handlers = stdlogging.root.handlers[:]
     
+    # Remove all handlers that stream to stdout
+    stdlogging.root.handlers = [h for h in stdlogging.root.handlers if not isinstance(h, stdlogging.StreamHandler)]
+    
+    yield  # Yield control to the test or fixture setup
+    
+    # Restore original handlers after the test
+    stdlogging.root.handlers = original_handlers
 
-def test_trace_enable(mocker, mock_stdout):
-    bt_logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
-    trace()
-    # This assumes TRACE is a custom level you've set somewhere as logging.TRACE might not be a default level
-    assert bt_logger.level == logging.TRACE  # Use DEBUG for illustration
 
-def test_enable_non_bt_loggers(all_loggers_mock, mock_stdout):
-    __enable_non_bt_loggers()
-    for logger in all_loggers():
-        if logger.name != BITTENSOR_LOGGER_NAME:
-            assert logger.level == logging.INFO  # Assuming INFO is the default
-            assert any([handler.formatter is BtStreamFormatter for handler in logger.handlers])
+@pytest.fixture
+def mock_config(tmp_path):
+    # Using pytest's tmp_path fixture to generate a temporary directory
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()  # Create the temporary directory
+    log_file_path = log_dir / DEFAULT_LOG_FILE_NAME
 
-def test_disable_non_bt_loggers(all_loggers_mock, mock_stdout):
-    __disable_non_bt_loggers()
-    for logger in all_loggers_mock.return_value:
-        if logger.name != BITTENSOR_LOGGER_NAME:
-            assert logger.level == logging.CRITICAL
+    mock_config = LoggingConfig(
+        debug=False,
+        trace=False,
+        record_log=True,
+        logging_dir=str(log_dir)
+    )
 
-def test_enable_trace(mock_stdout):
-    logger = logging.getLogger('test_trace')
-    __enable_trace(logger)
-    # Assuming TRACE level and checking if formatter's trace is enabled
-    for handler in logger.handlers:
-        assert isinstance(handler.formatter, BtStreamFormatter)
-        assert handler.formatter.trace_enabled == True
+    yield mock_config, log_file_path
+    # Cleanup: No need to explicitly delete the log file or directory, tmp_path does it automatically
 
-def test_disable_logger(mock_stdout):
-    logger = logging.getLogger('test_disable')
-    __disable_logger(logger)
-    # Assuming disabling sets level to CRITICAL and trace to False
-    assert logger.level == logging.CRITICAL
-    for handler in logger.handlers:
-        assert isinstance(handler.formatter, BtStreamFormatter)
-        assert handler.formatter.trace_enabled == False
 
-# Further tests would continue in this manner, focusing on the behavior expected from each function.
+@pytest.fixture
+def logging_machine(mock_config):
+    config, _ = mock_config
+    logging_machine = LoggingMachine(config=config)
+    yield logging_machine
 
+
+def test_initialization(logging_machine, mock_config):
+    """
+    Test initialization of LoggingMachine.
+    """
+    config, log_file_path = mock_config  # Unpack to get the log_file_path
+
+    assert logging_machine.get_queue() is not None
+    assert isinstance(logging_machine.get_queue(), multiprocessing.queues.Queue)
+    assert logging_machine.get_config() == config
+    
+    # Ensure that handlers are set up correctly
+    assert any(isinstance(handler, stdlogging.StreamHandler) for handler in logging_machine._handlers)
+    if config.record_log and config.logging_dir:
+        assert any(isinstance(handler, stdlogging.FileHandler) for handler in logging_machine._handlers)
+        assert log_file_path.exists()  # Check if log file is created
+
+
+def test_state_transitions(logging_machine, mock_config):
+    """
+    Test state transitions and the associated logging level changes.
+    """
+    config, log_file_path = mock_config
+    with patch('bittensor.btlogging.loggingmachine.all_loggers') as mocked_all_loggers:
+        # mock the main bittensor logger, identified by its `name` field
+        mocked_bt_logger = MagicMock()
+        mocked_bt_logger.name = BITTENSOR_LOGGER_NAME
+        # third party loggers are treated differently and silenced under default
+        # logging settings
+        mocked_third_party_logger = MagicMock()
+        logging_machine._logger = mocked_bt_logger
+        mocked_all_loggers.return_value = [mocked_third_party_logger, mocked_bt_logger]
+
+        # Enable/Disable Debug
+        # from default
+        assert logging_machine.current_state_value == "Default"
+        logging_machine.enable_debug()
+        assert logging_machine.current_state_value == "Debug"
+        # check log levels
+        mocked_bt_logger.setLevel.assert_called_with(stdlogging.DEBUG)
+        mocked_third_party_logger.setLevel.assert_called_with(stdlogging.DEBUG)
+        
+        logging_machine.disable_debug()
+
+        # Enable/Disable Trace
+        assert logging_machine.current_state_value == "Default"
+        logging_machine.enable_trace()
+        assert logging_machine.current_state_value == "Trace"
+        # check log levels
+        mocked_bt_logger.setLevel.assert_called_with(stdlogging.TRACE)
+        mocked_third_party_logger.setLevel.assert_called_with(stdlogging.TRACE)
+        logging_machine.disable_trace()
+        assert logging_machine.current_state_value == "Default"
+
+        # Enable Default
+        logging_machine.enable_debug()
+        assert logging_machine.current_state_value == "Debug"
+        logging_machine.enable_default()
+        assert logging_machine.current_state_value == "Default"
+        # main logger set to INFO
+        mocked_bt_logger.setLevel.assert_called_with(stdlogging.INFO)
+        # 3rd party loggers should be disabled by setting to CRITICAL
+        mocked_third_party_logger.setLevel.assert_called_with(stdlogging.CRITICAL)
+
+        # Disable Logging
+        # from default
+        logging_machine.disable_logging()
+        assert logging_machine.current_state_value == "Disabled"
+        mocked_bt_logger.setLevel.assert_called_with(stdlogging.CRITICAL)
+        mocked_third_party_logger.setLevel.assert_called_with(stdlogging.CRITICAL)
+
+
+def test_enable_file_logging_with_new_config(tmp_path):
+    """
+    Test enabling file logging by setting a new config.
+    """
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()  # Create the temporary directory
+    log_file_path = log_dir / DEFAULT_LOG_FILE_NAME
+
+    # check no file handler is created
+    config = LoggingConfig(
+        debug=False,
+        trace=False,
+        record_log=True,
+        logging_dir=None
+    )
+    lm = LoggingMachine(config)
+    assert not any(isinstance(handler, stdlogging.FileHandler) for handler in lm._handlers)
+
+    # check file handler now exists
+    new_config = LoggingConfig(
+        debug=False,
+        trace=False,
+        record_log=True,
+        logging_dir=str(log_dir)
+    )
+    lm.set_config(new_config)
+    assert any(isinstance(handler, stdlogging.FileHandler) for handler in lm._handlers)
+
+
+def test_all_log_levels_output(logging_machine, caplog):
+    """
+    Test that all log levels are captured.
+    """
+    logging_machine.set_trace()
+
+    logging_machine.trace("Test trace")
+    logging_machine.debug("Test debug")
+    logging_machine.info("Test info")
+    logging_machine.success("Test success")
+    logging_machine.warning("Test warning")
+    logging_machine.error("Test error")
+    logging_machine.critical("Test critical")
+
+    assert "Test trace" in caplog.text
+    assert "Test debug" in caplog.text
+    assert "Test info" in caplog.text
+    assert "Test success" in caplog.text
+    assert "Test warning" in caplog.text
+    assert "Test error" in caplog.text
+    assert "Test critical" in caplog.text
