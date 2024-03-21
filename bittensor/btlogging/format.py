@@ -2,12 +2,7 @@ import os
 import time
 import logging
 import threading
-from colorama import (
-    init,
-    Fore,
-    Back,
-    Style
-)
+from colorama import init, Fore, Back, Style
 
 from bittensor.btlogging.helpers import get_max_logger_name_length
 
@@ -16,13 +11,15 @@ init(autoreset=True)
 TRACE_LEVELV_NUM = 5
 SUCCESS_LEVELV_NUM = 21
 
+
 def trace(self, message, *args, **kws):
     if self.isEnabledFor(TRACE_LEVELV_NUM):
-        self._log(TRACE_LEVELV_NUM, message, args, **kws) 
+        self._log(TRACE_LEVELV_NUM, message, args, **kws)
+
 
 def success(self, message, *args, **kws):
     if self.isEnabledFor(SUCCESS_LEVELV_NUM):
-        self._log(SUCCESS_LEVELV_NUM, message, args, **kws) 
+        self._log(SUCCESS_LEVELV_NUM, message, args, **kws)
 
 
 logging.SUCCESS = SUCCESS_LEVELV_NUM
@@ -47,21 +44,20 @@ log_level_color_prefix = {
 
 
 LOG_FORMATS = {
-    level: f"{Fore.BLUE}%(asctime)s{Fore.RESET} | {Style.BRIGHT}{color}%(levelname)s\033[0m | %(message)s" 
+    level: f"{Fore.BLUE}%(asctime)s{Fore.RESET} | {Style.BRIGHT}{color}%(levelname)s\033[0m | %(message)s"
     for level, color in log_level_color_prefix.items()
 }
 
 LOG_TRACE_FORMATS = {
-    level: f"{Fore.BLUE}%(asctime)s{Fore.RESET}"\
-        f" | {Style.BRIGHT}{color}%(levelname)s{Fore.RESET}{Back.RESET}{Style.RESET_ALL}"\
-        f" | %(name)s:%(filename)s:%(lineno)s"\
-        f" | %(message)s" 
+    level: f"{Fore.BLUE}%(asctime)s{Fore.RESET}"
+    f" | {Style.BRIGHT}{color}%(levelname)s{Fore.RESET}{Back.RESET}{Style.RESET_ALL}"
+    f" | %(name)s:%(filename)s:%(lineno)s"
+    f" | %(message)s"
     for level, color in log_level_color_prefix.items()
 }
 
 
 class BtStreamFormatter(logging.Formatter):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.trace = False
@@ -77,7 +73,7 @@ class BtStreamFormatter(logging.Formatter):
             s = time.strftime("%Y-%m-%d %H:%M:%S", created)
         s += ".{:03d}".format(int(record.msecs))
         return s
-    
+
     def format(self, record):
         # Save the original format configured by the user
         # when the logger formatter was instantiated
@@ -93,7 +89,7 @@ class BtStreamFormatter(logging.Formatter):
         self._style._fmt = format_orig
 
         return result
-    
+
     def set_trace(self, state: bool = True):
         self.trace = state
 
@@ -110,7 +106,7 @@ class BtFileFormatter(logging.Formatter):
             s = time.strftime("%Y-%m-%d %H:%M:%S", created)
         s += ".{:03d}".format(int(record.msecs))
         return s
-    
+
     def format(self, record):
         record.levelname = f"{record.levelname:^16}"
         return super().format(record)

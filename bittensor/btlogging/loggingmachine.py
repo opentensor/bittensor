@@ -46,26 +46,16 @@ class LoggingMachine(StateMachine):
     )
 
     enable_trace = (
-        Default.to(Trace)
-        | Debug.to(Trace)
-        | Disabled.to(Trace)
-        | Trace.to(Trace)
+        Default.to(Trace) | Debug.to(Trace) | Disabled.to(Trace) | Trace.to(Trace)
     )
 
     enable_debug = (
-        Default.to(Debug)
-        | Trace.to(Debug)
-        | Disabled.to(Debug)
-        | Debug.to(Debug)
+        Default.to(Debug) | Trace.to(Debug) | Disabled.to(Debug) | Debug.to(Debug)
     )
 
-    disable_trace = (
-        Trace.to(Default)
-    )
+    disable_trace = Trace.to(Default)
 
-    disable_debug = (
-        Debug.to(Default)
-    )
+    disable_debug = Debug.to(Default)
 
     disable_logging = (
         Trace.to(Disabled)
@@ -74,14 +64,13 @@ class LoggingMachine(StateMachine):
         | Disabled.to(Disabled)
     )
 
-    def __init__(self, config: "bittensor.config", name: str=BITTENSOR_LOGGER_NAME):
-
+    def __init__(self, config: "bittensor.config", name: str = BITTENSOR_LOGGER_NAME):
         # basics
         super(LoggingMachine, self).__init__()
         self._queue = mp.Queue(-1)
         self._name = name
         self._config = config
-        
+
         # Formatters
         #
         # In the future, this may be expanded to a dictionary mapping handler
@@ -101,7 +90,7 @@ class LoggingMachine(StateMachine):
         # set up all the loggers
         self._logger = self._initialize_bt_logger(name, config)
         self._initialize_external_loggers(config)
-    
+
     def _configure_handlers(self, config) -> list[stdlogging.Handler]:
         handlers = list()
 
@@ -109,10 +98,12 @@ class LoggingMachine(StateMachine):
         stream_handler = stdlogging.StreamHandler(sys.stdout)
         stream_handler.setFormatter(self._stream_formatter)
         handlers.append(stream_handler)
-        
+
         # file handler, maybe
         if config.record_log and config.logging_dir:
-            logfile = os.path.abspath(os.path.join(config.logging_dir, DEFAULT_LOG_FILE_NAME))
+            logfile = os.path.abspath(
+                os.path.join(config.logging_dir, DEFAULT_LOG_FILE_NAME)
+            )
             file_handler = self._create_file_handler(logfile)
             handlers.append(file_handler)
         return handlers
@@ -126,7 +117,9 @@ class LoggingMachine(StateMachine):
         """
         self._config = config
         if config.logging_dir and config.record_log:
-            logfile = os.path.abspath(os.path.join(config.logging_dir, DEFAULT_LOG_FILE_NAME))
+            logfile = os.path.abspath(
+                os.path.join(config.logging_dir, DEFAULT_LOG_FILE_NAME)
+            )
             self._enable_file_logging(logfile)
         if config.trace:
             self.enable_trace()
@@ -136,16 +129,12 @@ class LoggingMachine(StateMachine):
     def _create_and_start_listener(self, handlers):
         """
         A listener to receive and publish log records.
-        
+
         This listener receives records from a queue populated by the main bittensor
         logger, as well as 3rd party loggers.
         """
 
-        listener = QueueListener(
-            self._queue, 
-            *handlers,
-            respect_handler_level=True
-        )
+        listener = QueueListener(self._queue, *handlers, respect_handler_level=True)
         listener.start()
         atexit.register(listener.stop)
         return listener
@@ -160,8 +149,8 @@ class LoggingMachine(StateMachine):
         """
         Initialize logging for bittensor.
 
-        Since the initial state is Default, logging level for the module logger 
-        is INFO, and all third-party loggers are silenced. Subsequent state 
+        Since the initial state is Default, logging level for the module logger
+        is INFO, and all third-party loggers are silenced. Subsequent state
         transitions will handle all logger outputs.
         """
         logger = stdlogging.getLogger(name)
@@ -171,10 +160,10 @@ class LoggingMachine(StateMachine):
 
     def _create_file_handler(self, logfile: str):
         file_handler = RotatingFileHandler(
-                logfile, 
-                maxBytes=DEFAULT_MAX_ROTATING_LOG_FILE_SIZE,
-                backupCount=DEFAULT_LOG_BACKUP_COUNT
-            )
+            logfile,
+            maxBytes=DEFAULT_MAX_ROTATING_LOG_FILE_SIZE,
+            backupCount=DEFAULT_LOG_BACKUP_COUNT,
+        )
         file_handler.setFormatter(self._file_formatter)
         file_handler.setLevel(stdlogging.TRACE)
         return file_handler
@@ -188,12 +177,14 @@ class LoggingMachine(StateMachine):
                 logger.removeHandler(handler)
             queue_handler = QueueHandler(self._queue)
             logger.addHandler(queue_handler)
-            logger.setLevel(stdlogging.CRITICAL)    
+            logger.setLevel(stdlogging.CRITICAL)
 
-    def _enable_file_logging(self, logfile:str):
+    def _enable_file_logging(self, logfile: str):
         # preserve idempotency; do not create extra filehandlers
         # if one already exists
-        if any([isinstance(handler, RotatingFileHandler) for handler in self._handlers]):
+        if any(
+            [isinstance(handler, RotatingFileHandler) for handler in self._handlers]
+        ):
             return
         file_handler = self._create_file_handler(logfile)
         self._handlers.append(file_handler)
@@ -202,7 +193,7 @@ class LoggingMachine(StateMachine):
     # state transitions
     def before_transition(self, event, state):
         self._listener.stop()
-    
+
     def after_transition(self, event, state):
         self._listener.start()
 
@@ -232,7 +223,7 @@ class LoggingMachine(StateMachine):
         self._logger.info(f"Disabling trace.")
         self._stream_formatter.set_trace(False)
         self.enable_default()
-    
+
     def after_disable_trace(self):
         self._logger.info("Trace disabled.")
 
@@ -253,17 +244,17 @@ class LoggingMachine(StateMachine):
 
     def after_disable_debug(self):
         self._logger.info("Debug disabled.")
-    
+
     # Disable Logging
     def before_disable_logging(self):
-        self._logger.info("Disabling logging.")        
+        self._logger.info("Disabling logging.")
         self._stream_formatter.set_trace(False)
-        
+
         for logger in all_loggers():
             logger.setLevel(stdlogging.CRITICAL)
-    
+
     # Required API
-    # support log commands for API backwards compatibility 
+    # support log commands for API backwards compatibility
     def __trace_on__(self):
         if not self.current_state_value == "Trace":
             self.enable_trace()
@@ -288,7 +279,7 @@ class LoggingMachine(StateMachine):
 
     def critical(self, msg, *args, **kwargs):
         self._logger.critical(msg, *args, **kwargs)
-    
+
     def exception(self, msg, *args, **kwargs):
         self._logger.exception(msg, *args, **kwargs)
 
@@ -299,21 +290,20 @@ class LoggingMachine(StateMachine):
     def off(self):
         self.disable_logging()
 
-    def set_debug(self, on: bool=True):
+    def set_debug(self, on: bool = True):
         if on and not self.current_state_value == "Debug":
             self.enable_debug()
         elif not on:
             if self.current_state_value == "Debug":
                 self.disable_debug()
-            
 
-    def set_trace(self, on: bool=True):
+    def set_trace(self, on: bool = True):
         if on and not self.current_state_value == "Trace":
             self.enable_trace()
         elif not on:
             if self.current_state_value == "Trace":
                 self.disable_trace()
-    
+
     def get_level(self):
         return self._logger.level
 

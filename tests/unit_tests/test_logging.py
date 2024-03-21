@@ -11,12 +11,16 @@ from bittensor.btlogging.loggingmachine import LoggingConfig
 def disable_stdout_streaming():
     # Backup original handlers
     original_handlers = stdlogging.root.handlers[:]
-    
+
     # Remove all handlers that stream to stdout
-    stdlogging.root.handlers = [h for h in stdlogging.root.handlers if not isinstance(h, stdlogging.StreamHandler)]
-    
+    stdlogging.root.handlers = [
+        h
+        for h in stdlogging.root.handlers
+        if not isinstance(h, stdlogging.StreamHandler)
+    ]
+
     yield  # Yield control to the test or fixture setup
-    
+
     # Restore original handlers after the test
     stdlogging.root.handlers = original_handlers
 
@@ -29,10 +33,7 @@ def mock_config(tmp_path):
     log_file_path = log_dir / DEFAULT_LOG_FILE_NAME
 
     mock_config = LoggingConfig(
-        debug=False,
-        trace=False,
-        record_log=True,
-        logging_dir=str(log_dir)
+        debug=False, trace=False, record_log=True, logging_dir=str(log_dir)
     )
 
     yield mock_config, log_file_path
@@ -55,11 +56,17 @@ def test_initialization(logging_machine, mock_config):
     assert logging_machine.get_queue() is not None
     assert isinstance(logging_machine.get_queue(), multiprocessing.queues.Queue)
     assert logging_machine.get_config() == config
-    
+
     # Ensure that handlers are set up correctly
-    assert any(isinstance(handler, stdlogging.StreamHandler) for handler in logging_machine._handlers)
+    assert any(
+        isinstance(handler, stdlogging.StreamHandler)
+        for handler in logging_machine._handlers
+    )
     if config.record_log and config.logging_dir:
-        assert any(isinstance(handler, stdlogging.FileHandler) for handler in logging_machine._handlers)
+        assert any(
+            isinstance(handler, stdlogging.FileHandler)
+            for handler in logging_machine._handlers
+        )
         assert log_file_path.exists()  # Check if log file is created
 
 
@@ -68,7 +75,7 @@ def test_state_transitions(logging_machine, mock_config):
     Test state transitions and the associated logging level changes.
     """
     config, log_file_path = mock_config
-    with patch('bittensor.btlogging.loggingmachine.all_loggers') as mocked_all_loggers:
+    with patch("bittensor.btlogging.loggingmachine.all_loggers") as mocked_all_loggers:
         # mock the main bittensor logger, identified by its `name` field
         mocked_bt_logger = MagicMock()
         mocked_bt_logger.name = BITTENSOR_LOGGER_NAME
@@ -86,7 +93,7 @@ def test_state_transitions(logging_machine, mock_config):
         # check log levels
         mocked_bt_logger.setLevel.assert_called_with(stdlogging.DEBUG)
         mocked_third_party_logger.setLevel.assert_called_with(stdlogging.DEBUG)
-        
+
         logging_machine.disable_debug()
 
         # Enable/Disable Trace
@@ -126,21 +133,15 @@ def test_enable_file_logging_with_new_config(tmp_path):
     log_file_path = log_dir / DEFAULT_LOG_FILE_NAME
 
     # check no file handler is created
-    config = LoggingConfig(
-        debug=False,
-        trace=False,
-        record_log=True,
-        logging_dir=None
-    )
+    config = LoggingConfig(debug=False, trace=False, record_log=True, logging_dir=None)
     lm = LoggingMachine(config)
-    assert not any(isinstance(handler, stdlogging.FileHandler) for handler in lm._handlers)
+    assert not any(
+        isinstance(handler, stdlogging.FileHandler) for handler in lm._handlers
+    )
 
     # check file handler now exists
     new_config = LoggingConfig(
-        debug=False,
-        trace=False,
-        record_log=True,
-        logging_dir=str(log_dir)
+        debug=False, trace=False, record_log=True, logging_dir=str(log_dir)
     )
     lm.set_config(new_config)
     assert any(isinstance(handler, stdlogging.FileHandler) for handler in lm._handlers)
