@@ -30,6 +30,22 @@ logging.TRACE = TRACE_LEVELV_NUM
 logging.addLevelName(TRACE_LEVELV_NUM, "TRACE")
 logging.Logger.trace = trace
 
+emoji_map = {
+    ':white_heavy_check_mark:': '✅',
+    ':cross_mark:': '❌',
+    ':satellite:': '🛰️',
+}
+
+
+color_map = {
+    '<red>': Fore.RED,
+    '</red>': Style.RESET_ALL,
+    '<blue>': Fore.BLUE,
+    '</blue>': Style.RESET_ALL,
+    '<green>': Fore.GREEN,
+    '</green>': Style.RESET_ALL,
+}
+
 
 log_level_color_prefix = {
     logging.NOTSET: Fore.RESET,
@@ -84,6 +100,12 @@ class BtStreamFormatter(logging.Formatter):
             self._style._fmt = LOG_TRACE_FORMATS[record.levelno]
         else:
             self._style._fmt = LOG_FORMATS[record.levelno]
+
+        for text, emoji in emoji_map.items():
+            record.msg = record.msg.replace(text, emoji)
+        # Apply color specifiers
+        for text, color in color_map.items():
+            record.msg = record.msg.replace(text, color)
 
         result = super().format(record)
         self._style._fmt = format_orig
