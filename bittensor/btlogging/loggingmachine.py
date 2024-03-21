@@ -140,10 +140,13 @@ class LoggingMachine(StateMachine):
         return listener
 
     def get_queue(self):
-        if hasattr(self, "_queue"):
-            return self._queue
-        else:
-            raise AttributeError("File logging is not enabled, no queue available.")
+        """
+        Get the queue the QueueListener is publishing from.
+
+        To set up logging in a separate process, a QueueHandler must
+        be added to all the desired loggers.
+        """
+        return self._queue
 
     def _initialize_bt_logger(self, name, config):
         """
@@ -259,28 +262,36 @@ class LoggingMachine(StateMachine):
         if not self.current_state_value == "Trace":
             self.enable_trace()
 
-    def trace(self, msg, *args, **kwargs):
+    def trace(self, msg="", prefix="", sufix="", *args, **kwargs):
+        msg = f"{prefix} - {msg} - {sufix}"
         self._logger.trace(msg, *args, **kwargs)
 
-    def debug(self, msg, *args, **kwargs):
+    def debug(self, msg="", prefix="", sufix="", *args, **kwargs):
+        msg = f"{prefix} - {msg} - {sufix}"
         self._logger.debug(msg, *args, **kwargs)
 
-    def info(self, msg, *args, **kwargs):
+    def info(self, msg="", prefix="", sufix="", *args, **kwargs):
+        msg = f"{prefix} - {msg} - {sufix}"
         self._logger.info(msg, *args, **kwargs)
 
-    def success(self, msg, *args, **kwargs):
+    def success(self, msg="", prefix="", sufix="", *args, **kwargs):
+        msg = f"{prefix} - {msg} - {sufix}"
         self._logger.success(msg, *args, **kwargs)
 
-    def warning(self, msg, *args, **kwargs):
+    def warning(self, msg="", prefix="", sufix="", *args, **kwargs):
+        msg = f"{prefix} - {msg} - {sufix}"
         self._logger.warning(msg, *args, **kwargs)
 
-    def error(self, msg, *args, **kwargs):
+    def error(self, msg="", prefix="", sufix="", *args, **kwargs):
+        msg = f"{prefix} - {msg} - {sufix}"
         self._logger.error(msg, *args, **kwargs)
 
-    def critical(self, msg, *args, **kwargs):
+    def critical(self, msg="", prefix="", sufix="", *args, **kwargs):
+        msg = f"{prefix} - {msg} - {sufix}"
         self._logger.critical(msg, *args, **kwargs)
 
-    def exception(self, msg, *args, **kwargs):
+    def exception(self, msg="", prefix="", sufix="", *args, **kwargs):
+        msg = f"{prefix} - {msg} - {sufix}"
         self._logger.exception(msg, *args, **kwargs)
 
     def on(self):
