@@ -64,6 +64,7 @@ def add_args(parser: argparse.ArgumentParser, prefix: str = None):
         # re-parsing arguments.
         pass
 
+
 def config():
     """Get config from the argument parser.
 
