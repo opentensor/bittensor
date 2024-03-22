@@ -1,5 +1,6 @@
 import os
 import sys
+import copy
 import atexit
 import argparse
 import multiprocessing as mp
@@ -373,3 +374,30 @@ class LoggingMachine(StateMachine):
         parser = argparse.ArgumentParser()
         cls.add_args(parser)
         return bittensor.config(parser, args=[])
+
+    def __call__(
+        self, 
+        config: bittensor.config = None, 
+        debug: bool = None,
+        trace: bool = None,
+        record_log: bool = None,
+        logging_dir: str = None,
+    ):
+        if config is not None:
+            cfg = copy.deepcopy(config)        
+            if debug is not None:
+                cfg.debug = debug
+            elif trace is not None:
+                cfg.trace = trace
+            if record_log is not None:
+                cfg.record_log = record_log
+            if logging_dir is not None:
+                cfg.logging_dir = logging_dir
+        else:
+            cfg = LoggingConfig(
+                debug=debug,
+                trace=trace,
+                record_log=record_log,
+                logging_dir=logging_dir
+            )
+        self.set_config(cfg)
