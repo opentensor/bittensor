@@ -1,6 +1,7 @@
 import os
 import sys
 import atexit
+import argparse
 import multiprocessing as mp
 import logging as stdlogging
 from typing import NamedTuple
@@ -316,6 +317,59 @@ class LoggingMachine(StateMachine):
 
     def get_level(self):
         return self._logger.level
+    
+    def check_config(self):
+        assert self._config
 
     def help(self):
         pass
+
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
+        """Accept specific arguments fro parser"""
+        prefix_str = "" if prefix == None else prefix + "."
+        try:
+            default_logging_debug = os.getenv("BT_LOGGING_DEBUG") or False
+            default_logging_trace = os.getenv("BT_LOGGING_TRACE") or False
+            default_logging_record_log = os.getenv("BT_LOGGING_RECORD_LOG") or False
+            default_logging_logging_dir = (
+                os.getenv("BT_LOGGING_LOGGING_DIR") or "~/.bittensor/miners"
+            )
+            parser.add_argument(
+                "--" + prefix_str + "logging.debug",
+                action="store_true",
+                help="""Turn on bittensor debugging information""",
+                default=default_logging_debug,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "logging.trace",
+                action="store_true",
+                help="""Turn on bittensor trace level information""",
+                default=default_logging_trace,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "logging.record_log",
+                action="store_true",
+                help="""Turns on logging to file.""",
+                default=default_logging_record_log,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "logging.logging_dir",
+                type=str,
+                help="Logging default root directory.",
+                default=default_logging_logging_dir,
+            )
+        except argparse.ArgumentError:
+            # re-parsing arguments.
+            pass
+
+    @classmethod
+    def config(cls):
+        """Get config from the argument parser.
+
+        Return:
+            bittensor.config object
+        """
+        parser = argparse.ArgumentParser()
+        cls.add_args(parser)
+        return bittensor.config(parser, args=[])
