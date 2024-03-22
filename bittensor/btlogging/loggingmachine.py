@@ -1,17 +1,16 @@
 import os
 import sys
 import atexit
-import threading
 import multiprocessing as mp
 import logging as stdlogging
 from typing import NamedTuple
 from statemachine import StateMachine, State
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 
+import bittensor.config
 from bittensor.btlogging.format import BtStreamFormatter, BtFileFormatter
 from bittensor.btlogging.helpers import all_loggers
 from bittensor.btlogging.defines import (
-    BASE_LOG_FORMAT,
     TRACE_LOG_FORMAT,
     DATE_FORMAT,
     BITTENSOR_LOGGER_NAME,
@@ -64,7 +63,7 @@ class LoggingMachine(StateMachine):
         | Disabled.to(Disabled)
     )
 
-    def __init__(self, config: "bittensor.config", name: str = BITTENSOR_LOGGER_NAME):
+    def __init__(self, config: bittensor.config, name: str = BITTENSOR_LOGGER_NAME):
         # basics
         super(LoggingMachine, self).__init__()
         self._queue = mp.Queue(-1)

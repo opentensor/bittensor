@@ -1,49 +1,46 @@
-import os
 import time
 import logging
-import threading
 from colorama import init, Fore, Back, Style
 
-from bittensor.btlogging.helpers import get_max_logger_name_length
 
 init(autoreset=True)
 
-TRACE_LEVELV_NUM = 5
-SUCCESS_LEVELV_NUM = 21
+TRACE_LEVEL_NUM = 5
+SUCCESS_LEVEL_NUM = 21
 
 
 def trace(self, message, *args, **kws):
-    if self.isEnabledFor(TRACE_LEVELV_NUM):
-        self._log(TRACE_LEVELV_NUM, message, args, **kws)
+    if self.isEnabledFor(TRACE_LEVEL_NUM):
+        self._log(TRACE_LEVEL_NUM, message, args, **kws)
 
 
 def success(self, message, *args, **kws):
-    if self.isEnabledFor(SUCCESS_LEVELV_NUM):
-        self._log(SUCCESS_LEVELV_NUM, message, args, **kws)
+    if self.isEnabledFor(SUCCESS_LEVEL_NUM):
+        self._log(SUCCESS_LEVEL_NUM, message, args, **kws)
 
 
-logging.SUCCESS = SUCCESS_LEVELV_NUM
-logging.addLevelName(SUCCESS_LEVELV_NUM, "SUCCESS")
+logging.SUCCESS = SUCCESS_LEVEL_NUM
+logging.addLevelName(SUCCESS_LEVEL_NUM, "SUCCESS")
 logging.Logger.success = success
 
-logging.TRACE = TRACE_LEVELV_NUM
-logging.addLevelName(TRACE_LEVELV_NUM, "TRACE")
+logging.TRACE = TRACE_LEVEL_NUM
+logging.addLevelName(TRACE_LEVEL_NUM, "TRACE")
 logging.Logger.trace = trace
 
 emoji_map = {
-    ':white_heavy_check_mark:': '✅',
-    ':cross_mark:': '❌',
-    ':satellite:': '🛰️',
+    ":white_heavy_check_mark:": "✅",
+    ":cross_mark:": "❌",
+    ":satellite:": "🛰️",
 }
 
 
 color_map = {
-    '<red>': Fore.RED,
-    '</red>': Style.RESET_ALL,
-    '<blue>': Fore.BLUE,
-    '</blue>': Style.RESET_ALL,
-    '<green>': Fore.GREEN,
-    '</green>': Style.RESET_ALL,
+    "<red>": Fore.RED,
+    "</red>": Style.RESET_ALL,
+    "<blue>": Fore.BLUE,
+    "</blue>": Style.RESET_ALL,
+    "<green>": Fore.GREEN,
+    "</green>": Style.RESET_ALL,
 }
 
 
