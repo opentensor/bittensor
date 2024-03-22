@@ -171,15 +171,15 @@ class LoggingMachine(StateMachine):
         file_handler.setFormatter(self._file_formatter)
         file_handler.setLevel(stdlogging.TRACE)
         return file_handler
-    
+
     def enable_third_party_loggers(self):
         for logger in all_loggers():
             if logger.name == self._name:
-                continue 
+                continue
             queue_handler = QueueHandler(self._queue)
             logger.addHandler(queue_handler)
             logger.setLevel(self._logger.level)
-    
+
     def disable_third_party_loggers(self):
         # remove all handlers
         for logger in all_loggers():
@@ -323,7 +323,7 @@ class LoggingMachine(StateMachine):
 
     def get_level(self):
         return self._logger.level
-    
+
     def check_config(self, config: bittensor.config):
         assert config.logging
 
@@ -381,15 +381,15 @@ class LoggingMachine(StateMachine):
         return bittensor.config(parser, args=[])
 
     def __call__(
-        self, 
-        config: bittensor.config = None, 
+        self,
+        config: bittensor.config = None,
         debug: bool = None,
         trace: bool = None,
         record_log: bool = None,
         logging_dir: str = None,
     ):
         if config is not None:
-            cfg = copy.deepcopy(config)        
+            cfg = copy.deepcopy(config)
             if debug is not None:
                 cfg.debug = debug
             elif trace is not None:
@@ -400,9 +400,6 @@ class LoggingMachine(StateMachine):
                 cfg.logging_dir = logging_dir
         else:
             cfg = LoggingConfig(
-                debug=debug,
-                trace=trace,
-                record_log=record_log,
-                logging_dir=logging_dir
+                debug=debug, trace=trace, record_log=record_log, logging_dir=logging_dir
             )
         self.set_config(cfg)
