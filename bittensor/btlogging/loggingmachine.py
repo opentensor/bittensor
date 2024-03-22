@@ -318,8 +318,8 @@ class LoggingMachine(StateMachine):
     def get_level(self):
         return self._logger.level
     
-    def check_config(self):
-        assert self._config
+    def check_config(self, config: bittensor.config):
+        assert config.logging
 
     def help(self):
         pass
