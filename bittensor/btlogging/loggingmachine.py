@@ -257,9 +257,9 @@ class LoggingMachine(StateMachine):
 
     # Required API
     # support log commands for API backwards compatibility
+    @property
     def __trace_on__(self):
-        if not self.current_state_value == "Trace":
-            self.enable_trace()
+        return self.current_state_value == "Trace"
 
     def trace(self, msg="", prefix="", sufix="", *args, **kwargs):
         msg = f"{prefix} - {msg} - {sufix}"
