@@ -90,7 +90,7 @@ class LoggingMachine(StateMachine):
 
         # set up all the loggers
         self._logger = self._initialize_bt_logger(name, config)
-        self._initialize_external_loggers(config)
+        self.disable_third_party_loggers()
 
     def _configure_handlers(self, config) -> list[stdlogging.Handler]:
         handlers = list()
@@ -171,17 +171,22 @@ class LoggingMachine(StateMachine):
         file_handler.setFormatter(self._file_formatter)
         file_handler.setLevel(stdlogging.TRACE)
         return file_handler
-
-    def _initialize_external_loggers(self, config):
+    
+    def enable_third_party_loggers(self):
+        for logger in all_loggers():
+            if logger.name == self._name:
+                continue 
+            queue_handler = QueueHandler(self._queue)
+            logger.addHandler(queue_handler)
+            logger.setLevel(self._logger.level)
+    
+    def disable_third_party_loggers(self):
         # remove all handlers
         for logger in all_loggers():
             if logger.name == self._name:
                 continue
             for handler in logger.handlers:
                 logger.removeHandler(handler)
-            queue_handler = QueueHandler(self._queue)
-            logger.addHandler(queue_handler)
-            logger.setLevel(stdlogging.CRITICAL)
 
     def _enable_file_logging(self, logfile: str):
         # preserve idempotency; do not create extra filehandlers
