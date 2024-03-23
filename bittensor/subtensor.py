@@ -1687,6 +1687,58 @@ class subtensor:
                     raise StakeError(response.error_message)
 
         return make_substrate_call_with_retry()
+    
+    def _do_subnet_stake(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        amount: Balance,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """Sends a stake extrinsic to the chain.
+
+        Args:
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey_ss58 (str): Hotkey ``ss58`` address to stake to.
+            netuid: (int): The subnet you are staking into.
+            amount (:func:`Balance`): Amount to stake.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        Raises:
+            StakeError: If the extrinsic failed.
+        """
+
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="add_stake",
+                    call_params={"hotkey": hotkey_ss58, "netuid", netuid, "amount_staked": amount.rao},
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+
+                response.process_events()
+                if response.is_success:
+                    return True
+                else:
+                    raise StakeError(response.error_message)
+
+        return make_substrate_call_with_retry()
 
     ###################
     #### Unstaking ####
@@ -1794,6 +1846,57 @@ class subtensor:
                     call_module="SubtensorModule",
                     call_function="remove_stake",
                     call_params={"hotkey": hotkey_ss58, "amount_unstaked": amount.rao},
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+
+                response.process_events()
+                if response.is_success:
+                    return True
+                else:
+                    raise StakeError(response.error_message)
+
+        return make_substrate_call_with_retry()
+    
+    def _do_subnet_unstake(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        amount: Balance,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """Sends an unstake extrinsic to the chain.
+
+        Args:
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey_ss58 (str): Hotkey ``ss58`` address to unstake from.
+            amount (:func:`Balance`): Amount to unstake.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        Raises:
+            StakeError: If the extrinsic failed.
+        """
+
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="remove_stake",
+                    call_params={"hotkey": hotkey_ss58, "netuid": netuid, "amount_unstaked": amount.rao},
                 )
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call, keypair=wallet.coldkey
@@ -2984,6 +3087,15 @@ class subtensor:
     ) -> Optional["Balance"]:
         """Returns the stake under a coldkey - hotkey pairing"""
         _result = self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return Balance.from_rao(_result.value)
+    
+    def get_stake_for_coldkey_and_hotkey_on_netuid(
+        self, hotkey_ss58: str, coldkey_ss58: str, netuid: int, block: Optional[int] = None
+    ) -> Optional["Balance"]:
+        """Returns the stake under a coldkey - hotkey - netuid pairing"""
+        _result = self.query_subtensor("SubStake", block, [hotkey_ss58, coldkey_ss58, netuid])
         if not hasattr(_result, "value") or _result is None:
             return None
         return Balance.from_rao(_result.value)
