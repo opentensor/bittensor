@@ -123,6 +123,14 @@ class config(DefaultMunch):
         if args == None:
             args = sys.argv[1:]
 
+        # Check for missing required arguments before proceeding
+        missing_required_args = self.__check_for_missing_required_args(parser, args)
+        if missing_required_args:
+            # Handle missing required arguments gracefully
+            raise ValueError(
+                f"Missing required arguments: {', '.join(missing_required_args)}"
+            )
+
         # 1.1 Optionally load defaults if the --config is set.
         try:
             config_file_path = (
@@ -372,6 +380,23 @@ class config(DefaultMunch):
             return False
         else:
             return self.get("__is_set")[param_name]
+
+    def __check_for_missing_required_args(
+        self, parser: argparse.ArgumentParser, args: List[str]
+    ) -> List[str]:
+        required_args = self.__get_required_args_from_parser(parser)
+        missing_args = [arg for arg in required_args if not any(arg in s for s in args)]
+        return missing_args
+
+    @staticmethod
+    def __get_required_args_from_parser(parser: argparse.ArgumentParser) -> List[str]:
+        required_args = []
+        for action in parser._actions:
+            if action.required:
+                # Prefix the argument with '--' if it's a long argument, or '-' if it's short
+                prefix = "--" if len(action.dest) > 1 else "-"
+                required_args.append(prefix + action.dest)
+        return required_args
 
 
 T = TypeVar("T", bound="DefaultConfig")

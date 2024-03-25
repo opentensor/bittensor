@@ -20,13 +20,13 @@ import bittensor
 
 import time
 import torch
+import logging
 from rich.prompt import Confirm
 from typing import Union
 import bittensor.utils.weight_utils as weight_utils
+from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 
-from loguru import logger
-
-logger = logger.opt(colors=True)
+logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
 
 def root_register_extrinsic(
@@ -211,7 +211,7 @@ def set_root_weights_extrinsic(
                 return False
 
         except Exception as e:
-            # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with loguru.
+            # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with the bittensor logger.
             bittensor.__console__.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )

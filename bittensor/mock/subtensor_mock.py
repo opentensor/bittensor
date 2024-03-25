@@ -34,7 +34,7 @@ from ..chain_data import (
     SubnetInfo,
     AxonInfo,
 )
-from ..errors import *
+from ..errors import ChainQueryError
 from ..subtensor import subtensor
 from ..utils import RAOPERTAO, U16_NORMALIZED_FLOAT
 from ..utils.balance import Balance

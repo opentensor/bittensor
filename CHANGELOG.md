@@ -1,5 +1,22 @@
 # Changelog
 
+## 6.10.0 / 2024-03-25
+
+## What's Changed
+* handle req args by parsing and raising by @ifrit98 in https://github.com/opentensor/bittensor/pull/1733
+* Replace wildcard imports with specific imports by @brueningf in https://github.com/opentensor/bittensor/pull/1724
+* Logging Refactor by @sepehr-opentensor in https://github.com/opentensor/bittensor/pull/1751
+* Update DEBUGGING.md by @e-gons in https://github.com/opentensor/bittensor/pull/1755
+* fix: nonce implementation by @GentikSolm in https://github.com/opentensor/bittensor/pull/1754
+
+## New Contributors
+* @sepehr-opentensor made their first contribution in https://github.com/opentensor/bittensor/pull/1751
+* @e-gons made their first contribution in https://github.com/opentensor/bittensor/pull/1755
+* @GentikSolm made their first contribution in https://github.com/opentensor/bittensor/pull/1754
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.9.3...v6.10.0
+
+
 ## 6.9.3 / 2024-03-12
 
 ## What's Changed

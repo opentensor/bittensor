@@ -1,5 +1,3 @@
-Sure, here's a more detailed guide on debugging Bittensor, including some code examples from the Bittensor repository.
-
 ## Installation
 
 First, make sure you have Bittensor installed correctly. There are three ways to install Bittensor:
