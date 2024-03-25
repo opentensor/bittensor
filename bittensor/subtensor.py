@@ -20,12 +20,12 @@ import os
 import copy
 import time
 import torch
+import logging
 import argparse
 import bittensor
 import scalecodec
 
 from retry import retry
-from loguru import logger
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any, TypeVar
 from substrateinterface.base import QueryMapResult, SubstrateInterface, ExtrinsicReceipt
 from substrateinterface.exceptions import SubstrateRequestException
@@ -34,6 +34,7 @@ from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall
 
 # Local imports.
+from .btlogging.defines import BITTENSOR_LOGGER_NAME
 from .chain_data import (
     NeuronInfo,
     DelegateInfo,
@@ -85,7 +86,7 @@ from .utils import U16_NORMALIZED_FLOAT, ss58_to_vec_u8, U64_NORMALIZED_FLOAT
 from .utils.balance import Balance
 from .utils.registration import POWSolution
 
-logger = logger.opt(colors=True)
+logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
 KEY_NONCE: Dict[str, int] = {}
 
