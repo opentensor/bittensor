@@ -21,7 +21,7 @@
 import os
 import sys
 import copy
-import torch
+import numpy as np
 import argparse
 import bittensor
 
@@ -286,10 +286,10 @@ class logging:
     @classmethod
     def _format(cls, prefix: object, sufix: object = None):
         """Format logging message"""
-        if isinstance(prefix, torch.Tensor):
+        if isinstance(prefix, np.ndarray):
             prefix = prefix.detach()
         if sufix != None:
-            if isinstance(sufix, torch.Tensor):
+            if isinstance(sufix, np.ndarray):
                 sufix = "shape: {}".format(str(sufix.shape)) + " data: {}".format(
                     str(sufix.detach())
                 )

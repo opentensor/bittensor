@@ -21,7 +21,7 @@ from typing import Callable, Union, List, Optional, Dict, Literal
 import bittensor
 import hashlib
 import requests
-import torch
+import numpy as np
 import scalecodec
 
 from .wallet_utils import *  # noqa F401
@@ -38,24 +38,31 @@ def ss58_to_vec_u8(ss58_address: str) -> List[int]:
 
 
 def unbiased_topk(values, k, dim=0, sorted=True, largest=True):
-    r"""Selects topk as in torch.topk but does not bias lower indices when values are equal.
+    r"""Selects topk but does not bias lower indices when values are equal.
     Args:
-        values: (torch.Tensor)
+        values: (np.array)
             Values to index into.
         k: (int):
             Number to take.
 
     Return:
-        topk: (torch.Tensor):
+        topk: (np.array):
             topk k values.
-        indices: (torch.LongTensor)
+        indices: (np.int64)
             indices of the topk values.
     """
-    permutation = torch.randperm(values.shape[dim])
+    permutation = np.random.rand(values.shape[dim])
     permuted_values = values[permutation]
-    topk, indices = torch.topk(
-        permuted_values, k, dim=dim, sorted=sorted, largest=largest
-    )
+    if largest:
+        indices = np.argpartition(permuted_values, -k)
+        topk = permuted_values[indices][k:]
+        indices = indices[k:]
+    else:
+        indices = np.argpartition(permuted_values, k)
+        topk = permuted_values[indices][:k]
+        indices = indices[:k]
+    if sorted:
+        topk.sort()
     return topk, permutation[indices]
 
 

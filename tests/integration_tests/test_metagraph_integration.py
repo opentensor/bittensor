@@ -18,8 +18,6 @@
 
 import bittensor
 from bittensor.mock import MockSubtensor
-import torch
-import pytest
 
 _subtensor_mock: MockSubtensor = MockSubtensor()
 
@@ -94,8 +92,3 @@ class TestMetagraph:
         metagraph.D
         metagraph.B
         metagraph.W
-
-    def test_parameters(self):
-        params = list(self.metagraph.parameters())
-        assert len(params) > 0
-        assert isinstance(params[0], torch.nn.parameter.Parameter)

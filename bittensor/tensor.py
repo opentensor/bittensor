@@ -16,52 +16,51 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import numpy
-import torch
+import numpy as np
 import base64
 import msgpack
 import pydantic
 import msgpack_numpy
 from typing import Optional, Union, List
 
-TORCH_DTYPES = {
-    "torch.float16": torch.float16,
-    "torch.float32": torch.float32,
-    "torch.float64": torch.float64,
-    "torch.uint8": torch.uint8,
-    "torch.int16": torch.int16,
-    "torch.int8": torch.int8,
-    "torch.int32": torch.int32,
-    "torch.int64": torch.int64,
-    "torch.bool": torch.bool,
+NUMPY_DTYPES = {
+    "float16": np.float16,
+    "float32": np.float32,
+    "float64": np.float64,
+    "uint8": np.uint8,
+    "int16": np.int16,
+    "int8": np.int8,
+    "int32": np.int32,
+    "int64": np.int64,
+    "bool": bool,
 }
 
 
-def cast_dtype(raw: Union[None, torch.dtype, str]) -> str:
+def cast_dtype(raw: Union[None, np.dtype, str]) -> str:
     """
-    Casts the raw value to a string representing the `torch data type <https://pytorch.org/docs/stable/tensor_attributes.html>`_.
+    Casts the raw value to a string representing the `numpy data type <https://numpy.org/doc/stable/user/basics.types.html>`_.
 
     Args:
-        raw (Union[None, torch.dtype, str]): The raw value to cast.
+        raw (Union[None, numpy.dtype, str]): The raw value to cast.
 
     Returns:
-        str: The string representing the torch data type.
+        str: The string representing the numpy data type.
 
     Raises:
         Exception: If the raw value is of an invalid type.
     """
     if not raw:
         return None
-    if isinstance(raw, torch.dtype):
-        return TORCH_DTYPES[raw]
+    if isinstance(raw, np.dtype):
+        return NUMPY_DTYPES[raw]
     elif isinstance(raw, str):
         assert (
-            raw in TORCH_DTYPES
-        ), f"{str} not a valid torch type in dict {TORCH_DTYPES}"
+            raw in NUMPY_DTYPES
+        ), f"{str} not a valid numpy type in dict {NUMPY_DTYPES}"
         return raw
     else:
         raise Exception(
-            f"{raw} of type {type(raw)} does not have a valid type in Union[None, torch.dtype, str]"
+            f"{raw} of type {type(raw)} does not have a valid type in Union[None, numpy.dtype, str]"
         )
 
 
@@ -97,11 +96,11 @@ def cast_shape(raw: Union[None, List[int], str]) -> str:
 
 
 class tensor:
-    def __new__(cls, tensor: Union[list, numpy.ndarray, torch.Tensor]):
+    def __new__(cls, tensor: Union[list, np.ndarray, np.ndarray]):
         if isinstance(tensor, list):
-            tensor = torch.tensor(tensor)
-        elif isinstance(tensor, numpy.ndarray):
-            tensor = torch.tensor(tensor)
+            tensor = np.array(tensor)
+        elif isinstance(tensor, np.ndarray):
+            tensor = np.array(tensor)
         return Tensor.serialize(tensor=tensor)
 
 
@@ -118,21 +117,21 @@ class Tensor(pydantic.BaseModel):
     class Config:
         validate_assignment = True
 
-    def tensor(self) -> torch.Tensor:
+    def tensor(self) -> np.ndarray:
         return self.deserialize()
 
     def tolist(self) -> List[object]:
         return self.deserialize().tolist()
 
     def numpy(self) -> "numpy.ndarray":
-        return self.deserialize().detach().numpy()
+        return self.deserialize()
 
-    def deserialize(self) -> "torch.Tensor":
+    def deserialize(self) -> "np.ndarray":
         """
         Deserializes the Tensor object.
 
         Returns:
-            torch.Tensor: The deserialized tensor object.
+            np.array: The deserialized tensor object.
 
         Raises:
             Exception: If the deserialization process encounters an error.
@@ -142,19 +141,19 @@ class Tensor(pydantic.BaseModel):
         numpy_object = msgpack.unpackb(
             buffer_bytes, object_hook=msgpack_numpy.decode
         ).copy()
-        torch_object = torch.as_tensor(numpy_object)
+        numpy = numpy_object
         # Reshape does not work for (0) or [0]
         if not (len(shape) == 1 and shape[0] == 0):
-            torch_object = torch_object.reshape(shape)
-        return torch_object.type(TORCH_DTYPES[self.dtype])
+            numpy = numpy.reshape(shape)
+        return numpy.astype(NUMPY_DTYPES[self.dtype])
 
     @staticmethod
-    def serialize(tensor: "torch.Tensor") -> "Tensor":
+    def serialize(tensor: "np.ndarray") -> "Tensor":
         """
         Serializes the given tensor.
 
         Args:
-            tensor (torch.Tensor): The tensor to serialize.
+            tensor (np.array): The tensor to serialize.
 
         Returns:
             Tensor: The serialized tensor.
@@ -166,9 +165,9 @@ class Tensor(pydantic.BaseModel):
         shape = list(tensor.shape)
         if len(shape) == 0:
             shape = [0]
-        torch_numpy = tensor.cpu().detach().numpy().copy()
+        numpy = tensor.copy()
         data_buffer = base64.b64encode(
-            msgpack.packb(torch_numpy, default=msgpack_numpy.encode)
+            msgpack.packb(numpy, default=msgpack_numpy.encode)
         ).decode("utf-8")
         return Tensor(buffer=data_buffer, shape=shape, dtype=dtype)
 
@@ -182,8 +181,8 @@ class Tensor(pydantic.BaseModel):
 
     dtype: str = pydantic.Field(
         title="dtype",
-        description="Tensor data type. This field specifies the data type of the tensor, such as torch.float32 or torch.int64.",
-        examples="torch.float32",
+        description="Tensor data type. This field specifies the data type of the tensor, such as numpy.float32 or numpy.int64.",
+        examples="np.float32",
         allow_mutation=False,
         repr=True,
     )  # Represents the data type of the tensor.

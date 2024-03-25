@@ -10,3 +10,4 @@ hypothesis==6.81.1
 flake8==7.0.0
 mypy==1.8.0
 types-retry==0.9.9.4
+torch>=1.13.1

@@ -17,7 +17,7 @@
 
 from unittest.mock import Mock
 import pytest
-import torch
+import numpy as np
 import bittensor
 
 from bittensor.metagraph import metagraph as Metagraph
@@ -66,25 +66,25 @@ def test_set_metagraph_attributes(mock_environment):
     assert metagraph.n.item() == len(neurons)
     assert metagraph.block.item() == 5
     assert (
-        torch.equal(
+        np.array_equal(
             metagraph.uids,
-            torch.tensor([neuron.uid for neuron in neurons], dtype=torch.int64),
+            np.array([neuron.uid for neuron in neurons], dtype=np.int64),
         )
         == True
     )
 
     assert (
-        torch.equal(
+        np.array_equal(
             metagraph.trust,
-            torch.tensor([neuron.trust for neuron in neurons], dtype=torch.float32),
+            np.array([neuron.trust for neuron in neurons], dtype=np.float32),
         )
         == True
     )
 
     assert (
-        torch.equal(
+        np.array_equal(
             metagraph.consensus,
-            torch.tensor([neuron.consensus for neuron in neurons], dtype=torch.float32),
+            np.array([neuron.consensus for neuron in neurons], dtype=np.float32),
         )
         == True
     )

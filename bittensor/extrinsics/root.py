@@ -19,7 +19,7 @@
 import bittensor
 
 import time
-import torch
+import numpy as np
 from rich.prompt import Confirm
 from typing import Union
 import bittensor.utils.weight_utils as weight_utils
@@ -101,8 +101,8 @@ def root_register_extrinsic(
 def set_root_weights_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
-    netuids: Union[torch.LongTensor, list],
-    weights: Union[torch.FloatTensor, list],
+    netuids: Union[np.int64, list],
+    weights: Union[np.float32, list],
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
@@ -115,7 +115,7 @@ def set_root_weights_extrinsic(
             Bittensor wallet object.
         netuids (List[int]):
             The ``netuid`` of the subnet to set weights for.
-        weights ( Union[torch.FloatTensor, list]):
+        weights ( Union[np.float32, list]):
             Weights to set. These must be ``float`` s and must correspond to the passed ``netuid`` s.
         version_key (int):
             The version key of the validator.
@@ -131,16 +131,16 @@ def set_root_weights_extrinsic(
     """
     # First convert types.
     if isinstance(netuids, list):
-        netuids = torch.tensor(netuids, dtype=torch.int64)
+        netuids = np.array(netuids, dtype=np.int64)
     if isinstance(weights, list):
-        weights = torch.tensor(weights, dtype=torch.float32)
+        weights = np.array(weights, dtype=np.float32)
 
     # Get weight restrictions.
     min_allowed_weights = subtensor.min_allowed_weights(netuid=0)
     max_weight_limit = subtensor.max_weight_limit(netuid=0)
 
     # Get non zero values.
-    non_zero_weight_idx = torch.argwhere(weights > 0).squeeze(dim=1)
+    non_zero_weight_idx = np.argwhere(weights > 0).squeeze(axis=1)
     non_zero_weight_uids = netuids[non_zero_weight_idx]
     non_zero_weights = weights[non_zero_weight_idx]
     if non_zero_weights.numel() < min_allowed_weights:

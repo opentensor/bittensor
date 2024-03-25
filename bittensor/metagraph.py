@@ -18,7 +18,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import torch
+import pickle
+import numpy as np
 import bittensor
 from os import listdir
 from os.path import join
@@ -70,7 +71,7 @@ def latest_block_path(dir_path: str) -> str:
         return latest_file_full_path
 
 
-class metagraph(torch.nn.Module):
+class metagraph:
     """
     The metagraph class is a core component of the Bittensor network, representing the neural graph that forms the backbone of the decentralized machine learning system.
 
@@ -83,9 +84,9 @@ class metagraph(torch.nn.Module):
     Args:
         netuid (int): A unique identifier that distinguishes between different instances or versions of the Bittensor network.
         network (str): The name of the network, signifying specific configurations or iterations within the Bittensor ecosystem.
-        version (torch.nn.parameter.Parameter): The version number of the network, formatted for compatibility with PyTorch models, integral for tracking network updates.
-        n (torch.nn.Parameter): The total number of neurons in the network, reflecting its size and complexity.
-        block (torch.nn.Parameter): The current block number in the blockchain, crucial for synchronizing with the network's latest state.
+        version (np.array): The version number of the network, integral for tracking network updates.
+        n (np.array): The total number of neurons in the network, reflecting its size and complexity.
+        block (np.array): The current block number in the blockchain, crucial for synchronizing with the network's latest state.
         stake: Represents the cryptocurrency staked by neurons, impacting their influence and earnings within the network.
         total_stake: The cumulative stake across all neurons.
         ranks: Neuron rankings as per the Yuma Consensus algorithm, influencing their incentive distribution and network authority.
@@ -128,7 +129,7 @@ class metagraph(torch.nn.Module):
     """
 
     @property
-    def S(self) -> torch.nn.Parameter:
+    def S(self) -> np.array:
         """
         Represents the stake of each neuron in the Bittensor network. Stake is an important concept in the
         Bittensor ecosystem, signifying the amount of network weight (or “stake”) each neuron holds,
@@ -136,12 +137,12 @@ class metagraph(torch.nn.Module):
         from the network, playing a crucial role in the distribution of incentives and decision-making processes.
 
         Returns:
-            torch.nn.Parameter: A tensor representing the stake of each neuron in the network. Higher values signify a greater stake held by the respective neuron.
+            np.array: A tensor representing the stake of each neuron in the network. Higher values signify a greater stake held by the respective neuron.
         """
         return self.total_stake
 
     @property
-    def R(self) -> torch.nn.Parameter:
+    def R(self) -> np.array:
         """
         Contains the ranks of neurons in the Bittensor network. Ranks are determined by the network based
         on each neuron's performance and contributions. Higher ranks typically indicate a greater level of
@@ -149,12 +150,12 @@ class metagraph(torch.nn.Module):
         incentives within the network, with higher-ranked neurons receiving more incentive.
 
         Returns:
-            torch.nn.Parameter: A tensor where each element represents the rank of a neuron. Higher values indicate higher ranks within the network.
+            np.array: A tensor where each element represents the rank of a neuron. Higher values indicate higher ranks within the network.
         """
         return self.ranks
 
     @property
-    def I(self) -> torch.nn.Parameter:
+    def I(self) -> np.array:
         """
         Incentive values of neurons represent the rewards they receive for their contributions to the network.
         The Bittensor network employs an incentive mechanism that rewards neurons based on their
@@ -162,12 +163,12 @@ class metagraph(torch.nn.Module):
         trusted contributions are incentivized.
 
         Returns:
-            torch.nn.Parameter: A tensor of incentive values, indicating the rewards or benefits accrued by each neuron based on their contributions and network consensus.
+            np.array: A tensor of incentive values, indicating the rewards or benefits accrued by each neuron based on their contributions and network consensus.
         """
         return self.incentive
 
     @property
-    def E(self) -> torch.nn.Parameter:
+    def E(self) -> np.array:
         """
         Denotes the emission values of neurons in the Bittensor network. Emissions refer to the distribution or
         release of rewards (often in the form of cryptocurrency) to neurons, typically based on their stake and
@@ -175,12 +176,12 @@ class metagraph(torch.nn.Module):
         contributing neurons are appropriately rewarded.
 
         Returns:
-            torch.nn.Parameter: A tensor where each element represents the emission value for a neuron, indicating the amount of reward distributed to that neuron.
+            np.array: A tensor where each element represents the emission value for a neuron, indicating the amount of reward distributed to that neuron.
         """
         return self.emission
 
     @property
-    def C(self) -> torch.nn.Parameter:
+    def C(self) -> np.array:
         """
         Represents the consensus values of neurons in the Bittensor network. Consensus is a measure of how
         much a neuron's contributions are trusted and agreed upon by the majority of the network. It is
@@ -189,13 +190,13 @@ class metagraph(torch.nn.Module):
         are more widely trusted and valued across the network.
 
         Returns:
-            torch.nn.Parameter: A tensor of consensus values, where each element reflects the level of trust and agreement a neuron has achieved within the network.
+            np.array: A tensor of consensus values, where each element reflects the level of trust and agreement a neuron has achieved within the network.
 
         """
         return self.consensus
 
     @property
-    def T(self) -> torch.nn.Parameter:
+    def T(self) -> np.array:
         """
         Represents the trust values assigned to each neuron in the Bittensor network. Trust is a key metric that
         reflects the reliability and reputation of a neuron based on its past behavior and contributions. It is
@@ -206,12 +207,12 @@ class metagraph(torch.nn.Module):
         has in others. A higher value in the trust matrix suggests a stronger trust relationship between neurons.
 
         Returns:
-            torch.nn.Parameter: A tensor of trust values, where each element represents the trust level of a neuron. Higher values denote a higher level of trust within the network.
+            np.array: A tensor of trust values, where each element represents the trust level of a neuron. Higher values denote a higher level of trust within the network.
         """
         return self.trust
 
     @property
-    def Tv(self) -> torch.nn.Parameter:
+    def Tv(self) -> np.array:
         """
         Contains the validator trust values of neurons in the Bittensor network. Validator trust is specifically
         associated with neurons that act as validators within the network. This specialized form of trust reflects
@@ -222,24 +223,24 @@ class metagraph(torch.nn.Module):
         determining the validators' influence and responsibilities in these critical functions.
 
         Returns:
-            torch.nn.Parameter: A tensor of validator trust values, specifically applicable to neurons serving as validators, where higher values denote greater trustworthiness in their validation roles.
+            np.array: A tensor of validator trust values, specifically applicable to neurons serving as validators, where higher values denote greater trustworthiness in their validation roles.
         """
         return self.validator_trust
 
     @property
-    def D(self) -> torch.nn.Parameter:
+    def D(self) -> np.array:
         """
         Represents the dividends received by neurons in the Bittensor network. Dividends are a form of reward or
         distribution, typically given to neurons based on their stake, performance, and contribution to the network.
         They are an integral part of the network's incentive structure, encouraging active and beneficial participation.
 
         Returns:
-            torch.nn.Parameter: A tensor of dividend values, where each element indicates the dividends received by a neuron, reflecting their share of network rewards.
+            np.array: A tensor of dividend values, where each element indicates the dividends received by a neuron, reflecting their share of network rewards.
         """
         return self.dividends
 
     @property
-    def B(self) -> torch.nn.Parameter:
+    def B(self) -> np.array:
         """
         Bonds in the Bittensor network represent a speculative reward mechanism where neurons can accumulate
         bonds in other neurons. Bonds are akin to investments or stakes in other neurons, reflecting a belief in
@@ -247,12 +248,12 @@ class metagraph(torch.nn.Module):
         among neurons while providing an additional layer of incentive.
 
         Returns:
-            torch.nn.Parameter: A tensor representing the bonds held by each neuron, where each value signifies the proportion of bonds owned by one neuron in another.
+            np.array: A tensor representing the bonds held by each neuron, where each value signifies the proportion of bonds owned by one neuron in another.
         """
         return self.bonds
 
     @property
-    def W(self) -> torch.nn.Parameter:
+    def W(self) -> np.array:
         """
         Represents the weights assigned to each neuron in the Bittensor network. In the context of Bittensor,
         weights are crucial for determining the influence and interaction between neurons. Each neuron is responsible
@@ -265,7 +266,7 @@ class metagraph(torch.nn.Module):
         placed on that neuron's contributions.
 
         Returns:
-            torch.nn.Parameter: A tensor of inter-peer weights, where each element :math:`w_{ij}` represents the weight assigned by neuron :math:`i` to neuron :math:`j`. This matrix is fundamental to the network's functioning, influencing the distribution of incentives and the inter-neuronal dynamics.
+            np.array: A tensor of inter-peer weights, where each element :math:`w_{ij}` represents the weight assigned by neuron :math:`i` to neuron :math:`j`. This matrix is fundamental to the network's functioning, influencing the distribution of incentives and the inter-neuronal dynamics.
         """
         return self.weights
 
@@ -401,66 +402,55 @@ class metagraph(torch.nn.Module):
                 metagraph = metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
         super(metagraph, self).__init__()
+
         self.netuid = netuid
         self.network = network
-        self.version = torch.nn.Parameter(
-            torch.tensor([bittensor.__version_as_int__], dtype=torch.int64),
-            requires_grad=False,
-        )
-        self.n: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([0], dtype=torch.int64), requires_grad=False
-        )
-        self.block: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([0], dtype=torch.int64), requires_grad=False
-        )
-        self.stake = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.float32), requires_grad=False
-        )
-        self.total_stake: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.float32), requires_grad=False
-        )
-        self.ranks: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.float32), requires_grad=False
-        )
-        self.trust: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.float32), requires_grad=False
-        )
-        self.consensus: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.float32), requires_grad=False
-        )
-        self.validator_trust: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.float32), requires_grad=False
-        )
-        self.incentive: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.float32), requires_grad=False
-        )
-        self.emission: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.float32), requires_grad=False
-        )
-        self.dividends: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.float32), requires_grad=False
-        )
-        self.active = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.int64), requires_grad=False
-        )
-        self.last_update = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.int64), requires_grad=False
-        )
-        self.validator_permit = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.bool), requires_grad=False
-        )
-        self.weights: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.float32), requires_grad=False
-        )
-        self.bonds: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.int64), requires_grad=False
-        )
-        self.uids = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.int64), requires_grad=False
-        )
+        self.version = (np.array([bittensor.__version_as_int__], dtype=np.int64),)
+        self.n: np.array = np.array([0], dtype=np.int64)
+        self.block: np.array = np.array([0], dtype=np.int64)
+        self.stake = np.array([], dtype=np.float32)
+        self.total_stake: np.array = np.array([], dtype=np.float32)
+        self.ranks: np.array = np.array([], dtype=np.float32)
+        self.trust: np.array = np.array([], dtype=np.float32)
+        self.consensus: np.array = np.array([], dtype=np.float32)
+        self.validator_trust: np.array = np.array([], dtype=np.float32)
+        self.incentive: np.array = np.array([], dtype=np.float32)
+        self.emission: np.array = np.array([], dtype=np.float32)
+        self.dividends: np.array = np.array([], dtype=np.float32)
+        self.active = np.array([], dtype=np.int64)
+        self.last_update = np.array([], dtype=np.int64)
+        self.validator_permit = np.array([], dtype=bool)
+        self.weights: np.array = np.array([], dtype=np.float32)
+        self.bonds: np.array = np.array([], dtype=np.int64)
+        self.uids = np.array([], dtype=np.int64)
         self.axons: List[AxonInfo] = []
         if sync:
             self.sync(block=None, lite=lite)
+
+    def state_dict(self):
+        return {
+            "netuid": self.netuid,
+            "network": self.network,
+            "version": self.version,
+            "n": self.n,
+            "block": self.block,
+            "stake": self.stake,
+            "total_stake": self.total_stake,
+            "ranks": self.ranks,
+            "trust": self.trust,
+            "consensus": self.consensus,
+            "validator_trust": self.validator_trust,
+            "incentive": self.incentive,
+            "emission": self.emission,
+            "dividends": self.dividends,
+            "active": self.active,
+            "last_update": self.last_update,
+            "validator_permit": self.validator_permit,
+            "weights": self.weights,
+            "bonds": self.bonds,
+            "uids": self.uids,
+            "axons": self.axons,
+        }
 
     def sync(
         self,
@@ -588,62 +578,61 @@ class metagraph(torch.nn.Module):
                 self._set_metagraph_attributes(block, subtensor)
         """
         # TODO: Check and test the setting of each attribute
-        self.n = self._create_tensor(len(self.neurons), dtype=torch.int64)
+        self.n = self._create_tensor(len(self.neurons), dtype=np.int64)
         self.version = self._create_tensor(
-            [bittensor.__version_as_int__], dtype=torch.int64
+            [bittensor.__version_as_int__], dtype=np.int64
         )
         self.block = self._create_tensor(
-            block if block else subtensor.block, dtype=torch.int64
+            block if block else subtensor.block, dtype=np.int64
         )
         self.uids = self._create_tensor(
-            [neuron.uid for neuron in self.neurons], dtype=torch.int64
+            [neuron.uid for neuron in self.neurons], dtype=np.int64
         )
         self.trust = self._create_tensor(
-            [neuron.trust for neuron in self.neurons], dtype=torch.float32
+            [neuron.trust for neuron in self.neurons], dtype=np.float32
         )
         self.consensus = self._create_tensor(
-            [neuron.consensus for neuron in self.neurons], dtype=torch.float32
+            [neuron.consensus for neuron in self.neurons], dtype=np.float32
         )
         self.incentive = self._create_tensor(
-            [neuron.incentive for neuron in self.neurons], dtype=torch.float32
+            [neuron.incentive for neuron in self.neurons], dtype=np.float32
         )
         self.dividends = self._create_tensor(
-            [neuron.dividends for neuron in self.neurons], dtype=torch.float32
+            [neuron.dividends for neuron in self.neurons], dtype=np.float32
         )
         self.ranks = self._create_tensor(
-            [neuron.rank for neuron in self.neurons], dtype=torch.float32
+            [neuron.rank for neuron in self.neurons], dtype=np.float32
         )
         self.emission = self._create_tensor(
-            [neuron.emission for neuron in self.neurons], dtype=torch.float32
+            [neuron.emission for neuron in self.neurons], dtype=np.float32
         )
         self.active = self._create_tensor(
-            [neuron.active for neuron in self.neurons], dtype=torch.int64
+            [neuron.active for neuron in self.neurons], dtype=np.int64
         )
         self.last_update = self._create_tensor(
-            [neuron.last_update for neuron in self.neurons], dtype=torch.int64
+            [neuron.last_update for neuron in self.neurons], dtype=np.int64
         )
         self.validator_permit = self._create_tensor(
-            [neuron.validator_permit for neuron in self.neurons], dtype=torch.bool
+            [neuron.validator_permit for neuron in self.neurons], dtype=bool
         )
         self.validator_trust = self._create_tensor(
-            [neuron.validator_trust for neuron in self.neurons], dtype=torch.float32
+            [neuron.validator_trust for neuron in self.neurons], dtype=np.float32
         )
         self.total_stake = self._create_tensor(
-            [neuron.total_stake.tao for neuron in self.neurons], dtype=torch.float32
+            [neuron.total_stake.tao for neuron in self.neurons], dtype=np.float32
         )
         self.stake = self._create_tensor(
-            [neuron.stake for neuron in self.neurons], dtype=torch.float32
+            [neuron.stake for neuron in self.neurons], dtype=np.float32
         )
         self.axons = [n.axon_info for n in self.neurons]
 
-    def _create_tensor(self, data, dtype) -> torch.nn.Parameter:
+    def _create_tensor(self, data, dtype) -> np.array:
         """
-        Creates a tensor parameter with the given data and data type. This method is a utility function used internally to encapsulate data into a PyTorch tensor, making it compatible with the metagraph's PyTorch
-        model structure.
+        Creates a numpy array with the given data and data type. This method is a utility function used internally to encapsulate data into a np.array, making it compatible with the metagraph's numpy model structure.
 
         Args:
             data: The data to be included in the tensor. This could be any numeric data, like stakes, ranks, etc.
-            dtype: The data type for the tensor, typically a PyTorch data type like ``torch.float32`` or ``torch.int64``.
+            dtype: The data type for the tensor, typically a numpy data type like ``np.float32`` or ``np.int64``.
 
         Returns:
             A tensor parameter encapsulating the provided data.
@@ -651,10 +640,10 @@ class metagraph(torch.nn.Module):
         Internal Usage:
             Used internally to create tensor parameters for various metagraph attributes::
 
-                self.stake = self._create_tensor(neuron_stakes, dtype=torch.float32)
+                self.stake = self._create_tensor(neuron_stakes, dtype=np.float32)
         """
         # TODO: Check and test the creation of tensor
-        return torch.nn.Parameter(torch.tensor(data, dtype=dtype), requires_grad=False)
+        return np.array(data, dtype=dtype)
 
     def _set_weights_and_bonds(self, subtensor: Optional[bittensor.subtensor] = None):
         """
@@ -681,7 +670,7 @@ class metagraph(torch.nn.Module):
                 [neuron.bonds for neuron in self.neurons], "bonds"
             )
 
-    def _process_weights_or_bonds(self, data, attribute: str) -> torch.nn.Parameter:
+    def _process_weights_or_bonds(self, data, attribute: str) -> np.array:
         """
         Processes the raw weights or bonds data and converts it into a structured tensor format. This method handles the transformation of neuron connection data (``weights`` or ``bonds``) from a list or other unstructured format into a tensor that can be utilized within the metagraph model.
 
@@ -700,7 +689,7 @@ class metagraph(torch.nn.Module):
         data_array = []
         for item in data:
             if len(item) == 0:
-                data_array.append(torch.zeros(len(self.neurons)))
+                data_array.append(np.zeros(len(self.neurons)))
             else:
                 uids, values = zip(*item)
                 # TODO: Validate and test the conversion of uids and values to tensor
@@ -716,11 +705,7 @@ class metagraph(torch.nn.Module):
                             len(self.neurons), list(uids), list(values)
                         )
                     )
-        tensor_param = (
-            torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
-            if len(data_array)
-            else torch.nn.Parameter()
-        )
+        tensor_param = np.stack(data_array) if len(data_array) else None
         if len(data_array) == 0:
             bittensor.logging.warning(
                 f"Empty {attribute}_array on metagraph.sync(). The '{attribute}' tensor is empty."
@@ -729,7 +714,7 @@ class metagraph(torch.nn.Module):
 
     def _process_root_weights(
         self, data, attribute: str, subtensor: bittensor.subtensor
-    ) -> torch.nn.Parameter:
+    ) -> np.array:
         """
         Specifically processes the root weights data for the metagraph. This method is similar to :func:`_process_weights_or_bonds` but is tailored for processing root weights, which have a different structure and significance in the network.
 
@@ -754,7 +739,7 @@ class metagraph(torch.nn.Module):
         subnets = subtensor.get_subnets()
         for item in data:
             if len(item) == 0:
-                data_array.append(torch.zeros(n_subnets))
+                data_array.append(np.zeros(n_subnets))
             else:
                 uids, values = zip(*item)
                 # TODO: Validate and test the conversion of uids and values to tensor
@@ -764,11 +749,7 @@ class metagraph(torch.nn.Module):
                     )
                 )
 
-        tensor_param = (
-            torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
-            if len(data_array)
-            else torch.nn.Parameter()
-        )
+        tensor_param = np.stack(data_array) if len(data_array) else None
         if len(data_array) == 0:
             bittensor.logging.warning(
                 f"Empty {attribute}_array on metagraph.sync(). The '{attribute}' tensor is empty."
@@ -799,11 +780,10 @@ class metagraph(torch.nn.Module):
         """
         save_directory = get_save_dir(self.network, self.netuid)
         os.makedirs(save_directory, exist_ok=True)
-        graph_file = save_directory + f"/block-{self.block.item()}.pt"
+        graph_filename = save_directory + f"/block-{self.block.item()}.pt"
         state_dict = self.state_dict()
-        state_dict["axons"] = self.axons
-        torch.save(state_dict, graph_file)
-        state_dict = torch.load(graph_file)
+        with open(graph_filename, "wb") as graph_file:
+            pickle.dump(state_dict, graph_file)
         return self
 
     def load(self):
@@ -858,43 +838,28 @@ class metagraph(torch.nn.Module):
             contain valid data for the metagraph. It is essential to ensure that the directory path and the
             state files within it are accurate and consistent with the expected metagraph structure.
         """
-        graph_file = latest_block_path(dir_path)
-        state_dict = torch.load(graph_file)
-        self.n = torch.nn.Parameter(state_dict["n"], requires_grad=False)
-        self.block = torch.nn.Parameter(state_dict["block"], requires_grad=False)
-        self.uids = torch.nn.Parameter(state_dict["uids"], requires_grad=False)
-        self.stake = torch.nn.Parameter(state_dict["stake"], requires_grad=False)
-        self.total_stake = torch.nn.Parameter(
-            state_dict["total_stake"], requires_grad=False
-        )
-        self.ranks = torch.nn.Parameter(state_dict["ranks"], requires_grad=False)
-        self.trust = torch.nn.Parameter(state_dict["trust"], requires_grad=False)
-        self.consensus = torch.nn.Parameter(
-            state_dict["consensus"], requires_grad=False
-        )
-        self.validator_trust = torch.nn.Parameter(
-            state_dict["validator_trust"], requires_grad=False
-        )
-        self.incentive = torch.nn.Parameter(
-            state_dict["incentive"], requires_grad=False
-        )
-        self.emission = torch.nn.Parameter(state_dict["emission"], requires_grad=False)
-        self.dividends = torch.nn.Parameter(
-            state_dict["dividends"], requires_grad=False
-        )
-        self.active = torch.nn.Parameter(state_dict["active"], requires_grad=False)
-        self.last_update = torch.nn.Parameter(
-            state_dict["last_update"], requires_grad=False
-        )
-        self.validator_permit = torch.nn.Parameter(
-            state_dict["validator_permit"], requires_grad=False
-        )
-        self.uids = torch.nn.Parameter(state_dict["uids"], requires_grad=False)
+        graph_filename = latest_block_path(dir_path)
+        with open(graph_filename, "rb") as graph_file:
+            state_dict = pickle.load(graph_file)
+
+        self.n = np.array(state_dict["n"], dtype=np.int64)
+        self.block = np.array(state_dict["block"], dtype=np.int64)
+        self.uids = np.array(state_dict["uids"], dtype=np.int64)
+        self.stake = np.array(state_dict["stake"], dtype=np.float32)
+        self.total_stake = np.array(state_dict["total_stake"], dtype=np.float32)
+        self.ranks = np.array(state_dict["ranks"], dtype=np.float32)
+        self.trust = np.array(state_dict["trust"], dtype=np.float32)
+        self.consensus = np.array(state_dict["consensus"], dtype=np.float32)
+        self.validator_trust = np.array(state_dict["validator_trust"], dtype=np.float32)
+        self.incentive = np.array(state_dict["incentive"], dtype=np.float32)
+        self.emission = np.array(state_dict["emission"], dtype=np.float32)
+        self.dividends = np.array(state_dict["dividends"], dtype=np.float32)
+        self.active = np.array(state_dict["active"], dtype=np.int64)
+        self.last_update = np.array(state_dict["last_update"], dtype=np.int64)
+        self.validator_permit = np.array(state_dict["validator_permit"], dtype=bool)
         self.axons = state_dict["axons"]
         if "weights" in state_dict:
-            self.weights = torch.nn.Parameter(
-                state_dict["weights"], requires_grad=False
-            )
+            self.weights = np.array(state_dict["weights"], dtype=np.float32)
         if "bonds" in state_dict:
-            self.bonds = torch.nn.Parameter(state_dict["bonds"], requires_grad=False)
+            self.bonds = np.array(state_dict["bonds"], dtype=np.int64)
         return self

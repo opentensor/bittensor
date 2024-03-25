@@ -14,7 +14,6 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import torch
 import bittensor
 
 import json
@@ -265,16 +264,14 @@ class AxonInfo:
             coldkey=neuron_info["coldkey"],
         )
 
-    def to_parameter_dict(self) -> "torch.nn.ParameterDict":
-        r"""Returns a torch tensor of the subnet info."""
-        return torch.nn.ParameterDict(self.__dict__)
+    def to_parameter_dict(self) -> dict[str, Any]:
+        r"""Returns a dict of the subnet info."""
+        return self.__dict__
 
     @classmethod
-    def from_parameter_dict(
-        cls, parameter_dict: "torch.nn.ParameterDict"
-    ) -> "AxonInfo":
-        r"""Returns an axon_info object from a torch parameter_dict."""
-        return cls(**dict(parameter_dict))
+    def from_parameter_dict(cls, parameter_dict: dict[str, Any]) -> "AxonInfo":
+        r"""Returns an axon_info object from a parameter_dict."""
+        return cls(**parameter_dict)
 
 
 class ChainDataType(Enum):
@@ -942,16 +939,14 @@ class SubnetInfo:
             owner_ss58=ss58_encode(decoded["owner"], bittensor.__ss58_format__),
         )
 
-    def to_parameter_dict(self) -> "torch.nn.ParameterDict":
-        r"""Returns a torch tensor of the subnet info."""
-        return torch.nn.ParameterDict(self.__dict__)
+    def to_parameter_dict(self) -> dict[str, Any]:
+        r"""Returns a np.array of the subnet info."""
+        return self.__dict__
 
     @classmethod
-    def from_parameter_dict(
-        cls, parameter_dict: "torch.nn.ParameterDict"
-    ) -> "SubnetInfo":
-        r"""Returns a SubnetInfo object from a torch parameter_dict."""
-        return cls(**dict(parameter_dict))
+    def from_parameter_dict(cls, parameter_dict: dict[str, Any]) -> "SubnetInfo":
+        r"""Returns a SubnetInfo object from a parameter_dict."""
+        return cls(**parameter_dict)
 
 
 @dataclass
@@ -1038,16 +1033,14 @@ class SubnetHyperparameters:
             difficulty=decoded["difficulty"],
         )
 
-    def to_parameter_dict(self) -> "torch.nn.ParameterDict":
-        r"""Returns a torch tensor of the subnet hyperparameters."""
-        return torch.nn.ParameterDict(self.__dict__)
+    def to_parameter_dict(self) -> dict[str, Any]:
+        r"""Returns a np.array of the subnet hyperparameters."""
+        return self.__dict__
 
     @classmethod
-    def from_parameter_dict(
-        cls, parameter_dict: "torch.nn.ParameterDict"
-    ) -> "SubnetInfo":
-        r"""Returns a SubnetHyperparameters object from a torch parameter_dict."""
-        return cls(**dict(parameter_dict))
+    def from_parameter_dict(cls, parameter_dict: dict[str, Any]) -> "SubnetInfo":
+        r"""Returns a SubnetHyperparameters object from a parameter_dict."""
+        return cls(**parameter_dict)
 
 
 @dataclass
@@ -1103,14 +1096,14 @@ class IPInfo:
             protocol=decoded["ip_type_and_protocol"] & 0xF,
         )
 
-    def to_parameter_dict(self) -> "torch.nn.ParameterDict":
-        r"""Returns a torch tensor of the subnet info."""
-        return torch.nn.ParameterDict(self.__dict__)
+    def to_parameter_dict(self) -> dict[str, Any]:
+        r"""Returns a np.array of the subnet info."""
+        return self.__dict__
 
     @classmethod
-    def from_parameter_dict(cls, parameter_dict: "torch.nn.ParameterDict") -> "IPInfo":
-        r"""Returns a IPInfo object from a torch parameter_dict."""
-        return cls(**dict(parameter_dict))
+    def from_parameter_dict(cls, parameter_dict: dict[str, Any]) -> "IPInfo":
+        r"""Returns a IPInfo object from a parameter_dict."""
+        return cls(**parameter_dict)
 
 
 # Senate / Proposal data

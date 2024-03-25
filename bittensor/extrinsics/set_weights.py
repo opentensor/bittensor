@@ -18,7 +18,7 @@
 
 import bittensor
 
-import torch
+import numpy as np
 from rich.prompt import Confirm
 from typing import Union, Tuple
 import bittensor.utils.weight_utils as weight_utils
@@ -32,8 +32,8 @@ def set_weights_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
-    uids: Union[torch.LongTensor, list],
-    weights: Union[torch.FloatTensor, list],
+    uids: Union[np.int64, list],
+    weights: Union[np.float32, list],
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
@@ -48,9 +48,9 @@ def set_weights_extrinsic(
             Bittensor wallet object.
         netuid (int):
             The ``netuid`` of the subnet to set weights for.
-        uids (Union[torch.LongTensor, list]):
+        uids (Union[np.int64, list]):
             The ``uint64`` uids of destination neurons.
-        weights ( Union[torch.FloatTensor, list]):
+        weights ( Union[np.float32, list]):
             The weights to set. These must be ``float`` s and correspond to the passed ``uid`` s.
         version_key (int):
             The version key of the validator.
@@ -67,9 +67,9 @@ def set_weights_extrinsic(
 
     # First convert types.
     if isinstance(uids, list):
-        uids = torch.tensor(uids, dtype=torch.int64)
+        uids = np.array(uids, dtype=np.int64)
     if isinstance(weights, list):
-        weights = torch.tensor(weights, dtype=torch.float32)
+        weights = np.array(weights, dtype=np.float32)
 
     # Reformat and normalize.
     weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(

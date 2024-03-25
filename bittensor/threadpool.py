@@ -221,14 +221,14 @@ class PriorityThreadPoolExecutor(_base.Executor):
             priority = kwargs.get("priority", random.randint(0, 1000000))
             if priority == 0:
                 priority = random.randint(1, 100)
-            eplison = random.uniform(0, 0.01) * priority
+            epsilon = random.uniform(0, 0.01) * priority
             start_time = time.time()
             if "priority" in kwargs:
                 del kwargs["priority"]
 
             f = _base.Future()
             w = _WorkItem(f, fn, start_time, args, kwargs)
-            self._work_queue.put((-float(priority + eplison), w), block=False)
+            self._work_queue.put((-float(priority + epsilon), w), block=False)
             self._adjust_thread_count()
             return f
 
