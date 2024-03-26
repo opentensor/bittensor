@@ -1717,8 +1717,8 @@ class subtensor:
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
-                    call_function="add_stake",
-                    call_params={"hotkey": hotkey_ss58, "netuid", netuid, "amount_staked": amount.rao},
+                    call_function="add_subnet_stake",
+                    call_params={"hotkey": hotkey_ss58, "netuid":netuid, "amount_staked": amount.rao},
                 )
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call, keypair=wallet.coldkey
