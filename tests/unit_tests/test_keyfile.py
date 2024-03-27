@@ -432,11 +432,18 @@ def test_legacy_coldkey(keyfile_setup_teardown):
     assert keyfile.keyfile_data == keyfile_data
     keyfile.encrypt(password="this is the fake password")
     keyfile.decrypt(password="this is the fake password")
-    expected_decryption = {"accountId": "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f", "publicKey": "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f", "privateKey": None, "secretPhrase": None, "secretSeed": None, "ss58Address": "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"}
+    expected_decryption = {
+        "accountId": "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f",
+        "publicKey": "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f",
+        "privateKey": None,
+        "secretPhrase": None,
+        "secretSeed": None,
+        "ss58Address": "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm",
+    }
     for key, value in expected_decryption.items():
         value_str = f'"{value}"' if value is not None else "null"
-        assert f'\"{key}\": {value_str}'.encode() in keyfile.keyfile_data
-    
+        assert f'"{key}": {value_str}'.encode() in keyfile.keyfile_data
+
     assert (
         keyfile.get_keypair().ss58_address
         == "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
