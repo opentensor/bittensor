@@ -740,6 +740,7 @@ class subtensor:
         This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
         trust in other neurons based on observed performance and contributions.
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry(substrate, extrinsic):
             response = substrate.submit_extrinsic(
@@ -775,10 +776,9 @@ class subtensor:
                 keypair=wallet.hotkey,
                 era={"period": 5},
             )
-           
+
             # Retry submission, but only create call once.
             return make_substrate_call_with_retry(substrate, extrinsic)
-
 
     ######################
     #### Registration ####
@@ -952,6 +952,7 @@ class subtensor:
             success (bool): ``True`` if the extrinsic was included in a block.
             error (Optional[str]): ``None`` on success or not waiting for inclusion/finalization, otherwise the error message.
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry(substrate, extrinsic):
             response = substrate.submit_extrinsic(
@@ -988,7 +989,6 @@ class subtensor:
             )
             # Retry submission, but only create call once.
             return make_substrate_call_with_retry(substrate, extrinsic)
-
 
     def _do_burned_register(
         self,
@@ -1030,7 +1030,6 @@ class subtensor:
             # Retry submission, but only create call once.
             return make_substrate_call_with_retry(substrate, extrinsic)
 
-
     def _do_swap_hotkey(
         self,
         wallet: "bittensor.wallet",
@@ -1070,7 +1069,6 @@ class subtensor:
             )
             # Retry submission, but only create call once.
             return make_substrate_call_with_retry(substrate, extrinsic)
-
 
     ##################
     #### Transfer ####
@@ -1417,6 +1415,7 @@ class subtensor:
         This function is crucial for initializing and announcing a neuron's Axon service on the network,
         enhancing the decentralized computation capabilities of Bittensor.
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry(substrate, extrinsic):
             response = substrate.submit_extrinsic(
@@ -1482,6 +1481,7 @@ class subtensor:
             success (bool): ``True`` if serve prometheus was successful.
             error (:func:`Optional[str]`): Error message if serve prometheus failed, ``None`` otherwise.
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry(substrate, extrinsic):
             response = substrate.submit_extrinsic(
@@ -1534,6 +1534,7 @@ class subtensor:
             success (bool): ``True`` if associate IPs was successful.
             error (:func:`Optional[str]`): Error message if associate IPs failed, None otherwise.
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry(substrate, extrinsic):
             response = substrate.submit_extrinsic(
@@ -1566,7 +1567,6 @@ class subtensor:
             )
             # Retry submission, but only create call once.
             return make_substrate_call_with_retry(substrate, extrinsic)
-
 
     #################
     #### Staking ####
@@ -1667,6 +1667,7 @@ class subtensor:
         Raises:
             StakeError: If the extrinsic failed.
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry(substrate, extrinsic):
             response = substrate.submit_extrinsic(
@@ -1795,6 +1796,7 @@ class subtensor:
         Raises:
             StakeError: If the extrinsic failed.
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry(substrate, extrinsic):
             response = substrate.submit_extrinsic(
@@ -4281,7 +4283,6 @@ class subtensor:
             # Retry submission, but only create call once.
             return make_substrate_call_with_retry(substrate, extrinsic)
 
-
     def _do_undelegation(
         self,
         wallet: "bittensor.wallet",
@@ -4322,7 +4323,6 @@ class subtensor:
             )
             # Retry submission, but only create call once.
             return make_substrate_call_with_retry(substrate, extrinsic)
-        
 
     def _do_nominate(
         self,
@@ -4359,7 +4359,6 @@ class subtensor:
             )
             # Retry submission, but only create call once.
             return make_substrate_call_with_retry(substrate, extrinsic)
-
 
     ################
     #### Legacy ####
