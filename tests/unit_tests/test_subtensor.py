@@ -20,7 +20,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import bittensor
-
+from bittensor.extrinsics.staking import __do_add_stake_single
 
 def test_serve_axon_with_external_ip_set():
     internal_ip: str = "this is an internal ip"
@@ -146,8 +146,6 @@ def test_stake_multiple():
         is_null=False,
     )
 
-    # mock_add_stake = MagicMock(side_effect=ExitEarly)
-
     mock_subtensor = MagicMock(
         spec=bittensor.subtensor,
         network="mock_net",
@@ -155,22 +153,13 @@ def test_stake_multiple():
             return_value=bittensor.Balance.from_tao(mock_amount.tao + 20.0)
         ),  # enough balance to stake
         get_neuron_for_pubkey_and_subnet=MagicMock(return_value=mock_neuron),
-        # add_stake=mock_add_stake,
     )
 
-    with pytest.raises(ExitEarly):
-        bittensor.subtensor.add_stake_multiple(
-            mock_subtensor,
-            wallet=mock_wallet,
-            hotkey_ss58s=mock_hotkey_ss58s,
-            amounts=mock_amounts,
-        )
+    result = bittensor.subtensor.add_stake_multiple(
+        mock_subtensor,
+        wallet=mock_wallet,
+        hotkey_ss58s=mock_hotkey_ss58s,
+        amounts=mock_amounts,
+    )
 
-        """
-        mock_add_stake.assert_called_once()
-        # args, kwargs
-        _, kwargs = mock_add_stake.call_args
-
-        assert kwargs["ammount"] == pytest.approx(
-            mock_amount.rao, rel=1e9
-        )  # delta of 1.0 TAO"""
+    assert result == True, "Expected add_stake_multiple to return True"
