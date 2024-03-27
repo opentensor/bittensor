@@ -54,6 +54,7 @@ from .extrinsics.network import (
 )
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from .extrinsics.substaking import add_substake_extrinsic, remove_substake_extrinsic
 from .extrinsics.serving import (
     serve_extrinsic,
     serve_axon_extrinsic,
@@ -220,7 +221,7 @@ class subtensor:
         """
         if network is None:
             return None, None
-        if network in ["finney", "local", "test", "archive"]:
+        if network in ["finney", "local", "test","dev", "archive"]:
             if network == "finney":
                 # Kiru Finney stagin network.
                 return network, bittensor.__finney_entrypoint__
@@ -230,6 +231,8 @@ class subtensor:
                 return network, bittensor.__finney_test_entrypoint__
             elif network == "archive":
                 return network, bittensor.__archive_entrypoint__
+            elif network == "dev":
+                return network, bittensor.__dev_entrypoint__
         else:
             if (
                 network == bittensor.__finney_entrypoint__
@@ -1638,6 +1641,30 @@ class subtensor:
             prompt,
         )
 
+    def add_substake(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        amount: Union[Balance, float],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = True,
+    ) -> bool:
+        """
+        Adds stake to a specific subnet identified by the subnet unique identifier (netuid). This function
+        """
+        return add_substake_extrinsic(
+            self,
+            wallet=wallet,
+            hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
+            amount=amount,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+
     def _do_stake(
         self,
         wallet: "bittensor.wallet",
@@ -1667,6 +1694,58 @@ class subtensor:
                     call_module="SubtensorModule",
                     call_function="add_stake",
                     call_params={"hotkey": hotkey_ss58, "amount_staked": amount.rao},
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+
+                response.process_events()
+                if response.is_success:
+                    return True
+                else:
+                    raise StakeError(response.error_message)
+
+        return make_substrate_call_with_retry()
+    
+    def _do_subnet_stake(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        amount: Balance,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """Sends a stake extrinsic to the chain.
+
+        Args:
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey_ss58 (str): Hotkey ``ss58`` address to stake to.
+            netuid: (int): The subnet you are staking into.
+            amount (:func:`Balance`): Amount to stake.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        Raises:
+            StakeError: If the extrinsic failed.
+        """
+
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="add_subnet_stake",
+                    call_params={"hotkey": hotkey_ss58, "netuid":netuid, "amount_staked": amount.rao},
                 )
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call, keypair=wallet.coldkey
@@ -1765,6 +1844,30 @@ class subtensor:
             prompt,
         )
 
+    def remove_substake(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        amount: Optional[Union[Balance, float]] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = True,
+    ) -> bool:
+        """
+        Removes stake to a specific subnet identified by the subnet unique identifier (netuid). This function
+        """
+        return remove_substake_extrinsic(
+            self,
+            wallet=wallet,
+            hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
+            amount=amount,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+
     def _do_unstake(
         self,
         wallet: "bittensor.wallet",
@@ -1794,6 +1897,57 @@ class subtensor:
                     call_module="SubtensorModule",
                     call_function="remove_stake",
                     call_params={"hotkey": hotkey_ss58, "amount_unstaked": amount.rao},
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+
+                response.process_events()
+                if response.is_success:
+                    return True
+                else:
+                    raise StakeError(response.error_message)
+
+        return make_substrate_call_with_retry()
+    
+    def _do_subnet_unstake(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        amount: Balance,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """Sends an unstake extrinsic to the chain.
+
+        Args:
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey_ss58 (str): Hotkey ``ss58`` address to unstake from.
+            amount (:func:`Balance`): Amount to unstake.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        Raises:
+            StakeError: If the extrinsic failed.
+        """
+
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="remove_subnet_stake",
+                    call_params={"hotkey": hotkey_ss58, "netuid": netuid, "amount_unstaked": amount.rao},
                 )
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call, keypair=wallet.coldkey
@@ -2987,6 +3141,15 @@ class subtensor:
         if not hasattr(_result, "value") or _result is None:
             return None
         return Balance.from_rao(_result.value)
+    
+    def get_stake_for_coldkey_and_hotkey_on_netuid(
+        self, hotkey_ss58: str, coldkey_ss58: str, netuid: int, block: Optional[int] = None
+    ) -> Optional["Balance"]:
+        """Returns the stake under a coldkey - hotkey - netuid pairing"""
+        _result = self.query_subtensor("SubStake", block, [hotkey_ss58, coldkey_ss58, netuid])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return Balance.from_rao(_result.value)
 
     def get_stake(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -3330,7 +3493,7 @@ class subtensor:
             return []
 
         return SubnetInfo.list_from_vec_u8(result)
-
+    
     def get_subnet_info(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[SubnetInfo]:
