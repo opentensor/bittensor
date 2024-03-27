@@ -15,11 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+# Standard Lib
+import argparse
 import unittest.mock as mock
 from unittest.mock import MagicMock
+
+# 3rd Party
 import pytest
 
+# Application
 import bittensor
+from bittensor.subtensor import subtensor as Subtensor
 
 
 def test_serve_axon_with_external_ip_set():
@@ -173,3 +179,96 @@ def test_stake_multiple():
         assert kwargs["ammount"] == pytest.approx(
             mock_amount.rao, rel=1e9
         )  # delta of 1.0 TAO
+
+
+@pytest.mark.parametrize(
+    "test_id, expected_output",
+    [
+        # Happy path test
+        (
+            "happy_path_default",
+            "Create and return a new object.  See help(type) for accurate signature.",
+        ),
+    ],
+)
+def test_help(test_id, expected_output, capsys):
+    # Act
+    Subtensor.help()
+
+    # Assert
+    captured = capsys.readouterr()
+    assert expected_output in captured.out, f"Test case {test_id} failed"
+
+
+@pytest.fixture
+def parser():
+    return argparse.ArgumentParser()
+
+
+# Mocking argparse.ArgumentParser.add_argument method to simulate ArgumentError
+def test_argument_error_handling(monkeypatch, parser):
+    def mock_add_argument(*args, **kwargs):
+        raise argparse.ArgumentError(None, "message")
+
+    monkeypatch.setattr(argparse.ArgumentParser, "add_argument", mock_add_argument)
+    # No exception should be raised
+    Subtensor.add_args(parser)
+
+
+@pytest.mark.parametrize(
+    "network, expected_network, expected_endpoint",
+    [
+        # Happy path tests
+        ("finney", "finney", bittensor.__finney_entrypoint__),
+        ("local", "local", bittensor.__local_entrypoint__),
+        ("test", "test", bittensor.__finney_test_entrypoint__),
+        ("archive", "archive", bittensor.__archive_entrypoint__),
+        # Endpoint override tests
+        (
+            bittensor.__finney_entrypoint__,
+            "finney",
+            bittensor.__finney_entrypoint__,
+        ),
+        (
+            "entrypoint-finney.opentensor.ai",
+            "finney",
+            bittensor.__finney_entrypoint__,
+        ),
+        (
+            bittensor.__finney_test_entrypoint__,
+            "test",
+            bittensor.__finney_test_entrypoint__,
+        ),
+        (
+            "test.finney.opentensor.ai",
+            "test",
+            bittensor.__finney_test_entrypoint__,
+        ),
+        (
+            bittensor.__archive_entrypoint__,
+            "archive",
+            bittensor.__archive_entrypoint__,
+        ),
+        (
+            "archive.chain.opentensor.ai",
+            "archive",
+            bittensor.__archive_entrypoint__,
+        ),
+        ("127.0.0.1", "local", "127.0.0.1"),
+        ("localhost", "local", "localhost"),
+        # Edge cases
+        (None, None, None),
+        ("unknown", "unknown", "unknown"),
+    ],
+)
+def test_determine_chain_endpoint_and_network(
+    network, expected_network, expected_endpoint
+):
+    # Act
+    result_network, result_endpoint = Subtensor.determine_chain_endpoint_and_network(
+        network
+    )
+
+    # Assert
+    assert result_network == expected_network
+    assert result_endpoint == expected_endpoint
