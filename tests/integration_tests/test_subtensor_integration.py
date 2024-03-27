@@ -241,6 +241,56 @@ class TestSubtensor(unittest.TestCase):
         )
         self.assertFalse(fail, msg="Stake should fail")
 
+    def test_stake_double_submit(self):
+        # Should only compose extrinsics once
+        # Should retry submission specifically
+        netuid = 1
+        self.subtensor.create_subnet(netuid)
+        self.subtensor.force_register_neuron(
+            netuid=netuid,
+            hotkey=self.wallet.hotkey.ss58_address,
+            coldkey=self.wallet.coldkeypub.ss58_address,
+            stake=0.0,
+            balance=20.0,
+        )  # give balance
+
+        with patch.object(
+            self.subtensor,
+            "_do_stake",
+            partial(bittensor.subtensor._do_stake, self.subtensor),
+        ):
+            with patch.object(self.subtensor, "substrate") as mock_substrate:
+                mock_compose_call = MagicMock()
+                mock_process_events = MagicMock(
+                    side_effect=[Exception, Exception, True]
+                )
+
+                mock_substrate.__enter__ = MagicMock(
+                    return_value=MagicMock(
+                        compose_call=mock_compose_call,
+                        submit_extrinsic=MagicMock(
+                            return_value=MagicMock(process_events=mock_process_events)
+                        ),
+                    )
+                )
+
+                self.subtensor.add_stake(
+                    self.wallet,
+                    self.wallet.hotkey.ss58_address,
+                    10.0,
+                    wait_for_inclusion=True,
+                    wait_for_finalization=True,
+                )
+
+                self.assertEqual(
+                    mock_compose_call.call_count, 1, msg="Should only compose once"
+                )
+                self.assertEqual(
+                    mock_process_events.call_count,
+                    3,
+                    msg="Should retry submit until success",
+                )
+
     def test_transfer(self):
         fake_coldkey = _get_mock_coldkey(1)
 
