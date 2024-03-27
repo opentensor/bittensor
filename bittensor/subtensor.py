@@ -740,42 +740,45 @@ class subtensor:
         This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
         trust in other neurons based on observed performance and contributions.
         """
-
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="set_weights",
-                    call_params={
-                        "dests": uids,
-                        "weights": vals,
-                        "netuid": netuid,
-                        "version_key": version_key,
-                    },
-                )
-                # Period dictates how long the extrinsic will stay as part of waiting pool
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call,
-                    keypair=wallet.hotkey,
-                    era={"period": 5},
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True, "Not waiting for finalziation or inclusion."
+        def make_substrate_call_with_retry(substrate, extrinsic):
+            response = substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
-                response.process_events()
-                if response.is_success:
-                    return True, "Successfully set weights."
-                else:
-                    return False, response.error_message
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, "Not waiting for finalziation or inclusion."
 
-        return make_substrate_call_with_retry()
+            response.process_events()
+            if response.is_success:
+                return True, "Successfully set weights."
+            else:
+                return False, response.error_message
+
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="set_weights",
+                call_params={
+                    "dests": uids,
+                    "weights": vals,
+                    "netuid": netuid,
+                    "version_key": version_key,
+                },
+            )
+            # Period dictates how long the extrinsic will stay as part of waiting pool
+            extrinsic = substrate.create_signed_extrinsic(
+                call=call,
+                keypair=wallet.hotkey,
+                era={"period": 5},
+            )
+           
+            # Retry submission, but only create call once.
+            return make_substrate_call_with_retry(substrate, extrinsic)
+
 
     ######################
     #### Registration ####
