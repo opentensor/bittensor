@@ -22,6 +22,7 @@ import pytest
 import bittensor
 from bittensor.extrinsics.staking import __do_add_stake_single
 
+
 def test_serve_axon_with_external_ip_set():
     internal_ip: str = "this is an internal ip"
     external_ip: str = "this is an external ip"
