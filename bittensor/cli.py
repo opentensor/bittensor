@@ -45,8 +45,18 @@ ALIAS_TO_COMMAND = {
     "sudos": "sudo",
     "i": "info",
     "info": "info",
+    "sub": "substake",
+    "substake": "substake",
 }
 COMMANDS = {
+    "substake": {
+        "name": "substake",
+        "aliases": ["sub", "substake"],
+        "help": "Commands for adding and removing stake to viewing subnetworks.",
+        "commands": {
+            "add": SubStakeCommand,
+        },
+    },
     "subnets": {
         "name": "subnets",
         "aliases": ["s", "subnet"],

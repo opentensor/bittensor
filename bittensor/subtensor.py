@@ -54,6 +54,7 @@ from .extrinsics.network import (
 )
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from .extrinsics.substaking import add_substake_extrinsic, remove_substake_extrinsic
 from .extrinsics.serving import (
     serve_extrinsic,
     serve_axon_extrinsic,
@@ -1638,6 +1639,30 @@ class subtensor:
             prompt,
         )
 
+    def add_substake(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        amount: Union[Balance, float],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = True,
+    ) -> bool:
+        """
+        Adds stake to a specific subnet identified by the subnet unique identifier (netuid). This function
+        """
+        return add_substake_extrinsic(
+            self,
+            wallet=wallet,
+            hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
+            amount=amount,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+
     def _do_stake(
         self,
         wallet: "bittensor.wallet",
@@ -1815,6 +1840,30 @@ class subtensor:
             wait_for_inclusion,
             wait_for_finalization,
             prompt,
+        )
+
+    def remove_substake(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        amount: Optional[Union[Balance, float]] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = True,
+    ) -> bool:
+        """
+        Removes stake to a specific subnet identified by the subnet unique identifier (netuid). This function
+        """
+        return remove_substake_extrinsic(
+            self,
+            wallet=wallet,
+            hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
+            amount=amount,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
         )
 
     def _do_unstake(
