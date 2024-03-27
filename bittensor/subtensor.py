@@ -952,8 +952,43 @@ class subtensor:
             success (bool): ``True`` if the extrinsic was included in a block.
             error (Optional[str]): ``None`` on success or not waiting for inclusion/finalization, otherwise the error message.
         """
-
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry(substrate, extrinsic):
+            response = substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, None
+
+            # Otherwise continue with finalization.
+            response.process_events()
+            if response.is_success:
+                return True, None
+            else:
+                return False, response.error_message
+
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="register",
+                call_params={
+                    "netuid": netuid,
+                    "block_number": pow_result.block_number,
+                    "nonce": pow_result.nonce,
+                    "work": [int(byte_) for byte_ in pow_result.seal],
+                    "hotkey": wallet.hotkey.ss58_address,
+                    "coldkey": wallet.coldkeypub.ss58_address,
+                },
+            )
+            extrinsic = substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.hotkey
+            )
+            # Retry submission, but only create call once.
+            return make_substrate_call_with_retry(substrate, extrinsic)
+
 
     def _do_burned_register(
         self,
