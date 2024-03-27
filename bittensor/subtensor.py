@@ -1184,34 +1184,35 @@ class subtensor:
         """
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="Balances",
-                    call_function="transfer",
-                    call_params={"dest": dest, "value": transfer_balance.rao},
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True, None, None
+        def make_substrate_call_with_retry(substrate, extrinsic):
+            response = substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, None, None
 
-                # Otherwise continue with finalization.
-                response.process_events()
-                if response.is_success:
-                    block_hash = response.block_hash
-                    return True, block_hash, None
-                else:
-                    return False, None, response.error_message
+            # Otherwise continue with finalization.
+            response.process_events()
+            if response.is_success:
+                block_hash = response.block_hash
+                return True, block_hash, None
+            else:
+                return False, None, response.error_message
 
-        return make_substrate_call_with_retry()
+        with self.substrate as substrate:
+            call = substrate.compose_call(
+                call_module="Balances",
+                call_function="transfer",
+                call_params={"dest": dest, "value": transfer_balance.rao},
+            )
+            extrinsic = substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            # Retry submission, but only create call once.
+            return make_substrate_call_with_retry(substrate, extrinsic)
 
     def get_existential_deposit(self, block: Optional[int] = None) -> Optional[Balance]:
         """
