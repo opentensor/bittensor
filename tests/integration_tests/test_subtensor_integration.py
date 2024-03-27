@@ -23,6 +23,7 @@ import unittest
 from queue import Empty as QueueEmpty
 from unittest.mock import MagicMock, patch
 from types import SimpleNamespace
+from functools import partial
 
 import bittensor
 from bittensor.mock import MockSubtensor
@@ -310,6 +311,47 @@ class TestSubtensor(unittest.TestCase):
             wait_for_inclusion=True,
         )
         self.assertTrue(success, msg="Transfer should succeed")
+
+    def test_transfer_double_submit(self):
+        # Should only compose extrinsics once
+        # Should retry submission specifically
+        fake_coldkey = _get_mock_coldkey(1)
+        self.subtensor.force_set_balance(
+            self.wallet.coldkeypub.ss58_address, 20.0
+        )  # give balance
+
+        with patch.object(
+            self.subtensor,
+            "_do_transfer",
+            partial(bittensor.subtensor._do_transfer, self.subtensor),
+        ):
+            with patch.object(self.subtensor, "substrate") as mock_substrate:
+                mock_compose_call = MagicMock()
+                mock_process_events = MagicMock(
+                    side_effect=[Exception, Exception, True]
+                )
+
+                mock_substrate.__enter__ = MagicMock(
+                    return_value=MagicMock(
+                        compose_call=mock_compose_call,
+                        submit_extrinsic=MagicMock(
+                            return_value=MagicMock(process_events=mock_process_events)
+                        ),
+                    )
+                )
+
+                self.subtensor.transfer(
+                    self.wallet, fake_coldkey, amount=10.0, wait_for_inclusion=True
+                )
+
+                self.assertEqual(
+                    mock_compose_call.call_count, 1, msg="Should only compose once"
+                )
+                self.assertEqual(
+                    mock_process_events.call_count,
+                    3,
+                    msg="Should retry submit until success",
+                )
 
     def test_set_weights(self):
         chain_weights = [0]
