@@ -52,9 +52,10 @@ COMMANDS = {
     "substake": {
         "name": "substake",
         "aliases": ["sub", "substake"],
-        "help": "Commands for adding and removing stake to viewing subnetworks.",
+        "help": "Commands for adding and removing stake to subnetworks.",
         "commands": {
             "add": SubStakeCommand,
+            "remove": RemoveSubStakeCommand,
         },
     },
     "subnets": {

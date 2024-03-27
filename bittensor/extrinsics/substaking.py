@@ -118,24 +118,6 @@ def add_substake_extrinsic(
         )
         return False
 
-    # Ask before moving on.
-    if prompt:
-        if not own_hotkey:
-            # We are delegating.
-            if not Confirm.ask(
-                "Do you want to delegate:[bold white]\n  amount: {}\n  to: {}\n  take: {}\n  owner: {}\n  on subnet: {}[/bold white]".format(
-                    staking_balance, wallet.hotkey_str, hotkey_take, hotkey_owner, netuid
-                )
-            ):
-                return False
-        else:
-            if not Confirm.ask(
-                "Do you want to stake:[bold white]\n  amount: {}\n  to: {}\n  on: {}[/bold white]".format(
-                    staking_balance, wallet.hotkey_str, netuid
-                )
-            ):
-                return False
-
     try:
         with bittensor.__console__.status(
             ":satellite: Staking to: [bold white]{}[/bold white] ...".format(
@@ -274,7 +256,10 @@ def remove_substake_extrinsic(
         )
     ):
         # Get currently staked on hotkey provided
-        currently_staked = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(hotkey_ss58, wallet.coldkeypub.ss58_address)
+        currently_staked = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
+            netuid, hotkey_ss58, wallet.coldkeypub.ss58_address
+        )
+
         # Get hotkey owner
         hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
         own_hotkey = wallet.coldkeypub.ss58_address == hotkey_owner

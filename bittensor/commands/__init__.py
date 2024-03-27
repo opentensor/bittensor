@@ -119,4 +119,4 @@ from .root import (
     RootSetSlashCommand,
 )
 from .identity import GetIdentityCommand, SetIdentityCommand
-from .substake import SubStakeCommand
+from .substake import SubStakeCommand, RemoveSubStakeCommand
