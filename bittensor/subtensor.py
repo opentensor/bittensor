@@ -220,7 +220,7 @@ class subtensor:
         """
         if network is None:
             return None, None
-        if network in ["finney", "local", "test", "archive"]:
+        if network in ["finney", "local", "test","dev", "archive"]:
             if network == "finney":
                 # Kiru Finney stagin network.
                 return network, bittensor.__finney_entrypoint__
@@ -230,6 +230,8 @@ class subtensor:
                 return network, bittensor.__finney_test_entrypoint__
             elif network == "archive":
                 return network, bittensor.__archive_entrypoint__
+            elif network == "dev":
+                return network, bittensor.__dev_entrypoint__
         else:
             if (
                 network == bittensor.__finney_entrypoint__
@@ -1895,7 +1897,7 @@ class subtensor:
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
-                    call_function="remove_stake",
+                    call_function="remove_subnet_stake",
                     call_params={"hotkey": hotkey_ss58, "netuid": netuid, "amount_unstaked": amount.rao},
                 )
                 extrinsic = substrate.create_signed_extrinsic(
@@ -3442,7 +3444,7 @@ class subtensor:
             return []
 
         return SubnetInfo.list_from_vec_u8(result)
-
+    
     def get_subnet_info(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[SubnetInfo]:
