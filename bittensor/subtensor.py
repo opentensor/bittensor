@@ -951,7 +951,7 @@ class subtensor:
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-                # create extrinsic call
+            # create extrinsic call
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
                 call_function="register",
@@ -3293,7 +3293,7 @@ class subtensor:
         """
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
-        def make_substrate_call_with_retry():            
+        def make_substrate_call_with_retry():
             block_hash = None if block is None else self.substrate.get_block_hash(block)
             params = []
             if block_hash:
