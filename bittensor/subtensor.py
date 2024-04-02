@@ -34,7 +34,6 @@ from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall
 
 # Local imports.
-from .btlogging.defines import BITTENSOR_LOGGER_NAME
 from .chain_data import (
     NeuronInfo,
     DelegateInfo,
