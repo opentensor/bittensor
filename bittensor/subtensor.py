@@ -20,12 +20,12 @@ import os
 import copy
 import time
 import torch
+import logging
 import argparse
 import bittensor
 import scalecodec
 
 from retry import retry
-from loguru import logger
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any, TypeVar
 from substrateinterface.base import QueryMapResult, SubstrateInterface, ExtrinsicReceipt
 from substrateinterface.exceptions import SubstrateRequestException
@@ -34,6 +34,7 @@ from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall
 
 # Local imports.
+from .btlogging.defines import BITTENSOR_LOGGER_NAME
 from .chain_data import (
     NeuronInfo,
     DelegateInfo,
@@ -47,7 +48,7 @@ from .chain_data import (
     IPInfo,
     custom_rpc_type_registry,
 )
-from .errors import *
+from .errors import IdentityError, NominationError, StakeError
 from .extrinsics.network import (
     register_subnetwork_extrinsic,
     set_hyperparameter_extrinsic,
@@ -85,7 +86,7 @@ from .utils import U16_NORMALIZED_FLOAT, ss58_to_vec_u8, U64_NORMALIZED_FLOAT
 from .utils.balance import Balance
 from .utils.registration import POWSolution
 
-logger = logger.opt(colors=True)
+logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
 KEY_NONCE: Dict[str, int] = {}
 
@@ -1060,7 +1061,7 @@ class subtensor:
 
                 # We only wait here if we expect finalization.
                 if not wait_for_finalization and not wait_for_inclusion:
-                    return True
+                    return True, None
 
                 # process if registration successful, try again if pow is still valid
                 response.process_events()
@@ -3109,7 +3110,7 @@ class subtensor:
     ) -> Optional[int]:
         """
         Retrieves the serving rate limit for a specific subnet within the Bittensor network.
-        This rate limit determines the maximum number of requests a neuron can serve within a given time frame.
+        This rate limit determines how often you can change your node's IP address on the blockchain. Expressed in number of blocks. Applies to both subnet validator and subnet miner nodes. Used when you move your node to a new machine.
 
         Args:
             netuid (int): The unique identifier of the subnet.

@@ -658,7 +658,7 @@ class dendrite(torch.nn.Module):
         synapse.dendrite = bittensor.TerminalInfo(
             ip=self.external_ip,
             version=bittensor.__version_as_int__,
-            nonce=time.monotonic_ns(),
+            nonce=time.time_ns(),
             uuid=self.uuid,
             hotkey=self.keypair.ss58_address,
         )
