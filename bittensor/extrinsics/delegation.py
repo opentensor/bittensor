@@ -16,15 +16,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import logging
 import bittensor
-from ..errors import *
+from ..errors import NominationError, NotDelegateError, NotRegisteredError, StakeError
 from rich.prompt import Confirm
 from typing import Union, Optional
 from bittensor.utils.balance import Balance
+from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 
-from loguru import logger
-
-logger = logger.opt(colors=True)
+logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
 
 def nominate_extrinsic(
