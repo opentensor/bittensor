@@ -113,6 +113,10 @@ class SubStakeCommand:
                     f"Not enough balance to stake to hotkey [bold]{hotkey_tup[1]}[/bold]."
                 )
                 return None
+        
+        elif config.get('stake_all'):
+            old_balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
+            stake_amount_tao = bittensor.Balance.from_tao( old_balance.tao )
 
         # Ask to stake
         if not config.no_prompt:
@@ -135,7 +139,7 @@ class SubStakeCommand:
     @classmethod
     def check_config(cls, config: "bittensor.config"):
         if not config.is_set("netuid") and not config.no_prompt:
-            netuid = Prompt.ask("Enter netuid")
+            netuid = Prompt.ask("Enter netuid", default='0')
             config.netuid = int(netuid)
 
         if not config.is_set("wallet.name") and not config.no_prompt:
@@ -148,7 +152,7 @@ class SubStakeCommand:
             and not config.wallet.get("hotkey")
             and not config.no_prompt
         ):
-            hotkey = Prompt.ask("Enter hotkey name or ss58_address to stake to")
+            hotkey = Prompt.ask("Enter hotkey name or ss58_address to stake to", default=defaults.wallet.hotkey)
             if bittensor.is_valid_ss58_address(hotkey):
                 config.hotkey = str(hotkey)
             else:

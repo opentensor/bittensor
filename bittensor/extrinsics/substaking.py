@@ -142,10 +142,10 @@ def add_substake_extrinsic(
                 amount = bittensor.Balance.from_tao(amount)
 
             staking_response: bool = subtensor._do_subnet_stake(
-                wallet=wallet,
-                hotkey_ss58=hotkey_ss58,
-                netuid=netuid,
-                amount=amount,
+                wallet = wallet,
+                hotkey_ss58 = hotkey_ss58,
+                netuid = netuid,
+                amount = staking_balance,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
