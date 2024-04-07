@@ -8,9 +8,10 @@ cryptography==42.0.0
 ddt==1.6.0
 fuzzywuzzy>=0.18.0
 fastapi==0.99.1
+loguru==0.7.2
 munch==2.5.0
 netaddr
-numpy
+numpy==1.26.4
 msgpack-numpy-opentensor==0.5.0
 nest_asyncio
 pycryptodome>=3.18.0,<4.0.0
