@@ -175,6 +175,28 @@ def load_nonces(nonces_basepath: str, coldkey: str, hotkey: str, ip: str, port: 
     return {}
 
 
+def save_nonces(nonces_basepath: str, coldkey: str, hotkey: str, ip: str, port: int, nonces: Dict[str, int]):
+    """
+    Saves the nonces to the specified file path using hash of coldkey:hotkey:netuid.
+
+    Args:
+        nonces_path (str): The file path to save the nonces to.
+        coldkey (str): The coldkey to use in the hash.
+        hotkey (str): The hotkey to use in the hash.
+        ip (str): The ip to use in the hash.
+        port (int): The port to use in the hash.
+        nonces (Dict[str, int]): A dictionary containing the (endpoint_key, nonce) pairs to save to the file.
+    """
+    if not os.path.exists(nonces_basepath):
+        os.makedirs(nonces_basepath)
+
+    nonce_dirname = str(hash(f"{coldkey}:{hotkey}:{ip}:{port}"))
+    nonces_path = os.path.join(nonces_basepath, nonce_dirname, "nonces.json")
+
+    with open(nonces_path, "w") as f:
+        json.dump(nonces, f)
+
+
 class axon:
     """
     The ``axon`` class in Bittensor is a fundamental component that serves as the server-side interface for a neuron within the Bittensor network.
@@ -382,8 +404,9 @@ class axon:
         )
 
         # Load nonces (if exist) from disk based on coldkey, hotkey, ip, and port.
+        self.nonces_basepath = self.config.axon.nonces_basepath
         self.nonces: Dict[str, int] = load_nonces(
-            self.config.axon.nonces_basepath,
+            self.nonces_basepath,
             self.wallet.coldkeypub.ss58_address,
             self.wallet.hotkey.ss58_address,
             self.config.axon.ip,
@@ -1119,6 +1142,18 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
             # Call the postprocess function
             response = await self.postprocess(synapse, response, start_time)
+
+            # Periodically save nonces dict.
+            if self.last_nonce_save < time.time() - 300000000000: # Save every 5 minutes
+                self.last_nonce_save = time.time()
+                save_nonces(
+                    self.axon.nonces_basepath,
+                    self.axon.wallet.coldkeypub.ss58_address,
+                    self.axon.wallet.hotkey.ss58_address,
+                    self.axon.ip,
+                    self.axon.port,
+                    self.axon.nonces,
+                )
 
         # Handle errors related to preprocess.
         except InvalidRequestNameError as e:
