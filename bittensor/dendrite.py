@@ -673,7 +673,7 @@ class dendrite(torch.nn.Module):
 
         # Sign the request using the dendrite, axon info, and the synapse body hash
         message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.dendrite.uuid}.{synapse.body_hash}"
-        if target_axon_info.version >= 700: # introduced new UNIX nonce field
+        if target_axon_info.version >= 700:  # introduced new UNIX nonce field
             # Use new signature appending UNIX timestamp.
             message += f".{synapse.dendrite.UNIX_timestamp}"
         synapse.dendrite.signature = f"0x{self.keypair.sign(message).hex()}"

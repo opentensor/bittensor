@@ -151,7 +151,9 @@ class FastAPIThreadedServer(uvicorn.Server):
             self.should_exit = True
 
 
-def load_nonces(nonces_basepath: str, coldkey: str, hotkey: str, ip: str, port: int) -> Dict[str, int]:
+def load_nonces(
+    nonces_basepath: str, coldkey: str, hotkey: str, ip: str, port: int
+) -> Dict[str, int]:
     """
     Loads the nonces from the specified file path using hash of coldkey:hotkey:netuid and returns them as a dictionary.
 
@@ -175,7 +177,14 @@ def load_nonces(nonces_basepath: str, coldkey: str, hotkey: str, ip: str, port: 
     return {}
 
 
-def save_nonces(nonces_basepath: str, coldkey: str, hotkey: str, ip: str, port: int, nonces: Dict[str, int]):
+def save_nonces(
+    nonces_basepath: str,
+    coldkey: str,
+    hotkey: str,
+    ip: str,
+    port: int,
+    nonces: Dict[str, int],
+):
     """
     Saves the nonces to the specified file path using hash of coldkey:hotkey:netuid.
 
@@ -410,7 +419,7 @@ class axon:
             self.wallet.coldkeypub.ss58_address,
             self.wallet.hotkey.ss58_address,
             self.config.axon.ip,
-            self.config.axon.port
+            self.config.axon.port,
         )
 
         # Request default functions.
@@ -671,7 +680,9 @@ class axon:
             default_axon_external_port = os.getenv("BT_AXON_EXTERNAL_PORT") or None
             default_axon_external_ip = os.getenv("BT_AXON_EXTERNAL_IP") or None
             default_axon_max_workers = os.getenv("BT_AXON_MAX_WORERS") or 10
-            default_nonces_basepath = os.getenv("BT_AXON_NONCE_BASEPATH") or "~/.bittensor/nonces"
+            default_nonces_basepath = (
+                os.getenv("BT_AXON_NONCE_BASEPATH") or "~/.bittensor/nonces"
+            )
 
             # Add command-line arguments to the parser
             parser.add_argument(
@@ -978,7 +989,6 @@ class axon:
 
             # Use new nonce protocol if the caller is using the new protocol.
             if hasattr(synapse.dendrite, "UNIX_timestamp"):
-
                 # Append the UNIX timestamp to the message for proper verification of new caller.
                 message += {f"{synapse.dendrite.UNIX_timestamp}"}
 
@@ -991,16 +1001,21 @@ class axon:
 
                 # If we don't have a nonce stored, ensure that the nonce falls within
                 # a reasonable delta.
-                if (
-                    self.nonces.get(endpoint_key) is None
-                    and synapse.dendrite.UNIX_timestamp <= (time.time_ns() - allowedDelta)
+                if self.nonces.get(
+                    endpoint_key
+                ) is None and synapse.dendrite.UNIX_timestamp <= (
+                    time.time_ns() - allowedDelta
                 ):
-                    raise Exception(f"Nonce {synapse.dendrite.UNIX_timestamp} is outside window delta.")
+                    raise Exception(
+                        f"Nonce {synapse.dendrite.UNIX_timestamp} is outside window delta."
+                    )
                 if (
                     self.nonces.get(endpoint_key) is not None
                     and synapse.dendrite.UNIX_timestamp <= self.nonces[endpoint_key]
                 ):
-                    raise Exception(f"Nonce {synapse.dendrite.UNIX_timestamp} is too old")
+                    raise Exception(
+                        f"Nonce {synapse.dendrite.UNIX_timestamp} is too old"
+                    )
 
             # Use old protocol.
             else:
@@ -1161,7 +1176,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
             response = await self.postprocess(synapse, response, start_time)
 
             # Periodically save nonces dict.
-            if self.last_nonce_save < time.time() - 300000000000: # Save every 5 minutes
+            if (
+                self.last_nonce_save < time.time() - 300000000000
+            ):  # Save every 5 minutes
                 self.last_nonce_save = time.time()
                 save_nonces(
                     self.axon.nonces_basepath,

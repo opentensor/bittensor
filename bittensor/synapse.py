@@ -229,7 +229,9 @@ class TerminalInfo(pydantic.BaseModel):
         default=None,
         allow_mutation=True,
     )
-    _extract_UNIX_timestamp = pydantic.validator("UNIX_timestamp", pre=True, allow_reuse=True)(cast_int)
+    _extract_UNIX_timestamp = pydantic.validator(
+        "UNIX_timestamp", pre=True, allow_reuse=True
+    )(cast_int)
 
     # A unique identifier associated with the terminal, set on the axon side.
     uuid: Optional[str] = pydantic.Field(
