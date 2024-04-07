@@ -751,7 +751,7 @@ class Synapse(pydantic.BaseModel):
 
         # Iterate over each item in the headers
         for key, value in headers.items():
-            # Handle 'axon' headersf
+            # Handle 'axon' headers
             if "bt_header_axon_" in key:
                 try:
                     new_key = key.split("bt_header_axon_")[1]
