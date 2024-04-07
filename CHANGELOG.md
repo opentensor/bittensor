@@ -1,5 +1,9 @@
 # Changelog
 
+## 6.10.1 / 2024-04-05
+## What's Changed
+* Revert nonce implementation fix #1774: Breaking change needs to telegraphed in next release.
+
 ## 6.10.0 / 2024-03-25
 
 ## What's Changed
