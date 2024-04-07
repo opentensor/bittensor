@@ -151,6 +151,30 @@ class FastAPIThreadedServer(uvicorn.Server):
             self.should_exit = True
 
 
+def load_nonces(nonces_basepath: str, coldkey: str, hotkey: str, ip: str, port: int) -> Dict[str, int]:
+    """
+    Loads the nonces from the specified file path using hash of coldkey:hotkey:netuid and returns them as a dictionary.
+
+    Args:
+        nonces_path (str): The file path to load the nonces from.
+
+    Returns:
+        Dict[str, int]: A dictionary containing the (endpoint_key, nonce) pairs loaded from the file.
+    """
+    if not os.path.exists(nonces_basepath):
+        os.makedirs(nonces_basepath)
+
+    nonce_dirname = str(hash(f"{coldkey}:{hotkey}:{ip}:{port}"))
+    nonces_path = os.path.join(nonces_basepath, nonce_dirname, "nonces.json")
+
+    if os.path.exists(nonces_path):
+        with open(nonces_path, "r") as f:
+            nonces = json.load(f)
+        return nonces
+
+    return {}
+
+
 class axon:
     """
     The ``axon`` class in Bittensor is a fundamental component that serves as the server-side interface for a neuron within the Bittensor network.
@@ -356,7 +380,15 @@ class axon:
         self.thread_pool = bittensor.PriorityThreadPoolExecutor(
             max_workers=self.config.axon.max_workers
         )
-        self.nonces: Dict[str, int] = {}
+
+        # Load nonces (if exist) from disk based on coldkey, hotkey, ip, and port.
+        self.nonces: Dict[str, int] = load_nonces(
+            self.config.axon.nonces_basepath,
+            self.wallet.coldkeypub.ss58_address,
+            self.wallet.hotkey.ss58_address,
+            self.config.axon.ip,
+            self.config.axon.port
+        )
 
         # Request default functions.
         self.forward_class_types: Dict[str, List[Signature]] = {}
@@ -616,6 +648,7 @@ class axon:
             default_axon_external_port = os.getenv("BT_AXON_EXTERNAL_PORT") or None
             default_axon_external_ip = os.getenv("BT_AXON_EXTERNAL_IP") or None
             default_axon_max_workers = os.getenv("BT_AXON_MAX_WORERS") or 10
+            default_nonces_basepath = os.getenv("BT_AXON_NONCE_BASEPATH") or "~/.bittensor/nonces"
 
             # Add command-line arguments to the parser
             parser.add_argument(
@@ -650,6 +683,12 @@ class axon:
                 help="""The maximum number connection handler threads working simultaneously on this endpoint.
                         The grpc server distributes new worker threads to service requests up to this number.""",
                 default=default_axon_max_workers,
+            )
+            parser.add_argument(
+                "--" + prefix_str + "axon.nonces_basepath",
+                type=str,
+                help="The base path to load nonces from.",
+                default=default_nonces_basepath,
             )
 
         except argparse.ArgumentError:
@@ -914,12 +953,12 @@ class axon:
             # Build the unique endpoint key.
             endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
 
-            # Check the nonce from the endpoint key with 4 second delta
-            allowedDelta = 4000000000
+            # Check the nonce from the endpoint key with 5 minute (300 second) delta
+            allowedDelta = 300000000000
 
             # Requests must have nonces to be safe from replays
             if synapse.dendrite.nonce is None:
-                raise Exception("Missing Nonce")
+                raise Exception(f"{synapse.dendrite.hotkey} missing Nonce")
 
             # If we don't have a nonce stored, ensure that the nonce falls within
             # a reasonable delta.
@@ -927,12 +966,12 @@ class axon:
                 self.nonces.get(endpoint_key) is None
                 and synapse.dendrite.nonce <= time.time_ns() - allowedDelta
             ):
-                raise Exception("Nonce is too old")
+                raise Exception(f"Nonce {synapse.dendrite.nonce} is too old")
             if (
                 self.nonces.get(endpoint_key) is not None
                 and synapse.dendrite.nonce <= self.nonces[endpoint_key]
             ):
-                raise Exception("Nonce is too old")
+                raise Exception(f"Nonce {synapse.dendrite.nonce} is too old")
 
             if not keypair.verify(message, synapse.dendrite.signature):
                 raise Exception(
