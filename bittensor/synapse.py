@@ -211,15 +211,25 @@ class TerminalInfo(pydantic.BaseModel):
         cast_int
     )
 
-    # A Unix timestamp to associate with the terminal
+    # A timestamp to associate with the terminal.
     nonce: Optional[int] = pydantic.Field(
         title="nonce",
-        description="A Unix timestamp that prevents replay attacks",
-        examples=111111,
+        description="A timestamp that prevents replay attacks",
+        examples=23429781387031510,
         default=None,
         allow_mutation=True,
     )
     _extract_nonce = pydantic.validator("nonce", pre=True, allow_reuse=True)(cast_int)
+
+    # A Unix timestamp to associate with the terminal.
+    UNIX_timestamp: Optional[int] = pydantic.Field(
+        title="UNIX_timestamp",
+        description="A Unix timestamp that prevents replay attacks",
+        examples=1712521015536171382,
+        default=None,
+        allow_mutation=True,
+    )
+    _extract_UNIX_timestamp = pydantic.validator("UNIX_timestamp", pre=True, allow_reuse=True)(cast_int)
 
     # A unique identifier associated with the terminal, set on the axon side.
     uuid: Optional[str] = pydantic.Field(

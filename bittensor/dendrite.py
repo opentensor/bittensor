@@ -658,7 +658,8 @@ class dendrite(torch.nn.Module):
         synapse.dendrite = bittensor.TerminalInfo(
             ip=self.external_ip,
             version=bittensor.__version_as_int__,
-            nonce=time.time_ns(),
+            nonce=time.monotonic_ns(),
+            UNIX_timestamp=time.time_ns(),
             uuid=self.uuid,
             hotkey=self.keypair.ss58_address,
         )
@@ -672,6 +673,9 @@ class dendrite(torch.nn.Module):
 
         # Sign the request using the dendrite, axon info, and the synapse body hash
         message = f"{synapse.dendrite.nonce}.{synapse.dendrite.hotkey}.{synapse.axon.hotkey}.{synapse.dendrite.uuid}.{synapse.body_hash}"
+        if target_axon_info.version >= 700: # introduced new UNIX nonce field
+            # Use new signature appending UNIX timestamp.
+            message += f".{synapse.dendrite.UNIX_timestamp}"
         synapse.dendrite.signature = f"0x{self.keypair.sign(message).hex()}"
 
         return synapse

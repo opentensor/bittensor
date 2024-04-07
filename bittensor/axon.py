@@ -976,25 +976,42 @@ class axon:
             # Build the unique endpoint key.
             endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
 
-            # Check the nonce from the endpoint key with 5 minute (300 second) delta
-            allowedDelta = 300000000000
+            # Use new nonce protocol if the caller is using the new protocol.
+            if hasattr(synapse.dendrite, "UNIX_timestamp"):
 
-            # Requests must have nonces to be safe from replays
-            if synapse.dendrite.nonce is None:
-                raise Exception(f"{synapse.dendrite.hotkey} missing Nonce")
+                # Append the UNIX timestamp to the message for proper verification of new caller.
+                message += {f"{synapse.dendrite.UNIX_timestamp}"}
 
-            # If we don't have a nonce stored, ensure that the nonce falls within
-            # a reasonable delta.
-            if (
-                self.nonces.get(endpoint_key) is None
-                and synapse.dendrite.nonce <= time.time_ns() - allowedDelta
-            ):
-                raise Exception(f"Nonce {synapse.dendrite.nonce} is too old")
-            if (
-                self.nonces.get(endpoint_key) is not None
-                and synapse.dendrite.nonce <= self.nonces[endpoint_key]
-            ):
-                raise Exception(f"Nonce {synapse.dendrite.nonce} is too old")
+                # Check the nonce from the endpoint key with 5 minute (300 second) delta
+                allowedDelta = 300000000000
+
+                # Requests must have nonces to be safe from replays
+                if synapse.dendrite.UNIX_timestamp is None:
+                    raise Exception(f"{synapse.dendrite.hotkey} missing Nonce")
+
+                # If we don't have a nonce stored, ensure that the nonce falls within
+                # a reasonable delta.
+                if (
+                    self.nonces.get(endpoint_key) is None
+                    and synapse.dendrite.UNIX_timestamp <= (time.time_ns() - allowedDelta)
+                ):
+                    raise Exception(f"Nonce {synapse.dendrite.UNIX_timestamp} is outside window delta.")
+                if (
+                    self.nonces.get(endpoint_key) is not None
+                    and synapse.dendrite.UNIX_timestamp <= self.nonces[endpoint_key]
+                ):
+                    raise Exception(f"Nonce {synapse.dendrite.UNIX_timestamp} is too old")
+
+            # Use old protocol.
+            else:
+                # Check the nonce from the endpoint key.
+                if (
+                    endpoint_key in self.nonces.keys()
+                    and self.nonces[endpoint_key] is not None
+                    and synapse.dendrite.nonce is not None
+                    and synapse.dendrite.nonce <= self.nonces[endpoint_key]
+                ):
+                    raise Exception(f"Nonce {synapse.dendrite.nonce} is too small")
 
             if not keypair.verify(message, synapse.dendrite.signature):
                 raise Exception(
