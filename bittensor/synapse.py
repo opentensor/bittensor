@@ -222,15 +222,15 @@ class TerminalInfo(pydantic.BaseModel):
     _extract_nonce = pydantic.validator("nonce", pre=True, allow_reuse=True)(cast_int)
 
     # A Unix timestamp to associate with the terminal.
-    UNIX_timestamp: Optional[int] = pydantic.Field(
-        title="UNIX_timestamp",
+    unix_timestamp: Optional[int] = pydantic.Field(
+        title="unix_timestamp",
         description="A Unix timestamp that prevents replay attacks",
         examples=1712521015536171382,
         default=None,
         allow_mutation=True,
     )
-    _extract_UNIX_timestamp = pydantic.validator(
-        "UNIX_timestamp", pre=True, allow_reuse=True
+    _extract_unix_timestamp = pydantic.validator(
+        "unix_timestamp", pre=True, allow_reuse=True
     )(cast_int)
 
     # A unique identifier associated with the terminal, set on the axon side.
@@ -751,7 +751,7 @@ class Synapse(pydantic.BaseModel):
 
         # Iterate over each item in the headers
         for key, value in headers.items():
-            # Handle 'axon' headers
+            # Handle 'axon' headersf
             if "bt_header_axon_" in key:
                 try:
                     new_key = key.split("bt_header_axon_")[1]

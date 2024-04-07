@@ -413,6 +413,7 @@ class axon:
         )
 
         # Load nonces (if exist) from disk based on coldkey, hotkey, ip, and port.
+        self.last_nonce_save = 0
         self.nonces_basepath = self.config.axon.nonces_basepath
         self.nonces: Dict[str, int] = load_nonces(
             self.nonces_basepath,
@@ -988,33 +989,33 @@ class axon:
             endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
 
             # Use new nonce protocol if the caller is using the new protocol.
-            if hasattr(synapse.dendrite, "UNIX_timestamp"):
+            if hasattr(synapse.dendrite, "unix_timestamp"):
                 # Append the UNIX timestamp to the message for proper verification of new caller.
-                message += {f"{synapse.dendrite.UNIX_timestamp}"}
+                message += f".{synapse.dendrite.unix_timestamp}"
 
                 # Check the nonce from the endpoint key with 5 minute (300 second) delta
                 allowedDelta = 300000000000
 
                 # Requests must have nonces to be safe from replays
-                if synapse.dendrite.UNIX_timestamp is None:
+                if synapse.dendrite.unix_timestamp is None:
                     raise Exception(f"{synapse.dendrite.hotkey} missing Nonce")
 
                 # If we don't have a nonce stored, ensure that the nonce falls within
                 # a reasonable delta.
                 if self.nonces.get(
                     endpoint_key
-                ) is None and synapse.dendrite.UNIX_timestamp <= (
+                ) is None and synapse.dendrite.unix_timestamp <= (
                     time.time_ns() - allowedDelta
                 ):
                     raise Exception(
-                        f"Nonce {synapse.dendrite.UNIX_timestamp} is outside window delta."
+                        f"Nonce {synapse.dendrite.unix_timestamp} is outside window delta."
                     )
                 if (
                     self.nonces.get(endpoint_key) is not None
-                    and synapse.dendrite.UNIX_timestamp <= self.nonces[endpoint_key]
+                    and synapse.dendrite.unix_timestamp <= self.nonces[endpoint_key]
                 ):
                     raise Exception(
-                        f"Nonce {synapse.dendrite.UNIX_timestamp} is too old"
+                        f"Nonce {synapse.dendrite.unix_timestamp} is too old"
                     )
 
             # Use old protocol.
@@ -1177,9 +1178,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
             # Periodically save nonces dict.
             if (
-                self.last_nonce_save < time.time() - 300000000000
+                self.axon.last_nonce_save < time.time() - 300000000000
             ):  # Save every 5 minutes
-                self.last_nonce_save = time.time()
+                self.axon.last_nonce_save = time.time()
                 save_nonces(
                     self.axon.nonces_basepath,
                     self.axon.wallet.coldkeypub.ss58_address,
