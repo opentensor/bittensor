@@ -257,7 +257,7 @@ def remove_substake_extrinsic(
     ):
         # Get currently staked on hotkey provided
         currently_staked = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
-            netuid, hotkey_ss58, wallet.coldkeypub.ss58_address
+            netuid=netuid, hotkey_ss58=hotkey_ss58, coldkey_ss58=wallet.coldkeypub.ss58_address
         )
 
         # Get hotkey owner
@@ -281,7 +281,7 @@ def remove_substake_extrinsic(
     # Convert to bittensor.Balance
     if amount == None:
         # Unstake it all.
-        staking_balance = bittensor.Balance.from_tao(old_balance.tao)
+        staking_balance = bittensor.Balance.from_tao(currently_staked.tao)
     elif not isinstance(amount, bittensor.Balance):
         staking_balance = bittensor.Balance.from_tao(amount)
     else:
@@ -294,10 +294,10 @@ def remove_substake_extrinsic(
         staking_balance = staking_balance
 
     # Check enough to unstake.
-    if staking_balance > old_balance:
+    if staking_balance > currently_staked:
         bittensor.__console__.print(
             ":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  coldkey: {}[/bold white]".format(
-                old_balance, staking_balance, wallet.name
+                currently_staked, staking_balance, wallet.name
             )
         )
         return False
@@ -377,7 +377,7 @@ def remove_substake_extrinsic(
 
                 bittensor.__console__.print(
                     "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                        old_balance, new_balance
+                        currently_staked, new_balance
                     )
                 )
                 bittensor.__console__.print(
