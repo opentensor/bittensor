@@ -169,7 +169,7 @@ def add_substake_extrinsic(
                 block = subtensor.get_current_block()
                 new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
-                    hotkey_ss58=wallet.hotkey.ss58_address,
+                    hotkey_ss58=hotkey_ss58,
                     block=block,
                 )  # Get current stake
 

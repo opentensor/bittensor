@@ -121,9 +121,9 @@ class SubStakeCommand:
         # Ask to stake
         if not config.no_prompt:
             if not Confirm.ask(
-                f"Do you want to stake to the following hotkey on netuid: {config.netuid}: \n"
-                f"[bold white] - from {wallet.name}:{wallet.coldkeypub.ss58_address}\n"
-                f" - to   {hotkey_tup[0] + ':' if hotkey_tup[0] else ''}{hotkey_tup[1]}\n - amount {f'{stake_amount_tao} {bittensor.__tao_symbol__}'}[/bold white]\n"
+                f"Do you want to stake to the following hotkey on netuid {config.netuid}: \n"
+                f"[bold white] - from   {wallet.name}:{wallet.coldkeypub.ss58_address}\n"
+                f" - to     {hotkey_tup[0] + ':' if hotkey_tup[0] else ''}{hotkey_tup[1]}\n - amount {f'{stake_amount_tao} {bittensor.__tao_symbol__}'}[/bold white]\n"
             ):
                 return None
 
