@@ -1,9 +1,11 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from bittensor import subtensor, wallet
-from bittensor.extrinsics.senate import (leave_senate_extrinsic,
-                                         register_senate_extrinsic,
-                                         vote_senate_extrinsic)
+from bittensor.extrinsics.senate import (
+    leave_senate_extrinsic,
+    register_senate_extrinsic,
+    vote_senate_extrinsic,
+)
 
 
 # Mocking external dependencies
@@ -87,18 +89,48 @@ def test_register_senate_extrinsic(
         vote, vote_in_ayes, vote_in_nays, expected_result, test_id",
     [
         # Happy path tests
-        (False, True, False, True, True, True, False, True, "happy-path-finalization-aye"),
-        (True, False, False, True, False, False, True, True, "happy-path-inclusion-nay"),
-        (False, False, False, True, True, True, False, True, "happy-path-no-wait-aye"),
+        (False, True, False, True, True, True, False, True, "happy-finalization-aye"),
+        (True, False, False, True, False, False, True, True, "happy-inclusion-nay"),
+        (False, False, False, True, True, True, False, True, "happy-no-wait-aye"),
         # Edge cases
         (True, True, False, True, True, True, False, True, "edge-both-waits-true-aye"),
         # Error cases
-        (True, False, False, True, True, False, False, None, "error-vote-not-registered-aye"),
-        (False, True, False, True, False, False, False, None, "error-vote-not-registered-nay"),
         (True, False, False, False, True, False, False, None, "error-inclusion-failed"),
-        (False, True, False, False, True, False, False, None, "error-finalization-failed"),
         (True, False, True, True, True, True, False, False, "error-prompt-declined"),
-    ]
+        (
+            True,
+            False,
+            False,
+            True,
+            True,
+            False,
+            False,
+            None,
+            "error-no-vote-registered-aye",
+        ),
+        (
+            False,
+            True,
+            False,
+            True,
+            False,
+            False,
+            False,
+            None,
+            "error-no-vote-registered-nay",
+        ),
+        (
+            False,
+            True,
+            False,
+            False,
+            True,
+            False,
+            False,
+            None,
+            "error-finalization-failed",
+        ),
+    ],
 )
 def test_vote_senate_extrinsic(
     mock_subtensor,
@@ -117,26 +149,28 @@ def test_vote_senate_extrinsic(
     proposal_hash = "mock_hash"
     proposal_idx = 123
 
-    with patch("bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt), \
-         patch("bittensor.extrinsics.senate.time.sleep"), \
-         patch.object(mock_subtensor.substrate, "compose_call"), \
-         patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), \
-         patch.object(
-             mock_subtensor.substrate,
-             "submit_extrinsic",
-             return_value=MagicMock(
-                 is_success=response_success,
-                 process_events=MagicMock(),
-                 error_message="error"
-             )
-         ), patch.object(
-             mock_subtensor, "get_vote_data",
-             return_value={
-                 "ayes": [mock_wallet.hotkey.ss58_address] if vote_in_ayes else [],
-                 "nays": [mock_wallet.hotkey.ss58_address] if vote_in_nays else []
-             }
-         ):
-
+    with patch(
+        "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
+    ), patch("bittensor.extrinsics.senate.time.sleep"), patch.object(
+        mock_subtensor.substrate, "compose_call"
+    ), patch.object(
+        mock_subtensor.substrate, "create_signed_extrinsic"
+    ), patch.object(
+        mock_subtensor.substrate,
+        "submit_extrinsic",
+        return_value=MagicMock(
+            is_success=response_success,
+            process_events=MagicMock(),
+            error_message="error",
+        ),
+    ), patch.object(
+        mock_subtensor,
+        "get_vote_data",
+        return_value={
+            "ayes": [mock_wallet.hotkey.ss58_address] if vote_in_ayes else [],
+            "nays": [mock_wallet.hotkey.ss58_address] if vote_in_nays else [],
+        },
+    ):
         # Act
         result = vote_senate_extrinsic(
             subtensor=mock_subtensor,
