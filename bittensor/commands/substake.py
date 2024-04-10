@@ -199,7 +199,7 @@ class SubStakeCommand:
         bittensor.wallet.add_args(stake_parser)
         bittensor.subtensor.add_args(stake_parser)
 
-# TODO: Implement the RemoveSubStakeCommand class correctly
+
 class RemoveSubStakeCommand:
     """
     Removes stake to a specific hotkey account on a specific subnet, specified by `netuid`.
@@ -223,7 +223,7 @@ class RemoveSubStakeCommand:
 
     @staticmethod
     def run(cli: "bittensor.cli"):
-        r"""Stake token of amount to hotkey on subnet of given netuid."""
+        r"""Unstake token of amount to hotkey on subnet of given netuid."""
         try:
             config = cli.config.copy()
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
@@ -237,7 +237,7 @@ class RemoveSubStakeCommand:
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""Stake token of amount to hotkey(s)."""
+        r"""Unstake token amount from hotkey(s)."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
 
@@ -260,12 +260,12 @@ class RemoveSubStakeCommand:
 
         # Calculate if able to unstake amount desired
         unstake_amount_tao: float = config.get("amount")
-        
+
         # Get the current stake of the hotkey from this coldkey.
         hotkey_subnet_balance: Balance = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
             hotkey_ss58=hotkey_tup[1], coldkey_ss58=wallet.coldkeypub.ss58_address, netuid=config.netuid
         )
-        
+
         # If we are unstaking all set that value to the amount currently on that account.
         if config.get('unstake_all'):
             unstake_amount_tao = hotkey_subnet_balance.tao      
