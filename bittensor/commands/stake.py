@@ -224,7 +224,7 @@ class StakeCommand:
             and not config.wallet.get("hotkeys")
         ):
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
-            config.wallet.hotkey = str(hotkey) 
+            config.wallet.hotkey = str(hotkey)
 
         # Get amount.
         if (

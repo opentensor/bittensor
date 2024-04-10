@@ -124,7 +124,6 @@ def add_substake_extrinsic(
                 subtensor.network
             )
         ):
-
             # Decrypt keys,
             wallet.coldkey
 
@@ -142,10 +141,10 @@ def add_substake_extrinsic(
                 amount = bittensor.Balance.from_tao(amount)
 
             staking_response: bool = subtensor._do_subnet_stake(
-                wallet = wallet,
-                hotkey_ss58 = hotkey_ss58,
-                netuid = netuid,
-                amount = staking_balance,
+                wallet=wallet,
+                hotkey_ss58=hotkey_ss58,
+                netuid=netuid,
+                amount=staking_balance,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
@@ -256,7 +255,9 @@ def remove_substake_extrinsic(
     ):
         # Get currently staked on hotkey provided
         currently_staked = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
-            netuid=netuid, hotkey_ss58=hotkey_ss58, coldkey_ss58=wallet.coldkeypub.ss58_address
+            netuid=netuid,
+            hotkey_ss58=hotkey_ss58,
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
         )
 
         # Get hotkey owner
@@ -305,7 +306,11 @@ def remove_substake_extrinsic(
             # We are delegating.
             if not Confirm.ask(
                 "Do you want to undelegate:[bold white]\n  amount:{}\n  from: {}\n  take: {}\n  owner: {}\n  on subnet: {}[/bold white]".format(
-                    unstaking_balance, wallet.hotkey_str, hotkey_take, hotkey_owner, netuid
+                    unstaking_balance,
+                    wallet.hotkey_str,
+                    hotkey_take,
+                    hotkey_owner,
+                    netuid,
                 )
             ):
                 return False
@@ -321,7 +326,6 @@ def remove_substake_extrinsic(
         with bittensor.__console__.status(
             f":satellite: Unstaking [bold white]{unstaking_balance}[/bold white] from: [bold white]{hotkey_ss58}[/bold white] on [bold white]{subtensor.network}[/bold white]..."
         ):
-
             # Decrypt keys,
             wallet.coldkey
 
