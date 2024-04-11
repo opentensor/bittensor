@@ -329,8 +329,8 @@ my_axon.attach(
 ).start()
 ```     
 
-Dendrite: Inheriting from PyTorch's Module class, represents the abstracted implementation of a network client module designed 
-to send requests to those endpoints to receive inputs.
+Dendrite: Represents the abstracted implementation of a network client module
+designed to send requests to those endpoints to receive inputs.
 
 Example:
 ```python
