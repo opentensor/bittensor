@@ -914,25 +914,14 @@ class axon:
             # Build the unique endpoint key.
             endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
 
-            # Check the nonce from the endpoint key with 4 second delta
-            allowedDelta = 4000000000
-
-            # Requests must have nonces to be safe from replays
-            if synapse.dendrite.nonce is None:
-                raise Exception("Missing Nonce")
-
-            # If we don't have a nonce stored, ensure that the nonce falls within
-            # a reasonable delta.
+            # Check the nonce from the endpoint key.
             if (
-                self.nonces.get(endpoint_key) is None
-                and synapse.dendrite.nonce <= time.time_ns() - allowedDelta
-            ):
-                raise Exception("Nonce is too old")
-            if (
-                self.nonces.get(endpoint_key) is not None
+                endpoint_key in self.nonces.keys()
+                and self.nonces[endpoint_key] is not None
+                and synapse.dendrite.nonce is not None
                 and synapse.dendrite.nonce <= self.nonces[endpoint_key]
             ):
-                raise Exception("Nonce is too old")
+                raise Exception("Nonce is too small")
 
             if not keypair.verify(message, synapse.dendrite.signature):
                 raise Exception(
@@ -1201,7 +1190,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             {
                 "version": str(bittensor.__version_as_int__),
                 "uuid": str(self.axon.uuid),
-                "nonce": f"{time.time_ns()}",
+                "nonce": f"{time.monotonic_ns()}",
                 "status_message": "Success",
                 "status_code": "100",
             }
