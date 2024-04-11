@@ -44,6 +44,7 @@ def read_requirements(path):
 requirements = read_requirements("requirements/prod.txt")
 extra_requirements_dev = read_requirements("requirements/dev.txt")
 extra_requirements_cubit = read_requirements("requirements/cubit.txt")
+extra_requirements_torch = read_requirements("requirements/torch.txt")
 
 here = path.abspath(path.dirname(__file__))
 
@@ -76,6 +77,7 @@ setup(
     install_requires=requirements,
     extras_require={
         "dev": extra_requirements_dev,
+        "torch": extra_requirements_torch,
     },
     scripts=["bin/btcli"],
     classifiers=[

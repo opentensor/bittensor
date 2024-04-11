@@ -21,7 +21,6 @@ from typing import Callable, Union, List, Optional, Dict, Literal
 import bittensor
 import hashlib
 import requests
-import torch
 import scalecodec
 
 from .wallet_utils import *  # noqa F401
@@ -51,6 +50,8 @@ def unbiased_topk(values, k, dim=0, sorted=True, largest=True):
         indices: (torch.LongTensor)
             indices of the topk values.
     """
+    import torch
+
     permutation = torch.randperm(values.shape[dim])
     permuted_values = values[permutation]
     topk, indices = torch.topk(
