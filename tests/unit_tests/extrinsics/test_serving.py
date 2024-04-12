@@ -1,14 +1,21 @@
 import pytest
+
 from unittest.mock import MagicMock, patch
 from bittensor.subtensor import subtensor as Subtensor
 from bittensor.wallet import wallet as Wallet
-from bittensor.extrinsics.serving import serve_extrinsic
+from bittensor.axon import axon as Axon
+from bittensor.extrinsics.serving import (
+    serve_extrinsic,
+    publish_metadata,
+    serve_axon_extrinsic,
+)
 
 
 @pytest.fixture
 def mock_subtensor():
     mock_subtensor = MagicMock(spec=Subtensor)
     mock_subtensor.network = "test_network"
+    mock_subtensor.substrate = MagicMock()
     return mock_subtensor
 
 
@@ -18,6 +25,14 @@ def mock_wallet():
     wallet.hotkey.ss58_address = "hotkey_address"
     wallet.coldkeypub.ss58_address = "coldkey_address"
     return wallet
+
+
+@pytest.fixture
+def mock_axon(mock_wallet):
+    axon = MagicMock(spec=Axon)
+    axon.wallet = mock_wallet()
+    axon.external_port = 9221
+    return axon
 
 
 @pytest.mark.parametrize(
@@ -160,7 +175,7 @@ def test_serve_extrinsic_edge_cases(
         )
 
         # Assert
-        assert result == expected
+        assert result == expected, f"Test ID: {test_id}"
 
 
 # Various error cases
@@ -217,4 +232,143 @@ def test_serve_extrinsic_error_cases(
         )
 
         # Assert
-        assert result == expected_error_message
+        assert result == expected_error_message, f"Test ID: {test_id}"
+
+
+@pytest.mark.parametrize(
+    "netuid, wait_for_inclusion, wait_for_finalization, prompt, external_ip, external_ip_success, serve_success, expected_result, test_id",
+    [
+        # Happy path test
+        (1, False, True, False, "192.168.1.1", True, True, True, "happy-ext-ip"),
+        (1, False, True, True, None, True, True, True, "happy-net-external-ip"),
+        # Edge cases
+        (1, True, True, False, "192.168.1.1", True, True, True, "edge-case-wait"),
+        # Error cases
+        (1, False, True, False, None, False, True, False, "error-fetching-external-ip"),
+        (
+            1,
+            False,
+            True,
+            False,
+            "192.168.1.1",
+            True,
+            False,
+            False,
+            "error-serving-axon",
+        ),
+    ],
+    ids=[
+        "happy-axon-external-ip",
+        "happy-net-external-ip",
+        "edge-case-wait",
+        "error-fetching-external-ip",
+        "error-serving-axon",
+    ],
+)
+def test_serve_axon_extrinsic(
+    mock_subtensor,
+    mock_axon,
+    netuid,
+    wait_for_inclusion,
+    wait_for_finalization,
+    prompt,
+    external_ip,
+    external_ip_success,
+    serve_success,
+    expected_result,
+    test_id,
+):
+    mock_axon.external_ip = external_ip
+    # Arrange
+    with patch(
+        "bittensor.utils.networking.get_external_ip",
+        side_effect=Exception("Failed to fetch IP")
+        if not external_ip_success
+        else MagicMock(return_value="192.168.0.0"),
+    ), patch.object(mock_subtensor, "serve", return_value=serve_success):
+        # Act
+        if not external_ip_success:
+            with pytest.raises(RuntimeError):
+                result = serve_axon_extrinsic(
+                    mock_subtensor,
+                    netuid,
+                    mock_axon,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                    prompt=prompt,
+                )
+        else:
+            result = serve_axon_extrinsic(
+                mock_subtensor,
+                netuid,
+                mock_axon,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                prompt=prompt,
+            )
+            # Assert
+            assert result == expected_result, f"Test ID: {test_id}"
+
+
+@pytest.mark.parametrize(
+    "wait_for_inclusion, wait_for_finalization, net_uid, type_u, data, response_success, expected_result, test_id",
+    [
+        (
+            True,
+            True,
+            1,
+            "Sha256",
+            b"mock_bytes_data",
+            True,
+            True,
+            "happy-path-wait",
+        ),
+        (
+            False,
+            False,
+            1,
+            "Sha256",
+            b"mock_bytes_data",
+            True,
+            True,
+            "happy-path-no-wait",
+        ),
+    ],
+    ids=["happy-path-wait", "happy-path-no-wait"],
+)
+def test_publish_metadata(
+    mock_subtensor,
+    mock_wallet,
+    wait_for_inclusion,
+    wait_for_finalization,
+    net_uid,
+    type_u,
+    data,
+    response_success,
+    expected_result,
+    test_id,
+):
+    # Arrange
+    with patch.object(mock_subtensor.substrate, "compose_call"), patch.object(
+        mock_subtensor.substrate, "create_signed_extrinsic"
+    ), patch.object(
+        mock_subtensor.substrate,
+        "submit_extrinsic",
+        return_value=MagicMock(
+            is_success=response_success,
+            process_events=MagicMock(),
+            error_message="error",
+        ),
+    ):
+        # Act
+        result = publish_metadata(
+            subtensor=mock_subtensor,
+            wallet=mock_wallet,
+            netuid=net_uid,
+            type=type_u,
+            data=data,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        # Assert
+        assert result == expected_result, f"Test ID: {test_id}"
