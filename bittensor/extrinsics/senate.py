@@ -187,7 +187,7 @@ def vote_senate_extrinsic(
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
-    r"""Removes the wallet from chain for senate voting.
+    r"""Votes ayes or nays on proposals.
 
     Args:
         wallet (bittensor.wallet):
