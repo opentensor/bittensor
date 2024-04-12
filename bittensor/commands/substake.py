@@ -208,20 +208,56 @@ class RemoveSubStakeCommand:
     Removes stake to a specific hotkey account on a specific subnet, specified by `netuid`.
 
     Usage:
-        Users can specify the amount to unstake, the hotkeys to stake to (either by name or ``SS58`` address), and whether to stake to all hotkeys. The command checks for sufficient balance and hotkey registration
-        before proceeding with the staking process.
+        Users can specify the amount to unstake, the hotkey to unstake from (either by name or ``SS58`` address), and whether to stake to all hotkeys. The command checks for sufficient balance and hotkey registration
+        before proceeding with the unstaking process.
 
     Optional arguments:
+        - ``--wallet.name (str)``: The wallet return TAO to.
         - ``--amount`` (float): The amount of TAO tokens to stake.
         - ``--netuid`` (int): The subnet to stake to.
-        - ``--max_stake`` (float): Sets the maximum amount of TAO to have staked in each hotkey.
         - ``--hotkey`` (str): Specifies hotkey by name or SS58 address to stake to.
+        - ``--all`` (bool): Unstake all TAO from the specified hotkey.
 
     The command prompts for confirmation before executing the staking operation.
 
-    Example usage::
+    Example usage (args):
 
-        btcli substake add --amount <tao amt to stake> --wallet.name <wallet to pull tao from> --hotkey <ss58_address stake destination>
+        btcli substake remove --amount <tao amt to unstake> --wallet.name <wallet coldkey to return tao to> --hotkey <ss58_address to unstake from>
+
+        btcli substake remove --amount 111 --wallet.name default --netuid 1 --hotkey 5C86aJ2uQawR6P6veaJQXNK9HaWh6NMbUhTiLs65kq4ZW3NH
+
+    Example usage (prompt):
+
+        btcli substake remove
+
+        Enter netuid (0): 1
+
+        Enter wallet name (default): 
+
+        Enter hotkey name or ss58_address to unstake from (default): 5C86aJ2uQawR6P6veaJQXNK9HaWh6NMbUhTiLs65kq4ZW3NH
+
+        Unstake all τao 
+        from account: 'default' 
+        and hotkey  : '5C86aJ2uQawR6P6veaJQXNK9HaWh6NMbUhTiLs65kq4ZW3NH' 
+        from subnet : '1'
+        [y/n]: n
+
+        Enter Tao amount to unstake: 1337
+
+        Enter password to unlock key: 
+
+        Do you want to unstake:
+            amount: τ500
+            from  : default
+            netuid: 1
+        [y/n]: y
+
+        ✅ Finalized
+        Balance:
+            τ5000 ➡ τ6337
+        Unstaked:
+            τ16,961 ➡ τ15,623
+
     """
 
     @staticmethod
@@ -314,7 +350,7 @@ class RemoveSubStakeCommand:
             and not config.no_prompt
         ):
             hotkey = Prompt.ask(
-                "Enter hotkey name or ss58_address to stake to",
+                "Enter hotkey name or ss58_address to unstake from",
                 default=defaults.wallet.hotkey,
             )
             if bittensor.is_valid_ss58_address(hotkey):
@@ -324,9 +360,9 @@ class RemoveSubStakeCommand:
                 config.wallet.hotkey = str(hotkey)
 
         # Get amount.
-        if not config.get("amount") and not config.get("max_stake"):
+        if not config.get("amount") and not config.get("unstake_all"):
             if not Confirm.ask(
-                "Unstake all {}ao \n - from account: [bold]'{}'[/bold] \n - and hotkey: [bold]'{}'[/bold] \n - from subnet: [bold]'{}'[/bold]\n".format(
+                "Unstake all {}ao \n  [bold white]from account: '{}'[/bold white] \n  [bold white]and hotkey  : '{}'[/bold white] \n  [bold white]from subnet : '{}'[/bold white]\n".format(
                     bittensor.__tao_symbol__,
                     config.wallet.get("name", defaults.wallet.name),
                     config.get("hotkey"),
@@ -350,7 +386,7 @@ class RemoveSubStakeCommand:
     def add_args(cls, parser: argparse.ArgumentParser):
         stake_parser = parser.add_parser(
             "remove",
-            help="""Remove stake to a specific hotkey on subnet `netuid` from your coldkey.""",
+            help="""Remove stake from a specific hotkey on subnet `netuid` from your coldkey.""",
         )
         stake_parser.add_argument("--netuid", dest="netuid", type=int, required=False)
         stake_parser.add_argument("--all", dest="unstake_all", action="store_true")

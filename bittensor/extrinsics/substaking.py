@@ -221,7 +221,7 @@ def remove_substake_extrinsic(
         hotkey_ss58 (Optional[str]):
             The ``ss58`` address of the hotkey account to unstake from. Defaults to the wallet's hotkey.
         amount (Union[Balance, float]):
-            Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
+            Amount to unstake as Bittensor balance, or ``float`` interpreted as Tao.
         wait_for_inclusion (bool):
             If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
@@ -258,6 +258,10 @@ def remove_substake_extrinsic(
             netuid=netuid,
             hotkey_ss58=hotkey_ss58,
             coldkey_ss58=wallet.coldkeypub.ss58_address,
+        )
+
+        old_balance = subtensor.get_balance(
+            address=wallet.coldkeypub.ss58_address
         )
 
         # Get hotkey owner
@@ -316,7 +320,7 @@ def remove_substake_extrinsic(
                 return False
         else:
             if not Confirm.ask(
-                "Do you want to unstake:[bold white]\n  amount: {}\n  from  : {}\n  netuid: {}[/bold white]".format(
+                "Do you want to unstake:[bold white]\n  amount: {}\n  from  : {}\n  netuid: {}[/bold white]\n".format(
                     unstaking_balance, wallet.hotkey_str, netuid
                 )
             ):
@@ -373,7 +377,7 @@ def remove_substake_extrinsic(
 
                 bittensor.__console__.print(
                     "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                        currently_staked, new_balance
+                        old_balance, new_balance
                     )
                 )
                 bittensor.__console__.print(
