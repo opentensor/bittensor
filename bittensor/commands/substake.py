@@ -44,9 +44,39 @@ class SubStakeCommand:
 
     The command prompts for confirmation before executing the staking operation.
 
-    Example usage::
+    Example usage (args):
 
         btcli substake add --amount <tao amt to stake> --wallet.name <wallet to pull tao from> --hotkey <ss58_address stake destination>
+
+        btcli substake add --amount 100 --netuid 1 --wallet.name default --hotkey 5C86aJ2uQawR6P6veaJQXNK9HaWh6NMbUhTiLs65kq4ZW3NH
+
+    Example usgage (prompt):
+
+        btcli substake add
+
+        Enter netuid (0): 1
+
+        Enter wallet name (default): 
+
+        Enter hotkey name or ss58_address to stake to (default): 
+
+        Stake all Tao from account: 'default'? [y/n]: n
+
+        Enter Tao amount to stake: 100
+
+        Do you want to stake to the following hotkey on netuid 1: 
+          - from   default:5GeYLB44QY9wcqJmFZvJW8D3EYPDaJGSgGfkbJVxUbkVcU7C
+          - to     default:5C86aJ2uQawR6P6veaJQXNK9HaWh6NMbUhTiLs65kq4ZW3NH
+          - amount 100.0 τ
+        [y/n]: y
+        Enter password to unlock key: 
+        ✅ Finalized
+
+        Balance:
+          τ100 ➡ τ0
+        Stake:
+          τ1,234 ➡ τ1,334
+
     """
 
     @staticmethod
