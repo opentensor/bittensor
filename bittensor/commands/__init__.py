@@ -38,6 +38,7 @@ defaults: Munch = munchify(
         },
         "priority": {"max_workers": 5, "maxsize": 10},
         "prometheus": {"port": 7091, "level": "INFO"},
+        "profile": {"name": "default", "path": "~/.bittensor/profiles/"},
         "wallet": {
             "name": "default",
             "hotkey": "default",
@@ -94,6 +95,7 @@ from .inspect import InspectCommand
 from .metagraph import MetagraphCommand
 from .list import ListCommand
 from .misc import UpdateCommand, AutocompleteCommand
+from .profile import ProfileCommand
 from .senate import (
     SenateCommand,
     ProposalsCommand,

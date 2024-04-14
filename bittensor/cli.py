@@ -35,6 +35,7 @@ from .commands import (
     NewHotkeyCommand,
     NominateCommand,
     OverviewCommand,
+    ProfileCommand,
     PowRegisterCommand,
     ProposalsCommand,
     RegenColdkeyCommand,
@@ -91,6 +92,7 @@ ALIAS_TO_COMMAND = {
     "sudos": "sudo",
     "i": "info",
     "info": "info",
+    "profile": "profile",
 }
 COMMANDS = {
     "subnets": {
@@ -189,6 +191,17 @@ COMMANDS = {
             "autocomplete": AutocompleteCommand,
         },
     },
+    "profile": {
+        "name": "profile",
+        "aliases": ["p"],
+        "help": "Commands for creating and viewing profiles.",
+        "commands": {
+            "create": ProfileCommand,
+            # "list": ProfileList,
+            # "set": ProfileSet,
+            # "delete": ProfileDelete,
+        },
+    },
 }
 
 
@@ -226,7 +239,6 @@ class cli:
         """
         # Turns on console for cli.
         bittensor.turn_console_on()
-
         # If no config is provided, create a new one from args.
         if config is None:
             config = cli.create_config(args)
@@ -356,6 +368,7 @@ class cli:
         # Check if command exists, if so, run the corresponding method.
         # If command doesn't exist, inform user and exit the program.
         command = self.config.command
+
         if command in COMMANDS:
             command_data = COMMANDS[command]
 
