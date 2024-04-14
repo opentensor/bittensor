@@ -124,7 +124,6 @@ def add_substake_extrinsic(
                 subtensor.network
             )
         ):
-
             # Decrypt keys,
             wallet.coldkey
 
@@ -142,10 +141,10 @@ def add_substake_extrinsic(
                 amount = bittensor.Balance.from_tao(amount)
 
             staking_response: bool = subtensor._do_subnet_stake(
-                wallet = wallet,
-                hotkey_ss58 = hotkey_ss58,
-                netuid = netuid,
-                amount = staking_balance,
+                wallet=wallet,
+                hotkey_ss58=hotkey_ss58,
+                netuid=netuid,
+                amount=staking_balance,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
@@ -169,7 +168,7 @@ def add_substake_extrinsic(
                 block = subtensor.get_current_block()
                 new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
-                    hotkey_ss58=wallet.hotkey.ss58_address,
+                    hotkey_ss58=hotkey_ss58,
                     block=block,
                 )  # Get current stake
 
@@ -202,7 +201,6 @@ def add_substake_extrinsic(
         return False
 
 
-# TODO: Implement remove_substake_extrinsic correctly
 def remove_substake_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
@@ -213,7 +211,7 @@ def remove_substake_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> bool:
-    r"""Removes the specified amount of stake to passed hotkey ``uid``.
+    r"""Removes the specified amount of stake to passed hotkey ``hotkey_ss58``.
 
     Args:
         wallet (bittensor.wallet):
@@ -221,9 +219,9 @@ def remove_substake_extrinsic(
         netuid (int):
             The subnetwork uid of to stake with.
         hotkey_ss58 (Optional[str]):
-            The ``ss58`` address of the hotkey account to stake to defaults to the wallet's hotkey.
+            The ``ss58`` address of the hotkey account to unstake from. Defaults to the wallet's hotkey.
         amount (Union[Balance, float]):
-            Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
+            Amount to unstake as Bittensor balance, or ``float`` interpreted as Tao.
         wait_for_inclusion (bool):
             If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
@@ -257,7 +255,13 @@ def remove_substake_extrinsic(
     ):
         # Get currently staked on hotkey provided
         currently_staked = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
-            netuid, hotkey_ss58, wallet.coldkeypub.ss58_address
+            netuid=netuid,
+            hotkey_ss58=hotkey_ss58,
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+        )
+
+        old_balance = subtensor.get_balance(
+            address=wallet.coldkeypub.ss58_address
         )
 
         # Get hotkey owner
@@ -281,23 +285,21 @@ def remove_substake_extrinsic(
     # Convert to bittensor.Balance
     if amount == None:
         # Unstake it all.
-        staking_balance = bittensor.Balance.from_tao(old_balance.tao)
+        unstaking_balance = bittensor.Balance.from_tao(currently_staked.tao)
     elif not isinstance(amount, bittensor.Balance):
-        staking_balance = bittensor.Balance.from_tao(amount)
+        unstaking_balance = bittensor.Balance.from_tao(amount)
     else:
-        staking_balance = amount
+        unstaking_balance = amount
 
     # Remove existential balance to keep key alive.
-    if staking_balance > bittensor.Balance.from_rao(1000):
-        staking_balance = staking_balance - bittensor.Balance.from_rao(1000)
-    else:
-        staking_balance = staking_balance
+    if unstaking_balance > bittensor.Balance.from_rao(1000):
+        unstaking_balance = unstaking_balance - bittensor.Balance.from_rao(1000)
 
     # Check enough to unstake.
-    if staking_balance > old_balance:
+    if unstaking_balance > currently_staked:
         bittensor.__console__.print(
             ":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  coldkey: {}[/bold white]".format(
-                old_balance, staking_balance, wallet.name
+                currently_staked, unstaking_balance, wallet.name
             )
         )
         return False
@@ -307,26 +309,27 @@ def remove_substake_extrinsic(
         if not own_hotkey:
             # We are delegating.
             if not Confirm.ask(
-                "Do you want to delegate:[bold white]\n  amount: {}\n  to: {}\n  take: {}\n  owner: {}\n  on subnet: {}[/bold white]".format(
-                    staking_balance, wallet.hotkey_str, hotkey_take, hotkey_owner, netuid
+                "Do you want to undelegate:[bold white]\n  amount:{}\n  from: {}\n  take: {}\n  owner: {}\n  on subnet: {}[/bold white]".format(
+                    unstaking_balance,
+                    wallet.hotkey_str,
+                    hotkey_take,
+                    hotkey_owner,
+                    netuid,
                 )
             ):
                 return False
         else:
             if not Confirm.ask(
-                "Do you want to stake:[bold white]\n  amount: {}\n  to: {}\n  on: {}[/bold white]".format(
-                    staking_balance, wallet.hotkey_str, netuid
+                "Do you want to unstake:[bold white]\n  amount: {}\n  from  : {}\n  netuid: {}[/bold white]\n".format(
+                    unstaking_balance, wallet.hotkey_str, netuid
                 )
             ):
                 return False
 
     try:
         with bittensor.__console__.status(
-            ":satellite: Staking to: [bold white]{}[/bold white] ...".format(
-                subtensor.network
-            )
+            f":satellite: Unstaking [bold white]{unstaking_balance}[/bold white] from: [bold white]{hotkey_ss58}[/bold white] on [bold white]{subtensor.network}[/bold white]..."
         ):
-
             # Decrypt keys,
             wallet.coldkey
 
@@ -340,14 +343,11 @@ def remove_substake_extrinsic(
                         "Hotkey: {} is not a delegate.".format(hotkey_ss58)
                     )
 
-            if isinstance(amount, float):
-                amount = bittensor.Balance.from_tao(amount)
-
-            staking_response: bool = subtensor._do_subnet_stake(
+            staking_response: bool = subtensor._do_subnet_unstake(
                 wallet=wallet,
                 hotkey_ss58=hotkey_ss58,
                 netuid=netuid,
-                amount=amount,
+                amount=unstaking_balance,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
@@ -381,7 +381,7 @@ def remove_substake_extrinsic(
                     )
                 )
                 bittensor.__console__.print(
-                    "Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
+                    "Unstaked:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
                         old_stake, new_stake
                     )
                 )

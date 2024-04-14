@@ -221,7 +221,7 @@ class subtensor:
         """
         if network is None:
             return None, None
-        if network in ["finney", "local", "test","dev", "archive"]:
+        if network in ["finney", "local", "test", "dev", "archive"]:
             if network == "finney":
                 # Kiru Finney stagin network.
                 return network, bittensor.__finney_entrypoint__
@@ -1714,7 +1714,7 @@ class subtensor:
                     raise StakeError(response.error_message)
 
         return make_substrate_call_with_retry()
-    
+
     def _do_subnet_stake(
         self,
         wallet: "bittensor.wallet",
@@ -1745,7 +1745,11 @@ class subtensor:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
                     call_function="add_subnet_stake",
-                    call_params={"hotkey": hotkey_ss58, "netuid":netuid, "amount_staked": amount.rao},
+                    call_params={
+                        "hotkey": hotkey_ss58,
+                        "netuid": netuid,
+                        "amount_staked": amount.rao,
+                    },
                 )
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call, keypair=wallet.coldkey
@@ -1917,7 +1921,7 @@ class subtensor:
                     raise StakeError(response.error_message)
 
         return make_substrate_call_with_retry()
-    
+
     def _do_subnet_unstake(
         self,
         wallet: "bittensor.wallet",
@@ -1947,7 +1951,11 @@ class subtensor:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
                     call_function="remove_subnet_stake",
-                    call_params={"hotkey": hotkey_ss58, "netuid": netuid, "amount_unstaked": amount.rao},
+                    call_params={
+                        "hotkey": hotkey_ss58,
+                        "netuid": netuid,
+                        "amount_unstaked": amount.rao,
+                    },
                 )
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call, keypair=wallet.coldkey
@@ -3141,12 +3149,18 @@ class subtensor:
         if not hasattr(_result, "value") or _result is None:
             return None
         return Balance.from_rao(_result.value)
-    
+
     def get_stake_for_coldkey_and_hotkey_on_netuid(
-        self, hotkey_ss58: str, coldkey_ss58: str, netuid: int, block: Optional[int] = None
+        self,
+        hotkey_ss58: str,
+        coldkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
     ) -> Optional["Balance"]:
         """Returns the stake under a coldkey - hotkey - netuid pairing"""
-        _result = self.query_subtensor("SubStake", block, [hotkey_ss58, coldkey_ss58, netuid])
+        _result = self.query_subtensor(
+            "SubStake", block, [hotkey_ss58, coldkey_ss58, netuid]
+        )
         if not hasattr(_result, "value") or _result is None:
             return None
         return Balance.from_rao(_result.value)
@@ -3493,7 +3507,7 @@ class subtensor:
             return []
 
         return SubnetInfo.list_from_vec_u8(result)
-    
+
     def get_subnet_info(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[SubnetInfo]:
