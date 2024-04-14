@@ -245,14 +245,45 @@ class SubnetListCommand:
         delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
             url=bittensor.__delegates_details_url__
         )
+        
+        # Get reserves.
+        alpha_reserves = {}
+        tao_reserves = {}
+        for rec in subtensor.substrate.query_map(
+            module="SubtensorModule",
+            storage_function='DynamicAlphaReserve',
+            params=[],
+            block_hash=None,
+        ).records:
+            alpha_reserves[rec[0].value] = rec[1].value
+            
+        for rec in subtensor.substrate.query_map(
+                module="SubtensorModule",
+                storage_function='DynamicTAOReserve',
+                params=[],
+                block_hash=None,
+            ).records:
+            tao_reserves[rec[0].value] = rec[1].value
+
 
         for subnet in subnets:
             total_neurons += subnet.max_n
+            if subnet.netuid in tao_reserves:
+                tao_res = tao_reserves[subnet.netuid]
+                alpha_res = alpha_reserves[subnet.netuid]
+                price = tao_res / alpha_res
+            else:
+                tao_res = 0
+                alpha_res = 0
+                price = 0
             rows.append(
                 (
                     str(subnet.netuid),
                     str(subnet.subnetwork_n),
                     str(bittensor.utils.formatting.millify(subnet.max_n)),
+                    f"{bittensor.Balance.from_tao(price)!s:8.8}",
+                    str(tao_res/ bittensor.utils.RAOPERTAO),
+                    str(alpha_res/ bittensor.utils.RAOPERTAO),
                     f"{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%",
                     str(subnet.tempo),
                     f"{subnet.burn!s:8.8}",
@@ -283,6 +314,9 @@ class SubnetListCommand:
             justify="center",
         )
         table.add_column("[overline white]MAX_N", style="white", justify="center")
+        table.add_column("[overline white]PRICE", style="white", justify="center")
+        table.add_column("[overline white]TAOReserve", style="white", justify="center")
+        table.add_column("[overline white]AlphaReserve", style="white", justify="center")
         table.add_column("[overline white]EMISSION", style="white", justify="center")
         table.add_column("[overline white]TEMPO", style="white", justify="center")
         table.add_column("[overline white]RECYCLE", style="white", justify="center")
