@@ -101,7 +101,7 @@ __dev_entrypoint__ = "wss://dev.chain.opentensor.ai:443 "
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
-__local_entrypoint__ = "ws://127.0.0.1:9944"
+__local_entrypoint__ = "ws://127.0.0.1:9946"
 
 __tao_symbol__: str = chr(0x03C4)
 
