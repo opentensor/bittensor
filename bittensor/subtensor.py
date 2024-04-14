@@ -174,7 +174,7 @@ class subtensor:
             default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "local"
             default_chain_endpoint = (
                 os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
-                or bittensor.__finney_entrypoint__
+                or bittensor.__local_entrypoint__
             )
             parser.add_argument(
                 "--" + prefix_str + "subtensor.network",
