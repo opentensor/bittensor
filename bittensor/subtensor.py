@@ -171,7 +171,7 @@ class subtensor:
     def add_args(cls, parser: argparse.ArgumentParser, prefix: Optional[str] = None):
         prefix_str = "" if prefix is None else f"{prefix}."
         try:
-            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "finney"
+            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "local"
             default_chain_endpoint = (
                 os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
                 or bittensor.__finney_entrypoint__
