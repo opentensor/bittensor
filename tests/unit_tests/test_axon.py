@@ -334,7 +334,6 @@ def test_to_string(info_return, expected_output, test_id):
     # Arrange
     axon = Axon()
     with patch.object(axon, "info", return_value=info_return):
-
         # Act
         output = axon.to_string()
 
