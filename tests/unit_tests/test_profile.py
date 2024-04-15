@@ -108,7 +108,6 @@ def test_write_profile():
     with patch("os.makedirs") as mock_makedirs, patch(
         "os.path.expanduser", return_value="/.bittensor/profiles/"
     ), patch("builtins.open", mock_open()) as mock_file:
-
         # Call the function with the mock config
         ProfileCommand._write_profile(mock_config)
 
