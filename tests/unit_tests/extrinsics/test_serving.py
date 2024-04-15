@@ -284,7 +284,7 @@ def test_serve_axon_extrinsic(
         "bittensor.utils.networking.get_external_ip",
         side_effect=Exception("Failed to fetch IP")
         if not external_ip_success
-        else MagicMock(return_value="192.168.0.0"),
+        else MagicMock(return_value="192.168.0.1"),
     ), patch.object(mock_subtensor, "serve", return_value=serve_success):
         # Act
         if not external_ip_success:
