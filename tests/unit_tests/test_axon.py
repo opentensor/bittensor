@@ -22,7 +22,7 @@ import pytest
 import unittest
 from typing import Any
 from unittest import IsolatedAsyncioTestCase
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 # Third Party
 from starlette.requests import Request
@@ -330,16 +330,16 @@ async def test_verify_body_integrity_error_cases(
         (MockInfo(), "MockInfoString", "edge_case_empty_string"),
     ],
 )
-def test_to_string(info_return, expected_output, test_id, mocker):
+def test_to_string(info_return, expected_output, test_id):
     # Arrange
     axon = Axon()
-    mocker.patch.object(axon, "info", return_value=info_return)
+    with patch.object(axon, "info", return_value=info_return):
 
-    # Act
-    output = axon.to_string()
+        # Act
+        output = axon.to_string()
 
-    # Assert
-    assert output == expected_output, f"Test ID: {test_id}"
+        # Assert
+        assert output == expected_output, f"Test ID: {test_id}"
 
 
 @pytest.mark.parametrize(
