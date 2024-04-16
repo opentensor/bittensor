@@ -242,6 +242,9 @@ class SubnetListCommand:
 
         rows = []
         total_neurons = 0
+        total_registered = 0
+        total_price = 0
+        total_emission = 0
         delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
             url=bittensor.__delegates_details_url__
         )
@@ -268,6 +271,7 @@ class SubnetListCommand:
 
         for subnet in subnets:
             total_neurons += subnet.max_n
+            total_registered += subnet.subnetwork_n
             if subnet.netuid in tao_reserves:
                 tao_res = tao_reserves[subnet.netuid]
                 alpha_res = alpha_reserves[subnet.netuid]
@@ -276,15 +280,17 @@ class SubnetListCommand:
                 tao_res = 0
                 alpha_res = 0
                 price = 0
+            total_price += price
+            total_emission += subnet.emission_value
             rows.append(
                 (
                     str(subnet.netuid),
                     str(subnet.subnetwork_n),
                     str(bittensor.utils.formatting.millify(subnet.max_n)),
-                    f"{bittensor.Balance.from_tao(price)!s:8.8}",
-                    str(tao_res/ bittensor.utils.RAOPERTAO),
-                    str(alpha_res/ bittensor.utils.RAOPERTAO),
-                    f"{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%",
+                    "{:.8}".format(str(bittensor.Balance.from_rao(subnet.emission_value))),
+                    "{:.8}".format(str(bittensor.Balance.from_tao(price))),
+                    str(bittensor.Balance.from_rao(tao_res)),
+                    str(bittensor.Balance.from_rao(alpha_res).set_unit(subnet.netuid)),
                     str(subnet.tempo),
                     f"{subnet.burn!s:8.8}",
                     str(bittensor.utils.formatting.millify(subnet.difficulty)),
@@ -299,25 +305,13 @@ class SubnetListCommand:
             show_edge=True,
         )
         table.title = "[white]Subnets - {}".format(subtensor.network)
-        table.add_column(
-            "[overline white]NETUID",
-            str(len(subnets)),
-            footer_style="overline white",
-            style="bold green",
-            justify="center",
-        )
-        table.add_column(
-            "[overline white]N",
-            str(total_neurons),
-            footer_style="overline white",
-            style="green",
-            justify="center",
-        )
-        table.add_column("[overline white]MAX_N", style="white", justify="center")
-        table.add_column("[overline white]PRICE", style="white", justify="center")
-        table.add_column("[overline white]TAOReserve", style="white", justify="center")
-        table.add_column("[overline white]AlphaReserve", style="white", justify="center")
-        table.add_column("[overline white]EMISSION", style="white", justify="center")
+        table.add_column("[overline white]NETUID",str(len(subnets)), footer_style="overline white", style="bold green", justify="center")
+        table.add_column("[overline white]N", str(total_registered), footer_style="overline white", style="green", justify="right", )
+        table.add_column("[overline white]MAX_N", str(total_neurons), footer_style="overline white", style="white", justify="right")
+        table.add_column("[overline white]EMISSION", f"{bittensor.Balance.from_rao(total_emission)!s:8.8}", footer_style="overline white", style="white", justify="center")
+        table.add_column("[overline white]PRICE", f"{bittensor.Balance.from_tao(total_price)!s:8.8}", footer_style="overline white", style="white", justify="right")
+        table.add_column("[overline white]TAO", style="white", justify="left")
+        table.add_column("[overline white]\u2202TAO", style="white", justify="left")
         table.add_column("[overline white]TEMPO", style="white", justify="center")
         table.add_column("[overline white]RECYCLE", style="white", justify="center")
         table.add_column("[overline white]POW", style="white", justify="center")

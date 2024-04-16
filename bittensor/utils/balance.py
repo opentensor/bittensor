@@ -76,7 +76,7 @@ class Balance:
         """
         Returns the Balance object as a string in the format "symbolvalue", where the value is in tao.
         """
-        return f"{self.unit}{float(self.tao):,.9f}"
+        return f"{self.unit}{float(self.tao):,.4f}"
 
     def __rich__(self):
         return "[green]{}[/green][green]{}[/green][green].[/green][dim green]{}[/dim green]".format(
@@ -283,3 +283,35 @@ class Balance:
             A Balance object representing the given amount.
         """
         return Balance(amount)
+    
+    def set_unit(self, netuid: int):
+        units = [
+            "\u03B1", # alpha
+            "\u03B2", # beta
+            "\u03B3", # gamma
+            "\u03B4", # delta
+            "\u03B5", # epsilon
+            "\u03B6", # zeta
+            "\u03B7", # eta
+            "\u03B8", # theta
+            "\u03B9", # iota
+            "\u03BA", # kappa
+            "\u03BB", # lambda
+            "\u03BC", # mu
+            "\u03BD", # nu
+            "\u03BE", # xi
+            "\u03BF", # omicron
+            "\u03C0", # pi
+            "\u03C1", # rho
+            "\u03C3", # sigma
+            "\u03C4", # tau
+            "\u03C5", # upsilon
+            "\u03C6", # phi
+            "\u03C7", # chi
+            "\u03C8", # psi
+            "\u03C9"  # omega
+        ]
+        self.unit = units[netuid % 24]
+        self.rao_unit = units[netuid % 24]
+        return self
+        
