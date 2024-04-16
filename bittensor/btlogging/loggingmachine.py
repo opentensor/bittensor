@@ -69,7 +69,7 @@ class LoggingMachine(StateMachine):
         # basics
         super(LoggingMachine, self).__init__()
         self._queue = mp.Queue(-1)
-        self._name = name
+        self._primary_loggers = {name}
         self._config = config
 
         # Formatters
@@ -172,9 +172,15 @@ class LoggingMachine(StateMachine):
         file_handler.setLevel(stdlogging.TRACE)
         return file_handler
 
+    def register_primary_logger(self, name: str):
+        self._primary_loggers.add(name)
+
+    def deregister_primary_logger(self, name: str):
+        self._primary_loggers.remove(name)
+
     def enable_third_party_loggers(self):
         for logger in all_loggers():
-            if logger.name == self._name:
+            if logger.name in self._primary_loggers:
                 continue
             queue_handler = QueueHandler(self._queue)
             logger.addHandler(queue_handler)
@@ -183,7 +189,7 @@ class LoggingMachine(StateMachine):
     def disable_third_party_loggers(self):
         # remove all handlers
         for logger in all_loggers():
-            if logger.name == self._name:
+            if logger.name in self._primary_loggers:
                 continue
             for handler in logger.handlers:
                 logger.removeHandler(handler)
@@ -211,7 +217,7 @@ class LoggingMachine(StateMachine):
         self._logger.info(f"Enabling default logging.")
         self._logger.setLevel(stdlogging.INFO)
         for logger in all_loggers():
-            if logger.name == self._name:
+            if logger.name in self._primary_loggers:
                 continue
             logger.setLevel(stdlogging.CRITICAL)
 
