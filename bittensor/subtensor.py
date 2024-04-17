@@ -45,6 +45,7 @@ from .chain_data import (
     AxonInfo,
     ProposalVoteData,
     IPInfo,
+    DelegateStakeInfoVec,
     custom_rpc_type_registry,
 )
 from .errors import *
@@ -3811,6 +3812,27 @@ class subtensor:
             return [(record[0].value, record[1].value) for record in result.records]
         else:
             return 0
+        
+    def get_delegate_stake(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[List[Tuple[str, int, int]]]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry(encoded_hotkey: List[int]):
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash(block)
+                params = [encoded_hotkey]
+                if block_hash:
+                    params = params + [block_hash]
+                return substrate.rpc_request(
+                    method="delegateInfo_getDelegateStake",  # custom rpc method
+                    params=params,
+                )
+        encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
+        json_body = make_substrate_call_with_retry(encoded_hotkey)
+        result = json_body["result"]
+        if result in (None, []): return None
+        else: 
+            return DelegateStakeInfoVec.decode( result )
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None

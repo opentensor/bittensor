@@ -29,6 +29,11 @@ from scalecodec.utils.ss58 import ss58_encode
 from .utils import networking as net, U16_MAX, U16_NORMALIZED_FLOAT
 from .utils.balance import Balance
 
+# Constants
+RAOPERTAO = 1e9
+U16_MAX = 65535
+U64_MAX = 18446744073709551615
+
 custom_rpc_type_registry = {
     "types": {
         "SubnetInfo": {
@@ -153,6 +158,14 @@ custom_rpc_type_registry = {
                 ["stake", "Compact<u64>"],
             ],
         },
+        "DelegateStakeInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["coldkey", "AccountId"],
+                ["netuid", "Compact<u16>"],
+                ["stake", "Compact<u64>"],
+            ],
+        },
         "SubnetHyperparameters": {
             "type": "struct",
             "type_mapping": [
@@ -183,6 +196,69 @@ custom_rpc_type_registry = {
     }
 }
 
+class ChainDataType(Enum):
+    NeuronInfo = 1
+    SubnetInfo = 2
+    DelegateInfo = 3
+    NeuronInfoLite = 4
+    DelegatedInfo = 5
+    StakeInfo = 6
+    IPInfo = 7
+    SubnetHyperparameters = 8
+    DelegateStakeInfo = 9
+
+
+def from_scale_encoding(
+    input: Union[List[int], bytes, ScaleBytes],
+    type_name: ChainDataType,
+    is_vec: bool = False,
+    is_option: bool = False,
+) -> Optional[Dict]:
+    type_string = type_name.name
+    if type_name == ChainDataType.DelegatedInfo:
+        # DelegatedInfo is a tuple of (DelegateInfo, Compact<u64>)
+        type_string = f"({ChainDataType.DelegateInfo.name}, Compact<u64>)"
+    if is_option:
+        type_string = f"Option<{type_string}>"
+    if is_vec:
+        type_string = f"Vec<{type_string}>"
+
+    return from_scale_encoding_using_type_string(input, type_string)
+
+def from_scale_encoding_using_type_string(
+    input: Union[List[int], bytes, ScaleBytes], type_string: str
+) -> Optional[Dict]:
+    if isinstance(input, ScaleBytes):
+        as_scale_bytes = input
+    else:
+        if isinstance(input, list) and all([isinstance(i, int) for i in input]):
+            vec_u8 = input
+            as_bytes = bytes(vec_u8)
+        elif isinstance(input, bytes):
+            as_bytes = input
+        else:
+            raise TypeError("input must be a List[int], bytes, or ScaleBytes")
+
+        as_scale_bytes = ScaleBytes(as_bytes)
+
+    rpc_runtime_config = RuntimeConfiguration()
+    rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
+    rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
+    obj = rpc_runtime_config.create_scale_object(type_string, data=as_scale_bytes)
+    return obj.decode()
+
+class DelegateStakeInfoVec:
+    @staticmethod
+    def decode( result: List[int] ) -> List[Dict]: 
+        descaled = from_scale_encoding( input = result, type_name = ChainDataType.DelegateStakeInfo, is_vec = True )
+        result = []
+        for item in descaled:
+            result.append({
+                    'coldkey': ss58_encode( item['coldkey'], bittensor.__ss58_format__),
+                    'netuid': item['netuid'],
+                    'stake': Balance.from_rao( item['stake'] )
+                })
+        return result
 
 @dataclass
 class AxonInfo:
@@ -275,69 +351,7 @@ class AxonInfo:
     ) -> "AxonInfo":
         r"""Returns an axon_info object from a torch parameter_dict."""
         return cls(**dict(parameter_dict))
-
-
-class ChainDataType(Enum):
-    NeuronInfo = 1
-    SubnetInfo = 2
-    DelegateInfo = 3
-    NeuronInfoLite = 4
-    DelegatedInfo = 5
-    StakeInfo = 6
-    IPInfo = 7
-    SubnetHyperparameters = 8
-
-
-# Constants
-RAOPERTAO = 1e9
-U16_MAX = 65535
-U64_MAX = 18446744073709551615
-
-
-def from_scale_encoding(
-    input: Union[List[int], bytes, ScaleBytes],
-    type_name: ChainDataType,
-    is_vec: bool = False,
-    is_option: bool = False,
-) -> Optional[Dict]:
-    type_string = type_name.name
-    if type_name == ChainDataType.DelegatedInfo:
-        # DelegatedInfo is a tuple of (DelegateInfo, Compact<u64>)
-        type_string = f"({ChainDataType.DelegateInfo.name}, Compact<u64>)"
-    if is_option:
-        type_string = f"Option<{type_string}>"
-    if is_vec:
-        type_string = f"Vec<{type_string}>"
-
-    return from_scale_encoding_using_type_string(input, type_string)
-
-
-def from_scale_encoding_using_type_string(
-    input: Union[List[int], bytes, ScaleBytes], type_string: str
-) -> Optional[Dict]:
-    if isinstance(input, ScaleBytes):
-        as_scale_bytes = input
-    else:
-        if isinstance(input, list) and all([isinstance(i, int) for i in input]):
-            vec_u8 = input
-            as_bytes = bytes(vec_u8)
-        elif isinstance(input, bytes):
-            as_bytes = input
-        else:
-            raise TypeError("input must be a List[int], bytes, or ScaleBytes")
-
-        as_scale_bytes = ScaleBytes(as_bytes)
-
-    rpc_runtime_config = RuntimeConfiguration()
-    rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
-    rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
-
-    obj = rpc_runtime_config.create_scale_object(type_string, data=as_scale_bytes)
-
-    return obj.decode()
-
-
-# Dataclasses for chain data.
+    
 @dataclass
 class NeuronInfo:
     r"""
