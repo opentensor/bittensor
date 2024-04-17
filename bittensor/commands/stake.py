@@ -23,9 +23,11 @@ import bittensor
 from tqdm import tqdm
 from rich.prompt import Confirm, Prompt
 from bittensor.utils.balance import Balance
+from substrateinterface.exceptions import SubstrateRequestException
 from typing import List, Union, Optional, Dict, Tuple
 from .utils import get_hotkey_wallets_for_wallet
 from . import defaults
+from .delegates import show_delegates
 
 console = bittensor.__console__
 
@@ -95,10 +97,16 @@ class StakeWeightsCommand:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         parser = parser.add_parser("weights", help="""Set weights for root network.""")
+        parser.add_argument(
+            "--delegate_ss58key",
+            "--delegate_ss58",
+            dest="delegate_ss58key",
+            type=str,
+            required=False,
+            help="""The ss58 address of the chosen delegate""",
+        )
         parser.add_argument("--netuids", dest="netuids", type=str, required=False)
         parser.add_argument("--weights", dest="weights", type=str, required=False)
-        parser.add_argument("--amount", dest="amount", type=int, required=False)
-        parser.add_argument("--hotkey", dest="hotkey", type=str, required=False)
         bittensor.wallet.add_args(parser)
         bittensor.subtensor.add_args(parser)
 
@@ -112,12 +120,38 @@ class StakeWeightsCommand:
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
             
-        if not config.is_set('hotkey'):
-            raise ValueError('hotkey not set')
-        
-        if not config.is_set('amount'):
-            raise ValueError('amount not set')
-            
+        if not config.get("delegate_ss58key"):
+            # Check for delegates.
+            with bittensor.__console__.status(":satellite: Loading delegates..."):
+                subtensor = bittensor.subtensor(config=config, log_verbose=False)
+                delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+                try:
+                    prev_delegates = subtensor.get_delegates(
+                        max(0, subtensor.block - 1200)
+                    )
+                except SubstrateRequestException:
+                    prev_delegates = None
+
+            if prev_delegates is None:
+                bittensor.__console__.print(
+                    ":warning: [yellow]Could not fetch delegates history[/yellow]"
+                )
+
+            if len(delegates) == 0:
+                console.print(
+                    ":cross_mark: [red]There are no delegates on {}[/red]".format(
+                        subtensor.network
+                    )
+                )
+                sys.exit(1)
+
+            delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
+            show_delegates(delegates, prev_delegates=prev_delegates)
+            delegate_index = Prompt.ask("Enter delegate index")
+            config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
+            console.print(
+                "Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key)
+            )
 
 
 

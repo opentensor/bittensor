@@ -187,6 +187,7 @@ class SubnetLockCostCommand:
         bittensor.subtensor.add_args(parser)
 
 
+# TODO this should show the total stake in each subnet.
 class SubnetListCommand:
     """
     Executes the ``list`` command to list all subnets and their detailed information on the Bittensor network.
