@@ -16,11 +16,99 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import torch
 import bittensor
 from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional
 from bittensor.utils.balance import Balance
+import bittensor.utils.weight_utils as weight_utils
+
+def add_stake_weight_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    hotkey: str,
+    netuids: Union[torch.LongTensor, list],
+    weights: Union[torch.FloatTensor, list],
+    amount_staked: int,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
+    prompt: bool = False,
+) -> bool:
+    
+    # decrypt coldkey.
+    wallet.coldkey
+
+    # First convert types.
+    if isinstance(netuids, list):
+        netuids = torch.tensor(netuids, dtype=torch.int64)
+    if isinstance(weights, list):
+        weights = torch.tensor(weights, dtype=torch.float32)
+        
+    # Normalize to 1.0.
+    weights = weights/weights.sum()
+
+    # Ask before moving on.
+    if prompt:
+        if not Confirm.ask(
+            "Do you want to set the following stake weights?:\n[bold white]  weights: {}\n  netuids: {}[/bold white ]?".format(
+                weights, netuids
+            )
+        ):
+            return False
+
+    with bittensor.__console__.status(
+        ":satellite: Setting stake weights on [white]{}[/white] ...".format(
+            subtensor.network
+        )
+    ):
+        try:
+            weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+                netuids, weights
+            )
+            success, error_message = subtensor._do_set_stake_weights(
+                wallet=wallet,
+                hotkey = hotkey,
+                weights = weight_vals,
+                netuids = weight_uids,
+                amount_staked = bittensor.Balance.from_tao(amount_staked).rao,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_inclusion=wait_for_inclusion,
+            )
+
+            bittensor.__console__.print(success, error_message)
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
+
+            if success == True:
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
+                bittensor.logging.success(
+                    prefix="Set stake weights",
+                    sufix="<green>Finalized: </green>" + str(success),
+                )
+                return True
+            else:
+                bittensor.__console__.print(
+                    ":cross_mark: [red]Failed[/red]: error:{}".format(error_message)
+                )
+                bittensor.logging.warning(
+                    prefix="Set weights",
+                    sufix="<red>Failed: </red>" + str(error_message),
+                )
+                return False
+
+        except Exception as e:
+            # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with loguru.
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+            )
+            bittensor.logging.warning(
+                prefix="Set stake weights", sufix="<red>Failed: </red>" + str(e)
+            )
+            return False
 
 
 def add_stake_extrinsic(

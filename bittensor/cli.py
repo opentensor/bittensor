@@ -56,6 +56,7 @@ COMMANDS = {
         "commands": {
             "add": SubStakeCommand,
             "remove": RemoveSubStakeCommand,
+            "weights": StakeWeightsCommand,
         },
     },
     "subnets": {

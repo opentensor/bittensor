@@ -16,6 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import sys
+import re
+import torch
 import argparse
 import bittensor
 from tqdm import tqdm
@@ -26,6 +28,97 @@ from .utils import get_hotkey_wallets_for_wallet
 from . import defaults
 
 console = bittensor.__console__
+
+class StakeWeightsCommand:
+    @staticmethod
+    def run(cli: "bittensor.cli"):
+        r"""Set weights for root network."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            StakeWeightsCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        r"""Set weights for root network."""
+        wallet = bittensor.wallet(config=cli.config)
+        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
+
+        # Get values if not set.
+        if not cli.config.is_set("netuids"):
+            example = (
+                ", ".join(map(str, [subnet.netuid for subnet in subnets][:3])) + " ..."
+            )
+            cli.config.netuids = Prompt.ask(f"Enter netuids (e.g. {example})")
+
+        if not cli.config.is_set("weights"):
+            example = (
+                ", ".join(
+                    map(
+                        str,
+                        [
+                            "{:.2f}".format(float(1 / len(subnets)))
+                            for subnet in subnets
+                        ][:3],
+                    )
+                )
+                + " ..."
+            )
+            cli.config.weights = Prompt.ask(f"Enter weights (e.g. {example})")
+
+        # Parse from string
+        netuids = torch.tensor(
+            list(map(int, re.split(r"[ ,]+", cli.config.netuids))), dtype=torch.long
+        )
+        weights = torch.tensor(
+            list(map(float, re.split(r"[ ,]+", cli.config.weights))),
+            dtype=torch.float32,
+        )
+
+        # Run the set weights operation.
+        subtensor.stake_set_weights(
+            wallet=wallet,
+            hotkey = cli.config.hotkey,
+            netuids=netuids,
+            weights=weights,
+            amount_staked = cli.config.amount,
+            prompt=not cli.config.no_prompt,
+            wait_for_finalization=True,
+            wait_for_inclusion=True,
+        )
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser = parser.add_parser("weights", help="""Set weights for root network.""")
+        parser.add_argument("--netuids", dest="netuids", type=str, required=False)
+        parser.add_argument("--weights", dest="weights", type=str, required=False)
+        parser.add_argument("--amount", dest="amount", type=int, required=False)
+        parser.add_argument("--hotkey", dest="hotkey", type=str, required=False)
+        bittensor.wallet.add_args(parser)
+        bittensor.subtensor.add_args(parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+            
+        if not config.is_set('hotkey'):
+            raise ValueError('hotkey not set')
+        
+        if not config.is_set('amount'):
+            raise ValueError('amount not set')
+            
+
 
 
 class StakeCommand:
