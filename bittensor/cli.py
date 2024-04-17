@@ -49,6 +49,15 @@ ALIAS_TO_COMMAND = {
     "substake": "substake",
 }
 COMMANDS = {
+    "substake": {
+        "name": "substake",
+        "aliases": ["sub", "substake"],
+        "help": "Commands for adding and removing stake to subnetworks.",
+        "commands": {
+            "add": SubStakeCommand,
+            "remove": RemoveSubStakeCommand,
+        },
+    },
     "subnets": {
         "name": "subnets",
         "aliases": ["s", "subnet"],
@@ -68,15 +77,12 @@ COMMANDS = {
         "aliases": ["r", "roots"],
         "help": "Commands for managing and viewing the root network.",
         "commands": {
-            # Lists all of the delegates on the root network.
             "list": RootList,
             # For root participants to vote on the root network.
             "vote": VoteCommand,
             # For root participants to vote on the root network.
             "senate": SenateCommand,
-            # Allows you to enter the root network.
             "register": RootRegisterCommand,
-            # Shows proposals on the root network.
             "proposals": ProposalsCommand,
             # TODO deprecate this. Sets yourself up to become a nominator.            
             # "nominate": NominateCommand,
@@ -214,15 +220,14 @@ class cli:
         cli.check_config(self.config)
 
         # If no_version_checking is not set or set as False in the config, version checking is done.
-        # TODO Add this back later (just annoying for the demo.)
-        # if not self.config.get("no_version_checking", d=True):
-        #     try:
-        #         bittensor.utils.version_checking()
-        #     except:
-        #         # If version checking fails, inform user with an exception.
-        #         raise RuntimeError(
-        #             "To avoid internet-based version checking, pass --no_version_checking while running the CLI."
-        #         )
+        if not self.config.get("no_version_checking", d=True):
+            try:
+                bittensor.utils.version_checking()
+            except:
+                # If version checking fails, inform user with an exception.
+                raise RuntimeError(
+                    "To avoid internet-based version checking, pass --no_version_checking while running the CLI."
+                )
 
     @staticmethod
     def __create_parser__() -> "argparse.ArgumentParser":
@@ -320,6 +325,7 @@ class cli:
         # Check for print-completion argument
         if self.config.print_completion:
             shell = self.config.print_completion
+            # TODO Wat?
             print(shtab.complete(parser, shell))
             return
 

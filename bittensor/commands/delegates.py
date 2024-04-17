@@ -21,7 +21,7 @@ import argparse
 import bittensor
 from typing import List, Optional
 from rich.table import Table
-from rich.prompt import Prompt
+from rich.prompt import Prompt, IntPrompt, FloatPrompt
 from rich.prompt import Confirm
 from rich.console import Text
 from tqdm import tqdm
@@ -204,7 +204,7 @@ def show_delegates(
             f"{delegate.total_stake!s:13.13}",
             rate_change_in_stake_str,
             str(delegate.registrations),
-            f"{delegate.take * 100:.1f}%",
+            str([f"({t[0]}-{t[1] * 100:.1f}%" +")" for t in delegate.take]),
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (1000/ ( 0.001 + delegate.total_stake.tao ) ))!s:6.6}",
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (0.18) ) !s:6.6}",
             str(delegate_description),
@@ -891,3 +891,117 @@ class MyDelegatesCommand:
         ):
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
+
+class SetTakeCommand:
+    """
+    Executes the ``settake`` command, which sets the delegate take per subnet.
+
+    The command performs several checks:
+
+        TODO
+
+    Upon success, TODO
+
+    Optional Arguments:
+        - ``wallet.name``: The name of the wallet to use for the command.
+        - ``wallet.hotkey``: The name of the hotkey to use for the command.
+
+    Usage:
+        To run the command, the user must have a configured wallet with both hotkey and coldkey. Also, the hotkey should already be a delegate.
+
+    Example usage::
+
+        btcli settake
+        btcli settake --wallet.name my_wallet --wallet.hotkey my_hotkey
+
+    Note:
+        TODO
+    """
+
+    @staticmethod
+    def run(cli: "bittensor.cli"):
+        r"""Set take for a subnet."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            SetTakeCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        r"""Set take for a subnet."""
+        wallet = bittensor.wallet(config=cli.config)
+
+        # Unlock the wallet.
+        wallet.hotkey
+        wallet.coldkey
+
+        # Check if the hotkey is not a delegate.
+        if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
+            bittensor.__console__.print(
+                "Aborting: Hotkey {} is NOT a delegate.".format(
+                    wallet.hotkey.ss58_address
+                )
+            )
+            return
+
+        # Prompt user for netuid and take value.
+        netuid = IntPrompt.ask(f"Enter subnet ID")
+        new_take = FloatPrompt.ask(f"Enter take percentage") / 100.
+
+        result: bool = subtensor.set_take(wallet)
+        if not result:
+            bittensor.__console__.print(
+                "Could not set the take"
+            )
+        else:
+            # Check if we are a delegate.
+            is_delegate: bool = subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address)
+            if not is_delegate:
+                bittensor.__console__.print(
+                    "Could not became a delegate on [white]{}[/white]".format(
+                        subtensor.network
+                    )
+                )
+                return
+            bittensor.__console__.print(
+                "Successfully became a delegate on [white]{}[/white]".format(
+                    subtensor.network
+                )
+            )
+
+            # Prompt use to set identity on chain.
+            if not cli.config.no_prompt:
+                do_set_identity = Prompt.ask(
+                    f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
+                    choices=["y", "n"],
+                )
+
+                if do_set_identity.lower() == "y":
+                    subtensor.close()
+                    config = cli.config.copy()
+                    SetIdentityCommand.check_config(config)
+                    cli.config = config
+                    SetIdentityCommand.run(cli)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        nominate_parser = parser.add_parser(
+            "settake", help="""Set take for delegate on a subnet"""
+        )
+        bittensor.wallet.add_args(nominate_parser)
+        bittensor.subtensor.add_args(nominate_parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)

@@ -52,6 +52,7 @@ from .extrinsics.network import (
     register_subnetwork_extrinsic,
     set_hyperparameter_extrinsic,
 )
+from .extrinsics.delegation import decrease_take_extrinsic, increase_take_extrinsic
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic, add_stake_weight_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .extrinsics.substaking import add_substake_extrinsic, remove_substake_extrinsic
@@ -545,6 +546,69 @@ class subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
+
+    def set_take(
+        self,
+        wallet: "bittensor.wallet",
+        delegate_ss58: Optional[str] = None,
+        netuid: int=0,
+        take: float=.0,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        """
+        Set delegate hotkey take for a subnet
+
+        Args:
+            wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
+            delegate_ss58 (str, optional): Hotkey
+            netuid (int): Subnet ID
+            take (float): Delegate take on subnet ID
+            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the blockchain.
+            wait_for_inclusion (bool, optional): If ``True``, waits until the transaction is included in a block.
+
+        Returns:
+            bool: ``True`` if the process is successful, False otherwise.
+
+        This function is a key part of the decentralized governance mechanism of Bittensor, allowing for the
+        dynamic selection and participation of validators in the network's consensus process.
+        """
+
+        # Caulate u16 representation of the take
+        takeu16 = int(take * 0xFFFF)
+
+        # Check if the new take is greater or lower than existing take or if existing is set
+        current_take = self.get_hotkey_take_on_netuid
+        if takeu16 == current_take:
+            bittensor.__console__.print("Nothing to do, take hasn't changed")
+            return
+        if (
+            current_take is None
+            or current_take < takeu16
+        ):
+            return increase_take_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                delegate_ss58=delegate_ss58,
+                netuid=netuid,
+                take=takeu16,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                prompt=prompt,
+            )
+        else:
+            return decrease_take_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                delegate_ss58=delegate_ss58,
+                netuid=netuid,
+                take=takeu16,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+                prompt=prompt,
+            )
+
 
     def send_extrinsic(
         self,
@@ -2300,7 +2364,7 @@ class subtensor:
                     return True, None
 
         return make_substrate_call_with_retry()
-    
+
     def stake_set_weights(
         self,
         wallet: "bittensor.wallet",
@@ -2321,7 +2385,7 @@ class subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
-        
+
     def _do_set_stake_weights(
         self,
         wallet: "bittensor.wallet",
@@ -3239,6 +3303,20 @@ class subtensor:
             (r[0].value, Balance.from_rao(r[1].value))
             for r in self.query_map_subtensor("Stake", block, [hotkey_ss58])
         ]
+
+    def get_hotkey_take_on_netuid(
+        self,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> Optional[int]:
+        """Returns the take of a hotkey on netuid"""
+        _result = self.query_subtensor(
+            "DelegatesTake", block, [hotkey_ss58, netuid]
+        )
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return _result.value
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """Returns true if the hotkey is known by the chain and there are accounts."""

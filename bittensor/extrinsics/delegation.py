@@ -357,3 +357,161 @@ def undelegate_extrinsic(
     except StakeError as e:
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
+
+def decrease_take_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    hotkey_ss58: Optional[str] = None,
+    netuid: int=0,
+    take: float=.0,
+    wait_for_finalization: bool = False,
+    wait_for_inclusion: bool = True,
+) -> bool:
+    r"""Decrease delegate take for the hotkey and subnet.
+
+    Args:
+        wallet (bittensor.wallet):
+            Bittensor wallet object.
+        hotkey_ss58 (Optional[str]):
+            The ``ss58`` address of the hotkey account to stake to defaults to the wallet's hotkey.
+        netuid (int):
+            The ``netuid`` of the subnet to set take for.
+        take (float):
+            The ``take`` of the hotkey for the given subnet.
+    Returns:
+        success (bool): ``True`` if the transaction was successful.
+    """
+    bittensor.__console__.print(
+        "decrease_take_extrinsic"
+    )
+
+    # Unlock the coldkey.
+    # wallet.coldkey
+    # wallet.hotkey
+
+    # Check if the hotkey is already a delegate.
+    # if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
+    #     logger.error(
+    #         "Hotkey {} is already a delegate.".format(wallet.hotkey.ss58_address)
+    #     )
+    #     return False
+
+    # with bittensor.__console__.status(
+    #     ":satellite: Sending nominate call on [white]{}[/white] ...".format(
+    #         subtensor.network
+    #     )
+    # ):
+    #     try:
+    #         success = subtensor._do_nominate(
+    #             wallet=wallet,
+    #             wait_for_inclusion=wait_for_inclusion,
+    #             wait_for_finalization=wait_for_finalization,
+    #         )
+
+    #         if success == True:
+    #             bittensor.__console__.print(
+    #                 ":white_heavy_check_mark: [green]Finalized[/green]"
+    #             )
+    #             bittensor.logging.success(
+    #                 prefix="Become Delegate",
+    #                 sufix="<green>Finalized: </green>" + str(success),
+    #             )
+
+    #         # Raises NominationError if False
+    #         return success
+
+    #     except Exception as e:
+    #         bittensor.__console__.print(
+    #             ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+    #         )
+    #         bittensor.logging.warning(
+    #             prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+    #         )
+    #     except NominationError as e:
+    #         bittensor.__console__.print(
+    #             ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+    #         )
+    #         bittensor.logging.warning(
+    #             prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+    #         )
+
+    return False
+
+def increase_take_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    hotkey_ss58: Optional[str] = None,
+    netuid: int=0,
+    take: float=.0,
+    wait_for_finalization: bool = False,
+    wait_for_inclusion: bool = True,
+) -> bool:
+    r"""Increase delegate take for the hotkey and subnet.
+
+    Args:
+        wallet (bittensor.wallet):
+            Bittensor wallet object.
+        hotkey_ss58 (Optional[str]):
+            The ``ss58`` address of the hotkey account to stake to defaults to the wallet's hotkey.
+        netuid (int):
+            The ``netuid`` of the subnet to set take for.
+        take (float):
+            The ``take`` of the hotkey for the given subnet.
+    Returns:
+        success (bool): ``True`` if the transaction was successful.
+    """
+    bittensor.__console__.print(
+        "increase_take_extrinsic"
+    )
+
+    # Unlock the coldkey.
+    # wallet.coldkey
+    # wallet.hotkey
+
+    # Check if the hotkey is already a delegate.
+    # if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
+    #     logger.error(
+    #         "Hotkey {} is already a delegate.".format(wallet.hotkey.ss58_address)
+    #     )
+    #     return False
+
+    # with bittensor.__console__.status(
+    #     ":satellite: Sending nominate call on [white]{}[/white] ...".format(
+    #         subtensor.network
+    #     )
+    # ):
+    #     try:
+    #         success = subtensor._do_nominate(
+    #             wallet=wallet,
+    #             wait_for_inclusion=wait_for_inclusion,
+    #             wait_for_finalization=wait_for_finalization,
+    #         )
+
+    #         if success == True:
+    #             bittensor.__console__.print(
+    #                 ":white_heavy_check_mark: [green]Finalized[/green]"
+    #             )
+    #             bittensor.logging.success(
+    #                 prefix="Become Delegate",
+    #                 sufix="<green>Finalized: </green>" + str(success),
+    #             )
+
+    #         # Raises NominationError if False
+    #         return success
+
+    #     except Exception as e:
+    #         bittensor.__console__.print(
+    #             ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+    #         )
+    #         bittensor.logging.warning(
+    #             prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+    #         )
+    #     except NominationError as e:
+    #         bittensor.__console__.print(
+    #             ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+    #         )
+    #         bittensor.logging.warning(
+    #             prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+    #         )
+
+    return False

@@ -58,7 +58,7 @@ custom_rpc_type_registry = {
             "type": "struct",
             "type_mapping": [
                 ["delegate_ss58", "AccountId"],
-                ["take", "Compact<u16>"],
+                ["take", "Vec<(Compact<u16>, Compact<u16>)>"],
                 ["nominators", "Vec<(AccountId, Compact<u64>)>"],
                 ["owner_ss58", "AccountId"],
                 ["registrations", "Vec<Compact<u16>>"],
@@ -706,7 +706,9 @@ class DelegateInfo:
         Tuple[str, Balance]
     ]  # List of nominators of the delegate and their stake
     owner_ss58: str  # Coldkey of owner
-    take: float  # Take of the delegate as a percentage
+    take: List[
+        Tuple[int, float]
+    ] # Takes of the delegate per subnet
     validator_permits: List[
         int
     ]  # List of subnets that the delegate is allowed to validate on
@@ -718,12 +720,17 @@ class DelegateInfo:
     def fix_decoded_values(cls, decoded: Any) -> "DelegateInfo":
         r"""Fixes the decoded values."""
 
+        decoded_takes = decoded["take"]
+        fixed_take_list = []
+        for take_tuple in decoded_takes:
+            fixed_take_list.append((take_tuple[0], U16_NORMALIZED_FLOAT(take_tuple[1])))
+
         return cls(
             hotkey_ss58=ss58_encode(
                 decoded["delegate_ss58"], bittensor.__ss58_format__
             ),
             owner_ss58=ss58_encode(decoded["owner_ss58"], bittensor.__ss58_format__),
-            take=U16_NORMALIZED_FLOAT(decoded["take"]),
+            take=fixed_take_list,
             nominators=[
                 (
                     ss58_encode(nom[0], bittensor.__ss58_format__),
