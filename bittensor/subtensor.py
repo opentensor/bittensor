@@ -2307,7 +2307,6 @@ class subtensor:
         hotkey: str,
         netuids: List[int],
         weights: List[int],
-        amount_staked: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -2318,7 +2317,6 @@ class subtensor:
             hotkey=hotkey,
             netuids=netuids,
             weights=weights,
-            amount_staked = amount_staked,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
@@ -2330,7 +2328,6 @@ class subtensor:
         hotkey: str,
         netuids: int,
         weights: List[int],
-        amount_staked: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
     ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
@@ -2344,7 +2341,6 @@ class subtensor:
                         "hotkey": hotkey,
                         "values": weights,
                         "netuids": netuids,
-                        'amount_staked': amount_staked
                     },
                 )
                 # Period dictates how long the extrinsic will stay as part of waiting pool

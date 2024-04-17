@@ -85,10 +85,9 @@ class StakeWeightsCommand:
         # Run the set weights operation.
         subtensor.stake_set_weights(
             wallet=wallet,
-            hotkey = cli.config.hotkey,
+            hotkey = cli.config.delegate_ss58key,
             netuids=netuids,
             weights=weights,
-            amount_staked = cli.config.amount,
             prompt=not cli.config.no_prompt,
             wait_for_finalization=True,
             wait_for_inclusion=True,
@@ -115,10 +114,6 @@ class StakeWeightsCommand:
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
-
-        if not config.is_set("wallet.hotkey") and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
-            config.wallet.hotkey = str(hotkey)
             
         if not config.get("delegate_ss58key"):
             # Check for delegates.

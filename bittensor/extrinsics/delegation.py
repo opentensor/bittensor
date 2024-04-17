@@ -158,7 +158,7 @@ def delegate_extrinsic(
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
-            "Do you want to delegate:[bold white]\n  amount: {}\n  to: {}\n owner: {}[/bold white]".format(
+            "Do you want to delegate:[bold white]\n\tamount: {}\n\tto: {}\n\towner: {}[/bold white]".format(
                 staking_balance, delegate_ss58, delegate_owner
             )
         ):
