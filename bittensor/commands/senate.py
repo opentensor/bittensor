@@ -636,7 +636,7 @@ class VoteCommand:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         vote_parser = parser.add_parser(
-            "senate_vote", help="""Vote on an active proposal by hash."""
+            "vote", help="""Vote on an active proposal by hash."""
         )
         vote_parser.add_argument(
             "--proposal",

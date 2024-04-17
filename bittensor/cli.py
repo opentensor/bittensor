@@ -78,16 +78,15 @@ COMMANDS = {
         "help": "Commands for managing and viewing the root network.",
         "commands": {
             "list": RootList,
-            "weights": RootSetWeightsCommand,
-            "get_weights": RootGetWeightsCommand,
-            "boost": RootSetBoostCommand,
-            "slash": RootSetSlashCommand,
-            "senate_vote": VoteCommand,
+            # For root participants to vote on the root network.
+            "vote": VoteCommand,
+            # For root participants to vote on the root network.
             "senate": SenateCommand,
             "register": RootRegisterCommand,
             "proposals": ProposalsCommand,
             # Sets yourself up to become a nominator.
-            "nominate": NominateCommand,
+            # TODO deprecate this. Sets yourself up to become a nominator.
+            # "nominate": NominateCommand,
             "set_takes": SetTakeCommand,
             # Deprecated.
             # "get_weights": RootGetWeightsCommand,
@@ -125,9 +124,19 @@ COMMANDS = {
         "aliases": ["st", "stakes"],
         "help": "Commands for staking and removing stake from hotkey accounts.",
         "commands": {
+            # TODO: Should Show all my stakes across subnets.
             "show": StakeShow,
             "add": StakeCommand,
             "remove": UnStakeCommand,
+            # Allows a nominator to set weights for their stake across subnets.
+            "weights": StakeWeightsCommand,
+            # Delegate to a specific root member.
+            "delegate": DelegateStakeCommand,
+            # Remove stake from a root member
+            # TODO(greg): Should unstake from all associated subnets also.
+            "undelegate": DelegateUnstakeCommand,
+            # Lists all of my delegates on the root network.
+            "my_delegates": MyDelegatesCommand,
         },
     },
     "sudo": {
@@ -317,6 +326,7 @@ class cli:
         # Check for print-completion argument
         if self.config.print_completion:
             shell = self.config.print_completion
+            # TODO Wat?
             print(shtab.complete(parser, shell))
             return
 

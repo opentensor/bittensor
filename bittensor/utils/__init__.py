@@ -73,13 +73,14 @@ def version_checking(timeout: int = 15):
             + (1 * int(version_split[2]))
         )
 
-        if latest_version_as_int > bittensor.__version_as_int__:
-            print(
-                "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience. "
-                "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor".format(
-                    bittensor.__version__, latest_version
-                )
-            )
+        # TODO: bring this back later.
+        # if latest_version_as_int > bittensor.__version_as_int__:
+        #     print(
+        #         "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience. "
+        #         "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor".format(
+        #             bittensor.__version__, latest_version
+        #         )
+        #     )
 
     except requests.exceptions.Timeout:
         bittensor.logging.error("Version check failed due to timeout")

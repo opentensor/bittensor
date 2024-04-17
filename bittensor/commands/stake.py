@@ -14,20 +14,22 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
-import sys
+import os
 import re
+import sys
 import torch
 import argparse
-import bittensor
 from tqdm import tqdm
+from rich.table import Table
 from rich.prompt import Confirm, Prompt
-from bittensor.utils.balance import Balance
-from substrateinterface.exceptions import SubstrateRequestException
-from typing import List, Union, Optional, Dict, Tuple
-from .utils import get_hotkey_wallets_for_wallet
+from typing import Dict, List, Optional, Tuple, Union
+
+import bittensor
 from . import defaults
 from .delegates import show_delegates
+from bittensor.utils.balance import Balance
+from .utils import get_delegates_details, get_hotkey_wallets_for_wallet, DelegatesDetails
+from substrateinterface.exceptions import SubstrateRequestException
 
 console = bittensor.__console__
 
@@ -95,7 +97,7 @@ class StakeWeightsCommand:
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        parser = parser.add_parser("weights", help="""Set weights for root network.""")
+        parser = parser.add_parser("weights", help="""Distribute delegated stake across subnets based on weights.""")
         parser.add_argument(
             "--delegate_ss58key",
             "--delegate_ss58",
@@ -412,22 +414,6 @@ class StakeCommand:
         bittensor.wallet.add_args(stake_parser)
         bittensor.subtensor.add_args(stake_parser)
 
-
-### Stake list.
-import argparse
-import bittensor
-from tqdm import tqdm
-from rich.table import Table
-from rich.prompt import Prompt
-from typing import Dict, Union, List, Tuple
-from .utils import get_delegates_details, DelegatesDetails
-from . import defaults
-
-console = bittensor.__console__
-
-import os
-import bittensor
-from typing import List, Tuple, Optional, Dict
 
 
 def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
