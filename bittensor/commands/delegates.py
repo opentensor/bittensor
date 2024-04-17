@@ -898,9 +898,13 @@ class SetTakeCommand:
 
     The command performs several checks:
 
-        TODO
+        1. Hotkey is already a delegate
+        2. netid matches one of the existing subnets
+        3. New take value is within 0-18% range
 
     Optional Arguments:
+        - ``netuid``: The ID of subnet to update the take for
+        - ``take``: The new take value
         - ``wallet.name``: The name of the wallet to use for the command.
         - ``wallet.hotkey``: The name of the hotkey to use for the command.
 
@@ -908,13 +912,11 @@ class SetTakeCommand:
         To run the command, the user must have a configured wallet with both hotkey and coldkey. Also, the hotkey should already be a delegate.
 
     Example usage::
-
-        # TODO: fix the missing subcommand everywhere .
         btcli root set_takes
         btcli root set_take --wallet.name my_wallet --wallet.hotkey my_hotkey
 
     Note:
-        TODO
+        This function can be used to update the takes individually for every subnet
     """
 
     @staticmethod
@@ -1000,23 +1002,22 @@ class SetTakeCommand:
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        # TODO add a netuid param.
         set_take_parser = parser.add_parser(
             "set_take", help="""Set take for delegate on a subnet"""
         )
         set_take_parser.add_argument(
             "--netuid",
             dest="netuid",
-            type=str,
+            type=int,
             required=False,
             help="""Id of subnet to set take for""",
         )
         set_take_parser.add_argument(
             "--take",
             dest="take",
-            type=str,
+            type=float,
             required=False,
-            help="""Take as a rational value (ex. 0.18 for 18%)""",
+            help="""Take as a float number""",
         )
         bittensor.wallet.add_args(set_take_parser)
         bittensor.subtensor.add_args(set_take_parser)
