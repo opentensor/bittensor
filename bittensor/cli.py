@@ -88,13 +88,12 @@ COMMANDS = {
             "proposals": ProposalsCommand,
             # Sets yourself up to become a nominator.
             "nominate": NominateCommand,
-            "settake": SetTakeCommand,
+            "set_takes": SetTakeCommand,
             # Deprecated.
             # "get_weights": RootGetWeightsCommand,
             # TODO implement this to show takes per subnet
             # takes: show take values.
-            # TODO
-            # set_takes: Set take values across the subnets.
+            "list_delegates": ListDelegatesCommand,
         },
     },
     "wallet": {

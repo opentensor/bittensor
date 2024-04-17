@@ -894,7 +894,7 @@ class MyDelegatesCommand:
 
 class SetTakeCommand:
     """
-    Executes the ``settake`` command, which sets the delegate take per subnet.
+    Executes the ``set_takes`` command, which sets the delegate take per subnet.
 
     The command performs several checks:
 
@@ -911,8 +911,8 @@ class SetTakeCommand:
 
     Example usage::
 
-        btcli settake
-        btcli settake --wallet.name my_wallet --wallet.hotkey my_hotkey
+        btcli set_takes
+        btcli set_take --wallet.name my_wallet --wallet.hotkey my_hotkey
 
     Note:
         TODO
@@ -953,7 +953,9 @@ class SetTakeCommand:
         netuid = IntPrompt.ask(f"Enter subnet ID")
         new_take = FloatPrompt.ask(f"Enter take percentage") / 100.
 
-        result: bool = subtensor.set_take(wallet)
+        print(f"wallet.hotkey.ss58_address = {wallet.hotkey.ss58_address}")
+
+        result: bool = subtensor.set_take(wallet.hotkey.ss58_address, netuid, new_take)
         if not result:
             bittensor.__console__.print(
                 "Could not set the take"
@@ -991,7 +993,7 @@ class SetTakeCommand:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         nominate_parser = parser.add_parser(
-            "settake", help="""Set take for delegate on a subnet"""
+            "set_takes", help="""Set take for delegate on a subnet"""
         )
         bittensor.wallet.add_args(nominate_parser)
         bittensor.subtensor.add_args(nominate_parser)

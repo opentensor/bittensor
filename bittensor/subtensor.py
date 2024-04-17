@@ -579,7 +579,12 @@ class subtensor:
         takeu16 = int(take * 0xFFFF)
 
         # Check if the new take is greater or lower than existing take or if existing is set
-        current_take = self.get_hotkey_take_on_netuid
+        delegate = self.get_delegate_by_hotkey(delegate_ss58)
+        current_take = int(0.18 * 65535.)
+        for take in delegate.takes:
+            if take[0] == netuid:
+                current_take = take[1]
+
         if takeu16 == current_take:
             bittensor.__console__.print("Nothing to do, take hasn't changed")
             return
@@ -587,6 +592,9 @@ class subtensor:
             current_take is None
             or current_take < takeu16
         ):
+            bittensor.__console__.print(
+                "Current take is either not set or is lower than the new one. Will use increase_take"
+            )
             return increase_take_extrinsic(
                 subtensor=self,
                 wallet=wallet,
@@ -598,6 +606,9 @@ class subtensor:
                 prompt=prompt,
             )
         else:
+            bittensor.__console__.print(
+                "Current take is higher than the new one. Will use decrease_take"
+            )
             return decrease_take_extrinsic(
                 subtensor=self,
                 wallet=wallet,
@@ -3303,20 +3314,6 @@ class subtensor:
             (r[0].value, Balance.from_rao(r[1].value))
             for r in self.query_map_subtensor("Stake", block, [hotkey_ss58])
         ]
-
-    def get_hotkey_take_on_netuid(
-        self,
-        hotkey_ss58: str,
-        netuid: int,
-        block: Optional[int] = None,
-    ) -> Optional[int]:
-        """Returns the take of a hotkey on netuid"""
-        _result = self.query_subtensor(
-            "DelegatesTake", block, [hotkey_ss58, netuid]
-        )
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """Returns true if the hotkey is known by the chain and there are accounts."""

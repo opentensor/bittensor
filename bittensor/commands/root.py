@@ -30,7 +30,7 @@ from . import defaults
 
 console = bittensor.__console__
 
-# TODO the register command sets an identity on the chain. We should use this identity rather 
+# TODO the register command sets an identity on the chain. We should use this identity rather
 # than use the github project for the identities.
 class RootRegisterCommand:
     """
