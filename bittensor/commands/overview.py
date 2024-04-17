@@ -90,6 +90,37 @@ class OverviewCommand:
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
+    @staticmethod
+    def _get_total_balance(
+        total_balance, subtensor, cold_wallets=None, cold_wallet=None
+    ):
+        def process_wallet(wallet):
+            if wallet.coldkeypub_file.exists_on_device():
+                if not wallet.coldkeypub_file.is_encrypted():
+                    return subtensor.get_balance(wallet.coldkeypub.ss58_address)
+            else:
+                console.print("[bold red]No wallets found.")
+            return 0
+
+        if cold_wallets:
+            total_balance += sum(
+                process_wallet(wallet)
+                for wallet in tqdm(cold_wallets, desc="Pulling balances")
+            )
+        if cold_wallet:
+            total_balance += process_wallet(cold_wallet)
+
+        return total_balance
+
+    @staticmethod
+    def _get_hotkeys(cli, hotkeys, all_hotkeys):
+        include = not cli.config.get("all_hotkeys", False)
+        return [
+            hotkey
+            for hotkey in all_hotkeys
+            if (hotkey.hotkey_str in hotkeys) == include
+        ]
+
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an overview for the wallet's colkey."""
         console = bittensor.__console__
@@ -101,47 +132,23 @@ class OverviewCommand:
         # We are printing for every coldkey.
         if cli.config.get("all", d=None):
             cold_wallets = get_coldkey_wallets_for_path(cli.config.wallet.path)
-            for cold_wallet in tqdm(cold_wallets, desc="Pulling balances"):
-                if (
-                    cold_wallet.coldkeypub_file.exists_on_device()
-                    and not cold_wallet.coldkeypub_file.is_encrypted()
-                ):
-                    total_balance = total_balance + subtensor.get_balance(
-                        cold_wallet.coldkeypub.ss58_address
-                    )
+            total_balance = OverviewCommand._get_total_balance(
+                total_balance, cold_wallets, subtensor
+            )
             all_hotkeys = get_all_wallets_for_path(cli.config.wallet.path)
         else:
             # We are only printing keys for a single coldkey
             coldkey_wallet = bittensor.wallet(config=cli.config)
-            if (
-                coldkey_wallet.coldkeypub_file.exists_on_device()
-                and not coldkey_wallet.coldkeypub_file.is_encrypted()
-            ):
-                total_balance = subtensor.get_balance(
-                    coldkey_wallet.coldkeypub.ss58_address
-                )
-            if not coldkey_wallet.coldkeypub_file.exists_on_device():
-                console.print("[bold red]No wallets found.")
-                return
+            total_balance = OverviewCommand._get_total_balance(
+                total_balance, subtensor, cold_wallet=coldkey_wallet
+            )
+
             all_hotkeys = get_hotkey_wallets_for_wallet(coldkey_wallet)
 
         # We are printing for a select number of hotkeys from all_hotkeys.
-
-        if cli.config.get("hotkeys", []):
-            if not cli.config.get("all_hotkeys", False):
-                # We are only showing hotkeys that are specified.
-                all_hotkeys = [
-                    hotkey
-                    for hotkey in all_hotkeys
-                    if hotkey.hotkey_str in cli.config.hotkeys
-                ]
-            else:
-                # We are excluding the specified hotkeys from all_hotkeys.
-                all_hotkeys = [
-                    hotkey
-                    for hotkey in all_hotkeys
-                    if hotkey.hotkey_str not in cli.config.hotkeys
-                ]
+        hotkeys = cli.config.get("hotkeys", [])
+        if hotkeys:
+            all_hotkeys = OverviewCommand._get_hotkeys(cli, hotkeys, all_hotkeys)
 
         # Check we have keys to display.
         if len(all_hotkeys) == 0:
