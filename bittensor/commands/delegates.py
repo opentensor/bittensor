@@ -232,8 +232,8 @@ class DelegateStakeCommand:
 
     Example usage::
 
-        btcli delegate --delegate_ss58key <SS58_ADDRESS> --amount <AMOUNT>
-        btcli delegate --delegate_ss58key <SS58_ADDRESS> --all
+        btcli stake delegate --delegate_ss58key <SS58_ADDRESS> --amount <AMOUNT>
+        btcli stake delegate --delegate_ss58key <SS58_ADDRESS> --all
 
     Note:
         This command modifies the blockchain state and may incur transaction fees. It requires user confirmation and interaction, and is designed to be used within the Bittensor CLI environment. The user should ensure the delegate's address and the amount to be staked are correct before executing the command.
@@ -263,7 +263,7 @@ class DelegateStakeCommand:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         delegate_stake_parser = parser.add_parser(
-            "delegate", help="""Delegate Stake to an account."""
+            "delegate", help="""Delegate stake to a delegate."""
         )
         delegate_stake_parser.add_argument(
             "--delegate_ss58key",
@@ -271,7 +271,7 @@ class DelegateStakeCommand:
             dest="delegate_ss58key",
             type=str,
             required=False,
-            help="""The ss58 address of the choosen delegate""",
+            help="""The ss58 address of the chosen delegate""",
         )
         delegate_stake_parser.add_argument(
             "--all", dest="stake_all", action="store_true"
@@ -361,8 +361,8 @@ class DelegateUnstakeCommand:
 
     Example usage::
 
-        btcli undelegate --delegate_ss58key <SS58_ADDRESS> --amount <AMOUNT>
-        btcli undelegate --delegate_ss58key <SS58_ADDRESS> --all
+        btcli stake undelegate --delegate_ss58key <SS58_ADDRESS> --amount <AMOUNT>
+        btcli stake undelegate --delegate_ss58key <SS58_ADDRESS> --all
 
     Note:
         This command can result in a change to the blockchain state and may incur transaction fees. It is interactive and requires confirmation from the user before proceeding. It should be used with care as undelegating can affect the delegate's total stake and
@@ -398,7 +398,7 @@ class DelegateUnstakeCommand:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         undelegate_stake_parser = parser.add_parser(
-            "undelegate", help="""Undelegate Stake from an account."""
+            "undelegate", help="""Undelegate stake from a delegate."""
         )
         undelegate_stake_parser.add_argument(
             "--delegate_ss58key",

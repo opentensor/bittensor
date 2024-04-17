@@ -92,10 +92,6 @@ def add_stake_weight_extrinsic(
                 bittensor.__console__.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )
-                bittensor.logging.success(
-                    prefix="Set stake weights",
-                    sufix="<green>Finalized: </green>" + str(success),
-                )
                 return True
             else:
                 bittensor.__console__.print(

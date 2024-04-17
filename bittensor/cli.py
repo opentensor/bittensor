@@ -71,15 +71,15 @@ COMMANDS = {
             # Lists all of the delegates on the root network.
             "list": RootList,
             # For root participants to vote on the root network.
-            "senate_vote": VoteCommand,
+            "vote": VoteCommand,
             # For root participants to vote on the root network.
             "senate": SenateCommand,
             # Allows you to enter the root network.
             "register": RootRegisterCommand,
             # Shows proposals on the root network.
             "proposals": ProposalsCommand,
-            # Sets yourself up to become a nominator.            
-            "nominate": NominateCommand,
+            # TODO deprecate this. Sets yourself up to become a nominator.            
+            # "nominate": NominateCommand,
             # Deprecated.
             # "get_weights": RootGetWeightsCommand,
             # TODO implement this to show takes per subnet
@@ -117,18 +117,12 @@ COMMANDS = {
         "aliases": ["st", "stakes"],
         "help": "Commands for staking and removing stake from hotkey accounts.",
         "commands": {
-            # TODO: Should show all of my stakes across subnets.
-            # "list": ListStake
             # TODO: Should Show all my stakes across subnets.
             "show": StakeShow,
             "add": StakeCommand,
             "remove": UnStakeCommand,
             # Allows a nominator to set weights for their stake across subnets.
             "weights": StakeWeightsCommand,
-            # TODO: should allow you to boost your stake across subnets.
-            "boost": RootSetBoostCommand,
-            # TODO: should allow you to slash your stake across subnets.
-            "slash": RootSetSlashCommand,
             # Delegate to a specific root member.
             "delegate": DelegateStakeCommand,
             # Remove stake from a root member
