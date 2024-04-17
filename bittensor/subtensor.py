@@ -556,7 +556,6 @@ class subtensor:
         take: float=.0,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        prompt: bool = False,
     ) -> bool:
         """
         Set delegate hotkey take for a subnet
@@ -576,16 +575,15 @@ class subtensor:
         dynamic selection and participation of validators in the network's consensus process.
         """
 
-        # TODO check the netuid exists.
         # Caulate u16 representation of the take
         takeu16 = int(take * 0xFFFF)
 
         # Check if the new take is greater or lower than existing take or if existing is set
         delegate = self.get_delegate_by_hotkey(delegate_ss58)
-        current_take = int(0.18 * 65535.)
+        current_take = None
         for take in delegate.take:
-            if take[0] == netuid:
-                current_take = take[1]
+            if int(take[0]) == int(netuid):
+                current_take = int(float(take[1]) * 65535.)
 
         if takeu16 == current_take:
             bittensor.__console__.print("Nothing to do, take hasn't changed")
@@ -600,12 +598,11 @@ class subtensor:
             return increase_take_extrinsic(
                 subtensor=self,
                 wallet=wallet,
-                delegate_ss58=delegate_ss58,
+                hotkey_ss58=delegate_ss58,
                 netuid=netuid,
                 take=takeu16,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                prompt=prompt,
             )
         else:
             bittensor.__console__.print(
@@ -614,12 +611,11 @@ class subtensor:
             return decrease_take_extrinsic(
                 subtensor=self,
                 wallet=wallet,
-                delegate_ss58=delegate_ss58,
+                hotkey_ss58=delegate_ss58,
                 netuid=netuid,
                 take=takeu16,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                prompt=prompt,
             )
 
 
@@ -4680,6 +4676,86 @@ class subtensor:
                     return True
                 else:
                     raise NominationError(response.error_message)
+
+        return make_substrate_call_with_retry()
+
+    def _do_increase_take(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        take: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="increase_take",
+                    call_params={
+                        "hotkey": hotkey_ss58,
+                        "netuid": netuid,
+                        "take": take,
+                    },
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )  # sign with coldkey
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+                response.process_events()
+                if response.is_success:
+                    return True
+                else:
+                    raise TakeError(response.error_message)
+
+        return make_substrate_call_with_retry()
+
+    def _do_decrease_take(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        take: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="decrease_take",
+                    call_params={
+                        "hotkey": hotkey_ss58,
+                        "netuid": netuid,
+                        "take": take,
+                    },
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )  # sign with coldkey
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+                response.process_events()
+                if response.is_success:
+                    return True
+                else:
+                    raise TakeError(response.error_message)
 
         return make_substrate_call_with_retry()
 

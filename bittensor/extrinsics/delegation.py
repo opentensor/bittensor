@@ -381,59 +381,50 @@ def decrease_take_extrinsic(
     Returns:
         success (bool): ``True`` if the transaction was successful.
     """
-    bittensor.__console__.print(
-        "decrease_take_extrinsic"
-    )
-
     # Unlock the coldkey.
-    # wallet.coldkey
-    # wallet.hotkey
+    wallet.coldkey
+    wallet.hotkey
 
-    # Check if the hotkey is already a delegate.
-    # if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
-    #     logger.error(
-    #         "Hotkey {} is already a delegate.".format(wallet.hotkey.ss58_address)
-    #     )
-    #     return False
+    with bittensor.__console__.status(
+        ":satellite: Sending decrease_take_extrinsic call on [white]{}[/white] ...".format(
+            subtensor.network
+        )
+    ):
+        try:
+            success = subtensor._do_decrease_take(
+                wallet=wallet,
+                hotkey_ss58=hotkey_ss58,
+                netuid = netuid,
+                take = take,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
-    # with bittensor.__console__.status(
-    #     ":satellite: Sending nominate call on [white]{}[/white] ...".format(
-    #         subtensor.network
-    #     )
-    # ):
-    #     try:
-    #         success = subtensor._do_nominate(
-    #             wallet=wallet,
-    #             wait_for_inclusion=wait_for_inclusion,
-    #             wait_for_finalization=wait_for_finalization,
-    #         )
+            if success == True:
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
+                bittensor.logging.success(
+                    prefix="Decrease Delegate Take",
+                    sufix="<green>Finalized: </green>" + str(success),
+                )
 
-    #         if success == True:
-    #             bittensor.__console__.print(
-    #                 ":white_heavy_check_mark: [green]Finalized[/green]"
-    #             )
-    #             bittensor.logging.success(
-    #                 prefix="Become Delegate",
-    #                 sufix="<green>Finalized: </green>" + str(success),
-    #             )
+            return success
 
-    #         # Raises NominationError if False
-    #         return success
-
-    #     except Exception as e:
-    #         bittensor.__console__.print(
-    #             ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-    #         )
-    #         bittensor.logging.warning(
-    #             prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
-    #         )
-    #     except NominationError as e:
-    #         bittensor.__console__.print(
-    #             ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-    #         )
-    #         bittensor.logging.warning(
-    #             prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
-    #         )
+        except Exception as e:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+            )
+            bittensor.logging.warning(
+                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+            )
+        except TakeError as e:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+            )
+            bittensor.logging.warning(
+                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+            )
 
     return False
 
@@ -460,58 +451,49 @@ def increase_take_extrinsic(
     Returns:
         success (bool): ``True`` if the transaction was successful.
     """
-    bittensor.__console__.print(
-        "increase_take_extrinsic"
-    )
-
     # Unlock the coldkey.
-    # wallet.coldkey
-    # wallet.hotkey
+    wallet.coldkey
+    wallet.hotkey
 
-    # Check if the hotkey is already a delegate.
-    # if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
-    #     logger.error(
-    #         "Hotkey {} is already a delegate.".format(wallet.hotkey.ss58_address)
-    #     )
-    #     return False
+    with bittensor.__console__.status(
+        ":satellite: Sending increase_take_extrinsic call on [white]{}[/white] ...".format(
+            subtensor.network
+        )
+    ):
+        try:
+            success = subtensor._do_increase_take(
+                wallet=wallet,
+                hotkey_ss58=hotkey_ss58,
+                netuid = netuid,
+                take = take,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
-    # with bittensor.__console__.status(
-    #     ":satellite: Sending nominate call on [white]{}[/white] ...".format(
-    #         subtensor.network
-    #     )
-    # ):
-    #     try:
-    #         success = subtensor._do_nominate(
-    #             wallet=wallet,
-    #             wait_for_inclusion=wait_for_inclusion,
-    #             wait_for_finalization=wait_for_finalization,
-    #         )
+            if success == True:
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
+                bittensor.logging.success(
+                    prefix="Increase Delegate Take",
+                    sufix="<green>Finalized: </green>" + str(success),
+                )
 
-    #         if success == True:
-    #             bittensor.__console__.print(
-    #                 ":white_heavy_check_mark: [green]Finalized[/green]"
-    #             )
-    #             bittensor.logging.success(
-    #                 prefix="Become Delegate",
-    #                 sufix="<green>Finalized: </green>" + str(success),
-    #             )
+            return success
 
-    #         # Raises NominationError if False
-    #         return success
-
-    #     except Exception as e:
-    #         bittensor.__console__.print(
-    #             ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-    #         )
-    #         bittensor.logging.warning(
-    #             prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
-    #         )
-    #     except NominationError as e:
-    #         bittensor.__console__.print(
-    #             ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-    #         )
-    #         bittensor.logging.warning(
-    #             prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
-    #         )
+        except Exception as e:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+            )
+            bittensor.logging.warning(
+                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+            )
+        except TakeError as e:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+            )
+            bittensor.logging.warning(
+                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+            )
 
     return False

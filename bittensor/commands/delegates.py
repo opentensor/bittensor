@@ -894,15 +894,17 @@ class MyDelegatesCommand:
 
 class SetTakeCommand:
     """
-    Executes the ``set_takes`` command, which sets the delegate take per subnet.
+    Executes the ``set_take`` command, which sets the delegate take for a specified subnet.
 
     The command performs several checks:
 
-        TODO
-
-    Upon success, TODO
+        1. Hotkey is already a delegate
+        2. netid matches one of the existing subnets
+        3. New take value is within 0-18% range
 
     Optional Arguments:
+        - ``netuid``: The ID of subnet to update the take for
+        - ``take``: The new take value
         - ``wallet.name``: The name of the wallet to use for the command.
         - ``wallet.hotkey``: The name of the hotkey to use for the command.
 
@@ -910,13 +912,11 @@ class SetTakeCommand:
         To run the command, the user must have a configured wallet with both hotkey and coldkey. Also, the hotkey should already be a delegate.
 
     Example usage::
-
-        # TODO: fix the missing subcommand everywhere .
         btcli root set_takes
         btcli root set_take --wallet.name my_wallet --wallet.hotkey my_hotkey
 
     Note:
-        TODO
+        This function can be used to update the takes individually for every subnet
     """
 
     @staticmethod
@@ -935,6 +935,7 @@ class SetTakeCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Set take for a subnet."""
+        config = cli.config.copy()
         wallet = bittensor.wallet(config=cli.config)
 
         # Unlock the wallet.
@@ -950,17 +951,33 @@ class SetTakeCommand:
             )
             return
 
-        # Prompt user for netuid and take value.
-        netuid = IntPrompt.ask(f"Enter subnet ID")
-        new_take = FloatPrompt.ask(f"Enter take percentage") / 100.
-        # TODO check if it is greater than 18%.
+        # Get available netuids
+        netuids = subtensor.get_all_subnet_netuids()
 
-        print(f"wallet.hotkey.ss58_address = {wallet.hotkey.ss58_address}")
+        # Prompt user for netuid and take value.
+        netuid = int(config.get("netuid"))
+        if netuid == None:
+            netuid = IntPrompt.ask(f"Enter subnet ID")
+        # Check if netuid exists
+        if not netuid in netuids:
+            bittensor.__console__.print(
+                "ERROR: This netuid ({}) doesn't exist on the network".format(
+                    netuid
+                )
+            )
+            return
+
+        new_take = float(config.get("take"))
+        if new_take == None:
+            new_take = FloatPrompt.ask(f"Enter take value (0.18 for 18%)")
+        if new_take > 0.18:
+            bittensor.__console__.print("ERROR: Take value should be in the range of 0 to 18%")
+            return
 
         result: bool = subtensor.set_take(
-            wallet = wallet, 
-            delegate_ss58 = wallet.hotkey.ss58_address, 
-            netuid = netuid, 
+            wallet = wallet,
+            delegate_ss58 = wallet.hotkey.ss58_address,
+            netuid = netuid,
             take = new_take
         )
         if not result:
@@ -972,39 +989,38 @@ class SetTakeCommand:
             is_delegate: bool = subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address)
             if not is_delegate:
                 bittensor.__console__.print(
-                    "Could not became a delegate on [white]{}[/white]".format(
+                    "Could not set the take [white]{}[/white]".format(
                         subtensor.network
                     )
                 )
                 return
             bittensor.__console__.print(
-                "Successfully became a delegate on [white]{}[/white]".format(
+                "Successfully set the take on [white]{}[/white]".format(
                     subtensor.network
                 )
             )
 
-            # Prompt use to set identity on chain.
-            if not cli.config.no_prompt:
-                do_set_identity = Prompt.ask(
-                    f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
-                    choices=["y", "n"],
-                )
-
-                if do_set_identity.lower() == "y":
-                    subtensor.close()
-                    config = cli.config.copy()
-                    SetIdentityCommand.check_config(config)
-                    cli.config = config
-                    SetIdentityCommand.run(cli)
-
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        # TODO add a netuid param.
-        nominate_parser = parser.add_parser(
+        set_take_parser = parser.add_parser(
             "set_take", help="""Set take for delegate on a subnet"""
         )
-        bittensor.wallet.add_args(nominate_parser)
-        bittensor.subtensor.add_args(nominate_parser)
+        set_take_parser.add_argument(
+            "--netuid",
+            dest="netuid",
+            type=int,
+            required=False,
+            help="""Id of subnet to set take for""",
+        )
+        set_take_parser.add_argument(
+            "--take",
+            dest="take",
+            type=float,
+            required=False,
+            help="""Take as a float number""",
+        )
+        bittensor.wallet.add_args(set_take_parser)
+        bittensor.subtensor.add_args(set_take_parser)
 
     @staticmethod
     def check_config(config: "bittensor.config"):
