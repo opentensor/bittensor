@@ -86,12 +86,15 @@ COMMANDS = {
             "senate": SenateCommand,
             "register": RootRegisterCommand,
             "proposals": ProposalsCommand,
-            "delegate": DelegateStakeCommand,
-            "undelegate": DelegateUnstakeCommand,
-            "my_delegates": MyDelegatesCommand,
-            "list_delegates": ListDelegatesCommand,
+            # Sets yourself up to become a nominator.
             "nominate": NominateCommand,
             "settake": SetTakeCommand,
+            # Deprecated.
+            # "get_weights": RootGetWeightsCommand,
+            # TODO implement this to show takes per subnet
+            # takes: show take values.
+            # TODO
+            # set_takes: Set take values across the subnets.
         },
     },
     "wallet": {

@@ -16,11 +16,106 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import torch
 import bittensor
 from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional
 from bittensor.utils.balance import Balance
+import bittensor.utils.weight_utils as weight_utils
+
+def add_stake_weight_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    hotkey: str,
+    netuids: Union[torch.LongTensor, list],
+    weights: Union[torch.FloatTensor, list],
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
+    prompt: bool = False,
+) -> bool:
+    
+    # decrypt coldkey.
+    wallet.coldkey
+
+    # First convert types.
+    if isinstance(netuids, list):
+        netuids = torch.tensor(netuids, dtype=torch.int64)
+    if isinstance(weights, list):
+        weights = torch.tensor(weights, dtype=torch.float32)
+        
+    # Normalize to 1.0.
+    weights = weights/weights.sum()
+    
+    # Get the amount of stake you have on this delegate
+    stake_on_delegate: bittensor.Balance = subtensor.get_stake_for_coldkey_and_hotkey(
+        hotkey_ss58=hotkey,
+        coldkey_ss58=wallet.coldkeypub.ss58_address
+    )
+    if stake_on_delegate.rao == 0:
+        bittensor.__console__.print(f":cross_mark: You don't have any stake delegated to this hotkey, you should first delegate to it: \n\t [bold white]btcli st delegate --delegate_ss58key {hotkey} [/bold white]")
+        return False
+
+    # Ask before moving on.
+    if prompt:
+        if not Confirm.ask(
+            "Do you want to set the following stake weights?:\n[bold white] netuids: {}\n weights: {}\n stake: {}\n  [/bold white ]".format(
+                weights.tolist(), netuids.tolist(), (weights * stake_on_delegate.tao).tolist()
+            )
+        ):
+            return False
+
+    with bittensor.__console__.status(
+        ":satellite: Setting stake weights on [white]{}[/white] ...".format(
+            subtensor.network
+        )
+    ):
+        try:
+            weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+                netuids, weights
+            )
+            success, error_message = subtensor._do_set_stake_weights(
+                wallet=wallet,
+                hotkey = hotkey,
+                weights = weight_vals,
+                netuids = weight_uids,
+                wait_for_finalization=wait_for_finalization,
+                wait_for_inclusion=wait_for_inclusion,
+            )
+
+            bittensor.__console__.print(success, error_message)
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
+
+            if success == True:
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
+                bittensor.logging.success(
+                    prefix="Set stake weights",
+                    sufix="<green>Finalized: </green>" + str(success),
+                )
+                return True
+            else:
+                bittensor.__console__.print(
+                    ":cross_mark: [red]Failed[/red]: error:{}".format(error_message)
+                )
+                bittensor.logging.warning(
+                    prefix="Set weights",
+                    sufix="<red>Failed: </red>" + str(error_message),
+                )
+                return False
+
+        except Exception as e:
+            # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with loguru.
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+            )
+            bittensor.logging.warning(
+                prefix="Set stake weights", sufix="<red>Failed: </red>" + str(e)
+            )
+            return False
 
 
 def add_stake_extrinsic(

@@ -30,7 +30,8 @@ from . import defaults
 
 console = bittensor.__console__
 
-
+# TODO the register command sets an identity on the chain. We should use this identity rather 
+# than use the github project for the identities.
 class RootRegisterCommand:
     """
     Executes the ``register`` command to register a wallet to the root network of the Bittensor network.
@@ -92,7 +93,7 @@ class RootRegisterCommand:
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
-
+# TODO should show total stake across all subnets not just root.
 class RootList:
     """
     Executes the ``list`` command to display the members of the root network on the Bittensor network.
@@ -217,7 +218,7 @@ class RootList:
     def check_config(config: "bittensor.config"):
         pass
 
-
+# TODO repurpose (or remove) for decreasing take.
 class RootSetBoostCommand:
     """
     Executes the ``boost`` command to boost the weights for a specific subnet within the root network on the Bittensor network.
@@ -338,7 +339,7 @@ class RootSetBoostCommand:
         if not config.is_set("amount") and not config.no_prompt:
             config.amount = float(Prompt.ask(f"Enter amount (e.g. 0.01)"))
 
-
+# TODO repurpose for increasing take.
 class RootSetSlashCommand:
     """
     Executes the ``slash`` command to decrease the weights for a specific subnet within the root network on the Bittensor network.
@@ -456,6 +457,7 @@ class RootSetSlashCommand:
             config.amount = float(Prompt.ask(f"Enter decrease amount (e.g. 0.01)"))
 
 
+# TODO: repurpose to set_takes since this no longer works.
 class RootSetWeightsCommand:
     """
     Executes the ``weights`` command to set the weights for the root network on the Bittensor network.
