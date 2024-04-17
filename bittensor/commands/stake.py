@@ -448,6 +448,75 @@ def _get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
     return hotkey_wallets
 
 
+class StakeList:
+    @staticmethod
+    def run(cli: "bittensor.cli"):
+        r"""Show all stake accounts."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            StakeList._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        wallet = bittensor.wallet(config=cli.config)
+        substakes = subtensor.get_substake_for_coldkey( coldkey_ss58 = wallet.coldkeypub.ss58_address )
+        netuids = subtensor.get_all_subnet_netuids()
+        
+        # Get registered delegates details.
+        registered_delegate_info: Optional[ DelegatesDetails ] = get_delegates_details(url = bittensor.__delegates_details_url__)
+
+        # Build map of hotkeys to netuids to stake
+        hot_totals = {}
+        netuid_totals = {}
+        hot_netuid_pairs = {}
+        for substake in substakes:
+            if substake['hotkey'] not in hot_netuid_pairs:
+                hot_netuid_pairs[substake['hotkey']] = {}
+                hot_totals[substake['hotkey']] = 0.0
+            if substake['netuid'] not in netuid_totals:
+                netuid_totals[substake['netuid']] = 0.0
+            hot_netuid_pairs[substake['hotkey']][substake['netuid']] = substake['stake']
+            hot_totals[substake['hotkey']] +=  substake['stake'] 
+            netuid_totals[substake['netuid']] += substake['stake'] 
+            
+        table = Table(show_footer=True, pad_edge=False, box=None, expand=False)
+        table.add_column( "[overline white]Hotkey", footer_style="overline white", style="blue" )
+        table.add_column( f"[overline white]Stake", footer_style="overline white", style="blue" )
+        for netuid in netuids:
+            table.add_column( f"[overline white]S{netuid}", str(netuid_totals[netuid]), footer_style="overline white", style="blue" )
+
+        # Fill rows 
+        for hotkey in hot_netuid_pairs.keys():
+            # Switch on named hotkeys
+            if hotkey in registered_delegate_info: row_name = registered_delegate_info[ hotkey ].name
+            else: row_name = hotkey
+            row = [hotkey, hot_totals[hotkey] ]
+            for netuid in netuids:
+                row.append( str( hot_netuid_pairs[hotkey].get(netuid, 0) ) )
+            table.add_row(*row)
+        bittensor.__console__.print(table)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        list_parser = parser.add_parser(
+            "list", help="""List all stake accounts for wallet."""
+        )
+        bittensor.wallet.add_args(list_parser)
+        bittensor.subtensor.add_args(list_parser)
+
+
 class StakeShow:
     """
     Executes the ``show`` command to list all stake accounts associated with a user's wallet on the Bittensor network.

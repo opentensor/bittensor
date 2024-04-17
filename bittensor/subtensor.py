@@ -45,7 +45,7 @@ from .chain_data import (
     AxonInfo,
     ProposalVoteData,
     IPInfo,
-    DelegateStakeInfoVec,
+    SubstakeElements,
     custom_rpc_type_registry,
 )
 from .errors import *
@@ -3809,9 +3809,9 @@ class subtensor:
         else:
             return 0
         
-    def get_delegate_stake(
+    def get_substake_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
-    ) -> Optional[List[Tuple[str, int, int]]]:
+    ) -> Optional[List[Tuple[str, str, int, int]]]:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry(encoded_hotkey: List[int]):
             with self.substrate as substrate:
@@ -3820,7 +3820,7 @@ class subtensor:
                 if block_hash:
                     params = params + [block_hash]
                 return substrate.rpc_request(
-                    method="delegateInfo_getDelegateStake",  # custom rpc method
+                    method="delegateInfo_getSubStakeForHotkey",  # custom rpc method
                     params=params,
                 )
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
@@ -3828,7 +3828,48 @@ class subtensor:
         result = json_body["result"]
         if result in (None, []): return None
         else: 
-            return DelegateStakeInfoVec.decode( result )
+            return SubstakeElements.decode( result )
+        
+    def get_substake_for_coldkey(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[List[Tuple[str, str, int, int]]]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry(encoded_hotkey: List[int]):
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash(block)
+                params = [encoded_hotkey]
+                if block_hash:
+                    params = params + [block_hash]
+                return substrate.rpc_request(
+                    method="delegateInfo_getSubStakeForColdkey",  # custom rpc method
+                    params=params,
+                )
+        encoded_hotkey = ss58_to_vec_u8(coldkey_ss58)
+        json_body = make_substrate_call_with_retry(encoded_hotkey)
+        result = json_body["result"]
+        if result in (None, []): return None
+        else: 
+            return SubstakeElements.decode( result )
+        
+    def get_substake_for_netuid(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[List[Tuple[str, str, int, int]]]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash(block)
+                params = [netuid]
+                if block_hash:
+                    params = params + [block_hash]
+                return substrate.rpc_request(
+                    method="delegateInfo_getSubStakeForNetuid",  # custom rpc method
+                    params=params,
+                )
+        json_body = make_substrate_call_with_retry()
+        result = json_body["result"]
+        if result in (None, []): return None
+        else: 
+            return SubstakeElements.decode( result )
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None

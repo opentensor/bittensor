@@ -126,7 +126,7 @@ COMMANDS = {
         "help": "Commands for staking and removing stake from hotkey accounts.",
         "commands": {
             # TODO: Should Show all my stakes across subnets.
-            "show": StakeShow,
+            "list": StakeList,
             "add": StakeCommand,
             "remove": UnStakeCommand,
             # Allows a nominator to set weights for their stake across subnets.

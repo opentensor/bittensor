@@ -158,9 +158,10 @@ custom_rpc_type_registry = {
                 ["stake", "Compact<u64>"],
             ],
         },
-        "DelegateStakeInfo": {
+        "SubstakeElements": {
             "type": "struct",
             "type_mapping": [
+                ["hotkey", "AccountId"],
                 ["coldkey", "AccountId"],
                 ["netuid", "Compact<u16>"],
                 ["stake", "Compact<u64>"],
@@ -205,7 +206,7 @@ class ChainDataType(Enum):
     StakeInfo = 6
     IPInfo = 7
     SubnetHyperparameters = 8
-    DelegateStakeInfo = 9
+    SubstakeElements = 9
 
 
 def from_scale_encoding(
@@ -247,13 +248,14 @@ def from_scale_encoding_using_type_string(
     obj = rpc_runtime_config.create_scale_object(type_string, data=as_scale_bytes)
     return obj.decode()
 
-class DelegateStakeInfoVec:
+class SubstakeElements:
     @staticmethod
     def decode( result: List[int] ) -> List[Dict]: 
-        descaled = from_scale_encoding( input = result, type_name = ChainDataType.DelegateStakeInfo, is_vec = True )
+        descaled = from_scale_encoding( input = result, type_name = ChainDataType.SubstakeElements, is_vec = True )
         result = []
         for item in descaled:
             result.append({
+                    'hotkey': ss58_encode( item['hotkey'], bittensor.__ss58_format__),
                     'coldkey': ss58_encode( item['coldkey'], bittensor.__ss58_format__),
                     'netuid': item['netuid'],
                     'stake': Balance.from_rao( item['stake'] )
