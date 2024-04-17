@@ -89,7 +89,7 @@ class LoggingMachine(StateMachine):
         self._listener = self._create_and_start_listener(self._handlers)
 
         # set up all the loggers
-        self._logger = self._initialize_bt_logger(name, config)
+        self._logger = self._initialize_bt_logger(name)
         self.disable_third_party_loggers()
 
     def _configure_handlers(self, config) -> list[stdlogging.Handler]:
@@ -149,7 +149,7 @@ class LoggingMachine(StateMachine):
         """
         return self._queue
 
-    def _initialize_bt_logger(self, name, config):
+    def _initialize_bt_logger(self, name):
         """
         Initialize logging for bittensor.
 
@@ -160,6 +160,17 @@ class LoggingMachine(StateMachine):
         logger = stdlogging.getLogger(name)
         queue_handler = QueueHandler(self._queue)
         logger.addHandler(queue_handler)
+        return logger
+
+    def _deinitialize_bt_logger(self, name):
+        """
+        Find the logger by name and remove the
+        queue handler associated with it.
+        """
+        logger = stdlogging.getLogger(name)
+        for handler in list(logger.handlers):
+            if isinstance(handler, QueueHandler):
+                logger.removeHandler(handler)
         return logger
 
     def _create_file_handler(self, logfile: str):
