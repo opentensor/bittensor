@@ -3768,6 +3768,7 @@ class subtensor:
             info.hotkey_ss58 for info in self.get_delegates(block=block)
         ]
 
+    # TODO needs to be subnet specific.
     def get_delegate_take(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[float]:
