@@ -456,6 +456,7 @@ class RootSetSlashCommand:
             config.amount = float(Prompt.ask(f"Enter decrease amount (e.g. 0.01)"))
 
 
+# TODO: repurpose to set_takes since this no longer works.
 class RootSetWeightsCommand:
     """
     Executes the ``weights`` command to set the weights for the root network on the Bittensor network.
