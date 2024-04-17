@@ -87,7 +87,8 @@ COMMANDS = {
             # Sets yourself up to become a nominator.
             # TODO deprecate this. Sets yourself up to become a nominator.
             # "nominate": NominateCommand,
-            "set_takes": SetTakeCommand,
+            "set_take": SetTakeCommand,
+            # TODO write set_takes ...
             # Deprecated.
             # "get_weights": RootGetWeightsCommand,
             # TODO implement this to show takes per subnet

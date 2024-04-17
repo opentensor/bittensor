@@ -575,13 +575,14 @@ class subtensor:
         dynamic selection and participation of validators in the network's consensus process.
         """
 
+        # TODO check the netuid exists.
         # Caulate u16 representation of the take
         takeu16 = int(take * 0xFFFF)
 
         # Check if the new take is greater or lower than existing take or if existing is set
         delegate = self.get_delegate_by_hotkey(delegate_ss58)
         current_take = int(0.18 * 65535.)
-        for take in delegate.takes:
+        for take in delegate.take:
             if take[0] == netuid:
                 current_take = take[1]
 

@@ -911,8 +911,9 @@ class SetTakeCommand:
 
     Example usage::
 
-        btcli set_takes
-        btcli set_take --wallet.name my_wallet --wallet.hotkey my_hotkey
+        # TODO: fix the missing subcommand everywhere .
+        btcli root set_takes
+        btcli root set_take --wallet.name my_wallet --wallet.hotkey my_hotkey
 
     Note:
         TODO
@@ -952,10 +953,16 @@ class SetTakeCommand:
         # Prompt user for netuid and take value.
         netuid = IntPrompt.ask(f"Enter subnet ID")
         new_take = FloatPrompt.ask(f"Enter take percentage") / 100.
+        # TODO check if it is greater than 18%.
 
         print(f"wallet.hotkey.ss58_address = {wallet.hotkey.ss58_address}")
 
-        result: bool = subtensor.set_take(wallet.hotkey.ss58_address, netuid, new_take)
+        result: bool = subtensor.set_take(
+            wallet = wallet, 
+            delegate_ss58 = wallet.hotkey.ss58_address, 
+            netuid = netuid, 
+            take = new_take
+        )
         if not result:
             bittensor.__console__.print(
                 "Could not set the take"
@@ -992,8 +999,9 @@ class SetTakeCommand:
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
+        # TODO add a netuid param.
         nominate_parser = parser.add_parser(
-            "set_takes", help="""Set take for delegate on a subnet"""
+            "set_take", help="""Set take for delegate on a subnet"""
         )
         bittensor.wallet.add_args(nominate_parser)
         bittensor.subtensor.add_args(nominate_parser)
