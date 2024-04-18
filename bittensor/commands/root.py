@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import re
+import rich
 import torch
 import typing
 import argparse
@@ -153,23 +154,24 @@ class RootList:
         delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
             url=bittensor.__delegates_details_url__
         )
+        dynamic_info = subtensor.get_dynamic_info()
 
         table = Table(show_footer=False)
         table.add_column(
-            "[overline white]Member",
-            footer_style="overline white",
+            "[overline white]member",
+            footer_style="white",
             style="rgb(50,163,219)",
             no_wrap=True,
         )
         table.add_column(
-            "[overline white]SENATOR",
-            footer_style="overline white",
-            style="green",
+            "[overline white]senate",
+            footer_style="white",
+            style="dark_violet",
             no_wrap=True,
         )
         table.add_column(
-            "[overline white]STAKE(\u03C4)",
-            footer_style="overline white",
+            "[overline white]totals (\u03B1/\u03C4)",
+            footer_style="white",
             justify="right",
             style="green",
             no_wrap=True,
@@ -177,7 +179,7 @@ class RootList:
         netuids = subtensor.get_all_subnet_netuids()
         for netuid in netuids:
             table.add_column(
-                f"[overline white]{bittensor.Balance.get_unit(netuid)}",
+                f"[overline white]{bittensor.Balance.get_unit(netuid)}({netuid})",
                 footer_style="overline white",
                 style="blue",
                 no_wrap=True,
@@ -185,30 +187,78 @@ class RootList:
         table.show_footer = True
         
         netuids = subtensor.get_all_subnet_netuids()
+        # TODO should sort these by stake.
         for neuron_data in root_neurons:
             substake = subtensor.get_substake_for_hotkey( neuron_data.hotkey )
-            total_stake = 0
+            total_stake_tao = 0
+            total_stake_alpha = 0
             per_subnet_stake = { net: 0 for net in netuids }
             for ss in substake: 
                 per_subnet_stake[ ss['netuid'] ] += ss['stake']
-                total_stake += ss['stake'].tao
-            row = [
+                total_stake_tao += ss['stake'].tao * dynamic_info[ss['netuid']]['price']
+                total_stake_alpha += ss['stake'].tao 
+
+            row1 = [
                 (
                     delegate_info[neuron_data.hotkey].name
                     if neuron_data.hotkey in delegate_info
                     else neuron_data.hotkey[:10]
                 ),
                 "Yes" if neuron_data.hotkey in senate_members else "No",
-                "{:.5f}".format(float(total_stake)),
+                f"[green]{str(bittensor.Balance.from_tao(total_stake_alpha).set_unit(1))}"
             ]
             for net in netuids:
-                row.append( str(bittensor.Balance.from_tao(per_subnet_stake[net]).set_unit(net)) )
-            table.add_row( *row )
+                row1.append( f"[green]{bittensor.Balance.from_rao(int(per_subnet_stake[net])).set_unit(net)}[/green]" )
+            table.add_row( *row1 )
+            row2 = [ '','', f"[blue]{str(bittensor.Balance.from_tao(total_stake_tao))}" ]
+            for net in netuids:
+                row2.append( f"[blue]{bittensor.Balance.from_rao(int(per_subnet_stake[net] * dynamic_info[net]['price'] ))}[/blue]" )
+            table.add_row( *row2 )
 
         table.box = None
         table.pad_edge = False
         table.width = None
-        bittensor.__console__.print("[bold]Root Network[/bold]:\n\tShows all root network participants with corresponding stake ownership in each subnet.\n")
+        column_descriptions_table = Table(
+            title="Root List",
+            box=rich.box.HEAVY_HEAD,
+            safe_box=False,
+            padding=(0, 1),
+            collapse_padding=False,
+            pad_edge=False,
+            expand=False,
+            show_header=True,
+            show_footer=False,
+            show_edge=False,
+            show_lines=False,
+            leading=0,
+            style="none",
+            row_styles=None,
+            header_style="table.header",
+            footer_style="table.footer",
+            border_style=None,
+            title_style=None,
+            caption_style=None,
+            title_justify="center",
+            caption_justify="center",
+            highlight=False
+        )
+        column_descriptions_table.add_column("No.", justify="left", style="bold")
+        column_descriptions_table.add_column("Column", justify="left")
+        column_descriptions_table.add_column("Description", justify="left")
+
+        column_descriptions = [
+            ("[dark_slate_gray3]1.[/dark_slate_gray3]", "[dark_slate_gray3]member[/dark_slate_gray3]", "The hotkey or delegate name associated with the slot on the root network."),
+            ("[blue]2.[/blue]", "[blue]senator[/blue]", "Yes, if the member is in the top 12 root stake holders measured by stake and thus part of the senate."),
+            ("[green]3.[/green]", "[green]dtao[/green]", """For each subnet, the amount of [blue]TAO[/blue] and [green]dynamic TAO (\u03B1)[/green]. 
+Note the TAO is computed by using the current subent price, this value not.
+            """),
+        ]
+        
+        for no, name, description in column_descriptions:
+            column_descriptions_table.add_row(no, name, description)
+        bittensor.__console__.print(column_descriptions_table)
+        bittensor.__console__.print("\n")
+        bittensor.__console__.print("\n")
         bittensor.__console__.print(table)
 
     @staticmethod
