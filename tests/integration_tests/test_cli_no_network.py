@@ -1103,14 +1103,14 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 return_value=[
                     bittensor.DelegateInfo(
                         hotkey_ss58=delegate_ss58,  # return delegate with mock coldkey
-                        total_stake=bittensor.Balance.from_float(0.1),
+                        total_stake=bittensor.Balance.from_rao(0.1),
                         nominators=[],
                         owner_ss58="",
                         take=0.18,
                         validator_permits=[],
                         registrations=[],
-                        return_per_1000=bittensor.Balance.from_float(0.1),
-                        total_daily_return=bittensor.Balance.from_float(0.1),
+                        return_per_1000=bittensor.Balance.from_rao(0.1),
+                        total_daily_return=bittensor.Balance.from_rao(0.1),
                     )
                 ],
             ):
@@ -1190,14 +1190,14 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 return_value=[
                     bittensor.DelegateInfo(
                         hotkey_ss58=delegate_ss58,  # return delegate with mock coldkey
-                        total_stake=bittensor.Balance.from_float(0.1),
+                        total_stake=bittensor.Balance.from_rao(0.1),
                         nominators=[],
                         owner_ss58="",
                         take=0.18,
                         validator_permits=[],
                         registrations=[],
-                        return_per_1000=bittensor.Balance.from_float(0.1),
-                        total_daily_return=bittensor.Balance.from_float(0.1),
+                        return_per_1000=bittensor.Balance.from_rao(0.1),
+                        total_daily_return=bittensor.Balance.from_rao(0.1),
                     )
                 ],
             ):

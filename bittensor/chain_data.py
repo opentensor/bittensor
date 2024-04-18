@@ -279,13 +279,13 @@ class DynamicPool:
         return Balance.from_tao( alpha * self.price.tao )
     
     def tao_to_alpha_with_slippage(self, tao: Union[ float, Balance ] ) -> Tuple[Balance, Balance]:
-        alpha_returned = Balance.from_tao( self.alpha_reserve.rao - (self.k / (self.tao_reserve.rao + Balance(tao).rao) ) ).set_unit( self.netuid )
+        alpha_returned = Balance.from_rao(self.alpha_reserve.rao - (self.k / (self.tao_reserve.rao + Balance.from_tao(tao).rao) ) ).set_unit( self.netuid )
         to_alpha = self.tao_to_alpha( tao )
         slippage = Balance.from_tao( to_alpha.tao - alpha_returned.tao ).set_unit( self.netuid )
         return alpha_returned, slippage
 
     def alpha_to_tao_with_slippage(self, alpha: Union[ float, Balance ] ) -> Tuple[Balance, Balance]:
-        tao_returned = Balance.from_tao( self.tao_reserve.rao - (self.k / (self.alpha_reserve.rao + Balance(alpha).rao) ) )
+        tao_returned = Balance.from_rao( self.tao_reserve.rao - (self.k / (self.alpha_reserve.rao + Balance.from_tao(alpha).rao) ) )
         to_tao = self.alpha_to_tao( alpha )
         slippage = Balance.from_tao( to_tao.tao - tao_returned.tao )
         return tao_returned, slippage

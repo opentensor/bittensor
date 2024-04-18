@@ -40,21 +40,13 @@ class Balance:
     rao: int
     tao: float
 
-    def __init__(self, balance: Union[int, float]):
+    def __init__(self, balance_rao: int):
         """
-        Initialize a Balance object. If balance is an int, it's assumed to be in rao.
-        If balance is a float, it's assumed to be in tao.
-
+        Initialize a Balance object assumes the passed value is in rao.
         Args:
-            balance: The initial balance, in either rao (if an int) or tao (if a float).
+            balance: The initial balance.
         """
-        if isinstance(balance, int):
-            self.rao = balance
-        elif isinstance(balance, float):
-            # Assume tao value for the float
-            self.rao = int(balance * pow(10, 9))
-        else:
-            raise TypeError("balance must be an int (rao) or a float (tao)")
+        self.rao = int(balance_rao)
 
     @property
     def tao(self):
@@ -245,19 +237,6 @@ class Balance:
         return Balance.from_rao(abs(self.rao))
 
     @staticmethod
-    def from_float(amount: float):
-        """
-        Given tao (float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
-        Args:
-            amount: The amount in tao.
-
-        Returns:
-            A Balance object representing the given amount.
-        """
-        rao = int(amount * pow(10, 9))
-        return Balance(rao)
-
-    @staticmethod
     def from_tao(amount: float):
         """
         Given tao (float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
@@ -282,11 +261,10 @@ class Balance:
         Returns:
             A Balance object representing the given amount.
         """
-        return Balance(amount)
-    
+        return Balance(int(amount))
     
     @staticmethod
-    def get_unit(netuid: int ):
+    def get_unit( netuid: int ):
         units = [
             "\u03C4", # tau
             "\u03B1", # alpha
