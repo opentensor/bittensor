@@ -17,6 +17,7 @@
 import os
 import re
 import sys
+import rich
 import torch
 import argparse
 from tqdm import tqdm
@@ -493,8 +494,8 @@ class StakeList:
             netuid_totals[netuid] += substake['stake'] * dynamic_info[ netuid ]['price']
             
         table = Table(show_footer=True, pad_edge=False, box=None, expand=False)
-        table.add_column( "[overline white]Hotkey", footer_style="overline white", style="dark_slate_gray3" )
-        table.add_column( f"[overline white]Stake", footer_style="overline white", style="blue" )
+        table.add_column( "[white]Hotkey", footer_style="overline white", style="dark_slate_gray3" )
+        table.add_column( f"[white]Stake", footer_style="overline white", style="blue" )
         for netuid in netuids:
             table.add_column( f"[overline white]{bittensor.Balance.get_unit(netuid)}", str(netuid_totals[netuid]) if netuid in netuid_totals else "", footer_style="overline white", style="green" )
 
@@ -514,6 +515,50 @@ class StakeList:
                 row2.append( f"[blue]{hot_netuid_pairs[hotkey].get(netuid, 0) * dynamic_info[ netuid ]['price'] }[/blue]" )
             table.add_row(*row2)
 
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        column_descriptions_table = Table(
+            title="Stake List",
+            box=rich.box.HEAVY_HEAD,
+            safe_box=False,
+            padding=(0, 1),
+            collapse_padding=False,
+            pad_edge=False,
+            expand=False,
+            show_header=True,
+            show_footer=False,
+            show_edge=False,
+            show_lines=False,
+            leading=0,
+            style="none",
+            row_styles=None,
+            header_style="table.header",
+            footer_style="table.footer",
+            border_style=None,
+            title_style=None,
+            caption_style=None,
+            title_justify="center",
+            caption_justify="center",
+            highlight=False
+        )
+        column_descriptions_table.add_column("No.", justify="left", style="bold")
+        column_descriptions_table.add_column("Column", justify="left")
+        column_descriptions_table.add_column("Description", justify="left")
+
+        column_descriptions = [
+            ("[dark_slate_gray3]1.[/dark_slate_gray3]", "[dark_slate_gray3]Hotkey[/dark_slate_gray3]", "The hotkey or delegate name which the stake is associated with."),
+            ("[blue]2.[/blue]", "[blue]Stake[/blue]", "The your stake account [blue]total TAO[/blue] and [green]dynamic TAO (\u03B1)[/green] summed across all subnets."),
+            ("[green]3.[/green]", "[green]DTAO[/green]", """For each subnet, the amount of [blue]TAO[/blue] and [green]dynamic TAO (\u03B1)[/green]. 
+Note the TAO is computed by using the current subent price, this value not.
+            """),
+        ]
+        
+        for no, name, description in column_descriptions:
+            column_descriptions_table.add_row(no, name, description)
+        bittensor.__console__.print(column_descriptions_table)
+        bittensor.__console__.print("\n")
+        bittensor.__console__.print("\n")
         bittensor.__console__.print(table)
 
     @staticmethod
