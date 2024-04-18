@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import rich
 import argparse
 import bittensor
 from . import defaults
@@ -269,32 +270,71 @@ class SubnetListCommand:
                     str(bittensor.Balance.from_rao(dynamic_info[subnet.netuid]['alpha_reserve']).set_unit(subnet.netuid)),
                     str(subnet.tempo),
                     f"{subnet.burn!s:8.8}",
-                    str(bittensor.utils.formatting.millify(subnet.difficulty)),
                     f"{delegate_info[subnet.owner_ss58].name if subnet.owner_ss58 in delegate_info else subnet.owner_ss58}",
                 )
             )
         table = Table(
-            show_footer=True,
-            width=cli.config.get("width", None),
+            title="Subnet Info",
+            caption=None,
+            min_width=100,
+            safe_box=True,
+            padding=(0, 1),
+            collapse_padding=False,
             pad_edge=True,
-            box=None,
-            show_edge=True,
+            expand=True,
+            show_header=True,
+            show_footer=True,
+            show_edge=False,  # Removed edge display
+            show_lines=False,  # Ensured no lines are shown for a cleaner look
+            leading=0,
+            style="none",
+            row_styles=None,
+            header_style="table.header",
+            footer_style="table.footer",
+            border_style="none",
+            title_style="bold magenta",
+            caption_style=None,
+            title_justify="center",
+            caption_justify="center",
+            highlight=False
         )
         table.title = "[white]Subnets - {}".format(subtensor.network)
-        table.add_column("[white]",str(len(subnets)), footer_style="overline white", style="bold green", justify="center")
-        table.add_column("[white]", footer_style="overline white", style="yellow", justify="right", )
-        table.add_column("[white]n", f"{total_registered}/{total_neurons}", footer_style="overline white", style="grey37", justify="right", )
+        table.add_column("[white]",str(len(subnets)), footer_style="white", style="bold green", justify="center")
+        table.add_column("[white]", footer_style="white", style="yellow", justify="right", )
+        table.add_column("[white]n", f"{total_registered}/{total_neurons}", footer_style="white", style="grey37", justify="right", )
         table.add_column("[white]emission", f"{bittensor.Balance.from_rao(total_emission)!s:8.8}", footer_style="white", style="chartreuse1", justify="center")
-        table.add_column("[white]price", f"{bittensor.Balance.from_tao(total_price)!s:8.8}", footer_style="overline white", style="yellow", justify="right")
+        table.add_column("[white]price", f"{bittensor.Balance.from_tao(total_price)!s:8.8}", footer_style="white", style="yellow", justify="right")
         table.add_column(f"[white][{bittensor.Balance.unit}", style="blue", justify="left")
         table.add_column(f"[white]{bittensor.Balance.get_unit(1)}]", style="green", justify="left")
         table.add_column("[white]tempo", style="grey37", justify="center")
         table.add_column("[white]burn", style="deep_pink4", justify="center")
-        table.add_column("[white]pow", style="dark_goldenrod", justify="center")
         table.add_column("[white]owner", style="dark_slate_gray3")
         for row in rows:
             table.add_row(*row)
-        column_descriptions_table = Table(title="Column Descriptions")
+        column_descriptions_table = Table(
+            title="Column Descriptions",
+            box=rich.box.HEAVY_HEAD,
+            safe_box=True,
+            padding=(0, 1),
+            collapse_padding=False,
+            pad_edge=True,
+            expand=False,
+            show_header=True,
+            show_footer=False,
+            show_edge=True,
+            show_lines=False,
+            leading=0,
+            style="none",
+            row_styles=None,
+            header_style="table.header",
+            footer_style="table.footer",
+            border_style=None,
+            title_style=None,
+            caption_style=None,
+            title_justify="center",
+            caption_justify="center",
+            highlight=False
+        )
         column_descriptions_table.add_column("No.", justify="left", style="bold")
         column_descriptions_table.add_column("Column", justify="left")
         column_descriptions_table.add_column("Description", justify="left")
@@ -309,14 +349,13 @@ class SubnetListCommand:
             (f"[green]7.[/green]", f"{bittensor.Balance.get_unit(1)}", "The dynamic token balance in the pool."),
             ("[grey37]8.[/grey37]", "tempo", "The subnet epoch tempo."),
             ("[deep_pink4]9.[/deep_pink4]", "burn", "The subnet's current burn cost to register a neuron."),
-            ("[dark_goldenrod]10.[/dark_goldenrod]", "pow", "The subnet's current pow cost to register a neuron."),
             ("[dark_slate_gray3]11.[/dark_slate_gray3]", "owner", "The subnet's owner key.")
         ]
         
         for no, name, description in column_descriptions:
             column_descriptions_table.add_row(no, name, description)
-        bittensor.__console__.print('Subnets List:')
-        bittensor.__console__.print(column_descriptions_table)
+        bittensor.__console__.print('Subnets List:', justify="center")
+        bittensor.__console__.print(column_descriptions_table, justify="center")
         bittensor.__console__.print(table)
 
     @staticmethod
