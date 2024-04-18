@@ -249,11 +249,13 @@ class SubnetListCommand:
 
         for subnet in subnets:
             total_neurons += subnet.max_n
+            substake = sum([ss['stake'] for ss in subtensor.get_substake_for_netuid( subnet.netuid )]) 
             rows.append(
                 (
                     str(subnet.netuid),
                     str(subnet.subnetwork_n),
                     str(bittensor.utils.formatting.millify(subnet.max_n)),
+                    str(substake),
                     f"{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%",
                     str(subnet.tempo),
                     f"{subnet.burn!s:8.8}",
@@ -284,6 +286,7 @@ class SubnetListCommand:
             justify="center",
         )
         table.add_column("[overline white]MAX_N", style="white", justify="center")
+        table.add_column("[overline white]STAKE", style="white", justify="center")
         table.add_column("[overline white]EMISSION", style="white", justify="center")
         table.add_column("[overline white]TEMPO", style="white", justify="center")
         table.add_column("[overline white]RECYCLE", style="white", justify="center")
