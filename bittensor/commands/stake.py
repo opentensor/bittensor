@@ -490,10 +490,10 @@ class StakeList:
             netuid_totals[netuid] += substake['stake'] 
             
         table = Table(show_footer=True, pad_edge=False, box=None, expand=False)
-        table.add_column( "[overline white]Hotkey", footer_style="overline white", style="blue" )
+        table.add_column( "[overline white]Hotkey", footer_style="overline white", style="dark_slate_gray3" )
         table.add_column( f"[overline white]Stake", footer_style="overline white", style="blue" )
         for netuid in netuids:
-            table.add_column( f"[overline white]{bittensor.Balance.get_unit(netuid)}", str(netuid_totals[netuid]) if netuid in netuid_totals else "", footer_style="overline white", style="blue" )
+            table.add_column( f"[overline white]{bittensor.Balance.get_unit(netuid)}", str(netuid_totals[netuid]) if netuid in netuid_totals else "", footer_style="overline white", style="green" )
 
         # Fill rows 
         for hotkey in hot_netuid_pairs.keys():
@@ -501,11 +501,16 @@ class StakeList:
             if hotkey in registered_delegate_info: 
                 row_name = registered_delegate_info[ hotkey ].name
             else: 
-                row_name = hotkey
-            row = [ row_name, hot_totals[hotkey] ]
+                row_name = hotkey[:10]
+            row1 = [ row_name, hot_totals[hotkey] ]
             for netuid in netuids:
-                row.append( str( hot_netuid_pairs[hotkey].get(netuid, 0) ) )
-            table.add_row(*row)
+                row1.append( str( bittensor.Balance.from_rao(int(hot_netuid_pairs[hotkey].get(netuid, 0))).set_unit(netuid) ) )
+            table.add_row(*row1)
+            row2 = [ '', '' ]
+            for netuid in netuids:
+                row2.append( f"[blue]{hot_netuid_pairs[hotkey].get(netuid, 0) * dynamic_info[ netuid ]['price'] }[/blue]" )
+            table.add_row(*row2)
+
         bittensor.__console__.print(table)
 
     @staticmethod
