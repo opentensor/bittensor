@@ -489,7 +489,7 @@ class StakeList:
         table.add_column( "[overline white]Hotkey", footer_style="overline white", style="blue" )
         table.add_column( f"[overline white]Stake", footer_style="overline white", style="blue" )
         for netuid in netuids:
-            table.add_column( f"[overline white]S{netuid}", str(netuid_totals[netuid]), footer_style="overline white", style="blue" )
+            table.add_column( f"[overline white]S{netuid}", str(netuid_totals[netuid]) if netuid in netuid_totals else "", footer_style="overline white", style="blue" )
 
         # Fill rows 
         for hotkey in hot_netuid_pairs.keys():
