@@ -49,15 +49,6 @@ ALIAS_TO_COMMAND = {
     "substake": "substake",
 }
 COMMANDS = {
-    "substake": {
-        "name": "substake",
-        "aliases": ["sub", "substake"],
-        "help": "Commands for adding and removing stake to subnetworks.",
-        "commands": {
-            "add": SubStakeCommand,
-            "remove": RemoveSubStakeCommand,
-        },
-    },
     "subnets": {
         "name": "subnets",
         "aliases": ["s", "subnet"],
@@ -127,8 +118,10 @@ COMMANDS = {
         "commands": {
             # TODO: Should Show all my stakes across subnets.
             "list": StakeList,
-            "add": StakeCommand,
-            "remove": UnStakeCommand,
+            # "add": StakeCommand,
+            # "remove": UnStakeCommand,
+            "add": SubStakeCommand,
+            "remove": RemoveSubStakeCommand,
             # Allows a nominator to set weights for their stake across subnets.
             "weights": StakeWeightsCommand,
             # Delegate to a specific root member.

@@ -170,9 +170,6 @@ class SubStakeCommand:
 
     @classmethod
     def check_config(cls, config: "bittensor.config"):
-        if not config.is_set("netuid") and not config.no_prompt:
-            netuid = Prompt.ask("Enter netuid", default="0")
-            config.netuid = int(netuid)
 
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
@@ -192,6 +189,10 @@ class SubStakeCommand:
                 config.hotkey = str(hotkey)
             else:
                 config.wallet.hotkey = str(hotkey)
+                
+        if not config.is_set("netuid") and not config.no_prompt:
+            netuid = Prompt.ask("Enter netuid", default="0")
+            config.netuid = int(netuid)
 
         # Get amount.
         if not config.get("amount") and not config.get("max_stake"):
@@ -365,10 +366,6 @@ class RemoveSubStakeCommand:
 
     @classmethod
     def check_config(cls, config: "bittensor.config"):
-        if not config.is_set("netuid") and not config.no_prompt:
-            netuid = Prompt.ask("Enter netuid", default="0")
-            config.netuid = int(netuid)
-
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -388,6 +385,10 @@ class RemoveSubStakeCommand:
             else:
                 config.hotkey = str(hotkey)
                 config.wallet.hotkey = str(hotkey)
+                
+        if not config.is_set("netuid") and not config.no_prompt:
+            netuid = Prompt.ask("Enter netuid", default="0")
+            config.netuid = int(netuid)
 
         # Get amount.
         if not config.get("amount") and not config.get("unstake_all"):
