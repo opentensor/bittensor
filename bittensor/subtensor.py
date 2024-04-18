@@ -46,6 +46,7 @@ from .chain_data import (
     ProposalVoteData,
     IPInfo,
     SubstakeElements,
+    DynamicPool,
     custom_rpc_type_registry,
 )
 from .errors import *
@@ -3324,6 +3325,21 @@ class subtensor:
             'price': tao_reserves[netuid] / alpha_reserves[netuid] if alpha_reserves[netuid] > 0 else 1
         } for netuid in tao_reserves.keys() }
         return reserves
+
+    def get_dynamic_info_for_netuid( self, netuid: int, block: Optional[int] = None ) -> DynamicPool:
+        alpha_reserve = Balance.from_rao( self.query_subtensor("DynamicAlphaReserve", block, [netuid]).value ).set_unit(netuid)
+        alpha_issuance =  Balance.from_rao( self.query_subtensor("DynamicAlphaIssuance", block, [netuid]).value).set_unit(netuid)
+        alpha_outstanding =  Balance.from_rao( self.query_subtensor("DynamicAlphaOutstanding", block, [netuid]).value).set_unit(netuid)
+        tao_reserve =  Balance.from_rao( self.query_subtensor("DynamicTAOReserve", block, [netuid]).value)
+        k =  self.query_subtensor("DynamicK", block, [netuid]).value
+        return DynamicPool(
+            netuid=netuid,
+            tao_reserve=tao_reserve,
+            alpha_issuance=alpha_issuance,
+            alpha_outstanding=alpha_outstanding,
+            alpha_reserve=alpha_reserve,
+            k=k,
+        )
 
     def get_stake(
         self, hotkey_ss58: str, block: Optional[int] = None

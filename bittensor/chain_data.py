@@ -248,6 +248,48 @@ def from_scale_encoding_using_type_string(
     obj = rpc_runtime_config.create_scale_object(type_string, data=as_scale_bytes)
     return obj.decode()
 
+@dataclass
+class DynamicPool:
+    alpha_issuance: Balance
+    alpha_outstanding: Balance
+    alpha_reserve: Balance
+    tao_reserve: Balance
+    k: int
+    price: Balance
+    netuid: int
+    def __init__(self, netuid:int, alpha_issuance: Balance, alpha_outstanding: Balance, alpha_reserve: Balance, tao_reserve: Balance, k: int):
+        self.netuid = netuid
+        self.alpha_issuance = alpha_issuance
+        self.alpha_outstanding = alpha_outstanding
+        self.alpha_reserve = alpha_reserve
+        self.tao_reserve = tao_reserve
+        self.k = self.tao_reserve.rao * self.alpha_reserve.rao
+        self.price = Balance.from_tao( self.tao_reserve.tao / self.alpha_reserve.tao )
+        
+    def __str__(self) -> str:
+        return f"DynamicPool( alpha_issuance={self.alpha_issuance}, alpha_outstanding={self.alpha_outstanding}, alpha_reserve={self.alpha_reserve}, tao_reserve={self.tao_reserve}, k={self.k}, price={self.price} )"
+    
+    def __repr__(self) -> str:
+        return self.__str__()
+    
+    def tao_to_alpha(self, tao: Union[ float, Balance ]) -> Balance:
+        return Balance.from_tao( tao / self.price.tao ).set_unit( self.netuid )
+    
+    def alpha_to_tao(self, alpha: Union[ float, Balance ]) -> Balance:
+        return Balance.from_tao( alpha * self.price.tao )
+    
+    def tao_to_alpha_with_slippage(self, tao: Union[ float, Balance ] ) -> Tuple[Balance, Balance]:
+        alpha_returned = Balance.from_tao( self.alpha_reserve.rao - (self.k / (self.tao_reserve.rao + Balance(tao).rao) ) ).set_unit( self.netuid )
+        to_alpha = self.tao_to_alpha( tao )
+        slippage = Balance.from_tao( to_alpha.tao - alpha_returned.tao ).set_unit( self.netuid )
+        return alpha_returned, slippage
+
+    def alpha_to_tao_with_slippage(self, alpha: Union[ float, Balance ] ) -> Tuple[Balance, Balance]:
+        tao_returned = Balance.from_tao( self.tao_reserve.rao - (self.k / (self.alpha_reserve.rao + Balance(alpha).rao) ) )
+        to_tao = self.alpha_to_tao( alpha )
+        slippage = Balance.from_tao( to_tao.tao - tao_returned.tao )
+        return tao_returned, slippage
+
 class SubstakeElements:
     @staticmethod
     def decode( result: List[int] ) -> List[Dict]: 
