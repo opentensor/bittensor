@@ -177,7 +177,7 @@ class RootList:
         netuids = subtensor.get_all_subnet_netuids()
         for netuid in netuids:
             table.add_column(
-                f"[overline white]{netuid}",
+                f"[overline white]{bittensor.Balance.get_unit(netuid)}",
                 footer_style="overline white",
                 style="blue",
                 no_wrap=True,
@@ -202,7 +202,7 @@ class RootList:
                 "{:.5f}".format(float(total_stake)),
             ]
             for net in netuids:
-                row.append( str(per_subnet_stake[net]) )
+                row.append( str(bittensor.Balance.from_tao(per_subnet_stake[net]).set_unit(net)) )
             table.add_row( *row )
 
         table.box = None

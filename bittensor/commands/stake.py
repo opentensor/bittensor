@@ -489,14 +489,16 @@ class StakeList:
         table.add_column( "[overline white]Hotkey", footer_style="overline white", style="blue" )
         table.add_column( f"[overline white]Stake", footer_style="overline white", style="blue" )
         for netuid in netuids:
-            table.add_column( f"[overline white]S{netuid}", str(netuid_totals[netuid]) if netuid in netuid_totals else "", footer_style="overline white", style="blue" )
+            table.add_column( f"[overline white]{bittensor.Balance.get_unit(netuid)}", str(netuid_totals[netuid]) if netuid in netuid_totals else "", footer_style="overline white", style="blue" )
 
         # Fill rows 
         for hotkey in hot_netuid_pairs.keys():
             # Switch on named hotkeys
-            if hotkey in registered_delegate_info: row_name = registered_delegate_info[ hotkey ].name
-            else: row_name = hotkey
-            row = [hotkey, hot_totals[hotkey] ]
+            if hotkey in registered_delegate_info: 
+                row_name = registered_delegate_info[ hotkey ].name
+            else: 
+                row_name = hotkey
+            row = [ row_name, hot_totals[hotkey] ]
             for netuid in netuids:
                 row.append( str( hot_netuid_pairs[hotkey].get(netuid, 0) ) )
             table.add_row(*row)

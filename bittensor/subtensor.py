@@ -3303,6 +3303,19 @@ class subtensor:
         if not hasattr(_result, "value") or _result is None:
             return None
         return Balance.from_rao(_result.value)
+    
+    def get_dynamic_info(self):
+        alpha_reserves = {}
+        tao_reserves = {}
+        k_values = {}
+        for rec in self.substrate.query_map(module="SubtensorModule",storage_function='DynamicAlphaReserve', params=[], block_hash=None,).records:
+            alpha_reserves[rec[0].value] = rec[1].value
+        for rec in self.substrate.query_map( module="SubtensorModule", storage_function='DynamicTAOReserve', params=[], block_hash=None).records:
+            tao_reserves[rec[0].value] = rec[1].value
+        for rec in self.substrate.query_map( module="SubtensorModule", storage_function='DynamicK', params=[], block_hash=None).records:
+            k_values[rec[0].value] = rec[1].value
+        reserves = [{'netuid': netuid, 'tao_reserve': tao_reserves[netuid], 'alpha_reserve': alpha_reserves[netuid], 'k': k_values[netuid]} for netuid in tao_reserves.keys()]
+        return reserves
 
     def get_stake(
         self, hotkey_ss58: str, block: Optional[int] = None
