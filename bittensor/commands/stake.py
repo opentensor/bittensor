@@ -475,19 +475,22 @@ class StakeList:
         dynamic_info = subtensor.get_dynamic_info()
 
         # Build map of hotkeys to netuids to stake
-        hot_totals = {}
+        hot_tao_totals = {}
+        hot_alpha_totals = {}
         netuid_totals = {}
         hot_netuid_pairs = {}
         for substake in substakes:
             netuid = substake['netuid']
             if substake['hotkey'] not in hot_netuid_pairs:
                 hot_netuid_pairs[substake['hotkey']] = {}
-                hot_totals[substake['hotkey']] = 0.0
+                hot_tao_totals[substake['hotkey']] = 0.0
+                hot_alpha_totals[substake['hotkey']] = 0.0
             if netuid not in netuid_totals:
                 netuid_totals[netuid] = 0.0
             hot_netuid_pairs[substake['hotkey']][netuid] = substake['stake']
-            hot_totals[substake['hotkey']] += substake['stake'] * dynamic_info[ netuid ]['price']
-            netuid_totals[netuid] += substake['stake'] 
+            hot_tao_totals[substake['hotkey']] += substake['stake'] * dynamic_info[ netuid ]['price']
+            hot_alpha_totals[substake['hotkey']] += substake['stake']
+            netuid_totals[netuid] += substake['stake'] * dynamic_info[ netuid ]['price']
             
         table = Table(show_footer=True, pad_edge=False, box=None, expand=False)
         table.add_column( "[overline white]Hotkey", footer_style="overline white", style="dark_slate_gray3" )
@@ -502,11 +505,11 @@ class StakeList:
                 row_name = registered_delegate_info[ hotkey ].name
             else: 
                 row_name = hotkey[:10]
-            row1 = [ row_name, hot_totals[hotkey] ]
+            row1 = [ row_name, hot_alpha_totals[hotkey].set_unit(1)  ]
             for netuid in netuids:
                 row1.append( str( bittensor.Balance.from_rao(int(hot_netuid_pairs[hotkey].get(netuid, 0))).set_unit(netuid) ) )
             table.add_row(*row1)
-            row2 = [ '', '' ]
+            row2 = [ '', f"[blue]{hot_tao_totals[hotkey]}[/blue]" ]
             for netuid in netuids:
                 row2.append( f"[blue]{hot_netuid_pairs[hotkey].get(netuid, 0) * dynamic_info[ netuid ]['price'] }[/blue]" )
             table.add_row(*row2)
