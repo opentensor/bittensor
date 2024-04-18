@@ -68,6 +68,7 @@ class SubStakeCommand:
           - from   default:5GeYLB44QY9wcqJmFZvJW8D3EYPDaJGSgGfkbJVxUbkVcU7C
           - to     default:5C86aJ2uQawR6P6veaJQXNK9HaWh6NMbUhTiLs65kq4ZW3NH
           - amount 100.0 τ
+          - for: 
         [y/n]: y
         Enter password to unlock key: 
         ✅ Finalized
@@ -98,7 +99,7 @@ class SubStakeCommand:
         r"""Stake token of amount to hotkey(s)."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
-
+        dynamic_info = subtensor.get_dynamic_info_for_netuid( config.netuid )
         hotkey_tup: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
 
         if config.is_set("hotkey"):
@@ -155,7 +156,7 @@ class SubStakeCommand:
             if not Confirm.ask(
                 f"Do you want to stake to the following hotkey on netuid {config.netuid}: \n"
                 f"[bold white] - from   {wallet.name}:{wallet.coldkeypub.ss58_address}\n"
-                f" - to     {hotkey_tup[0] + ':' if hotkey_tup[0] else ''}{hotkey_tup[1]}\n - amount {f'{stake_amount_tao} {bittensor.__tao_symbol__}'}[/bold white]\n"
+                f" - to     {hotkey_tup[0] + ':' if hotkey_tup[0] else ''}{hotkey_tup[1]}\n - [blue]{f'{bittensor.Balance.from_tao(stake_amount_tao)}'}[/blue] --> [green]{dynamic_info.tao_to_alpha_with_slippage(stake_amount_tao)[0]}[/green] (-[red]{dynamic_info.tao_to_alpha_with_slippage(stake_amount_tao)[1]}[/red])\n"
             ):
                 return None
 

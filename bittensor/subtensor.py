@@ -3303,7 +3303,7 @@ class subtensor:
         )
         if not hasattr(_result, "value") or _result is None:
             return None
-        return Balance.from_rao(_result.value)
+        return Balance.from_rao(_result.value).set_unit( netuid )
     
     def get_dynamic_info(self):
         netuids = self.get_all_subnet_netuids()
