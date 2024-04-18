@@ -471,19 +471,23 @@ class StakeList:
         # Get registered delegates details.
         registered_delegate_info: Optional[ DelegatesDetails ] = get_delegates_details(url = bittensor.__delegates_details_url__)
 
+        # Token pricing info.
+        dynamic_info = subtensor.get_dynamic_info()
+
         # Build map of hotkeys to netuids to stake
         hot_totals = {}
         netuid_totals = {}
         hot_netuid_pairs = {}
         for substake in substakes:
+            netuid = substake['netuid']
             if substake['hotkey'] not in hot_netuid_pairs:
                 hot_netuid_pairs[substake['hotkey']] = {}
                 hot_totals[substake['hotkey']] = 0.0
-            if substake['netuid'] not in netuid_totals:
-                netuid_totals[substake['netuid']] = 0.0
-            hot_netuid_pairs[substake['hotkey']][substake['netuid']] = substake['stake']
-            hot_totals[substake['hotkey']] +=  substake['stake'] 
-            netuid_totals[substake['netuid']] += substake['stake'] 
+            if netuid not in netuid_totals:
+                netuid_totals[netuid] = 0.0
+            hot_netuid_pairs[substake['hotkey']][netuid] = substake['stake']
+            hot_totals[substake['hotkey']] += substake['stake'] * dynamic_info[ netuid ]['price']
+            netuid_totals[netuid] += substake['stake'] 
             
         table = Table(show_footer=True, pad_edge=False, box=None, expand=False)
         table.add_column( "[overline white]Hotkey", footer_style="overline white", style="blue" )

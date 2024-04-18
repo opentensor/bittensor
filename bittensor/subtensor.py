@@ -3321,7 +3321,7 @@ class subtensor:
             'tao_reserve': tao_reserves[netuid], 
             'alpha_reserve': alpha_reserves[netuid], 
             'k': k_values[netuid],
-            'price': tao_reserves[netuid] / alpha_reserves[netuid] if alpha_reserves[netuid] > 0 else 0
+            'price': tao_reserves[netuid] / alpha_reserves[netuid] if alpha_reserves[netuid] > 0 else 1
         } for netuid in tao_reserves.keys() }
         return reserves
 

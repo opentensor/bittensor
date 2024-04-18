@@ -257,7 +257,7 @@ class SubnetListCommand:
         for subnet in subnets:
             total_neurons += subnet.max_n
             total_registered += subnet.subnetwork_n
-            total_price += dynamic_info[subnet.netuid]['price']
+            total_price += dynamic_info[subnet.netuid]['price'] if dynamic_info[subnet.netuid]['tao_reserve'] > 0 else 0
             total_emission += subnet.emission_value
             rows.append(
                 (
@@ -265,7 +265,7 @@ class SubnetListCommand:
                     bittensor.Balance.get_unit(subnet.netuid),
                     f"{subnet.subnetwork_n}/{subnet.max_n}",
                     "{:.8}".format(str(bittensor.Balance.from_rao(subnet.emission_value))),
-                    "{:.8}".format(str(bittensor.Balance.from_tao(dynamic_info[subnet.netuid]['price']))),
+                    "{:.8}".format(str(bittensor.Balance.from_tao(dynamic_info[subnet.netuid]['price']))) if dynamic_info[subnet.netuid]['tao_reserve'] > 0 else "-",
                     str(bittensor.Balance.from_rao(dynamic_info[subnet.netuid]['tao_reserve'])),
                     str(bittensor.Balance.from_rao(dynamic_info[subnet.netuid]['alpha_reserve']).set_unit(subnet.netuid)),
                     str(subnet.tempo),
