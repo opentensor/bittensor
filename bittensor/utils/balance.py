@@ -288,6 +288,7 @@ class Balance:
     @staticmethod
     def get_unit(netuid: int ):
         units = [
+            "\u03C4", # tau
             "\u03B1", # alpha
             "\u03B2", # beta
             "\u03B3", # gamma

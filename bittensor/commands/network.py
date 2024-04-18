@@ -251,47 +251,22 @@ class SubnetListCommand:
         )
         
         # Get reserves.
-        alpha_reserves = {}
-        tao_reserves = {}
-        for rec in subtensor.substrate.query_map(
-            module="SubtensorModule",
-            storage_function='DynamicAlphaReserve',
-            params=[],
-            block_hash=None,
-        ).records:
-            alpha_reserves[rec[0].value] = rec[1].value
-            
-        for rec in subtensor.substrate.query_map(
-                module="SubtensorModule",
-                storage_function='DynamicTAOReserve',
-                params=[],
-                block_hash=None,
-            ).records:
-            tao_reserves[rec[0].value] = rec[1].value
-
+        dynamic_info = subtensor.get_dynamic_info()
 
         for subnet in subnets:
             total_neurons += subnet.max_n
             total_registered += subnet.subnetwork_n
-            if subnet.netuid in tao_reserves:
-                tao_res = tao_reserves[subnet.netuid]
-                alpha_res = alpha_reserves[subnet.netuid]
-                price = tao_res / alpha_res
-            else:
-                tao_res = 0
-                alpha_res = 0
-                price = 0
-            total_price += price
+            total_price += dynamic_info[subnet.netuid]['price']
             total_emission += subnet.emission_value
             rows.append(
                 (
                     str(subnet.netuid),
-                    str(subnet.subnetwork_n),
-                    str(bittensor.utils.formatting.millify(subnet.max_n)),
+                    bittensor.Balance.get_unit(subnet.netuid),
+                    f"{subnet.subnetwork_n}/{subnet.max_n}",
                     "{:.8}".format(str(bittensor.Balance.from_rao(subnet.emission_value))),
-                    "{:.8}".format(str(bittensor.Balance.from_tao(price))),
-                    str(bittensor.Balance.from_rao(tao_res)),
-                    str(bittensor.Balance.from_rao(alpha_res).set_unit(subnet.netuid)),
+                    "{:.8}".format(str(bittensor.Balance.from_tao(dynamic_info[subnet.netuid]['price']))),
+                    str(bittensor.Balance.from_rao(dynamic_info[subnet.netuid]['tao_reserve'])),
+                    str(bittensor.Balance.from_rao(dynamic_info[subnet.netuid]['alpha_reserve']).set_unit(subnet.netuid)),
                     str(subnet.tempo),
                     f"{subnet.burn!s:8.8}",
                     str(bittensor.utils.formatting.millify(subnet.difficulty)),
@@ -306,19 +281,42 @@ class SubnetListCommand:
             show_edge=True,
         )
         table.title = "[white]Subnets - {}".format(subtensor.network)
-        table.add_column("[overline white]NETUID",str(len(subnets)), footer_style="overline white", style="bold green", justify="center")
-        table.add_column("[overline white]N", str(total_registered), footer_style="overline white", style="green", justify="right", )
-        table.add_column("[overline white]MAX_N", str(total_neurons), footer_style="overline white", style="white", justify="right")
-        table.add_column("[overline white]EMISSION", f"{bittensor.Balance.from_rao(total_emission)!s:8.8}", footer_style="overline white", style="white", justify="center")
-        table.add_column("[overline white]PRICE", f"{bittensor.Balance.from_tao(total_price)!s:8.8}", footer_style="overline white", style="white", justify="right")
-        table.add_column("[overline white]TAO", style="white", justify="left")
-        table.add_column("[overline white]\u2202TAO", style="white", justify="left")
-        table.add_column("[overline white]TEMPO", style="white", justify="center")
-        table.add_column("[overline white]RECYCLE", style="white", justify="center")
-        table.add_column("[overline white]POW", style="white", justify="center")
-        table.add_column("[overline white]SUDO", style="white")
+        table.add_column("[white]",str(len(subnets)), footer_style="overline white", style="bold green", justify="center")
+        table.add_column("[white]", footer_style="overline white", style="yellow", justify="right", )
+        table.add_column("[white]n", f"{total_registered}/{total_neurons}", footer_style="overline white", style="grey37", justify="right", )
+        table.add_column("[white]emission", f"{bittensor.Balance.from_rao(total_emission)!s:8.8}", footer_style="white", style="chartreuse1", justify="center")
+        table.add_column("[white]price", f"{bittensor.Balance.from_tao(total_price)!s:8.8}", footer_style="overline white", style="yellow", justify="right")
+        table.add_column(f"[white][{bittensor.Balance.unit}", style="blue", justify="left")
+        table.add_column(f"[white]{bittensor.Balance.get_unit(1)}]", style="green", justify="left")
+        table.add_column("[white]tempo", style="grey37", justify="center")
+        table.add_column("[white]burn", style="deep_pink4", justify="center")
+        table.add_column("[white]pow", style="dark_goldenrod", justify="center")
+        table.add_column("[white]owner", style="dark_slate_gray3")
         for row in rows:
             table.add_row(*row)
+        column_descriptions_table = Table(title="Column Descriptions")
+        column_descriptions_table.add_column("No.", justify="left", style="bold")
+        column_descriptions_table.add_column("Column", justify="left")
+        column_descriptions_table.add_column("Description", justify="left")
+
+        column_descriptions = [
+            ("[green]1.[/green]", "Index", "The subnet index."),
+            ("[yellow]2.[/yellow]", "Symbol", "The subnet dynamic stake symbol."),
+            ("[grey37]3.[/grey37]", "n", "The number of currently registered neurons out of allowed."),
+            ("[chartreuse1]4.[/chartreuse1]", "emission", "The tao emission per block distributed to the pool of this subnet."),
+            ("[yellow]5.[/yellow]", "price", "The current staking rate or price to purchase the dynamic token."),
+            (f"[blue]6.[/blue]", f"{bittensor.Balance.unit}", "The tao currently in the dynamic pool."),
+            (f"[green]7.[/green]", f"{bittensor.Balance.get_unit(1)}", "The dynamic token balance in the pool."),
+            ("[grey37]8.[/grey37]", "tempo", "The subnet epoch tempo."),
+            ("[deep_pink4]9.[/deep_pink4]", "burn", "The subnet's current burn cost to register a neuron."),
+            ("[dark_goldenrod]10.[/dark_goldenrod]", "pow", "The subnet's current pow cost to register a neuron."),
+            ("[dark_slate_gray3]11.[/dark_slate_gray3]", "owner", "The subnet's owner key.")
+        ]
+        
+        for no, name, description in column_descriptions:
+            column_descriptions_table.add_row(no, name, description)
+        bittensor.__console__.print('Subnets List:')
+        bittensor.__console__.print(column_descriptions_table)
         bittensor.__console__.print(table)
 
     @staticmethod

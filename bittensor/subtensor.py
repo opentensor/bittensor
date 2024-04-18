@@ -3305,16 +3305,24 @@ class subtensor:
         return Balance.from_rao(_result.value)
     
     def get_dynamic_info(self):
-        alpha_reserves = {}
-        tao_reserves = {}
-        k_values = {}
+        netuids = self.get_all_subnet_netuids()
+        alpha_reserves = { netuid:0 for netuid in netuids }
+        tao_reserves = { netuid:0 for netuid in netuids }
+        k_values = { netuid:0 for netuid in netuids }
+        prices = { netuid:1 for netuid in netuids }
         for rec in self.substrate.query_map(module="SubtensorModule",storage_function='DynamicAlphaReserve', params=[], block_hash=None,).records:
             alpha_reserves[rec[0].value] = rec[1].value
         for rec in self.substrate.query_map( module="SubtensorModule", storage_function='DynamicTAOReserve', params=[], block_hash=None).records:
             tao_reserves[rec[0].value] = rec[1].value
         for rec in self.substrate.query_map( module="SubtensorModule", storage_function='DynamicK', params=[], block_hash=None).records:
             k_values[rec[0].value] = rec[1].value
-        reserves = [{'netuid': netuid, 'tao_reserve': tao_reserves[netuid], 'alpha_reserve': alpha_reserves[netuid], 'k': k_values[netuid]} for netuid in tao_reserves.keys()]
+        reserves = { netuid:{
+            'netuid': netuid, 
+            'tao_reserve': tao_reserves[netuid], 
+            'alpha_reserve': alpha_reserves[netuid], 
+            'k': k_values[netuid],
+            'price': tao_reserves[netuid] / alpha_reserves[netuid] if alpha_reserves[netuid] > 0 else 0
+        } for netuid in tao_reserves.keys() }
         return reserves
 
     def get_stake(
