@@ -35,7 +35,6 @@ from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall
 
 # Local imports.
-from .btlogging.defines import BITTENSOR_LOGGER_NAME
 from .chain_data import (
     NeuronInfo,
     DelegateInfo,
@@ -87,7 +86,7 @@ from .utils import U16_NORMALIZED_FLOAT, ss58_to_vec_u8, U64_NORMALIZED_FLOAT
 from .utils.balance import Balance
 from .utils.registration import POWSolution
 
-logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
+logger = logging.getLogger("subtensor")
 
 KEY_NONCE: Dict[str, int] = {}
 
@@ -742,39 +741,38 @@ class subtensor:
         trust in other neurons based on observed performance and contributions.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="set_weights",
-                    call_params={
-                        "dests": uids,
-                        "weights": vals,
-                        "netuid": netuid,
-                        "version_key": version_key,
-                    },
-                )
-                # Period dictates how long the extrinsic will stay as part of waiting pool
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call,
-                    keypair=wallet.hotkey,
-                    era={"period": 5},
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True, "Not waiting for finalziation or inclusion."
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="set_weights",
+                call_params={
+                    "dests": uids,
+                    "weights": vals,
+                    "netuid": netuid,
+                    "version_key": version_key,
+                },
+            )
+            # Period dictates how long the extrinsic will stay as part of waiting pool
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call,
+                keypair=wallet.hotkey,
+                era={"period": 5},
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, "Not waiting for finalziation or inclusion."
 
-                response.process_events()
-                if response.is_success:
-                    return True, "Successfully set weights."
-                else:
-                    return False, response.error_message
+            response.process_events()
+            if response.is_success:
+                return True, "Successfully set weights."
+            else:
+                return False, response.error_message
 
         return make_substrate_call_with_retry()
 
@@ -951,42 +949,41 @@ class subtensor:
             error (Optional[str]): ``None`` on success or not waiting for inclusion/finalization, otherwise the error message.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                # create extrinsic call
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="register",
-                    call_params={
-                        "netuid": netuid,
-                        "block_number": pow_result.block_number,
-                        "nonce": pow_result.nonce,
-                        "work": [int(byte_) for byte_ in pow_result.seal],
-                        "hotkey": wallet.hotkey.ss58_address,
-                        "coldkey": wallet.coldkeypub.ss58_address,
-                    },
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.hotkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
+            # create extrinsic call
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="register",
+                call_params={
+                    "netuid": netuid,
+                    "block_number": pow_result.block_number,
+                    "nonce": pow_result.nonce,
+                    "work": [int(byte_) for byte_ in pow_result.seal],
+                    "hotkey": wallet.hotkey.ss58_address,
+                    "coldkey": wallet.coldkeypub.ss58_address,
+                },
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.hotkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True, None
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, None
 
-                # process if registration successful, try again if pow is still valid
-                response.process_events()
-                if not response.is_success:
-                    return False, response.error_message
-                # Successful registration
-                else:
-                    return True, None
+            # process if registration successful, try again if pow is still valid
+            response.process_events()
+            if not response.is_success:
+                return False, response.error_message
+            # Successful registration
+            else:
+                return True, None
 
         return make_substrate_call_with_retry()
 
@@ -997,38 +994,37 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                # create extrinsic call
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="burned_register",
-                    call_params={
-                        "netuid": netuid,
-                        "hotkey": wallet.hotkey.ss58_address,
-                    },
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
+            # create extrinsic call
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="burned_register",
+                call_params={
+                    "netuid": netuid,
+                    "hotkey": wallet.hotkey.ss58_address,
+                },
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True, None
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, None
 
-                # process if registration successful, try again if pow is still valid
-                response.process_events()
-                if not response.is_success:
-                    return False, response.error_message
-                # Successful registration
-                else:
-                    return True, None
+            # process if registration successful, try again if pow is still valid
+            response.process_events()
+            if not response.is_success:
+                return False, response.error_message
+            # Successful registration
+            else:
+                return True, None
 
         return make_substrate_call_with_retry()
 
@@ -1039,38 +1035,37 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                # create extrinsic call
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="swap_hotkey",
-                    call_params={
-                        "hotkey": wallet.hotkey.ss58_address,
-                        "new_hotkey": new_wallet.hotkey.ss58_address,
-                    },
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
+            # create extrinsic call
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="swap_hotkey",
+                call_params={
+                    "hotkey": wallet.hotkey.ss58_address,
+                    "new_hotkey": new_wallet.hotkey.ss58_address,
+                },
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True, None
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, None
 
-                # process if registration successful, try again if pow is still valid
-                response.process_events()
-                if not response.is_success:
-                    return False, response.error_message
-                # Successful registration
-                else:
-                    return True, None
+            # process if registration successful, try again if pow is still valid
+            response.process_events()
+            if not response.is_success:
+                return False, response.error_message
+            # Successful registration
+            else:
+                return True, None
 
         return make_substrate_call_with_retry()
 
@@ -1140,24 +1135,23 @@ class subtensor:
         elif isinstance(value, int):
             transfer_balance = Balance.from_rao(value)
 
-        with self.substrate as substrate:
-            call = substrate.compose_call(
-                call_module="Balances",
-                call_function="transfer",
-                call_params={"dest": dest, "value": transfer_balance.rao},
-            )
+        call = self.substrate.compose_call(
+            call_module="Balances",
+            call_function="transfer",
+            call_params={"dest": dest, "value": transfer_balance.rao},
+        )
 
-            try:
-                payment_info = substrate.get_payment_info(
-                    call=call, keypair=wallet.coldkeypub
+        try:
+            payment_info = self.substrate.get_payment_info(
+                call=call, keypair=wallet.coldkeypub
+            )
+        except Exception as e:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {}[/bold white]".format(
+                    e
                 )
-            except Exception as e:
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {}[/bold white]".format(
-                        e
-                    )
-                )
-                payment_info = {"partialFee": 2e7}  # assume  0.02 Tao
+            )
+            payment_info = {"partialFee": 2e7}  # assume  0.02 Tao
 
         fee = Balance.from_rao(payment_info["partialFee"])
         return fee
@@ -1184,33 +1178,32 @@ class subtensor:
             error (str): Error message if transfer failed.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="Balances",
-                    call_function="transfer",
-                    call_params={"dest": dest, "value": transfer_balance.rao},
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True, None, None
+            call = self.substrate.compose_call(
+                call_module="Balances",
+                call_function="transfer",
+                call_params={"dest": dest, "value": transfer_balance.rao},
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, None, None
 
-                # Otherwise continue with finalization.
-                response.process_events()
-                if response.is_success:
-                    block_hash = response.block_hash
-                    return True, block_hash, None
-                else:
-                    return False, None, response.error_message
+            # Otherwise continue with finalization.
+            response.process_events()
+            if response.is_success:
+                block_hash = response.block_hash
+                return True, block_hash, None
+            else:
+                return False, None, response.error_message
 
         return make_substrate_call_with_retry()
 
@@ -1419,30 +1412,29 @@ class subtensor:
         enhancing the decentralized computation capabilities of Bittensor.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="serve_axon",
-                    call_params=call_params,
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.hotkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                if wait_for_inclusion or wait_for_finalization:
-                    response.process_events()
-                    if response.is_success:
-                        return True, None
-                    else:
-                        return False, response.error_message
-                else:
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="serve_axon",
+                call_params=call_params,
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.hotkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            if wait_for_inclusion or wait_for_finalization:
+                response.process_events()
+                if response.is_success:
                     return True, None
+                else:
+                    return False, response.error_message
+            else:
+                return True, None
 
         return make_substrate_call_with_retry()
 
@@ -1482,30 +1474,29 @@ class subtensor:
             error (:func:`Optional[str]`): Error message if serve prometheus failed, ``None`` otherwise.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="serve_prometheus",
-                    call_params=call_params,
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.hotkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                if wait_for_inclusion or wait_for_finalization:
-                    response.process_events()
-                    if response.is_success:
-                        return True, None
-                    else:
-                        return False, response.error_message
-                else:
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="serve_prometheus",
+                call_params=call_params,
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.hotkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            if wait_for_inclusion or wait_for_finalization:
+                response.process_events()
+                if response.is_success:
                     return True, None
+                else:
+                    return False, response.error_message
+            else:
+                return True, None
 
         return make_substrate_call_with_retry()
 
@@ -1532,33 +1523,32 @@ class subtensor:
             error (:func:`Optional[str]`): Error message if associate IPs failed, None otherwise.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="associate_ips",
-                    call_params={
-                        "ip_info_list": [ip_info.encode() for ip_info in ip_info_list],
-                        "netuid": netuid,
-                    },
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.hotkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                if wait_for_inclusion or wait_for_finalization:
-                    response.process_events()
-                    if response.is_success:
-                        return True, None
-                    else:
-                        return False, response.error_message
-                else:
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="associate_ips",
+                call_params={
+                    "ip_info_list": [ip_info.encode() for ip_info in ip_info_list],
+                    "netuid": netuid,
+                },
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.hotkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            if wait_for_inclusion or wait_for_finalization:
+                response.process_events()
+                if response.is_success:
                     return True, None
+                else:
+                    return False, response.error_message
+            else:
+                return True, None
 
         return make_substrate_call_with_retry()
 
@@ -1662,31 +1652,30 @@ class subtensor:
             StakeError: If the extrinsic failed.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="add_stake",
-                    call_params={"hotkey": hotkey_ss58, "amount_staked": amount.rao},
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="add_stake",
+                call_params={"hotkey": hotkey_ss58, "amount_staked": amount.rao},
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
 
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise StakeError(response.error_message)
+            response.process_events()
+            if response.is_success:
+                return True
+            else:
+                raise StakeError(response.error_message)
 
         return make_substrate_call_with_retry()
 
@@ -1789,31 +1778,30 @@ class subtensor:
             StakeError: If the extrinsic failed.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="remove_stake",
-                    call_params={"hotkey": hotkey_ss58, "amount_unstaked": amount.rao},
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="remove_stake",
+                call_params={"hotkey": hotkey_ss58, "amount_unstaked": amount.rao},
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
 
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise StakeError(response.error_message)
+            response.process_events()
+            if response.is_success:
+                return True
+            else:
+                raise StakeError(response.error_message)
 
         return make_substrate_call_with_retry()
 
@@ -2108,35 +2096,34 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                # create extrinsic call
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="root_register",
-                    call_params={"hotkey": wallet.hotkey.ss58_address},
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
+            # create extrinsic call
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="root_register",
+                call_params={"hotkey": wallet.hotkey.ss58_address},
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
 
-                # process if registration successful, try again if pow is still valid
-                response.process_events()
-                if not response.is_success:
-                    return False, response.error_message
-                # Successful registration
-                else:
-                    return True, None
+            # process if registration successful, try again if pow is still valid
+            response.process_events()
+            if not response.is_success:
+                return False, response.error_message
+            # Successful registration
+            else:
+                return True, None
 
         return make_substrate_call_with_retry()
 
@@ -2210,17 +2197,16 @@ class subtensor:
         network-specific details, providing insights into the neuron's role and status within the Bittensor network.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.query(
-                    module="Registry",
-                    storage_function="IdentityOf",
-                    params=[key],
-                    block_hash=(
-                        None if block is None else substrate.get_block_hash(block)
-                    ),
-                )
+            return self.substrate.query(
+                module="Registry",
+                storage_function="IdentityOf",
+                params=[key],
+                block_hash=(
+                    None if block is None else self.substrate.get_block_hash(block)
+                ),
+            )
 
         identity_info = make_substrate_call_with_retry()
         return bittensor.utils.wallet_utils.decode_hex_identity_dict(
@@ -2261,30 +2247,29 @@ class subtensor:
         call_params = bittensor.utils.wallet_utils.create_identity_dict(**params)
         call_params["identified"] = identified
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="Registry",
-                    call_function="set_identity",
-                    call_params=call_params,
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise IdentityError(response.error_message)
+            call = self.substrate.compose_call(
+                call_module="Registry",
+                call_function="set_identity",
+                call_params=call_params,
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
+            response.process_events()
+            if response.is_success:
+                return True
+            else:
+                raise IdentityError(response.error_message)
 
         return make_substrate_call_with_retry()
 
@@ -2331,17 +2316,16 @@ class subtensor:
         providing valuable insights into the state and dynamics of the Bittensor ecosystem.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.query(
-                    module="SubtensorModule",
-                    storage_function=name,
-                    params=params,
-                    block_hash=(
-                        None if block is None else substrate.get_block_hash(block)
-                    ),
-                )
+            return self.substrate.query(
+                module="SubtensorModule",
+                storage_function=name,
+                params=params,
+                block_hash=(
+                    None if block is None else self.substrate.get_block_hash(block)
+                ),
+            )
 
         return make_substrate_call_with_retry()
 
@@ -2369,17 +2353,16 @@ class subtensor:
         relationships within the Bittensor ecosystem, such as inter-neuronal connections and stake distributions.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.query_map(
-                    module="SubtensorModule",
-                    storage_function=name,
-                    params=params,
-                    block_hash=(
-                        None if block is None else substrate.get_block_hash(block)
-                    ),
-                )
+            return self.substrate.query_map(
+                module="SubtensorModule",
+                storage_function=name,
+                params=params,
+                block_hash=(
+                    None if block is None else self.substrate.get_block_hash(block)
+                ),
+            )
 
         return make_substrate_call_with_retry()
 
@@ -2404,16 +2387,15 @@ class subtensor:
         operational parameters.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.get_constant(
-                    module_name=module_name,
-                    constant_name=constant_name,
-                    block_hash=(
-                        None if block is None else substrate.get_block_hash(block)
-                    ),
-                )
+            return self.substrate.get_constant(
+                module_name=module_name,
+                constant_name=constant_name,
+                block_hash=(
+                    None if block is None else self.substrate.get_block_hash(block)
+                ),
+            )
 
         return make_substrate_call_with_retry()
 
@@ -2444,17 +2426,16 @@ class subtensor:
         parts of the Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.query(
-                    module=module,
-                    storage_function=name,
-                    params=params,
-                    block_hash=(
-                        None if block is None else substrate.get_block_hash(block)
-                    ),
-                )
+            return self.substrate.query(
+                module=module,
+                storage_function=name,
+                params=params,
+                block_hash=(
+                    None if block is None else self.substrate.get_block_hash(block)
+                ),
+            )
 
         return make_substrate_call_with_retry()
 
@@ -2484,17 +2465,16 @@ class subtensor:
         modules, offering insights into the network's state and the relationships between its different components.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.query_map(
-                    module=module,
-                    storage_function=name,
-                    params=params,
-                    block_hash=(
-                        None if block is None else substrate.get_block_hash(block)
-                    ),
-                )
+            return self.substrate.query_map(
+                module=module,
+                storage_function=name,
+                params=params,
+                block_hash=(
+                    None if block is None else self.substrate.get_block_hash(block)
+                ),
+            )
 
         return make_substrate_call_with_retry()
 
@@ -2520,14 +2500,13 @@ class subtensor:
         useful for specific use cases where standard queries are insufficient.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block is None else substrate.get_block_hash(block)
-                params = [method, data]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(method="state_call", params=params)
+            block_hash = None if block is None else self.substrate.get_block_hash(block)
+            params = [method, data]
+            if block_hash:
+                params = params + [block_hash]
+            return self.substrate.rpc_request(method="state_call", params=params)
 
         return make_substrate_call_with_retry()
 
@@ -3313,17 +3292,16 @@ class subtensor:
         the roles of different subnets, and their unique features.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block is None else substrate.get_block_hash(block)
-                params = []
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="subnetInfo_getSubnetsInfo",  # custom rpc method
-                    params=params,
-                )
+            block_hash = None if block is None else self.substrate.get_block_hash(block)
+            params = []
+            if block_hash:
+                params = params + [block_hash]
+            return self.substrate.rpc_request(
+                method="subnetInfo_getSubnetsInfo",  # custom rpc method
+                params=params,
+            )
 
         json_body = make_substrate_call_with_retry()
         result = json_body["result"]
@@ -3351,17 +3329,16 @@ class subtensor:
         subnet, including its governance, performance, and role within the broader network.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block is None else substrate.get_block_hash(block)
-                params = [netuid]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="subnetInfo_getSubnetInfo",  # custom rpc method
-                    params=params,
-                )
+            block_hash = None if block is None else self.substrate.get_block_hash(block)
+            params = [netuid]
+            if block_hash:
+                params = params + [block_hash]
+            return self.substrate.rpc_request(
+                method="subnetInfo_getSubnetInfo",  # custom rpc method
+                params=params,
+            )
 
         json_body = make_substrate_call_with_retry()
         result = json_body["result"]
@@ -3512,17 +3489,16 @@ class subtensor:
         the Bittensor network's consensus and governance structures.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry(encoded_hotkey: List[int]):
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
-                params = [encoded_hotkey]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="delegateInfo_getDelegate",  # custom rpc method
-                    params=params,
-                )
+            block_hash = None if block == None else self.substrate.get_block_hash(block)
+            params = [encoded_hotkey]
+            if block_hash:
+                params = params + [block_hash]
+            return self.substrate.rpc_request(
+                method="delegateInfo_getDelegate",  # custom rpc method
+                params=params,
+            )
 
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_hotkey)
@@ -3548,17 +3524,16 @@ class subtensor:
         distribution of trust and responsibility among participating neurons.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
-                params = []
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="delegateInfo_getDelegates",  # custom rpc method
-                    params=params,
-                )
+            block_hash = None if block == None else self.substrate.get_block_hash(block)
+            params = []
+            if block_hash:
+                params = params + [block_hash]
+            return self.substrate.rpc_request(
+                method="delegateInfo_getDelegates",  # custom rpc method
+                params=params,
+            )
 
         json_body = make_substrate_call_with_retry()
         result = json_body["result"]
@@ -3586,17 +3561,16 @@ class subtensor:
         involvement in the network's delegation and consensus mechanisms.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry(encoded_coldkey: List[int]):
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
-                params = [encoded_coldkey]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="delegateInfo_getDelegated",  # custom rpc method
-                    params=params,
-                )
+            block_hash = None if block == None else self.substrate.get_block_hash(block)
+            params = [encoded_coldkey]
+            if block_hash:
+                params = params + [block_hash]
+            return self.substrate.rpc_request(
+                method="delegateInfo_getDelegated",  # custom rpc method
+                params=params,
+            )
 
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_coldkey)
@@ -3934,16 +3908,15 @@ class subtensor:
         if uid is None:
             return NeuronInfo._null_neuron()
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block == None else substrate.get_block_hash(block)
-                params = [netuid, uid]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="neuronInfo_getNeuron", params=params  # custom rpc method
-                )
+            block_hash = None if block == None else self.substrate.get_block_hash(block)
+            params = [netuid, uid]
+            if block_hash:
+                params = params + [block_hash]
+            return self.substrate.rpc_request(
+                method="neuronInfo_getNeuron", params=params  # custom rpc method
+            )
 
         json_body = make_substrate_call_with_retry()
         result = json_body["result"]
@@ -4245,30 +4218,29 @@ class subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="add_stake",
-                    call_params={"hotkey": delegate_ss58, "amount_staked": amount.rao},
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise StakeError(response.error_message)
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="add_stake",
+                call_params={"hotkey": delegate_ss58, "amount_staked": amount.rao},
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
+            response.process_events()
+            if response.is_success:
+                return True
+            else:
+                raise StakeError(response.error_message)
 
         return make_substrate_call_with_retry()
 
@@ -4280,33 +4252,32 @@ class subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="remove_stake",
-                    call_params={
-                        "hotkey": delegate_ss58,
-                        "amount_unstaked": amount.rao,
-                    },
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise StakeError(response.error_message)
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="remove_stake",
+                call_params={
+                    "hotkey": delegate_ss58,
+                    "amount_unstaked": amount.rao,
+                },
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
+            response.process_events()
+            if response.is_success:
+                return True
+            else:
+                raise StakeError(response.error_message)
 
         return make_substrate_call_with_retry()
 
@@ -4316,30 +4287,29 @@ class subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="become_delegate",
-                    call_params={"hotkey": wallet.hotkey.ss58_address},
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )  # sign with coldkey
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise NominationError(response.error_message)
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="become_delegate",
+                call_params={"hotkey": wallet.hotkey.ss58_address},
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )  # sign with coldkey
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
+            response.process_events()
+            if response.is_success:
+                return True
+            else:
+                raise NominationError(response.error_message)
 
         return make_substrate_call_with_retry()
 
@@ -4364,17 +4334,16 @@ class subtensor:
         """
         try:
 
-            @retry(delay=2, tries=3, backoff=2, max_delay=4)
+            @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
             def make_substrate_call_with_retry():
-                with self.substrate as substrate:
-                    return substrate.query(
-                        module="System",
-                        storage_function="Account",
-                        params=[address],
-                        block_hash=(
-                            None if block is None else substrate.get_block_hash(block)
-                        ),
-                    )
+                return self.substrate.query(
+                    module="System",
+                    storage_function="Account",
+                    params=[address],
+                    block_hash=(
+                        None if block is None else self.substrate.get_block_hash(block)
+                    ),
+                )
 
             result = make_substrate_call_with_retry()
         except scalecodec.exceptions.RemainingScaleBytesNotEmptyException:
@@ -4396,10 +4365,9 @@ class subtensor:
         operations on the blockchain. It serves as a reference point for network activities and data synchronization.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.get_block_number(None)
+            return self.substrate.get_block_number(None)
 
         return make_substrate_call_with_retry()
 
@@ -4418,16 +4386,15 @@ class subtensor:
         including the distribution of financial resources and the financial status of network participants.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                return substrate.query_map(
-                    module="System",
-                    storage_function="Account",
-                    block_hash=(
-                        None if block is None else substrate.get_block_hash(block)
-                    ),
-                )
+            return self.substrate.query_map(
+                module="System",
+                storage_function="Account",
+                block_hash=(
+                    None if block is None else self.substrate.get_block_hash(block)
+                ),
+            )
 
         result = make_substrate_call_with_retry()
         return_dict = {}
