@@ -4,7 +4,7 @@ ansible_vault==2.1.0
 backoff
 black==23.7.0
 colorama==0.4.6
-cryptography==42.0.0
+cryptography==42.0.5
 ddt==1.6.0
 fuzzywuzzy>=0.18.0
 fastapi==0.110.1
