@@ -7,7 +7,7 @@ colorama==0.4.6
 cryptography==42.0.0
 ddt==1.6.0
 fuzzywuzzy>=0.18.0
-fastapi==0.99.1
+fastapi==0.110.1
 munch==2.5.0
 netaddr
 numpy
