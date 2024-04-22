@@ -80,6 +80,8 @@ class StakeWeightsCommand:
         netuids = torch.tensor(
             list(map(int, re.split(r"[ ,]+", cli.config.netuids))), dtype=torch.long
         )
+        print (cli.config.weights)
+        print (re.split(r"[ ,]+", cli.config.weights))
         weights = torch.tensor(
             list(map(float, re.split(r"[ ,]+", cli.config.weights))),
             dtype=torch.float32,
@@ -107,6 +109,7 @@ class StakeWeightsCommand:
             required=False,
             help="""The ss58 address of the chosen delegate""",
         )
+        # TODO fix does not work: --netuids 1,2,3 --weights 0.33, 0.33, 0.33 
         parser.add_argument("--netuids", dest="netuids", type=str, required=False)
         parser.add_argument("--weights", dest="weights", type=str, required=False)
         bittensor.wallet.add_args(parser)
