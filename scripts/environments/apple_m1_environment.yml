@@ -149,7 +149,7 @@ dependencies:
       - eth-typing==3.4.0
       - eth-utils==2.2.0
       - exceptiongroup==1.1.2
-      - fastapi==0.99.1
+      - fastapi==0.110.1
       - filelock==3.12.2
       - fqdn==1.5.1
       - frozenlist==1.4.0
