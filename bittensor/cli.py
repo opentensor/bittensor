@@ -79,6 +79,7 @@ COMMANDS = {
             # TODO deprecate this. Sets yourself up to become a nominator.
             # "nominate": NominateCommand,
             "set_take": SetTakeCommand,
+            "set_delegate_takes": SetDelegateTakesCommand,
             # TODO write set_takes ...
             # Deprecated.
             # "get_weights": RootGetWeightsCommand,

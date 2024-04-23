@@ -19,16 +19,16 @@ import sys
 import os
 import argparse
 import bittensor
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from rich.table import Table
-from rich.prompt import Prompt, IntPrompt, FloatPrompt
-from rich.prompt import Confirm
+from rich.prompt import Prompt, IntPrompt, FloatPrompt, Confirm
 from rich.console import Text
 from tqdm import tqdm
 from substrateinterface.exceptions import SubstrateRequestException
 from .utils import get_delegates_details, DelegatesDetails
 from .identity import SetIdentityCommand
 from . import defaults
+import json
 
 import os
 import bittensor
@@ -1021,6 +1021,124 @@ class SetTakeCommand:
         )
         bittensor.wallet.add_args(set_take_parser)
         bittensor.subtensor.add_args(set_take_parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+class SetDelegateTakesCommand:
+    """
+    Executes the ``set_delegate_takes`` command, which sets the delegate takes for multiple subnets.
+
+    The command performs several checks:
+
+        1. Hotkey is already a delegate
+        2. Each netid matches one of the existing subnets
+        3. New take values are within the 0-18% range
+
+    Optional Arguments:
+        - ``takes``: A list of tuples where each tuple contains a subnet ID and the new take value
+        - ``wallet.name``: The name of the wallet to use for the command.
+        - ``wallet.hotkey``: The name of the hotkey to use for the command.
+
+    Usage:
+        To run the command, the user must have a configured wallet with both hotkey and coldkey. Also, the hotkey should already be a delegate.
+
+    Example usage::
+        btcli root set_delegate_takes --wallet.name my_wallet --wallet.hotkey my_hotkey --takes [(1, 0.15), (2, 0.10)]
+
+    Note:
+        This function can be used to update the takes for multiple subnets in a single command.
+    """
+
+    @staticmethod
+    def run(cli: "bittensor.cli"):
+        r"""Set takes for multiple subnets."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            SetDelegateTakesCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        config = cli.config.copy()
+        wallet = bittensor.wallet(config=cli.config)
+
+        # Unlock the wallet.
+        wallet.hotkey
+        wallet.coldkey
+
+        # Check if the hotkey is not a delegate.
+        if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
+            console.print(
+                f"Aborting: Hotkey {wallet.hotkey.ss58_address} is NOT a delegate.",
+                style="bold red"
+            )
+            return
+
+        # Get available netuids
+        netuids = subtensor.get_all_subnet_netuids()
+
+        # Parse takes input
+        takes_input = config.get("takes", [])
+        if not takes_input:
+            # Prompt for takes input if not provided
+            takes_count = IntPrompt.ask("Enter the number of takes to set")
+            takes_input = []
+            for _ in range(takes_count):
+                netuid = IntPrompt.ask("Enter subnet ID")
+                take = FloatPrompt.ask("Enter take value (0.18 for 18%)")
+                takes_input.append((netuid, take))
+
+        # Validate and collect takes
+        takes = []
+        for netuid, take in takes_input:
+            if netuid not in netuids:
+                console.print(f"ERROR: This netuid ({netuid}) doesn't exist on the network", style="bold red")
+                continue
+            if take > 0.18:
+                console.print("ERROR: Take value should be in the range of 0 to 18%", style="bold red")
+                continue
+            takes.append((netuid, take))
+
+        if not takes:
+            console.print("No valid takes were provided or all provided takes were invalid.", style="bold red")
+            return
+
+        result: bool = subtensor.set_delegates_takes(
+            wallet=wallet,
+            takes=takes
+        )
+        if not result:
+            console.print("Could not set the takes", style="bold red")
+        else:
+            console.print(f"Successfully set the takes on [white]{subtensor.network}[/white]", style="bold green")
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        set_takes_parser = parser.add_parser(
+            "set_delegate_takes", help="""Set takes for multiple delegates on different subnets"""
+        )
+        set_takes_parser.add_argument(
+            "--takes",
+            dest="takes",
+            type=json.loads,
+            required=False,
+            help="""List of tuples (netuid, take)""",
+        )
+        bittensor.wallet.add_args(set_takes_parser)
+        bittensor.subtensor.add_args(set_takes_parser)
 
     @staticmethod
     def check_config(config: "bittensor.config"):

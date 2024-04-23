@@ -54,7 +54,7 @@ from .extrinsics.network import (
     register_subnetwork_extrinsic,
     set_hyperparameter_extrinsic,
 )
-from .extrinsics.delegation import decrease_take_extrinsic, increase_take_extrinsic
+from .extrinsics.delegation import decrease_take_extrinsic, increase_take_extrinsic, set_delegates_takes_extrinsic
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic, add_stake_weight_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .extrinsics.substaking import add_substake_extrinsic, remove_substake_extrinsic
@@ -619,7 +619,40 @@ class subtensor:
                 wait_for_finalization=wait_for_finalization,
             )
 
+    def set_delegates_takes(
+    self,
+    wallet: "bittensor.wallet",
+    takes: List[Tuple[int, float]],
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Set multiple delegate takes for the hotkey across different subnets.
 
+        Args:
+            wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
+            takes (List[Tuple[int, float]]): A list of tuples where each tuple contains a subnet ID (`netuid`) and the new take (`take`) for that subnet.
+            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the blockchain.
+            wait_for_inclusion (bool, optional): If ``True``, waits until the transaction is included in a block.
+
+        Returns:
+            bool: ``True`` if the process is successful, False otherwise.
+
+        """
+        # Convert takes to u16 representation
+        takes_u16 = [(netuid, int(take * 0xFFFF)) for netuid, take in takes]
+
+        # Call the extrinsic to set multiple takes
+        success = set_delegates_takes_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            takes=takes_u16,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        return success
+    
     def send_extrinsic(
         self,
         wallet: "bittensor.wallet",
@@ -4816,6 +4849,44 @@ class subtensor:
                         "hotkey": hotkey_ss58,
                         "netuid": netuid,
                         "take": take,
+                    },
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )  # sign with coldkey
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+                response.process_events()
+                if response.is_success:
+                    return True
+                else:
+                    raise TakeError(response.error_message)
+
+        return make_substrate_call_with_retry()
+    
+    def _set_delegate_takes(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        takes: List[Tuple[int, int]],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="set_delegate_takes",
+                    call_params={
+                        "hotkey": hotkey_ss58,
+                        "takes": takes,
                     },
                 )
                 extrinsic = substrate.create_signed_extrinsic(
