@@ -24,6 +24,7 @@ from typing import List, Union, Optional
 from bittensor.utils.balance import Balance
 import bittensor.utils.weight_utils as weight_utils
 
+
 def add_stake_weight_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
@@ -34,7 +35,6 @@ def add_stake_weight_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> bool:
-    
     # decrypt coldkey.
     wallet.coldkey
 
@@ -43,24 +43,27 @@ def add_stake_weight_extrinsic(
         netuids = torch.tensor(netuids, dtype=torch.int64)
     if isinstance(weights, list):
         weights = torch.tensor(weights, dtype=torch.float32)
-        
+
     # Normalize to 1.0.
-    weights = weights/weights.sum()
-    
+    weights = weights / weights.sum()
+
     # Get the amount of stake you have on this delegate
     stake_on_delegate: bittensor.Balance = subtensor.get_stake_for_coldkey_and_hotkey(
-        hotkey_ss58=hotkey,
-        coldkey_ss58=wallet.coldkeypub.ss58_address
+        hotkey_ss58=hotkey, coldkey_ss58=wallet.coldkeypub.ss58_address
     )
     if stake_on_delegate.rao == 0:
-        bittensor.__console__.print(f":cross_mark: You don't have any stake delegated to this hotkey, you should first delegate to it: \n\t [bold white]btcli st delegate --delegate_ss58key {hotkey} [/bold white]")
+        bittensor.__console__.print(
+            f":cross_mark: You don't have any stake delegated to this hotkey, you should first delegate to it: \n\t [bold white]btcli st delegate --delegate_ss58key {hotkey} [/bold white]"
+        )
         return False
 
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
             "Do you want to set the following stake weights?:\n[bold white] netuids: {}\n weights: {}\n stake: {}\n  [/bold white ]".format(
-                weights.tolist(), netuids.tolist(), (weights * stake_on_delegate.tao).tolist()
+                weights.tolist(),
+                netuids.tolist(),
+                (weights * stake_on_delegate.tao).tolist(),
             )
         ):
             return False
@@ -76,9 +79,9 @@ def add_stake_weight_extrinsic(
             )
             success, error_message = subtensor._do_set_stake_weights(
                 wallet=wallet,
-                hotkey = hotkey,
-                weights = weight_vals,
-                netuids = weight_uids,
+                hotkey=hotkey,
+                weights=weight_vals,
+                netuids=weight_uids,
                 wait_for_finalization=wait_for_finalization,
                 wait_for_inclusion=wait_for_inclusion,
             )

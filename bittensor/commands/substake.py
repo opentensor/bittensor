@@ -56,21 +56,21 @@ class SubStakeCommand:
 
         Enter netuid (0): 1
 
-        Enter wallet name (default): 
+        Enter wallet name (default):
 
-        Enter hotkey name or ss58_address to stake to (default): 
+        Enter hotkey name or ss58_address to stake to (default):
 
         Stake all Tao from account: 'default'? [y/n]: n
 
         Enter Tao amount to stake: 100
 
-        Do you want to stake to the following hotkey on netuid 1: 
+        Do you want to stake to the following hotkey on netuid 1:
           - from   default:5GeYLB44QY9wcqJmFZvJW8D3EYPDaJGSgGfkbJVxUbkVcU7C
           - to     default:5C86aJ2uQawR6P6veaJQXNK9HaWh6NMbUhTiLs65kq4ZW3NH
           - amount 100.0 τ
-          - for: 
+          - for:
         [y/n]: y
-        Enter password to unlock key: 
+        Enter password to unlock key:
         ✅ Finalized
 
         Balance:
@@ -99,7 +99,7 @@ class SubStakeCommand:
         r"""Stake token of amount to hotkey(s)."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
-        dynamic_info = subtensor.get_dynamic_info_for_netuid( config.netuid )
+        dynamic_info = subtensor.get_dynamic_info_for_netuid(config.netuid)
         hotkey_tup: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
 
         if config.is_set("hotkey"):
@@ -171,7 +171,6 @@ class SubStakeCommand:
 
     @classmethod
     def check_config(cls, config: "bittensor.config"):
-
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -190,7 +189,7 @@ class SubStakeCommand:
                 config.hotkey = str(hotkey)
             else:
                 config.wallet.hotkey = str(hotkey)
-                
+
         if not config.is_set("netuid") and not config.no_prompt:
             netuid = Prompt.ask("Enter netuid", default="0")
             config.netuid = int(netuid)
@@ -264,19 +263,19 @@ class RemoveSubStakeCommand:
 
         Enter netuid (0): 1
 
-        Enter wallet name (default): 
+        Enter wallet name (default):
 
         Enter hotkey name or ss58_address to unstake from (default): 5C86aJ2uQawR6P6veaJQXNK9HaWh6NMbUhTiLs65kq4ZW3NH
 
-        Unstake all τao 
-        from account: 'default' 
-        and hotkey  : '5C86aJ2uQawR6P6veaJQXNK9HaWh6NMbUhTiLs65kq4ZW3NH' 
+        Unstake all τao
+        from account: 'default'
+        and hotkey  : '5C86aJ2uQawR6P6veaJQXNK9HaWh6NMbUhTiLs65kq4ZW3NH'
         from subnet : '1'
         [y/n]: n
 
         Enter Tao amount to unstake: 1337
 
-        Enter password to unlock key: 
+        Enter password to unlock key:
 
         Do you want to unstake:
             amount: τ500
@@ -386,7 +385,7 @@ class RemoveSubStakeCommand:
             else:
                 config.hotkey = str(hotkey)
                 config.wallet.hotkey = str(hotkey)
-                
+
         if not config.is_set("netuid") and not config.no_prompt:
             netuid = Prompt.ask("Enter netuid", default="0")
             config.netuid = int(netuid)

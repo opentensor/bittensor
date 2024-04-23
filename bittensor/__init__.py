@@ -205,64 +205,38 @@ __type_registry__ = {
         "SubnetRegistrationRuntimeApi": {
             "methods": {"get_network_registration_cost": {"params": [], "type": "u64"}}
         },
-        
         "StakeInfoRuntimeApi": {
             "methods": {
                 "get_stake_info_for_coldkey": {
-                    "params": [
-                        {
-                            "name": "coldkey_account_vec",
-                            "type": "Vec<u8>"
-                        }
-                    ],
-                    "type": "Vec<u8>"
+                    "params": [{"name": "coldkey_account_vec", "type": "Vec<u8>"}],
+                    "type": "Vec<u8>",
                 },
                 "get_stake_info_for_coldkeys": {
                     "params": [
-                        {
-                            "name": "coldkey_account_vecs",
-                            "type": "Vec<Vec<u8>>"
-                        }
+                        {"name": "coldkey_account_vecs", "type": "Vec<Vec<u8>>"}
                     ],
-                    "type": "Vec<u8>"
+                    "type": "Vec<u8>",
                 },
                 "get_subnet_stake_info_for_coldkeys": {
                     "params": [
-                        {
-                            "name": "coldkey_account_vecs",
-                            "type": "Vec<Vec<u8>>"
-                        },
-                        {
-                            "name": "netuid",
-                            "type": "u16"
-                        }
+                        {"name": "coldkey_account_vecs", "type": "Vec<Vec<u8>>"},
+                        {"name": "netuid", "type": "u16"},
                     ],
-                    "type": "Vec<u8>"
+                    "type": "Vec<u8>",
                 },
                 "get_subnet_stake_info_for_coldkey": {
                     "params": [
-                        {
-                            "name": "coldkey_account_vec",
-                            "type": "Vec<u8>"
-                        },
-                        {
-                            "name": "netuid",
-                            "type": "u16"
-                        }
+                        {"name": "coldkey_account_vec", "type": "Vec<u8>"},
+                        {"name": "netuid", "type": "u16"},
                     ],
-                    "type": "Vec<u8>"
+                    "type": "Vec<u8>",
                 },
                 "get_total_subnet_stake": {
-                    "params": [
-                        {
-                            "name": "netuid",
-                            "type": "u16"
-                        }
-                    ],
-                    "type": "Vec<u8>"
-                }
+                    "params": [{"name": "netuid", "type": "u16"}],
+                    "type": "Vec<u8>",
+                },
             }
-        }
+        },
     },
 }
 

@@ -31,6 +31,7 @@ from . import defaults
 
 console = bittensor.__console__
 
+
 # TODO the register command sets an identity on the chain. We should use this identity rather
 # than use the github project for the identities.
 class RootRegisterCommand:
@@ -93,6 +94,7 @@ class RootRegisterCommand:
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
+
 
 # TODO should show total stake across all subnets not just root.
 class RootList:
@@ -190,18 +192,18 @@ class RootList:
                 no_wrap=True,
             )
         table.show_footer = True
-        
+
         netuids = subtensor.get_all_subnet_netuids()
         # TODO should sort these by stake.
-        for idx, neuron_data in enumerate( root_neurons) :
-            substake = subtensor.get_substake_for_hotkey( neuron_data.hotkey )
+        for idx, neuron_data in enumerate(root_neurons):
+            substake = subtensor.get_substake_for_hotkey(neuron_data.hotkey)
             total_stake_tao = 0
             total_stake_alpha = 0
-            per_subnet_stake = { net: 0 for net in netuids }
-            for ss in substake: 
-                per_subnet_stake[ ss['netuid'] ] += ss['stake']
-                total_stake_tao += ss['stake'].tao * dynamic_info[ss['netuid']]['price']
-                total_stake_alpha += ss['stake'].tao 
+            per_subnet_stake = {net: 0 for net in netuids}
+            for ss in substake:
+                per_subnet_stake[ss["netuid"]] += ss["stake"]
+                total_stake_tao += ss["stake"].tao * dynamic_info[ss["netuid"]]["price"]
+                total_stake_alpha += ss["stake"].tao
 
             row1 = [
                 str(idx),
@@ -211,15 +213,24 @@ class RootList:
                     else neuron_data.hotkey[:10]
                 ),
                 "Yes" if neuron_data.hotkey in senate_members else "No",
-                f"[green]{str(bittensor.Balance.from_tao(total_stake_alpha).set_unit(1))}"
+                f"[green]{str(bittensor.Balance.from_tao(total_stake_alpha).set_unit(1))}",
             ]
             for net in netuids:
-                row1.append( f"[green]{bittensor.Balance.from_rao(int(per_subnet_stake[net])).set_unit(net)}[/green]" )
-            table.add_row( *row1 )
-            row2 = [ '', '','', f"[blue]{str(bittensor.Balance.from_tao(total_stake_tao))}" ]
+                row1.append(
+                    f"[green]{bittensor.Balance.from_rao(int(per_subnet_stake[net])).set_unit(net)}[/green]"
+                )
+            table.add_row(*row1)
+            row2 = [
+                "",
+                "",
+                "",
+                f"[blue]{str(bittensor.Balance.from_tao(total_stake_tao))}",
+            ]
             for net in netuids:
-                row2.append( f"[blue]{bittensor.Balance.from_rao(int(per_subnet_stake[net] * dynamic_info[net]['price'] ))}[/blue]" )
-            table.add_row( *row2 )
+                row2.append(
+                    f"[blue]{bittensor.Balance.from_rao(int(per_subnet_stake[net] * dynamic_info[net]['price'] ))}[/blue]"
+                )
+            table.add_row(*row2)
 
         table.box = None
         table.pad_edge = False
@@ -246,32 +257,47 @@ class RootList:
             caption_style=None,
             title_justify="center",
             caption_justify="center",
-            highlight=False
+            highlight=False,
         )
         column_descriptions_table.add_column("No.", justify="left", style="bold")
         column_descriptions_table.add_column("Column", justify="left")
         column_descriptions_table.add_column("Description", justify="left")
 
         column_descriptions = [
-            ("[dark_slate_gray3]1.[/dark_slate_gray3]", "[dark_slate_gray3]idx[/dark_slate_gray3]", "The root member index (sorted by total tao)"),
-            ("[dark_slate_gray3]2.[/dark_slate_gray3]", "[dark_slate_gray3]member[/dark_slate_gray3]", "The hotkey or delegate name associated with the slot on the root network."),
-            ("[blue]3.[/blue]", "[blue]senator[/blue]", "Yes, if the member is in the top 12 root stake holders measured by stake and thus part of the senate."),
-            ("[green]4.[/green]", "[green]dtao[/green]", """For each subnet, the amount of [blue]TAO[/blue] and [green]dynamic TAO (\u03B1)[/green]. 
+            (
+                "[dark_slate_gray3]1.[/dark_slate_gray3]",
+                "[dark_slate_gray3]idx[/dark_slate_gray3]",
+                "The root member index (sorted by total tao)",
+            ),
+            (
+                "[dark_slate_gray3]2.[/dark_slate_gray3]",
+                "[dark_slate_gray3]member[/dark_slate_gray3]",
+                "The hotkey or delegate name associated with the slot on the root network.",
+            ),
+            (
+                "[blue]3.[/blue]",
+                "[blue]senator[/blue]",
+                "Yes, if the member is in the top 12 root stake holders measured by stake and thus part of the senate.",
+            ),
+            (
+                "[green]4.[/green]",
+                "[green]dtao[/green]",
+                """For each subnet, the amount of [blue]TAO[/blue] and [green]dynamic TAO (\u03B1)[/green]. 
 Note the TAO is computed by using the current subent price, this value not.
-            """),
+            """,
+            ),
         ]
-        
+
         for no, name, description in column_descriptions:
             column_descriptions_table.add_row(no, name, description)
         bittensor.__console__.print(column_descriptions_table)
         bittensor.__console__.print("\n")
         bittensor.__console__.print("\n")
         bittensor.__console__.print(table)
-        
+
         # root_index = Prompt.ask("Enter root index")
         # root_hotkey = root_neurons[int(root_index)].hotkey
         # print (root_hotkey)
-
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -281,6 +307,7 @@ Note the TAO is computed by using the current subent price, this value not.
     @staticmethod
     def check_config(config: "bittensor.config"):
         pass
+
 
 # TODO repurpose (or remove) for decreasing take.
 class RootSetBoostCommand:
@@ -402,6 +429,7 @@ class RootSetBoostCommand:
             config.netuid = int(Prompt.ask(f"Enter netuid (e.g. 1)"))
         if not config.is_set("amount") and not config.no_prompt:
             config.amount = float(Prompt.ask(f"Enter amount (e.g. 0.01)"))
+
 
 # TODO repurpose for increasing take.
 class RootSetSlashCommand:
