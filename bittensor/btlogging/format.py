@@ -69,6 +69,18 @@ LOG_TRACE_FORMATS = {
     for level, color in log_level_color_prefix.items()
 }
 
+DEFAULT_LOG_FORMAT = (
+    f"{Fore.BLUE}%(asctime)s{Fore.RESET} | "
+    f"{Style.BRIGHT}{Fore.WHITE}%(levelname)s{Style.RESET_ALL} | "
+    f"%(name)s:%(filename)s:%(lineno)s | %(message)s"
+)
+
+DEFAULT_TRACE_FORMAT = (
+    f"{Fore.BLUE}%(asctime)s{Fore.RESET} | "
+    f"{Style.BRIGHT}{Fore.WHITE}%(levelname)s{Style.RESET_ALL} | "
+    f"%(name)s:%(filename)s:%(lineno)s | %(message)s"
+)
+
 
 class BtStreamFormatter(logging.Formatter):
     def __init__(self, *args, **kwargs):
@@ -93,10 +105,15 @@ class BtStreamFormatter(logging.Formatter):
         format_orig = self._style._fmt
         record.levelname = f"{record.levelname:^16}"
 
-        if self.trace is True:
-            self._style._fmt = LOG_TRACE_FORMATS[record.levelno]
+        if record.levelno not in LOG_FORMATS:
+            self._style._fmt = (
+                DEFAULT_TRACE_FORMAT if self.trace else DEFAULT_LOG_FORMAT
+            )
         else:
-            self._style._fmt = LOG_FORMATS[record.levelno]
+            if self.trace is True:
+                self._style._fmt = LOG_TRACE_FORMATS[record.levelno]
+            else:
+                self._style._fmt = LOG_FORMATS[record.levelno]
 
         for text, emoji in emoji_map.items():
             record.msg = record.msg.replace(text, emoji)
