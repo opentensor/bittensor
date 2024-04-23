@@ -197,6 +197,7 @@ custom_rpc_type_registry = {
     }
 }
 
+
 class ChainDataType(Enum):
     NeuronInfo = 1
     SubnetInfo = 2
@@ -226,6 +227,7 @@ def from_scale_encoding(
 
     return from_scale_encoding_using_type_string(input, type_string)
 
+
 def from_scale_encoding_using_type_string(
     input: Union[List[int], bytes, ScaleBytes], type_string: str
 ) -> Optional[Dict]:
@@ -248,6 +250,7 @@ def from_scale_encoding_using_type_string(
     obj = rpc_runtime_config.create_scale_object(type_string, data=as_scale_bytes)
     return obj.decode()
 
+
 @dataclass
 class DynamicPool:
     alpha_issuance: Balance
@@ -257,39 +260,60 @@ class DynamicPool:
     k: int
     price: Balance
     netuid: int
-    def __init__(self, netuid:int, alpha_issuance: Balance, alpha_outstanding: Balance, alpha_reserve: Balance, tao_reserve: Balance, k: int):
+
+    def __init__(
+        self,
+        netuid: int,
+        alpha_issuance: Balance,
+        alpha_outstanding: Balance,
+        alpha_reserve: Balance,
+        tao_reserve: Balance,
+        k: int,
+    ):
         self.netuid = netuid
         self.alpha_issuance = alpha_issuance
         self.alpha_outstanding = alpha_outstanding
         self.alpha_reserve = alpha_reserve
         self.tao_reserve = tao_reserve
         self.k = self.tao_reserve.rao * self.alpha_reserve.rao
-        self.price = Balance.from_tao( self.tao_reserve.tao / self.alpha_reserve.tao )
-        
+        self.price = Balance.from_tao(self.tao_reserve.tao / self.alpha_reserve.tao)
+
     def __str__(self) -> str:
         return f"DynamicPool( alpha_issuance={self.alpha_issuance}, alpha_outstanding={self.alpha_outstanding}, alpha_reserve={self.alpha_reserve}, tao_reserve={self.tao_reserve}, k={self.k}, price={self.price} )"
-    
+
     def __repr__(self) -> str:
         return self.__str__()
-    
-    def tao_to_alpha(self, tao: Union[ float, Balance ]) -> Balance:
-        return Balance.from_tao( tao / self.price.tao ).set_unit( self.netuid )
-    
-    def alpha_to_tao(self, alpha: Union[ float, Balance ]) -> Balance:
-        return Balance.from_tao( alpha * self.price.tao )
-    
-    def tao_to_alpha_with_slippage(self, tao: Union[ float, Balance ] ) -> Tuple[Balance, Balance]:
-        alpha_returned = Balance.from_rao(self.alpha_reserve.rao - (self.k / (self.tao_reserve.rao + Balance.from_tao(tao).rao) ) ).set_unit( self.netuid )
-        to_alpha = self.tao_to_alpha( tao )
-        slippage = Balance.from_tao( to_alpha.tao - alpha_returned.tao ).set_unit( self.netuid )
+
+    def tao_to_alpha(self, tao: Union[float, Balance]) -> Balance:
+        return Balance.from_tao(tao / self.price.tao).set_unit(self.netuid)
+
+    def alpha_to_tao(self, alpha: Union[float, Balance]) -> Balance:
+        return Balance.from_tao(alpha * self.price.tao)
+
+    def tao_to_alpha_with_slippage(
+        self, tao: Union[float, Balance]
+    ) -> Tuple[Balance, Balance]:
+        alpha_returned = Balance.from_rao(
+            self.alpha_reserve.rao
+            - (self.k / (self.tao_reserve.rao + Balance.from_tao(tao).rao))
+        ).set_unit(self.netuid)
+        to_alpha = self.tao_to_alpha(tao)
+        slippage = Balance.from_tao(to_alpha.tao - alpha_returned.tao).set_unit(
+            self.netuid
+        )
         return alpha_returned, slippage
 
-    def alpha_to_tao_with_slippage(self, alpha: Union[ float, Balance ] ) -> Tuple[Balance, Balance]:
-        tao_returned = Balance.from_rao( self.tao_reserve.rao - (self.k / (self.alpha_reserve.rao + Balance.from_tao(alpha).rao) ) )
-        to_tao = self.alpha_to_tao( alpha )
-        slippage = Balance.from_tao( to_tao.tao - tao_returned.tao )
+    def alpha_to_tao_with_slippage(
+        self, alpha: Union[float, Balance]
+    ) -> Tuple[Balance, Balance]:
+        tao_returned = Balance.from_rao(
+            self.tao_reserve.rao
+            - (self.k / (self.alpha_reserve.rao + Balance.from_tao(alpha).rao))
+        )
+        to_tao = self.alpha_to_tao(alpha)
+        slippage = Balance.from_tao(to_tao.tao - tao_returned.tao)
         return tao_returned, slippage
-    
+
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DynamicPool"]:
         r"""Returns a DynamicPool object from a ``vec_u8``."""
@@ -313,22 +337,28 @@ class DynamicPool:
             alpha_reserve=Balance.from_rao(decoded["alpha_reserve"]),
             tao_reserve=Balance.from_rao(decoded["tao_reserve"]),
             k=decoded["k"],
-            price=Balance.from_tao(decoded["price"])
+            price=Balance.from_tao(decoded["price"]),
         )
-    
+
+
 class SubstakeElements:
     @staticmethod
-    def decode( result: List[int] ) -> List[Dict]: 
-        descaled = from_scale_encoding( input = result, type_name = ChainDataType.SubstakeElements, is_vec = True )
+    def decode(result: List[int]) -> List[Dict]:
+        descaled = from_scale_encoding(
+            input=result, type_name=ChainDataType.SubstakeElements, is_vec=True
+        )
         result = []
         for item in descaled:
-            result.append({
-                    'hotkey': ss58_encode( item['hotkey'], bittensor.__ss58_format__),
-                    'coldkey': ss58_encode( item['coldkey'], bittensor.__ss58_format__),
-                    'netuid': item['netuid'],
-                    'stake': Balance.from_rao( item['stake'] )
-                })
+            result.append(
+                {
+                    "hotkey": ss58_encode(item["hotkey"], bittensor.__ss58_format__),
+                    "coldkey": ss58_encode(item["coldkey"], bittensor.__ss58_format__),
+                    "netuid": item["netuid"],
+                    "stake": Balance.from_rao(item["stake"]),
+                }
+            )
         return result
+
 
 @dataclass
 class AxonInfo:
@@ -421,7 +451,8 @@ class AxonInfo:
     ) -> "AxonInfo":
         r"""Returns an axon_info object from a torch parameter_dict."""
         return cls(**dict(parameter_dict))
-    
+
+
 @dataclass
 class NeuronInfo:
     r"""
@@ -790,9 +821,7 @@ class DelegateInfo:
         Tuple[str, Balance]
     ]  # List of nominators of the delegate and their stake
     owner_ss58: str  # Coldkey of owner
-    take: List[
-        Tuple[int, float]
-    ] # Takes of the delegate per subnet
+    take: List[Tuple[int, float]]  # Takes of the delegate per subnet
     validator_permits: List[
         int
     ]  # List of subnets that the delegate is allowed to validate on

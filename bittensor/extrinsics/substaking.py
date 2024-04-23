@@ -62,7 +62,7 @@ def add_substake_extrinsic(
     """
     # Decrypt keys,
     wallet.coldkey
-    dynamic_info = subtensor.get_dynamic_info_for_netuid( netuid ) 
+    dynamic_info = subtensor.get_dynamic_info_for_netuid(netuid)
 
     # Default to wallet's own hotkey if the value is not passed.
     if hotkey_ss58 is None:
@@ -92,7 +92,9 @@ def add_substake_extrinsic(
 
         # Get current stake
         old_stake = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
-            coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58, netuid = netuid,
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+            hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
         )
 
     # Convert to bittensor.Balance
@@ -122,8 +124,7 @@ def add_substake_extrinsic(
     try:
         with bittensor.__console__.status(
             ":satellite: Staking netuid:{} on network: [bold white]{}[/bold white] ...".format(
-                netuid,
-                subtensor.network
+                netuid, subtensor.network
             )
         ):
             # Decrypt keys,
@@ -172,7 +173,7 @@ def add_substake_extrinsic(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
                     hotkey_ss58=hotkey_ss58,
                     block=block,
-                    netuid = netuid
+                    netuid=netuid,
                 )  # Get current stake
 
                 bittensor.__console__.print(
@@ -263,9 +264,7 @@ def remove_substake_extrinsic(
             coldkey_ss58=wallet.coldkeypub.ss58_address,
         )
 
-        old_balance = subtensor.get_balance(
-            address=wallet.coldkeypub.ss58_address
-        )
+        old_balance = subtensor.get_balance(address=wallet.coldkeypub.ss58_address)
 
         # Get hotkey owner
         hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)

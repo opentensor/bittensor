@@ -55,7 +55,11 @@ from .extrinsics.network import (
     set_hyperparameter_extrinsic,
 )
 from .extrinsics.delegation import decrease_take_extrinsic, increase_take_extrinsic
-from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic, add_stake_weight_extrinsic
+from .extrinsics.staking import (
+    add_stake_extrinsic,
+    add_stake_multiple_extrinsic,
+    add_stake_weight_extrinsic,
+)
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .extrinsics.substaking import add_substake_extrinsic, remove_substake_extrinsic
 from .extrinsics.serving import (
@@ -553,8 +557,8 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         delegate_ss58: Optional[str] = None,
-        netuid: int=0,
-        take: float=.0,
+        netuid: int = 0,
+        take: float = 0.0,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -584,15 +588,12 @@ class subtensor:
         current_take = None
         for take in delegate.take:
             if int(take[0]) == int(netuid):
-                current_take = int(float(take[1]) * 65535.)
+                current_take = int(float(take[1]) * 65535.0)
 
         if takeu16 == current_take:
             bittensor.__console__.print("Nothing to do, take hasn't changed")
             return
-        if (
-            current_take is None
-            or current_take < takeu16
-        ):
+        if current_take is None or current_take < takeu16:
             bittensor.__console__.print(
                 "Current take is either not set or is lower than the new one. Will use increase_take"
             )
@@ -618,7 +619,6 @@ class subtensor:
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
-
 
     def send_extrinsic(
         self,
@@ -2420,7 +2420,7 @@ class subtensor:
                 # Period dictates how long the extrinsic will stay as part of waiting pool
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call,
-                    keypair = wallet.coldkey,
+                    keypair=wallet.coldkey,
                     era={"period": 5},
                 )
                 response = substrate.submit_extrinsic(
@@ -3303,10 +3303,12 @@ class subtensor:
         )
         if not hasattr(_result, "value") or _result is None:
             return None
-        return Balance.from_rao(_result.value).set_unit( netuid )
-    
+        return Balance.from_rao(_result.value).set_unit(netuid)
+
     def get_dynamic_info(self):
-        block_hash = self.substrate.get_block_hash(None)  # Assuming you want the latest block hash, adjust as necessary
+        block_hash = self.substrate.get_block_hash(
+            None
+        )  # Assuming you want the latest block hash, adjust as necessary
         params = [block_hash] if block_hash else []
         result = self.substrate.rpc_request(
             method="dynamicPoolInfo_getAllDynamicPoolInfos",
@@ -3315,20 +3317,28 @@ class subtensor:
         if result is None or result.get("result") is None:
             return None
 
-        dynamic_pools = [DynamicPool.from_vec_u8(pool_data) for pool_data in result["result"]]
+        dynamic_pools = [
+            DynamicPool.from_vec_u8(pool_data) for pool_data in result["result"]
+        ]
 
         # Convert list of DynamicPool objects into a dictionary indexed by netuid
-        reserves = {pool.netuid: {
-            'netuid': pool.netuid,
-            'tao_reserve': pool.tao_reserve,
-            'alpha_reserve': pool.alpha_reserve,
-            'k': pool.k,
-            'price': pool.price
-        } for pool in dynamic_pools if pool is not None}
+        reserves = {
+            pool.netuid: {
+                "netuid": pool.netuid,
+                "tao_reserve": pool.tao_reserve,
+                "alpha_reserve": pool.alpha_reserve,
+                "k": pool.k,
+                "price": pool.price,
+            }
+            for pool in dynamic_pools
+            if pool is not None
+        }
 
         return reserves
 
-    def get_dynamic_info_for_netuid(self, netuid: int, block: Optional[int] = None) -> DynamicPool:
+    def get_dynamic_info_for_netuid(
+        self, netuid: int, block: Optional[int] = None
+    ) -> DynamicPool:
         block_hash = None if block is None else self.substrate.get_block_hash(block)
         params = [netuid]
         if block_hash:
@@ -3846,7 +3856,7 @@ class subtensor:
             return [(record[0].value, record[1].value) for record in result.records]
         else:
             return 0
-        
+
     def get_substake_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[List[Tuple[str, str, int, int]]]:
@@ -3861,13 +3871,15 @@ class subtensor:
                     method="delegateInfo_getSubStakeForHotkey",  # custom rpc method
                     params=params,
                 )
+
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_hotkey)
         result = json_body["result"]
-        if result in (None, []): return None
-        else: 
-            return SubstakeElements.decode( result )
-        
+        if result in (None, []):
+            return None
+        else:
+            return SubstakeElements.decode(result)
+
     def get_substake_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
     ) -> Optional[List[Tuple[str, str, int, int]]]:
@@ -3882,13 +3894,15 @@ class subtensor:
                     method="delegateInfo_getSubStakeForColdkey",  # custom rpc method
                     params=params,
                 )
+
         encoded_hotkey = ss58_to_vec_u8(coldkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_hotkey)
         result = json_body["result"]
-        if result in (None, []): return None
-        else: 
-            return SubstakeElements.decode( result )
-        
+        if result in (None, []):
+            return None
+        else:
+            return SubstakeElements.decode(result)
+
     def get_substake_for_netuid(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[List[Tuple[str, str, int, int]]]:
@@ -3903,11 +3917,13 @@ class subtensor:
                     method="delegateInfo_getSubStakeForNetuid",  # custom rpc method
                     params=params,
                 )
+
         json_body = make_substrate_call_with_retry()
         result = json_body["result"]
-        if result in (None, []): return None
-        else: 
-            return SubstakeElements.decode( result )
+        if result in (None, []):
+            return None
+        else:
+            return SubstakeElements.decode(result)
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
