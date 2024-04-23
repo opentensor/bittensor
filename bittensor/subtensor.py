@@ -3306,24 +3306,26 @@ class subtensor:
         return Balance.from_rao(_result.value).set_unit( netuid )
     
     def get_dynamic_info(self):
-        netuids = self.get_all_subnet_netuids()
-        alpha_reserves = { netuid:0 for netuid in netuids }
-        tao_reserves = { netuid:0 for netuid in netuids }
-        k_values = { netuid:0 for netuid in netuids }
-        prices = { netuid:1 for netuid in netuids }
-        for rec in self.substrate.query_map(module="SubtensorModule",storage_function='DynamicAlphaReserve', params=[], block_hash=None,).records:
-            alpha_reserves[rec[0].value] = rec[1].value
-        for rec in self.substrate.query_map( module="SubtensorModule", storage_function='DynamicTAOReserve', params=[], block_hash=None).records:
-            tao_reserves[rec[0].value] = rec[1].value
-        for rec in self.substrate.query_map( module="SubtensorModule", storage_function='DynamicK', params=[], block_hash=None).records:
-            k_values[rec[0].value] = rec[1].value
-        reserves = { netuid:{
-            'netuid': netuid, 
-            'tao_reserve': tao_reserves[netuid], 
-            'alpha_reserve': alpha_reserves[netuid], 
-            'k': k_values[netuid],
-            'price': tao_reserves[netuid] / alpha_reserves[netuid] if alpha_reserves[netuid] > 0 else 1
-        } for netuid in tao_reserves.keys() }
+        block_hash = self.substrate.get_block_hash(None)  # Assuming you want the latest block hash, adjust as necessary
+        params = [block_hash] if block_hash else []
+        result = self.substrate.rpc_request(
+            method="dynamicPoolInfo_getAllDynamicPoolInfos",
+            params=params,
+        )
+        if result is None or result.get("result") is None:
+            return None
+
+        dynamic_pools = [DynamicPool.from_vec_u8(pool_data) for pool_data in result["result"]]
+
+        # Convert list of DynamicPool objects into a dictionary indexed by netuid
+        reserves = {pool.netuid: {
+            'netuid': pool.netuid,
+            'tao_reserve': pool.tao_reserve,
+            'alpha_reserve': pool.alpha_reserve,
+            'k': pool.k,
+            'price': pool.price
+        } for pool in dynamic_pools if pool is not None}
+
         return reserves
 
     def get_dynamic_info_for_netuid(self, netuid: int, block: Optional[int] = None) -> DynamicPool:
