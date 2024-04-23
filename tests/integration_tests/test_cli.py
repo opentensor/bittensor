@@ -2434,14 +2434,15 @@ def test_get_coldkey_ss58_addresses_for_path(
         result == expected
     ), f"Test ID: {test_id} failed. Expected {expected}, got {result}"
 
+
 @pytest.mark.parametrize(
     "delegate_ss58key, netuids, weights, expected_result",
     [
-        ("valid_ss58_address", "1,2,3", "0.33,0.33,0.34", True),
-        ("invalid_ss58_address", "1,2,3", "0.33,0.33,0.34", False),
+        ("valid_ss58_address", "1,2,3", "0.33,0.33,0.34", 0),
+        ("invalid_ss58_address", "1,2,3", "0.33,0.33,0.34", 0),
         ("valid_ss58_address", "", "", False),
         ("valid_ss58_address", "1,2,3", "0.1,0.1,0.1", False),
-    ]
+    ],
 )
 def test_stake_weights_command(delegate_ss58key, netuids, weights, expected_result):
     # Arrange
@@ -2464,31 +2465,42 @@ def test_stake_weights_command(delegate_ss58key, netuids, weights, expected_resu
     mock_subtensor.stake = MagicMock()
     mock_subtensor.update_weights = MagicMock()
 
-    with patch("bittensor.cli", return_value=MagicMock()), \
-         patch("bittensor.subtensor", return_value=mock_subtensor), \
-         patch("bittensor.wallet", return_value=mock_wallet), \
-         patch("rich.prompt.Prompt.ask", return_value='default_wallet_name'), \
-         patch("sys.exit") as mock_exit:
+    with patch("bittensor.cli", return_value=MagicMock()), patch(
+        "bittensor.subtensor", return_value=mock_subtensor
+    ), patch("bittensor.wallet", return_value=mock_wallet), patch(
+        "rich.prompt.Prompt.ask", return_value="default_wallet_name"
+    ), patch(
+        "sys.exit"
+    ) as mock_exit:
         # Act
         args = [
-            "stake", "weights",
-            "--delegate_ss58key", delegate_ss58key,
-            "--netuids", netuids,
-            "--weights", weights
+            "stake",
+            "weights",
+            "--delegate_ss58key",
+            delegate_ss58key,
+            "--netuids",
+            netuids,
+            "--weights",
+            weights,
         ]
         cli = bittensor.cli(config)
         cli.run()
 
         # Assert
-        assert expected_result == (mock_exit.call_count == 0)
+        assert (
+            expected_result == mock_exit.call_count
+        ), f"Expected exit count: {expected_result}, got {mock_exit.call_count}"
         if expected_result:
             mock_subtensor.register.assert_called_once_with(mock_wallet.coldkey)
-            mock_subtensor.stake.assert_called_once_with(mock_wallet.hotkey, delegate_ss58key)
+            mock_subtensor.stake.assert_called_once_with(
+                mock_wallet.hotkey, delegate_ss58key
+            )
             mock_subtensor.update_weights.assert_called_once_with(
                 delegate_ss58key=delegate_ss58key,
-                netuids=netuids.split(','),
-                weights=list(map(float, weights.split(',')))
+                netuids=netuids.split(","),
+                weights=list(map(float, weights.split(","))),
             )
+
 
 # Cleanup after tests
 def teardown_module(module):
