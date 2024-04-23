@@ -289,7 +289,33 @@ class DynamicPool:
         to_tao = self.alpha_to_tao( alpha )
         slippage = Balance.from_tao( to_tao.tao - tao_returned.tao )
         return tao_returned, slippage
+    
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DynamicPool"]:
+        r"""Returns a DynamicPool object from a ``vec_u8``."""
+        if len(vec_u8) == 0:
+            return None
 
+        decoded = from_scale_encoding(vec_u8, ChainDataType.DynamicPool)
+
+        if decoded is None:
+            return None
+
+        return cls.fix_decoded_values(decoded)
+
+    @classmethod
+    def fix_decoded_values(cls, decoded: Dict) -> "DynamicPool":
+        r"""Returns a DynamicPool object from a decoded DynamicPool dictionary."""
+        return DynamicPool(
+            netuid=decoded["netuid"],
+            alpha_issuance=Balance.from_rao(decoded["alpha_issuance"]),
+            alpha_outstanding=Balance.from_rao(decoded["alpha_outstanding"]),
+            alpha_reserve=Balance.from_rao(decoded["alpha_reserve"]),
+            tao_reserve=Balance.from_rao(decoded["tao_reserve"]),
+            k=decoded["k"],
+            price=Balance.from_tao(decoded["price"])
+        )
+    
 class SubstakeElements:
     @staticmethod
     def decode( result: List[int] ) -> List[Dict]: 

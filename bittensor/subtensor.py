@@ -3326,20 +3326,19 @@ class subtensor:
         } for netuid in tao_reserves.keys() }
         return reserves
 
-    def get_dynamic_info_for_netuid( self, netuid: int, block: Optional[int] = None ) -> DynamicPool:
-        alpha_reserve = Balance.from_rao( self.query_subtensor("DynamicAlphaReserve", block, [netuid]).value ).set_unit(netuid)
-        alpha_issuance =  Balance.from_rao( self.query_subtensor("DynamicAlphaIssuance", block, [netuid]).value).set_unit(netuid)
-        alpha_outstanding =  Balance.from_rao( self.query_subtensor("DynamicAlphaOutstanding", block, [netuid]).value).set_unit(netuid)
-        tao_reserve =  Balance.from_rao( self.query_subtensor("DynamicTAOReserve", block, [netuid]).value)
-        k =  self.query_subtensor("DynamicK", block, [netuid]).value
-        return DynamicPool(
-            netuid=netuid,
-            tao_reserve=tao_reserve,
-            alpha_issuance=alpha_issuance,
-            alpha_outstanding=alpha_outstanding,
-            alpha_reserve=alpha_reserve,
-            k=k,
+    def get_dynamic_info_for_netuid(self, netuid: int, block: Optional[int] = None) -> DynamicPool:
+        block_hash = None if block is None else self.substrate.get_block_hash(block)
+        params = [netuid]
+        if block_hash:
+            params.append(block_hash)
+        result = self.substrate.rpc_request(
+            method="dynamicPoolInfo_getDynamicPoolInfo",
+            params=params,
         )
+        if result is None or result.get("result") is None:
+            return None
+        dynamic_pool_info = DynamicPool.from_vec_u8(result["result"])
+        return dynamic_pool_info
 
     def get_stake(
         self, hotkey_ss58: str, block: Optional[int] = None
