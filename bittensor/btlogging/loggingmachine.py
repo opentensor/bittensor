@@ -118,9 +118,8 @@ class LoggingMachine(StateMachine):
         """
         self._config = config
         if config.logging_dir and config.record_log:
-            logfile = os.path.abspath(
-                os.path.join(config.logging_dir, DEFAULT_LOG_FILE_NAME)
-            )
+            expanded_dir = os.path.expanduser(config.logging_dir)
+            logfile = os.path.abspath(os.path.join(expanded_dir, DEFAULT_LOG_FILE_NAME))
             self._enable_file_logging(logfile)
         if config.trace:
             self.enable_trace()
@@ -184,10 +183,25 @@ class LoggingMachine(StateMachine):
         return file_handler
 
     def register_primary_logger(self, name: str):
+        """
+        Register a logger as primary logger
+
+        This adds a logger to the _primary_loggers set to ensure
+        it doesn't get disabled when disabling third-party loggers.
+        A queue handler is also associated with it.
+        """
         self._primary_loggers.add(name)
+        self._initialize_bt_logger(name)
 
     def deregister_primary_logger(self, name: str):
+        """
+        De-registers a primary logger
+
+        This function removes the logger from the _primary_loggers
+        set and deinitializes its queue handler
+        """
         self._primary_loggers.remove(name)
+        self._deinitialize_bt_logger(name)
 
     def enable_third_party_loggers(self):
         for logger in all_loggers():
