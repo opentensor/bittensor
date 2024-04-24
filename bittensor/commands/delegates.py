@@ -1141,7 +1141,9 @@ class SetDelegateTakesCommand:
             )
             return
 
-        result: bool = subtensor.set_delegates_takes(wallet=wallet, takes=takes)
+        result: bool = subtensor.set_delegates_takes(
+            wallet=wallet, takes=takes, delegate_ss58=wallet.hotkey.ss58_address
+        )
         if not result:
             console.print("Could not set the takes", style="bold red")
         else:

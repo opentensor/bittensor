@@ -19,7 +19,7 @@
 import bittensor
 from ..errors import *
 from rich.prompt import Confirm
-from typing import Union, Optional,Tuple, List
+from typing import Union, Optional, Tuple, List
 from bittensor.utils.balance import Balance
 
 from loguru import logger
@@ -358,12 +358,13 @@ def undelegate_extrinsic(
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
 
+
 def decrease_take_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: Optional[str] = None,
-    netuid: int=0,
-    take: float=.0,
+    netuid: int = 0,
+    take: float = 0.0,
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True,
 ) -> bool:
@@ -394,8 +395,8 @@ def decrease_take_extrinsic(
             success = subtensor._do_decrease_take(
                 wallet=wallet,
                 hotkey_ss58=hotkey_ss58,
-                netuid = netuid,
-                take = take,
+                netuid=netuid,
+                take=take,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
@@ -428,12 +429,13 @@ def decrease_take_extrinsic(
 
     return False
 
+
 def increase_take_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: Optional[str] = None,
-    netuid: int=0,
-    take: float=.0,
+    netuid: int = 0,
+    take: float = 0.0,
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True,
 ) -> bool:
@@ -464,8 +466,8 @@ def increase_take_extrinsic(
             success = subtensor._do_increase_take(
                 wallet=wallet,
                 hotkey_ss58=hotkey_ss58,
-                netuid = netuid,
-                take = take,
+                netuid=netuid,
+                take=take,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
@@ -497,6 +499,7 @@ def increase_take_extrinsic(
             )
 
     return False
+
 
 def set_delegates_takes_extrinsic(
     subtensor: "bittensor.subtensor",
@@ -536,7 +539,7 @@ def set_delegates_takes_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-            if success:
+            if success == True:
                 bittensor.__console__.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )
@@ -545,7 +548,7 @@ def set_delegates_takes_extrinsic(
                     sufix="<green>Finalized: </green>" + str(success),
                 )
 
-            return success
+                return True
 
         except Exception as e:
             bittensor.__console__.print(
@@ -562,4 +565,4 @@ def set_delegates_takes_extrinsic(
                 prefix="Set Delegate Takes", sufix="<red>Failed: </red>" + str(e)
             )
 
-    return False
+            return False
