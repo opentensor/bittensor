@@ -19,6 +19,8 @@ import sys
 import os
 import argparse
 import bittensor
+import re
+import torch
 from typing import List, Optional, Tuple
 from rich.table import Table
 from rich.prompt import Prompt, IntPrompt, FloatPrompt, Confirm
@@ -102,9 +104,9 @@ def show_delegates(
         for prev_delegate in prev_delegates:
             prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
 
-    registered_delegate_info: Optional[
-        Dict[str, DelegatesDetails]
-    ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+        get_delegates_details(url=bittensor.__delegates_details_url__)
+    )
     if registered_delegate_info is None:
         bittensor.__console__.print(
             ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
@@ -204,7 +206,7 @@ def show_delegates(
             f"{delegate.total_stake!s:13.13}",
             rate_change_in_stake_str,
             str(delegate.registrations),
-            str([f"({t[0]}-{t[1] * 100:.1f}%" +")" for t in delegate.take]),
+            str([f"({t[0]}-{t[1] * 100:.1f}%" + ")" for t in delegate.take]),
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (1000/ ( 0.001 + delegate.total_stake.tao ) ))!s:6.6}",
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (0.18) ) !s:6.6}",
             str(delegate_description),
@@ -808,9 +810,9 @@ class MyDelegatesCommand:
             delegates.sort(key=lambda delegate: delegate[0].total_stake, reverse=True)
             total_delegated += sum(my_delegates.values())
 
-            registered_delegate_info: Optional[
-                DelegatesDetails
-            ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+            registered_delegate_info: Optional[DelegatesDetails] = (
+                get_delegates_details(url=bittensor.__delegates_details_url__)
+            )
             if registered_delegate_info is None:
                 bittensor.__console__.print(
                     ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
@@ -892,6 +894,7 @@ class MyDelegatesCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
+
 class SetTakeCommand:
     """
     Executes the ``set_take`` command, which sets the delegate take for a specified subnet.
@@ -961,9 +964,7 @@ class SetTakeCommand:
         # Check if netuid exists
         if not netuid in netuids:
             bittensor.__console__.print(
-                "ERROR: This netuid ({}) doesn't exist on the network".format(
-                    netuid
-                )
+                "ERROR: This netuid ({}) doesn't exist on the network".format(netuid)
             )
             return
 
@@ -971,27 +972,25 @@ class SetTakeCommand:
         if new_take == None:
             new_take = FloatPrompt.ask(f"Enter take value (0.18 for 18%)")
         if new_take > 0.18:
-            bittensor.__console__.print("ERROR: Take value should be in the range of 0 to 18%")
+            bittensor.__console__.print(
+                "ERROR: Take value should be in the range of 0 to 18%"
+            )
             return
 
         result: bool = subtensor.set_take(
-            wallet = wallet,
-            delegate_ss58 = wallet.hotkey.ss58_address,
-            netuid = netuid,
-            take = new_take
+            wallet=wallet,
+            delegate_ss58=wallet.hotkey.ss58_address,
+            netuid=netuid,
+            take=new_take,
         )
         if not result:
-            bittensor.__console__.print(
-                "Could not set the take"
-            )
+            bittensor.__console__.print("Could not set the take")
         else:
             # Check if we are a delegate.
             is_delegate: bool = subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address)
             if not is_delegate:
                 bittensor.__console__.print(
-                    "Could not set the take [white]{}[/white]".format(
-                        subtensor.network
-                    )
+                    "Could not set the take [white]{}[/white]".format(subtensor.network)
                 )
                 return
             bittensor.__console__.print(
@@ -1031,6 +1030,7 @@ class SetTakeCommand:
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
+
 
 class SetDelegateTakesCommand:
     """
@@ -1072,7 +1072,8 @@ class SetDelegateTakesCommand:
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        config = cli.config.copy()
+        r"""Set takes for multiple subnets."""
+        # config = cli.config.copy()
         wallet = bittensor.wallet(config=cli.config)
 
         # Unlock the wallet.
@@ -1083,59 +1084,91 @@ class SetDelegateTakesCommand:
         if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
             console.print(
                 f"Aborting: Hotkey {wallet.hotkey.ss58_address} is NOT a delegate.",
-                style="bold red"
+                style="bold red",
             )
             return
 
         # Get available netuids
         netuids = subtensor.get_all_subnet_netuids()
 
-        # Parse takes input
-        takes_input = config.get("takes", [])
-        if not takes_input:
-            # Prompt for takes input if not provided
-            takes_count = IntPrompt.ask("Enter the number of takes to set")
-            takes_input = []
-            for _ in range(takes_count):
-                netuid = IntPrompt.ask("Enter subnet ID")
-                take = FloatPrompt.ask("Enter take value (0.18 for 18%)")
-                takes_input.append((netuid, take))
+        # Get values if not set.
+        if not cli.config.is_set("netuids"):
+            example = ", ".join(map(str, netuids[:3])) + " ..."
+            cli.config.netuids = Prompt.ask(f"Enter netuids (e.g. {example})")
+
+        if not cli.config.is_set("takes"):
+            example = (
+                ", ".join(
+                    map(
+                        str,
+                        ["{:.2f}".format(0.18) for _ in range(min(len(netuids), 3))],
+                    )
+                )
+                + " ..."
+            )
+            cli.config.takes = Prompt.ask(f"Enter takes (e.g. {example})")
+
+        # Parse from string
+        netuids_input = torch.tensor(
+            list(map(int, re.split(r"[ ,]+", cli.config.netuids))), dtype=torch.long
+        )
+        takes_input = torch.tensor(
+            list(map(float, re.split(r"[ ,]+", cli.config.takes))),
+            dtype=torch.float32,
+        )
 
         # Validate and collect takes
         takes = []
-        for netuid, take in takes_input:
+        for netuid, take in zip(netuids_input, takes_input):
             if netuid not in netuids:
-                console.print(f"ERROR: This netuid ({netuid}) doesn't exist on the network", style="bold red")
+                console.print(
+                    f"ERROR: This netuid ({netuid}) doesn't exist on the network",
+                    style="bold red",
+                )
                 continue
             if take > 0.18:
-                console.print("ERROR: Take value should be in the range of 0 to 18%", style="bold red")
+                console.print(
+                    "ERROR: Take value should be in the range of 0 to 18%",
+                    style="bold red",
+                )
                 continue
             takes.append((netuid, take))
 
         if not takes:
-            console.print("No valid takes were provided or all provided takes were invalid.", style="bold red")
+            console.print(
+                "No valid takes were provided or all provided takes were invalid.",
+                style="bold red",
+            )
             return
 
-        result: bool = subtensor.set_delegates_takes(
-            wallet=wallet,
-            takes=takes
-        )
+        result: bool = subtensor.set_delegates_takes(wallet=wallet, takes=takes)
         if not result:
             console.print("Could not set the takes", style="bold red")
         else:
-            console.print(f"Successfully set the takes on [white]{subtensor.network}[/white]", style="bold green")
+            console.print(
+                f"Successfully set the takes on [white]{subtensor.network}[/white]",
+                style="bold green",
+            )
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         set_takes_parser = parser.add_parser(
-            "set_delegate_takes", help="""Set takes for multiple delegates on different subnets"""
+            "set_delegate_takes",
+            help="""Set takes for multiple delegates on different subnets""",
+        )
+        set_takes_parser.add_argument(
+            "--netuids",
+            dest="netuids",
+            type=str,
+            required=False,
+            help="""The netuids of the subnets to set takes for""",
         )
         set_takes_parser.add_argument(
             "--takes",
             dest="takes",
-            type=json.loads,
+            type=str,
             required=False,
-            help="""List of tuples (netuid, take)""",
+            help="""The takes values for each subnet (0.18 for 18%)""",
         )
         bittensor.wallet.add_args(set_takes_parser)
         bittensor.subtensor.add_args(set_takes_parser)
