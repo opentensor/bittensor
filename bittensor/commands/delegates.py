@@ -1051,7 +1051,7 @@ class SetDelegateTakesCommand:
         To run the command, the user must have a configured wallet with both hotkey and coldkey. Also, the hotkey should already be a delegate.
 
     Example usage::
-        btcli root set_delegate_takes --wallet.name my_wallet --wallet.hotkey my_hotkey --takes [(1, 0.15), (2, 0.10)]
+        btcli root set_delegate_takes --wallet.name my_wallet --wallet.hotkey my_hotkey --netuids [1,2] --takes [0.15,0.10)]
 
     Note:
         This function can be used to update the takes for multiple subnets in a single command.

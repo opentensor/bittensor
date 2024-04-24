@@ -2212,6 +2212,67 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         new_balance = _subtensor_mock.get_balance(mock_wallet.coldkey.ss58_address)
         self.assertAlmostEqual(new_balance.tao, old_balance.tao - 10.0, delta=1e-6)
 
+    def test_set_delegate_takes(self, _):
+        """
+        Test set delegate takes command
+        """
+        mock_wallet = generate_wallet(hotkey=_get_mock_keypair(100, self.id()))
+        delegate_wallet = generate_wallet(hotkey=_get_mock_keypair(100 + 1, self.id()))
+
+        # register the wallet
+        _ = _subtensor_mock.force_register_neuron(
+            netuid=1,
+            hotkey=mock_wallet.hotkey.ss58_address,
+            coldkey=mock_wallet.coldkey.ss58_address,
+        )
+
+        # register the delegate
+        _ = _subtensor_mock.force_register_neuron(
+            netuid=1,
+            hotkey=delegate_wallet.hotkey.ss58_address,
+            coldkey=delegate_wallet.coldkey.ss58_address,
+        )
+
+        # make the delegate a delegate
+        _subtensor_mock.nominate(delegate_wallet, wait_for_finalization=True)
+        self.assertTrue(
+            _subtensor_mock.is_hotkey_delegate(delegate_wallet.hotkey.ss58_address)
+        )
+
+        # Check initial delegate takes
+        initial_takes = _subtensor_mock.get_delegate_take(
+            delegate_wallet.hotkey.ss58_address
+        )
+        with patch("builtins.input", return_value="1, 2, 3"):
+            with patch(
+                "bittensor.wallet", return_value=delegate_wallet
+            ):  # Mock wallet creation. SHOULD NOT BE REGISTERED
+                cli = bittensor.cli(
+                    args=[
+                        "root",
+                        "set_delegate_takes",
+                        "--subtensor.network",
+                        "mock",  # Mock network
+                        "--wallet.name",
+                        "mock",
+                        "--takes",
+                        "1,0.1", 
+                        "--takes",
+                        "2,0.15",  
+                        "--no_prompt",
+                    ]
+                )
+                cli.run()
+
+        # Check updated delegate takes
+        updated_takes = _subtensor_mock.get_delegate_take(
+            delegate_wallet.hotkey.ss58_address
+        )
+
+        # Assert that the takes have been updated correctly
+        self.assertEqual(updated_takes[1], 0.1)
+        self.assertEqual(updated_takes[2], 0.2)
+
 
 # Test directory for creating mock wallets
 TEST_DIR = "/tmp/test_bittensor_wallets"
