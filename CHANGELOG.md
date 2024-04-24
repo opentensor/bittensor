@@ -1,5 +1,21 @@
 # Changelog
 
+## 6.11.0 / 2024-04-11
+
+## What's Changed
+* Tests: Adds coverage to subtensor help method & determine_chain_endpoint_and_network by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1761
+* [bug fix] Fix import json by @camfairchild in https://github.com/opentensor/bittensor/pull/1759
+* Remove context management for substrate in subtensor by @sepehr-opentensor in https://github.com/opentensor/bittensor/pull/1766
+* Tests: Extends coverage on axon methods by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1769
+* Revert nonce implementation fix by @ifrit98 in https://github.com/opentensor/bittensor/pull/1774
+* remove tests from package distribution by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1779
+* Tests: Extends test coverage on Senate methods by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1781
+
+## New Contributors
+* @mjurbanski-reef made their first contribution in https://github.com/opentensor/bittensor/pull/1779
+* @ibraheem-opentensor made their first contribution in https://github.com/opentensor/bittensor/pull/1781
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.10.1...v6.11.0
 ## 6.10.1 / 2024-04-05
 ## What's Changed
 * Revert nonce implementation fix #1774: Breaking change needs to telegraphed in next release.
