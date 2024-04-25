@@ -1109,8 +1109,12 @@ class SetDelegateTakesCommand:
             cli.config.takes = Prompt.ask(f"Enter takes (e.g. {example})")
 
         # Parse from string
-        netuids_input = np.array(list(map(int, re.split(r"[ ,]+", cli.config.netuids))), dtype=np.int64)
-        takes_input = np.array(list(map(float, re.split(r"[ ,]+", cli.config.takes))), dtype=np.float32)
+        netuids_input = np.array(
+            list(map(int, re.split(r"[ ,]+", cli.config.netuids))), dtype=np.int64
+        )
+        takes_input = np.array(
+            list(map(float, re.split(r"[ ,]+", cli.config.takes))), dtype=np.float32
+        )
 
         # Validate and collect takes
         takes = []
