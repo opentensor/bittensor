@@ -335,9 +335,7 @@ def test_register_extrinsic_without_pow(
         )
 
         # Assert
-        assert (
-            result == expected_result
-        ), f"Test failed for test_id: {test_id}"
+        assert result == expected_result, f"Test failed for test_id: {test_id}"
 
 
 @pytest.mark.parametrize(
@@ -404,6 +402,4 @@ def test_register_extrinsic_with_pow(
         )
 
         # Assert
-        assert (
-            result == expected_result
-        ), f"Test failed for test_id: {test_id}"
+        assert result == expected_result, f"Test failed for test_id: {test_id}"
