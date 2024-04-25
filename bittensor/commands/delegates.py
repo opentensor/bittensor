@@ -21,6 +21,7 @@ import argparse
 import bittensor
 import re
 import torch
+import numpy as np
 from typing import List, Optional, Tuple
 from rich.table import Table
 from rich.prompt import Prompt, IntPrompt, FloatPrompt, Confirm
@@ -1073,7 +1074,6 @@ class SetDelegateTakesCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Set takes for multiple subnets."""
-        # config = cli.config.copy()
         wallet = bittensor.wallet(config=cli.config)
 
         # Unlock the wallet.
@@ -1109,13 +1109,8 @@ class SetDelegateTakesCommand:
             cli.config.takes = Prompt.ask(f"Enter takes (e.g. {example})")
 
         # Parse from string
-        netuids_input = torch.tensor(
-            list(map(int, re.split(r"[ ,]+", cli.config.netuids))), dtype=torch.long
-        )
-        takes_input = torch.tensor(
-            list(map(float, re.split(r"[ ,]+", cli.config.takes))),
-            dtype=torch.float32,
-        )
+        netuids_input = np.array(list(map(int, re.split(r"[ ,]+", cli.config.netuids))), dtype=np.int64)
+        takes_input = np.array(list(map(float, re.split(r"[ ,]+", cli.config.takes))), dtype=np.float32)
 
         # Validate and collect takes
         takes = []

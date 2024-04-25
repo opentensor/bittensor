@@ -539,7 +539,7 @@ def set_delegates_takes_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-            if success == True:
+            if success:
                 bittensor.__console__.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )
