@@ -29,10 +29,15 @@ import bittensor
 from . import defaults
 from .delegates import show_delegates
 from bittensor.utils.balance import Balance
-from .utils import get_delegates_details, get_hotkey_wallets_for_wallet, DelegatesDetails
+from .utils import (
+    get_delegates_details,
+    get_hotkey_wallets_for_wallet,
+    DelegatesDetails,
+)
 from substrateinterface.exceptions import SubstrateRequestException
 
 console = bittensor.__console__
+
 
 class StakeWeightsCommand:
     @staticmethod
@@ -80,8 +85,8 @@ class StakeWeightsCommand:
         netuids = torch.tensor(
             list(map(int, re.split(r"[ ,]+", cli.config.netuids))), dtype=torch.long
         )
-        print (cli.config.weights)
-        print (re.split(r"[ ,]+", cli.config.weights))
+        print(cli.config.weights)
+        print(re.split(r"[ ,]+", cli.config.weights))
         weights = torch.tensor(
             list(map(float, re.split(r"[ ,]+", cli.config.weights))),
             dtype=torch.float32,
@@ -90,7 +95,7 @@ class StakeWeightsCommand:
         # Run the set weights operation.
         subtensor.stake_set_weights(
             wallet=wallet,
-            hotkey = cli.config.delegate_ss58key,
+            hotkey=cli.config.delegate_ss58key,
             netuids=netuids,
             weights=weights,
             prompt=not cli.config.no_prompt,
@@ -100,7 +105,10 @@ class StakeWeightsCommand:
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
-        parser = parser.add_parser("weights", help="""Distribute delegated stake across subnets based on weights.""")
+        parser = parser.add_parser(
+            "weights",
+            help="""Distribute delegated stake across subnets based on weights.""",
+        )
         parser.add_argument(
             "--delegate_ss58key",
             "--delegate_ss58",
@@ -109,7 +117,7 @@ class StakeWeightsCommand:
             required=False,
             help="""The ss58 address of the chosen delegate""",
         )
-        # TODO fix does not work: --netuids 1,2,3 --weights 0.33, 0.33, 0.33 
+        # TODO fix does not work: --netuids 1,2,3 --weights 0.33, 0.33, 0.33
         parser.add_argument("--netuids", dest="netuids", type=str, required=False)
         parser.add_argument("--weights", dest="weights", type=str, required=False)
         bittensor.wallet.add_args(parser)
@@ -120,7 +128,7 @@ class StakeWeightsCommand:
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
-            
+
         if not config.get("delegate_ss58key"):
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
@@ -153,7 +161,6 @@ class StakeWeightsCommand:
             console.print(
                 "Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key)
             )
-
 
 
 class StakeCommand:
@@ -419,7 +426,6 @@ class StakeCommand:
         bittensor.subtensor.add_args(stake_parser)
 
 
-
 def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     try:
         wallet_names = next(os.walk(os.path.expanduser(path)))[1]
@@ -469,11 +475,15 @@ class StakeList:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
-        substakes = subtensor.get_substake_for_coldkey( coldkey_ss58 = wallet.coldkeypub.ss58_address )
+        substakes = subtensor.get_substake_for_coldkey(
+            coldkey_ss58=wallet.coldkeypub.ss58_address
+        )
         netuids = subtensor.get_all_subnet_netuids()
-        
+
         # Get registered delegates details.
-        registered_delegate_info: Optional[ DelegatesDetails ] = get_delegates_details(url = bittensor.__delegates_details_url__)
+        registered_delegate_info: Optional[DelegatesDetails] = get_delegates_details(
+            url=bittensor.__delegates_details_url__
+        )
 
         # Token pricing info.
         dynamic_info = subtensor.get_dynamic_info()
@@ -484,38 +494,55 @@ class StakeList:
         netuid_totals = {}
         hot_netuid_pairs = {}
         for substake in substakes:
-            netuid = substake['netuid']
-            if substake['hotkey'] not in hot_netuid_pairs:
-                hot_netuid_pairs[substake['hotkey']] = {}
-                hot_tao_totals[substake['hotkey']] = 0.0
-                hot_alpha_totals[substake['hotkey']] = 0.0
+            netuid = substake["netuid"]
+            if substake["hotkey"] not in hot_netuid_pairs:
+                hot_netuid_pairs[substake["hotkey"]] = {}
+                hot_tao_totals[substake["hotkey"]] = 0.0
+                hot_alpha_totals[substake["hotkey"]] = 0.0
             if netuid not in netuid_totals:
                 netuid_totals[netuid] = 0.0
-            hot_netuid_pairs[substake['hotkey']][netuid] = substake['stake']
-            hot_tao_totals[substake['hotkey']] += substake['stake'] * dynamic_info[ netuid ]['price']
-            hot_alpha_totals[substake['hotkey']] += substake['stake']
-            netuid_totals[netuid] += substake['stake'] * dynamic_info[ netuid ]['price']
-            
-        table = Table(show_footer=True, pad_edge=False, box=None, expand=False)
-        table.add_column( "[white]Hotkey", footer_style="overline white", style="dark_slate_gray3" )
-        table.add_column( f"[white]Stake", footer_style="overline white", style="blue" )
-        for netuid in netuids:
-            table.add_column( f"[overline white]{bittensor.Balance.get_unit(netuid)}", str(netuid_totals[netuid]) if netuid in netuid_totals else "", footer_style="overline white", style="green" )
+            hot_netuid_pairs[substake["hotkey"]][netuid] = substake["stake"]
+            hot_tao_totals[substake["hotkey"]] += (
+                substake["stake"] * dynamic_info[netuid]["price"]
+            )
+            hot_alpha_totals[substake["hotkey"]] += substake["stake"]
+            netuid_totals[netuid] += substake["stake"] * dynamic_info[netuid]["price"]
 
-        # Fill rows 
+        table = Table(show_footer=True, pad_edge=False, box=None, expand=False)
+        table.add_column(
+            "[white]Hotkey", footer_style="overline white", style="dark_slate_gray3"
+        )
+        table.add_column(f"[white]Stake", footer_style="overline white", style="blue")
+        for netuid in netuids:
+            table.add_column(
+                f"[overline white]{bittensor.Balance.get_unit(netuid)}",
+                str(netuid_totals[netuid]) if netuid in netuid_totals else "",
+                footer_style="overline white",
+                style="green",
+            )
+
+        # Fill rows
         for hotkey in hot_netuid_pairs.keys():
             # Switch on named hotkeys
-            if hotkey in registered_delegate_info: 
-                row_name = registered_delegate_info[ hotkey ].name
-            else: 
+            if hotkey in registered_delegate_info:
+                row_name = registered_delegate_info[hotkey].name
+            else:
                 row_name = hotkey[:10]
-            row1 = [ row_name, hot_alpha_totals[hotkey].set_unit(1)  ]
+            row1 = [row_name, hot_alpha_totals[hotkey].set_unit(1)]
             for netuid in netuids:
-                row1.append( str( bittensor.Balance.from_rao(int(hot_netuid_pairs[hotkey].get(netuid, 0))).set_unit(netuid) ) )
+                row1.append(
+                    str(
+                        bittensor.Balance.from_rao(
+                            int(hot_netuid_pairs[hotkey].get(netuid, 0))
+                        ).set_unit(netuid)
+                    )
+                )
             table.add_row(*row1)
-            row2 = [ '', f"[blue]{hot_tao_totals[hotkey]}[/blue]" ]
+            row2 = ["", f"[blue]{hot_tao_totals[hotkey]}[/blue]"]
             for netuid in netuids:
-                row2.append( f"[blue]{hot_netuid_pairs[hotkey].get(netuid, 0) * dynamic_info[ netuid ]['price'] }[/blue]" )
+                row2.append(
+                    f"[blue]{hot_netuid_pairs[hotkey].get(netuid, 0) * dynamic_info[ netuid ]['price'] }[/blue]"
+                )
             table.add_row(*row2)
 
         table.box = None
@@ -543,20 +570,32 @@ class StakeList:
             caption_style=None,
             title_justify="center",
             caption_justify="center",
-            highlight=False
+            highlight=False,
         )
         column_descriptions_table.add_column("No.", justify="left", style="bold")
         column_descriptions_table.add_column("Column", justify="left")
         column_descriptions_table.add_column("Description", justify="left")
 
         column_descriptions = [
-            ("[dark_slate_gray3]1.[/dark_slate_gray3]", "[dark_slate_gray3]Hotkey[/dark_slate_gray3]", "The hotkey or delegate name which the stake is associated with."),
-            ("[blue]2.[/blue]", "[blue]Stake[/blue]", "The your stake account [blue]total TAO[/blue] and [green]dynamic TAO (\u03B1)[/green] summed across all subnets."),
-            ("[green]3.[/green]", "[green]DTAO[/green]", """For each subnet, the amount of [blue]TAO[/blue] and [green]dynamic TAO (\u03B1)[/green]. 
+            (
+                "[dark_slate_gray3]1.[/dark_slate_gray3]",
+                "[dark_slate_gray3]Hotkey[/dark_slate_gray3]",
+                "The hotkey or delegate name which the stake is associated with.",
+            ),
+            (
+                "[blue]2.[/blue]",
+                "[blue]Stake[/blue]",
+                "The your stake account [blue]total TAO[/blue] and [green]dynamic TAO (\u03B1)[/green] summed across all subnets.",
+            ),
+            (
+                "[green]3.[/green]",
+                "[green]DTAO[/green]",
+                """For each subnet, the amount of [blue]TAO[/blue] and [green]dynamic TAO (\u03B1)[/green]. 
 Note the TAO is computed by using the current subent price, this value not.
-            """),
+            """,
+            ),
         ]
-        
+
         for no, name, description in column_descriptions:
             column_descriptions_table.add_row(no, name, description)
         bittensor.__console__.print(column_descriptions_table)

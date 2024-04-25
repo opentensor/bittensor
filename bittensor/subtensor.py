@@ -54,8 +54,16 @@ from .extrinsics.network import (
     register_subnetwork_extrinsic,
     set_hyperparameter_extrinsic,
 )
-from .extrinsics.delegation import decrease_take_extrinsic, increase_take_extrinsic
-from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic, add_stake_weight_extrinsic
+from .extrinsics.delegation import (
+    decrease_take_extrinsic,
+    increase_take_extrinsic,
+    set_delegates_takes_extrinsic,
+)
+from .extrinsics.staking import (
+    add_stake_extrinsic,
+    add_stake_multiple_extrinsic,
+    add_stake_weight_extrinsic,
+)
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .extrinsics.substaking import add_substake_extrinsic, remove_substake_extrinsic
 from .extrinsics.serving import (
@@ -553,8 +561,8 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         delegate_ss58: Optional[str] = None,
-        netuid: int=0,
-        take: float=.0,
+        netuid: int = 0,
+        take: float = 0.0,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -584,15 +592,12 @@ class subtensor:
         current_take = None
         for take in delegate.take:
             if int(take[0]) == int(netuid):
-                current_take = int(float(take[1]) * 65535.)
+                current_take = int(float(take[1]) * 65535.0)
 
         if takeu16 == current_take:
             bittensor.__console__.print("Nothing to do, take hasn't changed")
             return
-        if (
-            current_take is None
-            or current_take < takeu16
-        ):
+        if current_take is None or current_take < takeu16:
             bittensor.__console__.print(
                 "Current take is either not set or is lower than the new one. Will use increase_take"
             )
@@ -619,6 +624,45 @@ class subtensor:
                 wait_for_finalization=wait_for_finalization,
             )
 
+    def set_delegates_takes(
+        self,
+        wallet: "bittensor.wallet",
+        takes: List[Tuple[int, float]],
+        delegate_ss58: Optional[str] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Set multiple delegate takes for the hotkey across different subnets.
+
+        Args:
+            wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
+            takes (List[Tuple[int, float]]): A list of tuples where each tuple contains a subnet ID (`netuid`) and the new take (`take`) for that subnet.
+            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the blockchain.
+            wait_for_inclusion (bool, optional): If ``True``, waits until the transaction is included in a block.
+
+        Returns:
+            bool: ``True`` if the process is successful, False otherwise.
+
+        """
+        # Convert takes to u16 representation
+        takes_u16 = [(netuid, int(take * 0xFFFF)) for netuid, take in takes]
+
+        logger.info(
+            f"Setting delegate takes for {wallet.name} on subnets {takes_u16}, and hotkey {delegate_ss58}"
+        )
+
+        # Call the extrinsic to set multiple takes
+        success = set_delegates_takes_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            takes=takes_u16,
+            hotkey_ss58=delegate_ss58,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        return success
 
     def send_extrinsic(
         self,
@@ -2420,7 +2464,7 @@ class subtensor:
                 # Period dictates how long the extrinsic will stay as part of waiting pool
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call,
-                    keypair = wallet.coldkey,
+                    keypair=wallet.coldkey,
                     era={"period": 5},
                 )
                 response = substrate.submit_extrinsic(
@@ -3303,35 +3347,67 @@ class subtensor:
         )
         if not hasattr(_result, "value") or _result is None:
             return None
-        return Balance.from_rao(_result.value).set_unit( netuid )
-    
+        return Balance.from_rao(_result.value).set_unit(netuid)
+
     def get_dynamic_info(self):
         netuids = self.get_all_subnet_netuids()
-        alpha_reserves = { netuid:0 for netuid in netuids }
-        tao_reserves = { netuid:0 for netuid in netuids }
-        k_values = { netuid:0 for netuid in netuids }
-        prices = { netuid:1 for netuid in netuids }
-        for rec in self.substrate.query_map(module="SubtensorModule",storage_function='DynamicAlphaReserve', params=[], block_hash=None,).records:
+        alpha_reserves = {netuid: 0 for netuid in netuids}
+        tao_reserves = {netuid: 0 for netuid in netuids}
+        k_values = {netuid: 0 for netuid in netuids}
+        prices = {netuid: 1 for netuid in netuids}
+        for rec in self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="DynamicAlphaReserve",
+            params=[],
+            block_hash=None,
+        ).records:
             alpha_reserves[rec[0].value] = rec[1].value
-        for rec in self.substrate.query_map( module="SubtensorModule", storage_function='DynamicTAOReserve', params=[], block_hash=None).records:
+        for rec in self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="DynamicTAOReserve",
+            params=[],
+            block_hash=None,
+        ).records:
             tao_reserves[rec[0].value] = rec[1].value
-        for rec in self.substrate.query_map( module="SubtensorModule", storage_function='DynamicK', params=[], block_hash=None).records:
+        for rec in self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="DynamicK",
+            params=[],
+            block_hash=None,
+        ).records:
             k_values[rec[0].value] = rec[1].value
-        reserves = { netuid:{
-            'netuid': netuid, 
-            'tao_reserve': tao_reserves[netuid], 
-            'alpha_reserve': alpha_reserves[netuid], 
-            'k': k_values[netuid],
-            'price': tao_reserves[netuid] / alpha_reserves[netuid] if alpha_reserves[netuid] > 0 else 1
-        } for netuid in tao_reserves.keys() }
+        reserves = {
+            netuid: {
+                "netuid": netuid,
+                "tao_reserve": tao_reserves[netuid],
+                "alpha_reserve": alpha_reserves[netuid],
+                "k": k_values[netuid],
+                "price": (
+                    tao_reserves[netuid] / alpha_reserves[netuid]
+                    if alpha_reserves[netuid] > 0
+                    else 1
+                ),
+            }
+            for netuid in tao_reserves.keys()
+        }
         return reserves
 
-    def get_dynamic_info_for_netuid( self, netuid: int, block: Optional[int] = None ) -> DynamicPool:
-        alpha_reserve = Balance.from_rao( self.query_subtensor("DynamicAlphaReserve", block, [netuid]).value ).set_unit(netuid)
-        alpha_issuance =  Balance.from_rao( self.query_subtensor("DynamicAlphaIssuance", block, [netuid]).value).set_unit(netuid)
-        alpha_outstanding =  Balance.from_rao( self.query_subtensor("DynamicAlphaOutstanding", block, [netuid]).value).set_unit(netuid)
-        tao_reserve =  Balance.from_rao( self.query_subtensor("DynamicTAOReserve", block, [netuid]).value)
-        k =  self.query_subtensor("DynamicK", block, [netuid]).value
+    def get_dynamic_info_for_netuid(
+        self, netuid: int, block: Optional[int] = None
+    ) -> DynamicPool:
+        alpha_reserve = Balance.from_rao(
+            self.query_subtensor("DynamicAlphaReserve", block, [netuid]).value
+        ).set_unit(netuid)
+        alpha_issuance = Balance.from_rao(
+            self.query_subtensor("DynamicAlphaIssuance", block, [netuid]).value
+        ).set_unit(netuid)
+        alpha_outstanding = Balance.from_rao(
+            self.query_subtensor("DynamicAlphaOutstanding", block, [netuid]).value
+        ).set_unit(netuid)
+        tao_reserve = Balance.from_rao(
+            self.query_subtensor("DynamicTAOReserve", block, [netuid]).value
+        )
+        k = self.query_subtensor("DynamicK", block, [netuid]).value
         return DynamicPool(
             netuid=netuid,
             tao_reserve=tao_reserve,
@@ -3845,7 +3921,7 @@ class subtensor:
             return [(record[0].value, record[1].value) for record in result.records]
         else:
             return 0
-        
+
     def get_substake_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[List[Tuple[str, str, int, int]]]:
@@ -3860,13 +3936,15 @@ class subtensor:
                     method="delegateInfo_getSubStakeForHotkey",  # custom rpc method
                     params=params,
                 )
+
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_hotkey)
         result = json_body["result"]
-        if result in (None, []): return None
-        else: 
-            return SubstakeElements.decode( result )
-        
+        if result in (None, []):
+            return None
+        else:
+            return SubstakeElements.decode(result)
+
     def get_substake_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
     ) -> Optional[List[Tuple[str, str, int, int]]]:
@@ -3881,13 +3959,15 @@ class subtensor:
                     method="delegateInfo_getSubStakeForColdkey",  # custom rpc method
                     params=params,
                 )
+
         encoded_hotkey = ss58_to_vec_u8(coldkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_hotkey)
         result = json_body["result"]
-        if result in (None, []): return None
-        else: 
-            return SubstakeElements.decode( result )
-        
+        if result in (None, []):
+            return None
+        else:
+            return SubstakeElements.decode(result)
+
     def get_substake_for_netuid(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[List[Tuple[str, str, int, int]]]:
@@ -3902,11 +3982,13 @@ class subtensor:
                     method="delegateInfo_getSubStakeForNetuid",  # custom rpc method
                     params=params,
                 )
+
         json_body = make_substrate_call_with_retry()
         result = json_body["result"]
-        if result in (None, []): return None
-        else: 
-            return SubstakeElements.decode( result )
+        if result in (None, []):
+            return None
+        else:
+            return SubstakeElements.decode(result)
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -4835,6 +4917,61 @@ class subtensor:
                 else:
                     raise TakeError(response.error_message)
 
+        return make_substrate_call_with_retry()
+
+    def _set_delegate_takes(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        takes: List[Tuple[int, int]],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                logger.debug(f"Hotkey SS58: {hotkey_ss58}")
+                logger.debug(f"Takes: {takes}")
+
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="set_delegate_takes",
+                    call_params={
+                        "hotkey": hotkey_ss58,
+                        "takes": takes,
+                    },
+                )
+                logger.debug(f"Composed call: {call}")
+
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )  # sign with coldkey
+                logger.debug(f"Created signed extrinsic: {extrinsic}")
+
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                logger.debug(f"Submitted extrinsic. Response: {response}")
+
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    logger.debug("Not waiting for finalization or inclusion")
+                    return True
+
+                response.process_events()
+                logger.debug(f"Processed events. Response: {response}")
+
+                if response.is_success:
+                    logger.info("Extrinsic succeeded")
+                    return True
+                else:
+                    error_message = response.error_message
+                    logger.error(f"Extrinsic failed. Error message: {error_message}")
+                    raise TakeError(error_message)
+
+        logger.info("Calling make_substrate_call_with_retry")
         return make_substrate_call_with_retry()
 
     ################

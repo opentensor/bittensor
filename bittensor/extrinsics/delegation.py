@@ -19,7 +19,7 @@
 import bittensor
 from ..errors import *
 from rich.prompt import Confirm
-from typing import Union, Optional
+from typing import Union, Optional, Tuple, List
 from bittensor.utils.balance import Balance
 
 from loguru import logger
@@ -358,12 +358,13 @@ def undelegate_extrinsic(
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
 
+
 def decrease_take_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: Optional[str] = None,
-    netuid: int=0,
-    take: float=.0,
+    netuid: int = 0,
+    take: float = 0.0,
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True,
 ) -> bool:
@@ -394,8 +395,8 @@ def decrease_take_extrinsic(
             success = subtensor._do_decrease_take(
                 wallet=wallet,
                 hotkey_ss58=hotkey_ss58,
-                netuid = netuid,
-                take = take,
+                netuid=netuid,
+                take=take,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
@@ -428,12 +429,13 @@ def decrease_take_extrinsic(
 
     return False
 
+
 def increase_take_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: Optional[str] = None,
-    netuid: int=0,
-    take: float=.0,
+    netuid: int = 0,
+    take: float = 0.0,
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True,
 ) -> bool:
@@ -464,8 +466,8 @@ def increase_take_extrinsic(
             success = subtensor._do_increase_take(
                 wallet=wallet,
                 hotkey_ss58=hotkey_ss58,
-                netuid = netuid,
-                take = take,
+                netuid=netuid,
+                take=take,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
@@ -497,3 +499,70 @@ def increase_take_extrinsic(
             )
 
     return False
+
+
+def set_delegates_takes_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    takes: List[Tuple[int, float]],
+    hotkey_ss58: Optional[str] = None,
+    wait_for_finalization: bool = False,
+    wait_for_inclusion: bool = True,
+) -> bool:
+    r"""Set multiple delegate takes for the hotkey across different subnets.
+
+    Args:
+        wallet (bittensor.wallet):
+            Bittensor wallet object.
+        hotkey_ss58 (Optional[str]):
+            The ``ss58`` address of the hotkey account to stake to defaults to the wallet's hotkey.
+        takes (List[Tuple[int, float]]):
+            A list of tuples where each tuple contains a subnet ID (`netuid`) and the new take (`take`) for that subnet.
+    Returns:
+        success (bool): ``True`` if the transaction was successful.
+    """
+    # Unlock the coldkey.
+    wallet.coldkey
+    wallet.hotkey
+
+    with bittensor.__console__.status(
+        ":satellite: Sending set_delegates_takes_extrinsic call on [white]{}[/white] ...".format(
+            subtensor.network
+        )
+    ):
+        try:
+            success = subtensor._set_delegate_takes(
+                wallet=wallet,
+                hotkey_ss58=hotkey_ss58,
+                takes=takes,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            if success:
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
+                bittensor.logging.success(
+                    prefix="Set Delegate Takes",
+                    sufix="<green>Finalized: </green>" + str(success),
+                )
+
+                return True
+
+        except Exception as e:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+            )
+            bittensor.logging.warning(
+                prefix="Set Delegate Takes", sufix="<red>Failed: </red>" + str(e)
+            )
+        except TakeError as e:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+            )
+            bittensor.logging.warning(
+                prefix="Set Delegate Takes", sufix="<red>Failed: </red>" + str(e)
+            )
+
+            return False
