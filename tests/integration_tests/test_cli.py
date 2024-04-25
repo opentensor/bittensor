@@ -146,7 +146,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             (3, mock_wallets[4]),  # hk4 is only on netuid 3
         ]  # hk3 is not registered on any network
 
-        # Register each wallet to it's subnet.
+        # Register each wallet to its subnet.
         print("Registering wallets to mock subtensor...")
 
         for netuid, wallet in mock_registrations:
@@ -245,7 +245,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             (3, mock_wallets[4])  # hk4 is on netuid 3
         ]
 
-        # Register each wallet to it's subnet
+        # Register each wallet to its subnet
         print("Registering mock wallets to subnets...")
 
         for netuid, wallet in mock_registrations:
