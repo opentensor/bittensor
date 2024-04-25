@@ -112,7 +112,7 @@ class SenateCommand:
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         senate_parser = parser.add_parser(
-            "senate", help="""View senate and it's members"""
+            "senate", help="""View senate and its members"""
         )
 
         bittensor.wallet.add_args(senate_parser)
