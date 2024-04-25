@@ -102,9 +102,9 @@ def show_delegates(
         for prev_delegate in prev_delegates:
             prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
 
-    registered_delegate_info: Optional[
-        Dict[str, DelegatesDetails]
-    ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+        get_delegates_details(url=bittensor.__delegates_details_url__)
+    )
     if registered_delegate_info is None:
         bittensor.__console__.print(
             ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
@@ -288,7 +288,9 @@ class DelegateStakeCommand:
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
                 subtensor = bittensor.subtensor(config=config, log_verbose=False)
-                delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+                delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates(
+                    max(0, subtensor.block - 1200)
+                )
                 try:
                     prev_delegates = subtensor.get_delegates(
                         max(0, subtensor.block - 1200)
@@ -538,19 +540,10 @@ class ListDelegatesCommand:
         cli.config.subtensor.chain_endpoint = "wss://archive.chain.opentensor.ai:443"
         with bittensor.__console__.status(":satellite: Loading delegates..."):
             delegates: bittensor.DelegateInfo = subtensor.get_delegates()
-            try:
-                prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
-            except SubstrateRequestException:
-                prev_delegates = None
-
-        if prev_delegates is None:
-            bittensor.__console__.print(
-                ":warning: [yellow]Could not fetch delegates history[/yellow]"
-            )
 
         show_delegates(
             delegates,
-            prev_delegates=prev_delegates,
+            prev_delegates=None,
             width=cli.config.get("width", None),
         )
 
@@ -808,9 +801,9 @@ class MyDelegatesCommand:
             delegates.sort(key=lambda delegate: delegate[0].total_stake, reverse=True)
             total_delegated += sum(my_delegates.values())
 
-            registered_delegate_info: Optional[
-                DelegatesDetails
-            ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+            registered_delegate_info: Optional[DelegatesDetails] = (
+                get_delegates_details(url=bittensor.__delegates_details_url__)
+            )
             if registered_delegate_info is None:
                 bittensor.__console__.print(
                     ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
