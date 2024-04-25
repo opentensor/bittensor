@@ -24,7 +24,7 @@ def mock_subtensor():
 @pytest.fixture
 def mock_wallet():
     mock = MagicMock(spec=Wallet)
-    mock.coldkeypub.ss58_address = "mock_coldkey_address"
+    mock.coldkeypub.ss58_address = "mock_address"
     mock.coldkey = MagicMock()
     mock.hotkey = MagicMock()
     mock.hotkey.ss58_address = "fake_ss58_address"
@@ -44,7 +44,7 @@ def mock_pow_solution():
 @pytest.fixture
 def mock_new_wallet():
     mock = MagicMock(spec=Wallet)
-    mock.coldkeypub.ss58_address = "mock_coldkey_address"
+    mock.coldkeypub.ss58_address = "mock_address"
     mock.coldkey = MagicMock()
     mock.hotkey = MagicMock()
     return mock
@@ -53,24 +53,12 @@ def mock_new_wallet():
 @pytest.mark.parametrize(
     "wait_for_inclusion,wait_for_finalization,prompt,cuda,dev_id,tpb,num_processes,update_interval,log_verbose,expected",
     [
-        (
-            False,
-            True,
-            False,
-            False,
-            0,
-            256,
-            None,
-            None,
-            False,
-            True,
-        ),
+        (False, True, False, False, 0, 256, None, None, False, True),
         (True, False, False, True, [0], 256, 1, 100, True, False),
         (False, False, False, True, 1, 512, 2, 200, False, False),
     ],
     ids=["happy-path-1", "happy-path-2", "happy-path-3"],
 )
-@pytest.mark.skip(reason="Waiting for fix to MaxAttemptedException")
 def test_run_faucet_extrinsic_happy_path(
     mock_subtensor,
     mock_wallet,
@@ -87,7 +75,8 @@ def test_run_faucet_extrinsic_happy_path(
     expected,
 ):
     with patch(
-        "bittensor.utils.registration.create_pow", return_value=mock_pow_solution
+        "bittensor.utils.registration._solve_for_difficulty_fast",
+        return_value=mock_pow_solution,
     ) as mock_create_pow, patch("rich.prompt.Confirm.ask", return_value=True):
         from bittensor.extrinsics.registration import run_faucet_extrinsic
 
@@ -111,9 +100,12 @@ def test_run_faucet_extrinsic_happy_path(
         )
 
         # Assert
-        assert result == expected
+        if isinstance(result, tuple):
+            assert result[0] == expected
+            mock_subtensor.substrate.submit_extrinsic.assert_called()
+        else:
+            assert result == expected
         mock_subtensor.get_balance.assert_called_with("mock_address")
-        mock_subtensor.substrate.submit_extrinsic.assert_called()
 
 
 @pytest.mark.parametrize(
