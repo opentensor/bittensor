@@ -73,7 +73,7 @@ print (wallet)
 "Wallet (default, default, ~/.bittensor/wallets/)"
 ```
 2. Or using btcli
-> Use the subcommand `wallet` or it's alias `w`:
+> Use the subcommand `wallet` or its alias `w`:
 ```bash
 $ btcli wallet new_coldkey
     Enter wallet name (default):      
