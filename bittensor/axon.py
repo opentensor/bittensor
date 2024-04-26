@@ -696,9 +696,7 @@ class axon:
         body = await request.body()
         request_body = body.decode() if isinstance(body, bytes) else body
 
-        # Gather the required field names from the axon's required_hash_fields dict
         request_name = request.url.path.split("/")[1]
-        required_hash_fields = self.required_hash_fields[request_name]
 
         # Load the body dict and check if all required field hashes match
         body_dict = json.loads(request_body)

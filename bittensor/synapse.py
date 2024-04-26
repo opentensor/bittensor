@@ -683,21 +683,20 @@ class Synapse(pydantic.BaseModel):
         Returns:
             str: The SHA3-256 hash as a hexadecimal string, providing a fingerprint of the Synapse instance's data for integrity checks.
         """
-        # Hash the body for verification
         hashes = []
 
-        # Getting the fields of the instance
-        instance_fields = self.dict()
+        required_hash_fields = self.__class__.__fields__["required_hash_fields"].default
 
-        for field, value in instance_fields.items():
-            # If the field is required in the subclass schema, hash and add it.
-            if (
-                self.required_hash_fields is not None
-                and field in self.required_hash_fields
-            ):
-                hashes.append(bittensor.utils.hash(str(value)))
+        if required_hash_fields:
+            instance_fields = self.dict()
+            # Preserve backward compatibility in which fields will added in .dict() order
+            # instead of the order one from `self.required_hash_fields`
+            required_hash_fields = [
+                field for field in instance_fields if field in required_hash_fields
+            ]
+            for field in required_hash_fields:
+                hashes.append(bittensor.utils.hash(str(instance_fields[field])))
 
-        # Hash and return the hashes that have been concatenated
         return bittensor.utils.hash("".join(hashes))
 
     @classmethod
