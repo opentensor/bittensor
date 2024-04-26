@@ -130,7 +130,7 @@ dependencies:
       - backoff==2.1.0
       - blinker==1.6.2
       - cachetools==4.2.4
-      - certifi==2023.7.22
+      - certifi==2024.2.2
       - cfgv==3.4.0
       - chardet==3.0.4
       - click==8.1.3
