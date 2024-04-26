@@ -224,3 +224,23 @@ def test_default_instance_fields_dict_consistency():
         "computed_body_hash": "",
         "required_hash_fields": [],
     }
+
+
+def test_synapse_body_hash():
+    class HashedSynapse(bittensor.Synapse):
+        a: int
+        b: int
+        c: typing.Optional[int]
+        d: typing.Optional[typing.List[str]]
+        required_hash_fields: typing.Optional[typing.List[str]] = ["b", "a", "d"]
+
+    synapse_instance = HashedSynapse(a=1, b=2, d=["foobar"])
+    synapse_instance_2 = HashedSynapse(d=["foobar"], c=3, a=1, b=2)
+    synapse_different = HashedSynapse(a=1, b=2)
+
+    assert synapse_instance.body_hash == synapse_instance_2.body_hash
+    assert synapse_instance.body_hash != synapse_different.body_hash
+    assert (
+        synapse_instance.body_hash
+        == "ae06397d08f30f75c91395c59f05c62ac3b62b88250eb78b109213258e6ced0c"
+    )
