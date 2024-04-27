@@ -19,11 +19,10 @@
 
 from pathlib import Path
 import pytest
-import bittensor
 from freezegun import freeze_time
 from datetime import datetime, timedelta
 
-from bittensor.utils import VERSION_CHECK_THRESHOLD, get_latest_version
+from bittensor.utils.version import VERSION_CHECK_THRESHOLD, get_latest_version
 from unittest.mock import MagicMock
 from pytest_mock import MockerFixture
 
@@ -35,14 +34,14 @@ def pypi_version():
 
 @pytest.fixture
 def mock_get_version_from_pypi(mocker: MockerFixture, pypi_version: str):
-    return mocker.patch("bittensor.utils._get_version_from_pypi", return_value=pypi_version, autospec=True)
+    return mocker.patch("bittensor.utils.version._get_version_from_pypi", return_value=pypi_version, autospec=True)
 
 
 @pytest.fixture
 def version_file_path(mocker: MockerFixture, tmp_path: Path):
     file_path = tmp_path / ".version"
 
-    mocker.patch("bittensor.utils._get_version_file_path", return_value=file_path)
+    mocker.patch("bittensor.utils.version._get_version_file_path", return_value=file_path)
     return file_path
 
 
