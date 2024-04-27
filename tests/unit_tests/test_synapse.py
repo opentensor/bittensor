@@ -178,18 +178,6 @@ def test_body_hash_override():
         synapse_instance.body_hash = []
 
 
-def test_required_fields_override():
-    # Create a Synapse instance
-    synapse_instance = bittensor.Synapse()
-
-    # Try to set the required_hash_fields property and expect a TypeError
-    with pytest.raises(
-        TypeError,
-        match='"required_hash_fields" has allow_mutation set to False and cannot be assigned',
-    ):
-        synapse_instance.required_hash_fields = []
-
-
 def test_default_instance_fields_dict_consistency():
     synapse_instance = bittensor.Synapse()
     assert synapse_instance.dict() == {
@@ -222,25 +210,48 @@ def test_default_instance_fields_dict_consistency():
             "signature": None,
         },
         "computed_body_hash": "",
-        "required_hash_fields": [],
     }
 
 
-def test_synapse_body_hash():
-    class HashedSynapse(bittensor.Synapse):
-        a: int
-        b: int
-        c: typing.Optional[int]
-        d: typing.Optional[typing.List[str]]
-        required_hash_fields: typing.Optional[typing.List[str]] = ["b", "a", "d"]
+class LegacyHashedSynapse(bittensor.Synapse):
+    """Legacy Synapse subclass that serialized `required_hash_fields`."""
 
-    synapse_instance = HashedSynapse(a=1, b=2, d=["foobar"])
-    synapse_instance_2 = HashedSynapse(d=["foobar"], c=3, a=1, b=2)
-    synapse_different = HashedSynapse(a=1, b=2)
+    a: int
+    b: int
+    c: typing.Optional[int]
+    d: typing.Optional[typing.List[str]]
+    required_hash_fields: typing.Optional[typing.List[str]] = ["b", "a", "d"]
 
-    assert synapse_instance.body_hash == synapse_instance_2.body_hash
-    assert synapse_instance.body_hash != synapse_different.body_hash
+
+class HashedSynapse(bittensor.Synapse):
+    a: int
+    b: int
+    c: typing.Optional[int]
+    d: typing.Optional[typing.List[str]]
+    required_hash_fields: typing.ClassVar[typing.Tuple[str]] = ("a", "b", "d")
+
+
+@pytest.mark.parametrize("synapse_cls", [LegacyHashedSynapse, HashedSynapse])
+def test_synapse_body_hash(synapse_cls):
+    synapse_instance = synapse_cls(a=1, b=2, d=["foobar"])
     assert (
         synapse_instance.body_hash
         == "ae06397d08f30f75c91395c59f05c62ac3b62b88250eb78b109213258e6ced0c"
     )
+
+    # Extra non-hashed values should not influence the body hash
+    synapse_instance_slightly_different = synapse_cls(d=["foobar"], c=3, a=1, b=2)
+    assert synapse_instance.body_hash == synapse_instance_slightly_different.body_hash
+
+    # Even if someone tries to override the required_hash_fields, it should still be the same
+    synapse_instance_try_override_hash_fields = synapse_cls(
+        a=1, b=2, d=["foobar"], required_hash_fields=["a"]
+    )
+    assert (
+        synapse_instance.body_hash
+        == synapse_instance_try_override_hash_fields.body_hash
+    )
+
+    # Different hashed values should result in different body hashes
+    synapse_different = synapse_cls(a=1, b=2)
+    assert synapse_instance.body_hash != synapse_different.body_hash
