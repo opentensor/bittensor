@@ -364,7 +364,6 @@ class axon:
         self.priority_fns: Dict[str, Optional[Callable]] = {}
         self.forward_fns: Dict[str, Optional[Callable]] = {}
         self.verify_fns: Dict[str, Optional[Callable]] = {}
-        self.required_hash_fields: Dict[str, str] = {}
 
         # Instantiate FastAPI
         self.app = FastAPI()
@@ -565,12 +564,6 @@ class axon:
             verify_fn or self.default_verify
         )  # Use 'default_verify' if 'verify_fn' is None
         self.forward_fns[request_name] = forward_fn
-
-        # Parse required hash fields from the forward function protocol defaults
-        required_hash_fields = request_class.__dict__["__fields__"][
-            "required_hash_fields"
-        ].default
-        self.required_hash_fields[request_name] = required_hash_fields
 
         return self
 
