@@ -22,7 +22,7 @@ import pytest
 from freezegun import freeze_time
 from datetime import datetime, timedelta
 
-from bittensor.utils.version import VERSION_CHECK_THRESHOLD, get_latest_version
+from bittensor.utils.version import VERSION_CHECK_THRESHOLD, get_and_save_latest_version
 from unittest.mock import MagicMock
 from pytest_mock import MockerFixture
 
@@ -45,10 +45,10 @@ def version_file_path(mocker: MockerFixture, tmp_path: Path):
     return file_path
 
 
-def test_get_latest_version_no_file(mock_get_version_from_pypi: MagicMock, version_file_path: Path, pypi_version: str):
+def test_get_and_save_latest_version_no_file(mock_get_version_from_pypi: MagicMock, version_file_path: Path, pypi_version: str):
     assert not version_file_path.exists()
 
-    assert get_latest_version() == pypi_version
+    assert get_and_save_latest_version() == pypi_version
 
     mock_get_version_from_pypi.assert_called_once()
     assert version_file_path.exists()
@@ -56,24 +56,24 @@ def test_get_latest_version_no_file(mock_get_version_from_pypi: MagicMock, versi
 
 
 @pytest.mark.parametrize('elapsed', [0, VERSION_CHECK_THRESHOLD - 5])
-def test_get_latest_version_file_fresh_check(mock_get_version_from_pypi: MagicMock, version_file_path: Path, elapsed: int):
+def test_get_and_save_latest_version_file_fresh_check(mock_get_version_from_pypi: MagicMock, version_file_path: Path, elapsed: int):
     now = datetime.utcnow()
 
     version_file_path.write_text("6.9.5")
 
     with freeze_time(now + timedelta(seconds=elapsed)):
-        assert get_latest_version() == "6.9.5"
+        assert get_and_save_latest_version() == "6.9.5"
 
     mock_get_version_from_pypi.assert_not_called()
 
 
-def test_get_latest_version_file_expired_check(mock_get_version_from_pypi: MagicMock, version_file_path: Path, pypi_version: str):
+def test_get_and_save_latest_version_file_expired_check(mock_get_version_from_pypi: MagicMock, version_file_path: Path, pypi_version: str):
     now = datetime.utcnow()
 
     version_file_path.write_text("6.9.5")
 
     with freeze_time(now + timedelta(seconds=VERSION_CHECK_THRESHOLD + 1)):
-        assert get_latest_version() == pypi_version
+        assert get_and_save_latest_version() == pypi_version
 
     mock_get_version_from_pypi.assert_called_once()
     assert version_file_path.read_text() == pypi_version

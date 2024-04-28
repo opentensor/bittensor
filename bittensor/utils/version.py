@@ -9,7 +9,7 @@ VERSION_CHECK_THRESHOLD = 86400
 
 
 def _get_version_file_path() -> Path:
-    return Path.home() / ".bittensor" / ".version"
+    return Path.home() / ".bittensor" / ".last_known_version"
 
 
 def _get_version_from_file(version_file: Path) -> Optional[str]:
@@ -27,49 +27,46 @@ def _get_version_from_file(version_file: Path) -> Optional[str]:
 
     try:
         return version_file.read_text()
-    except Exception as e:
-        bittensor.logging.error(f"Failed to read version file: {e}")
+    except OSError:
+        bittensor.logging.exception("Failed to read version file")
         return None
 
 
 def _get_version_from_pypi(timeout: int = 15) -> str:
+    bittensor.logging.debug(
+        f"Checking latest Bittensor version at: {bittensor.__pipaddress__}"
+    )
     try:
-        bittensor.logging.debug(
-            f"Checking latest Bittensor version at: {bittensor.__pipaddress__}"
-        )
         response = requests.get(bittensor.__pipaddress__, timeout=timeout)
         latest_version = response.json()["info"]["version"]
-
-    except requests.exceptions.Timeout:
-        bittensor.logging.error("Version check failed due to timeout")
-    except requests.exceptions.RequestException as e:
-        bittensor.logging.error(f"Version check failed due to request failure: {e}")
-    else:
         return latest_version
+    except requests.exceptions.RequestException:
+        bittensor.logging.exception("Failed to get latest version from pypi")
 
     raise
 
 
-def get_latest_version(timeout: int = 15) -> str:
+def get_and_save_latest_version(timeout: int = 15) -> str:
     version_file = _get_version_file_path()
-    latest_version = _get_version_from_file(version_file)
 
-    if not latest_version:
-        try:
-            latest_version = _get_version_from_pypi(timeout)
-        except Exception:
-            return None
-        try:
-            version_file.write_text(latest_version)
-        except Exception as e:
-            bittensor.logging.error(f"Failed to write version file: {e}")
+    if last_known_version := _get_version_from_file(version_file):
+        return last_known_version
+
+    try:
+        latest_version = _get_version_from_pypi(timeout)
+    except Exception:
+        return None
+    try:
+        version_file.write_text(latest_version)
+    except OSError:
+        bittensor.logging.exception("Failed to save latest version to file")
 
     return latest_version
 
 
 def version_checking(timeout: int = 15):
     try:
-        latest_version = get_latest_version(timeout)
+        latest_version = get_and_save_latest_version(timeout)
     except Exception:
         return
 
