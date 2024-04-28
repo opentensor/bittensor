@@ -22,7 +22,7 @@ import pytest
 from freezegun import freeze_time
 from datetime import datetime, timedelta
 
-from bittensor.utils.version import VERSION_CHECK_THRESHOLD, get_and_save_latest_version
+from bittensor.utils.version import VERSION_CHECK_THRESHOLD, get_and_save_latest_version, version_checking
 from unittest.mock import MagicMock
 from pytest_mock import MockerFixture
 
@@ -77,3 +77,40 @@ def test_get_and_save_latest_version_file_expired_check(mock_get_version_from_py
 
     mock_get_version_from_pypi.assert_called_once()
     assert version_file_path.read_text() == pypi_version
+
+
+@pytest.mark.parametrize(('current_version', 'latest_version'), [
+    ("6.9.3", "6.9.4"),
+    ("6.9.3a1", "6.9.3a2"),
+    ("6.9.3a1", "6.9.3b1"),
+    ("6.9.3", "6.10"),
+    ("6.9.3", "7.0"),
+    ("6.0.15", "6.1.0"),
+])
+def test_version_checking_newer_version_available(mocker: MockerFixture, current_version: str, latest_version: str, capsys):
+    mocker.patch("bittensor.utils.version.bittensor.__version__", current_version)
+    mocker.patch("bittensor.utils.version.get_and_save_latest_version", return_value=latest_version)
+
+    version_checking()
+
+    captured = capsys.readouterr()
+
+    assert "update" in captured.out
+    assert current_version in captured.out
+    assert latest_version in captured.out
+
+
+@pytest.mark.parametrize(('current_version', 'latest_version'), [
+    ("6.9.3", "6.9.3"),
+    ("6.9.3", "6.9.2"),
+    ("6.9.3b", "6.9.3a"),
+])
+def test_version_checking_up_to_date(mocker: MockerFixture, current_version: str, latest_version: str, capsys):
+    mocker.patch("bittensor.utils.version.bittensor.__version__", current_version)
+    mocker.patch("bittensor.utils.version.get_and_save_latest_version", return_value=latest_version)
+
+    version_checking()
+
+    captured = capsys.readouterr()
+
+    assert captured.out == ""

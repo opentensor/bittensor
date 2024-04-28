@@ -1,6 +1,7 @@
 from typing import Optional
 from pathlib import Path
 import time
+from packaging.version import Version
 
 import bittensor
 import requests
@@ -42,8 +43,7 @@ def _get_version_from_pypi(timeout: int = 15) -> str:
         return latest_version
     except requests.exceptions.RequestException:
         bittensor.logging.exception("Failed to get latest version from pypi")
-
-    raise
+        raise
 
 
 def get_and_save_latest_version(timeout: int = 15) -> str:
@@ -52,10 +52,8 @@ def get_and_save_latest_version(timeout: int = 15) -> str:
     if last_known_version := _get_version_from_file(version_file):
         return last_known_version
 
-    try:
-        latest_version = _get_version_from_pypi(timeout)
-    except Exception:
-        return None
+    latest_version = _get_version_from_pypi(timeout)
+
     try:
         version_file.write_text(latest_version)
     except OSError:
@@ -65,19 +63,9 @@ def get_and_save_latest_version(timeout: int = 15) -> str:
 
 
 def version_checking(timeout: int = 15):
-    try:
-        latest_version = get_and_save_latest_version(timeout)
-    except Exception:
-        return
+    latest_version = get_and_save_latest_version(timeout)
 
-    version_split = latest_version.split(".")
-    latest_version_as_int = (
-        (100 * int(version_split[0]))
-        + (10 * int(version_split[1]))
-        + (1 * int(version_split[2]))
-    )
-
-    if latest_version_as_int > bittensor.__version_as_int__:
+    if Version(latest_version) > Version(bittensor.__version__):
         print(
             "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience. "
             "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor".format(
