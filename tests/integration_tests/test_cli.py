@@ -531,9 +531,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_stakes: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "hk0": Balance.from_rao(10.0),
-            "hk1": Balance.from_rao(11.1),
-            "hk2": Balance.from_rao(12.2),
+            "hk0": Balance.from_tao(10.0),
+            "hk1": Balance.from_tao(11.1),
+            "hk2": Balance.from_tao(12.2),
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -610,9 +610,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_stakes: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "hk0": Balance.from_rao(10.0),
-            "hk1": Balance.from_rao(11.1),
-            "hk2": Balance.from_rao(12.2),
+            "hk0": Balance.from_tao(10.0),
+            "hk1": Balance.from_tao(11.1),
+            "hk2": Balance.from_tao(12.2),
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -781,7 +781,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all_hotkeys = False
         # Notice no max_stake specified
 
-        mock_balance = Balance.from_rao(22.2)
+        mock_balance = Balance.from_tao(22.2)
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -855,7 +855,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_hotkeys = ["hk0", "hk1", "hk2"]
 
-        mock_balance = Balance.from_rao(22.0)
+        mock_balance = Balance.from_tao(22.0)
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -953,7 +953,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_hotkeys = ["hk0", "hk1", "hk2"]
 
-        mock_balance = Balance.from_rao(25.0)
+        mock_balance = Balance.from_tao(25.0)
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -1047,18 +1047,18 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "stake"
         config.subcommand = "add"
         config.no_prompt = True
-        # Notie amount is not specified
+        # Notice amount is not specified
         config.max_stake = 15.0  # The keys should have at most 15.0 tao staked after
         config.wallet.name = "fake_wallet"
         config.hotkeys = ["hk0", "hk1", "hk2"]
         config.all_hotkeys = False
 
-        mock_balance = Balance.from_rao(config.max_stake * 3)
+        mock_balance = Balance.from_tao(config.max_stake * 3)
 
         mock_stakes: Dict[str, Balance] = {
-            "hk0": Balance.from_rao(0.0),
-            "hk1": Balance.from_rao(config.max_stake * 2),
-            "hk2": Balance.from_rao(0.0),
+            "hk0": Balance.from_tao(0.0),
+            "hk1": Balance.from_tao(config.max_stake * 2),
+            "hk2": Balance.from_tao(0.0),
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -1436,10 +1436,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0"]
         config.all_hotkeys = False
 
-        mock_balance = Balance.from_rao(config.max_stake * 3)
+        mock_balance = Balance.from_tao(config.max_stake * 3)
 
         mock_stakes: Dict[str, Balance] = {  # has enough stake, more than max_stake
-            "hk0": Balance.from_rao(config.max_stake * 2)
+            "hk0": Balance.from_tao(config.max_stake * 2)
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -1613,7 +1613,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
     def test_undelegate_stake(self, _):
         config = self.config
-        config.command = "root"
+        config.command = "stake"
         config.subcommand = "undelegate"
         config.no_prompt = True
         config.amount = 5.0
@@ -1622,13 +1622,13 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         mock_balances: Dict[str, Balance] = {
             # All have more than 5.0 stake
             "w0": {
-                "hk0": Balance.from_rao(10.0),
+                "hk0": Balance.from_tao(10.0),
             },
-            "w1": {"hk1": Balance.from_rao(11.1)},
+            "w1": {"hk1": Balance.from_tao(11.1)},
         }
 
-        mock_stake = Balance.from_rao(5.0)
-        mock_delegated = Balance.from_rao(6.0)
+        mock_stake = Balance.from_tao(5.0)
+        mock_delegated = Balance.from_tao(6.0)
 
         mock_wallets = []
         for idx, wallet_name in enumerate(list(mock_balances.keys())):
@@ -1724,8 +1724,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.wallet.name = "w1"
 
         mock_balances: Dict[str, Balance] = {
-            "w0": Balance.from_rao(10.0),
-            "w1": Balance.from_rao(config.amount + 0.001),
+            "w0": Balance.from_tao(10.0),
+            "w1": Balance.from_tao(config.amount + 0.001),
         }
 
         mock_wallets = []
@@ -1873,7 +1873,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # Give the wallet some balance for burning
         success, err = _subtensor_mock.force_set_balance(
             ss58_address=mock_wallet.coldkeypub.ss58_address,
-            balance=Balance.from_rao(200.0),
+            balance=Balance.from_tao(200.0),
         )
 
         with patch("bittensor.wallet", return_value=mock_wallet) as mock_create_wallet:
