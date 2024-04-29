@@ -21,6 +21,7 @@ from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional
 from bittensor.utils.balance import Balance
+from loguru import logger
 
 
 def add_substake_extrinsic(
@@ -120,6 +121,37 @@ def add_substake_extrinsic(
             )
         )
         return False
+
+    # Set maximum slippage percentage
+    max_slippage_pct = 5.0
+
+    # Calculate slippage
+    subnet_stake_amount_tao = bittensor.Balance.from_tao(staking_balance.tao)
+    alpha_returned, slippage = dynamic_info.tao_to_alpha_with_slippage(
+        subnet_stake_amount_tao
+    )
+    slippage_pct = 100 * (1 - float(alpha_returned) / float(subnet_stake_amount_tao))
+    logger.debug(
+        f"Slippage for subnet {netuid}: {slippage} TAO, Tao staked {subnet_stake_amount_tao}, Alpha returned {alpha_returned}, Slippage percent {slippage_pct:.2f}%"
+    )
+
+    # Check if slippage exceeds the maximum threshold
+    if slippage_pct > max_slippage_pct:
+        bittensor.__console__.print(
+            f":warning: [yellow]Warning:[/yellow] Slippage exceeds {max_slippage_pct}% for subnet {netuid}: {bittensor.Balance.from_tao(slippage)} TAO ({slippage_pct:.2f}%)"
+        )
+        if not Confirm.ask(
+            "Do you want to proceed with staking despite the high slippage?"
+        ):
+            return False
+
+    # Check if any slippage exceeds the maximum threshold
+    if slippage_pct > max_slippage_pct:
+        bittensor.__console__.print(
+            f":warning: [yellow]Warning:[/yellow] Slippage exceeds {max_slippage_pct}% for subnet {netuid}: {bittensor.Balance.from_tao(slippage)} TAO ({slippage_pct:.2f}%)"
+        )
+        if not Confirm.ask("Do you want to proceed with staking?"):
+            return False
 
     try:
         with bittensor.__console__.status(
@@ -305,6 +337,30 @@ def remove_substake_extrinsic(
             )
         )
         return False
+
+    # Set maximum slippage percentage
+    max_slippage_pct = 5.0
+    dynamic_info = subtensor.get_dynamic_info_for_netuid(netuid)
+
+    # Calculate slippage
+    subnet_stake_amount_alpha = bittensor.Balance.from_tao(unstaking_balance.tao)
+    alpha_returned, slippage = dynamic_info.alpha_to_tao_with_slippage(
+        subnet_stake_amount_alpha
+    )
+    slippage_pct = 100 * (1 - float(alpha_returned) / float(subnet_stake_amount_alpha))
+    logger.debug(
+        f"Slippage for subnet {netuid}: {slippage} TAO, Tao staked {subnet_stake_amount_alpha}, Alpha returned {alpha_returned}, Slippage percent {slippage_pct:.2f}%"
+    )
+
+    # Check if slippage exceeds the maximum threshold
+    if slippage_pct > max_slippage_pct:
+        bittensor.__console__.print(
+            f":warning: [yellow]Warning:[/yellow] Slippage exceeds {max_slippage_pct}% for subnet {netuid}: {bittensor.Balance.from_tao(slippage)} TAO ({slippage_pct:.2f}%)"
+        )
+        if not Confirm.ask(
+            "Do you want to proceed with staking despite the high slippage?"
+        ):
+            return False
 
     # Ask before moving on.
     if prompt:
