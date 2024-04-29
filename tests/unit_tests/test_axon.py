@@ -20,15 +20,18 @@
 # Standard Lib
 import pytest
 import unittest
+from dataclasses import dataclass
 from typing import Any
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Third Party
 from starlette.requests import Request
+from fastapi.testclient import TestClient
 
 # Bittensor
 import bittensor
+from bittensor import Synapse
 from bittensor.axon import AxonMiddleware
 from bittensor.axon import axon as Axon
 
@@ -161,14 +164,19 @@ def axon_instance():
 
 
 # Mocks
+@dataclass
 class MockWallet:
-    def __init__(self, hotkey):
-        self.hotkey = hotkey
+    hotkey: Any
+    coldkey: Any = None
+    coldkeypub: Any = None
 
 
 class MockHotkey:
     def __init__(self, ss58_address):
         self.ss58_address = ss58_address
+
+    def sign(self, *args, **kwargs):
+        return f"Signed: {args!r} {kwargs!r}".encode()
 
 
 class MockInfo:
@@ -438,6 +446,82 @@ class TestAxonMiddleware(IsolatedAsyncioTestCase):
 
         # Check if the preprocess function sets the request name correctly
         assert synapse.name == "request_name"
+
+
+class SynapseHTTPClient(TestClient):
+    def post_synapse(self, synapse: Synapse):
+        return self.post(
+            f"/{synapse.__class__.__name__}",
+            json=synapse.dict(),
+            headers={"computed_body_hash": synapse.body_hash},
+        )
+
+
+@pytest.mark.asyncio
+class TestAxonHTTPAPIResponses:
+    @pytest.fixture
+    def axon(self):
+        return Axon(
+            ip="192.0.2.1",
+            external_ip="192.0.2.1",
+            wallet=MockWallet(MockHotkey("A"), MockHotkey("B"), MockHotkey("PUB")),
+        )
+
+    @pytest.fixture
+    def http_client(self, axon):
+        return SynapseHTTPClient(axon.app)
+
+    async def no_verify_fn(self, synapse):
+        return
+
+    async def test_unknown_path(self, http_client):
+        response = http_client.get("/no_such_path")
+        assert (response.status_code, response.json()) == (
+            404,
+            {
+                "message": "Synapse name 'no_such_path' not found. Available synapses ['Synapse']"
+            },
+        )
+
+    async def test_ping__no_dendrite(self, http_client):
+        response = http_client.post_synapse(bittensor.Synapse())
+        assert (response.status_code, response.json()) == (
+            401,
+            {
+                "message": "Not Verified with error: No SS58 formatted address or public key provided"
+            },
+        )
+
+    async def test_ping__without_verification(self, http_client, axon):
+        axon.verify_fns["Synapse"] = self.no_verify_fn
+        request_synapse = Synapse()
+        response = http_client.post_synapse(request_synapse)
+        assert response.status_code == 200
+        response_synapse = Synapse(**response.json())
+        assert response_synapse.axon.status_code == 200
+
+    async def test_synapse__explicitly_set_status_code(self, http_client, axon):
+        class CustomSynapse(Synapse):
+            pass
+
+        error_message = "Essential resource for CustomSynapse not found"
+
+        async def forward_fn(synapse: CustomSynapse):
+            synapse.axon.status_code = 404
+            synapse.axon.status_message = error_message
+            return synapse
+
+        axon.attach(forward_fn)
+        axon.verify_fns["CustomSynapse"] = self.no_verify_fn
+
+        request_synapse = CustomSynapse()
+        response = http_client.post_synapse(request_synapse)
+        assert response.status_code == 404
+        response_synapse = CustomSynapse(**response.json())
+        assert (
+            response_synapse.axon.status_code,
+            response_synapse.axon.status_message,
+        ) == (404, error_message)
 
 
 if __name__ == "__main__":
