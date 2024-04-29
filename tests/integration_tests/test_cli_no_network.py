@@ -40,7 +40,18 @@ mock_delegate_info = {
     "total_stake": bittensor.Balance.from_rao(0),
     "nominators": [],
     "owner_ss58": "",
-    "take": 0.18,
+    "take": [
+        (0, 0.18),
+        (1, 0.18),
+        (2, 0.18),
+        (3, 0.18),
+        (4, 0.18),
+        (5, 0.18),
+        (6, 0.18),
+        (7, 0.18),
+        (8, 0.18),
+        (9, 0.18),
+    ],
     "validator_permits": [],
     "registrations": [],
     "return_per_1000": bittensor.Balance.from_rao(0),
@@ -390,7 +401,18 @@ def return_mock_sub_2(*args, **kwargs):
                         total_stake=Balance.from_rao(0),
                         nominators=[],
                         owner_ss58="",
-                        take=0.18,
+                        take=[
+                            (0, 0.18),
+                            (1, 0.18),
+                            (2, 0.18),
+                            (3, 0.18),
+                            (4, 0.18),
+                            (5, 0.18),
+                            (6, 0.18),
+                            (7, 0.18),
+                            (8, 0.18),
+                            (9, 0.18),
+                        ],
                         validator_permits=[],
                         registrations=[],
                         return_per_1000=Balance(0.0),
@@ -429,6 +451,8 @@ class TestEmptyArgs(unittest.TestCase):
                 "wallets",
                 "st",
                 "su",
+                "substake",
+                "sub",
             ]  # Skip duplicate aliases
         ]
         # Test that each command and its subcommands can be run with no args
@@ -458,7 +482,18 @@ mock_delegate_info = {
     "total_stake": bittensor.Balance.from_rao(0),
     "nominators": [],
     "owner_ss58": "",
-    "take": 0.18,
+    "take": [
+        (0, 0.18),
+        (1, 0.18),
+        (2, 0.18),
+        (3, 0.18),
+        (4, 0.18),
+        (5, 0.18),
+        (6, 0.18),
+        (7, 0.18),
+        (8, 0.18),
+        (9, 0.18),
+    ],
     "validator_permits": [],
     "registrations": [],
     "return_per_1000": bittensor.Balance.from_rao(0),
@@ -906,7 +941,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
     def test_delegate_prompt_wallet_name(self, _):
         base_args = [
-            "root",
+            "stake",
             "delegate",
             "--all",
             "--delegate_ss58key",
@@ -967,7 +1002,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
     def test_undelegate_prompt_wallet_name(self, _):
         base_args = [
-            "root",
+            "stake",
             "undelegate",
             "--all",
             "--delegate_ss58key",
@@ -1089,7 +1124,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         # - wallet name IS passed, AND
         # - delegate hotkey IS NOT passed
         base_args = [
-            "root",
+            "stake",
             "delegate",
             "--all",
             "--wallet.name",
@@ -1176,7 +1211,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         # - wallet name IS passed, AND
         # - delegate hotkey IS NOT passed
         base_args = [
-            "root",
+            "stake",
             "undelegate",
             "--all",
             "--wallet.name",
@@ -1262,7 +1297,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         """Test that the vote command prompts for proposal_hash when it is not passed"""
         base_args = [
             "root",
-            "senate_vote",
+            "vote",
             "--wallet.name",
             "mock",
             "--wallet.hotkey",

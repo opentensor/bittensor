@@ -134,15 +134,15 @@ COMMANDS = {
             "my_delegates": MyDelegatesCommand,
         },
     },
-    "substake": {
-        "name": "substake",
-        "aliases": ["sub", "substake"],
-        "help": "Commands for managing substaking.",
-        "commands": {
-            "add": SubStakeCommand,
-            "remove": RemoveSubStakeCommand,
-        },
-    },
+    # "substake": {
+    #     "name": "substake",
+    #     "aliases": ["sub", "substake"],
+    #     "help": "Commands for managing substaking.",
+    #     "commands": {
+    #         "add": SubStakeCommand,
+    #         "remove": RemoveSubStakeCommand,
+    #     },
+    # },
     "sudo": {
         "name": "sudo",
         "aliases": ["su", "sudos"],

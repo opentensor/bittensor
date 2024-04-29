@@ -373,7 +373,7 @@ def test_balance_floordiv(balance: Union[int, float], balance2: Union[int, float
 
     quot_ = balance_ // balance2_
     assert isinstance(quot_, Balance)
-    # TODO: (gus): Please sanity check this 
+    # TODO: (gus): Please sanity check this
     assert quot_.rao == pytest.approx(rao_ // rao2_, abs=10)
 
 
