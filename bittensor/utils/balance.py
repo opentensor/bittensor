@@ -40,17 +40,24 @@ class Balance:
     rao: int
     tao: float
 
-    def __init__(self, balance_rao: int):
+    def __init__(self, balance: Union[int, float]):
         """
-        Initialize a Balance object assumes the passed value is in rao.
+        Initialize a Balance object.
         Args:
-            balance: The initial balance.
+            balance: The initial balance in tao or rao.
         """
-        self.rao = int(balance_rao)
+        if isinstance(balance, float):
+            self._tao = balance
+            self.rao = int(balance * pow(10, 9))
+        elif isinstance(balance, int):
+            self._tao = balance / pow(10, 9)
+            self.rao = balance
+        else:
+            raise ValueError(f"Invalid balance value: {balance}")
 
     @property
-    def tao(self):
-        return self.rao / pow(10, 9)
+    def tao(self) -> float:
+        return self._tao
 
     def __int__(self):
         """
