@@ -207,7 +207,6 @@ def show_delegates(
             f"{delegate.total_stake!s:13.13}",
             rate_change_in_stake_str,
             str(delegate.registrations),
-            # str([f"({t[0]}-{t[1] * 100:.1f}%" + ")" for t in delegate.take]),
             str([f"({t[0]}-{t[1] * 100:.1f}%)" for t in delegate.take]),
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (1000/ ( 0.001 + delegate.total_stake.tao ) ))!s:6.6}",
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (0.18) ) !s:6.6}",

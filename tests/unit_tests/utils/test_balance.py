@@ -351,7 +351,6 @@ def test_balance_rtruediv_other_not_balance(
 
 @given(
     balance=valid_tao_numbers_strategy,
-    # TODO: (gus): Please sanity check this. Anything less than 1e-5 , we get a significant precision loss
     balance2=valid_tao_numbers_strategy.filter(lambda x: x >= 1e-5),
 )  # Avoid zero division
 def test_balance_floordiv(balance: Union[int, float], balance2: Union[int, float]):
@@ -373,8 +372,7 @@ def test_balance_floordiv(balance: Union[int, float], balance2: Union[int, float
 
     quot_ = balance_ // balance2_
     assert isinstance(quot_, Balance)
-    # TODO: (gus): Please sanity check this
-    assert quot_.rao == pytest.approx(rao_ // rao2_, abs=10)
+    assert quot_.rao == pytest.approx(rao_ // rao2_, abs=2)
 
 
 @given(
@@ -404,7 +402,6 @@ def test_balance_floordiv_other_not_balance(
     assert (
         abs(quot_.rao - expected_value) <= 5
     ), f"{balance_} // {balance2_} = {quot_.rao} != {expected_value}"
-    # assert quot_.rao == pytest.approx(rao_ // rao2_)
     assert abs(quot_.rao - (rao_ // rao2_)) <= 50
 
 
