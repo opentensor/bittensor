@@ -18,11 +18,9 @@
 import sys
 import argparse
 import bittensor
-from tqdm import tqdm
 from rich.prompt import Confirm, Prompt
 from bittensor.utils.balance import Balance
-from typing import List, Union, Optional, Dict, Tuple
-from .utils import get_hotkey_wallets_for_wallet
+from typing import Optional, Tuple
 from . import defaults
 
 console = bittensor.__console__

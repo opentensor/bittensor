@@ -20,9 +20,8 @@ import os
 import argparse
 import bittensor
 import re
-import torch
 import numpy as np
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from rich.table import Table
 from rich.prompt import Prompt, IntPrompt, FloatPrompt, Confirm
 from rich.console import Text
@@ -31,7 +30,6 @@ from substrateinterface.exceptions import SubstrateRequestException
 from .utils import get_delegates_details, DelegatesDetails
 from .identity import SetIdentityCommand
 from . import defaults
-import json
 
 import os
 import bittensor
