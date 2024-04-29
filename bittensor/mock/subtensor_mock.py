@@ -1343,7 +1343,7 @@ class MockSubtensor(subtensor):
             or Balance(0),
             nominators=nom_result,
             owner_ss58=self.get_hotkey_owner(hotkey_ss58=hotkey_ss58, block=block),
-            take=0.18,
+            take=[(0, 0.18)],
             validator_permits=[
                 subnet
                 for subnet, uid in registered_subnets

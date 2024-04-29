@@ -455,9 +455,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_stakes: Dict[str, Balance] = {
             # All have more than 5.0 stake
-            "hk0": Balance.from_rao(10.0),
-            "hk1": Balance.from_rao(11.1),
-            "hk2": Balance.from_rao(12.2),
+            "hk0": Balance.from_tao(10.0),
+            "hk1": Balance.from_tao(11.1),
+            "hk2": Balance.from_tao(12.2),
         }
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -1525,62 +1525,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             )
             self.assertAlmostEqual(balance.tao, mock_balance.tao, places=4)
 
-    def test_nominate(self, _):
-        config = self.config
-        config.command = "root"
-        config.subcommand = "nominate"
-        config.no_prompt = True
-        config.wallet.name = "w0"
-        config.hotkey = "hk0"
-
-        mock_balance = Balance.from_rao(100.0)
-
-        mock_wallet = SimpleNamespace(
-            name="w0",
-            coldkey=_get_mock_keypair(0, self.id()),
-            coldkeypub=_get_mock_keypair(0, self.id()),
-            hotkey_str="hk0",
-            hotkey=_get_mock_keypair(0 + 100, self.id()),
-        )
-
-        # Register mock wallet and give it a balance
-        _ = _subtensor_mock.force_register_neuron(
-            netuid=1,
-            hotkey=mock_wallet.hotkey.ss58_address,
-            coldkey=mock_wallet.coldkey.ss58_address,
-            balance=mock_balance.rao,
-        )
-
-        cli = bittensor.cli(config)
-
-        def mock_get_wallet(*args, **kwargs):
-            hk = kwargs.get("hotkey")
-            name_ = kwargs.get("name")
-
-            if not hk and kwargs.get("config"):
-                hk = kwargs.get("config").wallet.hotkey
-            if not name_ and kwargs.get("config"):
-                name_ = kwargs.get("config").wallet.name
-
-            if mock_wallet.name == name_:
-                return mock_wallet
-            else:
-                raise ValueError("Mock wallet not found")
-
-        with patch("bittensor.wallet") as mock_create_wallet:
-            mock_create_wallet.side_effect = mock_get_wallet
-
-            cli.run()
-
-            # Check the nomination
-            is_delegate = _subtensor_mock.is_hotkey_delegate(
-                hotkey_ss58=mock_wallet.hotkey.ss58_address
-            )
-            self.assertTrue(is_delegate)
-
     def test_delegate_stake(self, _):
         config = self.config
-        config.command = "root"
+        config.command = "stake"
         config.subcommand = "delegate"
         config.no_prompt = True
         config.amount = 5.0
@@ -1589,9 +1536,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         mock_balances: Dict[str, Balance] = {
             # All have more than 5.0 stake
             "w0": {
-                "hk0": Balance.from_rao(10.0),
+                "hk0": Balance.from_tao(10.0),
             },
-            "w1": {"hk1": Balance.from_rao(11.1)},
+            "w1": {"hk1": Balance.from_tao(11.1)},
         }
 
         mock_stake = Balance.from_rao(5.0)
@@ -1661,6 +1608,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 hotkey_ss58=mock_wallets[0].hotkey.ss58_address,
                 coldkey_ss58=mock_wallets[1].coldkey.ss58_address,
             )
+            print(f"Stake After Delegation: {stake.tao}")
             self.assertAlmostEqual(stake.tao, config.amount, places=4)
 
     def test_undelegate_stake(self, _):
@@ -2174,7 +2122,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         ):  # Mock wallet creation. SHOULD NOT BE REGISTERED
             cli = bittensor.cli(
                 args=[
-                    "root",
+                    "stake",
                     "delegate",
                     "--subtensor.network",
                     "mock",  # Mock network
