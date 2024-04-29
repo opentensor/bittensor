@@ -408,3 +408,67 @@ def test_regen_hotkey_from_hex_seed_str(mock_wallet):
     seed_str_bad = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763"  # 1 character short
     with pytest.raises(ValueError):
         mock_wallet.regenerate_hotkey(seed=seed_str_bad, overwrite=True, suppress=True)
+
+
+@pytest.mark.parametrize(
+    "mnemonic, expected_exception",
+    [
+        # Input is in a string format
+        (
+            "fiscal prevent noise record smile believe quote front weasel book axis legal",
+            None,
+        ),
+        # Input is in a list format (acquired by encapsulating mnemonic arg in a string "" in the cli)
+        (
+            [
+                "fiscal prevent noise record smile believe quote front weasel book axis legal"
+            ],
+            None,
+        ),
+        # Input is in a full list format (aquired by pasting mnemonic arg simply w/o quotes in cli)
+        (
+            [
+                "fiscal",
+                "prevent",
+                "noise",
+                "record",
+                "smile",
+                "believe",
+                "quote",
+                "front",
+                "weasel",
+                "book",
+                "axis",
+                "legal",
+            ],
+            None,
+        ),
+        # Incomplete mnemonic
+        ("word1 word2 word3", ValueError),
+        # No mnemonic added
+        (None, ValueError),
+    ],
+    ids=[
+        "string-format",
+        "list-format-thru-string",
+        "list-format",
+        "incomplete-mnemonic",
+        "no-mnemonic",
+    ],
+)
+def test_regen_coldkey_mnemonic(mock_wallet, mnemonic, expected_exception):
+    """Test the `regenerate_coldkey` method of the wallet class, which regenerates the cold key pair from a mnemonic.
+    We test different input formats of mnemonics and check if the function works as expected.
+    """
+    with patch.object(mock_wallet, "set_coldkey") as mock_set_coldkey, patch.object(
+        mock_wallet, "set_coldkeypub"
+    ) as mock_set_coldkeypub:
+        if expected_exception:
+            with pytest.raises(expected_exception):
+                mock_wallet.regenerate_coldkey(
+                    mnemonic=mnemonic, overwrite=True, suppress=True
+                )
+        else:
+            mock_wallet.regenerate_coldkey(mnemonic=mnemonic)
+            mock_set_coldkey.assert_called_once()
+            mock_set_coldkeypub.assert_called_once()
