@@ -201,12 +201,12 @@ class axon:
             assert synapse.input == 1
             ...
 
-        # Define a custom request blacklist fucntion
+        # Define a custom request blacklist function
         def blacklist_my_synapse( synapse: MySyanpse ) -> bool:
             # Apply custom blacklist
             return False ( if non blacklisted ) or True ( if blacklisted )
 
-        # Define a custom request priority fucntion
+        # Define a custom request priority function
         def prioritize_my_synape( synapse: MySyanpse ) -> float:
             # Apply custom priority
             return 1.0

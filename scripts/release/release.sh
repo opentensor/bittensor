@@ -106,7 +106,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ $APPLY == "true" ]]; then
-  echo_warning "Not a Dry run exection"
+  echo_warning "Not a Dry run execution"
 else
   echo_warning "Dry run execution"
 fi
