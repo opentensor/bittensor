@@ -32,7 +32,7 @@ import pytest
 
 import bittensor
 from bittensor import Balance
-from bittensor.commands.delegates import _get_coldkey_wallets_for_path
+from bittensor.commands.delegates import _get_coldkey_wallets_for_path, show_delegates
 from bittensor.commands.identity import SetIdentityCommand
 from bittensor.commands.wallets import _get_coldkey_ss58_addresses_for_path
 from bittensor.mock import MockSubtensor
@@ -44,7 +44,7 @@ from tests.helpers import (
 )
 
 
-_subtensor_mock: MockSubtensor = MockSubtensor()
+_subtensor_mock: MockSubtensor = MockSubtensor('Subtensor')
 
 
 def setUpModule():
@@ -2108,9 +2108,15 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     Test the CLI by passing args directly to the bittensor.cli factory
     """
 
-    def test_list_delegates(self, _):
+    @unittest.mock.patch.object(MockSubtensor, 'get_delegates')
+    def test_list_delegates(self, mocked_get_delegates, _):
+        # Call
         cli = bittensor.cli(args=["root", "list_delegates"])
         cli.run()
+
+        # Assertions
+        # make sure get_delegates called once without previous state (current only)
+        mocked_get_delegates.assert_called_once()
 
     def test_list_subnets(self, _):
         cli = bittensor.cli(
