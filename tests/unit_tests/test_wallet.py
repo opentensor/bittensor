@@ -21,6 +21,7 @@ import pytest
 import random
 import re
 import bittensor
+from bittensor.errors import KeyFileError
 from rich.prompt import Confirm
 from ansible_vault import Vault
 from unittest.mock import patch
@@ -408,3 +409,45 @@ def test_regen_hotkey_from_hex_seed_str(mock_wallet):
     seed_str_bad = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f763"  # 1 character short
     with pytest.raises(ValueError):
         mock_wallet.regenerate_hotkey(seed=seed_str_bad, overwrite=True, suppress=True)
+
+
+@pytest.mark.parametrize(
+    "overwrite, user_input, expected_exception",
+    [
+        (True, None, None),  # Test with overwrite=True, no user input needed
+        (False, "n", True),  # Test with overwrite=False and user says no, KeyFileError
+        (False, "y", None),  # Test with overwrite=False and user says yes
+    ],
+)
+def test_regen_coldkey_overwrite_functionality(
+    mock_wallet, overwrite, user_input, expected_exception
+):
+    """Test the `regenerate_coldkey` method of the wallet class, emphasizing on the overwrite functionality"""
+    ss58_addr = "5D5cwd8DX6ij7nouVcoxDuWtJfiR1BnzCkiBVTt7DU8ft5Ta"
+    seed_str = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f7636"
+
+    with patch.object(mock_wallet, "set_coldkey") as mock_set_coldkey, patch(
+        "builtins.input", return_value=user_input
+    ):
+        if expected_exception:
+            with pytest.raises(KeyFileError):
+                mock_wallet.regenerate_coldkey(
+                    seed=seed_str, overwrite=overwrite, suppress=True
+                )
+        else:
+            mock_wallet.regenerate_coldkey(
+                seed=seed_str, overwrite=overwrite, suppress=True
+            )
+            mock_set_coldkey.assert_called_once()
+            keypair = mock_set_coldkey.call_args_list[0][0][0]
+            seed_hex = (
+                keypair.seed_hex
+                if isinstance(keypair.seed_hex, str)
+                else keypair.seed_hex.hex()
+            )
+            assert re.match(
+                rf"(0x|){seed_str[2:]}", seed_hex
+            ), "The seed_hex does not match the expected pattern"
+            assert (
+                keypair.ss58_address == ss58_addr
+            ), "The SS58 address does not match the expected address"
