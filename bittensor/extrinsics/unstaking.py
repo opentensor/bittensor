@@ -137,6 +137,7 @@ def unstake_extrinsic(
     # This is a hard-coded value but should not be in the future. It is currently 0.1 TAO but will change to 1
     # Hopefully soon, the get_nominator_min_required_stake fn will be exposed for rpc call
     min_req_stake: float = 0.1  # TAO
+    
     if min_req_stake > unstaking_balance > 0:
         bittensor.__console__.print(
             f":cross_mark: [red]Unstaking balance of {unstaking_balance} less than minimum of {min_req_stake} TAO[/red]"
