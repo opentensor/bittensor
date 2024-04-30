@@ -193,6 +193,7 @@ class subtensor:
                 default=default_network,
                 type=str,
                 help="""The subtensor network flag. The likely choices are:
+                                        -- dtao (dtao demo network)
                                         -- finney (main network)
                                         -- test (test network)
                                         -- archive (archive network +300 blocks)
@@ -233,9 +234,8 @@ class subtensor:
         """
         if network is None:
             return None, None
-        if network in ["finney", "local", "test", "dev", "archive"]:
+        if network in ["dtao", "finney", "local", "test", "dev", "archive"]:
             if network == "finney":
-                # Kiru Finney stagin network.
                 return network, bittensor.__finney_entrypoint__
             elif network == "local":
                 return network, bittensor.__local_entrypoint__
@@ -245,6 +245,10 @@ class subtensor:
                 return network, bittensor.__archive_entrypoint__
             elif network == "dev":
                 return network, bittensor.__dev_entrypoint__
+            elif network == "dtao":
+                return network, bittensor.__dtao_entrypoint__
+            else:
+                raise ValueError(f'Network {network} unknown.')
         else:
             if (
                 network == bittensor.__finney_entrypoint__
@@ -261,6 +265,11 @@ class subtensor:
                 or "archive.chain.opentensor.ai" in network
             ):
                 return "archive", bittensor.__archive_entrypoint__
+            elif (
+                network == bittensor.__dtao_entrypoint__
+                or "dtao-demo.chain.opentensor.ai" in network
+            ):
+                return "dtao", bittensor.__dtao_entrypoint__
             elif "127.0.0.1" in network or "localhost" in network:
                 return "local", network
             else:
