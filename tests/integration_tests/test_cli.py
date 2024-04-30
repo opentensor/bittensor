@@ -32,7 +32,7 @@ import pytest
 
 import bittensor
 from bittensor import Balance
-from bittensor.commands.delegates import _get_coldkey_wallets_for_path, show_delegates
+from bittensor.commands.delegates import _get_coldkey_wallets_for_path
 from bittensor.commands.identity import SetIdentityCommand
 from bittensor.commands.wallets import _get_coldkey_ss58_addresses_for_path
 from bittensor.mock import MockSubtensor
@@ -44,7 +44,7 @@ from tests.helpers import (
 )
 
 
-_subtensor_mock: MockSubtensor = MockSubtensor('Subtensor')
+_subtensor_mock: MockSubtensor = MockSubtensor()
 
 
 def setUpModule():
