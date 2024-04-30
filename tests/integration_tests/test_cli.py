@@ -2108,7 +2108,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     Test the CLI by passing args directly to the bittensor.cli factory
     """
 
-    @unittest.mock.patch.object(MockSubtensor, 'get_delegates')
+    @unittest.mock.patch.object(MockSubtensor, "get_delegates")
     def test_list_delegates(self, mocked_get_delegates, _):
         # Call
         cli = bittensor.cli(args=["root", "list_delegates"])
