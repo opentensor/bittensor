@@ -183,10 +183,10 @@ class subtensor:
         prefix_str = "" if prefix is None else f"{prefix}."
         try:
             # TODO Add this back later (just annoying for the demo.)
-            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "local"
+            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "dtao"
             default_chain_endpoint = (
                 os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
-                or bittensor.__local_entrypoint__
+                or bittensor.__dtao_entrypoint__
             )
             parser.add_argument(
                 "--" + prefix_str + "subtensor.network",

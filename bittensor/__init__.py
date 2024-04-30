@@ -88,7 +88,9 @@ __ss58_format__ = 42
 # Wallet ss58 address length
 __ss58_address_length__ = 48
 
-__networks__ = ["local", "finney", "test", "archive", "dev"]
+__dtao_entrypoint__ = "wss://dtao-demo.chain.opentensor.ai:443"
+
+__networks__ = ["dtao", "local", "finney", "test", "archive", "dev"]
 
 __finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 
