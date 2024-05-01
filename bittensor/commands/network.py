@@ -271,15 +271,17 @@ class SubnetListCommand:
                     "{:.8}".format(
                         str(bittensor.Balance.from_rao(subnet.emission_value))
                     ),
-                    "{:.8}".format(
-                        str(
-                            bittensor.Balance.from_tao(
-                                dynamic_info[subnet.netuid]["price"]
+                    (
+                        "{:.8}".format(
+                            str(
+                                bittensor.Balance.from_tao(
+                                    dynamic_info[subnet.netuid]["price"]
+                                )
                             )
                         )
-                    )
-                    if dynamic_info[subnet.netuid]["tao_reserve"] > 0
-                    else "-",
+                        if dynamic_info[subnet.netuid]["tao_reserve"] > 0
+                        else "-"
+                    ),
                     str(
                         bittensor.Balance.from_rao(
                             dynamic_info[subnet.netuid]["tao_reserve"]
@@ -295,10 +297,12 @@ class SubnetListCommand:
                     f"{delegate_info[subnet.owner_ss58].name if subnet.owner_ss58 in delegate_info else subnet.owner_ss58}",
                 )
             )
+        console_width = bittensor.__console__.width
+
         table = Table(
             title="Subnet Info",
             caption=None,
-            min_width=100,
+            width=console_width,
             safe_box=True,
             padding=(0, 1),
             collapse_padding=False,
@@ -345,7 +349,7 @@ class SubnetListCommand:
             "[white]emission",
             f"{bittensor.Balance.from_rao(total_emission)!s:8.8}",
             footer_style="white",
-            style="chartreuse1",
+            style="green3",
             justify="center",
         )
         table.add_column(
@@ -356,10 +360,10 @@ class SubnetListCommand:
             justify="right",
         )
         table.add_column(
-            f"[white][{bittensor.Balance.unit}", style="blue", justify="left"
+            f"[white]{bittensor.Balance.unit}", style="blue", justify="left"
         )
         table.add_column(
-            f"[white]{bittensor.Balance.get_unit(1)}]", style="green", justify="left"
+            f"[white]{bittensor.Balance.get_unit(1)}", style="green", justify="left"
         )
         table.add_column("[white]tempo", style="grey37", justify="center")
         table.add_column("[white]burn", style="deep_pink4", justify="center")
@@ -437,6 +441,7 @@ class SubnetListCommand:
 
         for no, name, description in column_descriptions:
             column_descriptions_table.add_row(no, name, description)
+
         bittensor.__console__.print("Subnets List:", justify="center")
         bittensor.__console__.print(column_descriptions_table, justify="center")
         bittensor.__console__.print(table)
