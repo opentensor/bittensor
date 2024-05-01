@@ -1,6 +1,7 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
+import functools
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -90,6 +91,21 @@ logger = logging.getLogger("subtensor")
 KEY_NONCE: Dict[str, int] = {}
 
 T = TypeVar("T")
+
+
+#######
+# Monkey patch in caching the get_decoder_class method
+#######
+@functools.cache
+def patched_get_decoder_class(self, type_string):
+    return original_get_decoder_class(self, type_string)
+
+
+if hasattr(RuntimeConfiguration, "get_decoder_class"):
+    original_get_decoder_class = RuntimeConfiguration.get_decoder_class
+    RuntimeConfiguration.get_decoder_class = patched_get_decoder_class
+
+#######
 
 
 class ParamWithTypes(TypedDict):
