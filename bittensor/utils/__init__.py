@@ -24,7 +24,7 @@ import torch
 import scalecodec
 
 from .wallet_utils import *  # noqa F401
-from .version import version_checking
+from .version import version_checking, check_version, VersionCheckError
 
 RAOPERTAO = 1e9
 U16_MAX = 65535

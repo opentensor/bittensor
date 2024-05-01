@@ -9,6 +9,10 @@ import requests
 VERSION_CHECK_THRESHOLD = 86400
 
 
+class VersionCheckError(Exception):
+    pass
+
+
 def _get_version_file_path() -> Path:
     return Path.home() / ".bittensor" / ".last_known_version"
 
@@ -61,13 +65,38 @@ def get_and_save_latest_version(timeout: int = 15) -> str:
     return latest_version
 
 
-def version_checking(timeout: int = 15):
-    latest_version = get_and_save_latest_version(timeout)
+def check_version(timeout: int = 15):
+    """
+    Check if the current version of Bittensor is up to date with the latest version on PyPi.
+    Raises a VersionCheckError if the version check fails.
+    """
 
-    if Version(latest_version) > Version(bittensor.__version__):
-        print(
-            "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience. "
-            "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor".format(
-                bittensor.__version__, latest_version
+    try:
+        latest_version = get_and_save_latest_version(timeout)
+
+        if Version(latest_version) > Version(bittensor.__version__):
+            print(
+                "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience. "
+                "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor".format(
+                    bittensor.__version__, latest_version
+                )
             )
-        )
+    except Exception as e:
+        raise VersionCheckError("Version check failed") from e
+
+
+def version_checking(timeout: int = 15):
+    """
+    Deprecated, kept for backwards compatibility. Use check_version() instead.
+    """
+
+    from warnings import warn
+    warn(
+        "version_checking() is deprecated, please use check_version() instead",
+        DeprecationWarning,
+    )
+
+    try:
+        check_version(timeout)
+    except VersionCheckError:
+        bittensor.logging.exception("Version check failed")
