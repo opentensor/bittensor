@@ -71,7 +71,9 @@ def __do_remove_stake_single(
     return success
 
 
-def check_threshold_amount(unstaking_balance: Balance) -> bool:
+def check_threshold_amount(
+        subtensor: "bittensor.subtensor",
+        unstaking_balance: Balance) -> bool:
     """
     Checks if the unstaking amount is above the threshold or 0
 
@@ -86,7 +88,7 @@ def check_threshold_amount(unstaking_balance: Balance) -> bool:
     """
     # This is a hard-coded value but should not be in the future. It is currently 0.1 TAO but will change to 1
     # Hopefully soon, the get_nominator_min_required_stake fn will be exposed for rpc call
-    min_req_stake: Balance = Balance.from_float(0.1)  # TAO
+    min_req_stake: Balance = subtensor.get_minimum_required_stake()
 
     if min_req_stake > unstaking_balance > 0:
         bittensor.__console__.print(
@@ -160,7 +162,7 @@ def unstake_extrinsic(
         )
         return False
 
-    if not check_threshold_amount(unstaking_balance=unstaking_balance):
+    if not check_threshold_amount(subtensor=subtensor, unstaking_balance=unstaking_balance):
         return False
 
     # Ask before moving on.
@@ -334,7 +336,7 @@ def unstake_multiple_extrinsic(
             )
             continue
 
-        if not check_threshold_amount(unstaking_balance=unstaking_balance):
+        if not check_threshold_amount(subtensor=subtensor, unstaking_balance=unstaking_balance):
             return False
 
         # Ask before moving on.

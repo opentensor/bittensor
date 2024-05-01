@@ -3659,6 +3659,19 @@ class subtensor:
 
         return StakeInfo.list_of_tuple_from_vec_u8(bytes_result)  # type: ignore
 
+    def get_minimum_required_stake(
+        self,
+    ):
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        def make_substrate_call_with_retry():
+            return self.substrate.query(
+                module="SubtensorModule",
+                storage_function="NominatorMinRequiredStake"
+            )
+
+        result = make_substrate_call_with_retry()
+        return Balance.from_rao(result.decode())
+
     ########################################
     #### Neuron information per subnet ####
     ########################################

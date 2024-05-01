@@ -1305,6 +1305,10 @@ class MockSubtensor(subtensor):
 
         return True
 
+    def get_minimum_required_stake(self):
+        # valid minimum threshold as of 2024/05/01
+        return Balance.from_rao(100_000_000)
+
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional["DelegateInfo"]:
