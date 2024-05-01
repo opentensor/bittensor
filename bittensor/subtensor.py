@@ -96,7 +96,7 @@ T = TypeVar("T")
 #######
 # Monkey patch in caching the get_decoder_class method
 #######
-@functools.cache
+@functools.lru_cache(maxsize=None)
 def patched_get_decoder_class(self, type_string):
     return original_get_decoder_class(self, type_string)
 
