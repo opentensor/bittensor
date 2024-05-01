@@ -86,8 +86,6 @@ def check_threshold_amount(
             ``true`` if the unstaking is above the threshold or 0, or ``false`` if the
                 unstaking is below the threshold, but not 0.
     """
-    # This is a hard-coded value but should not be in the future. It is currently 0.1 TAO but will change to 1
-    # Hopefully soon, the get_nominator_min_required_stake fn will be exposed for rpc call
     min_req_stake: Balance = subtensor.get_minimum_required_stake()
 
     if min_req_stake > unstaking_balance > 0:
