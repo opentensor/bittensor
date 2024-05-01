@@ -16,14 +16,12 @@
 # DEALINGS IN THE SOFTWARE.
 
 from setuptools import setup, find_packages
-from pkg_resources import parse_requirements
 from os import path
 from io import open
 import codecs
 import re
 import os
 import pathlib
-import subprocess
 
 
 def read_requirements(path):
@@ -68,7 +66,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/opentensor/bittensor",
     author="bittensor.com",
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests", "tests.*"]),
     include_package_data=True,
     author_email="",
     license="MIT",

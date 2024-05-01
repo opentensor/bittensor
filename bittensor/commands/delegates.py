@@ -15,24 +15,22 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
-import os
 import argparse
-import bittensor
-from typing import List, Optional
-from rich.table import Table
-from rich.prompt import Prompt
-from rich.prompt import Confirm
-from rich.console import Text
-from tqdm import tqdm
-from substrateinterface.exceptions import SubstrateRequestException
-from .utils import get_delegates_details, DelegatesDetails
-from .identity import SetIdentityCommand
-from . import defaults
-
 import os
-import bittensor
+import sys
 from typing import List, Dict, Optional
+
+from rich.console import Text
+from rich.prompt import Confirm
+from rich.prompt import Prompt
+from rich.table import Table
+from substrateinterface.exceptions import SubstrateRequestException
+from tqdm import tqdm
+
+import bittensor
+from . import defaults
+from .identity import SetIdentityCommand
+from .utils import get_delegates_details, DelegatesDetails
 
 
 def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
@@ -60,12 +58,15 @@ def show_delegates(
     The table is sorted by total stake in descending order and provides
     a snapshot of delegate performance and status, helping users make informed decisions for staking or nominating.
 
-    This is a helper function that is called by the :func:`list_delegates` and :func:`my_delegates`, and is not intended to be used directly in user code unless specifically required.
+    This is a helper function that is called by the :func:`list_delegates` and :func:`my_delegates`, and is not intended
+    to be used directly in user code unless specifically required.
 
     Args:
         - delegates (List[bittensor.DelegateInfo]): A list of delegate information objects to be displayed.
-        - prev_delegates (Optional[List[bittensor.DelegateInfo]]): A list of delegate information objects from a previous state, used to calculate changes in stake. Defaults to ``None``.
-        - width (Optional[int]): The width of the console output table. Defaults to ``None``, which will make the table expand to the maximum width of the console.
+        - prev_delegates (Optional[List[bittensor.DelegateInfo]]): A list of delegate information objects from a
+            previous state, used to calculate changes in stake. Defaults to ``None``.
+        - width (Optional[int]): The width of the console output table. Defaults to ``None``, which will make the table
+            expand to the maximum width of the console.
 
     The output table includes the following columns:
 
@@ -92,7 +93,8 @@ def show_delegates(
 
     Note:
         This function is primarily for display purposes within a command-line interface and does
-        not return any values. It relies on the `rich <https://github.com/Textualize/rich>`_ Python library to render the table in the
+        not return any values. It relies on the `rich <https://github.com/Textualize/rich>`_ Python library to render
+        the table in the
         console.
     """
 
@@ -205,8 +207,8 @@ def show_delegates(
             rate_change_in_stake_str,
             str(delegate.registrations),
             f"{delegate.take * 100:.1f}%",
-            f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (1000/ ( 0.001 + delegate.total_stake.tao ) ))!s:6.6}",
-            f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (0.18) ) !s:6.6}",
+            f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (1000/ (0.001 + delegate.total_stake.tao)))!s:6.6}",
+            f"{bittensor.Balance.from_tao(delegate.total_daily_return.tao * 0.18) !s:6.6}",
             str(delegate_description),
             end_section=True,
         )
@@ -225,10 +227,13 @@ class DelegateStakeCommand:
         - ``amount``: The amount of Tao to stake.
         - ``all``: If specified, the command stakes all available Tao.
 
-    The command interacts with the user to determine the delegate and the amount of Tao to be staked. If the ``--all`` flag is used, it delegates the entire available balance.
+    The command interacts with the user to determine the delegate and the amount of Tao to be staked. If the ``--all``
+    flag is used, it delegates the entire available balance.
 
     Usage:
-        The user must specify the delegate's SS58 address and the amount of Tao to stake. The function sends a transaction to the subtensor network to delegate the specified amount to the chosen delegate. These values are prompted if not provided.
+        The user must specify the delegate's SS58 address and the amount of Tao to stake. The function sends a
+        transaction to the subtensor network to delegate the specified amount to the chosen delegate. These values are
+        prompted if not provided.
 
     Example usage::
 
@@ -236,7 +241,9 @@ class DelegateStakeCommand:
         btcli delegate --delegate_ss58key <SS58_ADDRESS> --all
 
     Note:
-        This command modifies the blockchain state and may incur transaction fees. It requires user confirmation and interaction, and is designed to be used within the Bittensor CLI environment. The user should ensure the delegate's address and the amount to be staked are correct before executing the command.
+        This command modifies the blockchain state and may incur transaction fees. It requires user confirmation and
+        interaction, and is designed to be used within the Bittensor CLI environment. The user should ensure the
+        delegate's address and the amount to be staked are correct before executing the command.
     """
 
     @staticmethod
@@ -344,7 +351,8 @@ class DelegateStakeCommand:
 
 class DelegateUnstakeCommand:
     """
-    Executes the ``undelegate`` command, allowing users to withdraw their staked Tao from a delegate on the Bittensor network.
+    Executes the ``undelegate`` command, allowing users to withdraw their staked Tao from a delegate on the Bittensor
+    network.
 
     This process is known as "undelegating" and it reverses the delegation process, freeing up the staked tokens.
 
@@ -354,10 +362,13 @@ class DelegateUnstakeCommand:
         - ``amount``: The amount of Tao to undelegate.
         - ``all``: If specified, the command undelegates all staked Tao from the delegate.
 
-    The command prompts the user for the amount of Tao to undelegate and the ``SS58`` address of the delegate from which to undelegate. If the ``--all`` flag is used, it will attempt to undelegate the entire staked amount from the specified delegate.
+    The command prompts the user for the amount of Tao to undelegate and the ``SS58`` address of the delegate from which
+    to undelegate. If the ``--all`` flag is used, it will attempt to undelegate the entire staked amount from the
+    specified delegate.
 
     Usage:
-        The user must provide the delegate's SS58 address and the amount of Tao to undelegate. The function will then send a transaction to the Bittensor network to process the undelegation.
+        The user must provide the delegate's SS58 address and the amount of Tao to undelegate. The function will then
+        send a transaction to the Bittensor network to process the undelegation.
 
     Example usage::
 
@@ -365,7 +376,9 @@ class DelegateUnstakeCommand:
         btcli undelegate --delegate_ss58key <SS58_ADDRESS> --all
 
     Note:
-        This command can result in a change to the blockchain state and may incur transaction fees. It is interactive and requires confirmation from the user before proceeding. It should be used with care as undelegating can affect the delegate's total stake and
+        This command can result in a change to the blockchain state and may incur transaction fees. It is interactive
+        and requires confirmation from the user before proceeding. It should be used with care as undelegating can
+        affect the delegate's total stake and
         potentially the user's staking rewards.
     """
 
@@ -383,9 +396,9 @@ class DelegateUnstakeCommand:
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(self: "bittensor.cli", subtensor: "bittensor.subtensor"):
         """Undelegates stake from a chain delegate."""
-        config = cli.config.copy()
+        config = self.config.copy()
         wallet = bittensor.wallet(config=config)
         subtensor.undelegate(
             wallet=wallet,
@@ -479,7 +492,8 @@ class DelegateUnstakeCommand:
 
 class ListDelegatesCommand:
     """
-    Displays a formatted table of Bittensor network delegates, providing a comprehensive overview of delegate statistics and information.
+    Displays a formatted table of Bittensor network delegates, providing a comprehensive overview of delegate statistics
+    and information.
 
     This table helps users make informed decisions on which delegates to allocate their Tao stake.
 
@@ -502,7 +516,9 @@ class ListDelegatesCommand:
     - DELEGATE/(24h): The total earnings of the delegate in the last 24 hours.
     - DESCRIPTION: A brief description of the delegate's purpose and operations.
 
-    Sorting is done based on the ``TOTAL STAKE`` column in descending order. Changes in stake are highlighted: increases in green and decreases in red. Entries with no previous data are marked with ``NA``. Each delegate's name is a hyperlink to their respective URL, if available.
+    Sorting is done based on the ``TOTAL STAKE`` column in descending order. Changes in stake are highlighted:
+    increases in green and decreases in red. Entries with no previous data are marked with ``NA``. Each delegate's name
+    is a hyperlink to their respective URL, if available.
 
     Example usage::
 
@@ -511,7 +527,8 @@ class ListDelegatesCommand:
         btcli root list_delegates --subtensor.network finney # can also be `test` or `local`
 
     Note:
-        This function is part of the Bittensor CLI tools and is intended for use within a console application. It prints directly to the console and does not return any value.
+        This function is part of the Bittensor CLI tools and is intended for use within a console application. It prints
+        directly to the console and does not return any value.
     """
 
     @staticmethod
@@ -537,20 +554,11 @@ class ListDelegatesCommand:
         cli.config.subtensor.network = "archive"
         cli.config.subtensor.chain_endpoint = "wss://archive.chain.opentensor.ai:443"
         with bittensor.__console__.status(":satellite: Loading delegates..."):
-            delegates: bittensor.DelegateInfo = subtensor.get_delegates()
-            try:
-                prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
-            except SubstrateRequestException:
-                prev_delegates = None
-
-        if prev_delegates is None:
-            bittensor.__console__.print(
-                ":warning: [yellow]Could not fetch delegates history[/yellow]"
-            )
+            delegates: list[bittensor.DelegateInfo] = subtensor.get_delegates()
 
         show_delegates(
             delegates,
-            prev_delegates=prev_delegates,
+            prev_delegates=None,
             width=cli.config.get("width", None),
         )
 
@@ -570,7 +578,8 @@ class NominateCommand:
     """
     Executes the ``nominate`` command, which facilitates a wallet to become a delegate on the Bittensor network.
 
-    This command handles the nomination process, including wallet unlocking and verification of the hotkey's current delegate status.
+    This command handles the nomination process, including wallet unlocking and verification of the hotkey's current
+    delegate status.
 
     The command performs several checks:
 
@@ -584,7 +593,8 @@ class NominateCommand:
         - ``wallet.hotkey``: The name of the hotkey to use for the command.
 
     Usage:
-        To run the command, the user must have a configured wallet with both hotkey and coldkey. If the wallet is not already nominated, this command will initiate the process.
+        To run the command, the user must have a configured wallet with both hotkey and coldkey. If the wallet is not
+        already nominated, this command will initiate the process.
 
     Example usage::
 
@@ -592,7 +602,9 @@ class NominateCommand:
         btcli root nominate --wallet.name my_wallet --wallet.hotkey my_hotkey
 
     Note:
-        This function is intended to be used as a CLI command. It prints the outcome directly to the console and does not return any value. It should not be called programmatically in user code due to its interactive nature and side effects on the network state.
+        This function is intended to be used as a CLI command. It prints the outcome directly to the console and does
+        not return any value. It should not be called programmatically in user code due to its interactive nature and
+        side effects on the network state.
     """
 
     @staticmethod
@@ -684,7 +696,8 @@ class NominateCommand:
 
 class MyDelegatesCommand:
     """
-    Executes the ``my_delegates`` command within the Bittensor CLI, which retrieves and displays a table of delegated stakes from a user's wallet(s) to various delegates on the Bittensor network.
+    Executes the ``my_delegates`` command within the Bittensor CLI, which retrieves and displays a table of delegated
+    stakes from a user's wallet(s) to various delegates on the Bittensor network.
 
     The command provides detailed insights into the user's
     staking activities and the performance of their chosen delegates.
@@ -711,7 +724,9 @@ class MyDelegatesCommand:
     The command also sums and prints the total amount of Tao delegated across all wallets.
 
     Usage:
-        The command can be run as part of the Bittensor CLI suite of tools and requires no parameters if a single wallet is used. If multiple wallets are present, the ``--all`` flag can be specified to aggregate information across all wallets.
+        The command can be run as part of the Bittensor CLI suite of tools and requires no parameters if a single wallet
+        is used. If multiple wallets are present, the ``--all`` flag can be specified to aggregate information across
+        all wallets.
 
     Example usage::
 
@@ -741,7 +756,7 @@ class MyDelegatesCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         """Delegates stake to a chain delegate."""
         config = cli.config.copy()
-        if config.get("all", d=None) == True:
+        if config.get("all", d=None):
             wallets = _get_coldkey_wallets_for_path(config.wallet.path)
         else:
             wallets = [bittensor.wallet(config=config)]
