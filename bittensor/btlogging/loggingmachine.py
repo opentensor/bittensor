@@ -69,7 +69,7 @@ class LoggingMachine(StateMachine):
         # basics
         super(LoggingMachine, self).__init__()
         self._queue = mp.Queue(-1)
-        self._name = name
+        self._primary_loggers = {name}
         self._config = config
 
         # Formatters
@@ -89,7 +89,7 @@ class LoggingMachine(StateMachine):
         self._listener = self._create_and_start_listener(self._handlers)
 
         # set up all the loggers
-        self._logger = self._initialize_bt_logger(name, config)
+        self._logger = self._initialize_bt_logger(name)
         self.disable_third_party_loggers()
 
     def _configure_handlers(self, config) -> list[stdlogging.Handler]:
@@ -118,9 +118,8 @@ class LoggingMachine(StateMachine):
         """
         self._config = config
         if config.logging_dir and config.record_log:
-            logfile = os.path.abspath(
-                os.path.join(config.logging_dir, DEFAULT_LOG_FILE_NAME)
-            )
+            expanded_dir = os.path.expanduser(config.logging_dir)
+            logfile = os.path.abspath(os.path.join(expanded_dir, DEFAULT_LOG_FILE_NAME))
             self._enable_file_logging(logfile)
         if config.trace:
             self.enable_trace()
@@ -149,7 +148,7 @@ class LoggingMachine(StateMachine):
         """
         return self._queue
 
-    def _initialize_bt_logger(self, name, config):
+    def _initialize_bt_logger(self, name):
         """
         Initialize logging for bittensor.
 
@@ -162,6 +161,17 @@ class LoggingMachine(StateMachine):
         logger.addHandler(queue_handler)
         return logger
 
+    def _deinitialize_bt_logger(self, name):
+        """
+        Find the logger by name and remove the
+        queue handler associated with it.
+        """
+        logger = stdlogging.getLogger(name)
+        for handler in list(logger.handlers):
+            if isinstance(handler, QueueHandler):
+                logger.removeHandler(handler)
+        return logger
+
     def _create_file_handler(self, logfile: str):
         file_handler = RotatingFileHandler(
             logfile,
@@ -172,9 +182,30 @@ class LoggingMachine(StateMachine):
         file_handler.setLevel(stdlogging.TRACE)
         return file_handler
 
+    def register_primary_logger(self, name: str):
+        """
+        Register a logger as primary logger
+
+        This adds a logger to the _primary_loggers set to ensure
+        it doesn't get disabled when disabling third-party loggers.
+        A queue handler is also associated with it.
+        """
+        self._primary_loggers.add(name)
+        self._initialize_bt_logger(name)
+
+    def deregister_primary_logger(self, name: str):
+        """
+        De-registers a primary logger
+
+        This function removes the logger from the _primary_loggers
+        set and deinitializes its queue handler
+        """
+        self._primary_loggers.remove(name)
+        self._deinitialize_bt_logger(name)
+
     def enable_third_party_loggers(self):
         for logger in all_loggers():
-            if logger.name == self._name:
+            if logger.name in self._primary_loggers:
                 continue
             queue_handler = QueueHandler(self._queue)
             logger.addHandler(queue_handler)
@@ -183,7 +214,7 @@ class LoggingMachine(StateMachine):
     def disable_third_party_loggers(self):
         # remove all handlers
         for logger in all_loggers():
-            if logger.name == self._name:
+            if logger.name in self._primary_loggers:
                 continue
             for handler in logger.handlers:
                 logger.removeHandler(handler)
@@ -211,7 +242,7 @@ class LoggingMachine(StateMachine):
         self._logger.info(f"Enabling default logging.")
         self._logger.setLevel(stdlogging.INFO)
         for logger in all_loggers():
-            if logger.name == self._name:
+            if logger.name in self._primary_loggers:
                 continue
             logger.setLevel(stdlogging.CRITICAL)
 
