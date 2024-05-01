@@ -20,11 +20,11 @@ from typing import Callable, Union, List, Optional, Dict, Literal
 
 import bittensor
 import hashlib
-import requests
 import torch
 import scalecodec
 
 from .wallet_utils import *  # noqa F401
+from .version import version_checking, check_version, VersionCheckError
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
@@ -57,34 +57,6 @@ def unbiased_topk(values, k, dim=0, sorted=True, largest=True):
         permuted_values, k, dim=dim, sorted=sorted, largest=largest
     )
     return topk, permutation[indices]
-
-
-def version_checking(timeout: int = 15):
-    try:
-        bittensor.logging.debug(
-            f"Checking latest Bittensor version at: {bittensor.__pipaddress__}"
-        )
-        response = requests.get(bittensor.__pipaddress__, timeout=timeout)
-        latest_version = response.json()["info"]["version"]
-        version_split = latest_version.split(".")
-        latest_version_as_int = (
-            (100 * int(version_split[0]))
-            + (10 * int(version_split[1]))
-            + (1 * int(version_split[2]))
-        )
-
-        if latest_version_as_int > bittensor.__version_as_int__:
-            print(
-                "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience. "
-                "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor".format(
-                    bittensor.__version__, latest_version
-                )
-            )
-
-    except requests.exceptions.Timeout:
-        bittensor.logging.error("Version check failed due to timeout")
-    except requests.exceptions.RequestException as e:
-        bittensor.logging.error(f"Version check failed due to request failure: {e}")
 
 
 def strtobool_with_default(
