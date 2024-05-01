@@ -840,10 +840,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     coldkey_ss58=wallet.coldkey.ss58_address,
                 )
                 # because the amount is less than the threshold, none of these should unstake
-                self.assertEqual(
-                    stake.tao,
-                    mock_stakes[wallet.hotkey_str].tao
-                )
+                self.assertEqual(stake.tao, mock_stakes[wallet.hotkey_str].tao)
 
     def test_unstake_all(self, _):
         config = self.config
@@ -855,9 +852,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0"]
         config.all_hotkeys = False
 
-        mock_stakes: Dict[str, Balance] = {
-            "hk0": Balance.from_float(10.0)
-        }
+        mock_stakes: Dict[str, Balance] = {"hk0": Balance.from_float(10.0)}
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -912,10 +907,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     coldkey_ss58=wallet.coldkey.ss58_address,
                 )
                 # because the amount is less than the threshold, none of these should unstake
-                self.assertEqual(
-                    stake.tao,
-                    Balance.from_tao(0)
-                )
+                self.assertEqual(stake.tao, Balance.from_tao(0))
 
     def test_stake_with_specific_hotkeys(self, _):
         config = self.config
