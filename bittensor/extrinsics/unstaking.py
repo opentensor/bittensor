@@ -72,8 +72,8 @@ def __do_remove_stake_single(
 
 
 def check_threshold_amount(
-        subtensor: "bittensor.subtensor",
-        unstaking_balance: Balance) -> bool:
+    subtensor: "bittensor.subtensor", unstaking_balance: Balance
+) -> bool:
     """
     Checks if the unstaking amount is above the threshold or 0
 
@@ -162,7 +162,9 @@ def unstake_extrinsic(
         )
         return False
 
-    if not check_threshold_amount(subtensor=subtensor, unstaking_balance=unstaking_balance):
+    if not check_threshold_amount(
+        subtensor=subtensor, unstaking_balance=unstaking_balance
+    ):
         return False
 
     # Ask before moving on.
@@ -336,7 +338,9 @@ def unstake_multiple_extrinsic(
             )
             continue
 
-        if not check_threshold_amount(subtensor=subtensor, unstaking_balance=unstaking_balance):
+        if not check_threshold_amount(
+            subtensor=subtensor, unstaking_balance=unstaking_balance
+        ):
             return False
 
         # Ask before moving on.

@@ -775,7 +775,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.command = "stake"
         config.subcommand = "remove"
         config.no_prompt = True
-        config.amount = 0.02
+        # as the minimum required stake may change, this method allows us to dynamically
+        # update the amount in the mock without updating the tests
+        config.amount = Balance.from_rao(_subtensor_mock.min_required_stake() - 1)
         config.wallet.name = "fake_wallet"
         config.hotkeys = ["hk0", "hk1", "hk2"]
         config.all_hotkeys = False
