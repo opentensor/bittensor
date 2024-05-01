@@ -91,6 +91,7 @@ def version_checking(timeout: int = 15):
     """
 
     from warnings import warn
+
     warn(
         "version_checking() is deprecated, please use check_version() instead",
         DeprecationWarning,
