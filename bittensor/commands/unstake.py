@@ -98,7 +98,9 @@ class UnStakeCommand:
                     try:
                         config.amount = float(amount)
                     except ValueError:
-                        console.print(f":cross_mark:[red] Invalid Tao amount[/red] [bold white]{amount}[/bold white]")
+                        console.print(
+                            f":cross_mark:[red] Invalid Tao amount[/red] [bold white]{amount}[/bold white]"
+                        )
                         sys.exit()
 
     @staticmethod
