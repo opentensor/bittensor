@@ -740,6 +740,8 @@ class wallet:
         if mnemonic is not None:
             if isinstance(mnemonic, str):
                 mnemonic = mnemonic.split()
+            elif isinstance(mnemonic, list) and len(mnemonic) == 1:
+                mnemonic = mnemonic[0].split()
             if len(mnemonic) not in [12, 15, 18, 21, 24]:
                 raise ValueError(
                     "Mnemonic has invalid size. This should be 12,15,18,21 or 24 words"
