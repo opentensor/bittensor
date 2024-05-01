@@ -71,6 +71,32 @@ def __do_remove_stake_single(
     return success
 
 
+def check_threshold_amount(unstaking_balance: Balance) -> bool:
+    """
+    Checks if the unstaking amount is above the threshold or 0
+
+    Args:
+        unstaking_balance (Balance):
+            the balance to check for threshold limits.
+
+    Returns:
+        success (bool):
+            ``true`` if the unstaking is above the threshold or 0, or ``false`` if the
+                unstaking is below the threshold, but not 0.
+    """
+    # This is a hard-coded value but should not be in the future. It is currently 0.1 TAO but will change to 1
+    # Hopefully soon, the get_nominator_min_required_stake fn will be exposed for rpc call
+    min_req_stake: Balance = Balance.from_float(0.1)  # TAO
+
+    if min_req_stake > unstaking_balance > 0:
+        bittensor.__console__.print(
+            f":cross_mark: [red]Unstaking balance of {unstaking_balance} less than minimum of {min_req_stake} TAO[/red]"
+        )
+        return False
+    else:
+        return True
+
+
 def unstake_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
@@ -134,14 +160,7 @@ def unstake_extrinsic(
         )
         return False
 
-    # This is a hard-coded value but should not be in the future. It is currently 0.1 TAO but will change to 1
-    # Hopefully soon, the get_nominator_min_required_stake fn will be exposed for rpc call
-    min_req_stake: float = 0.1  # TAO
-
-    if min_req_stake > unstaking_balance > 0:
-        bittensor.__console__.print(
-            f":cross_mark: [red]Unstaking balance of {unstaking_balance} less than minimum of {min_req_stake} TAO[/red]"
-        )
+    if not check_threshold_amount(unstaking_balance=unstaking_balance):
         return False
 
     # Ask before moving on.
@@ -314,6 +333,9 @@ def unstake_multiple_extrinsic(
                 )
             )
             continue
+
+        if not check_threshold_amount(unstaking_balance=unstaking_balance):
+            return False
 
         # Ask before moving on.
         if prompt:
