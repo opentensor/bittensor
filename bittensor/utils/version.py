@@ -14,20 +14,19 @@ def _get_version_file_path() -> Path:
 
 
 def _get_version_from_file(version_file: Path) -> Optional[str]:
-    if not version_file.exists():
+    try:
+        mtime = version_file.stat().st_mtime
+        bittensor.logging.debug(f"Found version file, last modified: {mtime}")
+        diff = time.time() - mtime
+
+        if diff >= VERSION_CHECK_THRESHOLD:
+            bittensor.logging.debug("Version file expired")
+            return None
+
+        return version_file.read_text()
+    except FileNotFoundError:
         bittensor.logging.debug("No bitensor version file found")
         return None
-
-    mtime = version_file.stat().st_mtime
-    bittensor.logging.debug(f"Found version file, last modified: {mtime}")
-    diff = time.time() - mtime
-
-    if diff >= VERSION_CHECK_THRESHOLD:
-        bittensor.logging.debug("Version file expired")
-        return None
-
-    try:
-        return version_file.read_text()
     except OSError:
         bittensor.logging.exception("Failed to read version file")
         return None
