@@ -1305,9 +1305,17 @@ class MockSubtensor(subtensor):
 
         return True
 
-    def get_minimum_required_stake(self):
+    @staticmethod
+    def min_required_stake():
+        """
+        As the minimum required stake may change, this method allows us to dynamically
+        update the amount in the mock without updating the tests
+        """
         # valid minimum threshold as of 2024/05/01
-        return Balance.from_rao(100_000_000)
+        return 100_000_000  # RAO
+
+    def get_minimum_required_stake(self):
+        return Balance.from_rao(self.min_required_stake())
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
