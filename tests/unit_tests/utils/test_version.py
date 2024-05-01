@@ -22,7 +22,7 @@ import pytest
 from freezegun import freeze_time
 from datetime import datetime, timedelta
 
-from bittensor.utils.version import VERSION_CHECK_THRESHOLD, get_and_save_latest_version, version_checking
+from bittensor.utils.version import VERSION_CHECK_THRESHOLD, VersionCheckError, get_and_save_latest_version, check_version, version_checking
 from unittest.mock import MagicMock
 from pytest_mock import MockerFixture
 
@@ -87,11 +87,11 @@ def test_get_and_save_latest_version_file_expired_check(mock_get_version_from_py
     ("6.9.3", "7.0"),
     ("6.0.15", "6.1.0"),
 ])
-def test_version_checking_newer_version_available(mocker: MockerFixture, current_version: str, latest_version: str, capsys):
+def test_check_version_newer_available(mocker: MockerFixture, current_version: str, latest_version: str, capsys):
     mocker.patch("bittensor.utils.version.bittensor.__version__", current_version)
     mocker.patch("bittensor.utils.version.get_and_save_latest_version", return_value=latest_version)
 
-    version_checking()
+    check_version()
 
     captured = capsys.readouterr()
 
@@ -105,12 +105,28 @@ def test_version_checking_newer_version_available(mocker: MockerFixture, current
     ("6.9.3", "6.9.2"),
     ("6.9.3b", "6.9.3a"),
 ])
-def test_version_checking_up_to_date(mocker: MockerFixture, current_version: str, latest_version: str, capsys):
+def test_check_version_up_to_date(mocker: MockerFixture, current_version: str, latest_version: str, capsys):
     mocker.patch("bittensor.utils.version.bittensor.__version__", current_version)
     mocker.patch("bittensor.utils.version.get_and_save_latest_version", return_value=latest_version)
 
-    version_checking()
+    check_version()
 
     captured = capsys.readouterr()
 
     assert captured.out == ""
+
+
+def test_version_checking(mocker: MockerFixture):
+    mock = mocker.patch("bittensor.utils.version.check_version")
+
+    version_checking()
+
+    mock.assert_called_once()
+
+
+def test_version_checking_exception(mocker: MockerFixture):
+    mock = mocker.patch("bittensor.utils.version.check_version", side_effect=VersionCheckError)
+
+    version_checking()
+
+    mock.assert_called_once()
