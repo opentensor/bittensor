@@ -96,14 +96,20 @@ T = TypeVar("T")
 #######
 # Monkey patch in caching the get_decoder_class method
 #######
-@functools.lru_cache(maxsize=None)
-def patched_get_decoder_class(self, type_string):
-    return original_get_decoder_class(self, type_string)
-
-
 if hasattr(RuntimeConfiguration, "get_decoder_class"):
     original_get_decoder_class = RuntimeConfiguration.get_decoder_class
-    RuntimeConfiguration.get_decoder_class = patched_get_decoder_class
+
+    @functools.lru_cache(maxsize=None)
+    def cached_get_decoder_class(self, type_string):
+        return original_get_decoder_class(self, type_string)
+
+    def wrapper(self, type_string):
+        if isinstance(type_string, str):
+            return cached_get_decoder_class(self, type_string)
+        else:
+            return original_get_decoder_class(self, type_string)
+
+    RuntimeConfiguration.get_decoder_class = wrapper
 
 #######
 
