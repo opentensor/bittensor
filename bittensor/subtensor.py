@@ -103,13 +103,7 @@ if hasattr(RuntimeConfiguration, "get_decoder_class"):
     def cached_get_decoder_class(self, type_string):
         return original_get_decoder_class(self, type_string)
 
-    def wrapper(self, type_string):
-        if isinstance(type_string, str):
-            return cached_get_decoder_class(self, type_string)
-        else:
-            return original_get_decoder_class(self, type_string)
-
-    RuntimeConfiguration.get_decoder_class = wrapper
+    RuntimeConfiguration.get_decoder_class = cached_get_decoder_class()
 
 #######
 
