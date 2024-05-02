@@ -1,5 +1,21 @@
 # Changelog
 
+
+## 6.12.0 / 2024-04-29
+
+## What's Changed
+* Tests: Axon to_string patch import by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1785
+* Tests: Extends coverage on Serving extrinsics methods by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1783
+* Fix: CVE-2024-24762 FastAPI by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1800
+* Fix: CVE-2024-26130 | vulnerability cryptography by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1801
+* fix PR templates by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1778
+* Fix: SNYK-PYTHON-CERTIFI-5805047 | Vulnerability Certifi by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1816
+* Tests: Extends test coverage on Registration methods by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1814
+* Fix: Wallet overwrite functionality by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1802
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.11.0...v6.12.0
+
 ## 6.11.0 / 2024-04-11
 
 ## What's Changed
@@ -35,6 +51,7 @@
 * @GentikSolm made their first contribution in https://github.com/opentensor/bittensor/pull/1754
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.9.3...v6.10.0
+
 
 
 ## 6.9.3 / 2024-03-12
