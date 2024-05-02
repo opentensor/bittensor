@@ -248,7 +248,7 @@ class subtensor:
             elif network == "dtao":
                 return network, bittensor.__dtao_entrypoint__
             else:
-                raise ValueError(f'Network {network} unknown.')
+                raise ValueError(f"Network {network} unknown.")
         else:
             if (
                 network == bittensor.__finney_entrypoint__
@@ -3339,6 +3339,15 @@ class subtensor:
     ) -> Optional["Balance"]:
         """Returns the stake under a coldkey - hotkey pairing"""
         _result = self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return Balance.from_rao(_result.value)
+
+    def get_substake_for_coldkey_and_hotkey(
+        self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional["Balance"]:
+        """Returns the stake under a coldkey - hotkey pairing"""
+        _result = self.query_subtensor("SubStake", block, [hotkey_ss58, coldkey_ss58])
         if not hasattr(_result, "value") or _result is None:
             return None
         return Balance.from_rao(_result.value)

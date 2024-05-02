@@ -261,6 +261,7 @@ class MockSubtensor(subtensor):
                     "Bonds": {},
                     "Stake": {},
                     "TotalStake": {0: 0},
+                    "SubStake": {0},
                     "TotalIssuance": {0: 0},
                     "TotalHotkeyStake": {},
                     "TotalColdkeyStake": {},
@@ -513,7 +514,24 @@ class MockSubtensor(subtensor):
         subtensor_state["TotalStake"][self.block_number] = (
             self._get_most_recent_storage(subtensor_state["TotalStake"]) + stake.rao
         )
-        subtensor_state["Stake"][hotkey][coldkey][self.block_number] = stake.rao
+
+        # Initialize the SubStake dictionary if it doesn't exist
+        if "SubStake" not in subtensor_state:
+            subtensor_state["SubStake"] = {}
+
+        # Initialize the hotkey dictionary if it doesn't exist
+        # if hotkey not in subtensor_state["SubStake"]:
+        #     subtensor_state["SubStake"][hotkey] = {}
+
+        # Initialize the coldkey dictionary if it doesn't exist
+        # if coldkey not in subtensor_state["SubStake"][hotkey]:
+        #     subtensor_state["SubStake"][hotkey][coldkey] = {}
+
+        subtensor_state["SubStake"][netuid][self.block_number] = ( self._get_most_recent_storage(subtensor_state["SubStake"][netuid]) + stake.rao )
+
+        # subtensor_state["SubStake"][hotkey][coldkey][self.block_number] = stake.rao
+        subtensor_state["SubStake"][netuid][self.block_number] = subtensor_state["SubStake"][netuid].get(self.block_number, {})
+        subtensor_state["SubStake"][netuid][self.block_number][(hotkey, coldkey)] = stake.rao
 
         if balance.rao > 0:
             self.force_set_balance(coldkey, balance)
@@ -1181,7 +1199,7 @@ class MockSubtensor(subtensor):
         if bal < amount + existential_deposit:
             raise Exception("Insufficient funds")
 
-        stake_state = subtensor_state["Stake"]
+        stake_state = subtensor_state["SubStake"]
 
         # Stake the funds
         if not hotkey_ss58 in stake_state:

@@ -119,10 +119,10 @@ COMMANDS = {
         "commands": {
             # TODO: Should Show all my stakes across subnets.
             "list": StakeList,
-            "add": StakeCommand,
-            "remove": UnStakeCommand,
-            # "add": SubStakeCommand,
-            # "remove": RemoveSubStakeCommand,
+            # "add": StakeCommand,
+            # "remove": UnStakeCommand,
+            "add": SubStakeCommand,
+            "remove": RemoveSubStakeCommand,
             # Allows a nominator to set weights for their stake across subnets.
             "weights": StakeWeightsCommand,
             # Delegate to a specific root member.
@@ -134,21 +134,11 @@ COMMANDS = {
             "my_delegates": MyDelegatesCommand,
         },
     },
-    # "substake": {
-    #     "name": "substake",
-    #     "aliases": ["sub", "substake"],
-    #     "help": "Commands for managing substaking.",
-    #     "commands": {
-    #         "add": SubStakeCommand,
-    #         "remove": RemoveSubStakeCommand,
-    #     },
-    # },
     "sudo": {
         "name": "sudo",
         "aliases": ["su", "sudos"],
         "help": "Commands for subnet management",
         "commands": {
-            # "dissolve": None,
             "set": SubnetSudoCommand,
             "get": SubnetGetHyperparamsCommand,
         },

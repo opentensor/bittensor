@@ -446,11 +446,15 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config = self.config
         config.command = "stake"
         config.subcommand = "remove"
+        config.netuid = 1
         config.no_prompt = True
         config.amount = 5.0
         config.wallet.name = "fake_wallet"
+        # TODO: Why do i need these two ?
+        config.wallet.hotkeys = ["hk0", "hk1", "hk2"]
         config.hotkeys = ["hk0", "hk1", "hk2"]
         config.all_hotkeys = False
+        config.wallet.hotkey = "hk0"
         # Notice no max_stake specified
 
         mock_stakes: Dict[str, Balance] = {
@@ -498,7 +502,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
             # Check stakes before unstaking
             for wallet in mock_wallets:
-                stake = _subtensor_mock.get_stake_for_coldkey_and_hotkey(
+                stake = _subtensor_mock.get_substake_for_coldkey_and_hotkey(
                     hotkey_ss58=wallet.hotkey.ss58_address,
                     coldkey_ss58=wallet.coldkey.ss58_address,
                 )
@@ -508,7 +512,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
             # Check stakes after unstaking
             for wallet in mock_wallets:
-                stake = _subtensor_mock.get_stake_for_coldkey_and_hotkey(
+                stake = _subtensor_mock.get_substake_for_coldkey_and_hotkey(
                     hotkey_ss58=wallet.hotkey.ss58_address,
                     coldkey_ss58=wallet.coldkey.ss58_address,
                 )
