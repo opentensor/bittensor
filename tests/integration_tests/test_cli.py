@@ -770,6 +770,147 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                             stake.tao, mock_stakes[wallet.hotkey_str].tao, places=4
                         )
 
+    def test_unstake_with_thresholds(self, _):
+        config = self.config
+        config.command = "stake"
+        config.subcommand = "remove"
+        config.no_prompt = True
+        # as the minimum required stake may change, this method allows us to dynamically
+        # update the amount in the mock without updating the tests
+        config.amount = Balance.from_rao(_subtensor_mock.min_required_stake() - 1)
+        config.wallet.name = "fake_wallet"
+        config.hotkeys = ["hk0", "hk1", "hk2"]
+        config.all_hotkeys = False
+        # Notice no max_stake specified
+
+        mock_stakes: Dict[str, Balance] = {
+            "hk0": Balance.from_float(10.0),
+            "hk1": Balance.from_float(11.1),
+            "hk2": Balance.from_float(12.2),
+        }
+
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
+
+        mock_wallets = [
+            SimpleNamespace(
+                name=config.wallet.name,
+                coldkey=mock_coldkey_kp,
+                coldkeypub=mock_coldkey_kp,
+                hotkey_str=hk,
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
+            )
+            for idx, hk in enumerate(config.hotkeys)
+        ]
+
+        # Register mock wallets and give them stakes
+
+        for wallet in mock_wallets:
+            _ = _subtensor_mock.force_register_neuron(
+                netuid=1,
+                hotkey=wallet.hotkey.ss58_address,
+                coldkey=wallet.coldkey.ss58_address,
+                stake=mock_stakes[wallet.hotkey_str].rao,
+            )
+
+        cli = bittensor.cli(config)
+
+        def mock_get_wallet(*args, **kwargs):
+            if kwargs.get("hotkey"):
+                for wallet in mock_wallets:
+                    if wallet.hotkey_str == kwargs.get("hotkey"):
+                        return wallet
+            else:
+                return mock_wallets[0]
+
+        with patch("bittensor.wallet") as mock_create_wallet:
+            mock_create_wallet.side_effect = mock_get_wallet
+
+            # Check stakes before unstaking
+            for wallet in mock_wallets:
+                stake = _subtensor_mock.get_stake_for_coldkey_and_hotkey(
+                    hotkey_ss58=wallet.hotkey.ss58_address,
+                    coldkey_ss58=wallet.coldkey.ss58_address,
+                )
+                self.assertEqual(stake.rao, mock_stakes[wallet.hotkey_str].rao)
+
+            cli.run()
+
+            # Check stakes after unstaking
+            for wallet in mock_wallets:
+                stake = _subtensor_mock.get_stake_for_coldkey_and_hotkey(
+                    hotkey_ss58=wallet.hotkey.ss58_address,
+                    coldkey_ss58=wallet.coldkey.ss58_address,
+                )
+                # because the amount is less than the threshold, none of these should unstake
+                self.assertEqual(stake.tao, mock_stakes[wallet.hotkey_str].tao)
+
+    def test_unstake_all(self, _):
+        config = self.config
+        config.command = "stake"
+        config.subcommand = "remove"
+        config.no_prompt = True
+        config.amount = 0.0  # 0 implies full unstake
+        config.wallet.name = "fake_wallet"
+        config.hotkeys = ["hk0"]
+        config.all_hotkeys = False
+
+        mock_stakes: Dict[str, Balance] = {"hk0": Balance.from_float(10.0)}
+
+        mock_coldkey_kp = _get_mock_keypair(0, self.id())
+
+        mock_wallets = [
+            SimpleNamespace(
+                name=config.wallet.name,
+                coldkey=mock_coldkey_kp,
+                coldkeypub=mock_coldkey_kp,
+                hotkey_str=hk,
+                hotkey=_get_mock_keypair(idx + 100, self.id()),
+            )
+            for idx, hk in enumerate(config.hotkeys)
+        ]
+
+        # Register mock wallets and give them stakes
+
+        for wallet in mock_wallets:
+            _ = _subtensor_mock.force_register_neuron(
+                netuid=1,
+                hotkey=wallet.hotkey.ss58_address,
+                coldkey=wallet.coldkey.ss58_address,
+                stake=mock_stakes[wallet.hotkey_str].rao,
+            )
+
+        cli = bittensor.cli(config)
+
+        def mock_get_wallet(*args, **kwargs):
+            if kwargs.get("hotkey"):
+                for wallet in mock_wallets:
+                    if wallet.hotkey_str == kwargs.get("hotkey"):
+                        return wallet
+            else:
+                return mock_wallets[0]
+
+        with patch("bittensor.wallet") as mock_create_wallet:
+            mock_create_wallet.side_effect = mock_get_wallet
+
+            # Check stakes before unstaking
+            for wallet in mock_wallets:
+                stake = _subtensor_mock.get_stake_for_coldkey_and_hotkey(
+                    hotkey_ss58=wallet.hotkey.ss58_address,
+                    coldkey_ss58=wallet.coldkey.ss58_address,
+                )
+                self.assertEqual(stake.rao, mock_stakes[wallet.hotkey_str].rao)
+
+            cli.run()
+
+            # Check stakes after unstaking
+            for wallet in mock_wallets:
+                stake = _subtensor_mock.get_stake_for_coldkey_and_hotkey(
+                    hotkey_ss58=wallet.hotkey.ss58_address,
+                    coldkey_ss58=wallet.coldkey.ss58_address,
+                )
+                # because the amount is less than the threshold, none of these should unstake
+                self.assertEqual(stake.tao, Balance.from_tao(0))
+
     def test_stake_with_specific_hotkeys(self, _):
         config = self.config
         config.command = "stake"
