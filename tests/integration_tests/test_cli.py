@@ -253,7 +253,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
             for netuid, wallet in mock_registrations:
                 print(
-                    "Registering wallet {} to subnet {}".format(wallet.hotkey_str, netuid)
+                    "Registering wallet {} to subnet {}".format(
+                        wallet.hotkey_str, netuid
+                    )
                 )
                 _ = _subtensor_mock.force_register_neuron(
                     netuid=netuid,
