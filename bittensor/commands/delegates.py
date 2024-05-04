@@ -46,23 +46,42 @@ def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
 console = bittensor.__console__
 
 
-def show_delegates_lite(delegates_lite: List["bittensor.DelegateInfoLite"], width: Optional[int] = None):
+def show_delegates_lite(
+    delegates_lite: List["bittensor.DelegateInfoLite"], width: Optional[int] = None
+):
     """Outputs a list of lite version delegates to the console."""
 
     registered_delegate_info: Optional[
         Dict[str, DelegatesDetails]
     ] = get_delegates_details(url=bittensor.__delegates_details_url__)
     if registered_delegate_info is None:
-        bittensor.__console__.print(":warning:[yellow]Could not get delegate info from chain.[/yellow]")
+        bittensor.__console__.print(
+            ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
+        )
         registered_delegate_info = {}
 
     table = Table(show_footer=True, width=width, pad_edge=False, box=None, expand=True)
     table.add_column(
-        "[overline white]INDEX", str(len(delegates_lite)), footer_style="overline white", style="bold white")
-    table.add_column("[overline white]DELEGATE", style="rgb(50,163,219)", no_wrap=True, justify="left")
+        "[overline white]INDEX",
+        str(len(delegates_lite)),
+        footer_style="overline white",
+        style="bold white",
+    )
     table.add_column(
-        "[overline white]SS58", str(len(delegates_lite)), footer_style="overline white", style="bold yellow")
-    table.add_column("[overline white]NOMINATORS", justify="center", style="green", no_wrap=True)
+        "[overline white]DELEGATE",
+        style="rgb(50,163,219)",
+        no_wrap=True,
+        justify="left",
+    )
+    table.add_column(
+        "[overline white]SS58",
+        str(len(delegates_lite)),
+        footer_style="overline white",
+        style="bold yellow",
+    )
+    table.add_column(
+        "[overline white]NOMINATORS", justify="center", style="green", no_wrap=True
+    )
     table.add_column("[overline white]VPERMIT", justify="right", no_wrap=False)
     table.add_column("[overline white]TAKE", style="white", no_wrap=True)
     table.add_column("[overline white]DELEGATE/(24h)", style="green", justify="center")
@@ -627,7 +646,8 @@ class ListDelegatesLiteCommand:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         list_delegates_parser = parser.add_parser(
-            "list_delegates_lite", help="""List all delegates on the network (lite version)."""
+            "list_delegates_lite",
+            help="""List all delegates on the network (lite version).""",
         )
         bittensor.subtensor.add_args(list_delegates_parser)
 
