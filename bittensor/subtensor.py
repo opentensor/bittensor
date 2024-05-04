@@ -3584,6 +3584,7 @@ class subtensor:
                 method="delegateInfo_getDelegates",  # custom rpc method
                 params=params,
             )
+
         json_body = make_substrate_call_with_retry()
         result = json_body["result"]
 

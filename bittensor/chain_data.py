@@ -703,7 +703,9 @@ class DelegateInfoLite:
     nominators: int  # List of nominators of the delegate and their stake
     owner_ss58: str  # Coldkey of owner
     registrations: list[int]  # List of subnets that the delegate is registered on
-    validator_permits: list[int]  # List of subnets that the delegate is allowed to validate on
+    validator_permits: list[
+        int
+    ]  # List of subnets that the delegate is allowed to validate on
     return_per_1000: int  # Return per 1000 tao of the delegate over a day
     total_daily_return: int  # Total daily return of the delegate
 
@@ -838,7 +840,9 @@ class StakeInfo:
         return decoded
 
     @classmethod
-    def list_of_tuple_from_vec_u8(cls, vec_u8: List[int]) -> Dict[str, List["StakeInfo"]]:
+    def list_of_tuple_from_vec_u8(
+        cls, vec_u8: List[int]
+    ) -> Dict[str, List["StakeInfo"]]:
         r"""Returns a list of StakeInfo objects from a ``vec_u8``."""
         decoded: Optional[
             list[tuple[str, list[object]]]
