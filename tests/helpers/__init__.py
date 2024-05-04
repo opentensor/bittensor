@@ -29,4 +29,4 @@ from .helpers import (
 
 def is_running_in_circleci():
     """Checks that tests are running in the app.circleci.com environment."""
-    return os.getenv('CIRCLECI') == 'true'
+    return os.getenv("CIRCLECI") == "true"
