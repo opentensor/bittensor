@@ -100,7 +100,7 @@ if hasattr(RuntimeConfiguration, "convert_type_string"):
 
     @functools.lru_cache(maxsize=None)
     def convert_type_string(cls, name):
-        return original_convert_type_string(cls, name)
+        return original_convert_type_string(name)
 
     RuntimeConfiguration.convert_type_string = convert_type_string
 
