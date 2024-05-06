@@ -1,8 +1,8 @@
 # Release Guidelines
 
 The release manager in charge can release a Bittensor version using two scripts:
-  - [./scripts/release/versioning.sh](./scripts/release/versioning.sh)
-  - [./scripts/release/release.sh](./scripts/release/release.sh)
+  - [../scripts/release/versioning.sh](../scripts/release/versioning.sh)
+  - [../scripts/release/release.sh](../scripts/release/release.sh)
 
 The release manager will need the right permissions for:
   - github.com

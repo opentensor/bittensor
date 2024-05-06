@@ -291,7 +291,7 @@ def burned_register_extrinsic(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
             )
             time.sleep(0.5)
-
+            return False
         # Successful registration, final check for neuron and pubkey
         else:
             bittensor.__console__.print(":satellite: Checking Balance...")
@@ -318,6 +318,7 @@ def burned_register_extrinsic(
                 bittensor.__console__.print(
                     ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
                 )
+                return False
 
 
 class MaxSuccessException(Exception):
@@ -506,8 +507,10 @@ def swap_hotkey_extrinsic(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
             )
             time.sleep(0.5)
+            return False
 
         else:
             bittensor.__console__.print(
                 f"Hotkey {wallet.hotkey} swapped for new hotkey: {new_wallet.hotkey}"
             )
+            return True
