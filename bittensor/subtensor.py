@@ -1,6 +1,7 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
+import functools
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -91,6 +92,21 @@ logger = logging.getLogger("subtensor")
 KEY_NONCE: Dict[str, int] = {}
 
 T = TypeVar("T")
+
+#######
+# Monkey patch in caching the convert_type_string method
+#######
+if hasattr(RuntimeConfiguration, "convert_type_string"):
+    original_convert_type_string = RuntimeConfiguration.convert_type_string
+
+    @functools.lru_cache(maxsize=None)
+    def convert_type_string(cls, name):
+        return original_convert_type_string(name)
+
+    RuntimeConfiguration.convert_type_string = convert_type_string
+
+
+#######
 
 
 class ParamWithTypes(TypedDict):
@@ -3659,6 +3675,18 @@ class subtensor:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
         return StakeInfo.list_of_tuple_from_vec_u8(bytes_result)  # type: ignore
+
+    def get_minimum_required_stake(
+        self,
+    ):
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        def make_substrate_call_with_retry():
+            return self.substrate.query(
+                module="SubtensorModule", storage_function="NominatorMinRequiredStake"
+            )
+
+        result = make_substrate_call_with_retry()
+        return Balance.from_rao(result.decode())
 
     ########################################
     #### Neuron information per subnet ####
