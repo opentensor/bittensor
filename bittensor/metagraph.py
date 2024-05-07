@@ -871,7 +871,7 @@ class Metagraph:
             with open(graph_filename, "rb") as graph_file:
                 state_dict = pickle.load(graph_file)
         except pickle.UnpicklingError:
-            bittensor.__console__.error("Unable to load file.")
+            bittensor.__console__.stderr("Unable to load file.")
             if Confirm.ask(
                 "Do you believe your previous state was saved with 'torch'? (Y/n)"
             ):
@@ -883,7 +883,7 @@ class Metagraph:
                         for key in METAGRAPH_STATE_DICT_NDARRAY_KEYS:
                             state_dict[key] = state_dict[key].detach().numpy()
                     except RuntimeError:
-                        bittensor.__console__.error(
+                        bittensor.__console__.stderr(
                             "Unable to load file. It may be corrupted."
                         )
                         raise
