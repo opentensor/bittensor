@@ -16,12 +16,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Callable, Union, List, Optional, Dict, Literal
+from typing import Callable, List, Dict, Literal, Tuple
 
 import bittensor
 import hashlib
 import requests
 import scalecodec
+import numpy as np
 
 from .wallet_utils import *  # noqa F401
 from .registration import maybe_get_torch
@@ -38,28 +39,34 @@ def ss58_to_vec_u8(ss58_address: str) -> List[int]:
     return encoded_address
 
 
-def unbiased_topk(values, k, dim=0, sorted=True, largest=True):
+def unbiased_topk(
+    values: np.ndarray, k: int, dim=0, sorted=True, largest=True, axis=0
+) -> Tuple[np.ndarray, np.ndarray]:
     r"""Selects topk as in torch.topk but does not bias lower indices when values are equal.
     Args:
-        values: (torch.Tensor)
+        values: (np.ndarray)
             Values to index into.
         k: (int):
             Number to take.
 
     Return:
-        topk: (torch.Tensor):
+        topk: (np.ndarray):
             topk k values.
-        indices: (torch.LongTensor)
+        indices: (np.ndarray)
             indices of the topk values.
     """
-    if not (torch := maybe_get_torch()):
-        raise ImportError
+    if dim != 0 and axis == 0:
+        # Ensures a seamless transition for calls made to this function that specified args by keyword
+        axis = dim
 
-    permutation = torch.randperm(values.shape[dim])
-    permuted_values = values[permutation]
-    topk, indices = torch.topk(
-        permuted_values, k, dim=dim, sorted=sorted, largest=largest
-    )
+    permutation = np.random.permutation(values.shape[axis])
+    permuted_values = np.take(values, permutation, axis=axis)
+    indices = np.argpartition(permuted_values, -k, axis=axis)[-k:]
+    if not sorted:
+        indices = np.sort(indices, axis=axis)
+    if not largest:
+        indices = indices[::-1]
+    topk = np.take(permuted_values, indices, axis=axis)
     return topk, permutation[indices]
 
 
