@@ -121,9 +121,6 @@ class dendrite:
 
         self._session: Optional[aiohttp.ClientSession] = None
 
-    async def __call__(self, *args, **kwargs):
-        return await self.forward(*args, **kwargs)
-
     @property
     async def session(self) -> aiohttp.ClientSession:
         """
