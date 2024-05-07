@@ -24,6 +24,8 @@ import requests
 import scalecodec
 
 from .wallet_utils import *  # noqa F401
+from .registration import maybe_get_torch
+
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
@@ -50,7 +52,8 @@ def unbiased_topk(values, k, dim=0, sorted=True, largest=True):
         indices: (torch.LongTensor)
             indices of the topk values.
     """
-    import torch
+    if not (torch := maybe_get_torch()):
+        raise ImportError
 
     permutation = torch.randperm(values.shape[dim])
     permuted_values = values[permutation]

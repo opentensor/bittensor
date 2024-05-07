@@ -64,11 +64,8 @@ class TestMetagraph:
             save_directory = get_save_dir(metagraph.network, metagraph.netuid)
             os.makedirs(save_directory, exist_ok=True)
             graph_filename = save_directory + f"/block-{metagraph.block.item()}.pt"
-            print(graph_filename)
             state_dict = metagraph.state_dict()
-            print(state_dict)
             for key in METAGRAPH_STATE_DICT_NDARRAY_KEYS:
-                print(key, state_dict[key])
                 state_dict[key] = torch.nn.Parameter(
                     torch.tensor(state_dict[key]), requires_grad=False
                 )

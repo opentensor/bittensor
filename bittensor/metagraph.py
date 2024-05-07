@@ -24,9 +24,11 @@ from numpy.typing import NDArray
 import bittensor
 from os import listdir
 from os.path import join
+from rich.prompt import Confirm
 from typing import List, Optional
 
 from bittensor.chain_data import AxonInfo
+from bittensor.utils.registration import maybe_get_torch
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "version",
@@ -869,11 +871,22 @@ class Metagraph:
             with open(graph_filename, "rb") as graph_file:
                 state_dict = pickle.load(graph_file)
         except pickle.UnpicklingError:
-            import torch
-
-            state_dict = torch.load(graph_filename)
-            for key in METAGRAPH_STATE_DICT_NDARRAY_KEYS:
-                state_dict[key] = state_dict[key].detach().numpy()
+            bittensor.__console__.error("Unable to load file.")
+            if Confirm.ask(
+                "Do you believe your previous state was saved with 'torch'? (Y/n)"
+            ):
+                if not (torch := maybe_get_torch()):
+                    raise ImportError
+                else:
+                    try:
+                        state_dict = torch.load(graph_filename)
+                        for key in METAGRAPH_STATE_DICT_NDARRAY_KEYS:
+                            state_dict[key] = state_dict[key].detach().numpy()
+                    except RuntimeError:
+                        bittensor.__console__.error(
+                            "Unable to load file. It may be corrupted."
+                        )
+                        raise
 
         self.n = state_dict["n"]
         self.block = state_dict["block"]
