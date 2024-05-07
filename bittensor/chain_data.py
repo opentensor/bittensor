@@ -695,6 +695,22 @@ class PrometheusInfo:
 
 
 @dataclass
+class DelegateInfoLite:
+    """Dataclass for DelegateLiteInfo."""
+
+    delegate_ss58: str  # Hotkey of delegate
+    take: float  # Take of the delegate as a percentage
+    nominators: int  # List of nominators of the delegate and their stake
+    owner_ss58: str  # Coldkey of owner
+    registrations: list[int]  # List of subnets that the delegate is registered on
+    validator_permits: list[
+        int
+    ]  # List of subnets that the delegate is allowed to validate on
+    return_per_1000: int  # Return per 1000 tao of the delegate over a day
+    total_daily_return: int  # Total daily return of the delegate
+
+
+@dataclass
 class DelegateInfo:
     r"""
     Dataclass for delegate info.
@@ -829,7 +845,7 @@ class StakeInfo:
     ) -> Dict[str, List["StakeInfo"]]:
         r"""Returns a list of StakeInfo objects from a ``vec_u8``."""
         decoded: Optional[
-            List[Tuple(str, List[object])]
+            list[tuple[str, list[object]]]
         ] = from_scale_encoding_using_type_string(
             input=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
         )
