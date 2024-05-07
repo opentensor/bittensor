@@ -38,6 +38,7 @@ from scalecodec.types import GenericCall
 from .chain_data import (
     NeuronInfo,
     DelegateInfo,
+    DelegateInfoLite,
     PrometheusInfo,
     SubnetInfo,
     SubnetHyperparameters,
@@ -3524,6 +3525,40 @@ class subtensor:
 
         return DelegateInfo.from_vec_u8(result)
 
+    def get_delegates_lite(self, block: Optional[int] = None) -> List[DelegateInfoLite]:
+        """
+        Retrieves a list of all delegate neurons within the Bittensor network. This function provides an
+        overview of the neurons that are actively involved in the network's delegation system. Lite version.
+
+        Args:
+            block (Optional[int], optional): The blockchain block number for the query.
+
+        Returns:
+            List[DelegateInfoLite]: A list of DelegateInfoLite objects detailing each delegate's characteristics.
+
+        Analyzing the delegate population offers insights into the network's governance dynamics and the
+        distribution of trust and responsibility among participating neurons.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logger)
+        def make_substrate_call_with_retry():
+            block_hash = None if block is None else self.substrate.get_block_hash(block)
+            params = []
+            if block_hash:
+                params.extend([block_hash])
+            return self.substrate.rpc_request(
+                method="delegateInfo_getDelegatesLite",  # custom rpc method
+                params=params,
+            )
+
+        json_body = make_substrate_call_with_retry()
+        result = json_body["result"]
+
+        if result in (None, []):
+            return []
+
+        return [DelegateInfoLite(**d) for d in result]
+
     def get_delegates(self, block: Optional[int] = None) -> List[DelegateInfo]:
         """
         Retrieves a list of all delegate neurons within the Bittensor network. This function provides an
@@ -3539,12 +3574,12 @@ class subtensor:
         distribution of trust and responsibility among participating neurons.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logger)
         def make_substrate_call_with_retry():
-            block_hash = None if block == None else self.substrate.get_block_hash(block)
+            block_hash = None if block is None else self.substrate.get_block_hash(block)
             params = []
             if block_hash:
-                params = params + [block_hash]
+                params.extend([block_hash])
             return self.substrate.rpc_request(
                 method="delegateInfo_getDelegates",  # custom rpc method
                 params=params,

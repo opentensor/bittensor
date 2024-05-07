@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 from .helpers import (
     _get_mock_coldkey,
     _get_mock_hotkey,
@@ -24,3 +25,8 @@ from .helpers import (
     MockConsole,
     __mock_wallet_factory__,
 )
+
+
+def is_running_in_circleci():
+    """Checks that tests are running in the app.circleci.com environment."""
+    return os.getenv("CIRCLECI") == "true"
