@@ -20,7 +20,7 @@
 from pathlib import Path
 import pytest
 from freezegun import freeze_time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from bittensor.utils.version import (
     VERSION_CHECK_THRESHOLD,
@@ -73,7 +73,7 @@ def test_get_and_save_latest_version_no_file(
 def test_get_and_save_latest_version_file_fresh_check(
     mock_get_version_from_pypi: MagicMock, version_file_path: Path, elapsed: int
 ):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     version_file_path.write_text("6.9.5")
 
@@ -86,7 +86,7 @@ def test_get_and_save_latest_version_file_fresh_check(
 def test_get_and_save_latest_version_file_expired_check(
     mock_get_version_from_pypi: MagicMock, version_file_path: Path, pypi_version: str
 ):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     version_file_path.write_text("6.9.5")
 
