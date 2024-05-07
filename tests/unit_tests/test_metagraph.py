@@ -22,7 +22,6 @@ import bittensor
 
 from bittensor.metagraph import metagraph as Metagraph
 from unittest.mock import MagicMock
-from loguru import logger
 
 
 @pytest.fixture
@@ -70,7 +69,7 @@ def test_set_metagraph_attributes(mock_environment):
             metagraph.uids,
             np.array([neuron.uid for neuron in neurons], dtype=np.int64),
         )
-        == True
+        is True
     )
 
     assert (
@@ -78,7 +77,7 @@ def test_set_metagraph_attributes(mock_environment):
             metagraph.trust,
             np.array([neuron.trust for neuron in neurons], dtype=np.float32),
         )
-        == True
+        is True
     )
 
     assert (
