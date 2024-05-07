@@ -46,6 +46,79 @@ def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
 console = bittensor.__console__
 
 
+def show_delegates_lite(
+    delegates_lite: List["bittensor.DelegateInfoLite"], width: Optional[int] = None
+):
+    """Outputs a list of lite version delegates to the console."""
+
+    registered_delegate_info: Optional[
+        Dict[str, DelegatesDetails]
+    ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+    if registered_delegate_info is None:
+        bittensor.__console__.print(
+            ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
+        )
+        registered_delegate_info = {}
+
+    table = Table(show_footer=True, width=width, pad_edge=False, box=None, expand=True)
+    table.add_column(
+        "[overline white]INDEX",
+        str(len(delegates_lite)),
+        footer_style="overline white",
+        style="bold white",
+    )
+    table.add_column(
+        "[overline white]DELEGATE",
+        style="rgb(50,163,219)",
+        no_wrap=True,
+        justify="left",
+    )
+    table.add_column(
+        "[overline white]SS58",
+        str(len(delegates_lite)),
+        footer_style="overline white",
+        style="bold yellow",
+    )
+    table.add_column(
+        "[overline white]NOMINATORS", justify="center", style="green", no_wrap=True
+    )
+    table.add_column("[overline white]VPERMIT", justify="right", no_wrap=False)
+    table.add_column("[overline white]TAKE", style="white", no_wrap=True)
+    table.add_column("[overline white]DELEGATE/(24h)", style="green", justify="center")
+    table.add_column("[overline white]Desc", style="rgb(50,163,219)")
+
+    for i, d in enumerate(delegates_lite):
+        if d.delegate_ss58 in registered_delegate_info:
+            delegate_name = registered_delegate_info[d.delegate_ss58].name
+            delegate_url = registered_delegate_info[d.delegate_ss58].url
+            delegate_description = registered_delegate_info[d.delegate_ss58].description
+        else:
+            delegate_name = ""
+            delegate_url = ""
+            delegate_description = ""
+
+        table.add_row(
+            # `INDEX` column
+            str(i),
+            # `DELEGATE` column
+            Text(delegate_name, style=f"link {delegate_url}"),
+            # `SS58` column
+            f"{d.delegate_ss58:8.8}...",
+            # `NOMINATORS` column
+            str(d.nominators),
+            # `VPERMIT` column
+            str(d.registrations),
+            # `TAKE` column
+            f"{d.take * 100:.1f}%",
+            # `DELEGATE/(24h)` column
+            f"τ{bittensor.Balance.from_tao(d.total_daily_return * 0.18) !s:6.6}",
+            # `Desc` column
+            str(delegate_description),
+            end_section=True,
+        )
+    bittensor.__console__.print(table)
+
+
 # Uses rich console to pretty print a table of delegates.
 def show_delegates(
     delegates: List["bittensor.DelegateInfo"],
@@ -198,17 +271,29 @@ def show_delegates(
             rate_change_in_stake_str = "[grey0]NA[/grey0]"
 
         table.add_row(
+            # INDEX
             str(i),
+            # DELEGATE
             Text(delegate_name, style=f"link {delegate_url}"),
+            # SS58
             f"{delegate.hotkey_ss58:8.8}...",
+            # NOMINATORS
             str(len([nom for nom in delegate.nominators if nom[1].rao > 0])),
+            # DELEGATE STAKE
             f"{owner_stake!s:13.13}",
+            # TOTAL STAKE
             f"{delegate.total_stake!s:13.13}",
+            # CHANGE/(4h)
             rate_change_in_stake_str,
+            # VPERMIT
             str(delegate.registrations),
+            # TAKE
             f"{delegate.take * 100:.1f}%",
+            # NOMINATOR/(24h)/k
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (1000/ (0.001 + delegate.total_stake.tao)))!s:6.6}",
+            # DELEGATE/(24h)
             f"{bittensor.Balance.from_tao(delegate.total_daily_return.tao * 0.18) !s:6.6}",
+            # Desc
             str(delegate_description),
             end_section=True,
         )
@@ -490,6 +575,87 @@ class DelegateUnstakeCommand:
                 config.unstake_all = True
 
 
+class ListDelegatesLiteCommand:
+    """
+    Displays a formatted table of Bittensor network delegates, providing a comprehensive overview of delegate statistics
+    and information.
+
+    This table helps users make informed decisions on which delegates to allocate their Tao stake.
+
+    Optional Arguments:
+        - ``wallet.name``: The name of the wallet to use for the command.
+        - ``subtensor.network``: The name of the network to use for the command.
+
+    The table columns include:
+
+    - INDEX: The delegate's index in the sorted list.
+    - DELEGATE: The name of the delegate.
+    - SS58: The delegate's unique SS58 address (truncated for display).
+    - NOMINATORS: The count of nominators backing the delegate.
+    - DELEGATE STAKE(τ): The amount of delegate's own stake (not the TAO delegated from any nominators).
+    - TOTAL STAKE(τ): The delegate's cumulative stake, including self-staked and nominators' stakes.
+    - CHANGE/(4h): The percentage change in the delegate's stake over the last four hours.
+    - SUBNETS: The subnets to which the delegate is registered.
+    - VPERMIT: Indicates the subnets for which the delegate has validator permits.
+    - NOMINATOR/(24h)/kτ: The earnings per 1000 τ staked by nominators in the last 24 hours.
+    - DELEGATE/(24h): The total earnings of the delegate in the last 24 hours.
+    - DESCRIPTION: A brief description of the delegate's purpose and operations.
+
+    Sorting is done based on the ``TOTAL STAKE`` column in descending order. Changes in stake are highlighted:
+    increases in green and decreases in red. Entries with no previous data are marked with ``NA``. Each delegate's name
+    is a hyperlink to their respective URL, if available.
+
+    Example usage::
+
+        btcli root list_delegates
+        btcli root list_delegates --wallet.name my_wallet
+        btcli root list_delegates --subtensor.network finney # can also be `test` or `local`
+
+    Note:
+        This function is part of the Bittensor CLI tools and is intended for use within a console application. It prints
+        directly to the console and does not return any value.
+    """
+
+    @staticmethod
+    def run(cli: "bittensor.cli"):
+        r"""
+        List all delegates on the network.
+        """
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            ListDelegatesLiteCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        r"""
+        List all delegates on the network.
+        """
+        cli.config.subtensor.network = "archive"
+        cli.config.subtensor.chain_endpoint = "wss://archive.chain.opentensor.ai:443"
+        with bittensor.__console__.status(":satellite: Loading delegates..."):
+            delegates: list[bittensor.DelegateInfoLite] = subtensor.get_delegates_lite()
+
+        show_delegates_lite(delegates, width=cli.config.get("width", None))
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        list_delegates_parser = parser.add_parser(
+            "list_delegates_lite",
+            help="""List all delegates on the network (lite version).""",
+        )
+        bittensor.subtensor.add_args(list_delegates_parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        pass
+
+
 class ListDelegatesCommand:
     """
     Displays a formatted table of Bittensor network delegates, providing a comprehensive overview of delegate statistics
@@ -556,9 +722,19 @@ class ListDelegatesCommand:
         with bittensor.__console__.status(":satellite: Loading delegates..."):
             delegates: list[bittensor.DelegateInfo] = subtensor.get_delegates()
 
+            try:
+                prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
+            except SubstrateRequestException:
+                prev_delegates = None
+
+        if prev_delegates is None:
+            bittensor.__console__.print(
+                ":warning: [yellow]Could not fetch delegates history[/yellow]"
+            )
+
         show_delegates(
             delegates,
-            prev_delegates=None,
+            prev_delegates=prev_delegates,
             width=cli.config.get("width", None),
         )
 
