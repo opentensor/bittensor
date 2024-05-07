@@ -115,7 +115,7 @@ def register_extrinsic(
         if cuda:
             if not torch.cuda.is_available():
                 if prompt:
-                    bittensor.__console__.error("CUDA is not available.")
+                    bittensor.__console__.print("CUDA is not available.")
                 return False
             pow_result: Optional[POWSolution] = create_pow(
                 subtensor,
@@ -403,7 +403,7 @@ def run_faucet_extrinsic(
                 if cuda:
                     if not torch.cuda.is_available():
                         if prompt:
-                            bittensor.__console__.error("CUDA is not available.")
+                            bittensor.__console__.print("CUDA is not available.")
                         return False
                     pow_result: Optional[POWSolution] = create_pow(
                         subtensor,
