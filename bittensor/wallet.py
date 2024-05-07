@@ -142,7 +142,7 @@ class wallet:
         prefix_str = "" if prefix == None else prefix + "."
         try:
             default_name = os.getenv("BT_WALLET_NAME") or "default"
-            default_hotkey = os.getenv("BT_WALLET_NAME") or "default"
+            default_hotkey = os.getenv("BT_WALLET_HOTKEY") or os.getenv("BT_WALLET_NAME") or "default"
             default_path = os.getenv("BT_WALLET_PATH") or "~/.bittensor/wallets/"
             parser.add_argument(
                 "--no_prompt",
