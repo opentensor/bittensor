@@ -734,7 +734,7 @@ class ListDelegatesCommand:
 
         show_delegates(
             delegates,
-            prev_delegates=None,
+            prev_delegates=prev_delegates,
             width=cli.config.get("width", None),
         )
 
