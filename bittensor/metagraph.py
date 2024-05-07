@@ -876,6 +876,10 @@ class Metagraph:
             if not (torch := maybe_get_torch()):
                 raise ImportError
             else:
+                bittensor.__console__.print(
+                    ":warning:[yellow]Warning:[/yellow] This functionality exists to load "
+                    "metagraph state from legacy saves, but will not be supported in the future."
+                )
                 try:
                     state_dict = torch.load(graph_filename)
                     for key in METAGRAPH_STATE_DICT_NDARRAY_KEYS:
