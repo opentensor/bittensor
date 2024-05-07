@@ -93,18 +93,18 @@ KEY_NONCE: Dict[str, int] = {}
 
 T = TypeVar("T")
 
-
 #######
-# Monkey patch in caching the get_decoder_class method
+# Monkey patch in caching the convert_type_string method
 #######
-if hasattr(RuntimeConfiguration, "get_decoder_class"):
-    original_get_decoder_class = RuntimeConfiguration.get_decoder_class
+if hasattr(RuntimeConfiguration, "convert_type_string"):
+    original_convert_type_string = RuntimeConfiguration.convert_type_string
 
     @functools.lru_cache(maxsize=None)
-    def cached_get_decoder_class(self, type_string):
-        return original_get_decoder_class(self, type_string)
+    def convert_type_string(cls, name):
+        return original_convert_type_string(name)
 
-    RuntimeConfiguration.get_decoder_class = cached_get_decoder_class
+    RuntimeConfiguration.convert_type_string = convert_type_string
+
 
 #######
 
