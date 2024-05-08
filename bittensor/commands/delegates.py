@@ -622,6 +622,8 @@ class ListDelegatesLiteCommand:
         List all delegates on the network.
         """
         try:
+            cli.config.subtensor.network = "archive"
+            cli.config.subtensor.chain_endpoint = "wss://archive.chain.opentensor.ai:443"
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
@@ -636,8 +638,6 @@ class ListDelegatesLiteCommand:
         r"""
         List all delegates on the network.
         """
-        cli.config.subtensor.network = "archive"
-        cli.config.subtensor.chain_endpoint = "wss://archive.chain.opentensor.ai:443"
         with bittensor.__console__.status(":satellite: Loading delegates..."):
             delegates: list[bittensor.DelegateInfoLite] = subtensor.get_delegates_lite()
 
@@ -703,6 +703,8 @@ class ListDelegatesCommand:
         List all delegates on the network.
         """
         try:
+            cli.config.subtensor.network = "archive"
+            cli.config.subtensor.chain_endpoint = "wss://archive.chain.opentensor.ai:443"
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
@@ -717,8 +719,6 @@ class ListDelegatesCommand:
         r"""
         List all delegates on the network.
         """
-        cli.config.subtensor.network = "archive"
-        cli.config.subtensor.chain_endpoint = "wss://archive.chain.opentensor.ai:443"
         with bittensor.__console__.status(":satellite: Loading delegates..."):
             delegates: list[bittensor.DelegateInfo] = subtensor.get_delegates()
 
