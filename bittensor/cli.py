@@ -94,6 +94,8 @@ ALIAS_TO_COMMAND = {
     "sudos": "sudo",
     "i": "info",
     "info": "info",
+    "weights": "weights",
+    "wt": "weights",
 }
 COMMANDS = {
     "subnets": {
