@@ -1,5 +1,4 @@
 import pytest
-import torch
 import bittensor
 from bittensor.chain_data import AxonInfo, ChainDataType, DelegateInfo, NeuronInfo
 
@@ -199,7 +198,7 @@ def test_to_parameter_dict(axon_info, test_case):
     result = axon_info.to_parameter_dict()
 
     # Assert
-    assert isinstance(result, torch.nn.ParameterDict)
+    assert isinstance(result, dict)
     for key, value in axon_info.__dict__.items():
         assert key in result
         assert result[key] == value, f"Test case: {test_case}"
@@ -209,16 +208,14 @@ def test_to_parameter_dict(axon_info, test_case):
     "parameter_dict, expected, test_case",
     [
         (
-            torch.nn.ParameterDict(
-                {
-                    "version": 1,
-                    "ip": "127.0.0.1",
-                    "port": 8080,
-                    "ip_type": 4,
-                    "hotkey": "hot",
-                    "coldkey": "cold",
-                }
-            ),
+            {
+                "version": 1,
+                "ip": "127.0.0.1",
+                "port": 8080,
+                "ip_type": 4,
+                "hotkey": "hot",
+                "coldkey": "cold",
+            },
             AxonInfo(
                 version=1,
                 ip="127.0.0.1",
