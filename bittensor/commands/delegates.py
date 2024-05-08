@@ -623,7 +623,9 @@ class ListDelegatesLiteCommand:
         """
         try:
             cli.config.subtensor.network = "archive"
-            cli.config.subtensor.chain_endpoint = "wss://archive.chain.opentensor.ai:443"
+            cli.config.subtensor.chain_endpoint = (
+                "wss://archive.chain.opentensor.ai:443"
+            )
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
@@ -704,7 +706,9 @@ class ListDelegatesCommand:
         """
         try:
             cli.config.subtensor.network = "archive"
-            cli.config.subtensor.chain_endpoint = "wss://archive.chain.opentensor.ai:443"
+            cli.config.subtensor.chain_endpoint = (
+                "wss://archive.chain.opentensor.ai:443"
+            )
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
