@@ -29,6 +29,7 @@ from bittensor.mock import MockSubtensor
 import pytest
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
+import torch
 from tests.helpers import (
     _get_mock_hotkey,
     _get_mock_coldkey,

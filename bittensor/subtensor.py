@@ -34,6 +34,7 @@ from substrateinterface.exceptions import SubstrateRequestException
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall
+from bittensor.utils import weight_utils
 
 # Local imports.
 from .chain_data import (

@@ -292,7 +292,6 @@ def process_weights_for_netuid(
 
     return non_zero_weight_uids, normalized_weights
 
-
 def generate_weight_hash(
     who: str, netuid: int, uids: List[int], values: List[int], version_key: int
 ) -> str:
