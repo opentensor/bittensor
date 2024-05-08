@@ -17,7 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
-from typing import Tuple
+from typing import Tuple, List
 from substrateinterface import Keypair
 
 
@@ -67,4 +67,59 @@ def commit_weights_extrinsic(
         return True, "Successfully committed weights."
     else:
         bittensor.logging.error(f"Failed to commit weights: {error_message}")
+        return False, error_message
+
+
+def reveal_weights_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    netuid: int,
+    uids: List[int],
+    weights: List[int],
+    version_key: int,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
+    prompt: bool = False,
+) -> Tuple[bool, str]:
+    """
+    Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
+    This function is a wrapper around the `_do_reveal_weights` method, handling user prompts and error messages.
+
+    Args:
+        subtensor (bittensor.subtensor): The subtensor instance used for blockchain interaction.
+        wallet (bittensor.wallet): The wallet associated with the neuron revealing the weights.
+        netuid (int): The unique identifier of the subnet.
+        uids (List[int]): List of neuron UIDs for which weights are being revealed.
+        values (List[int]): List of weight values corresponding to each UID.
+        version_key (int): Version key for compatibility with the network.
+        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+        prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+
+    Returns:
+        Tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
+        value describing the success or potential error.
+
+    This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper
+    error handling and user interaction when required.
+    """
+    if prompt:
+        if not input("Would you like to reveal weights? (y/n) ").lower() == "y":
+            return False, "User cancelled the operation."
+
+    success, error_message = subtensor._do_reveal_weights(
+        wallet=wallet,
+        netuid=netuid,
+        uids=uids,
+        values=weights,
+        version_key=version_key,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    if success:
+        bittensor.logging.info("Successfully revealed weights.")
+        return True, "Successfully revealed weights."
+    else:
+        bittensor.logging.error(f"Failed to reveal weights: {error_message}")
         return False, error_message
