@@ -67,6 +67,8 @@ from .commands import (
     VoteCommand,
     WalletBalanceCommand,
     WalletCreateCommand,
+    CommitWeightCommand,
+    RevealWeightCommand,
 )
 
 # Create a console instance for CLI display.
@@ -162,6 +164,15 @@ COMMANDS = {
             "show": StakeShow,
             "add": StakeCommand,
             "remove": UnStakeCommand,
+        },
+    },
+    "weights": {
+        "name": "weights",
+        "aliases": ["wt", "weight"],
+        "help": "Commands for managing weights for subnets.",
+        "commands": {
+            "commit": CommitWeightCommand,
+            "reveal": RevealWeightCommand,
         },
     },
     "sudo": {

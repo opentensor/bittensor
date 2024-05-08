@@ -71,6 +71,10 @@ from .extrinsics.registration import (
 )
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
+from .extrinsics.commit_weights import (
+    commit_weights_extrinsic,
+    reveal_weights_extrinsic,
+)
 from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import (
     delegate_extrinsic,
