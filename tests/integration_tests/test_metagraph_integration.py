@@ -17,9 +17,10 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
-from bittensor.mock import MockSubtensor
 import torch
-import pytest
+import os
+from bittensor.mock import MockSubtensor
+from bittensor.metagraph import METAGRAPH_STATE_DICT_NDARRAY_KEYS, get_save_dir
 
 _subtensor_mock: MockSubtensor = MockSubtensor()
 
@@ -55,6 +56,23 @@ class TestMetagraph:
         self.metagraph.save()
         self.metagraph.load()
         self.metagraph.save()
+
+    def test_load_sync_save_from_torch(self):
+        self.metagraph.sync(lite=True, subtensor=self.sub)
+
+        def deprecated_save_torch(metagraph):
+            save_directory = get_save_dir(metagraph.network, metagraph.netuid)
+            os.makedirs(save_directory, exist_ok=True)
+            graph_filename = save_directory + f"/block-{metagraph.block.item()}.pt"
+            state_dict = metagraph.state_dict()
+            for key in METAGRAPH_STATE_DICT_NDARRAY_KEYS:
+                state_dict[key] = torch.nn.Parameter(
+                    torch.tensor(state_dict[key]), requires_grad=False
+                )
+            torch.save(state_dict, graph_filename)
+
+        deprecated_save_torch(self.metagraph)
+        self.metagraph.load()
 
     def test_state_dict(self):
         self.metagraph.load()
@@ -94,8 +112,3 @@ class TestMetagraph:
         metagraph.D
         metagraph.B
         metagraph.W
-
-    def test_parameters(self):
-        params = list(self.metagraph.parameters())
-        assert len(params) > 0
-        assert isinstance(params[0], torch.nn.parameter.Parameter)

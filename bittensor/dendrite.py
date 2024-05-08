@@ -22,15 +22,14 @@ from __future__ import annotations
 import asyncio
 import uuid
 import time
-import torch
 import aiohttp
 import bittensor
 from typing import Union, Optional, List, Union, AsyncGenerator, Any
 
 
-class dendrite(torch.nn.Module):
+class dendrite:
     """
-    The Dendrite class, inheriting from PyTorch's Module class, represents the abstracted implementation of a network client module.
+    The Dendrite class represents the abstracted implementation of a network client module.
 
     In the brain analogy, dendrites receive signals
     from other neurons (in this case, network servers or axons), and the Dendrite class here is designed
@@ -121,6 +120,9 @@ class dendrite(torch.nn.Module):
         self.synapse_history: list = []
 
         self._session: Optional[aiohttp.ClientSession] = None
+
+    async def __call__(self, *args, **kwargs):
+        return await self.forward(*args, **kwargs)
 
     @property
     async def session(self) -> aiohttp.ClientSession:
