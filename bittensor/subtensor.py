@@ -32,6 +32,7 @@ from substrateinterface.exceptions import SubstrateRequestException
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall
+from bittensor.utils import weight_utils
 
 # Local imports.
 from .chain_data import (
@@ -68,6 +69,7 @@ from .extrinsics.registration import (
 )
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.set_weights import set_weights_extrinsic
+from .extrinsics.commit_weights import commit_weights_extrinsic
 from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import (
     delegate_extrinsic,
@@ -770,6 +772,124 @@ class subtensor:
             response.process_events()
             if response.is_success:
                 return True, "Successfully set weights."
+            else:
+                return False, response.error_message
+
+        return make_substrate_call_with_retry()
+
+    ######################
+    ### Commit Weights ##
+    ######################
+    def commit_weights(
+        self,
+        wallet: "bittensor.wallet",
+        netuid: int,
+        commit_hash: str,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+        max_retries: int = 5,
+    ) -> Tuple[bool, str]:
+        """
+        Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
+        This action serves as a commitment or snapshot of the neuron's current weight distribution.
+
+        Args:
+            wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
+            netuid (int): The unique identifier of the subnet.
+            commit_hash (str): The hash of the neuron's weights to be committed.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+            max_retries (int, optional): The number of maximum attempts to commit weights. (Default: 5)
+
+        Returns:
+            Tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
+            value describing the success or potential error.
+
+        This function allows neurons to create a tamper-proof record of their weight distribution at a specific point in time,
+        enhancing transparency and accountability within the Bittensor network.
+        """
+        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
+        retries = 0
+        success = False
+        message = "No attempt made. Perhaps it is too soon to commit weights!"
+
+        # Generate the hash of the weights
+        commit_hash = weight_utils.generate_weight_hash(weights)
+
+        while retries < max_retries:
+            try:
+                success, message = commit_weights_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    netuid=netuid,
+                    commit_hash=commit_hash,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                    prompt=prompt,
+                )
+                if success:
+                    break
+            except Exception as e:
+                bittensor.logging.error(f"Error committing weights: {e}")
+            finally:
+                retries += 1
+
+        return success, message
+
+    def _do_commit_weights(
+        self,
+        wallet: "bittensor.wallet",
+        netuid: int,
+        commit_hash: str,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+    ) -> Tuple[bool, Optional[str]]:
+        """
+        Internal method to send a transaction to the Bittensor blockchain, committing the hash of a neuron's weights.
+        This method constructs and submits the transaction, handling retries and blockchain communication.
+
+        Args:
+            wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
+            netuid (int): The unique identifier of the subnet.
+            commit_hash (str): The hash of the neuron's weights to be committed.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+        This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a verifiable
+        record of the neuron's weight distribution at a specific point in time.
+        """
+
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        def make_substrate_call_with_retry():
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="commit_weights",
+                call_params={
+                    "netuid": netuid,
+                    "commit_hash": commit_hash,
+                },
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call,
+                keypair=wallet.hotkey,
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, None
+
+            response.process_events()
+            if response.is_success:
+                return True, None
             else:
                 return False, response.error_message
 

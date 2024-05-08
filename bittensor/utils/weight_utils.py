@@ -21,6 +21,7 @@
 import torch
 import bittensor
 from typing import Tuple, List
+import hashlib
 
 U32_MAX = 4294967295
 U16_MAX = 65535
@@ -289,3 +290,31 @@ def process_weights_for_netuid(
     bittensor.logging.debug("final_weights", normalized_weights)
 
     return non_zero_weight_uids, normalized_weights
+
+
+import hashlib
+
+
+def generate_weight_hash(weights: torch.FloatTensor) -> str:
+    """
+    Generates a hash of the given weights tensor.
+
+    Args:
+        weights (:obj:`torch.FloatTensor`): The weights tensor to hash.
+
+    Returns:
+        str: The hexadecimal representation of the hash.
+    """
+    # Convert the weights tensor to a bytes representation
+    weight_bytes = weights.numpy().tobytes()
+
+    # Create a hash object
+    hash_object = hashlib.sha256()
+
+    # Update the hash object with the weight bytes
+    hash_object.update(weight_bytes)
+
+    # Get the hexadecimal representation of the hash
+    hash_hex = hash_object.hexdigest()
+
+    return hash_hex

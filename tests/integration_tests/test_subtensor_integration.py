@@ -29,6 +29,7 @@ from bittensor.mock import MockSubtensor
 import pytest
 from bittensor.utils.balance import Balance
 from substrateinterface import Keypair
+import torch
 from tests.helpers import (
     _get_mock_hotkey,
     _get_mock_coldkey,
@@ -361,6 +362,61 @@ class TestSubtensor(unittest.TestCase):
             wait_for_inclusion=True,
         )
         assert fail == False
+
+    def test_commit_weights(self):
+        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
+        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(weights)
+
+        self.subtensor.commit_weights = MagicMock(
+            return_value=(True, "Successfully committed weights.")
+        )
+        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+
+        success, message = self.subtensor.commit_weights(
+            wallet=self.wallet,
+            netuid=3,
+            weights=weights,
+        )
+        assert success == True
+        assert message == "Successfully committed weights."
+
+    def test_commit_weights_inclusion(self):
+        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
+        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(weights)
+
+        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.commit_weights = MagicMock(
+            return_value=(True, "Successfully committed weights.")
+        )
+
+        success, message = self.subtensor.commit_weights(
+            wallet=self.wallet,
+            netuid=1,
+            weights=weights,
+            wait_for_inclusion=True,
+        )
+        assert success == True
+        assert message == "Successfully committed weights."
+
+    def test_commit_weights_failed(self):
+        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
+        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(weights)
+
+        self.subtensor._do_commit_weights = MagicMock(
+            return_value=(False, "Mock failure message")
+        )
+        self.subtensor.commit_weights = MagicMock(
+            return_value=(False, "Mock failure message")
+        )
+
+        success, message = self.subtensor.commit_weights(
+            wallet=self.wallet,
+            netuid=3,
+            weights=weights,
+            wait_for_inclusion=True,
+        )
+        assert success == False
+        assert message == "Mock failure message"
 
     def test_get_balance(self):
         fake_coldkey = _get_mock_coldkey(0)
