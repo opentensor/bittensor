@@ -19,18 +19,18 @@ import sys
 import argparse
 import bittensor
 from rich.prompt import Confirm, Prompt
+from bittensor.commands.utils import get_hotkey_wallets_for_wallet
 from bittensor.utils.balance import Balance
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List, Union
+from tqdm import tqdm
 from . import defaults
 
 console = bittensor.__console__
-
-
 class SubStakeCommand:
     """
-    Adds stake to a specific hotkey account on a specific subnet, specified by `netuid`.
+        Adds stake to a specific hotkey account on a specific subnet, specified by `netuid`.
 
-    Usage:
+         Usage:
         Users can specify the amount to stake, the hotkeys to stake to (either by name or ``SS58`` address), and whether to stake to all hotkeys. The command checks for sufficient balance and hotkey registration
         before proceeding with the staking process.
 
@@ -48,7 +48,7 @@ class SubStakeCommand:
 
         btcli substake add --amount 100 --netuid 1 --wallet.name default --hotkey 5C86aJ2uQawR6P6veaJQXNK9HaWh6NMbUhTiLs65kq4ZW3NH
 
-    Example usgage (prompt):
+    Example usage (prompt):
 
         btcli substake add
 
@@ -97,75 +97,144 @@ class SubStakeCommand:
         r"""Stake token of amount to hotkey(s)."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
-        dynamic_info = subtensor.get_dynamic_info_for_netuid(config.netuid)
-        hotkey_tup: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
 
-        if config.is_set("hotkey"):
-            assert bittensor.is_valid_ss58_address(config.get("hotkey"))
-            hotkey_tup = (None, config.get("hotkey"))
-        else:
-            wallet_ = bittensor.wallet(
-                config=config, hotkey=config.wallet.get("hotkey")
+        # Get the hotkey_names (if any) and the hotkey_ss58s.
+        hotkeys_to_stake_to: List[Tuple[Optional[str], str]] = []
+        if config.get("all_hotkeys"):
+            # Stake to all hotkeys.
+            all_hotkeys: List[bittensor.wallet] = get_hotkey_wallets_for_wallet(
+                wallet=wallet
             )
-            hotkey_tup = (wallet_.hotkey_str, wallet_.hotkey.ss58_address)
+            print(f"All hotkeys 1: {all_hotkeys}")
+            print(f"Mock wallets in _run: {wallet}")
+            # Get the hotkeys to exclude. (d)efault to no exclusions.
+            hotkeys_to_exclude: List[str] = cli.config.get("hotkeys", d=[])
+            # Exclude hotkeys that are specified.
+            hotkeys_to_stake_to = [
+                (wallet.hotkey_str, wallet.hotkey.ss58_address)
+                for wallet in all_hotkeys
+                if wallet.hotkey_str not in hotkeys_to_exclude
+            ]  # definitely wallets
+
+        elif config.get("hotkeys"):
+            # Stake to specific hotkeys.
+            for hotkey_ss58_or_hotkey_name in config.get("hotkeys"):
+                if bittensor.utils.is_valid_ss58_address(hotkey_ss58_or_hotkey_name):
+                    # If the hotkey is a valid ss58 address, we add it to the list.
+                    hotkeys_to_stake_to.append((None, hotkey_ss58_or_hotkey_name))
+                else:
+                    # If the hotkey is not a valid ss58 address, we assume it is a hotkey name.
+                    #  We then get the hotkey from the wallet and add it to the list.
+                    wallet_ = bittensor.wallet(
+                        config=config, hotkey=hotkey_ss58_or_hotkey_name
+                    )
+                    hotkeys_to_stake_to.append(
+                        (wallet_.hotkey_str, wallet_.hotkey.ss58_address)
+                    )
+            print(f"Hotkeys to stake to 2: {hotkeys_to_stake_to}")
+        else:
+            # Only config.wallet.hotkey is specified.
+            #  so we stake to that single hotkey.
+            assert config.wallet.hotkey is not None
+            hotkeys_to_stake_to = [
+                (None, bittensor.wallet(config=config).hotkey.ss58_address)
+            ]
+            print(f"Hotkeys to stake to 3: {hotkeys_to_stake_to}")
 
         # Get coldkey balance
         wallet_balance: Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-        if not subtensor.is_hotkey_registered_any(hotkey_ss58=hotkey_tup[1]):
-            # Hotkey is not registered.
+        print(f"Hotkeys to stake to: {hotkeys_to_stake_to}")
+        print(f"Wallet balance: {wallet_balance}")
+        final_hotkeys: List[Tuple[str, str]] = []
+        final_amounts: List[Union[float, Balance]] = []
+        for hotkey in tqdm(hotkeys_to_stake_to):
+            hotkey_balance = subtensor.get_balance(hotkey)
+            print(f"Hotkey balance: {hotkey_balance}")
+            hotkey: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
+            if not subtensor.is_hotkey_registered_any(hotkey_ss58=hotkey[1]):
+                # Hotkey is not registered.
+                if len(hotkeys_to_stake_to) == 1:
+                    # Only one hotkey, error
+                    bittensor.__console__.print(
+                        f"[red]Hotkey [bold]{hotkey[1]}[/bold] is not registered. Aborting.[/red]"
+                    )
+                    return None
+                else:
+                    # Otherwise, print warning and skip
+                    bittensor.__console__.print(
+                        f"[yellow]Hotkey [bold]{hotkey[1]}[/bold] is not registered. Skipping.[/yellow]"
+                    )
+                    continue
+
+            stake_amount_tao: float = config.get("amount")
+            if config.get("max_stake"):
+                # Get the current stake of the hotkey from this coldkey.
+                hotkey_stake: Balance = (
+                    subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
+                        hotkey_ss58=hotkey[1],
+                        coldkey_ss58=wallet.coldkeypub.ss58_address,
+                        netuid=config.netuid,
+                    )
+                )
+                stake_amount_tao: float = config.get("max_stake") - hotkey_stake.tao
+
+                # If the max_stake is greater than the current wallet balance, stake the entire balance.
+                stake_amount_tao: float = min(stake_amount_tao, wallet_balance.tao)
+                if (
+                    stake_amount_tao <= 0.00001
+                ):  # Threshold because of fees, might create a loop otherwise
+                    # Skip hotkey if max_stake is less than current stake.
+                    continue
+
+                wallet_balance = Balance.from_tao(wallet_balance.tao - stake_amount_tao)
+                print(f"Wallet balance: {wallet_balance}")
+
+                if wallet_balance.tao < 0:
+                    # No more balance to stake.
+                    break
+
+            final_amounts.append(stake_amount_tao)
+            final_hotkeys.append(hotkey)
+
+        if len(final_hotkeys) == 0:
+            # No hotkeys to stake to.
             bittensor.__console__.print(
-                f"[red]Hotkey [bold]{hotkey_tup[1]}[/bold] is not registered. Aborting.[/red]"
+                "Not enough balance to stake to any hotkeys or max_stake is less than current stake."
             )
             return None
-
-        stake_amount_tao: float = config.get("amount")
-        if config.get("max_stake"):
-            # Get the current stake of the hotkey from this coldkey.
-            hotkey_stake: Balance = subtensor.get_stake_for_coldkey_and_hotkey(
-                hotkey_ss58=hotkey_tup[1], coldkey_ss58=wallet.coldkeypub.ss58_address
-            )
-            stake_amount_tao: float = config.get("max_stake") - hotkey_stake.tao
-
-            # If the max_stake is greater than the current wallet balance, stake the entire balance.
-            stake_amount_tao: float = min(stake_amount_tao, wallet_balance.tao)
-            if (
-                stake_amount_tao <= 0.00001
-            ):  # Threshold because of fees, might create a loop otherwise
-                # Skip hotkey if max_stake is less than current stake.
-                bittensor.__console__.print(
-                    f"Max stake is less than current stake for hotkey [bold]{hotkey_tup[1]}[/bold]. Aborting."
-                )
-                return None
-
-            wallet_balance = Balance.from_tao(wallet_balance.tao - stake_amount_tao)
-            if wallet_balance.tao < 0:
-                # Not enough balance to stake.
-                bittensor.__console__.print(
-                    f"Not enough balance to stake to hotkey [bold]{hotkey_tup[1]}[/bold]."
-                )
-                return None
-
-        elif config.get("stake_all"):
-            old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-            stake_amount_tao = bittensor.Balance.from_tao(old_balance.tao)
 
         # Ask to stake
         if not config.no_prompt:
             if not Confirm.ask(
-                f"Do you want to stake to the following hotkey on netuid {config.netuid}: \n"
-                f"[bold white] - from   {wallet.name}:{wallet.coldkeypub.ss58_address}\n"
-                f" - to     {hotkey_tup[0] + ':' if hotkey_tup[0] else ''}{hotkey_tup[1]}\n - [blue]{f'{bittensor.Balance.from_tao(stake_amount_tao)}'}[/blue] --> [green]{dynamic_info.tao_to_alpha_with_slippage(stake_amount_tao)[0]}[/green] (-[red]{dynamic_info.tao_to_alpha_with_slippage(stake_amount_tao)[1]}[/red])\n"
+                f"Do you want to stake to the following keys from {wallet.name} on netuid {config.netuid}:\n"
+                + "".join(
+                    [
+                        f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'{amount} {bittensor.__tao_symbol__}' if amount else 'All'}[/bold white]\n"
+                        for hotkey, amount in zip(final_hotkeys, final_amounts)
+                    ]
+                )
             ):
                 return None
 
-        return subtensor.add_substake(
-            wallet=wallet,
-            hotkey_ss58=hotkey_tup[1],
-            netuid=config.netuid,
-            amount=stake_amount_tao,
-            wait_for_inclusion=True,
-            prompt=not config.no_prompt,
-        )
+        if len(final_hotkeys) == 1:
+            # do regular stake
+            return subtensor.add_substake(
+                wallet=wallet,
+                hotkey_ss58=final_hotkeys[0][1],
+                netuid=config.netuid,
+                amount=None if config.get("stake_all") else final_amounts[0],
+                wait_for_inclusion=True,
+                prompt=not config.no_prompt,
+            )
+        else:
+            return subtensor.add_substake_multiple(
+                wallet=wallet,
+                hotkey_ss58s=[hotkey_ss58 for _, hotkey_ss58 in final_hotkeys],
+                netuid=config.netuid,
+                amounts=None if config.get("stake_all") else final_amounts,
+                wait_for_inclusion=True,
+                prompt=False,
+            )
 
     @classmethod
     def check_config(cls, config: "bittensor.config"):
@@ -216,17 +285,39 @@ class SubStakeCommand:
     def add_args(cls, parser: argparse.ArgumentParser):
         stake_parser = parser.add_parser(
             "add",
-            help="""Add stake to a specific hotkey on subnet `netuid` from your coldkey.""",
+            help="""Add stake to specific hotkeys on subnet `netuid` from your coldkey.""",
         )
         stake_parser.add_argument("--netuid", dest="netuid", type=int, required=False)
         stake_parser.add_argument("--all", dest="stake_all", action="store_true")
         stake_parser.add_argument("--amount", dest="amount", type=float, required=False)
         stake_parser.add_argument(
-            "--hotkey",
-            "--wallet.hotkey",
+            "--max_stake",
+            dest="max_stake",
+            type=float,
             required=False,
+            action="store",
+            default=None,
+            help="""Specify the maximum amount of Tao to have staked in each hotkey.""",
+        )
+        stake_parser.add_argument(
+            "--hotkeys",
+            "--exclude_hotkeys",
+            "--wallet.hotkeys",
+            "--wallet.exclude_hotkeys",
+            required=False,
+            action="store",
+            default=[],
             type=str,
-            help="""Specify the hotkey by name or ss58 address.""",
+            nargs="*",
+            help="""Specify the hotkeys by name or ss58 address. (e.g. hk1 hk2 hk3)""",
+        )
+        stake_parser.add_argument(
+            "--all_hotkeys",
+            "--wallet.all_hotkeys",
+            required=False,
+            action="store_true",
+            default=False,
+            help="""To specify all hotkeys. Specifying hotkeys will exclude them from this all.""",
         )
         bittensor.wallet.add_args(stake_parser)
         bittensor.subtensor.add_args(stake_parser)

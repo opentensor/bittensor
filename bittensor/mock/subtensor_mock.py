@@ -185,6 +185,22 @@ class MockSubtensorState(TypedDict):
     ]  # netuid -> block -> validator_batch_size
     Active: Dict[int, Dict[BlockNumber, bool]]  # (netuid, uid), block -> active
     Stake: Dict[str, Dict[str, Dict[int, int]]]  # (hotkey, coldkey) -> block -> stake
+    SubStake: Dict[
+        Tuple[str, str, int], Dict[int, int]
+    ]  # (hotkey, coldkey, netuid) -> block -> stake
+    DynamicTAOReserve: Dict[
+        int, Dict[BlockNumber, int]
+    ]  # netuid -> block -> tao_reserve
+    DynamicAlphaReserve: Dict[
+        int, Dict[BlockNumber, int]
+    ]  # netuid -> block -> alpha_reserve
+    DynamicAlphaIssuance: Dict[
+        int, Dict[BlockNumber, int]
+    ]  # netuid -> block -> issuance
+    DynamicAlphaOutstanding: Dict[
+        int, Dict[BlockNumber, int]
+    ]  # netuid -> block -> outstanding
+    DynamicK: Dict[int, Dict[BlockNumber, int]]  # netuid -> block -> k
 
     Delegates: Dict[str, Dict[int, float]]  # address -> block -> delegate_take
 
@@ -261,10 +277,11 @@ class MockSubtensor(subtensor):
                     "Bonds": {},
                     "Stake": {},
                     "TotalStake": {0: 0},
-                    "SubStake": {0},
+                    "SubStake": {},
                     "TotalIssuance": {0: 0},
                     "TotalHotkeyStake": {},
                     "TotalColdkeyStake": {},
+                    "TotalHotkeySubStake": {},
                     "TxRateLimit": {0: 0},  # No limit
                     "Delegates": {},
                     "Axons": {},
@@ -273,6 +290,13 @@ class MockSubtensor(subtensor):
                     "Commits": {},
                     "AdjustmentAlpha": {},
                     "BondsMovingAverage": {},
+                    "DynamicTAOReserve": {},
+                    "DynamicAlphaReserve": {},
+                    "DynamicAlphaIssuance": {},
+                    "DynamicAlphaOutstanding": {},
+                    "DynamicK": {},
+                    "NetworkLockCost": {0: 1000},
+                    "IsDynamic": {0: True},
                 },
             }
 
@@ -339,6 +363,35 @@ class MockSubtensor(subtensor):
             subtensor_state["Burn"][netuid] = {}
             subtensor_state["Burn"][netuid][0] = 0
             subtensor_state["Commits"][netuid] = {}
+
+            # Initialize dynamic staking values
+            lock_amount = subtensor_state["NetworkLockCost"][0]
+            num_subnets = len(subtensor_state["NetworksAdded"])
+
+            initial_tao_reserve = lock_amount
+            initial_alpha_reserve = lock_amount * num_subnets
+            initial_alpha_outstanding = lock_amount * num_subnets
+            initial_k = initial_tao_reserve * initial_alpha_reserve
+
+            subtensor_state["DynamicTAOReserve"][netuid] = {}
+            subtensor_state["DynamicTAOReserve"][netuid][0] = initial_tao_reserve
+
+            subtensor_state["DynamicAlphaReserve"][netuid] = {}
+            subtensor_state["DynamicAlphaReserve"][netuid][0] = initial_alpha_reserve
+
+            subtensor_state["DynamicAlphaOutstanding"][netuid] = {}
+            subtensor_state["DynamicAlphaOutstanding"][netuid][
+                0
+            ] = initial_alpha_outstanding
+
+            subtensor_state["DynamicK"][netuid] = {}
+            subtensor_state["DynamicK"][netuid][0] = initial_k
+
+            subtensor_state["DynamicAlphaIssuance"][netuid] = {}
+            subtensor_state["DynamicAlphaIssuance"][netuid][0] = 0
+
+            subtensor_state["IsDynamic"][netuid] = {}
+            subtensor_state["IsDynamic"][netuid][0] = True
 
             # Per-UID/Hotkey
 
@@ -519,25 +572,63 @@ class MockSubtensor(subtensor):
         if "SubStake" not in subtensor_state:
             subtensor_state["SubStake"] = {}
 
-        # Initialize the hotkey dictionary if it doesn't exist
-        # if hotkey not in subtensor_state["SubStake"]:
-        #     subtensor_state["SubStake"][hotkey] = {}
+        # Create the key tuple (hotkey, coldkey, netuid)
+        key = (hotkey, coldkey, netuid)
 
-        # Initialize the coldkey dictionary if it doesn't exist
-        # if coldkey not in subtensor_state["SubStake"][hotkey]:
-        #     subtensor_state["SubStake"][hotkey][coldkey] = {}
+        # Initialize the block dictionary for the key if it doesn't exist
+        if key not in subtensor_state["SubStake"]:
+            subtensor_state["SubStake"][key] = {}
 
-        subtensor_state["SubStake"][netuid][self.block_number] = ( self._get_most_recent_storage(subtensor_state["SubStake"][netuid]) + stake.rao )
+        # Get the most recent stake for the key, or use 0 if it doesn't exist
+        recent_stake = self._get_most_recent_storage(subtensor_state["SubStake"][key])
+        if recent_stake is None:
+            recent_stake = 0
 
-        # subtensor_state["SubStake"][hotkey][coldkey][self.block_number] = stake.rao
-        subtensor_state["SubStake"][netuid][self.block_number] = subtensor_state["SubStake"][netuid].get(self.block_number, {})
-        subtensor_state["SubStake"][netuid][self.block_number][(hotkey, coldkey)] = stake.rao
+        subtensor_state["SubStake"][key][self.block_number] = recent_stake + stake.rao
+
+        # Update TotalHotkeyStake
+        if "TotalHotkeyStake" not in subtensor_state:
+            subtensor_state["TotalHotkeyStake"] = {}
+        if hotkey not in subtensor_state["TotalHotkeyStake"]:
+            subtensor_state["TotalHotkeyStake"][hotkey] = {}
+        subtensor_state["TotalHotkeyStake"][hotkey][self.block_number] = (
+            self._get_most_recent_storage(subtensor_state["TotalHotkeyStake"][hotkey])
+            or 0
+        ) + stake.rao
+
+        # Update TotalColdkeyStake
+        if "TotalColdkeyStake" not in subtensor_state:
+            subtensor_state["TotalColdkeyStake"] = {}
+        if coldkey not in subtensor_state["TotalColdkeyStake"]:
+            subtensor_state["TotalColdkeyStake"][coldkey] = {}
+        subtensor_state["TotalColdkeyStake"][coldkey][self.block_number] = (
+            self._get_most_recent_storage(subtensor_state["TotalColdkeyStake"][coldkey])
+            or 0
+        ) + stake.rao
 
         if balance.rao > 0:
             self.force_set_balance(coldkey, balance)
-        self.force_set_balance(coldkey, balance)
+        if coldkey not in self.chain_state["System"]["Account"]:
+            self.chain_state["System"]["Account"][coldkey] = {
+                "data": {"free": {self.block_number: balance.rao}}
+            }
 
         return uid
+
+    def get_stake_for_coldkey_and_hotkey_on_netuid(
+        self, hotkey_ss58: str, coldkey_ss58: str, netuid: int
+    ) -> "Balance":
+        """
+        Get the stake for a given hotkey and coldkey on a specific netuid.
+        """
+        subtensor_state = self.chain_state["SubtensorModule"]
+        key = (hotkey_ss58, coldkey_ss58, netuid)
+
+        if key in subtensor_state["SubStake"]:
+            stake_rao = self._get_most_recent_storage(subtensor_state["SubStake"][key])
+            return Balance.from_rao(stake_rao)
+        else:
+            return Balance(0)
 
     def force_set_balance(
         self, ss58_address: str, balance: Union["Balance", float, int] = Balance(0)
@@ -589,9 +680,11 @@ class MockSubtensor(subtensor):
     def _handle_type_default(self, name: str, params: List[object]) -> object:
         defaults_mapping = {
             "TotalStake": 0,
-            "TotalHotkeyStake": 0,
-            "TotalColdkeyStake": 0,
+            "TotalHotKeyStake": 0,
+            "TotalColdKeyStake": 0,
             "Stake": 0,
+            "SubStake": 0,
+            "TotalHotKeySubStake": 0,
         }
 
         return defaults_mapping.get(name, None)
@@ -1027,6 +1120,7 @@ class MockSubtensor(subtensor):
         self,
         wallet: "wallet",
         delegate_ss58: str,
+        netuid: int,
         amount: "Balance",
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -1036,9 +1130,10 @@ class MockSubtensor(subtensor):
             raise Exception("Not a delegate")
 
         # do stake
-        success = self._do_stake(
+        success = self._do_subnet_stake(
             wallet=wallet,
             hotkey_ss58=delegate_ss58,
+            netuid=netuid,
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -1050,6 +1145,7 @@ class MockSubtensor(subtensor):
         self,
         wallet: "wallet",
         delegate_ss58: str,
+        netuid: int,
         amount: "Balance",
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -1059,9 +1155,10 @@ class MockSubtensor(subtensor):
             raise Exception("Not a delegate")
 
         # do unstake
-        self._do_unstake(
+        self._do_subnet_unstake(
             wallet=wallet,
             hotkey_ss58=delegate_ss58,
+            netuid=netuid,
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -1320,6 +1417,133 @@ class MockSubtensor(subtensor):
         self.chain_state["System"]["Account"][wallet.coldkeypub.ss58_address]["data"][
             "free"
         ][self.block_number] = (bal + amount).rao
+
+        return True
+
+    def _do_subnet_stake(
+        self,
+        wallet: "wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        amount: "Balance",
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        subtensor_state = self.chain_state["SubtensorModule"]
+
+        bal = self.get_balance(wallet.coldkeypub.ss58_address)
+        curr_stake = self.get_stake_for_coldkey_and_hotkey_on_netuid(
+            hotkey_ss58=hotkey_ss58,
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+            netuid=netuid,
+        )
+        if curr_stake is None:
+            curr_stake = Balance(0)
+        existential_deposit = self.get_existential_deposit()
+
+        if bal < amount + existential_deposit:
+            raise Exception("Insufficient funds")
+
+        substake_state = subtensor_state["SubStake"]
+
+        # Stake the funds
+        key = (hotkey_ss58, wallet.coldkeypub.ss58_address, netuid)
+        if key not in substake_state:
+            substake_state[key] = {}
+        substake_state[key][self.block_number] = (curr_stake + amount).rao
+
+        # Add to total_stake storage
+        subtensor_state["TotalStake"][self.block_number] = (
+            self._get_most_recent_storage(subtensor_state["TotalStake"]) + amount.rao
+        )
+
+        total_hotkey_stake_state = subtensor_state["TotalHotkeyStake"]
+        if hotkey_ss58 not in total_hotkey_stake_state:
+            total_hotkey_stake_state[hotkey_ss58] = {}
+        total_hotkey_stake_state[hotkey_ss58][self.block_number] = (
+            self._get_most_recent_storage(total_hotkey_stake_state[hotkey_ss58]) or 0
+        ) + amount.rao
+
+        total_coldkey_stake_state = subtensor_state["TotalColdkeyStake"]
+        if wallet.coldkeypub.ss58_address not in total_coldkey_stake_state:
+            total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
+        total_coldkey_stake_state[wallet.coldkeypub.ss58_address][self.block_number] = (
+            self._get_most_recent_storage(
+                total_coldkey_stake_state[wallet.coldkeypub.ss58_address]
+            )
+            or 0
+        ) + amount.rao
+
+        # Remove from free balance
+        self.chain_state["System"]["Account"][wallet.coldkeypub.ss58_address]["data"][
+            "free"
+        ][self.block_number] = (bal - amount).rao
+
+        return True
+
+    def _do_subnet_unstake(
+        self,
+        wallet: "wallet",
+        hotkey_ss58: str,
+        netuid: int,
+        amount: "Balance",
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        subtensor_state = self.chain_state["SubtensorModule"]
+
+        bal = self.get_balance(wallet.coldkeypub.ss58_address)
+        key = (hotkey_ss58, wallet.coldkeypub.ss58_address, netuid)
+        curr_stake = self._get_most_recent_storage(
+            subtensor_state["SubStake"].get(key, {})
+        )
+        if curr_stake is None:
+            curr_stake = 0
+
+        if curr_stake < amount.rao:
+            raise Exception("Not enough stake to unstake")
+
+        # Update SubStake
+        subtensor_state["SubStake"].setdefault(key, {})[self.block_number] = (
+            curr_stake - amount.rao
+        )
+
+        # Update total stake
+        subtensor_state["TotalStake"][self.block_number] = (
+            self._get_most_recent_storage(subtensor_state["TotalStake"]) - amount.rao
+        )
+
+        # Update total hotkey stake
+        total_hotkey_stake_state = subtensor_state["TotalHotkeyStake"]
+        if hotkey_ss58 not in total_hotkey_stake_state:
+            total_hotkey_stake_state[hotkey_ss58] = {}
+        total_hotkey_stake_state[hotkey_ss58][self.block_number] = (
+            self._get_most_recent_storage(total_hotkey_stake_state[hotkey_ss58]) or 0
+        ) - amount.rao
+
+        # Update total coldkey stake
+        total_coldkey_stake_state = subtensor_state["TotalColdkeyStake"]
+        if wallet.coldkeypub.ss58_address not in total_coldkey_stake_state:
+            total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
+        total_coldkey_stake_state[wallet.coldkeypub.ss58_address][self.block_number] = (
+            self._get_most_recent_storage(
+                total_coldkey_stake_state[wallet.coldkeypub.ss58_address]
+            )
+            or 0
+        ) - amount.rao
+
+        # Update free balance
+        if wallet.coldkeypub.ss58_address not in self.chain_state["System"]["Account"]:
+            self.chain_state["System"]["Account"][wallet.coldkeypub.ss58_address] = {
+                "data": {"free": {}}
+            }
+
+        free_balance_state = self.chain_state["System"]["Account"][
+            wallet.coldkeypub.ss58_address
+        ]["data"]["free"]
+        free_balance_state[self.block_number] = (
+            self._get_most_recent_storage(free_balance_state) or 0
+        ) + amount.rao
 
         return True
 

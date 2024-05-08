@@ -276,7 +276,10 @@ class DynamicPool:
         self.alpha_reserve = alpha_reserve
         self.tao_reserve = tao_reserve
         self.k = self.tao_reserve.rao * self.alpha_reserve.rao
-        self.price = Balance.from_tao(self.tao_reserve.tao / self.alpha_reserve.tao)
+        if self.alpha_reserve.tao != 0:
+            self.price = Balance.from_tao(self.tao_reserve.tao / self.alpha_reserve.tao)
+        else:
+            self.price = Balance(0)
 
     def __str__(self) -> str:
         return f"DynamicPool( alpha_issuance={self.alpha_issuance}, alpha_outstanding={self.alpha_outstanding}, alpha_reserve={self.alpha_reserve}, tao_reserve={self.tao_reserve}, k={self.k}, price={self.price} )"
@@ -922,10 +925,10 @@ class StakeInfo:
         cls, vec_u8: List[int]
     ) -> Dict[str, List["StakeInfo"]]:
         r"""Returns a list of StakeInfo objects from a ``vec_u8``."""
-        decoded: Optional[
-            List[Tuple(str, List[object])]
-        ] = from_scale_encoding_using_type_string(
-            input=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
+        decoded: Optional[List[Tuple(str, List[object])]] = (
+            from_scale_encoding_using_type_string(
+                input=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
+            )
         )
 
         if decoded is None:

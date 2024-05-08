@@ -497,6 +497,7 @@ class subtensor:
     def delegate(
         self,
         wallet: "bittensor.wallet",
+        netuid: int,
         delegate_ss58: Optional[str] = None,
         amount: Optional[Union[Balance, float]] = None,
         wait_for_inclusion: bool = True,
@@ -524,6 +525,7 @@ class subtensor:
             wallet=wallet,
             delegate_ss58=delegate_ss58,
             amount=amount,
+            netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
@@ -532,6 +534,7 @@ class subtensor:
     def undelegate(
         self,
         wallet: "bittensor.wallet",
+        netuid: int,
         delegate_ss58: Optional[str] = None,
         amount: Optional[Union[Balance, float]] = None,
         wait_for_inclusion: bool = True,
@@ -561,6 +564,7 @@ class subtensor:
             wallet=wallet,
             delegate_ss58=delegate_ss58,
             amount=amount,
+            netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
@@ -1769,6 +1773,46 @@ class subtensor:
             prompt,
         )
 
+    def add_substake_multiple(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58s: List[str],
+        netuid: int,
+        amounts: Optional[List[Union[Balance, float]]] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        """
+        Adds substakes to multiple neurons identified by their hotkey SS58 addresses on a specific subnet.
+        This bulk operation allows for efficient substaking across different neurons from a single wallet.
+
+        Args:
+            wallet (bittensor.wallet): The wallet used for substaking.
+            hotkey_ss58s (List[str]): List of ``SS58`` addresses of hotkeys to substake to.
+            netuid (int): The unique identifier of the subnet to substake on.
+            amounts (List[Union[Balance, float]], optional): Corresponding amounts of TAO to substake for each hotkey.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+
+        Returns:
+            bool: ``True`` if the substaking is successful for all specified neurons, False otherwise.
+
+        This function enables managing substakes across multiple neurons on a specific subnet, enhancing the
+        flexibility and granularity of stake allocation within the Bittensor network.
+        """
+        return add_substake_multiple_extrinsic(
+            self,
+            wallet,
+            hotkey_ss58s,
+            netuid,
+            amounts,
+            wait_for_inclusion,
+            wait_for_finalization,
+            prompt,
+        )
+    
     def add_substake(
         self,
         wallet: "bittensor.wallet",
@@ -2064,6 +2108,7 @@ class subtensor:
         Args:
             wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
             hotkey_ss58 (str): Hotkey ``ss58`` address to unstake from.
+            netuid (int): The subnet you are unstaking from.
             amount (:func:`Balance`): Amount to unstake.
             wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
             wait_for_finalization (bool): If ``true``, waits for finalization before returning.
@@ -4756,6 +4801,7 @@ class subtensor:
         wallet: "bittensor.wallet",
         delegate_ss58: str,
         amount: "Balance",
+        netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -4764,8 +4810,12 @@ class subtensor:
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
-                    call_function="add_stake",
-                    call_params={"hotkey": delegate_ss58, "amount_staked": amount.rao},
+                    call_function="add_subnet_stake",
+                    call_params={
+                        "hotkey": delegate_ss58,
+                        "amount_staked": amount.rao,
+                        "netuid": netuid,
+                    },
                 )
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call, keypair=wallet.coldkey
@@ -4791,6 +4841,7 @@ class subtensor:
         wallet: "bittensor.wallet",
         delegate_ss58: str,
         amount: "Balance",
+        netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -4799,10 +4850,11 @@ class subtensor:
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
-                    call_function="remove_stake",
+                    call_function="remove_subnet_stake",
                     call_params={
                         "hotkey": delegate_ss58,
                         "amount_unstaked": amount.rao,
+                        "netuid": netuid,
                     },
                 )
                 extrinsic = substrate.create_signed_extrinsic(

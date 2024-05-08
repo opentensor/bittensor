@@ -96,6 +96,7 @@ def nominate_extrinsic(
 def delegate_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
+    netuid: int,
     delegate_ss58: Optional[str] = None,
     amount: Optional[Union[Balance, float]] = None,
     wait_for_inclusion: bool = True,
@@ -174,6 +175,7 @@ def delegate_extrinsic(
                 wallet=wallet,
                 delegate_ss58=delegate_ss58,
                 amount=staking_balance,
+                netuid=netuid,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
@@ -193,10 +195,11 @@ def delegate_extrinsic(
             ):
                 new_balance = subtensor.get_balance(address=wallet.coldkey.ss58_address)
                 block = subtensor.get_current_block()
-                new_delegate_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+                new_delegate_stake = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
                     hotkey_ss58=delegate_ss58,
-                    block=block,
+                    netuid=netuid,
+                    # block=block,
                 )  # Get current stake
 
                 bittensor.__console__.print(
@@ -231,6 +234,7 @@ def delegate_extrinsic(
 def undelegate_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
+    netuid: int,
     delegate_ss58: Optional[str] = None,
     amount: Optional[Union[Balance, float]] = None,
     wait_for_inclusion: bool = True,
@@ -262,8 +266,10 @@ def undelegate_extrinsic(
     my_prev_coldkey_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
     delegate_take = subtensor.get_delegate_take(delegate_ss58)
     delegate_owner = subtensor.get_hotkey_owner(delegate_ss58)
-    my_prev_delegated_stake = subtensor.get_stake_for_coldkey_and_hotkey(
-        coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=delegate_ss58
+    my_prev_delegated_stake = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
+        coldkey_ss58=wallet.coldkeypub.ss58_address,
+        hotkey_ss58=delegate_ss58,
+        netuid=netuid,
     )
 
     # Convert to bittensor.Balance
@@ -304,6 +310,7 @@ def undelegate_extrinsic(
             staking_response: bool = subtensor._do_undelegation(
                 wallet=wallet,
                 delegate_ss58=delegate_ss58,
+                netuid=netuid,
                 amount=unstaking_balance,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
@@ -324,10 +331,11 @@ def undelegate_extrinsic(
             ):
                 new_balance = subtensor.get_balance(address=wallet.coldkey.ss58_address)
                 block = subtensor.get_current_block()
-                new_delegate_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+                new_delegate_stake = subtensor.get_stake_for_coldkey_and_hotkey_netuid(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
                     hotkey_ss58=delegate_ss58,
-                    block=block,
+                    netuid=netuid,
+                    # block=block,
                 )  # Get current stake
 
                 bittensor.__console__.print(
