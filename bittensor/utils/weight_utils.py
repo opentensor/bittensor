@@ -22,6 +22,7 @@ import numpy as np
 import bittensor
 from numpy.typing import NDArray
 from typing import Tuple, List
+import hashlib
 
 U32_MAX = 4294967295
 U16_MAX = 65535
