@@ -18,11 +18,10 @@
 
 import bittensor
 
-import torch
 import time
 from rich.prompt import Confirm
 from typing import List, Union, Optional, Tuple
-from bittensor.utils.registration import POWSolution, create_pow
+from bittensor.utils.registration import POWSolution, create_pow, maybe_get_torch
 
 
 def register_extrinsic(
@@ -101,6 +100,10 @@ def register_extrinsic(
             )
         ):
             return False
+
+    torch = maybe_get_torch()
+    if torch is None:
+        return False
 
     # Attempt rolling registration.
     attempts = 1
@@ -379,6 +382,10 @@ def run_faucet_extrinsic(
         ):
             return False
 
+    torch = maybe_get_torch()
+    if torch is None:
+        return False
+
     # Unlock coldkey
     wallet.coldkey
 
@@ -391,7 +398,7 @@ def run_faucet_extrinsic(
     while True:
         try:
             pow_result = None
-            while pow_result == None or pow_result.is_stale(subtensor=subtensor):
+            while pow_result is None or pow_result.is_stale(subtensor=subtensor):
                 # Solve latest POW.
                 if cuda:
                     if not torch.cuda.is_available():

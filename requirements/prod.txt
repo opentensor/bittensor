@@ -31,7 +31,6 @@ scalecodec==1.2.7  # scalecodec should not be changed unless first verifying com
 shtab==1.6.5
 substrate-interface==1.7.5
 termcolor
-torch>=1.13.1
 tqdm
 uvicorn==0.22.0
 wheel
