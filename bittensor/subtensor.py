@@ -65,7 +65,11 @@ from .extrinsics.staking import (
     add_stake_weight_extrinsic,
 )
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
-from .extrinsics.substaking import add_substake_extrinsic, remove_substake_extrinsic
+from .extrinsics.substaking import (
+    add_substake_extrinsic,
+    remove_substake_extrinsic,
+    add_substake_multiple_extrinsic,
+)
 from .extrinsics.serving import (
     serve_extrinsic,
     serve_axon_extrinsic,
@@ -1812,7 +1816,7 @@ class subtensor:
             wait_for_finalization,
             prompt,
         )
-    
+
     def add_substake(
         self,
         wallet: "bittensor.wallet",

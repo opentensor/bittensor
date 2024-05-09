@@ -318,7 +318,7 @@ def add_substake_multiple_extrinsic(
         # Get the old substakes.
         for hotkey_ss58 in hotkey_ss58s:
             old_substakes.append(
-                subtensor.get_substake_for_coldkey_and_hotkey(
+                subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
                     hotkey_ss58=hotkey_ss58,
                     netuid=netuid,

@@ -26,6 +26,8 @@ from tqdm import tqdm
 from . import defaults
 
 console = bittensor.__console__
+
+
 class SubStakeCommand:
     """
         Adds stake to a specific hotkey account on a specific subnet, specified by `netuid`.
@@ -115,7 +117,7 @@ class SubStakeCommand:
                 for wallet in all_hotkeys
                 if wallet.hotkey_str not in hotkeys_to_exclude
             ]  # definitely wallets
-
+            print(f"Hotkeys to stake to 1: {hotkeys_to_stake_to}")
         elif config.get("hotkeys"):
             # Stake to specific hotkeys.
             for hotkey_ss58_or_hotkey_name in config.get("hotkeys"):
