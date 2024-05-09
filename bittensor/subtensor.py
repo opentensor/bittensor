@@ -787,7 +787,6 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         netuid: int,
-        commit_hash: str,
         weights: torch.Tensor,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,

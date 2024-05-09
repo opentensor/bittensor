@@ -292,29 +292,30 @@ def process_weights_for_netuid(
     return non_zero_weight_uids, normalized_weights
 
 
-import hashlib
 
 
-def generate_weight_hash(weights: torch.FloatTensor) -> str:
+
+
+def generate_weight_hash(weights: torch.Tensor) -> str:
     """
-    Generates a hash of the given weights tensor.
+    Generate a valid commit hash from the provided weights.
 
     Args:
-        weights (:obj:`torch.FloatTensor`): The weights tensor to hash.
+        weights (torch.Tensor): The weights tensor.
 
     Returns:
-        str: The hexadecimal representation of the hash.
+        str: The generated commit hash.
     """
-    # Convert the weights tensor to a bytes representation
+    # Convert weights to bytes
     weight_bytes = weights.numpy().tobytes()
 
-    # Create a hash object
-    hash_object = hashlib.sha256()
+    # Generate SHA-256 hash
+    sha256_hash = hashlib.sha256(weight_bytes).digest()
 
-    # Update the hash object with the weight bytes
-    hash_object.update(weight_bytes)
+    # Truncate the hash to 32 bytes
+    truncated_hash = sha256_hash[:32]
 
-    # Get the hexadecimal representation of the hash
-    hash_hex = hash_object.hexdigest()
+    # Convert the truncated hash to hex string and add "0x" prefix
+    commit_hash = "0x" + truncated_hash.hex()
 
-    return hash_hex
+    return commit_hash
