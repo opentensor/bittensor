@@ -236,6 +236,30 @@ class SubnetListCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
+    def commander_run(subtensor: "bittensor.subtensor") -> List[List[str]]:
+        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
+        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
+            url=bittensor.__delegates_details_url__
+        )
+        structure = [
+            ["NETUID", "N", "MAX_N", "EMISSION", "TEMPO", "BURN", "POW", "SUDO"]
+            + [
+                [
+                    str(s.netuid),
+                    str(s.subnetwork_n),
+                    bittensor.utils.formatting.millify(s.max_n),
+                    f"{s.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%",
+                    str(s.tempo),
+                    str(s.burn),
+                    str(bittensor.utils.formatting.millify(s.difficulty)),
+                    f"{delegate_info[s.owner_ss58].name if s.owner_ss58 in delegate_info else s.owner_ss58}",
+                ]
+                for s in subnets
+            ]
+        ]
+        return structure
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""List all subnet netuids in the network."""
         subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
