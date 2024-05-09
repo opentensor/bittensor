@@ -1,7 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
-import functools
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -17,6 +16,7 @@ import functools
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import functools
 import os
 import copy
 import time
@@ -85,8 +85,10 @@ from .extrinsics.senate import (
 from .extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import U16_NORMALIZED_FLOAT, ss58_to_vec_u8, U64_NORMALIZED_FLOAT
+from .utils.subtensor import get_subtensor_errors
 from .utils.balance import Balance
 from .utils.registration import POWSolution
+
 
 logger = logging.getLogger("subtensor")
 
@@ -169,6 +171,125 @@ class subtensor:
     intelligence and dynamic learning environment of the Bittensor network, as envisioned in its foundational
     principles and mechanisms described in the `NeurIPS paper <https://bittensor.com/pdfs/academia/NeurIPS_DAO_Workshop_2022_3_3.pdf>`_. paper.
     """
+
+    def __init__(
+        self,
+        network: Optional[str] = None,
+        config: Optional[bittensor.config] = None,
+        _mock: bool = False,
+        log_verbose: bool = True,
+    ) -> None:
+        """
+        Initializes a Subtensor interface for interacting with the Bittensor blockchain.
+
+        NOTE:
+            Currently subtensor defaults to the ``finney`` network. This will change in a future release.
+
+        We strongly encourage users to run their own local subtensor node whenever possible. This increases
+        decentralization and resilience of the network. In a future release, local subtensor will become the
+        default and the fallback to ``finney`` removed. Please plan ahead for this change. We will provide detailed
+        instructions on how to run a local subtensor node in the documentation in a subsequent release.
+
+        Args:
+            network (str, optional): The network name to connect to (e.g., ``finney``, ``local``). This can also be the chain endpoint (e.g., ``wss://entrypoint-finney.opentensor.ai:443``) and will be correctly parsed into the network and chain endpoint. If not specified, defaults to the main Bittensor network.
+            config (bittensor.config, optional): Configuration object for the subtensor. If not provided, a default configuration is used.
+            _mock (bool, optional): If set to ``True``, uses a mocked connection for testing purposes.
+
+        This initialization sets up the connection to the specified Bittensor network, allowing for various
+        blockchain operations such as neuron registration, stake management, and setting weights.
+
+        """
+        # Determine config.subtensor.chain_endpoint and config.subtensor.network config.
+        # If chain_endpoint is set, we override the network flag, otherwise, the chain_endpoint is assigned by the network.
+        # Argument importance: network > chain_endpoint > config.subtensor.chain_endpoint > config.subtensor.network
+
+        # Check if network is a config object. (Single argument passed as first positional)
+        if isinstance(network, bittensor.config):
+            if network.subtensor is None:
+                bittensor.logging.warning(
+                    "If passing a bittensor config object, it must not be empty. Using default subtensor config."
+                )
+                config = None
+            else:
+                config = network
+            network = None
+
+        if config is None:
+            config = subtensor.config()
+        self.config = copy.deepcopy(config)  # type: ignore
+
+        # Setup config.subtensor.network and config.subtensor.chain_endpoint
+        self.chain_endpoint, self.network = subtensor.setup_config(network, config)  # type: ignore
+
+        if (
+            self.network == "finney"
+            or self.chain_endpoint == bittensor.__finney_entrypoint__
+        ) and log_verbose:
+            bittensor.logging.info(
+                f"You are connecting to {self.network} network with endpoint {self.chain_endpoint}."
+            )
+            bittensor.logging.warning(
+                "We strongly encourage running a local subtensor node whenever possible. "
+                "This increases decentralization and resilience of the network."
+            )
+            bittensor.logging.warning(
+                "In a future release, local subtensor will become the default endpoint. "
+                "To get ahead of this change, please run a local subtensor node and point to it."
+            )
+
+        # Returns a mocked connection with a background chain connection.
+        self.config.subtensor._mock = (
+            _mock
+            if _mock != None
+            else self.config.subtensor.get("_mock", bittensor.defaults.subtensor._mock)
+        )
+        if (
+            self.config.subtensor._mock
+        ):  # TODO: review this doesn't appear to be used anywhere.
+            config.subtensor._mock = True
+            return bittensor.MockSubtensor()  # type: ignore
+
+        # Attempt to connect to chosen endpoint. Fallback to finney if local unavailable.
+        try:
+            # Set up params.
+            self.substrate = SubstrateInterface(
+                ss58_format=bittensor.__ss58_format__,
+                use_remote_preset=True,
+                url=self.chain_endpoint,
+                type_registry=bittensor.__type_registry__,
+            )
+        except ConnectionRefusedError as e:
+            bittensor.logging.error(
+                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting..."
+            )
+            bittensor.logging.info(
+                f"You can check if you have connectivity by runing this command: nc -vz localhost {self.chain_endpoint.split(':')[2]}"
+            )
+            exit(1)
+            # TODO (edu/phil): Advise to run local subtensor and point to dev docs.
+
+        try:
+            self.substrate.websocket.settimeout(600)
+        except:
+            bittensor.logging.warning("Could not set websocket timeout.")
+
+        if log_verbose:
+            bittensor.logging.info(
+                f"Connected to {self.network} network and {self.chain_endpoint}."
+            )
+
+        self._subtensor_errors = None
+
+    def __str__(self) -> str:
+        if self.network == self.chain_endpoint:
+            # Connecting to chain endpoint without network known.
+            return "subtensor({})".format(self.chain_endpoint)
+        else:
+            # Connecting to network with endpoint known.
+            return "subtensor({}, {})".format(self.network, self.chain_endpoint)
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
     @staticmethod
     def config() -> "bittensor.config":
@@ -323,123 +444,6 @@ class subtensor:
             ),
             evaluated_network,
         )
-
-    def __init__(
-        self,
-        network: Optional[str] = None,
-        config: Optional[bittensor.config] = None,
-        _mock: bool = False,
-        log_verbose: bool = True,
-    ) -> None:
-        """
-        Initializes a Subtensor interface for interacting with the Bittensor blockchain.
-
-        NOTE:
-            Currently subtensor defaults to the ``finney`` network. This will change in a future release.
-
-        We strongly encourage users to run their own local subtensor node whenever possible. This increases
-        decentralization and resilience of the network. In a future release, local subtensor will become the
-        default and the fallback to ``finney`` removed. Please plan ahead for this change. We will provide detailed
-        instructions on how to run a local subtensor node in the documentation in a subsequent release.
-
-        Args:
-            network (str, optional): The network name to connect to (e.g., ``finney``, ``local``). This can also be the chain endpoint (e.g., ``wss://entrypoint-finney.opentensor.ai:443``) and will be correctly parsed into the network and chain endpoint. If not specified, defaults to the main Bittensor network.
-            config (bittensor.config, optional): Configuration object for the subtensor. If not provided, a default configuration is used.
-            _mock (bool, optional): If set to ``True``, uses a mocked connection for testing purposes.
-
-        This initialization sets up the connection to the specified Bittensor network, allowing for various
-        blockchain operations such as neuron registration, stake management, and setting weights.
-
-        """
-        # Determine config.subtensor.chain_endpoint and config.subtensor.network config.
-        # If chain_endpoint is set, we override the network flag, otherwise, the chain_endpoint is assigned by the network.
-        # Argument importance: network > chain_endpoint > config.subtensor.chain_endpoint > config.subtensor.network
-
-        # Check if network is a config object. (Single argument passed as first positional)
-        if isinstance(network, bittensor.config):
-            if network.subtensor is None:
-                bittensor.logging.warning(
-                    "If passing a bittensor config object, it must not be empty. Using default subtensor config."
-                )
-                config = None
-            else:
-                config = network
-            network = None
-
-        if config is None:
-            config = subtensor.config()
-        self.config = copy.deepcopy(config)  # type: ignore
-
-        # Setup config.subtensor.network and config.subtensor.chain_endpoint
-        self.chain_endpoint, self.network = subtensor.setup_config(network, config)  # type: ignore
-
-        if (
-            self.network == "finney"
-            or self.chain_endpoint == bittensor.__finney_entrypoint__
-        ) and log_verbose:
-            bittensor.logging.info(
-                f"You are connecting to {self.network} network with endpoint {self.chain_endpoint}."
-            )
-            bittensor.logging.warning(
-                "We strongly encourage running a local subtensor node whenever possible. "
-                "This increases decentralization and resilience of the network."
-            )
-            bittensor.logging.warning(
-                "In a future release, local subtensor will become the default endpoint. "
-                "To get ahead of this change, please run a local subtensor node and point to it."
-            )
-
-        # Returns a mocked connection with a background chain connection.
-        self.config.subtensor._mock = (
-            _mock
-            if _mock != None
-            else self.config.subtensor.get("_mock", bittensor.defaults.subtensor._mock)
-        )
-        if (
-            self.config.subtensor._mock
-        ):  # TODO: review this doesn't appear to be used anywhere.
-            config.subtensor._mock = True
-            return bittensor.MockSubtensor()  # type: ignore
-
-        # Attempt to connect to chosen endpoint. Fallback to finney if local unavailable.
-        try:
-            # Set up params.
-            self.substrate = SubstrateInterface(
-                ss58_format=bittensor.__ss58_format__,
-                use_remote_preset=True,
-                url=self.chain_endpoint,
-                type_registry=bittensor.__type_registry__,
-            )
-        except ConnectionRefusedError as e:
-            bittensor.logging.error(
-                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting..."
-            )
-            bittensor.logging.info(
-                f"You can check if you have connectivity by runing this command: nc -vz localhost {self.chain_endpoint.split(':')[2]}"
-            )
-            exit(1)
-            # TODO (edu/phil): Advise to run local subtensor and point to dev docs.
-
-        try:
-            self.substrate.websocket.settimeout(600)
-        except:
-            bittensor.logging.warning("Could not set websocket timeout.")
-
-        if log_verbose:
-            bittensor.logging.info(
-                f"Connected to {self.network} network and {self.chain_endpoint}."
-            )
-
-    def __str__(self) -> str:
-        if self.network == self.chain_endpoint:
-            # Connecting to chain endpoint without network known.
-            return "subtensor({})".format(self.chain_endpoint)
-        else:
-            # Connecting to network with endpoint known.
-            return "subtensor({}, {})".format(self.network, self.chain_endpoint)
-
-    def __repr__(self) -> str:
-        return self.__str__()
 
     ####################
     #### SubstrateInterface related
@@ -4509,3 +4513,22 @@ class subtensor:
         maintaining the trustworthiness of the blockchain.
         """
         return self.substrate.get_block_hash(block_id=block_id)
+
+    def get_error_info_by_index(self, error_index: int) -> tuple[str, str]:
+        """Returns the error name and description from the Subtensor error list."""
+
+        unknown_error = "Unknown Error"
+
+        if not self._subtensor_errors:
+            self._subtensor_errors = get_subtensor_errors(self.substrate)
+
+        name, description = self._subtensor_errors.get(
+            str(error_index), (unknown_error, "")
+        )
+
+        if name == unknown_error:
+            logger.warning(
+                f"Subtensor returned an error with an unknown index: {error_index}"
+            )
+
+        return name, description
