@@ -244,6 +244,9 @@ class Balance:
     def __abs__(self):
         return Balance.from_rao(abs(self.rao))
 
+    def to_dict(self) -> dict:
+        return {"rao": self.rao, "tao": self.tao}
+
     @staticmethod
     def from_float(amount: float):
         """

@@ -88,7 +88,9 @@ class MetagraphCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def commander_run(subtensor: "bittensor.subtensor", netuid) -> dict:  # find out what netuid is
+    def commander_run(
+        subtensor: "bittensor.subtensor", config
+    ) -> dict:  # find out what netuid is
         def reducer(x, uid):
             ep = metagraph.axons[uid]
             new_row = [
@@ -113,7 +115,7 @@ class MetagraphCommand:
                 ep.coldkey[:10],
             ]
             return [
-                [x[0]] + new_row if x[0] else [new_row],  # rows
+                x[0] + [new_row] if x[0] else [new_row],  # rows
                 x[1] + metagraph.total_stake[uid],  # total_stake
                 x[2] + metagraph.ranks[uid],  # total_rank
                 x[3] + metagraph.validator_trust[uid],  # total_validator_trust
@@ -124,7 +126,8 @@ class MetagraphCommand:
                 x[8] + int(metagraph.emission[uid] * 1000000000),  # total_emission
             ]
 
-        metagraph: bittensor.metagraph = subtensor.metagraph(netuid=cli.config.netuid)
+        netuid = config.get("netuid")
+        metagraph: bittensor.metagraph = subtensor.metagraph(netuid)
         metagraph.save()
         TableData = namedtuple(
             "TableData",
@@ -139,23 +142,27 @@ class MetagraphCommand:
                 "total_dividends",
                 "total_emission",
                 "total_neurons",
+                "difficulty",
+                "subnet_emission",
+                "total_issuance",
             ],
         )
-        difficulty = subtensor.difficulty(netuid)
-        subnet_emission = bittensor.Balance.from_tao(
-            subtensor.get_emission_value_by_subnet(netuid)
-        )
-        total_issuance = bittensor.Balance.from_rao(subtensor.total_issuance().rao)
         table = TableData(
             *(
                 reduce(
                     reducer, metagraph.uids, [[], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0]
                 )
             ),
-            len(metagraph.uids)
+            len(metagraph.uids),
+            subtensor.difficulty(netuid),
+            bittensor.Balance.from_tao(
+                subtensor.get_emission_value_by_subnet(netuid)
+            ).to_dict(),
+            bittensor.Balance.from_rao(subtensor.total_issuance().rao).to_dict()
         )
         return table._asdict()
 
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an entire metagraph."""
         console = bittensor.__console__

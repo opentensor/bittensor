@@ -205,6 +205,27 @@ class PowRegisterCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
+    def commander_run(subtensor: "bittensor.subtensor", config):
+        # TODO figure out what tpb is
+        if not subtensor.subnet_exists(netuid=config.get("netuid")):
+            return {"success": False, "msg": f"Subnet {netuid} does not exist"}
+
+        registered = subtensor.register(
+            wallet=config.get("wallet"),
+            netuid=config.get("netuid"),
+            prompt=False,
+            tpb=config.get("tpb"),
+            update_interval=config.get("update_interval"),
+            num_processes=config.get(
+                "num_processes", None
+            ),  # TODO look over these as they need to come from POW reg
+            cuda=config.get("cuda"),
+            dev_id=config.get("dev_id"),
+            # TODO output in place and log verbose
+        )
+        return {"success": True, "msg": registered}
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Register neuron."""
         wallet = bittensor.wallet(config=cli.config)

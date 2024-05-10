@@ -73,6 +73,20 @@ class RegisterSubnetworkCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
+    def commander_run(subtensor: "bittensor.subtensor", config):
+        pass
+        success = subtensor.register_subnetwork(
+            wallet=config.get("wallet"), prompt=False
+        )
+        if success:
+            if config.get("set_identity"):
+                subtensor.close()
+                # # TODO set identity when set_identity is true
+            return {"success": True}
+        else:
+            return {"success": False}
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Register a subnetwork"""
         wallet = bittensor.wallet(config=cli.config)
@@ -160,6 +174,13 @@ class SubnetLockCostCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
+    def commander_run(subtensor: "bittensor.subtensor", config):
+        print(config)
+        return bittensor.utils.balance.Balance(
+            subtensor.get_subnet_burn_cost()
+        ).to_dict()
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""View locking cost of creating a new subnetwork"""
         config = cli.config.copy()
@@ -236,7 +257,7 @@ class SubnetListCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def commander_run(subtensor: "bittensor.subtensor") -> List[List[str]]:
+    def commander_run(subtensor: "bittensor.subtensor", config) -> List[List[str]]:
         subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
         delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
             url=bittensor.__delegates_details_url__
