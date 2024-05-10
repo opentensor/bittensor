@@ -286,6 +286,8 @@ from .chain_data import (
     ProposalCallData,
     ProposalVoteData,
 )
+
+from . import subtensor as subtensor_module
 from .subtensor import subtensor as subtensor
 from .cli import cli as cli, COMMANDS as ALL_COMMANDS
 from .btlogging import logging

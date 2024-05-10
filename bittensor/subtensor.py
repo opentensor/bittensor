@@ -278,7 +278,7 @@ class subtensor:
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
 
-        self._subtensor_errors = None
+        self._subtensor_errors: Dict[str, Dict[str, str]] = {}
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
@@ -4514,19 +4514,17 @@ class subtensor:
         """
         return self.substrate.get_block_hash(block_id=block_id)
 
-    def get_error_info_by_index(self, error_index: int) -> tuple[str, str]:
+    def get_error_info_by_index(self, error_index: int) -> Tuple[str, str]:
         """Returns the error name and description from the Subtensor error list."""
 
-        unknown_error = "Unknown Error"
+        unknown_error = ("Unknown Error", "")
 
         if not self._subtensor_errors:
             self._subtensor_errors = get_subtensor_errors(self.substrate)
 
-        name, description = self._subtensor_errors.get(
-            str(error_index), (unknown_error, "")
-        )
+        name, description = self._subtensor_errors.get(str(error_index), unknown_error)
 
-        if name == unknown_error:
+        if name == unknown_error[0]:
             logger.warning(
                 f"Subtensor returned an error with an unknown index: {error_index}"
             )

@@ -104,7 +104,7 @@ def _get_errors_from_cache() -> Optional[Dict[str, Dict[str, Dict[str, str]]]]:
 
 def get_subtensor_errors(
     substrate: SubstrateInterface,
-) -> Union[Dict[str, str], Dict[Any, Any]]:
+) -> Union[Dict[str, Dict[str, str]], Dict[Any, Any]]:
     """Fetches or retrieves cached Subtensor error definitions using metadata.
 
     Args:
@@ -117,6 +117,8 @@ def get_subtensor_errors(
         substrate.get_metadata()
 
     cached_errors_map = _get_errors_from_cache()
+    # TODO: Talk to the Nucleus team about a unique identification for each assembly (subtensor). Before that, use
+    #  the metadata value for `subtensor_build_id`
     subtensor_build_id = substrate.metadata[0].value
 
     if not cached_errors_map or subtensor_build_id != cached_errors_map.get(

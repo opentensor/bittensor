@@ -26,6 +26,7 @@ import pytest
 # Application
 import bittensor
 from bittensor.subtensor import subtensor as Subtensor, logger
+from bittensor import subtensor_module
 
 
 def test_serve_axon_with_external_ip_set():
@@ -283,14 +284,15 @@ def substrate():
 
 
 @pytest.fixture
-def subtensor(substrate, mocker):
-    mocker.patch(
-        "bittensor.subtensor.get_subtensor_errors",
+def subtensor(substrate):
+    mock.patch.object(
+        subtensor_module,
+        "get_subtensor_errors",
         return_value={
             "1": ("ErrorOne", "Description one"),
             "2": ("ErrorTwo", "Description two"),
         },
-    )
+    ).start()
     return Subtensor()
 
 
@@ -300,8 +302,8 @@ def test_get_error_info_by_index_known_error(subtensor):
     assert description == "Description one"
 
 
-def test_get_error_info_by_index_unknown_error(subtensor, mocker):
-    mock_logger = mocker.patch.object(logger, "warning")
+def test_get_error_info_by_index_unknown_error(subtensor):
+    mock_logger = mock.patch.object(logger, "warning").start()
     fake_index = 999
     name, description = subtensor.get_error_info_by_index(fake_index)
     assert name == "Unknown Error"
