@@ -25,7 +25,7 @@ import pytest
 
 # Application
 import bittensor
-from bittensor.subtensor import subtensor as Subtensor
+from bittensor import subtensor as Subtensor
 
 
 def test_serve_axon_with_external_ip_set():

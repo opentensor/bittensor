@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from bittensor.subtensor import subtensor as Subtensor
+from bittensor import subtensor as Subtensor
 from bittensor.wallet import wallet as Wallet
 
 
