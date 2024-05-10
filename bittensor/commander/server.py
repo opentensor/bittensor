@@ -1,4 +1,5 @@
 import asyncio
+from functools import partial
 
 # import sys
 
@@ -20,9 +21,10 @@ app = FastAPI()
 
 @app.get("/subnets/{sub_cmd}")
 async def get_subnet(sub_cmd: str):
+    config = sub.config()  # This is only for testing
     routing_list = {
         "list": network.SubnetListCommand,
-        "metagraph": metagraph.MetagraphCommand,
+        "metagraph": partial(metagraph.MetagraphCommand, netuid=config.netuid),
         # "lock_cost": 0,
         # "create": 0,
         # "pow_register": 0,

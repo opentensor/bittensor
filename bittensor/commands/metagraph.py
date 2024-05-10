@@ -16,8 +16,13 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+from collections import namedtuple
+from functools import reduce
+
+
 import bittensor
 from rich.table import Table
+
 from .utils import check_netuid_set
 
 console = bittensor.__console__  # type: ignore
@@ -81,6 +86,75 @@ class MetagraphCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def commander_run(subtensor: "bittensor.subtensor", netuid) -> dict:  # find out what netuid is
+        def reducer(x, uid):
+            ep = metagraph.axons[uid]
+            new_row = [
+                str(metagraph.neurons[uid].uid),
+                "{:.5f}".format(metagraph.total_stake[uid]),
+                "{:.5f}".format(metagraph.ranks[uid]),
+                "{:.5f}".format(metagraph.trust[uid]),
+                "{:.5f}".format(metagraph.consensus[uid]),
+                "{:.5f}".format(metagraph.incentive[uid]),
+                "{:.5f}".format(metagraph.dividends[uid]),
+                "{}".format(int(metagraph.emission[uid] * 1000000000)),
+                "{:.5f}".format(metagraph.validator_trust[uid]),
+                "*" if metagraph.validator_permit[uid] else "",
+                str((metagraph.block.item() - metagraph.last_update[uid].item())),
+                str(metagraph.active[uid].item()),
+                (
+                    ep.ip + ":" + str(ep.port)
+                    if ep.is_serving
+                    else "[yellow]none[/yellow]"
+                ),
+                ep.hotkey[:10],
+                ep.coldkey[:10],
+            ]
+            return [
+                [x[0]] + new_row if x[0] else [new_row],  # rows
+                x[1] + metagraph.total_stake[uid],  # total_stake
+                x[2] + metagraph.ranks[uid],  # total_rank
+                x[3] + metagraph.validator_trust[uid],  # total_validator_trust
+                x[4] + metagraph.trust[uid],  # total_trust
+                x[5] + metagraph.consensus[uid],  # total_consensus
+                x[6] + metagraph.incentive[uid],  # total_incentive
+                x[7] + metagraph.dividends[uid],  # total_dividends
+                x[8] + int(metagraph.emission[uid] * 1000000000),  # total_emission
+            ]
+
+        metagraph: bittensor.metagraph = subtensor.metagraph(netuid=cli.config.netuid)
+        metagraph.save()
+        TableData = namedtuple(
+            "TableData",
+            [
+                "rows",
+                "total_stake",
+                "total_rank",
+                "total_validator_trust",
+                "total_trust",
+                "total_consensus",
+                "total_incentive",
+                "total_dividends",
+                "total_emission",
+                "total_neurons",
+            ],
+        )
+        difficulty = subtensor.difficulty(netuid)
+        subnet_emission = bittensor.Balance.from_tao(
+            subtensor.get_emission_value_by_subnet(netuid)
+        )
+        total_issuance = bittensor.Balance.from_rao(subtensor.total_issuance().rao)
+        table = TableData(
+            *(
+                reduce(
+                    reducer, metagraph.uids, [[], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0]
+                )
+            ),
+            len(metagraph.uids)
+        )
+        return table._asdict()
 
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an entire metagraph."""
