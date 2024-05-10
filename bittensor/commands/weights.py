@@ -15,15 +15,16 @@ class CommitWeightCommand:
     Executes the ``commit`` command to commit weights for a specific subnet on the Bittensor network.
 
     Usage:
-        The command allows committing weights for a specific subnet. Users need to specify the netuid (network unique identifier) and corresponding weights they wish to commit.
+        The command allows committing weights for a specific subnet. Users need to specify the netuid (network unique identifier), corresponding UIDs, and weights they wish to commit.
 
     Optional arguments:
         - ``--netuid`` (int): The netuid of the subnet for which weights are to be committed.
-        - ``--weights`` (str): Corresponding weights for the specified netuid, in comma-separated format.
+        - ``--uids`` (str): Corresponding UIDs for the specified netuid, in comma-separated format.
+        - ``--weights`` (str): Corresponding weights for the specified UIDs, in comma-separated format.
 
     Example usage::
 
-        $ btcli wt commit --netuid 1 --weights 0.1,0.2,0.3,0.4
+        $ btcli wt commit --netuid 1 --uids 1,2,3,4 --weights 0.1,0.2,0.3,0.4
 
     Note:
         This command is used to commit weights for a specific subnet and requires the user to have the necessary permissions.
@@ -51,11 +52,18 @@ class CommitWeightCommand:
         if not cli.config.is_set("netuid"):
             cli.config.netuid = int(Prompt.ask(f"Enter netuid"))
 
+        if not cli.config.is_set("uids"):
+            cli.config.uids = Prompt.ask(f"Enter UIDs (comma-separated)")
+
         if not cli.config.is_set("weights"):
             cli.config.weights = Prompt.ask(f"Enter weights (comma-separated)")
 
         # Parse from string
         netuid = cli.config.netuid
+        uids = torch.tensor(
+            list(map(int, re.split(r"[ ,]+", cli.config.uids))),
+            dtype=torch.int64,
+        )
         weights = torch.tensor(
             list(map(float, re.split(r"[ ,]+", cli.config.weights))),
             dtype=torch.float32,
@@ -65,6 +73,7 @@ class CommitWeightCommand:
         success, message = subtensor.commit_weights(
             wallet=wallet,
             netuid=netuid,
+            uids=uids,
             weights=weights,
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
@@ -82,6 +91,7 @@ class CommitWeightCommand:
             "commit", help="""Commit weights for a specific subnet."""
         )
         parser.add_argument("--netuid", dest="netuid", type=int, required=False)
+        parser.add_argument("--uids", dest="uids", type=str, required=False)
         parser.add_argument("--weights", dest="weights", type=str, required=False)
         parser.add_argument(
             "--wait-for-inclusion",

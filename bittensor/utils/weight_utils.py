@@ -292,30 +292,29 @@ def process_weights_for_netuid(
     return non_zero_weight_uids, normalized_weights
 
 
-
-
-
-
-def generate_weight_hash(weights: torch.Tensor) -> str:
+def generate_weight_hash(
+    who: str, netuid: int, uids: List[int], values: List[int], version_key: int
+) -> str:
     """
     Generate a valid commit hash from the provided weights.
 
     Args:
-        weights (torch.Tensor): The weights tensor.
+        who (str): The account identifier.
+        netuid (int): The network unique identifier.
+        uids (List[int]): The list of UIDs.
+        values (List[int]): The list of weight values.
+        version_key (int): The version key.
 
     Returns:
         str: The generated commit hash.
     """
-    # Convert weights to bytes
-    weight_bytes = weights.numpy().tobytes()
+    # Create a tuple of the input parameters
+    data = (who, netuid, uids, values, version_key)
 
-    # Generate SHA-256 hash
-    sha256_hash = hashlib.sha256(weight_bytes).digest()
+    # Generate Blake2b hash of the data tuple
+    blake2b_hash = hashlib.blake2b(str(data).encode(), digest_size=32).digest()
 
-    # Truncate the hash to 32 bytes
-    truncated_hash = sha256_hash[:32]
-
-    # Convert the truncated hash to hex string and add "0x" prefix
-    commit_hash = "0x" + truncated_hash.hex()
+    # Convert the hash to hex string and add "0x" prefix
+    commit_hash = "0x" + blake2b_hash.hex()
 
     return commit_hash

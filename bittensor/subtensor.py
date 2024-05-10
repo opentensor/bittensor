@@ -787,6 +787,7 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         netuid: int,
+        uids: torch.Tensor,
         weights: torch.Tensor,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
@@ -819,7 +820,13 @@ class subtensor:
         message = "No attempt made. Perhaps it is too soon to commit weights!"
 
         # Generate the hash of the weights
-        commit_hash = weight_utils.generate_weight_hash(weights)
+        commit_hash = weight_utils.generate_weight_hash(
+            who=wallet.hotkey.ss58_address,
+            netuid=netuid,
+            uids=uids.tolist(),
+            values=weights.tolist(),
+            version_key=0,
+        )
 
         while retries < max_retries:
             try:
