@@ -362,6 +362,216 @@ class TestSubtensor(unittest.TestCase):
         )
         assert fail == False
 
+    def test_commit_weights(self):
+        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
+        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+            who=self.wallet.hotkey.ss58_address,
+            netuid=3,
+            uids=uids.tolist(),
+            values=weights.tolist(),
+            version_key=0,
+        )
+
+        self.subtensor.commit_weights = MagicMock(
+            return_value=(True, "Successfully committed weights.")
+        )
+        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+
+        success, message = self.subtensor.commit_weights(
+            wallet=self.wallet,
+            netuid=3,
+            uids=uids,
+            weights=weights,
+        )
+        assert success == True
+        assert message == "Successfully committed weights."
+
+    def test_commit_weights_inclusion(self):
+        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
+        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+            who=self.wallet.hotkey.ss58_address,
+            netuid=1,
+            uids=uids.tolist(),
+            values=weights.tolist(),
+            version_key=0,
+        )
+
+        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.commit_weights = MagicMock(
+            return_value=(True, "Successfully committed weights.")
+        )
+
+        success, message = self.subtensor.commit_weights(
+            wallet=self.wallet,
+            netuid=1,
+            uids=uids,
+            weights=weights,
+            wait_for_inclusion=True,
+        )
+        assert success == True
+        assert message == "Successfully committed weights."
+
+        def test_commit_weights_failed(self):
+            weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
+            uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+            commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+                who=self.wallet.hotkey.ss58_address,
+                netuid=3,
+                uids=uids.tolist(),
+                values=weights.tolist(),
+                version_key=0,
+            )
+
+            self.subtensor._do_commit_weights = MagicMock(
+                return_value=(False, "Mock failure message")
+            )
+            self.subtensor.commit_weights = MagicMock(
+                return_value=(False, "Mock failure message")
+            )
+
+            success, message = self.subtensor.commit_weights(
+                wallet=self.wallet,
+                netuid=3,
+                uids=uids,
+                weights=weights,
+                wait_for_inclusion=True,
+            )
+            assert success == False
+            assert message == "Mock failure message"
+
+    def test_reveal_weights(self):
+        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
+        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+
+        self.subtensor.reveal_weights = MagicMock(
+            return_value=(True, "Successfully revealed weights.")
+        )
+        self.subtensor._do_reveal_weights = MagicMock(return_value=(True, None))
+
+        success, message = self.subtensor.reveal_weights(
+            wallet=self.wallet, netuid=3, uids=uids, weights=weights, version_key=0
+        )
+        assert success == True
+        assert message == "Successfully revealed weights."
+
+    def test_reveal_weights_inclusion(self):
+        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
+        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+
+        self.subtensor._do_reveal_weights = MagicMock(return_value=(True, None))
+        self.subtensor.reveal_weights = MagicMock(
+            return_value=(True, "Successfully revealed weights.")
+        )
+
+        success, message = self.subtensor.reveal_weights(
+            wallet=self.wallet,
+            netuid=1,
+            uids=uids,
+            weights=weights,
+            version_key=0,
+            wait_for_inclusion=True,
+        )
+        assert success == True
+        assert message == "Successfully revealed weights."
+
+    def test_reveal_weights_failed(self):
+        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
+        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+
+        self.subtensor._do_reveal_weights = MagicMock(
+            return_value=(False, "Mock failure message")
+        )
+        self.subtensor.reveal_weights = MagicMock(
+            return_value=(False, "Mock failure message")
+        )
+
+        success, message = self.subtensor.reveal_weights(
+            wallet=self.wallet,
+            netuid=3,
+            uids=uids,
+            weights=weights,
+            version_key=0,
+            wait_for_inclusion=True,
+        )
+        assert success == False
+        assert message == "Mock failure message"
+
+    def test_commit_and_reveal_weights(self):
+        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
+        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+        version_key = 0
+
+        # Mock the commit_weights and reveal_weights functions
+        self.subtensor.commit_weights = MagicMock(
+            return_value=(True, "Successfully committed weights.")
+        )
+        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.reveal_weights = MagicMock(
+            return_value=(True, "Successfully revealed weights.")
+        )
+        self.subtensor._do_reveal_weights = MagicMock(return_value=(True, None))
+
+        # Commit weights
+        commit_success, commit_message = self.subtensor.commit_weights(
+            wallet=self.wallet,
+            netuid=3,
+            uids=uids,
+            weights=weights,
+        )
+        assert commit_success == True
+        assert commit_message == "Successfully committed weights."
+
+        # Reveal weights
+        reveal_success, reveal_message = self.subtensor.reveal_weights(
+            wallet=self.wallet,
+            netuid=3,
+            uids=uids,
+            weights=weights,
+            version_key=version_key,
+        )
+        assert reveal_success == True
+        assert reveal_message == "Successfully revealed weights."
+
+    def test_commit_and_reveal_weights_inclusion(self):
+        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
+        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+        version_key = 0
+
+        # Mock the commit_weights and reveal_weights functions
+        self.subtensor.commit_weights = MagicMock(
+            return_value=(True, "Successfully committed weights.")
+        )
+        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.reveal_weights = MagicMock(
+            return_value=(True, "Successfully revealed weights.")
+        )
+        self.subtensor._do_reveal_weights = MagicMock(return_value=(True, None))
+
+        # Commit weights with wait_for_inclusion
+        commit_success, commit_message = self.subtensor.commit_weights(
+            wallet=self.wallet,
+            netuid=1,
+            uids=uids,
+            weights=weights,
+            wait_for_inclusion=True,
+        )
+        assert commit_success == True
+        assert commit_message == "Successfully committed weights."
+
+        # Reveal weights with wait_for_inclusion
+        reveal_success, reveal_message = self.subtensor.reveal_weights(
+            wallet=self.wallet,
+            netuid=1,
+            uids=uids,
+            weights=weights,
+            version_key=version_key,
+            wait_for_inclusion=True,
+        )
+        assert reveal_success == True
+        assert reveal_message == "Successfully revealed weights."
+
     def test_get_balance(self):
         fake_coldkey = _get_mock_coldkey(0)
         balance = self.subtensor.get_balance(address=fake_coldkey)
