@@ -6,7 +6,9 @@ import time
 
 from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.responses import JSONResponse
-import uvicorn
+from pydantic import BaseModel
+
+# import uvicorn
 
 import bittensor
 from bittensor.commands import network
@@ -22,7 +24,33 @@ from bittensor.commands import register
 
 sub = bittensor.subtensor("test")
 app = FastAPI(debug=True)
-config = {"netuid": 0}
+
+
+class Config:
+    netuid = 0
+    wallet = None
+
+    def setup(self, conf: "ConfigBody"):
+        self.netuid = conf.netuid
+        self.wallet = bittensor.wallet(
+            name=conf.wallet["name"],
+            hotkey=conf.wallet["hotkey"],
+            path=conf.wallet["path"],
+        )  # maybe config
+
+
+class ConfigBody(BaseModel):
+    netuid: int = 0
+    wallet: dict
+
+
+config = Config()
+
+
+@app.post("/setup")
+async def setup(conf: ConfigBody):
+    config.setup(conf)
+    return JSONResponse(status_code=200, content={"success": True})
 
 
 @app.get("/subnets/{sub_cmd}")

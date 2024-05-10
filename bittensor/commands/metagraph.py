@@ -126,7 +126,7 @@ class MetagraphCommand:
                 x[8] + int(metagraph.emission[uid] * 1000000000),  # total_emission
             ]
 
-        netuid = config.get("netuid")
+        netuid = config.netuid
         metagraph: bittensor.metagraph = subtensor.metagraph(netuid)
         metagraph.save()
         TableData = namedtuple(

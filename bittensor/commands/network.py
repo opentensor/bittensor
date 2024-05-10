@@ -74,14 +74,13 @@ class RegisterSubnetworkCommand:
 
     @staticmethod
     def commander_run(subtensor: "bittensor.subtensor", config):
-        pass
-        success = subtensor.register_subnetwork(
-            wallet=config.get("wallet"), prompt=False
-        )
+        success = subtensor.register_subnetwork(wallet=config.wallet, prompt=False)
+        # todo investigate why this isn't working
         if success:
-            if config.get("set_identity"):
-                subtensor.close()
-                # # TODO set identity when set_identity is true
+            # todo params
+            # if config.get("set_identity"):
+            #     subtensor.close()
+            # # TODO set identity when set_identity is true
             return {"success": True}
         else:
             return {"success": False}
@@ -175,7 +174,6 @@ class SubnetLockCostCommand:
 
     @staticmethod
     def commander_run(subtensor: "bittensor.subtensor", config):
-        print(config)
         return bittensor.utils.balance.Balance(
             subtensor.get_subnet_burn_cost()
         ).to_dict()
@@ -514,6 +512,13 @@ class SubnetHyperparamsCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def commander_run(subtensor: "bittensor.subtensor", config) -> dict:
+        subnet: bittensor.SubnetHyperparameters = subtensor.get_subnet_hyperparameters(
+            config.netuid
+        )
+        return subnet.__dict__
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
