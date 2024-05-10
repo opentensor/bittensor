@@ -25,7 +25,7 @@ import pytest
 
 # Application
 import bittensor
-from bittensor.subtensor_module import subtensor as Subtensor, logger
+from bittensor.subtensor import subtensor as Subtensor, logger
 
 
 def test_serve_axon_with_external_ip_set():
@@ -285,7 +285,7 @@ def substrate():
 @pytest.fixture
 def subtensor(substrate, mocker):
     mocker.patch(
-        "bittensor.subtensor_module.get_subtensor_errors",
+        "bittensor.subtensor.get_subtensor_errors",
         return_value={
             "1": ("ErrorOne", "Description one"),
             "2": ("ErrorTwo", "Description two"),
