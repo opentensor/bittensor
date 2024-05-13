@@ -19,6 +19,7 @@
 
 import numpy as np
 import bittensor.utils.weight_utils as weight_utils
+import bittensor.utils as unbiased_topk
 import pytest
 
 
@@ -84,7 +85,7 @@ def test_normalize_with_max_weight():
     weights = np.random.rand(2000)
     w = weights / weights.sum()
     wn = weight_utils.normalize_max_weight(weights, limit=limit)
-    assert abs((w.max() >= limit and (limit - wn.max())) < 0.001) or (
+    assert (w.max() >= limit and np.abs(limit - wn.max()) < 0.001) or (
         w.max() < limit and wn.max() < limit
     )
 

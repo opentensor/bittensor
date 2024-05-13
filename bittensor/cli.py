@@ -29,6 +29,7 @@ from .commands import (
     InspectCommand,
     ListCommand,
     ListDelegatesCommand,
+    ListDelegatesLiteCommand,
     MetagraphCommand,
     MyDelegatesCommand,
     NewColdkeyCommand,
@@ -125,6 +126,7 @@ COMMANDS = {
             "undelegate": DelegateUnstakeCommand,
             "my_delegates": MyDelegatesCommand,
             "list_delegates": ListDelegatesCommand,
+            "list_delegates_lite": ListDelegatesLiteCommand,
             "nominate": NominateCommand,
         },
     },
@@ -329,7 +331,7 @@ class cli:
             command_data = COMMANDS[command]
 
             if isinstance(command_data, dict):
-                if config["subcommand"] != None:
+                if config["subcommand"] is not None:
                     command_data["commands"][config["subcommand"]].check_config(config)
                 else:
                     console.print(
