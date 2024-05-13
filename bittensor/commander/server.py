@@ -1,10 +1,10 @@
 import asyncio
-from functools import partial, wraps
+from functools import partial
 import time
 
 # import sys
 
-from fastapi import FastAPI, Request, Response, HTTPException
+from fastapi import FastAPI, Request, Response, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -15,10 +15,6 @@ from bittensor.commands import network
 from bittensor.commands import metagraph
 from bittensor.commands import register
 from bittensor.commander import data
-
-# Attempting to get around nest_asyncio from bittensor.__init__.py
-# if "nest_asyncio" in sys.modules:
-#     asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
 
 
 # TODO app-wide error-handling
@@ -34,19 +30,12 @@ async def setup(conf: data.ConfigBody):
     return JSONResponse(status_code=200, content={"success": True})
 
 
-def check_config(func):
-    def wrapper(*args, **kwargs):
-        if config:
-            print(True)
-            return func(*args, **kwargs)
-        else:
-            raise HTTPException(status_code=501, detail="Config missing")
-
-    return wrapper
+async def check_config():
+    if not config:
+        raise HTTPException(status_code=401, detail="Config missing")
 
 
-@check_config
-@app.get("/subnets/{sub_cmd}")
+@app.get("/subnets/{sub_cmd}", dependencies=[Depends(check_config)])
 async def get_subnet(sub_cmd: str):
     routing_list = {
         "list": network.SubnetListCommand,
