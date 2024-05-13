@@ -1,5 +1,5 @@
 import asyncio
-from functools import partial
+from functools import partial, wraps
 import time
 
 # import sys
@@ -14,6 +14,7 @@ import bittensor
 from bittensor.commands import network
 from bittensor.commands import metagraph
 from bittensor.commands import register
+from bittensor.commander import data
 
 # Attempting to get around nest_asyncio from bittensor.__init__.py
 # if "nest_asyncio" in sys.modules:
@@ -24,35 +25,27 @@ from bittensor.commands import register
 
 sub = bittensor.subtensor("test")
 app = FastAPI(debug=True)
-
-
-class Config:
-    netuid = 0
-    wallet = None
-
-    def setup(self, conf: "ConfigBody"):
-        self.netuid = conf.netuid
-        self.wallet = bittensor.wallet(
-            name=conf.wallet["name"],
-            hotkey=conf.wallet["hotkey"],
-            path=conf.wallet["path"],
-        )  # maybe config
-
-
-class ConfigBody(BaseModel):
-    netuid: int = 0
-    wallet: dict
-
-
-config = Config()
+config = data.Config()
 
 
 @app.post("/setup")
-async def setup(conf: ConfigBody):
+async def setup(conf: data.ConfigBody):
     config.setup(conf)
     return JSONResponse(status_code=200, content={"success": True})
 
 
+def check_config(func):
+    def wrapper(*args, **kwargs):
+        if config:
+            print(True)
+            return func(*args, **kwargs)
+        else:
+            raise HTTPException(status_code=501, detail="Config missing")
+
+    return wrapper
+
+
+@check_config
 @app.get("/subnets/{sub_cmd}")
 async def get_subnet(sub_cmd: str):
     routing_list = {
