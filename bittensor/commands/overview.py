@@ -92,34 +92,72 @@ class OverviewCommand:
 
     @staticmethod
     def _get_total_balance(
-        total_balance, subtensor, cold_wallets=None, cold_wallet=None
-    ):
-        def process_wallet(wallet):
-            if wallet.coldkeypub_file.exists_on_device():
-                if not wallet.coldkeypub_file.is_encrypted():
-                    return subtensor.get_balance(wallet.coldkeypub.ss58_address)
-            else:
+        total_balance: "bittensor.Balance",
+        subtensor: "bittensor.subtensor",
+        cli: "bittensor.cli",
+    ) -> Tuple[List["bittensor.wallet"], "bittensor.Balance"]:
+        if cli.config.get("all", d=None):
+            cold_wallets = get_coldkey_wallets_for_path(cli.config.wallet.path)
+            for cold_wallet in tqdm(cold_wallets, desc="Pulling balances"):
+                if (
+                    cold_wallet.coldkeypub_file.exists_on_device()
+                    and not cold_wallet.coldkeypub_file.is_encrypted()
+                ):
+                    total_balance = total_balance + subtensor.get_balance(
+                        cold_wallet.coldkeypub.ss58_address
+                    )
+            all_hotkeys = get_all_wallets_for_path(cli.config.wallet.path)
+        else:
+            # We are only printing keys for a single coldkey
+            coldkey_wallet = bittensor.wallet(config=cli.config)
+            if (
+                coldkey_wallet.coldkeypub_file.exists_on_device()
+                and not coldkey_wallet.coldkeypub_file.is_encrypted()
+            ):
+                total_balance = subtensor.get_balance(
+                    coldkey_wallet.coldkeypub.ss58_address
+                )
+            if not coldkey_wallet.coldkeypub_file.exists_on_device():
                 console.print("[bold red]No wallets found.")
-            return 0
+                return
+            all_hotkeys = get_hotkey_wallets_for_wallet(coldkey_wallet)
 
-        if cold_wallets:
-            total_balance += sum(
-                process_wallet(wallet)
-                for wallet in tqdm(cold_wallets, desc="Pulling balances")
-            )
-        if cold_wallet:
-            total_balance += process_wallet(cold_wallet)
-
-        return total_balance
+        return all_hotkeys, total_balance
 
     @staticmethod
-    def _get_hotkeys(cli, hotkeys, all_hotkeys):
-        include = not cli.config.get("all_hotkeys", False)
-        return [
-            hotkey
-            for hotkey in all_hotkeys
-            if (hotkey.hotkey_str in hotkeys) == include
-        ]
+    def _get_hotkeys(
+        cli: "bittensor.cli", all_hotkeys: List["bittensor.wallet"]
+    ) -> List["bittensor.wallet"]:
+        if not cli.config.get("all_hotkeys", False):
+            # We are only showing hotkeys that are specified.
+            all_hotkeys = [
+                hotkey
+                for hotkey in all_hotkeys
+                if hotkey.hotkey_str in cli.config.hotkeys
+            ]
+        else:
+            # We are excluding the specified hotkeys from all_hotkeys.
+            all_hotkeys = [
+                hotkey
+                for hotkey in all_hotkeys
+                if hotkey.hotkey_str not in cli.config.hotkeys
+            ]
+        return all_hotkeys
+
+    @staticmethod
+    def _get_key_address(all_hotkeys: List["bittensor.wallet"]):
+        hotkey_coldkey_to_hotkey_wallet = {}
+        for hotkey_wallet in all_hotkeys:
+            if hotkey_wallet.hotkey.ss58_address not in hotkey_coldkey_to_hotkey_wallet:
+                hotkey_coldkey_to_hotkey_wallet[hotkey_wallet.hotkey.ss58_address] = {}
+
+            hotkey_coldkey_to_hotkey_wallet[hotkey_wallet.hotkey.ss58_address][
+                hotkey_wallet.coldkeypub.ss58_address
+            ] = hotkey_wallet
+
+        all_hotkey_addresses = list(hotkey_coldkey_to_hotkey_wallet.keys())
+
+        return all_hotkey_addresses, hotkey_coldkey_to_hotkey_wallet
 
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an overview for the wallet's colkey."""
@@ -130,25 +168,13 @@ class OverviewCommand:
         total_balance = bittensor.Balance(0)
 
         # We are printing for every coldkey.
-        if cli.config.get("all", d=None):
-            cold_wallets = get_coldkey_wallets_for_path(cli.config.wallet.path)
-            total_balance = OverviewCommand._get_total_balance(
-                total_balance, cold_wallets, subtensor
-            )
-            all_hotkeys = get_all_wallets_for_path(cli.config.wallet.path)
-        else:
-            # We are only printing keys for a single coldkey
-            coldkey_wallet = bittensor.wallet(config=cli.config)
-            total_balance = OverviewCommand._get_total_balance(
-                total_balance, subtensor, cold_wallet=coldkey_wallet
-            )
-
-            all_hotkeys = get_hotkey_wallets_for_wallet(coldkey_wallet)
+        all_hotkeys, total_balance = OverviewCommand._get_total_balance(
+            total_balance, subtensor, cli
+        )
 
         # We are printing for a select number of hotkeys from all_hotkeys.
-        hotkeys = cli.config.get("hotkeys", [])
-        if hotkeys:
-            all_hotkeys = OverviewCommand._get_hotkeys(cli, hotkeys, all_hotkeys)
+        if cli.config.get("hotkeys"):
+            all_hotkeys = OverviewCommand._get_hotkeys(cli, all_hotkeys)
 
         # Check we have keys to display.
         if len(all_hotkeys) == 0:
@@ -168,21 +194,16 @@ class OverviewCommand:
         for netuid in netuids:
             neurons[str(netuid)] = []
 
-        all_wallet_names = set([wallet.name for wallet in all_hotkeys])
+        all_wallet_names = {wallet.name for wallet in all_hotkeys}
         all_coldkey_wallets = [
             bittensor.wallet(name=wallet_name) for wallet_name in all_wallet_names
         ]
 
-        hotkey_coldkey_to_hotkey_wallet = {}
-        for hotkey_wallet in all_hotkeys:
-            if hotkey_wallet.hotkey.ss58_address not in hotkey_coldkey_to_hotkey_wallet:
-                hotkey_coldkey_to_hotkey_wallet[hotkey_wallet.hotkey.ss58_address] = {}
+        (
+            all_hotkey_addresses,
+            hotkey_coldkey_to_hotkey_wallet,
+        ) = OverviewCommand._get_key_address(all_hotkeys)
 
-            hotkey_coldkey_to_hotkey_wallet[hotkey_wallet.hotkey.ss58_address][
-                hotkey_wallet.coldkeypub.ss58_address
-            ] = hotkey_wallet
-
-        all_hotkey_addresses = list(hotkey_coldkey_to_hotkey_wallet.keys())
         with console.status(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
                 cli.config.subtensor.get(
@@ -256,7 +277,7 @@ class OverviewCommand:
                     )
                 )
 
-            if len(coldkeys_to_check) > 0:
+            if coldkeys_to_check:
                 # We have some stake that is not with a registered hotkey.
                 if "-1" not in neurons:
                     neurons["-1"] = []
@@ -301,7 +322,7 @@ class OverviewCommand:
                     wallet_.hotkey_ss58 = hotkey_addr
                     wallet.hotkey_str = hotkey_addr[:5]  # Max length of 5 characters
                     # Indicates a hotkey not on local machine but exists in stake_info obj on-chain
-                    if hotkey_coldkey_to_hotkey_wallet.get(hotkey_addr) == None:
+                    if hotkey_coldkey_to_hotkey_wallet.get(hotkey_addr) is None:
                         hotkey_coldkey_to_hotkey_wallet[hotkey_addr] = {}
                     hotkey_coldkey_to_hotkey_wallet[hotkey_addr][
                         coldkey_wallet.coldkeypub.ss58_address
