@@ -954,6 +954,7 @@ def log_and_handle_error(
     exception: Exception,
     status_code: int,
     start_time: float,
+    request: Request
 ):
     # Display the traceback for user clarity.
     bittensor.logging.trace(f"Forward exception: {traceback.format_exc()}")
@@ -965,6 +966,10 @@ def log_and_handle_error(
 
     # Log the detailed error message for internal use
     bittensor.logging.error(detailed_error_message)
+
+    # Log the ip address to be able to block if DDOS is occuring
+    client_ip = request.client.host
+    logging.error(f"Received request from IP: {client_ip}")
 
     if synapse.axon is None:
         raise SynapseParsingError(detailed_error_message)
@@ -1074,49 +1079,49 @@ class AxonMiddleware(BaseHTTPMiddleware):
         except InvalidRequestNameError as e:
             if "synapse" not in locals():
                 synapse: bittensor.Synapse = bittensor.Synapse()  # type: ignore
-            log_and_handle_error(synapse, e, 400, start_time)
+            log_and_handle_error(synapse, e, 400, start_time, request)
             response = create_error_response(synapse)
 
         except SynapseParsingError as e:
             if "synapse" not in locals():
                 synapse = bittensor.Synapse()
-            log_and_handle_error(synapse, e, 400, start_time)
+            log_and_handle_error(synapse, e, 400, start_time, request)
             response = create_error_response(synapse)
 
         except UnknownSynapseError as e:
             if "synapse" not in locals():
                 synapse = bittensor.Synapse()
-            log_and_handle_error(synapse, e, 404, start_time)
+            log_and_handle_error(synapse, e, 404, start_time, request)
             response = create_error_response(synapse)
 
         # Handle errors related to verify.
         except NotVerifiedException as e:
-            log_and_handle_error(synapse, e, 401, start_time)
+            log_and_handle_error(synapse, e, 401, start_time, request)
             response = create_error_response(synapse)
 
         # Handle errors related to blacklist.
         except BlacklistedException as e:
-            log_and_handle_error(synapse, e, 403, start_time)
+            log_and_handle_error(synapse, e, 403, start_time, request)
             response = create_error_response(synapse)
 
         # Handle errors related to priority.
         except PriorityException as e:
-            log_and_handle_error(synapse, e, 503, start_time)
+            log_and_handle_error(synapse, e, 503, start_time, request)
             response = create_error_response(synapse)
 
         # Handle errors related to run.
         except RunException as e:
-            log_and_handle_error(synapse, e, 500, start_time)
+            log_and_handle_error(synapse, e, 500, start_time, request)
             response = create_error_response(synapse)
 
         # Handle errors related to postprocess.
         except PostProcessException as e:
-            log_and_handle_error(synapse, e, 500, start_time)
+            log_and_handle_error(synapse, e, 500, start_time, request)
             response = create_error_response(synapse)
 
         # Handle all other errors.
         except Exception as e:
-            log_and_handle_error(synapse, InternalServerError(str(e)), 500, start_time)
+            log_and_handle_error(synapse, InternalServerError(str(e)), 500, start_time, request)
             response = create_error_response(synapse)
 
         # Logs the end of request processing and returns the response
