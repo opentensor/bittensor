@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import asyncio
 from collections import namedtuple
 from functools import reduce
 
@@ -88,7 +89,7 @@ class MetagraphCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def commander_run(
+    async def commander_run(
         subtensor: "bittensor.subtensor", config
     ) -> dict:  # find out what netuid is
         def reducer(x, uid):
@@ -127,7 +128,9 @@ class MetagraphCommand:
             ]
 
         netuid = config.netuid
-        metagraph: bittensor.metagraph = subtensor.metagraph(netuid)
+        metagraph: bittensor.metagraph = await asyncio.get_event_loop().run_in_executor(
+            None, subtensor.metagraph, netuid
+        )
         metagraph.save()
         TableData = namedtuple(
             "TableData",

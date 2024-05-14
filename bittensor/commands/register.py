@@ -205,7 +205,7 @@ class PowRegisterCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def commander_run(subtensor: "bittensor.subtensor", config):
+    async def commander_run(subtensor: "bittensor.subtensor", config):
         # TODO figure out what tpb is
         if not subtensor.subnet_exists(netuid=config.get("netuid")):
             return {"success": False, "msg": f"Subnet {netuid} does not exist"}

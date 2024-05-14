@@ -16,6 +16,9 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import asyncio
+
+import aiofiles
 import bittensor
 import os
 import sys
@@ -281,7 +284,6 @@ class RegenHotkeyCommand:
 
             # Password can be "", assume if None
             json_password = cli.config.get("json_password", "")
-
         wallet.regenerate_hotkey(
             mnemonic=cli.config.mnemonic,
             seed=cli.config.seed,
@@ -289,6 +291,33 @@ class RegenHotkeyCommand:
             use_password=cli.config.use_password,
             overwrite=cli.config.overwrite_hotkey,
         )
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config):
+        async def check_json(kwargs: dict) -> dict:
+            if file_name := config.json_encrypted_path:
+                if not os.path.exists(file_name) or not os.path.isfile(file_name):
+                    # TODO ensure server error handling for this
+                    raise ValueError(f"File {file_name} does not exist")
+                with aiofiles.open(file_name, "r") as f:
+                    return {
+                        **kwargs,
+                        **{"json": ((await f.read()), config.json_encrypted_pw)},
+                    }
+            return kwargs
+
+        wallet = bittensor.wallet(config=config)  # TODO not config, params instead
+        kwargs = await check_json(
+            {
+                "mnemonic": config.mnemonic,
+                "seed": config.seed,
+                "use_password": config.use_password,
+                "overwrite": config.overwrite,
+            }
+        )
+        # TODO I probably need to do something with this after regeneration.
+        await asyncio.get_event_loop().run_in_executor(wallet.regenerate_hotkey(**kwargs))
+        return {"success": True}
 
     @staticmethod
     def check_config(config: "bittensor.config"):
@@ -394,13 +423,24 @@ class NewHotkeyCommand:
         such as running multiple miners or separating operational roles within the network.
     """
 
+    @staticmethod
     def run(cli):
-        """Creates a new hotke under this wallet."""
+        """Creates a new hotkey under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
         wallet.create_new_hotkey(
             n_words=cli.config.n_words,
             use_password=cli.config.use_password,
             overwrite=cli.config.overwrite_hotkey,
+        )
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config):
+        wallet = bittensor.wallet(config=config.wallet)  # TODO make sure this works
+        wallet.create_new_hotkey(
+            # TODO these should all be params rather than config
+            n_words=config.n_words,
+            use_password=config.use_password,
+            overwrite=config.overwrite_hotkey,
         )
 
     @staticmethod

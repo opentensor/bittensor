@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import asyncio
 import argparse
 import bittensor
 from . import defaults
@@ -73,7 +74,7 @@ class RegisterSubnetworkCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def commander_run(subtensor: "bittensor.subtensor", config):
+    async def commander_run(subtensor: "bittensor.subtensor", config):
         success = subtensor.register_subnetwork(wallet=config.wallet, prompt=False)
         # todo investigate why this isn't working
         if success:
@@ -173,7 +174,7 @@ class SubnetLockCostCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def commander_run(subtensor: "bittensor.subtensor", config):
+    async def commander_run(subtensor: "bittensor.subtensor", config):
         return bittensor.utils.balance.Balance(
             subtensor.get_subnet_burn_cost()
         ).to_dict()
@@ -255,10 +256,18 @@ class SubnetListCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def commander_run(subtensor: "bittensor.subtensor", config) -> List[List[str]]:
-        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
-        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
-            url=bittensor.__delegates_details_url__
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config
+    ) -> List[List[str]]:
+        subnets: List[bittensor.SubnetInfo]
+        delegate_info: Optional[Dict[str, DelegatesDetails]]
+        event_loop = asyncio.get_event_loop()
+        subnets, delegate_info = await asyncio.gather(
+            event_loop.run_in_executor(None, subtensor.get_all_subnets_info),
+            event_loop.run_in_executor(
+                None,
+                lambda: get_delegates_details(url=bittensor.__delegates_details_url__),
+            ),
         )
         structure = [
             ["NETUID", "N", "MAX_N", "EMISSION", "TEMPO", "BURN", "POW", "SUDO"]
@@ -514,7 +523,7 @@ class SubnetHyperparamsCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def commander_run(subtensor: "bittensor.subtensor", config) -> dict:
+    async def commander_run(subtensor: "bittensor.subtensor", config) -> dict:
         subnet: bittensor.SubnetHyperparameters = subtensor.get_subnet_hyperparameters(
             config.netuid
         )
