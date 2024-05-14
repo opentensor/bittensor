@@ -481,6 +481,7 @@ class NewColdkeyCommand:
             use_password=cli.config.use_password,
             overwrite=cli.config.overwrite_coldkey,
         )
+        print("New cold key created")
 
     @staticmethod
     def check_config(config: "bittensor.config"):
