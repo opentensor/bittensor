@@ -276,7 +276,10 @@ class DynamicPool:
         self.alpha_reserve = alpha_reserve
         self.tao_reserve = tao_reserve
         self.k = self.tao_reserve.rao * self.alpha_reserve.rao
-        self.price = Balance.from_tao(self.tao_reserve.tao / self.alpha_reserve.tao)
+        if self.alpha_reserve.tao > 0:
+            self.price = Balance.from_tao(self.tao_reserve.tao / self.alpha_reserve.tao)
+        else:
+            self.price = 0
 
     def __str__(self) -> str:
         return f"DynamicPool( alpha_issuance={self.alpha_issuance}, alpha_outstanding={self.alpha_outstanding}, alpha_reserve={self.alpha_reserve}, tao_reserve={self.tao_reserve}, k={self.k}, price={self.price} )"
