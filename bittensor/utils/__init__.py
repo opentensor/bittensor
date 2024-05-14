@@ -16,15 +16,18 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Callable, Union, List, Optional, Dict, Literal
+from typing import Callable, List, Dict, Literal, Tuple
 
 import bittensor
 import hashlib
-import requests
 import torch
+import requests
 import scalecodec
+import numpy as np
 
 from .wallet_utils import *  # noqa F401
+from .version import version_checking, check_version, VersionCheckError
+from .registration import maybe_get_torch
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
@@ -37,54 +40,35 @@ def ss58_to_vec_u8(ss58_address: str) -> List[int]:
     return encoded_address
 
 
-def unbiased_topk(values, k, dim=0, sorted=True, largest=True):
+def unbiased_topk(
+    values: np.ndarray, k: int, dim=0, sorted=True, largest=True, axis=0
+) -> Tuple[np.ndarray, np.ndarray]:
     r"""Selects topk as in torch.topk but does not bias lower indices when values are equal.
     Args:
-        values: (torch.Tensor)
+        values: (np.ndarray)
             Values to index into.
         k: (int):
             Number to take.
 
     Return:
-        topk: (torch.Tensor):
+        topk: (np.ndarray):
             topk k values.
-        indices: (torch.LongTensor)
+        indices: (np.ndarray)
             indices of the topk values.
     """
-    permutation = torch.randperm(values.shape[dim])
-    permuted_values = values[permutation]
-    topk, indices = torch.topk(
-        permuted_values, k, dim=dim, sorted=sorted, largest=largest
-    )
+    if dim != 0 and axis == 0:
+        # Ensures a seamless transition for calls made to this function that specified args by keyword
+        axis = dim
+
+    permutation = np.random.permutation(values.shape[axis])
+    permuted_values = np.take(values, permutation, axis=axis)
+    indices = np.argpartition(permuted_values, -k, axis=axis)[-k:]
+    if not sorted:
+        indices = np.sort(indices, axis=axis)
+    if not largest:
+        indices = indices[::-1]
+    topk = np.take(permuted_values, indices, axis=axis)
     return topk, permutation[indices]
-
-
-def version_checking(timeout: int = 15):
-    try:
-        bittensor.logging.debug(
-            f"Checking latest Bittensor version at: {bittensor.__pipaddress__}"
-        )
-        response = requests.get(bittensor.__pipaddress__, timeout=timeout)
-        latest_version = response.json()["info"]["version"]
-        version_split = latest_version.split(".")
-        latest_version_as_int = (
-            (100 * int(version_split[0]))
-            + (10 * int(version_split[1]))
-            + (1 * int(version_split[2]))
-        )
-
-        if latest_version_as_int > bittensor.__version_as_int__:
-            print(
-                "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience. "
-                "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor".format(
-                    bittensor.__version__, latest_version
-                )
-            )
-
-    except requests.exceptions.Timeout:
-        bittensor.logging.error("Version check failed due to timeout")
-    except requests.exceptions.RequestException as e:
-        bittensor.logging.error(f"Version check failed due to request failure: {e}")
 
 
 def strtobool_with_default(
