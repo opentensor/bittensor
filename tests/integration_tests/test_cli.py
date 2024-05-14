@@ -2365,18 +2365,11 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         self.assertAlmostEqual(new_balance.tao, old_balance.tao - 10.0, delta=1e-6)
 
 
-# Test directory for creating mock wallets
-TEST_DIR = "/tmp/test_bittensor_wallets"
-
-
 @pytest.fixture(scope="function")
-def setup_wallets():
-    # Arrange: Create a temporary directory to simulate wallet paths
-    if not os.path.exists(TEST_DIR):
-        os.makedirs(TEST_DIR)
-    yield
-    # Teardown: Remove the temporary directory after tests
-    shutil.rmtree(TEST_DIR)
+def wallets_dir_path(tmp_path):
+    wallets_dir = tmp_path / "wallets"
+    wallets_dir.mkdir()
+    yield wallets_dir
 
 
 @pytest.mark.parametrize(
@@ -2392,15 +2385,14 @@ def setup_wallets():
     ],
 )
 def test_get_coldkey_wallets_for_path(
-    test_id, wallet_names, expected_wallet_count, setup_wallets
+    test_id, wallet_names, expected_wallet_count, wallets_dir_path
 ):
     # Arrange: Create mock wallet directories
     for name in wallet_names:
-        wallet_path = os.path.join(TEST_DIR, name)
-        os.makedirs(wallet_path)
+        (wallets_dir_path / name).mkdir()
 
     # Act: Call the function with the test directory
-    wallets = _get_coldkey_wallets_for_path(TEST_DIR)
+    wallets = _get_coldkey_wallets_for_path(str(wallets_dir_path))
 
     # Assert: Check if the correct number of wallet objects are returned
     assert len(wallets) == expected_wallet_count
@@ -2541,11 +2533,6 @@ def test_set_identity_command(
             assert mock_exit.call_count == 0
 
 
-TEST_DIR = "/tmp/test_bittensor_wallets"
-if not os.path.exists(TEST_DIR):
-    os.makedirs(TEST_DIR)
-
-
 @pytest.fixture
 def setup_files(tmp_path):
     def _setup_files(files):
@@ -2585,12 +2572,6 @@ def test_get_coldkey_ss58_addresses_for_path(
     assert (
         result == expected
     ), f"Test ID: {test_id} failed. Expected {expected}, got {result}"
-
-
-# Cleanup after tests
-def teardown_module(module):
-    with contextlib.suppress(FileNotFoundError):
-        shutil.rmtree(TEST_DIR)
 
 
 if __name__ == "__main__":
