@@ -371,7 +371,7 @@ def test_delegate_extrinsic(
             False,
             NotRegisteredError,
             False,
-        ),  # StakeError raised
+        ),  # NotRegisteredError raised
     ],
     ids=[
         "success-undelegate",
