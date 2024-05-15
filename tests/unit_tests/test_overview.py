@@ -256,7 +256,6 @@ def netuids_list():
 def test_process_neuron_results(
     test_id, results, expected_neurons, expected_netuids, neurons_dict, netuids_list
 ):
-
     # Act
     actual_neurons = OverviewCommand._process_neuron_results(
         results, neurons_dict, netuids_list
