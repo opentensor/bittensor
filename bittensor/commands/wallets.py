@@ -80,6 +80,23 @@ class RegenColdkeyCommand:
         )
 
     @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        kwargs = await check_json(
+            config,
+            {
+                "mnemonic": params.mnemonic,
+                "seed": params.seed,
+                "use_password": params.use_password,
+                "overwrite": params.overwrite,
+            },
+        )
+        # TODO I probably need to do something with this after regeneration.
+        await asyncio.get_event_loop().run_in_executor(
+            config.wallet.regenerate_hotkey(**kwargs)
+        )
+        return {"success": True}
+
+    @staticmethod
     def check_config(config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
@@ -177,6 +194,7 @@ class RegenColdkeypubCommand:
         It is a recovery-focused utility that ensures continued access to wallet functionalities.
     """
 
+    @staticmethod
     def run(cli):
         r"""Creates a new coldkeypub under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
@@ -185,6 +203,18 @@ class RegenColdkeypubCommand:
             public_key=cli.config.get("public_key_hex"),
             overwrite=cli.config.overwrite_coldkeypub,
         )
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: config.wallet.regen_coldkeypub(
+                ss58_address=params.ss58_address,
+                public_key=params.public_key_hex,
+                overwrite=params.overwrite,
+            ),
+        )
+        return {"success": True}
 
     @staticmethod
     def check_config(config: "bittensor.config"):
@@ -293,30 +323,20 @@ class RegenHotkeyCommand:
         )
 
     @staticmethod
-    async def commander_run(subtensor: "bittensor.subtensor", config):
-        async def check_json(kwargs: dict) -> dict:
-            if file_name := config.json_encrypted_path:
-                if not os.path.exists(file_name) or not os.path.isfile(file_name):
-                    # TODO ensure server error handling for this
-                    raise ValueError(f"File {file_name} does not exist")
-                with aiofiles.open(file_name, "r") as f:
-                    return {
-                        **kwargs,
-                        **{"json": ((await f.read()), config.json_encrypted_pw)},
-                    }
-            return kwargs
-
-        wallet = bittensor.wallet(config=config)  # TODO not config, params instead
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
         kwargs = await check_json(
+            config,
             {
-                "mnemonic": config.mnemonic,
-                "seed": config.seed,
-                "use_password": config.use_password,
-                "overwrite": config.overwrite,
-            }
+                "mnemonic": params.mnemonic,
+                "seed": params.seed,
+                "use_password": params.use_password,
+                "overwrite": params.overwrite,
+            },
         )
         # TODO I probably need to do something with this after regeneration.
-        await asyncio.get_event_loop().run_in_executor(wallet.regenerate_hotkey(**kwargs))
+        await asyncio.get_event_loop().run_in_executor(
+            config.wallet.regenerate_hotkey(**kwargs)
+        )
         return {"success": True}
 
     @staticmethod
@@ -434,14 +454,16 @@ class NewHotkeyCommand:
         )
 
     @staticmethod
-    async def commander_run(subtensor: "bittensor.subtensor", config):
-        wallet = bittensor.wallet(config=config.wallet)  # TODO make sure this works
-        wallet.create_new_hotkey(
-            # TODO these should all be params rather than config
-            n_words=config.n_words,
-            use_password=config.use_password,
-            overwrite=config.overwrite_hotkey,
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: config.wallet.create_new_hotkey(
+                n_words=params.n_words,
+                use_password=params.use_password,
+                overwrite=params.overwrite_hotkey,
+            ),
         )
+        return {"success": True}
 
     @staticmethod
     def check_config(config: "bittensor.config"):
@@ -1137,3 +1159,16 @@ def create_transfer_history_table(transfers):
     table.pad_edge = False
     table.width = None
     return table
+
+
+async def check_json(config, kwargs: dict) -> dict:
+    if file_name := config.json_encrypted_path:
+        if not os.path.exists(file_name) or not os.path.isfile(file_name):
+            # TODO ensure server error handling for this
+            raise ValueError(f"File {file_name} does not exist")
+        with aiofiles.open(file_name, "r") as f:
+            return {
+                **kwargs,
+                **{"json": ((await f.read()), config.json_encrypted_pw)},
+            }
+    return kwargs

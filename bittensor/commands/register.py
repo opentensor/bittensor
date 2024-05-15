@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+import asyncio
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -73,6 +74,40 @@ class RegisterCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params=None):
+        if not subtensor.subnet_exists(netuid=config.netuid):
+            return {"success": False, "error": f"Subnet {config.netuid} does not exist"}
+
+        event_loop = asyncio.get_event_loop()
+        # Check current recycle amount
+        current_recycle, balance = await asyncio.gather(
+            event_loop.run_in_executor(
+                None, lambda: subtensor.recycle(netuid=config.netuid)
+            ),
+            event_loop.run_in_executor(
+                None,
+                lambda: subtensor.get_balance(
+                    address=config.wallet.coldkeypub.ss58_address
+                ),
+            ),
+        )
+        # Check balance is sufficient
+        if balance < current_recycle:
+            return {
+                "success": False,
+                "error": f"Insufficient balance {balance} to register neuron. "
+                f"Current recycle is {current_recycle}",
+            }
+        # TODO get prompt working
+        await event_loop.run_in_executor(
+            None,
+            lambda: subtensor.burned_register(
+                wallet=config.wallet, netuid=config.netuid, prompt=False
+            ),
+        )
+        return {"success": True}
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -205,22 +240,23 @@ class PowRegisterCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    async def commander_run(subtensor: "bittensor.subtensor", config):
+    async def commander_run(subtensor: "bittensor.subtensor", config, params=None):
         # TODO figure out what tpb is
-        if not subtensor.subnet_exists(netuid=config.get("netuid")):
-            return {"success": False, "msg": f"Subnet {netuid} does not exist"}
+        # This does not yet work
+        if not subtensor.subnet_exists(netuid=config.netuid):
+            return {"success": False, "msg": f"Subnet {config.netuid} does not exist"}
 
         registered = subtensor.register(
-            wallet=config.get("wallet"),
-            netuid=config.get("netuid"),
+            wallet=config.wallet,
+            netuid=config.netuid,
             prompt=False,
             tpb=config.get("tpb"),
             update_interval=config.get("update_interval"),
             num_processes=config.get(
                 "num_processes", None
             ),  # TODO look over these as they need to come from POW reg
-            cuda=config.get("cuda"),
-            dev_id=config.get("dev_id"),
+            cuda=config.cuda,
+            dev_id=config.dev_id
             # TODO output in place and log verbose
         )
         return {"success": True, "msg": registered}

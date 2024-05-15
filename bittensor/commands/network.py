@@ -74,14 +74,14 @@ class RegisterSubnetworkCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    async def commander_run(subtensor: "bittensor.subtensor", config):
+    async def commander_run(subtensor: "bittensor.subtensor", config, params=None):
         success = subtensor.register_subnetwork(wallet=config.wallet, prompt=False)
         # todo investigate why this isn't working
         if success:
             # todo params
-            # if config.get("set_identity"):
-            #     subtensor.close()
-            # # TODO set identity when set_identity is true
+            if params.get("set_identity"):
+                subtensor.close()
+                # TODO set identity when set_identity is true
             return {"success": True}
         else:
             return {"success": False}
@@ -174,9 +174,11 @@ class SubnetLockCostCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    async def commander_run(subtensor: "bittensor.subtensor", config):
+    async def commander_run(subtensor: "bittensor.subtensor", config, params=None):
         return bittensor.utils.balance.Balance(
-            subtensor.get_subnet_burn_cost()
+            await asyncio.get_event_loop().run_in_executor(
+                None, subtensor.get_subnet_burn_cost
+            )
         ).to_dict()
 
     @staticmethod
@@ -257,7 +259,7 @@ class SubnetListCommand:
 
     @staticmethod
     async def commander_run(
-        subtensor: "bittensor.subtensor", config
+        subtensor: "bittensor.subtensor", config, params=None
     ) -> List[List[str]]:
         subnets: List[bittensor.SubnetInfo]
         delegate_info: Optional[Dict[str, DelegatesDetails]]
@@ -523,9 +525,13 @@ class SubnetHyperparamsCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    async def commander_run(subtensor: "bittensor.subtensor", config) -> dict:
-        subnet: bittensor.SubnetHyperparameters = subtensor.get_subnet_hyperparameters(
-            config.netuid
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params=None
+    ) -> dict:
+        subnet: bittensor.SubnetHyperparameters = (
+            await asyncio.get_event_loop().run_in_executor(
+                None, subtensor.get_subnet_hyperparameters, config.netuid
+            )
         )
         return subnet.__dict__
 

@@ -26,6 +26,19 @@ class Config:
         self.json_encrypted_path = conf.json_encrypted_path
         self.json_encrypted_pw = conf.json_encrypted_pw
 
+    def as_dict(self):
+        return {
+            "initialized": self.initialized,
+            "netuid": self.netuid,
+            "wallet": {
+                "name": self.wallet.name,
+                "hotkey": self.wallet.hotkey.ss58_address,
+                "path": self.wallet.path,
+            },
+            "json_encrypted_path": self.json_encrypted_path,
+            "json_encrypted_pw": self.json_encrypted_pw,
+        }
+
 
 class ConfigBody(BaseModel):
     netuid: int = 0

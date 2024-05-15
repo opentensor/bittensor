@@ -90,7 +90,7 @@ class MetagraphCommand:
 
     @staticmethod
     async def commander_run(
-        subtensor: "bittensor.subtensor", config
+        subtensor: "bittensor.subtensor", config, params=None
     ) -> dict:  # find out what netuid is
         def reducer(x, uid):
             ep = metagraph.axons[uid]

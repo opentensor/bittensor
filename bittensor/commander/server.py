@@ -1,6 +1,7 @@
 import asyncio
 from functools import partial
 import time
+from typing import Union
 
 # import sys
 
@@ -35,17 +36,24 @@ async def setup(conf: data.ConfigBody):
     return JSONResponse(status_code=200, content={"success": True})
 
 
+@app.get("/setup")
+async def get_setup():
+    return JSONResponse(status_code=200, content=config.as_dict())
+
+
 async def check_config():
     if not config:
         raise HTTPException(status_code=401, detail="Config missing")
 
 
-async def run_fn(command_class, *params):
+async def run_fn(command_class, params=None):
     start = time.time()
     try:
         if hasattr(command_class, "commander_run"):
             # Offload synchronous execution to the threadpool
-            response_content = await command_class.commander_run(sub, config=config)
+            response_content = await command_class.commander_run(
+                sub, config=config, params=params
+            )
             print(command_class, time.time() - start)
             return JSONResponse(content=response_content)
         else:
@@ -58,14 +66,22 @@ async def run_fn(command_class, *params):
 
 
 # Subnets
+
+
+@app.get("/subnets/create", dependencies=[Depends(check_config)])
+async def subnets_create(set_identity: bool):
+    return await run_fn(
+        network.RegisterSubnetworkCommand, params={"set_identity": set_identity}
+    )
+
+
 @app.get("/subnets/{sub_cmd}", dependencies=[Depends(check_config)])
 async def get_subnet(sub_cmd: str):
     routing_list = {
         "list": network.SubnetListCommand,
         "metagraph": metagraph.MetagraphCommand,
         "lock_cost": network.SubnetLockCostCommand,
-        "create": network.RegisterSubnetworkCommand,
-        "pow_register": register.PowRegisterCommand,
+        # "pow_register": register.PowRegisterCommand,  # Not yet working
         "register": register.RegisterCommand,
         "hyperparameters": network.SubnetHyperparamsCommand,
     }
@@ -73,21 +89,61 @@ async def get_subnet(sub_cmd: str):
 
 
 # Wallet
-@app.get("/wallet/hotkey/{sub_cmd}", dependencies=[Depends(check_config)])
-async def wallet_hotkey(sub_cmd: str):
+@app.get("/wallet/new_key/{key_type}", dependencies=[Depends(check_config)])
+async def wallet_new_key(
+    key_type: str, n_words: int, use_password: bool, overwrite: bool
+):
     routing_list = {
-        "new": wallets.NewHotkeyCommand,
-        "regen": wallets.RegenHotkeyCommand,
-        "swap": register.SwapHotkeyCommand,
+        "hotkey": wallets.NewHotkeyCommand,
+        "coldkey": wallets.NewColdkeyCommand,
     }
-    return await run_fn(routing_list[sub_cmd])
+    try:
+        return await run_fn(
+            routing_list[key_type],
+            params={
+                "n_words": n_words,
+                "use_password": use_password,
+                "overwrite": overwrite,
+            },
+        )
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Key type not found")
+
+
+@app.get("/wallet/regen_key/{key_type}", dependencies=[Depends(check_config)])
+async def wallet_regen_key(
+    key_type: str,
+    mnemonic: Union[str, None],
+    seed: Union[str, None],
+    use_password: bool = False,
+    overwrite: bool = False,
+):
+    routing_list = {
+        "hotkey": wallets.RegenHotkeyCommand,
+        "coldkey": wallets.RegenColdkeyCommand,
+    }
+    try:
+        return await run_fn(
+            routing_list[key_type],
+            params={
+                "mnemonic": mnemonic,
+                "seed": seed,
+                "use_password": use_password,
+                "overwrite": overwrite,
+            },
+        )
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Key type not found")
+
+
+@app.get("/wallet/hotkey/swap", dependencies=[Depends(check_config)])
+async def wallet_hotkey_swap():
+    return await run_fn(register.SwapHotkeyCommand)
 
 
 @app.get("/wallet/coldkey/{sub_cmd}", dependencies=[Depends(check_config)])
 async def wallet_coldkey(sub_cmd: str):
     routing_list = {
-        "new": wallets.NewColdkeyCommand,
-        "regen": wallets.RegenColdkeyCommand,
         "regen/pub": wallets.RegenColdkeypubCommand,
     }
     return await run_fn(routing_list[sub_cmd])
