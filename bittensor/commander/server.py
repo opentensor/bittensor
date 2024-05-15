@@ -1,13 +1,27 @@
+# The MIT License (MIT)
+# Copyright © 2024 Yuma Rao
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
 import asyncio
 from functools import partial
 import time
-from typing import Union
-
-# import sys
+from typing import Union, Optional
 
 from fastapi import FastAPI, Request, Response, HTTPException, Depends
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 
 # import uvicorn
 
@@ -50,7 +64,6 @@ async def run_fn(command_class, params=None):
     start = time.time()
     try:
         if hasattr(command_class, "commander_run"):
-            # Offload synchronous execution to the threadpool
             response_content = await command_class.commander_run(
                 sub, config=config, params=params
             )
@@ -65,9 +78,7 @@ async def run_fn(command_class, params=None):
         # raise HTTPException(status_code=500, detail=str(e))
 
 
-# Subnets
-
-
+# Subnets #######################
 @app.get("/subnets/create", dependencies=[Depends(check_config)])
 async def subnets_create(set_identity: bool):
     return await run_fn(
@@ -88,7 +99,7 @@ async def get_subnet(sub_cmd: str):
     return await run_fn(routing_list[sub_cmd])
 
 
-# Wallet
+# Wallet #######################
 @app.get("/wallet/new_key/{key_type}", dependencies=[Depends(check_config)])
 async def wallet_new_key(
     key_type: str, n_words: int, use_password: bool, overwrite: bool
@@ -110,7 +121,7 @@ async def wallet_new_key(
         raise HTTPException(status_code=404, detail="Key type not found")
 
 
-@app.get("/wallet/regen_key/{key_type}", dependencies=[Depends(check_config)])
+@app.get("/wallet/{key_type}/regen_key", dependencies=[Depends(check_config)])
 async def wallet_regen_key(
     key_type: str,
     mnemonic: Union[str, None],
@@ -141,12 +152,22 @@ async def wallet_hotkey_swap():
     return await run_fn(register.SwapHotkeyCommand)
 
 
-@app.get("/wallet/coldkey/{sub_cmd}", dependencies=[Depends(check_config)])
-async def wallet_coldkey(sub_cmd: str):
-    routing_list = {
-        "regen/pub": wallets.RegenColdkeypubCommand,
-    }
-    return await run_fn(routing_list[sub_cmd])
+@app.get("/wallet/coldkey/regen_coldkey_pub", dependencies=[Depends(check_config)])
+async def wallet_coldkey(
+    ss58_address: Optional[str],
+    public_key: Optional[
+        str
+    ],  # This differs from the CLI implementation that also allows bytes
+    overwrite: Optional[bool] = False,
+):
+    return await run_fn(
+        wallets.RegenColdkeypubCommand,
+        params={
+            "ss58_address": ss58_address,
+            "public_key": public_key,
+            "overwrite": overwrite,
+        },
+    )
 
 
 @app.get("/wallet/{sub_cmd}", dependencies=[Depends(check_config)])

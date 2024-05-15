@@ -16,6 +16,11 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import asyncio
+import collections
+import functools
+from itertools import chain
+
 import bittensor
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
@@ -90,6 +95,230 @@ class OverviewCommand:
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params=None):
+        total_balance = bittensor.Balance(0)
+        if params.get("all_coldkeys"):
+            cold_wallets = get_coldkey_wallets_for_path(config.wallet.path)
+            for cold_wallet in cold_wallets:
+                if (
+                    cold_wallet.coldkeypub_file.exists_on_device()
+                    and not cold_wallet.coldkeypub_file.is_encrypted()
+                ):
+                    total_balance += subtensor.get_balance(
+                        cold_wallet.coldkeypub.ss58_address
+                    )
+            all_hotkeys = get_all_wallets_for_path(config.wallet.path)
+        else:
+            coldkey_wallet = config.wallet
+            if (
+                coldkey_wallet.coldkeypub_file.exists_on_device()
+                and not coldkey_wallet.coldkeypub_file.is_encrypted()
+            ):
+                total_balance += subtensor.get_balance(
+                    coldkey_wallet.coldkeypub.ss58_address
+                )
+            if not coldkey_wallet.coldkeypub_file.exists_on_device():
+                return {"success": False, "error": "No coldkey wallet found."}
+            all_hotkeys = get_all_wallets_for_path(coldkey_wallet)
+
+        if hotkeys_ := params.get("hotkeys"):
+            all_hotkeys = (
+                [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in hotkeys_]
+                if not params.get("all_hotkeys")
+                else [
+                    hotkey
+                    for hotkey in all_hotkeys
+                    if hotkey.hotkey_str not in hotkeys_
+                ]
+            )
+
+        if not all_hotkeys:
+            return {"success": False, "error": "No wallets found."}
+
+        neurons: Dict[str, List[bittensor.NeuronInfoLite]] = {}
+        block = subtensor.block
+        event_loop = asyncio.get_event_loop()
+        cli = collections.namedtuple("cli", "config")(config)
+        netuids = filter_netuids_by_registered_hotkeys(
+            cli,
+            subtensor,
+            (await event_loop.run_in_executor(None, subtensor.get_all_subnet_netuids)),
+            all_hotkeys,
+        )
+        for netuid in netuids:
+            neurons[str(netuid)] = []
+        all_wallet_names = set([wallet.name for wallet in all_hotkeys])
+        all_coldkey_wallets = [
+            bittensor.wallet(name=wallet_name) for wallet_name in all_wallet_names
+        ]
+        hotkey_coldkey_to_hotkey_wallet = {}
+        for hotkey_wallet in all_hotkeys:
+            if hotkey_wallet.hotkey.ss58_address not in hotkey_coldkey_to_hotkey_wallet:
+                hotkey_coldkey_to_hotkey_wallet[hotkey_wallet.hotkey.ss58_address] = {}
+
+            hotkey_coldkey_to_hotkey_wallet[hotkey_wallet.hotkey.ss58_address][
+                hotkey_wallet.coldkeypub.ss58_address
+            ] = hotkey_wallet
+        all_hotkey_addresses = list(hotkey_coldkey_to_hotkey_wallet.keys())
+        errors = []
+        with ProcessPoolExecutor(max_workers=(max(len(netuids), 5))) as executor:
+            results = asyncio.gather(
+                *[
+                    event_loop.run_in_executor(
+                        executor,
+                        OverviewCommand._get_neurons_for_netuid,
+                        config,
+                        netuid,
+                        all_hotkey_addresses,
+                    )
+                    for netuid in netuids
+                ]
+            )
+            for result in await results:
+                netuid, neurons_result, err_msg = result
+                if err_msg:
+                    errors.append(err_msg)
+                if len(neurons_result) == 0:
+                    netuids.remove(netuid)
+                    del neurons[str(netuid)]
+                else:
+                    neurons[str(netuid)] = neurons_result
+        total_coldkey_stake_from_metagraph = defaultdict(lambda: bittensor.Balance(0.0))
+        checked_hotkeys = set()
+        for neuron in chain.from_iterable(neurons.values()):
+            if neuron.hotkey not in checked_hotkeys:
+                total_coldkey_stake_from_metagraph[neuron.coldkey] += neuron.stake_dict[
+                    neuron.coldkey
+                ]
+                checked_hotkeys.add(neuron.hotkey)
+
+        def calculate_difference(coldkey_wallet_):
+            ss58_address = coldkey_wallet_.coldkeypub.ss58_address
+            total_stake_chain = subtensor.get_total_stake_for_coldkey(
+                ss58_address=ss58_address
+            )
+            difference = (
+                total_stake_chain - total_coldkey_stake_from_metagraph[ss58_address]
+            )
+            if difference != 0:
+                return difference, coldkey_wallet
+
+        alerts = list(filter(calculate_difference, all_coldkey_wallets))
+        if alerts:
+            if "-1" not in neurons:
+                neurons["-1"] = []
+
+        with ProcessPoolExecutor(max_workers=max(len(alerts), 5)) as executor:
+            results = asyncio.gather(
+                *[
+                    event_loop.run_in_executor(
+                        executor,
+                        OverviewCommand._get_de_registered_stake_for_coldkey_wallet,
+                        config,
+                        all_hotkey_addresses,
+                        coldkey_wallet,
+                    )
+                    for coldkey_wallet in [x[1] for x in alerts]
+                ]
+            )
+            for result in results:
+                coldkey_wallet, de_registered_stake, err_msg = result
+                if err_msg:
+                    errors.append(err_msg)
+                if len(de_registered_stake) == 0:
+                    continue
+
+                de_registered_neurons = []
+                for hotkey_addr, our_stake in de_registered_stake:
+                    de_registered_neuron = bittensor.NeuronInfoLite._null_neuron()
+                    de_registered_neuron.hotkey = hotkey_addr
+                    de_registered_neuron.coldkey = (
+                        coldkey_wallet.coldkeypub.ss58_address
+                    )
+                    de_registered_neuron.total_stake = bittensor.Balance(our_stake)
+
+                    de_registered_neurons.append(de_registered_neuron)
+
+                    # Add this hotkey to the wallets dict
+                    wallet_ = bittensor.wallet(
+                        name=config.wallet.name,
+                    )
+                    wallet_.hotkey_ss58 = hotkey_addr
+                    wallet_.hotkey_str = hotkey_addr[:5]  # Max length of 5 characters
+                    hotkey_coldkey_to_hotkey_wallet.get(hotkey_addr, {})[
+                        coldkey_wallet.coldkeypub.ss58_address
+                    ] = wallet_
+
+                # Add neurons to overview.
+                neurons["-1"].extend(de_registered_neurons)
+
+        hotkeys_seen = set()
+        total_neurons = 0
+        total_stake = 0.0
+
+        def reducer(x, y: Tuple[bittensor.NeuronInfoLite, "subtensor.tempo"]):
+            nn, subnet_tempo = y
+            emission_ = int(nn.emission / (subnet_tempo + 1) * 1e9)
+            if not (
+                hotwallet := hotkey_coldkey_to_hotkey_wallet.get(nn.hotkey, {}).get(
+                    nn.coldkey, None
+                )
+            ):
+                hotwallet = argparse.Namespace()
+                hotwallet.name = nn.coldkey[:7]
+            return {
+                "rank": x["rank"] + nn.rank,
+                "trust": x["trust"] + nn.trust,
+                "consensus": x["consensus"] + nn.consensus,
+                "dividends": x["dividends"] + nn.dividends,
+                "emission": x["emission"] + emission_,
+                "validator_trust": x["validator_trust"] + nn.validator_trust,
+                "rows": x["rows"]
+                + [
+                    [
+                        hotwallet.name,
+                        hotwallet.hotkey_str,
+                        str(nn.uid),
+                        str(nn.active),
+                        nn.stake,
+                        nn.rank,
+                        nn.trust,
+                        nn.consensus,
+                        nn.incentive,
+                        nn.dividends,
+                        emission_,
+                        nn.validator_trust,
+                        nn.validator_permit,
+                        int(block - nn.last_update),
+                        f"{bittensor.utils.networking.int_to_ip(nn.axon_info.ip)}:{nn.axon_info.port}"
+                        if nn.axon_info != 0
+                        else None,
+                        nn.hotkey,
+                    ]
+                ],
+            }
+
+        for netuid in netuids:
+            subnet_tempo = subtensor.tempo(netuid=netuid)
+            last_subnet = netuid == netuids[-1]
+            nns = functools.reduce(
+                reducer,
+                neurons[str(netuid)],
+                {
+                    "rank": 0.0,
+                    "trust": 0.0,
+                    "consensus": 0.0,
+                    "dividends": 0.0,
+                    "emission": 0.0,
+                    "validator_trust": 0.0,
+                    "rows": [],
+                },
+            )
+
+            # TODO Finish this tomorrow, ek moet nou slaap
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an overview for the wallet's colkey."""
         console = bittensor.__console__
@@ -292,6 +521,7 @@ class OverviewCommand:
                         name=wallet,
                     )
                     wallet_.hotkey_ss58 = hotkey_addr
+                    # Unsure if this should be wallet or wallet_
                     wallet.hotkey_str = hotkey_addr[:5]  # Max length of 5 characters
                     # Indicates a hotkey not on local machine but exists in stake_info obj on-chain
                     if hotkey_coldkey_to_hotkey_wallet.get(hotkey_addr) == None:

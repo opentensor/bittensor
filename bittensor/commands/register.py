@@ -592,6 +592,11 @@ class SwapHotkeyCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params=None):
+        # TODO implement this
+        pass
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Swap your hotkey for all registered axons on the network."""
         wallet = bittensor.wallet(config=cli.config)

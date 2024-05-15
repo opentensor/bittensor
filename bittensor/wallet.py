@@ -631,7 +631,7 @@ class wallet:
             public_key: (str | bytes, optional):
                 Public key as hex string or bytes.
             overwrite (bool, optional) (default: False):
-                Determins if this operation overwrites the coldkeypub (if exists) under the same path ``<wallet path>/<wallet name>/coldkeypub``.
+                Determines if this operation overwrites the coldkeypub (if exists) under the same path ``<wallet path>/<wallet name>/coldkeypub``.
         Returns:
             wallet (bittensor.wallet):
                 Newly re-generated wallet with coldkeypub.
