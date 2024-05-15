@@ -1158,7 +1158,7 @@ class subtensor:
 
         call = self.substrate.compose_call(
             call_module="Balances",
-            call_function="transfer",
+            call_function="transfer_allow_death",
             call_params={"dest": dest, "value": transfer_balance.rao},
         )
 
@@ -1203,7 +1203,7 @@ class subtensor:
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="Balances",
-                call_function="transfer",
+                call_function="transfer_allow_death",
                 call_params={"dest": dest, "value": transfer_balance.rao},
             )
             extrinsic = self.substrate.create_signed_extrinsic(
