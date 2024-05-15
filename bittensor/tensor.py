@@ -22,6 +22,7 @@ import msgpack
 import pydantic
 import msgpack_numpy
 from typing import Optional, Union, List
+from pydantic import ConfigDict
 
 NUMPY_DTYPES = {
     "float16": np.float16,
@@ -114,8 +115,7 @@ class Tensor(pydantic.BaseModel):
         shape (List[int]): Tensor shape.
     """
 
-    class Config:
-        validate_assignment = True
+    model_config = ConfigDict(validate_assignment=True)
 
     def tensor(self) -> np.ndarray:
         return self.deserialize()
