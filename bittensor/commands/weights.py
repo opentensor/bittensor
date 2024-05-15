@@ -1,5 +1,4 @@
 import re
-import torch
 import typing
 import argparse
 import numpy as np
