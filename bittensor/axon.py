@@ -31,6 +31,7 @@ import uvicorn
 import argparse
 import traceback
 import threading
+import typing
 
 from fastapi.routing import serialize_response
 
@@ -54,9 +55,7 @@ from bittensor.errors import (
     NotVerifiedException,
     BlacklistedException,
     PriorityException,
-    RunException,
     PostProcessException,
-    InternalServerError,
     SynapseException,
 )
 from bittensor.threadpool import PriorityThreadPoolExecutor
@@ -949,28 +948,53 @@ def create_error_response(synapse: bittensor.Synapse):
 def log_and_handle_error(
     synapse: bittensor.Synapse,
     exception: Exception,
-    status_code: int,
-    start_time: float,
+    status_code: typing.Optional[int] = None,
+    start_time: typing.Optional[float] = None,
 ):
+    if isinstance(exception, SynapseException):
+        synapse = exception.synapse or synapse
     # Display the traceback for user clarity.
     bittensor.logging.trace(f"Forward exception: {traceback.format_exc()}")
 
+    if synapse.axon is None:
+        synapse.axon = bittensor.TerminalInfo()
+
     # Set the status code of the synapse to the given status code.
+    error_id = str(uuid.uuid4())
     error_type = exception.__class__.__name__
-    error_message = str(exception)
-    detailed_error_message = f"{error_type}: {error_message}"
 
     # Log the detailed error message for internal use
-    bittensor.logging.error(detailed_error_message)
+    bittensor.logging.error(f"{error_type}#{error_id}: {exception}")
 
-    if synapse.axon is None:
-        raise SynapseParsingError(detailed_error_message)
+    if not status_code and synapse.axon.status_code != 100:
+        status_code = synapse.axon.status_code
+    status_message = synapse.axon.status_message
+    if isinstance(exception, SynapseException):
+        if not status_code:
+            if isinstance(exception, PriorityException):
+                status_code = 503
+            elif isinstance(exception, UnknownSynapseError):
+                status_code = 404
+            elif isinstance(exception, BlacklistedException):
+                status_code = 403
+            elif isinstance(exception, NotVerifiedException):
+                status_code = 401
+            elif isinstance(exception, (InvalidRequestNameError, SynapseParsingError)):
+                status_code = 400
+            else:
+                status_code = 500
+        status_message = status_message or str(exception)
+    else:
+        status_code = status_code or 500
+        status_message = status_message or f"Internal Server Error #{error_id}"
+
     # Set a user-friendly error message
     synapse.axon.status_code = status_code
-    synapse.axon.status_message = error_message
+    synapse.axon.status_message = status_message
 
-    # Calculate the processing time by subtracting the start time from the current time.
-    synapse.axon.process_time = str(time.time() - start_time)  # type: ignore
+    if start_time:
+        # Calculate the processing time by subtracting the start time from the current time.
+        synapse.axon.process_time = str(time.time() - start_time)  # type: ignore
 
     return synapse
 
@@ -1073,45 +1097,20 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         # Handle errors related to preprocess.
         except InvalidRequestNameError as e:
-            log_and_handle_error(synapse, e, 400, start_time)
+            if synapse.axon is None:
+                synapse.axon = bittensor.TerminalInfo()
+            synapse.axon.status_code = 400
+            synapse.axon.status_message = str(e)
+            synapse = log_and_handle_error(synapse, e, start_time=start_time)
             response = create_error_response(synapse)
-
-        except SynapseParsingError as e:
-            log_and_handle_error(synapse, e, 400, start_time)
-            response = create_error_response(synapse)
-
-        except UnknownSynapseError as e:
-            log_and_handle_error(synapse, e, 404, start_time)
-            response = create_error_response(synapse)
-
-        # Handle errors related to verify.
-        except NotVerifiedException as e:
-            log_and_handle_error(synapse, e, 401, start_time)
-            response = create_error_response(synapse)
-
-        # Handle errors related to blacklist.
-        except BlacklistedException as e:
-            log_and_handle_error(synapse, e, 403, start_time)
-            response = create_error_response(synapse)
-
-        # Handle errors related to priority.
-        except PriorityException as e:
-            log_and_handle_error(synapse, e, 503, start_time)
-            response = create_error_response(synapse)
-
-        # Handle errors related to run.
-        except RunException as e:
-            log_and_handle_error(synapse, e, 500, start_time)
-            response = create_error_response(synapse)
-
-        # Handle errors related to postprocess.
-        except PostProcessException as e:
-            log_and_handle_error(synapse, e, 500, start_time)
+        except SynapseException as e:
+            synapse = e.synapse or synapse
+            synapse = log_and_handle_error(synapse, e, start_time=start_time)
             response = create_error_response(synapse)
 
         # Handle all other errors.
         except Exception as e:
-            log_and_handle_error(synapse, InternalServerError(str(e)), 500, start_time)
+            synapse = log_and_handle_error(synapse, e, start_time=start_time)
             response = create_error_response(synapse)
 
         # Logs the end of request processing and returns the response
@@ -1186,8 +1185,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 "version": str(bittensor.__version_as_int__),
                 "uuid": str(self.axon.uuid),
                 "nonce": f"{time.time_ns()}",
-                "status_message": "Success",
-                "status_code": "100",
+                "status_code": 100,
             }
         )
 
@@ -1256,7 +1254,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
                 # We raise an exception to stop the process and return the error to the requester.
                 # The error message includes the original exception message.
-                raise NotVerifiedException(f"Not Verified with error: {str(e)}")
+                raise NotVerifiedException(
+                    f"Not Verified with error: {str(e)}", synapse=synapse
+                )
 
     async def blacklist(self, synapse: bittensor.Synapse):
         """
@@ -1407,20 +1407,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
 
         except Exception as e:
-            # If an exception occurs during the execution of the requested function,
-            # it is caught and handled here.
-
             # Log the exception for debugging purposes.
             bittensor.logging.trace(f"Run exception: {str(e)}")
-
-            # Set the status code of the synapse to "500" which indicates an internal server error.
-            if synapse.axon is not None and synapse.axon.status_code is None:
-                synapse.axon.status_code = 500
-
-            # Raise an exception to stop the process and return an appropriate error message to the requester.
-            raise RunException(
-                f"Internal server error with error: {str(e)}", synapse=synapse
-            )
+            raise
 
         # Return the starlet response
         return response
