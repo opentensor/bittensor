@@ -22,7 +22,7 @@ import json
 import sys
 
 import pydantic
-from pydantic.schema import schema
+from pydantic import ConfigDict, schema
 import bittensor
 from typing import Optional, List, Any, Dict
 
@@ -144,8 +144,7 @@ class TerminalInfo(pydantic.BaseModel):
     TerminalInfo plays a pivotal role in providing transparency and control over network operations, making it an indispensable tool for developers and users interacting with the Bittensor ecosystem.
     """
 
-    class Config:
-        validate_assignment = True
+    model_config = ConfigDict(validate_assignment=True)
 
     # The HTTP status code from: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
     status_code: Optional[int] = pydantic.Field(
@@ -357,8 +356,7 @@ class Synapse(pydantic.BaseModel):
     standardized communication in a decentralized environment.
     """
 
-    class Config:
-        validate_assignment = True
+    model_config = ConfigDict(validate_assignment=True)
 
     def deserialize(self) -> "Synapse":
         """
