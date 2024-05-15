@@ -264,12 +264,12 @@ class AxonInfo:
             coldkey=neuron_info["coldkey"],
         )
 
-    def to_parameter_dict(self) -> dict[str, Union[int, str]]:
+    def to_parameter_dict(self) -> Dict[str, Union[int, str]]:
         r"""Returns a dict of the subnet info."""
         return self.__dict__
 
     @classmethod
-    def from_parameter_dict(cls, parameter_dict: dict[str, Any]) -> "AxonInfo":
+    def from_parameter_dict(cls, parameter_dict: Dict[str, Any]) -> "AxonInfo":
         r"""Returns an axon_info object from a parameter_dict."""
         return cls(**parameter_dict)
 
