@@ -253,7 +253,7 @@ class AxonInfo:
         return AxonInfo(0, "", 0, 0, "", "")
 
     @classmethod
-    def from_neuron_info(cls, neuron_info: dict) -> "AxonInfo":
+    def from_neuron_info(cls, neuron_info: Dict) -> "AxonInfo":
         """Converts a dictionary to an axon_info object."""
         return cls(
             version=neuron_info["axon_info"]["version"],
@@ -699,8 +699,8 @@ class DelegateInfoLite:
     take: float  # Take of the delegate as a percentage
     nominators: int  # List of nominators of the delegate and their stake
     owner_ss58: str  # Coldkey of owner
-    registrations: list[int]  # List of subnets that the delegate is registered on
-    validator_permits: list[
+    registrations: List[int]  # List of subnets that the delegate is registered on
+    validator_permits: List[
         int
     ]  # List of subnets that the delegate is allowed to validate on
     return_per_1000: int  # Return per 1000 tao of the delegate over a day
@@ -841,10 +841,10 @@ class StakeInfo:
         cls, vec_u8: List[int]
     ) -> Dict[str, List["StakeInfo"]]:
         r"""Returns a list of StakeInfo objects from a ``vec_u8``."""
-        decoded: Optional[List[tuple[str, List[object]]]] = (
-            from_scale_encoding_using_type_string(
-                input=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
-            )
+        decoded: Optional[
+            List[tuple[str, List[object]]]
+        ] = from_scale_encoding_using_type_string(
+            input=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
         )
 
         if decoded is None:
@@ -955,12 +955,12 @@ class SubnetInfo:
             owner_ss58=ss58_encode(decoded["owner"], bittensor.__ss58_format__),
         )
 
-    def to_parameter_dict(self) -> dict[str, Any]:
+    def to_parameter_dict(self) -> Dict[str, Any]:
         r"""Returns a dict of the subnet info."""
         return self.__dict__
 
     @classmethod
-    def from_parameter_dict(cls, parameter_dict: dict[str, Any]) -> "SubnetInfo":
+    def from_parameter_dict(cls, parameter_dict: Dict[str, Any]) -> "SubnetInfo":
         r"""Returns a SubnetInfo object from a parameter_dict."""
         return cls(**parameter_dict)
 
@@ -1049,12 +1049,12 @@ class SubnetHyperparameters:
             difficulty=decoded["difficulty"],
         )
 
-    def to_parameter_dict(self) -> dict[str, Union[int, float, bool]]:
+    def to_parameter_dict(self) -> Dict[str, Union[int, float, bool]]:
         r"""Returns a dict of the subnet hyperparameters."""
         return self.__dict__
 
     @classmethod
-    def from_parameter_dict(cls, parameter_dict: dict[str, Any]) -> "SubnetInfo":
+    def from_parameter_dict(cls, parameter_dict: Dict[str, Any]) -> "SubnetInfo":
         r"""Returns a SubnetHyperparameters object from a parameter_dict."""
         return cls(**parameter_dict)
 
@@ -1112,12 +1112,12 @@ class IPInfo:
             protocol=decoded["ip_type_and_protocol"] & 0xF,
         )
 
-    def to_parameter_dict(self) -> dict[str, Union[str, int]]:
+    def to_parameter_dict(self) -> Dict[str, Union[str, int]]:
         r"""Returns a dict of the subnet ip info."""
         return self.__dict__
 
     @classmethod
-    def from_parameter_dict(cls, parameter_dict: dict[str, Any]) -> "IPInfo":
+    def from_parameter_dict(cls, parameter_dict: Dict[str, Any]) -> "IPInfo":
         r"""Returns a IPInfo object from a parameter_dict."""
         return cls(**parameter_dict)
 
