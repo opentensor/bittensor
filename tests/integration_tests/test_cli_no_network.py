@@ -430,7 +430,7 @@ class TestEmptyArgs(unittest.TestCase):
                 "st",
                 "su",
                 "weight",
-                "wt"
+                "wt",
             ]  # Skip duplicate aliases
         ]
         # Test that each command and its subcommands can be run with no args
