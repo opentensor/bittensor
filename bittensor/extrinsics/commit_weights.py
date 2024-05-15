@@ -18,7 +18,6 @@
 
 import bittensor
 from typing import Tuple, List
-from substrateinterface import Keypair
 
 
 def commit_weights_extrinsic(

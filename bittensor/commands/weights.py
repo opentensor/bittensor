@@ -1,5 +1,4 @@
 import re
-import typing
 import argparse
 import numpy as np
 import bittensor
@@ -285,16 +284,15 @@ class RevealWeightCommand:
             cli.config.weights = Prompt.ask(f"Enter weights (comma-separated)")
 
         # Parse from string
+        # Parse from string
         netuid = cli.config.netuid
-        uids = torch.tensor(
-            list(map(int, re.split(r"[ ,]+", cli.config.uids))),
-            dtype=torch.int64,
-        )
-        weights = torch.tensor(
-            list(map(float, re.split(r"[ ,]+", cli.config.weights))),
-            dtype=torch.float32,
-        )
-
+        uids = cli.config.uids
+        uid_list = list(map(int, re.split(r"[ ,]+", uids)))
+        uids = np.array(uid_list, dtype=np.int64)
+        weights = cli.config.weights
+        weight_list = list(map(float, re.split(r"[ ,]+", weights)))
+        weights = np.array(weight_list, dtype=np.float32)
+        
         # Run the reveal weights operation.
         success, message = subtensor.reveal_weights(
             wallet=wallet,

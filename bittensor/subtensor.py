@@ -26,7 +26,6 @@ from numpy.typing import NDArray
 import argparse
 import bittensor
 import scalecodec
-import torch
 
 from retry import retry
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any, TypeVar
