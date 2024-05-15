@@ -810,8 +810,8 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         netuid: int,
-        uids: torch.Tensor,
-        weights: torch.Tensor,
+        uids: np.ndarray,
+        weights: np.ndarray,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -824,7 +824,8 @@ class subtensor:
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
             netuid (int): The unique identifier of the subnet.
-            commit_hash (str): The hash of the neuron's weights to be committed.
+            uids (np.ndarray): NumPy array of neuron UIDs for which weights are being committed.
+            weights (np.ndarray): NumPy array of weight values corresponding to each UID.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
             prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
@@ -935,8 +936,8 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         netuid: int,
-        uids: torch.Tensor,
-        weights: torch.Tensor,
+        uids: np.ndarray,
+        weights: np.ndarray,
         version_key: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,

@@ -414,33 +414,33 @@ class TestSubtensor(unittest.TestCase):
         assert success == True
         assert message == "Successfully committed weights."
 
-        def test_commit_weights_failed(self):
-            weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
-            uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
-            commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
-                who=self.wallet.hotkey.ss58_address,
-                netuid=3,
-                uids=uids.tolist(),
-                values=weights.tolist(),
-                version_key=0,
-            )
+    def test_commit_weights_failed(self):
+        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
+        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+            who=self.wallet.hotkey.ss58_address,
+            netuid=3,
+            uids=uids.tolist(),
+            values=weights.tolist(),
+            version_key=0,
+        )
 
-            self.subtensor._do_commit_weights = MagicMock(
-                return_value=(False, "Mock failure message")
-            )
-            self.subtensor.commit_weights = MagicMock(
-                return_value=(False, "Mock failure message")
-            )
+        self.subtensor._do_commit_weights = MagicMock(
+            return_value=(False, "Mock failure message")
+        )
+        self.subtensor.commit_weights = MagicMock(
+            return_value=(False, "Mock failure message")
+        )
 
-            success, message = self.subtensor.commit_weights(
-                wallet=self.wallet,
-                netuid=3,
-                uids=uids,
-                weights=weights,
-                wait_for_inclusion=True,
-            )
-            assert success == False
-            assert message == "Mock failure message"
+        success, message = self.subtensor.commit_weights(
+            wallet=self.wallet,
+            netuid=3,
+            uids=uids,
+            weights=weights,
+            wait_for_inclusion=True,
+        )
+        assert success == False
+        assert message == "Mock failure message"
 
     def test_reveal_weights(self):
         weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
