@@ -56,13 +56,13 @@ def show_delegates_lite(
     a snapshot of delegate performance and status, helping users make informed decisions for staking or nominating.
 
     This helper function is not intended to be used directly in user code unless specifically required.
-    
+
     Args:
         delegates_lite (List[bittensor.DelegateInfoLite]): A list of delegate information objects to be displayed.
         width (Optional[int]): The width of the console output table. Defaults to ``None``, which will make the table expand to the maximum width of the console.
-    
+
     The output table contains the following columns. To display more columns, use the :func:`show_delegates` function.
-    
+
     - INDEX: The numerical index of the delegate.
     - DELEGATE: The name of the delegate.
     - SS58: The truncated SS58 address of the delegate.

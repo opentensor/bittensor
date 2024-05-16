@@ -3532,10 +3532,10 @@ class subtensor:
 
     def get_delegates_lite(self, block: Optional[int] = None) -> List[DelegateInfoLite]:
         """
-        Retrieves a lighter list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system. 
-        
+        Retrieves a lighter list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.
+
         Analyzing the delegate population offers insights into the network's governance dynamics and the distribution of trust and responsibility among participating neurons.
-        
+
         This is a lighter version of :func:`get_delegates`.
 
         Args:
@@ -3567,10 +3567,10 @@ class subtensor:
 
     def get_delegates(self, block: Optional[int] = None) -> List[DelegateInfo]:
         """
-        Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system. 
-        
+        Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.
+
         Analyzing the delegate population offers insights into the network's governance dynamics and the distribution of trust and responsibility among participating neurons.
-        
+
         For a lighter version of this function, see :func:`get_delegates_lite`.
 
         Args:
