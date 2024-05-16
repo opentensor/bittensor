@@ -695,7 +695,7 @@ class PrometheusInfo:
 class DelegateInfoLite:
     """
     Dataclass for DelegateLiteInfo. This is a lighter version of :func:`DelegateInfo`.
-    
+
     Args:
         delegate_ss58 (str): Hotkey of the delegate for which the information is being fetched.
         take (float): Take of the delegate as a percentage.
@@ -705,7 +705,7 @@ class DelegateInfoLite:
         validator_permits (list[int]): List of subnets that the delegate is allowed to validate on.
         return_per_1000 (int): Return per 1000 TAO, for the delegate over a day.
         total_daily_return (int): Total daily return of the delegate.
-    
+
     """
 
     delegate_ss58: str  # Hotkey of delegate
@@ -723,8 +723,8 @@ class DelegateInfoLite:
 @dataclass
 class DelegateInfo:
     r"""
-    Dataclass for delegate information. For a lighter version of this class, see :func:`DelegateInfoLite`. 
-    
+    Dataclass for delegate information. For a lighter version of this class, see :func:`DelegateInfoLite`.
+
     Args:
         hotkey_ss58 (str): Hotkey of the delegate for which the information is being fetched.
         total_stake (int): Total stake of the delegate.
@@ -735,7 +735,7 @@ class DelegateInfo:
         validator_permits (list[int]): List of subnets that the delegate is allowed to validate on.
         return_per_1000 (int): Return per 1000 TAO, for the delegate over a day.
         total_daily_return (int): Total daily return of the delegate.
-    
+
     """
 
     hotkey_ss58: str  # Hotkey of delegate
