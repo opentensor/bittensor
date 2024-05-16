@@ -29,7 +29,7 @@ from fuzzywuzzy import fuzz
 from rich.align import Align
 from rich.table import Table
 from rich.prompt import Prompt
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Dict, Tuple, Any
 from .utils import (
     get_hotkey_wallets_for_wallet,
     get_coldkey_wallets_for_path,
@@ -96,7 +96,9 @@ class OverviewCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    async def commander_run(subtensor: "bittensor.subtensor", config, params=None) -> Tuple[dict, list]:
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params=None
+    ) -> Dict[str, Any]:
         total_balance = bittensor.Balance(0)
         if params.get("all_coldkeys"):
             cold_wallets = get_coldkey_wallets_for_path(config.wallet.path)
@@ -122,6 +124,7 @@ class OverviewCommand:
                 return {"success": False, "error": "No coldkey wallet found."}
             all_hotkeys = get_all_wallets_for_path(coldkey_wallet)
 
+        hotkeys_: List[str]
         if hotkeys_ := params.get("hotkeys"):
             all_hotkeys = (
                 [hotkey for hotkey in all_hotkeys if hotkey.hotkey_str in hotkeys_]
@@ -257,7 +260,10 @@ class OverviewCommand:
         processed_netuids = netuid_processor(
             netuids, hotkey_coldkey_to_hotkey_wallet, subtensor, block, neurons
         )
-        return [processed_netuids.as_dict(), alerts]
+        return {
+            "data": processed_netuids.as_dict(),
+            "alerts": alerts
+        }
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -925,13 +931,13 @@ def netuid_processor(
             hotkeys_seen: set = None,
             netuid: str = None,
         ):
-            if not (
+            if not nn or not (
                 hotwallet := hotkey_coldkey_to_hotkey_wallet.get(nn.hotkey, {}).get(
                     nn.coldkey, None
                 )
             ):
                 hotwallet = argparse.Namespace()
-                hotwallet.name = nn.coldkey[:7]
+                hotwallet.name = nn.coldkey[:7] if nn else None
             self.hotwallet = hotwallet
             self.rank = nn.rank if nn else 0.0
             self.trust = nn.trust if nn else 0.0
@@ -968,8 +974,8 @@ def netuid_processor(
                 if nn
                 else []
             )
-            self.hotkey = nn.hotkey if nn.hotkey else None
-            self.coldkey = nn.coldkey if nn.coldkey else None
+            self.hotkey = nn.hotkey if nn else None
+            self.coldkey = nn.coldkey if nn else None
             self.hotkeys_seen = hotkeys_seen if hotkeys_seen else set()
             self.total_neurons = 0
             self.total_stake = nn.total_stake.tao if nn else 0.0
@@ -1012,18 +1018,18 @@ def netuid_processor(
                 "dividends": self.dividends,
                 "emission": self.emission,
                 "validator_trust": self.validator_trust,
-                "rows": self.rows
+                "rows": self.rows,
             }
 
-    def _netuid_processor(netuid):
+    def _netuid_processor(netuid) -> Neuron:
         subnet_tempo = subtensor.tempo(netuid=netuid)
-        nns = functools.reduce(
+        summed_neuron = functools.reduce(
             lambda x, y: x + y,
             [
                 Neuron(nn=x, subnet_tempo_=subnet_tempo, netuid=netuid)
                 for x in neurons[str(netuid)]
             ],
         )
-        return nns
+        return summed_neuron
 
     return functools.reduce(lambda x, y: x + _netuid_processor(y), netuids, Neuron())

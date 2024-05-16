@@ -18,7 +18,7 @@
 import asyncio
 from functools import partial
 import time
-from typing import Union, Optional
+from typing import Union, Optional, List
 
 from fastapi import FastAPI, Request, Response, HTTPException, Depends
 from fastapi.responses import JSONResponse
@@ -170,11 +170,25 @@ async def wallet_coldkey(
     )
 
 
+@app.get("/wallet/overview")
+async def wallet_overview(
+    all_coldkeys: bool = True, hotkeys: List[str] = None, all_hotkeys: bool = True
+):
+    # Hotkeys is List[str] I think
+    return await run_fn(
+        overview.OverviewCommand,
+        params={
+            "all_coldkeys": all_coldkeys,
+            "hotkeys": hotkeys,
+            "all_hotkeys": all_hotkeys,
+        },
+    )
+
+
 @app.get("/wallet/{sub_cmd}", dependencies=[Depends(check_config)])
 async def wallet(sub_cmd: str):
     routing_list = {
         "list": list_commands.ListCommand,
-        "overview": overview.OverviewCommand,
         "transfer": transfer.TransferCommand,
         "inspect": inspect.InspectCommand,
         "balance": wallets.WalletBalanceCommand,
