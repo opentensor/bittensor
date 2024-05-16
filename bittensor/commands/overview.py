@@ -96,7 +96,7 @@ class OverviewCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    async def commander_run(subtensor: "bittensor.subtensor", config, params=None):
+    async def commander_run(subtensor: "bittensor.subtensor", config, params=None) -> Tuple[dict, list]:
         total_balance = bittensor.Balance(0)
         if params.get("all_coldkeys"):
             cold_wallets = get_coldkey_wallets_for_path(config.wallet.path)
@@ -136,7 +136,6 @@ class OverviewCommand:
         if not all_hotkeys:
             return {"success": False, "error": "No wallets found."}
 
-        neurons: Dict[str, List[bittensor.NeuronInfoLite]] = {}
         block = subtensor.block
         event_loop = asyncio.get_event_loop()
         cli = collections.namedtuple("cli", "config")(config)
@@ -146,8 +145,10 @@ class OverviewCommand:
             (await event_loop.run_in_executor(None, subtensor.get_all_subnet_netuids)),
             all_hotkeys,
         )
-        for netuid in netuids:
-            neurons[str(netuid)] = []
+        neurons: Dict[str, List[bittensor.NeuronInfoLite]] = {
+            str(netuid): [] for netuid in netuids
+        }
+
         all_wallet_names = set([wallet.name for wallet in all_hotkeys])
         all_coldkey_wallets = [
             bittensor.wallet(name=wallet_name) for wallet_name in all_wallet_names
@@ -253,70 +254,10 @@ class OverviewCommand:
                 # Add neurons to overview.
                 neurons["-1"].extend(de_registered_neurons)
 
-        hotkeys_seen = set()
-        total_neurons = 0
-        total_stake = 0.0
-
-        def reducer(x, y: Tuple[bittensor.NeuronInfoLite, "subtensor.tempo"]):
-            nn, subnet_tempo = y
-            emission_ = int(nn.emission / (subnet_tempo + 1) * 1e9)
-            if not (
-                hotwallet := hotkey_coldkey_to_hotkey_wallet.get(nn.hotkey, {}).get(
-                    nn.coldkey, None
-                )
-            ):
-                hotwallet = argparse.Namespace()
-                hotwallet.name = nn.coldkey[:7]
-            return {
-                "rank": x["rank"] + nn.rank,
-                "trust": x["trust"] + nn.trust,
-                "consensus": x["consensus"] + nn.consensus,
-                "dividends": x["dividends"] + nn.dividends,
-                "emission": x["emission"] + emission_,
-                "validator_trust": x["validator_trust"] + nn.validator_trust,
-                "rows": x["rows"]
-                + [
-                    [
-                        hotwallet.name,
-                        hotwallet.hotkey_str,
-                        str(nn.uid),
-                        str(nn.active),
-                        nn.stake,
-                        nn.rank,
-                        nn.trust,
-                        nn.consensus,
-                        nn.incentive,
-                        nn.dividends,
-                        emission_,
-                        nn.validator_trust,
-                        nn.validator_permit,
-                        int(block - nn.last_update),
-                        f"{bittensor.utils.networking.int_to_ip(nn.axon_info.ip)}:{nn.axon_info.port}"
-                        if nn.axon_info != 0
-                        else None,
-                        nn.hotkey,
-                    ]
-                ],
-            }
-
-        for netuid in netuids:
-            subnet_tempo = subtensor.tempo(netuid=netuid)
-            last_subnet = netuid == netuids[-1]
-            nns = functools.reduce(
-                reducer,
-                neurons[str(netuid)],
-                {
-                    "rank": 0.0,
-                    "trust": 0.0,
-                    "consensus": 0.0,
-                    "dividends": 0.0,
-                    "emission": 0.0,
-                    "validator_trust": 0.0,
-                    "rows": [],
-                },
-            )
-
-            # TODO Finish this tomorrow, ek moet nou slaap
+        processed_netuids = netuid_processor(
+            netuids, hotkey_coldkey_to_hotkey_wallet, subtensor, block, neurons
+        )
+        return [processed_netuids.as_dict(), alerts]
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -967,3 +908,122 @@ class OverviewCommand:
                 config.netuids = [int(config.netuids)]
             else:
                 config.netuids = [int(netuid) for netuid in config.netuids]
+
+
+def netuid_processor(
+    netuids: List[int],
+    hotkey_coldkey_to_hotkey_wallet: Dict[str, dict],
+    subtensor: "bittensor.subtensor",
+    block,
+    neurons,
+) -> "Neuron":
+    class Neuron:
+        def __init__(
+            self,
+            subnet_tempo_=None,
+            nn=None,
+            hotkeys_seen: set = None,
+            netuid: str = None,
+        ):
+            if not (
+                hotwallet := hotkey_coldkey_to_hotkey_wallet.get(nn.hotkey, {}).get(
+                    nn.coldkey, None
+                )
+            ):
+                hotwallet = argparse.Namespace()
+                hotwallet.name = nn.coldkey[:7]
+            self.hotwallet = hotwallet
+            self.rank = nn.rank if nn else 0.0
+            self.trust = nn.trust if nn else 0.0
+            self.consensus = nn.consensus if nn else 0.0
+            self.dividends = nn.dividends if nn else 0.0
+            self.validator_trust = nn.validator_trust if nn else 0.0
+            self.subnet_tempo = subnet_tempo_
+            self.emission = (
+                int(nn.emission / (subnet_tempo_ + 1) * 1e9)
+                if (nn and subnet_tempo_)
+                else 0.0
+            )
+            self.rows = (
+                [
+                    hotwallet.name,
+                    hotwallet.hotkey_str,
+                    str(nn.uid),
+                    str(nn.active),
+                    nn.stake,
+                    nn.rank,
+                    nn.trust,
+                    nn.consensus,
+                    nn.incentive,
+                    nn.dividends,
+                    self.emission,
+                    nn.validator_trust,
+                    nn.validator_permit,
+                    int(block - nn.last_update),
+                    f"{bittensor.utils.networking.int_to_ip(nn.axon_info.ip)}:{nn.axon_info.port}"
+                    if nn.axon_info != 0
+                    else None,
+                    nn.hotkey,
+                ]
+                if nn
+                else []
+            )
+            self.hotkey = nn.hotkey if nn.hotkey else None
+            self.coldkey = nn.coldkey if nn.coldkey else None
+            self.hotkeys_seen = hotkeys_seen if hotkeys_seen else set()
+            self.total_neurons = 0
+            self.total_stake = nn.total_stake.tao if nn else 0.0
+            self.netuid = netuid if netuid else None
+
+        def __add__(self, other):
+            if isinstance(other, Neuron):
+                new_obj = Neuron(
+                    subnet_tempo_=self.subnet_tempo, hotkeys_seen=self.hotkeys_seen
+                )
+                if not (other.hotkey, other.coldkey) in self.hotkeys_seen:
+                    # Don't double count stake on hotkey-coldkey pairs.
+                    new_obj.hotkeys_seen.add((other.hotkey, other.coldkey))
+                    new_obj.total_stake += other.total_stake
+                # netuid -1 are neurons that are de-registered.
+                new_obj.total_neurons = (
+                    self.total_neurons + other.total_neurons
+                    if other.netuid != "-1"
+                    else self.total_neurons
+                )
+
+                new_obj.rank = self.rank + other.rank
+                new_obj.trust = self.trust + other.trust
+                new_obj.consensus = self.consensus + other.consensus
+                new_obj.dividends = self.dividends + other.dividends
+                new_obj.emission = self.emission + other.emission
+                new_obj.validator_trust = self.validator_trust + other.validator_trust
+                new_obj.rows = self.rows + [other.rows]
+                return new_obj
+            else:
+                raise NotImplemented("Neuron can only add to other Neurons.")
+
+        def as_dict(self) -> dict:
+            return {
+                "total_stake": self.total_stake,
+                "total_neurons": self.total_neurons,
+                "rank": self.rank,
+                "trust": self.trust,
+                "consensus": self.consensus,
+                "dividends": self.dividends,
+                "emission": self.emission,
+                "validator_trust": self.validator_trust,
+                "rows": self.rows
+            }
+
+    def _netuid_processor(netuid):
+        subnet_tempo = subtensor.tempo(netuid=netuid)
+        nns = functools.reduce(
+            lambda x, y: x + y,
+            [
+                Neuron(nn=x, subnet_tempo_=subnet_tempo, netuid=netuid)
+                for x in neurons[str(netuid)]
+            ],
+        )
+        return nns
+
+    return functools.reduce(lambda x, y: x + _netuid_processor(y), netuids, Neuron())
