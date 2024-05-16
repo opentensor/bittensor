@@ -809,8 +809,9 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         netuid: int,
-        uids: np.ndarray,
-        weights: np.ndarray,
+        uids: Union[NDArray[np.int64], list],
+        weights: Union[NDArray[np.float32], list],
+        version_key: int = bittensor.__version_as_int__,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -848,7 +849,7 @@ class subtensor:
             netuid=netuid,
             uids=uids.tolist(),
             values=weights.tolist(),
-            version_key=0,
+            version_key=version_key,
         )
 
         while retries < max_retries:
@@ -935,9 +936,9 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         netuid: int,
-        uids: np.ndarray,
-        weights: np.ndarray,
-        version_key: int,
+        uids: Union[NDArray[np.int64], list],
+        weights: Union[NDArray[np.float32], list],
+        version_key: int = bittensor.__version_as_int__,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
