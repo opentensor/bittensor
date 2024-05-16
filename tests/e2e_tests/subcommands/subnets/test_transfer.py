@@ -31,8 +31,14 @@ def test_example(local_chain):
             "/tmp/btcli-wallet",
         ],
     )
-
     cli_instance = bittensor.cli(config)
-    r = TransferCommand.run(cli_instance)
 
-    print(r)
+    acc_before = local_chain.query('System', 'Account', [keypair.ss58_address])
+    TransferCommand.run(cli_instance)
+    acc_after = local_chain.query('System', 'Account', [keypair.ss58_address])
+
+    expected_transfer = 2_000_000_000
+    tolerance = 200_000  # Tx fee tolerance
+
+    actual_difference = acc_before.value['data']['free'] - acc_after.value['data']['free']
+    assert expected_transfer <= actual_difference <= expected_transfer + tolerance, f"Expected transfer with tolerance: {expected_transfer} <= {actual_difference} <= {expected_transfer + tolerance}"
