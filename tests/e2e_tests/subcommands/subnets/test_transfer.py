@@ -1,16 +1,12 @@
-from substrateinterface import Keypair
 
 from bittensor.commands.transfer import TransferCommand
+from ...utils import setup_wallet
 import bittensor
 
 
 # Example test using the local_chain fixture
 def test_example(local_chain):
-    keypair = Keypair.create_from_uri("//Alice")
-    wallet = bittensor.wallet(path="/tmp/btcli-wallet")
-    wallet.set_coldkey(keypair=keypair, encrypt=False, overwrite=True)
-    wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
-    wallet.set_hotkey(keypair=keypair, encrypt=False, overwrite=True)
+    keypair = setup_wallet("//Alice")
 
     parser = bittensor.cli.__create_parser__()
     config = bittensor.config(
