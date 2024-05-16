@@ -279,9 +279,6 @@ workflows:
   compatibility_checks:
     jobs:
       - check_compatibility:
-          python_version: "3.8"
-          name: check-compatibility-3.8
-      - check_compatibility:
           python_version: "3.9"
           name: check-compatibility-3.9
       - check_compatibility:
@@ -294,7 +291,7 @@ workflows:
   pr-requirements:
     jobs:
       - black:
-          python-version: "3.8.12"
+          python-version: "3.9.13"
       - build-and-test:
           matrix:
             parameters:
@@ -305,7 +302,7 @@ workflows:
       - lint-and-type-check:
           matrix:
             parameters:
-              python-version: ["3.8.12", "3.9.13", "3.10.6"]
+              python-version: ["3.9.13", "3.10.6", "3.11.4"]
           requires:
             - build-and-test
       #- coveralls:
