@@ -4,32 +4,21 @@ import bittensor
 
 
 # Example test using the local_chain fixture
-def test_example(local_chain):
-    (keypair, wallet_path) = setup_wallet("//Alice")
+def test_transfer(local_chain):
+    (keypair, wallet_path, exec_command) = setup_wallet("//Alice")
 
-    parser = bittensor.cli.__create_parser__()
-    config = bittensor.config(
-        parser=parser,
-        args=[
+    acc_before = local_chain.query("System", "Account", [keypair.ss58_address])
+    exec_command(
+        TransferCommand,
+        [
             "wallet",
             "transfer",
-            "--no_prompt",
             "--amount",
             "2",
             "--dest",
             "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx",
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
-            "--wallet.path",
-            wallet_path,
         ],
     )
-    cli_instance = bittensor.cli(config)
-
-    acc_before = local_chain.query("System", "Account", [keypair.ss58_address])
-    TransferCommand.run(cli_instance)
     acc_after = local_chain.query("System", "Account", [keypair.ss58_address])
 
     expected_transfer = 2_000_000_000
