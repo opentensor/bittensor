@@ -5,8 +5,8 @@ import bittensor
 
 def setup_wallet(uri: str):
     keypair = Keypair.create_from_uri(uri)
-    wallet_path = "/tmp/btcli-e2e-wallet-{}".format(uri)
-    wallet = bittensor.wallet(wallet_path)
+    wallet_path = "/tmp/btcli-e2e-wallet-{}".format(uri.strip("/"))
+    wallet = bittensor.wallet(path=wallet_path)
     wallet.set_coldkey(keypair=keypair, encrypt=False, overwrite=True)
     wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
     wallet.set_hotkey(keypair=keypair, encrypt=False, overwrite=True)
@@ -29,4 +29,4 @@ def setup_wallet(uri: str):
         cli_instance = bittensor.cli(config)
         command.run(cli_instance)
 
-    return (keypair, wallet_path, exec_command)
+    return (keypair, exec_command)
