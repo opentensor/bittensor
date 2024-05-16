@@ -105,7 +105,7 @@ class CommitWeightCommand:
             "--prompt",
             dest="prompt",
             action="store_true",
-            default=True,
+            default=False,
         )
 
         bittensor.wallet.add_args(parser)
@@ -219,7 +219,8 @@ class RevealWeightCommand:
             "--prompt",
             dest="prompt",
             action="store_true",
-            default=True,
+            # TODO: (sd): validate this
+            default=False,
         )
 
         bittensor.wallet.add_args(parser)
@@ -283,7 +284,6 @@ class RevealWeightCommand:
         if not cli.config.is_set("weights"):
             cli.config.weights = Prompt.ask(f"Enter weights (comma-separated)")
 
-        # Parse from string
         # Parse from string
         netuid = cli.config.netuid
         uids = cli.config.uids
@@ -334,7 +334,7 @@ class RevealWeightCommand:
             "--prompt",
             dest="prompt",
             action="store_true",
-            default=True,
+            default=False,
         )
 
         bittensor.wallet.add_args(parser)
