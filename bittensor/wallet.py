@@ -397,6 +397,17 @@ class wallet:
         """
         return self.coldkey_file.get_keypair(password=password)
 
+    def unlock_coldkey(self, password: str = None) -> bool:
+        if self._coldkey:
+            return True
+        else:
+            try:
+                keypair = self.get_coldkey(password=password)
+                self._coldkey = keypair
+                return True
+            except bittensor.KeyFileError:
+                return False
+
     def get_hotkey(self, password: str = None) -> "bittensor.Keypair":
         """
         Gets the hotkey from the wallet.
@@ -446,7 +457,7 @@ class wallet:
             KeyFileError: Raised if the file is corrupt of non-existent.
             CryptoKeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
         """
-        if self._coldkey == None:
+        if self._coldkey is None:
             self._coldkey = self.coldkey_file.keypair
         return self._coldkey
 

@@ -42,6 +42,7 @@ from bittensor.commander import data
 sub = bittensor.subtensor("test")
 app = FastAPI(debug=True)
 config = data.Config()
+event_loop = asyncio.get_event_loop()
 
 
 @app.post("/setup")
@@ -53,6 +54,13 @@ async def setup(conf: data.ConfigBody):
 @app.get("/setup")
 async def get_setup():
     return JSONResponse(status_code=200, content=config.as_dict())
+
+
+@app.post("/unlock-cold-key")
+async def unlock_cold_key(password: data.Password):
+    return JSONResponse({"success": await event_loop.run_in_executor(
+        None, config.wallet.unlock_coldkey, password.password
+    )})
 
 
 async def check_config():
@@ -170,7 +178,7 @@ async def wallet_coldkey(
     )
 
 
-@app.get("/wallet/overview")
+@app.get("/wallet/overview", dependencies=[Depends(check_config)])
 async def wallet_overview(
     all_coldkeys: bool = True, hotkeys: List[str] = None, all_hotkeys: bool = True
 ):
@@ -185,11 +193,18 @@ async def wallet_overview(
     )
 
 
+@app.get("/wallet/transfer", dependencies=[Depends(check_config)])
+async def wallet_transfer(dest: str, amount: float):
+    # Be sure to unlock the key first, if the key is encrypted
+    return await run_fn(
+        transfer.TransferCommand, params={"dest": dest, "amount": amount}
+    )
+
+
 @app.get("/wallet/{sub_cmd}", dependencies=[Depends(check_config)])
 async def wallet(sub_cmd: str):
     routing_list = {
         "list": list_commands.ListCommand,
-        "transfer": transfer.TransferCommand,
         "inspect": inspect.InspectCommand,
         "balance": wallets.WalletBalanceCommand,
         "create": wallets.WalletCreateCommand,

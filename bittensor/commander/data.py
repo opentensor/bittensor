@@ -63,3 +63,8 @@ class ConfigBody(BaseModel):
     wallet: dict
     json_encrypted_path: Optional[str] = None
     json_encrypted_pw: Optional[str] = None
+
+
+class Password(BaseModel):
+    # TODO maybe encrypt this?
+    password: str

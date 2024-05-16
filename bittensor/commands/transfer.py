@@ -16,6 +16,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import asyncio
 import sys
 import argparse
 import bittensor
@@ -61,6 +62,20 @@ class TransferCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params=None):
+        result = await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: subtensor.transfer(
+                wallet=config.wallet,
+                dest=params["dest"],
+                amount=params["amount"],
+                wait_for_inclusion=True,
+                prompt=False,
+            ),
+        )
+        return result
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):

@@ -260,10 +260,7 @@ class OverviewCommand:
         processed_netuids = netuid_processor(
             netuids, hotkey_coldkey_to_hotkey_wallet, subtensor, block, neurons
         )
-        return {
-            "data": processed_netuids.as_dict(),
-            "alerts": alerts
-        }
+        return {"data": processed_netuids.as_dict(), "alerts": alerts}
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
