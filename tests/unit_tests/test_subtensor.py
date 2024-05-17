@@ -177,7 +177,7 @@ def test_stake_multiple():
         # args, kwargs
         _, kwargs = mock_do_stake.call_args
 
-        assert kwargs["ammount"] == pytest.approx(
+        assert kwargs["amount"] == pytest.approx(
             mock_amount.rao, rel=1e9
         )  # delta of 1.0 TAO
 

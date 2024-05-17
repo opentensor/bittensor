@@ -1158,7 +1158,7 @@ class subtensor:
 
         call = self.substrate.compose_call(
             call_module="Balances",
-            call_function="transfer",
+            call_function="transfer_allow_death",
             call_params={"dest": dest, "value": transfer_balance.rao},
         )
 
@@ -1203,7 +1203,7 @@ class subtensor:
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="Balances",
-                call_function="transfer",
+                call_function="transfer_allow_death",
                 call_params={"dest": dest, "value": transfer_balance.rao},
             )
             extrinsic = self.substrate.create_signed_extrinsic(
@@ -3532,17 +3532,18 @@ class subtensor:
 
     def get_delegates_lite(self, block: Optional[int] = None) -> List[DelegateInfoLite]:
         """
-        Retrieves a list of all delegate neurons within the Bittensor network. This function provides an
-        overview of the neurons that are actively involved in the network's delegation system. Lite version.
+        Retrieves a lighter list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.
+
+        Analyzing the delegate population offers insights into the network's governance dynamics and the distribution of trust and responsibility among participating neurons.
+
+        This is a lighter version of :func:`get_delegates`.
 
         Args:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            List[DelegateInfoLite]: A list of DelegateInfoLite objects detailing each delegate's characteristics.
+            List[DelegateInfoLite]: A list of ``DelegateInfoLite`` objects detailing each delegate's characteristics.
 
-        Analyzing the delegate population offers insights into the network's governance dynamics and the
-        distribution of trust and responsibility among participating neurons.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logger)
@@ -3566,8 +3567,11 @@ class subtensor:
 
     def get_delegates(self, block: Optional[int] = None) -> List[DelegateInfo]:
         """
-        Retrieves a list of all delegate neurons within the Bittensor network. This function provides an
-        overview of the neurons that are actively involved in the network's delegation system.
+        Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.
+
+        Analyzing the delegate population offers insights into the network's governance dynamics and the distribution of trust and responsibility among participating neurons.
+
+        For a lighter version of this function, see :func:`get_delegates_lite`.
 
         Args:
             block (Optional[int], optional): The blockchain block number for the query.
@@ -3575,8 +3579,6 @@ class subtensor:
         Returns:
             List[DelegateInfo]: A list of DelegateInfo objects detailing each delegate's characteristics.
 
-        Analyzing the delegate population offers insights into the network's governance dynamics and the
-        distribution of trust and responsibility among participating neurons.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logger)
@@ -4415,7 +4417,7 @@ class subtensor:
             result = make_substrate_call_with_retry()
         except scalecodec.exceptions.RemainingScaleBytesNotEmptyException:
             bittensor.logging.error(
-                "Your wallet it legacy formatted, you need to run btcli stake --ammount 0 to reformat it."
+                "Received a corrupted message. This likely points to an error with the network or subnet."
             )
             return Balance(1000)
         return Balance(result.value["data"]["free"])
