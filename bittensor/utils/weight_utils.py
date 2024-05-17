@@ -1,4 +1,4 @@
-""" Conversion for weight between chain representation and torch tensor
+""" Conversion for weight between chain representation and np.array
 """
 
 # The MIT License (MIT)
@@ -21,6 +21,8 @@
 import torch
 import bittensor
 from typing import Tuple, List
+
+from bittensor.btlogging import logging
 
 U32_MAX = 4294967295
 U16_MAX = 65535
@@ -123,11 +125,14 @@ def convert_root_weight_uids_and_vals_to_tensor(
     for uid_j, wij in list(zip(uids, weights)):
         if uid_j in subnets:
             index_s = subnets.index(uid_j)
+            row_weights[index_s] = float(
+                wij
+            )  # assumes max-upscaled values (w_max = U16_MAX).
         else:
-            raise Exception("Incorrect Subnet {uid_j} in {subnets}")
-        row_weights[index_s] = float(
-            wij
-        )  # assumes max-upscaled values (w_max = U16_MAX).
+            logging.warning(
+                f"Incorrect Subnet uid {uid_j} in Subnets {subnets}. The subnet is unavailable at the moment."
+            )
+            continue
     row_sum = row_weights.sum()
     if row_sum > 0:
         row_weights /= row_sum  # normalize
