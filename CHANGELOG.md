@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.12.1 / 2024-05-17
+
+## What's Changed
+* Hotfix if the subnet UID is not in the Subnets
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.12.0...fd2442db8bb8aad55ced2ac3b748b04ebdc73292
+
+
 
 ## 6.12.0 / 2024-04-29
 
