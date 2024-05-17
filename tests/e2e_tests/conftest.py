@@ -19,8 +19,7 @@ def local_chain():
 
     if not script_path:
         # Skip the test if the localhost.sh path is not set
-        logging.warning(
-            "LOCALNET_SH_PATH env variable is not set, e2e test skipped.")
+        logging.warning("LOCALNET_SH_PATH env variable is not set, e2e test skipped.")
         pytest.skip("LOCALNET_SH_PATH environment variable is not set.")
 
     # Start new node process
