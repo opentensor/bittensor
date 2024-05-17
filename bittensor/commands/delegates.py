@@ -21,7 +21,7 @@ import sys
 from typing import List, Dict, Optional
 
 from rich.console import Text
-from rich.prompt import Prompt, IntPrompt, FloatPrompt, Confirm
+from rich.prompt import Prompt, FloatPrompt, Confirm
 from rich.prompt import Prompt
 from rich.table import Table
 from substrateinterface.exceptions import SubstrateRequestException
