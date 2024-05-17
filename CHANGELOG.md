@@ -45,7 +45,6 @@
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.12.0...v7.0.0
 
-
 ## 6.12.0 / 2024-04-29
 
 ## What's Changed
@@ -96,6 +95,7 @@
 * @GentikSolm made their first contribution in https://github.com/opentensor/bittensor/pull/1754
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.9.3...v6.10.0
+
 
 ## 6.9.3 / 2024-03-12
 
