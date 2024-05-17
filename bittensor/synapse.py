@@ -114,7 +114,7 @@ class TerminalInfo(pydantic.BaseModel):
         ip (str): IP address of the terminal, crucial for network routing and data transmission.
         port (int): Network port used by the terminal, key for establishing network connections.
         version (int): Bittensor version running on the terminal, ensuring compatibility between different nodes in the network.
-        nonce (int): Unix timestamp that linearly increases for each request, ensuring requests cannot be duplicated or repeated
+        nonce (int): Unique, monotonically increasing number for each terminal, aiding in identifying and ordering network interactions.
         uuid (str): Unique identifier for the terminal, fundamental for network security and identification.
         hotkey (str): Encoded hotkey string of the terminal wallet, important for transaction and identity verification in the network.
         signature (str): Digital signature verifying the tuple of nonce, axon_hotkey, dendrite_hotkey, and uuid, critical for ensuring data authenticity and security.
@@ -211,10 +211,10 @@ class TerminalInfo(pydantic.BaseModel):
         cast_int
     )
 
-    # A Unix timestamp to associate with the terminal
+    # A unique monotonically increasing integer nonce associate with the terminal
     nonce: Optional[int] = pydantic.Field(
         title="nonce",
-        description="A Unix timestamp that prevents replay attacks",
+        description="A unique monotonically increasing integer nonce associate with the terminal generated from time.monotonic_ns()",
         examples=111111,
         default=None,
         allow_mutation=True,
