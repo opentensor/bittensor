@@ -45,18 +45,23 @@ config = data.Config()
 event_loop = asyncio.get_event_loop()
 
 
+async def check_config():
+    if not config:
+        raise HTTPException(status_code=401, detail="Config missing")
+
+
 @app.post("/setup")
 async def setup(conf: data.ConfigBody):
     config.setup(conf)
     return JSONResponse(status_code=200, content={"success": True})
 
 
-@app.get("/setup")
+@app.get("/setup", dependencies=[Depends(check_config)])
 async def get_setup():
     return JSONResponse(status_code=200, content=config.as_dict())
 
 
-@app.post("/unlock-cold-key")
+@app.post("/unlock-cold-key", dependencies=[Depends(check_config)])
 async def unlock_cold_key(password: data.Password):
     return JSONResponse(
         {
@@ -65,11 +70,6 @@ async def unlock_cold_key(password: data.Password):
             )
         }
     )
-
-
-async def check_config():
-    if not config:
-        raise HTTPException(status_code=401, detail="Config missing")
 
 
 async def run_fn(command_class, params=None):
@@ -207,9 +207,7 @@ async def wallet_transfer(dest: str, amount: float):
 
 @app.get("/wallet/inspect", dependencies=[Depends(check_config)])
 async def wallet_inspect(all_wallets: bool = False):
-    return await run_fn(
-        inspect.InspectCommand, params={"all_wallets": all_wallets}
-    )
+    return await run_fn(inspect.InspectCommand, params={"all_wallets": all_wallets})
 
 
 @app.get("/wallet/{sub_cmd}", dependencies=[Depends(check_config)])
