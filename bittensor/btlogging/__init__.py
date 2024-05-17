@@ -1,7 +1,3 @@
-""" 
-Standardized logging for Bittensor.
-"""
-
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 
@@ -19,10 +15,13 @@ Standardized logging for Bittensor.
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
-import argparse
+"""
+btlogging sub-package standardized logging for Bittensor.
 
-import bittensor.config
+This module provides logging functionality for the Bittensor package. It includes custom loggers, handlers, and
+formatters to ensure consistent logging throughout the project.
+"""
+
 from bittensor.btlogging.loggingmachine import LoggingMachine
 
 
