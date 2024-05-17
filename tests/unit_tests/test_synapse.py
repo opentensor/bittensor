@@ -17,6 +17,8 @@
 import json
 import base64
 import typing
+
+import pydantic_core
 import pytest
 import bittensor
 
@@ -128,9 +130,17 @@ def test_custom_synapse():
     class Test(bittensor.Synapse):
         a: int  # Carried through because required.
         b: int = None  # Not carried through headers
-        c: typing.Optional[int]  # Not carried through headers
-        d: typing.Optional[typing.List[int]]  # Not carried through headers
+        c: typing.Optional[int]  # Required, carried through headers, cannot be None
+        d: typing.Optional[
+            typing.List[int]
+        ]  # Required, carried though headers, cannot be None
         e: typing.List[int]  # Carried through headers
+        f: typing.Optional[
+            int
+        ] = None  # Not Required, Not carried through headers, can be None
+        g: typing.Optional[
+            typing.List[int]
+        ] = None  # Not Required, Not carried though headers, can be None
 
     # Create an instance of the custom Synapse subclass
     synapse = Test(
@@ -148,6 +158,8 @@ def test_custom_synapse():
     assert synapse.c == 3
     assert synapse.d == [1, 2, 3, 4]
     assert synapse.e == [1, 2, 3, 4]
+    assert synapse.f == None
+    assert synapse.g == None
 
     # Convert the Test instance to a headers dictionary
     headers = synapse.to_headers()
@@ -160,9 +172,11 @@ def test_custom_synapse():
     next_synapse = synapse.from_headers(synapse.to_headers())
     assert next_synapse.a == 0  # Default value is 0
     assert next_synapse.b == None
-    assert next_synapse.c == None
-    assert next_synapse.d == None
+    assert next_synapse.c == 0  # Default is 0
+    assert next_synapse.d == []  # Default is []
     assert next_synapse.e == []  # Empty list is default for list types
+    assert next_synapse.f == None
+    assert next_synapse.g == None
 
 
 def test_body_hash_override():
@@ -183,8 +197,8 @@ def test_required_fields_override():
 
     # Try to set the required_hash_fields property and expect a TypeError
     with pytest.raises(
-        TypeError,
-        match='"required_hash_fields" has allow_mutation set to False and cannot be assigned',
+        pydantic_core.ValidationError,
+        match="required_hash_fields\n  Field is frozen",
     ):
         synapse_instance.required_hash_fields = []
 
