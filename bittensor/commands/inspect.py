@@ -427,14 +427,20 @@ async def wallet_processor(
     registered_delegate_info,
     netuids,
     neuron_state_dict,
-):
-    def map_wallet(wall):
-        delegates: List[
-            Tuple[bittensor.DelegateInfo, bittensor.Balance]
-        ] = subtensor.get_delegated(coldkey_ss58=wall.coldkeypub.ss58_address)
+) -> List[WalletInspection]:
+    async def map_wallet(wall):
         if not wall.coldkeypub_file.exists_on_device():
             return
-        cold_balance = subtensor.get_balance(wall.coldkeypub.ss58_address)
+        # Note: running these concurrently breaks this. Need to redo the subtensor lib for this to work properly
+        delegates: List[
+            Tuple[bittensor.DelegateInfo, bittensor.Balance]
+        ] = await event_loop.run_in_executor(
+            None,
+            lambda: subtensor.get_delegated(coldkey_ss58=wall.coldkeypub.ss58_address),
+        )
+        cold_balance = await event_loop.run_in_executor(
+            None, subtensor.get_balance, wall.coldkeypub.ss58_address
+        )
         hotkeys = _get_hotkey_wallets_for_wallet(wall)
         wallet_ = WalletInspection(
             name=wall.name,
@@ -445,11 +451,16 @@ async def wallet_processor(
             ],
             neurons=[
                 neuron
-                for netuid in netuids
-                for neuron in neuron_state_dict[netuid]
-                if (neuron := create_neuron(netuid, neuron, hotkeys, wall)) is not None
+                for neuron in (
+                    create_neuron(netuid, neuron_, hotkeys, wall)
+                    for netuid in netuids
+                    for neuron_ in neuron_state_dict[netuid]
+                )
+                if neuron
             ],
         )
         return wallet_
 
-    return [map_wallet(x) for x in wallets]
+    event_loop = asyncio.get_event_loop()
+    # return list(await asyncio.gather(*[map_wallet(x) for x in wallets]))
+    return [(await map_wallet(x)) for x in wallets]
