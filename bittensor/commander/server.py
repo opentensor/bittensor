@@ -58,9 +58,13 @@ async def get_setup():
 
 @app.post("/unlock-cold-key")
 async def unlock_cold_key(password: data.Password):
-    return JSONResponse({"success": await event_loop.run_in_executor(
-        None, config.wallet.unlock_coldkey, password.password
-    )})
+    return JSONResponse(
+        {
+            "success": await event_loop.run_in_executor(
+                None, config.wallet.unlock_coldkey, password.password
+            )
+        }
+    )
 
 
 async def check_config():
@@ -201,11 +205,17 @@ async def wallet_transfer(dest: str, amount: float):
     )
 
 
+@app.get("/wallet/inspect", dependencies=[Depends(check_config)])
+async def wallet_inspect(all_wallets: bool = False):
+    return await run_fn(
+        inspect.InspectCommand, params={"all_wallets": all_wallets}
+    )
+
+
 @app.get("/wallet/{sub_cmd}", dependencies=[Depends(check_config)])
 async def wallet(sub_cmd: str):
     routing_list = {
         "list": list_commands.ListCommand,
-        "inspect": inspect.InspectCommand,
         "balance": wallets.WalletBalanceCommand,
         "create": wallets.WalletCreateCommand,
         "faucet": register.RunFaucetCommand,
