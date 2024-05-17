@@ -28,6 +28,8 @@ from substrateinterface.constants import DEV_PHRASE
 from substrateinterface.exceptions import ConfigurationError
 from bip39 import bip39_validate
 
+from bittensor import get_coldkey_password_from_environment
+
 
 def test_generate_mnemonic():
     """
@@ -606,3 +608,18 @@ def test_deserialize_keypair_from_keyfile_data(keyfile_setup_teardown):
     assert deserialized_keypair.ss58_address == keypair.ss58_address
     assert deserialized_keypair.public_key == keypair.public_key
     assert deserialized_keypair.private_key == keypair.private_key
+
+
+def test_get_coldkey_password_from_environment(monkeypatch):
+    password_by_wallet = {
+        "WALLET": "password",
+        "my_wallet": "password",
+    }
+
+    monkeypatch.setenv("bt_cold_pw_wallet", password_by_wallet["WALLET"])
+    monkeypatch.setenv("BT_COLD_PW_My_Wallet", password_by_wallet["my_wallet"])
+
+    for wallet, password in password_by_wallet.items():
+        assert get_coldkey_password_from_environment(wallet) == password
+
+    assert get_coldkey_password_from_environment("non_existent_wallet") is None
