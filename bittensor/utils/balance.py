@@ -265,34 +265,16 @@ class Balance:
 
     @staticmethod
     def get_unit(netuid: int):
-        units = [
-            "\u03C4",  # tau
-            "\u03B1",  # alpha
-            "\u03B2",  # beta
-            "\u03B3",  # gamma
-            "\u03B4",  # delta
-            "\u03B5",  # epsilon
-            "\u03B6",  # zeta
-            "\u03B7",  # eta
-            "\u03B8",  # theta
-            "\u03B9",  # iota
-            "\u03BA",  # kappa
-            "\u03BB",  # lambda
-            "\u03BC",  # mu
-            "\u03BD",  # nu
-            "\u03BE",  # xi
-            "\u03BF",  # omicron
-            "\u03C0",  # pi
-            "\u03C1",  # rho
-            "\u03C3",  # sigma
-            "\u03C4",  # tau
-            "\u03C5",  # upsilon
-            "\u03C6",  # phi
-            "\u03C7",  # chi
-            "\u03C8",  # psi
-            "\u03C9",  # omega
-        ]
-        return units[netuid % 24]
+        units = bittensor.units
+        base = len(units)
+        if netuid < base:
+            return units[netuid]
+        else:
+            result = ""
+            while netuid > 0:
+                result = units[netuid % base] + result
+                netuid //= base
+            return result
 
     def set_unit(self, netuid: int):
         self.unit = Balance.get_unit(netuid)

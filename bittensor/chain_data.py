@@ -296,6 +296,8 @@ class DynamicPool:
     def tao_to_alpha_with_slippage(
         self, tao: Union[float, Balance]
     ) -> Tuple[Balance, Balance]:
+        if self.tao_reserve.rao == 0 or self.alpha_reserve.rao == 0:
+            return Balance.from_tao(tao), Balance.from_rao(0)
         alpha_returned = Balance.from_rao(
             self.alpha_reserve.rao
             - (self.k / (self.tao_reserve.rao + Balance.from_tao(tao).rao))
