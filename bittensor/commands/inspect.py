@@ -18,6 +18,7 @@
 import argparse
 import asyncio
 import bittensor
+from dataclasses import dataclass, asdict
 from tqdm import tqdm
 from rich.table import Table
 from rich.prompt import Prompt
@@ -155,7 +156,7 @@ class InspectCommand:
             netuid: subtensor.neurons_lite(netuid) or [] for netuid in netuids
         }
         return [
-            x.to_dict()
+            asdict(x)
             for x in await wallet_processor(
                 wallets, subtensor, registered_delegate_info, netuids, neuron_state_dict
             )
@@ -317,78 +318,27 @@ class InspectCommand:
         bittensor.subtensor.add_args(inspect_parser)
 
 
+@dataclass
 class WalletInspection:
     name: str
-    balance: "bittensor.Balance"
+    balance: dict
     delegates: List["Delegate"]
-    netuids: List["Neuron"]
-
-    def __init__(
-        self,
-        name: str,
-        balance: "bittensor.Balance",
-        delegates: List["Delegate"],
-        neurons: List["Neuron"],
-    ):
-        self.name = name
-        self.balance = balance
-        self.delegates = delegates
-        self.neurons = neurons
-
-    def to_dict(self):
-        return {
-            "name": self.name,
-            "balance": self.balance.to_dict(),
-            "delegates": [x.to_dict() for x in self.delegates],
-            "neurons": [x.to_dict() for x in self.neurons],
-        }
+    neurons: List["Neuron"]
 
 
+@dataclass
 class Delegate:
     delegate: str
-    stake: "bittensor.Balance"
-    emission: "bittensor.Balance"
-
-    def __init__(
-        self, delegate: str, stake: "bittensor.Balance", emission: "bittensor.Balance"
-    ):
-        self.delegate = delegate
-        self.stake = stake
-        self.emission = emission
-
-    def to_dict(self):
-        return {
-            "delegate": self.delegate,
-            "stake": self.stake.to_dict(),
-            "emission": self.emission.to_dict(),
-        }
+    stake: dict
+    emission: dict
 
 
+@dataclass
 class Neuron:
     netuid: int
     hotkey: str
-    stake: "bittensor.Balance"
-    emission: "bittensor.Balance"
-
-    def __init__(
-        self,
-        netuid: int,
-        hotkey: str,
-        stake: "bittensor.Balance",
-        emission: "bittensor.Balance",
-    ):
-        self.netuid = netuid
-        self.hotkey = hotkey
-        self.stake = stake
-        self.emission = emission
-
-    def to_dict(self):
-        return {
-            "netuid": self.netuid,
-            "hotkey": self.hotkey,
-            "stake": self.stake.to_dict(),
-            "emission": self.emission.to_dict(),
-        }
+    stake: dict
+    emission: dict
 
 
 def map_delegate(delegate_staked, registered_delegate_info):
@@ -398,10 +348,10 @@ def map_delegate(delegate_staked, registered_delegate_info):
     ).name
     return Delegate(
         delegate=delegate_name_,
-        stake=staked_,
+        stake=staked_.to_dict(),
         emission=(
             delegate.total_daily_return.tao * (staked_.tao / delegate.total_stake.tao)
-        ),
+        ).to_dict(),
     )
 
 
@@ -416,8 +366,8 @@ def create_neuron(netuid, neuron, hotkeys, wallet):
         return Neuron(
             netuid=netuid,
             hotkey=f"{hotkey_name}{neuron.hotkey}",
-            stake=neuron.stake,
-            emission=bittensor.Balance.from_tao(neuron.emission),
+            stake=neuron.stake.to_dict(),
+            emission=bittensor.Balance.from_tao(neuron.emission).to_dict(),
         )
 
 
@@ -444,7 +394,7 @@ async def wallet_processor(
         hotkeys = _get_hotkey_wallets_for_wallet(wall)
         wallet_ = WalletInspection(
             name=wall.name,
-            balance=cold_balance,
+            balance=cold_balance.to_dict(),
             delegates=[
                 map_delegate(x, registered_delegate_info=registered_delegate_info)
                 for x in delegates
