@@ -50,7 +50,7 @@ from .chain_data import (
     IPInfo,
     custom_rpc_type_registry,
 )
-from .errors import IdentityError, NominationError, StakeError
+from .errors import IdentityError, NominationError, StakeError, TakeError
 from .extrinsics.network import (
     register_subnetwork_extrinsic,
     set_hyperparameter_extrinsic,
@@ -76,6 +76,8 @@ from .extrinsics.delegation import (
     delegate_extrinsic,
     nominate_extrinsic,
     undelegate_extrinsic,
+    increase_take_extrinsic,
+    decrease_take_extrinsic,
 )
 from .extrinsics.senate import (
     register_senate_extrinsic,
@@ -563,6 +565,68 @@ class subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
+
+    def set_take(
+        self,
+        wallet: "bittensor.wallet",
+        delegate_ss58: Optional[str] = None,
+        take: float = 0.0,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Set delegate hotkey take
+
+        Args:
+            wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
+            delegate_ss58 (str, optional): Hotkey
+            take (float): Delegate take on subnet ID
+            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the blockchain.
+            wait_for_inclusion (bool, optional): If ``True``, waits until the transaction is included in a block.
+
+        Returns:
+            bool: ``True`` if the process is successful, False otherwise.
+
+        This function is a key part of the decentralized governance mechanism of Bittensor, allowing for the
+        dynamic selection and participation of validators in the network's consensus process.
+        """
+
+        # Caulate u16 representation of the take
+        takeu16 = int(take * 0xFFFF)
+
+        # Check if the new take is greater or lower than existing take or if existing is set
+        delegate = self.get_delegate_by_hotkey(delegate_ss58)
+        current_take = None
+        if delegate is not None:
+            current_take = int(float(delegate.take) * 65535.0)
+
+        if takeu16 == current_take:
+            bittensor.__console__.print("Nothing to do, take hasn't changed")
+            return
+        if current_take is None or current_take < takeu16:
+            bittensor.__console__.print(
+                "Current take is either not set or is lower than the new one. Will use increase_take"
+            )
+            return increase_take_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                hotkey_ss58=delegate_ss58,
+                take=takeu16,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+        else:
+            bittensor.__console__.print(
+                "Current take is higher than the new one. Will use decrease_take"
+            )
+            return decrease_take_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                hotkey_ss58=delegate_ss58,
+                take=takeu16,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
     def send_extrinsic(
         self,
@@ -4379,6 +4443,82 @@ class subtensor:
                 return True
             else:
                 raise NominationError(response.error_message)
+
+        return make_substrate_call_with_retry()
+
+    def _do_increase_take(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        take: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="increase_take",
+                    call_params={
+                        "hotkey": hotkey_ss58,
+                        "take": take,
+                    },
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )  # sign with coldkey
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+                response.process_events()
+                if response.is_success:
+                    return True
+                else:
+                    raise TakeError(response.error_message)
+
+        return make_substrate_call_with_retry()
+
+    def _do_decrease_take(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        take: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="decrease_take",
+                    call_params={
+                        "hotkey": hotkey_ss58,
+                        "take": take,
+                    },
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )  # sign with coldkey
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+                response.process_events()
+                if response.is_success:
+                    return True
+                else:
+                    raise TakeError(response.error_message)
 
         return make_substrate_call_with_retry()
 
