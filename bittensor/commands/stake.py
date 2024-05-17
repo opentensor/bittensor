@@ -578,20 +578,19 @@ class StakeList:
 
         column_descriptions = [
             (
-                "[dark_slate_gray3]1.[/dark_slate_gray3]",
-                "[dark_slate_gray3]Hotkey[/dark_slate_gray3]",
-                "The hotkey or delegate name which the stake is associated with.",
+                "[bold white]1.[/bold white]",
+                "[bold white]Hotkey[/bold white]",
+                "The staking account's associated hotkey or delegate name.",
             ),
             (
-                "[blue]2.[/blue]",
-                "[blue]Stake[/blue]",
-                "The your stake account [blue]total TAO[/blue] and [green]dynamic TAO (\u03B1)[/green] summed across all subnets.",
+                "[bold white]2.[/bold white]",
+                "[bold white]Stake[/bold white]",
+                "The sum of [green]dTAO(\u03B1)[/green] across all subnets and that summation's corresponding value in [blue]TAO[/blue].",
             ),
             (
-                "[green]3.[/green]",
-                "[green]DTAO[/green]",
-                """For each subnet, the amount of [blue]TAO[/blue] and [green]dynamic TAO (\u03B1)[/green]. 
-Note the TAO is computed by using the current subent price, this value not.
+                "[bold white]3.[/bold white]",
+                "[bold white]DTAO[/bold white]",
+                """For each subnet, the quantity of staked [green]dynamic TAO (\u03B1)[/green] and its [blue]TAO[/blue] value calculated using the current subnet exchange rate.
             """,
             ),
         ]

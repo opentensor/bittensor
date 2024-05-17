@@ -276,7 +276,7 @@ class DynamicPool:
         self.alpha_reserve = alpha_reserve
         self.tao_reserve = tao_reserve
         self.k = self.tao_reserve.rao * self.alpha_reserve.rao
-        self.price = Balance.from_tao(self.tao_reserve.tao / self.alpha_reserve.tao)
+        self.price = Balance.from_tao(self.tao_reserve.tao / self.alpha_reserve.tao) if self.alpha_reserve.tao != 0 else 0
 
     def __str__(self) -> str:
         return f"DynamicPool( alpha_issuance={self.alpha_issuance}, alpha_outstanding={self.alpha_outstanding}, alpha_reserve={self.alpha_reserve}, tao_reserve={self.tao_reserve}, k={self.k}, price={self.price} )"
@@ -293,6 +293,8 @@ class DynamicPool:
     def tao_to_alpha_with_slippage(
         self, tao: Union[float, Balance]
     ) -> Tuple[Balance, Balance]:
+        if self.tao_reserve.rao == 0 or self.alpha_reserve.rao == 0:
+            return Balance.from_tao(tao), Balance.from_rao(0)
         alpha_returned = Balance.from_rao(
             self.alpha_reserve.rao
             - (self.k / (self.tao_reserve.rao + Balance.from_tao(tao).rao))
