@@ -119,7 +119,7 @@ class OverviewCommand:
                 )
             if not coldkey_wallet.coldkeypub_file.exists_on_device():
                 console.print("[bold red]No wallets found.")
-                return
+                return [], None
             all_hotkeys = get_hotkey_wallets_for_wallet(coldkey_wallet)
 
         return all_hotkeys, total_balance
