@@ -49,7 +49,40 @@ console = bittensor.__console__
 def show_delegates_lite(
     delegates_lite: List["bittensor.DelegateInfoLite"], width: Optional[int] = None
 ):
-    """Outputs a list of lite version delegates to the console."""
+    """
+    This method is a lite version of the :func:`show_delegates`. This method displays a formatted table of Bittensor network delegates with detailed statistics to the console.
+
+    The table is sorted by total stake in descending order and provides
+    a snapshot of delegate performance and status, helping users make informed decisions for staking or nominating.
+
+    This helper function is not intended to be used directly in user code unless specifically required.
+
+    Args:
+        delegates_lite (List[bittensor.DelegateInfoLite]): A list of delegate information objects to be displayed.
+        width (Optional[int]): The width of the console output table. Defaults to ``None``, which will make the table expand to the maximum width of the console.
+
+    The output table contains the following columns. To display more columns, use the :func:`show_delegates` function.
+
+    - INDEX: The numerical index of the delegate.
+    - DELEGATE: The name of the delegate.
+    - SS58: The truncated SS58 address of the delegate.
+    - NOMINATORS: The number of nominators supporting the delegate.
+    - VPERMIT: Validator permits held by the delegate for the subnets.
+    - TAKE: The percentage of the delegate's earnings taken by the network.
+    - DELEGATE/(24h): The earnings of the delegate in the last 24 hours.
+    - Desc: A brief description provided by the delegate.
+
+    Usage:
+        This function is typically used within the Bittensor CLI to show current delegate options to users who are considering where to stake their tokens.
+
+    Example usage::
+
+        show_delegates_lite(delegates_lite, width=80)
+
+    Note:
+        This function is primarily for display purposes within a command-line interface and does not return any values. It relies on the `rich <https://github.com/Textualize/rich>`_ Python library to render
+        the table in the console.
+    """
 
     registered_delegate_info: Optional[
         Dict[str, DelegatesDetails]
@@ -135,13 +168,11 @@ def show_delegates(
     to be used directly in user code unless specifically required.
 
     Args:
-        - delegates (List[bittensor.DelegateInfo]): A list of delegate information objects to be displayed.
-        - prev_delegates (Optional[List[bittensor.DelegateInfo]]): A list of delegate information objects from a
-            previous state, used to calculate changes in stake. Defaults to ``None``.
-        - width (Optional[int]): The width of the console output table. Defaults to ``None``, which will make the table
-            expand to the maximum width of the console.
+        delegates (List[bittensor.DelegateInfo]): A list of delegate information objects to be displayed.
+        prev_delegates (Optional[List[bittensor.DelegateInfo]]): A list of delegate information objects from a previous state, used to calculate changes in stake. Defaults to ``None``.
+        width (Optional[int]): The width of the console output table. Defaults to ``None``, which will make the table expand to the maximum width of the console.
 
-    The output table includes the following columns:
+    The output table contains the following columns:
 
     - INDEX: The numerical index of the delegate.
     - DELEGATE: The name of the delegate.
@@ -150,15 +181,14 @@ def show_delegates(
     - DELEGATE STAKE(τ): The stake that is directly delegated to the delegate.
     - TOTAL STAKE(τ): The total stake held by the delegate, including nominators' stake.
     - CHANGE/(4h): The percentage change in the delegate's stake over the past 4 hours.
-    - SUBNETS: A list of subnets the delegate is registered with.
     - VPERMIT: Validator permits held by the delegate for the subnets.
+    - TAKE: The percentage of the delegate's earnings taken by the network.
     - NOMINATOR/(24h)/kτ: The earnings per 1000 τ staked by nominators in the last 24 hours.
     - DELEGATE/(24h): The earnings of the delegate in the last 24 hours.
     - Desc: A brief description provided by the delegate.
 
     Usage:
-        This function is typically used within the Bittensor CLI to show current delegate
-        options to users who are considering where to stake their tokens.
+        This function is typically used within the Bittensor CLI to show current delegate options to users who are considering where to stake their tokens.
 
     Example usage::
 
@@ -577,10 +607,9 @@ class DelegateUnstakeCommand:
 
 class ListDelegatesLiteCommand:
     """
-    Displays a formatted table of Bittensor network delegates, providing a comprehensive overview of delegate statistics
-    and information.
+    Displays a formatted table of Bittensor network delegates, providing a lite overview of delegate statistics and information. For a more detailed view, use the :func:`ListDelegatesCommand` class.
 
-    This table helps users make informed decisions on which delegates to allocate their Tao stake.
+    This table helps users make informed decisions on which delegates to allocate their TAO stake.
 
     Optional Arguments:
         - ``wallet.name``: The name of the wallet to use for the command.
@@ -592,28 +621,21 @@ class ListDelegatesLiteCommand:
     - DELEGATE: The name of the delegate.
     - SS58: The delegate's unique SS58 address (truncated for display).
     - NOMINATORS: The count of nominators backing the delegate.
-    - DELEGATE STAKE(τ): The amount of delegate's own stake (not the TAO delegated from any nominators).
-    - TOTAL STAKE(τ): The delegate's cumulative stake, including self-staked and nominators' stakes.
-    - CHANGE/(4h): The percentage change in the delegate's stake over the last four hours.
-    - SUBNETS: The subnets to which the delegate is registered.
     - VPERMIT: Indicates the subnets for which the delegate has validator permits.
-    - NOMINATOR/(24h)/kτ: The earnings per 1000 τ staked by nominators in the last 24 hours.
+    - TAKE: The percentage of the delegate's earnings taken by the network.
     - DELEGATE/(24h): The total earnings of the delegate in the last 24 hours.
     - DESCRIPTION: A brief description of the delegate's purpose and operations.
 
-    Sorting is done based on the ``TOTAL STAKE`` column in descending order. Changes in stake are highlighted:
-    increases in green and decreases in red. Entries with no previous data are marked with ``NA``. Each delegate's name
-    is a hyperlink to their respective URL, if available.
+    Sorting is done based on the ``TOTAL STAKE`` column in descending order. Changes in stake are highlighted as follows: Increases are indicated in green and decreases are indicated in red. Entries with no previous data are marked with ``NA``. Each delegate's name is a hyperlink to their respective URL, if available.
 
     Example usage::
 
-        btcli root list_delegates
-        btcli root list_delegates --wallet.name my_wallet
-        btcli root list_delegates --subtensor.network finney # can also be `test` or `local`
+        btcli root list_delegates_lite
+        btcli root list_delegates_lite --wallet.name my_wallet
+        btcli root list_delegates_lite --subtensor.network finney # can also be `test` or `local`
 
     Note:
-        This function is part of the Bittensor CLI tools and is intended for use within a console application. It prints
-        directly to the console and does not return any value.
+        This function is part of the Bittensor CLI tools and is intended for use within a console application. It prints directly to the console and does not return any value.
     """
 
     @staticmethod
@@ -660,10 +682,9 @@ class ListDelegatesLiteCommand:
 
 class ListDelegatesCommand:
     """
-    Displays a formatted table of Bittensor network delegates, providing a comprehensive overview of delegate statistics
-    and information.
+    Displays a formatted table of Bittensor network delegates, providing a comprehensive overview of delegate statistics and information. Use the :func:`ListDelegatesLiteCommand` class for a lighter version of this class.
 
-    This table helps users make informed decisions on which delegates to allocate their Tao stake.
+    This table helps users make informed decisions on which delegates to allocate their TAO stake.
 
     Optional Arguments:
         - ``wallet.name``: The name of the wallet to use for the command.
