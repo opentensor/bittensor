@@ -1,5 +1,102 @@
 # Changelog
 
+## 7.0.0 / 2024-05-17
+
+## What's Changed
+* Fix broken link in contrib/RELEASE_GUIDELINES #1821 by @thewhaleking in https://github.com/opentensor/bittensor/pull/1823
+* Tests: Added coverage for set_weights by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1825
+* Remove irrelevant call to get_delegates method. by @RomanCh-OT in https://github.com/opentensor/bittensor/pull/1826
+* Support for string mnemonic thru cli when regenerating coldkeys by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1815
+* Logging: Added _primary_loggers by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1797
+* Add in check for minimum stake for unstaking by @thewhaleking in https://github.com/opentensor/bittensor/pull/1832
+* Cache get_decoder_class by @thewhaleking in https://github.com/opentensor/bittensor/pull/1834
+* Warmfix/change decoder cacheing by @thewhaleking in https://github.com/opentensor/bittensor/pull/1842
+* Fix typo in warmfix by @thewhaleking in https://github.com/opentensor/bittensor/pull/1844
+* Add the command btcli root list_delegates_lite to handle the Delegate… by @RomanCh-OT in https://github.com/opentensor/bittensor/pull/1840
+* Change: console.error => console.print by @thewhaleking in https://github.com/opentensor/bittensor/pull/1849
+* Small fix with receiving delegates based on a 4-hour archive block by @RomanCh-OT in https://github.com/opentensor/bittensor/pull/1854
+* Replace torch with numpy by @sepehr-opentensor in https://github.com/opentensor/bittensor/pull/1786
+* Versioning: Enforcement for eth-utils by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1852
+* Versioning: Dependencies for FastAPI for Apple M's by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1855
+* Retrieving error types from the metadata of the Substrate palette SubtensorModule for the btcli console (logic) by @RomanCh-OT in https://github.com/opentensor/bittensor/pull/1862
+* Add version check caching, fix version comparison by @olzhasar-reef in https://github.com/opentensor/bittensor/pull/1835
+* Tests: Added coverage for root.py by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1877
+* Tests: Added coverage for network.py by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1879
+* Tests: extends coverage for overview cmd part 1 by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1873
+* Tests: Added coverage for Unstaking by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1878
+* Tests: Added coverage for staking by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1837
+* Tests: Added coverage for Delegation by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1874
+* Updated error message and a test typo. by @thewhaleking in https://github.com/opentensor/bittensor/pull/1871
+* fix: deprecated usage of `Balances::transfer` method by @orriin in https://github.com/opentensor/bittensor/pull/1886
+* Fix Type Annotation by @opendansor in https://github.com/opentensor/bittensor/pull/1895
+* Docstrings updates for list delegate lite feature by @rajkaramchedu in https://github.com/opentensor/bittensor/pull/1890
+* Add Pre-commit Checker in scripts. Helps reduce CI calls. by @RomanCh-OT in https://github.com/opentensor/bittensor/pull/1893
+* fix get_coldkey_password_from_environment resolving wrong password by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1843
+* Drop python 3.8 support by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1892
+* feat: Refactor phase 2 overview cmd & add test cov. Adds factories by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1887
+
+## New Contributors
+* @andreea-popescu-reef made their first contribution in https://github.com/opentensor/bittensor/pull/1777
+* @thewhaleking made their first contribution in https://github.com/opentensor/bittensor/pull/1823
+* @RomanCh-OT made their first contribution in https://github.com/opentensor/bittensor/pull/1826
+* @olzhasar-reef made their first contribution in https://github.com/opentensor/bittensor/pull/1835
+* @orriin made their first contribution in https://github.com/opentensor/bittensor/pull/1886
+* @opendansor made their first contribution in https://github.com/opentensor/bittensor/pull/1895
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.12.0...v7.0.0
+
+
+## 6.12.0 / 2024-04-29
+
+## What's Changed
+* Tests: Axon to_string patch import by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1785
+* Tests: Extends coverage on Serving extrinsics methods by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1783
+* Fix: CVE-2024-24762 FastAPI by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1800
+* Fix: CVE-2024-26130 | vulnerability cryptography by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1801
+* fix PR templates by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1778
+* Fix: SNYK-PYTHON-CERTIFI-5805047 | Vulnerability Certifi by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1816
+* Tests: Extends test coverage on Registration methods by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1814
+* Fix: Wallet overwrite functionality by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1802
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.11.0...v6.12.0
+
+## 6.11.0 / 2024-04-11
+
+## What's Changed
+* Tests: Adds coverage to subtensor help method & determine_chain_endpoint_and_network by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1761
+* [bug fix] Fix import json by @camfairchild in https://github.com/opentensor/bittensor/pull/1759
+* Remove context management for substrate in subtensor by @sepehr-opentensor in https://github.com/opentensor/bittensor/pull/1766
+* Tests: Extends coverage on axon methods by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1769
+* Revert nonce implementation fix by @ifrit98 in https://github.com/opentensor/bittensor/pull/1774
+* remove tests from package distribution by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1779
+* Tests: Extends test coverage on Senate methods by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1781
+
+## New Contributors
+* @mjurbanski-reef made their first contribution in https://github.com/opentensor/bittensor/pull/1779
+* @ibraheem-opentensor made their first contribution in https://github.com/opentensor/bittensor/pull/1781
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.10.1...v6.11.0
+## 6.10.1 / 2024-04-05
+## What's Changed
+* Revert nonce implementation fix #1774: Breaking change needs to telegraphed in next release.
+
+## 6.10.0 / 2024-03-25
+
+## What's Changed
+* handle req args by parsing and raising by @ifrit98 in https://github.com/opentensor/bittensor/pull/1733
+* Replace wildcard imports with specific imports by @brueningf in https://github.com/opentensor/bittensor/pull/1724
+* Logging Refactor by @sepehr-opentensor in https://github.com/opentensor/bittensor/pull/1751
+* Update DEBUGGING.md by @e-gons in https://github.com/opentensor/bittensor/pull/1755
+* fix: nonce implementation by @GentikSolm in https://github.com/opentensor/bittensor/pull/1754
+
+## New Contributors
+* @sepehr-opentensor made their first contribution in https://github.com/opentensor/bittensor/pull/1751
+* @e-gons made their first contribution in https://github.com/opentensor/bittensor/pull/1755
+* @GentikSolm made their first contribution in https://github.com/opentensor/bittensor/pull/1754
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.9.3...v6.10.0
+
 ## 6.9.3 / 2024-03-12
 
 ## What's Changed
