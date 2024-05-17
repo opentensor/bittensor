@@ -1108,6 +1108,7 @@ class MyDelegatesCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
+
 class SetTakeCommand:
     """
     Executes the ``set_take`` command, which sets the delegate take.
