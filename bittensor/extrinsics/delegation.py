@@ -69,7 +69,7 @@ def nominate_extrinsic(
                 )
                 bittensor.logging.success(
                     prefix="Become Delegate",
-                    sufix="<green>Finalized: </green>" + str(success),
+                    suffix="<green>Finalized: </green>" + str(success),
                 )
 
             # Raises NominationError if False
@@ -80,14 +80,14 @@ def nominate_extrinsic(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
         except NominationError as e:
             bittensor.__console__.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
 
     return False

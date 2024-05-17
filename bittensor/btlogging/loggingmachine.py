@@ -343,44 +343,44 @@ class LoggingMachine(StateMachine):
         """
         return self.current_state_value == "Trace"
 
-    def trace(self, msg="", prefix="", sufix="", *args, **kwargs):
-        """Wraps trace message with prefix and sufix."""
-        msg = f"{prefix} - {msg} - {sufix}"
+    def trace(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps trace message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.trace(msg, *args, **kwargs)
 
-    def debug(self, msg="", prefix="", sufix="", *args, **kwargs):
-        """Wraps debug message with prefix and sufix."""
-        msg = f"{prefix} - {msg} - {sufix}"
+    def debug(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps debug message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.debug(msg, *args, **kwargs)
 
-    def info(self, msg="", prefix="", sufix="", *args, **kwargs):
-        """Wraps info message with prefix and sufix."""
-        msg = f"{prefix} - {msg} - {sufix}"
+    def info(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps info message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.info(msg, *args, **kwargs)
 
-    def success(self, msg="", prefix="", sufix="", *args, **kwargs):
-        """Wraps success message with prefix and sufix."""
-        msg = f"{prefix} - {msg} - {sufix}"
+    def success(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps success message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.success(msg, *args, **kwargs)
 
-    def warning(self, msg="", prefix="", sufix="", *args, **kwargs):
-        """Wraps warning message with prefix and sufix."""
-        msg = f"{prefix} - {msg} - {sufix}"
+    def warning(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps warning message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.warning(msg, *args, **kwargs)
 
-    def error(self, msg="", prefix="", sufix="", *args, **kwargs):
-        """Wraps error message with prefix and sufix."""
-        msg = f"{prefix} - {msg} - {sufix}"
+    def error(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps error message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.error(msg, *args, **kwargs)
 
-    def critical(self, msg="", prefix="", sufix="", *args, **kwargs):
-        """Wraps critical message with prefix and sufix."""
-        msg = f"{prefix} - {msg} - {sufix}"
+    def critical(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps critical message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.critical(msg, *args, **kwargs)
 
-    def exception(self, msg="", prefix="", sufix="", *args, **kwargs):
-        """Wraps exception message with prefix and sufix."""
-        msg = f"{prefix} - {msg} - {sufix}"
+    def exception(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps exception message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.exception(msg, *args, **kwargs)
 
     def on(self):
