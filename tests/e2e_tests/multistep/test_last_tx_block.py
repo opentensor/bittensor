@@ -13,14 +13,12 @@ def test_takes(local_chain):
     exec_command(RootRegisterCommand, ["root", "register"])
 
     # Create subnet 1 and verify created successfully
-    assert not (local_chain.query("SubtensorModule",
-                "NetworksAdded", [1]).serialize())
+    assert not (local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize())
 
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1])
 
-    assert local_chain.query(
-        "SubtensorModule", "NetworksAdded", [1]).serialize()
+    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     # Register and nominate Bob
     (keypair, exec_command) = setup_wallet("//Bob")
@@ -33,8 +31,7 @@ def test_takes(local_chain):
 
     assert (
         local_chain.query(
-            "SubtensorModule", "LastTxBlockDelegateTake", [
-                keypair.ss58_address]
+            "SubtensorModule", "LastTxBlockDelegateTake", [keypair.ss58_address]
         ).serialize()
         == 0
     )
@@ -48,8 +45,7 @@ def test_takes(local_chain):
     )
     assert (
         local_chain.query(
-            "SubtensorModule", "LastTxBlockDelegateTake", [
-                keypair.ss58_address]
+            "SubtensorModule", "LastTxBlockDelegateTake", [keypair.ss58_address]
         ).serialize()
         > 0
     )
