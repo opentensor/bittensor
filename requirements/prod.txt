@@ -3,9 +3,11 @@ ansible==6.7.0
 ansible_vault==2.1.0
 backoff
 black==23.7.0
+certifi==2024.2.2
 colorama==0.4.6
 cryptography==42.0.5
 ddt==1.6.0
+eth-utils<2.3.0
 fuzzywuzzy>=0.18.0
 fastapi==0.110.1
 munch==2.5.0
@@ -13,6 +15,7 @@ netaddr
 numpy
 msgpack-numpy-opentensor==0.5.0
 nest_asyncio
+packaging
 pycryptodome>=3.18.0,<4.0.0
 pyyaml
 password_strength
@@ -25,11 +28,10 @@ pytest
 retry
 requests
 rich
-scalecodec==1.2.7
+scalecodec==1.2.7  # scalecodec should not be changed unless first verifying compatibility with the subtensor's monkeypatching of scalecodec.RuntimeConfiguration.get_decoder_class
 shtab==1.6.5
 substrate-interface==1.7.5
 termcolor
-torch>=1.13.1
 tqdm
 uvicorn==0.22.0
 wheel

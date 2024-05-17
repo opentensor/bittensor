@@ -18,11 +18,10 @@
 
 import bittensor
 
-import torch
 import time
 from rich.prompt import Confirm
 from typing import List, Union, Optional, Tuple
-from bittensor.utils.registration import POWSolution, create_pow
+from bittensor.utils.registration import POWSolution, create_pow, maybe_get_torch
 
 
 def register_extrinsic(
@@ -102,6 +101,10 @@ def register_extrinsic(
         ):
             return False
 
+    torch = maybe_get_torch()
+    if torch is None:
+        return False
+
     # Attempt rolling registration.
     attempts = 1
     while True:
@@ -112,7 +115,7 @@ def register_extrinsic(
         if cuda:
             if not torch.cuda.is_available():
                 if prompt:
-                    bittensor.__console__.error("CUDA is not available.")
+                    bittensor.__console__.print("CUDA is not available.")
                 return False
             pow_result: Optional[POWSolution] = create_pow(
                 subtensor,
@@ -288,7 +291,7 @@ def burned_register_extrinsic(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
             )
             time.sleep(0.5)
-
+            return False
         # Successful registration, final check for neuron and pubkey
         else:
             bittensor.__console__.print(":satellite: Checking Balance...")
@@ -315,6 +318,7 @@ def burned_register_extrinsic(
                 bittensor.__console__.print(
                     ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
                 )
+                return False
 
 
 class MaxSuccessException(Exception):
@@ -378,6 +382,10 @@ def run_faucet_extrinsic(
         ):
             return False
 
+    torch = maybe_get_torch()
+    if torch is None:
+        return False
+
     # Unlock coldkey
     wallet.coldkey
 
@@ -390,12 +398,12 @@ def run_faucet_extrinsic(
     while True:
         try:
             pow_result = None
-            while pow_result == None or pow_result.is_stale(subtensor=subtensor):
+            while pow_result is None or pow_result.is_stale(subtensor=subtensor):
                 # Solve latest POW.
                 if cuda:
                     if not torch.cuda.is_available():
                         if prompt:
-                            bittensor.__console__.error("CUDA is not available.")
+                            bittensor.__console__.print("CUDA is not available.")
                         return False
                     pow_result: Optional[POWSolution] = create_pow(
                         subtensor,
@@ -499,8 +507,10 @@ def swap_hotkey_extrinsic(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
             )
             time.sleep(0.5)
+            return False
 
         else:
             bittensor.__console__.print(
                 f"Hotkey {wallet.hotkey} swapped for new hotkey: {new_wallet.hotkey}"
             )
+            return True

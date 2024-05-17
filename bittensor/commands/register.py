@@ -216,7 +216,7 @@ class PowRegisterCommand:
             )
             sys.exit(1)
 
-        subtensor.register(
+        registered = subtensor.register(
             wallet=wallet,
             netuid=cli.config.netuid,
             prompt=not cli.config.no_prompt,
@@ -234,6 +234,8 @@ class PowRegisterCommand:
                 "verbose", defaults.pow_register.verbose
             ),
         )
+        if not registered:
+            sys.exit(1)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -408,7 +410,7 @@ class RunFaucetCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Register neuron."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor.run_faucet(
+        success = subtensor.run_faucet(
             wallet=wallet,
             prompt=not cli.config.no_prompt,
             tpb=cli.config.pow_register.cuda.get("tpb", None),
@@ -425,6 +427,9 @@ class RunFaucetCommand:
                 "verbose", defaults.pow_register.verbose
             ),
         )
+        if not success:
+            bittensor.logging.error("Faucet run failed.")
+            sys.exit(1)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
