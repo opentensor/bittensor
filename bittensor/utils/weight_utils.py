@@ -1,4 +1,4 @@
-""" Conversion for weight between chain representation and np.array
+""" Conversion for weight between chain representation and torch tensor
 """
 
 # The MIT License (MIT)
