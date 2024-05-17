@@ -14,7 +14,6 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import torch
 import bittensor
 
 import json
@@ -265,16 +264,14 @@ class AxonInfo:
             coldkey=neuron_info["coldkey"],
         )
 
-    def to_parameter_dict(self) -> "torch.nn.ParameterDict":
-        r"""Returns a torch tensor of the subnet info."""
-        return torch.nn.ParameterDict(self.__dict__)
+    def to_parameter_dict(self) -> dict[str, Union[int, str]]:
+        r"""Returns a dict of the subnet info."""
+        return self.__dict__
 
     @classmethod
-    def from_parameter_dict(
-        cls, parameter_dict: "torch.nn.ParameterDict"
-    ) -> "AxonInfo":
-        r"""Returns an axon_info object from a torch parameter_dict."""
-        return cls(**dict(parameter_dict))
+    def from_parameter_dict(cls, parameter_dict: dict[str, Any]) -> "AxonInfo":
+        r"""Returns an axon_info object from a parameter_dict."""
+        return cls(**parameter_dict)
 
 
 class ChainDataType(Enum):
@@ -695,9 +692,50 @@ class PrometheusInfo:
 
 
 @dataclass
+class DelegateInfoLite:
+    """
+    Dataclass for DelegateLiteInfo. This is a lighter version of :func:`DelegateInfo`.
+
+    Args:
+        delegate_ss58 (str): Hotkey of the delegate for which the information is being fetched.
+        take (float): Take of the delegate as a percentage.
+        nominators (int): Count of the nominators of the delegate.
+        owner_ss58 (str): Coldkey of the owner.
+        registrations (list[int]): List of subnets that the delegate is registered on.
+        validator_permits (list[int]): List of subnets that the delegate is allowed to validate on.
+        return_per_1000 (int): Return per 1000 TAO, for the delegate over a day.
+        total_daily_return (int): Total daily return of the delegate.
+
+    """
+
+    delegate_ss58: str  # Hotkey of delegate
+    take: float  # Take of the delegate as a percentage
+    nominators: int  # Count of the nominators of the delegate.
+    owner_ss58: str  # Coldkey of owner
+    registrations: list[int]  # List of subnets that the delegate is registered on
+    validator_permits: list[
+        int
+    ]  # List of subnets that the delegate is allowed to validate on
+    return_per_1000: int  # Return per 1000 tao for the delegate over a day
+    total_daily_return: int  # Total daily return of the delegate
+
+
+@dataclass
 class DelegateInfo:
     r"""
-    Dataclass for delegate info.
+    Dataclass for delegate information. For a lighter version of this class, see :func:`DelegateInfoLite`.
+
+    Args:
+        hotkey_ss58 (str): Hotkey of the delegate for which the information is being fetched.
+        total_stake (int): Total stake of the delegate.
+        nominators (list[Tuple[str, int]]): List of nominators of the delegate and their stake.
+        take (float): Take of the delegate as a percentage.
+        owner_ss58 (str): Coldkey of the owner.
+        registrations (list[int]): List of subnets that the delegate is registered on.
+        validator_permits (list[int]): List of subnets that the delegate is allowed to validate on.
+        return_per_1000 (int): Return per 1000 TAO, for the delegate over a day.
+        total_daily_return (int): Total daily return of the delegate.
+
     """
 
     hotkey_ss58: str  # Hotkey of delegate
@@ -829,7 +867,7 @@ class StakeInfo:
     ) -> Dict[str, List["StakeInfo"]]:
         r"""Returns a list of StakeInfo objects from a ``vec_u8``."""
         decoded: Optional[
-            List[Tuple(str, List[object])]
+            list[tuple[str, list[object]]]
         ] = from_scale_encoding_using_type_string(
             input=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
         )
@@ -942,16 +980,14 @@ class SubnetInfo:
             owner_ss58=ss58_encode(decoded["owner"], bittensor.__ss58_format__),
         )
 
-    def to_parameter_dict(self) -> "torch.nn.ParameterDict":
-        r"""Returns a torch tensor of the subnet info."""
-        return torch.nn.ParameterDict(self.__dict__)
+    def to_parameter_dict(self) -> dict[str, Any]:
+        r"""Returns a dict of the subnet info."""
+        return self.__dict__
 
     @classmethod
-    def from_parameter_dict(
-        cls, parameter_dict: "torch.nn.ParameterDict"
-    ) -> "SubnetInfo":
-        r"""Returns a SubnetInfo object from a torch parameter_dict."""
-        return cls(**dict(parameter_dict))
+    def from_parameter_dict(cls, parameter_dict: dict[str, Any]) -> "SubnetInfo":
+        r"""Returns a SubnetInfo object from a parameter_dict."""
+        return cls(**parameter_dict)
 
 
 @dataclass
@@ -1038,16 +1074,14 @@ class SubnetHyperparameters:
             difficulty=decoded["difficulty"],
         )
 
-    def to_parameter_dict(self) -> "torch.nn.ParameterDict":
-        r"""Returns a torch tensor of the subnet hyperparameters."""
-        return torch.nn.ParameterDict(self.__dict__)
+    def to_parameter_dict(self) -> dict[str, Union[int, float, bool]]:
+        r"""Returns a dict of the subnet hyperparameters."""
+        return self.__dict__
 
     @classmethod
-    def from_parameter_dict(
-        cls, parameter_dict: "torch.nn.ParameterDict"
-    ) -> "SubnetInfo":
-        r"""Returns a SubnetHyperparameters object from a torch parameter_dict."""
-        return cls(**dict(parameter_dict))
+    def from_parameter_dict(cls, parameter_dict: dict[str, Any]) -> "SubnetInfo":
+        r"""Returns a SubnetHyperparameters object from a parameter_dict."""
+        return cls(**parameter_dict)
 
 
 @dataclass
@@ -1103,14 +1137,14 @@ class IPInfo:
             protocol=decoded["ip_type_and_protocol"] & 0xF,
         )
 
-    def to_parameter_dict(self) -> "torch.nn.ParameterDict":
-        r"""Returns a torch tensor of the subnet info."""
-        return torch.nn.ParameterDict(self.__dict__)
+    def to_parameter_dict(self) -> dict[str, Union[str, int]]:
+        r"""Returns a dict of the subnet ip info."""
+        return self.__dict__
 
     @classmethod
-    def from_parameter_dict(cls, parameter_dict: "torch.nn.ParameterDict") -> "IPInfo":
-        r"""Returns a IPInfo object from a torch parameter_dict."""
-        return cls(**dict(parameter_dict))
+    def from_parameter_dict(cls, parameter_dict: dict[str, Any]) -> "IPInfo":
+        r"""Returns a IPInfo object from a parameter_dict."""
+        return cls(**parameter_dict)
 
 
 # Senate / Proposal data

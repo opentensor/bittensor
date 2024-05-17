@@ -25,7 +25,8 @@ import pytest
 
 # Application
 import bittensor
-from bittensor.subtensor import subtensor as Subtensor
+from bittensor.subtensor import subtensor as Subtensor, logger
+from bittensor import subtensor_module
 
 
 def test_serve_axon_with_external_ip_set():
@@ -176,7 +177,7 @@ def test_stake_multiple():
         # args, kwargs
         _, kwargs = mock_do_stake.call_args
 
-        assert kwargs["ammount"] == pytest.approx(
+        assert kwargs["amount"] == pytest.approx(
             mock_amount.rao, rel=1e9
         )  # delta of 1.0 TAO
 
@@ -272,3 +273,41 @@ def test_determine_chain_endpoint_and_network(
     # Assert
     assert result_network == expected_network
     assert result_endpoint == expected_endpoint
+
+
+@pytest.fixture
+def substrate():
+    class MockSubstrate:
+        pass
+
+    return MockSubstrate()
+
+
+@pytest.fixture
+def subtensor(substrate):
+    mock.patch.object(
+        subtensor_module,
+        "get_subtensor_errors",
+        return_value={
+            "1": ("ErrorOne", "Description one"),
+            "2": ("ErrorTwo", "Description two"),
+        },
+    ).start()
+    return Subtensor()
+
+
+def test_get_error_info_by_index_known_error(subtensor):
+    name, description = subtensor.get_error_info_by_index(1)
+    assert name == "ErrorOne"
+    assert description == "Description one"
+
+
+def test_get_error_info_by_index_unknown_error(subtensor):
+    mock_logger = mock.patch.object(logger, "warning").start()
+    fake_index = 999
+    name, description = subtensor.get_error_info_by_index(fake_index)
+    assert name == "Unknown Error"
+    assert description == ""
+    mock_logger.assert_called_once_with(
+        f"Subtensor returned an error with an unknown index: {fake_index}"
+    )
