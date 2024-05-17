@@ -18,7 +18,13 @@
 
 import logging
 import bittensor
-from ..errors import NominationError, NotDelegateError, NotRegisteredError, StakeError, TakeError
+from ..errors import (
+    NominationError,
+    NotDelegateError,
+    NotRegisteredError,
+    StakeError,
+    TakeError,
+)
 from rich.prompt import Confirm
 from typing import Union, Optional
 from bittensor.utils.balance import Balance
@@ -357,6 +363,7 @@ def undelegate_extrinsic(
     except StakeError as e:
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
+
 
 def decrease_take_extrinsic(
     subtensor: "bittensor.subtensor",
