@@ -1,5 +1,6 @@
 from substrateinterface import Keypair
 from bittensor.commands.weights import CommitWeightCommand, RevealWeightCommand
+from bittensor.commands import SubnetSudoCommand, RunFaucetCommand
 import bittensor
 from bittensor.extrinsics.network import register_subnetwork_extrinsic
 import time
@@ -25,8 +26,46 @@ def test_commit_and_reveal_weights(local_chain):
     )
     assert success, "Failed to create subnet"
 
-    # Create a CLI parser and configure the CLI arguments for the CommitWeightCommand
     parser = bittensor.cli.__create_parser__()
+    config_faucet = bittensor.config(
+        parser=parser,
+        args=[
+            "wallet",
+            "faucet",
+            "--no_prompt",
+            "--subtensor.network",
+            "local",
+            "--subtensor.chain_endpoint",
+            "ws://localhost:9945",
+            "--wallet.path",
+            "/tmp/btcli-wallet",
+        ],
+    )
+    RunFaucetCommand.run(bittensor.cli(config_faucet))
+
+    result = subtensor.set_hyperparameter(
+            wallet=wallet,
+            netuid=1,
+            parameter="commit_reveal_weights_enabled",
+            value=True,
+            wait_for_inclusion=True,
+            wait_for_finalization=True,
+            prompt=False,
+        )
+    assert result, "Failed to enable commit/reveal"
+
+    result = subtensor.set_hyperparameter(
+            wallet=wallet,
+            netuid=1,
+            parameter="commit_reveal_weights_interval",
+            value=7,
+            wait_for_inclusion=True,
+            wait_for_finalization=True,
+            prompt=False,
+        )
+    assert result, "Failed to set commit/reveal interval"
+
+    # Create a CLI parser and configure the CLI arguments for the CommitWeightCommand
     config = bittensor.config(
         parser=parser,
         args=[
@@ -50,15 +89,14 @@ def test_commit_and_reveal_weights(local_chain):
 
     # Create a CLI instance with the configured arguments
     cli_instance = bittensor.cli(config)
-    
+
     # Run the CommitWeightCommand
     CommitWeightCommand.run(cli_instance)
 
-    # Query the WeightCommits storage map
-    weight_commits = local_chain.query(
+    weight_commits = subtensor.query_module(
         module='SubtensorModule',
-        storage_function='WeightCommits',
-        params=[1, alice_keypair.ss58_address]
+        name='WeightCommits',
+        params=[1, wallet.hotkey.ss58_address],
     )
 
     # Generate the expected commit hash
@@ -67,7 +105,7 @@ def test_commit_and_reveal_weights(local_chain):
     version_key = bittensor.__version_as_int__  
     print(f"Test - uids: {uids}, weights: {weights}, version_key: {version_key}")
     expected_commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
-        who=alice_keypair.ss58_address,
+        who=wallet.hotkey.ss58_address,
         netuid=1,
         uids=uids,
         values=weights,
@@ -81,20 +119,20 @@ def test_commit_and_reveal_weights(local_chain):
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Query the WeightCommitRevealInterval storage map
-    weight_commit_reveal_interval = local_chain.query(
+    weight_commit_reveal_interval = subtensor.query_module(
         module='SubtensorModule',
-        storage_function='WeightCommitRevealInterval',
-        params=[]
+        name='WeightCommitRevealInterval',
+        params=[1]
     )
     interval = weight_commit_reveal_interval.value
     assert interval > 0, "Invalid WeightCommitRevealInterval"
 
     # Wait until the reveal block range
-    current_block = local_chain.get_block()['header']['number']
+    current_block = subtensor.get_current_block()
     reveal_block_start = (commit_block - (commit_block % interval)) + interval
     while current_block < reveal_block_start:
         time.sleep(1)  # Wait for 1 second before checking the block number again
-        current_block = local_chain.get_block()['header']['number']
+        current_block = subtensor.get_current_block()
 
     # Configure the CLI arguments for the RevealWeightCommand
     config = bittensor.config(
@@ -126,9 +164,9 @@ def test_commit_and_reveal_weights(local_chain):
     RevealWeightCommand.run(cli_instance)
 
     # Query the Weights storage map
-    revealed_weights = local_chain.query(
+    revealed_weights = subtensor.query_module(
         module='SubtensorModule',
-        storage_function='Weights',
+        name='Weights',
         params=[1, 1]  # netuid and uid
     )
 
