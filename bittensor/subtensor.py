@@ -590,6 +590,9 @@ class subtensor:
         This function is a key part of the decentralized governance mechanism of Bittensor, allowing for the
         dynamic selection and participation of validators in the network's consensus process.
         """
+        # Ensure delegate_ss58 is not None
+        if delegate_ss58 is None:
+            raise ValueError("delegate_ss58 cannot be None")
 
         # Caulate u16 representation of the take
         takeu16 = int(take * 0xFFFF)
@@ -602,7 +605,7 @@ class subtensor:
 
         if takeu16 == current_take:
             bittensor.__console__.print("Nothing to do, take hasn't changed")
-            return
+            return True
         if current_take is None or current_take < takeu16:
             bittensor.__console__.print(
                 "Current take is either not set or is lower than the new one. Will use increase_take"
