@@ -27,21 +27,21 @@ def test_commit_and_reveal_weights(local_chain):
     assert success, "Failed to create subnet"
 
     parser = bittensor.cli.__create_parser__()
-    config_faucet = bittensor.config(
-        parser=parser,
-        args=[
-            "wallet",
-            "faucet",
-            "--no_prompt",
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
-            "--wallet.path",
-            "/tmp/btcli-wallet",
-        ],
-    )
-    RunFaucetCommand.run(bittensor.cli(config_faucet))
+    # config_faucet = bittensor.config(
+    #     parser=parser,
+    #     args=[
+    #         "wallet",
+    #         "faucet",
+    #         "--no_prompt",
+    #         "--subtensor.network",
+    #         "local",
+    #         "--subtensor.chain_endpoint",
+    #         "ws://localhost:9945",
+    #         "--wallet.path",
+    #         "/tmp/btcli-wallet",
+    #     ],
+    # )
+    # RunFaucetCommand.run(bittensor.cli(config_faucet))
 
     result = subtensor.set_hyperparameter(
             wallet=wallet,
