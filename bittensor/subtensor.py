@@ -843,7 +843,11 @@ class subtensor:
         success = False
         message = "No attempt made. Perhaps it is too soon to commit weights!"
 
-        logger.info("Committing weights with params: netuid={}, uids={}, weights={}, version_key={}".format(netuid, uids, weights, version_key))
+        logger.info(
+            "Committing weights with params: netuid={}, uids={}, weights={}, version_key={}".format(
+                netuid, uids, weights, version_key
+            )
+        )
 
         # Generate the hash of the weights
         commit_hash = weight_utils.generate_weight_hash(

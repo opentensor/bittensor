@@ -2,9 +2,7 @@ import re
 import argparse
 import numpy as np
 import bittensor
-from typing import List, Optional, Dict
 from rich.prompt import Prompt
-from rich.table import Table
 from . import defaults
 
 
@@ -292,7 +290,7 @@ class RevealWeightCommand:
         weights = cli.config.weights
         weight_list = list(map(float, re.split(r"[ ,]+", weights)))
         weights = np.array(weight_list, dtype=np.float32)
-        
+
         # Run the reveal weights operation.
         success, message = subtensor.reveal_weights(
             wallet=wallet,
