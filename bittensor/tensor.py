@@ -75,10 +75,14 @@ def cast_dtype(raw: Union[None, np.dtype, "torch.dtype", str]) -> str:
             return TORCH_DTYPES[raw]
     elif isinstance(raw, str):
         if os.getenv("USE_TORCH"):
-            assert raw in TORCH_DTYPES, f"{raw} not a valid torch type in dict {TORCH_DTYPES}"
+            assert (
+                raw in TORCH_DTYPES
+            ), f"{raw} not a valid torch type in dict {TORCH_DTYPES}"
             return raw
         else:
-            assert raw in NUMPY_DTYPES, f"{raw} not a valid numpy type in dict {NUMPY_DTYPES}"
+            assert (
+                raw in NUMPY_DTYPES
+            ), f"{raw} not a valid numpy type in dict {NUMPY_DTYPES}"
             return raw
     else:
         raise Exception(
@@ -120,7 +124,9 @@ def cast_shape(raw: Union[None, List[int], str]) -> str:
 class tensor:
     def __new__(cls, tensor: Union[list, np.ndarray, "torch.Tensor"]):
         if isinstance(tensor, list) or isinstance(tensor, np.ndarray):
-            tensor = torch.tensor(tensor) if os.getenv("USE_TORCH") else np.array(tensor)
+            tensor = (
+                torch.tensor(tensor) if os.getenv("USE_TORCH") else np.array(tensor)
+            )
         return Tensor.serialize(tensor=tensor)
 
 
@@ -144,7 +150,11 @@ class Tensor(pydantic.BaseModel):
         return self.deserialize().tolist()
 
     def numpy(self) -> "numpy.ndarray":
-        return self.deserialize().detach().numpy() if os.getenv("USE_TORCH") else self.deserialize()
+        return (
+            self.deserialize().detach().numpy()
+            if os.getenv("USE_TORCH")
+            else self.deserialize()
+        )
 
     def deserialize(self) -> Union["np.ndarray", "torch.Tensor"]:
         """
@@ -213,7 +223,7 @@ class Tensor(pydantic.BaseModel):
     dtype: str = pydantic.Field(
         title="dtype",
         description="Tensor data type. "
-                    "This field specifies the data type of the tensor, such as numpy.float32 or torch.int64.",
+        "This field specifies the data type of the tensor, such as numpy.float32 or torch.int64.",
         examples="np.float32",
         allow_mutation=False,
         repr=True,
