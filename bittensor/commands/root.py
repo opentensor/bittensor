@@ -24,7 +24,7 @@ import bittensor
 from typing import List, Optional, Dict
 from rich.prompt import Prompt
 from rich.table import Table
-from .utils import get_delegates_details, DelegatesDetails, maybe_get_torch
+from .utils import get_delegates_details, DelegatesDetails, torch
 
 from . import defaults
 
@@ -302,7 +302,7 @@ class RootSetBoostCommand:
         )
         my_weights[cli.config.netuid] = new_weight
         all_netuids = (
-            maybe_get_torch().tensor(list(range(len(my_weights))))
+            torch.tensor(list(range(len(my_weights))))
             if os.environ.get("USE_TORCH")
             else np.arange(len(my_weights))
         )
@@ -424,7 +424,7 @@ class RootSetSlashCommand:
         my_weights[cli.config.netuid] -= cli.config.amount
         my_weights[my_weights < 0] = 0  # Ensure weights don't go negative
         all_netuids = (
-            maybe_get_torch().tensor(list(range(len(my_weights))))
+            torch.tensor(list(range(len(my_weights))))
             if os.environ.get("USE_TORCH")
             else np.arange(len(my_weights))
         )
@@ -530,14 +530,14 @@ class RootSetWeightsCommand:
         # Parse from string
         matched_netuids = list(map(int, re.split(r"[ ,]+", cli.config.netuids)))
         netuids = (
-            maybe_get_torch().tensor(matched_netuids, dtype=maybe_get_torch().long)
+            torch.tensor(matched_netuids, dtype=torch.long)
             if os.environ.get("USE_TORCH")
             else np.array(matched_netuids, dtype=np.int64)
         )
 
         matched_weights = list(map(float, re.split(r"[ ,]+", cli.config.weights)))
         weights = (
-            maybe_get_torch().tensor(matched_weights, dtype=maybe_get_torch().float32)
+            torch.tensor(matched_weights, dtype=torch.float32)
             if os.environ.get("USE_TORCH")
             else np.array(
                 matched_weights,
