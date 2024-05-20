@@ -106,7 +106,7 @@ class DendriteMixin:
                 The user's wallet or keypair used for signing messages. Defaults to ``None``, in which case a new :func:`bittensor.wallet().hotkey` is generated and used.
         """
         # Initialize the parent class
-        super(DendriteMixin, self).__init__()
+        # super(DendriteMixin, self).__init__()
 
         # Unique identifier for the instance
         self.uuid = str(uuid.uuid1())
