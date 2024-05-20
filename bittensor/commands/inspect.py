@@ -382,6 +382,7 @@ async def wallet_processor(
         if not wall.coldkeypub_file.exists_on_device():
             return
         # Note: running these concurrently breaks this. Need to redo the subtensor lib for this to work properly
+        # Ideally, this would be asyncio.gather...
         delegates: List[
             Tuple[bittensor.DelegateInfo, bittensor.Balance]
         ] = await event_loop.run_in_executor(
@@ -412,5 +413,7 @@ async def wallet_processor(
         return wallet_
 
     event_loop = asyncio.get_event_loop()
+    # This should work but like in line 384, it does not. Subtensor needs fully ported
+    # to asyncio before this can work
     # return list(await asyncio.gather(*[map_wallet(x) for x in wallets]))
     return [(await map_wallet(x)) for x in wallets]
