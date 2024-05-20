@@ -28,7 +28,7 @@ from bittensor.utils import torch
 U32_MAX = 4294967295
 U16_MAX = 65535
 
-USE_TORCH = True if os.getenv("USE_TORCH") == 1 else False
+USE_TORCH = True if os.getenv("USE_TORCH") == "1" else False
 
 
 def normalize_max_weight(
