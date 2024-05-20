@@ -6,7 +6,7 @@
 * Add setting delegate take
 
 
-**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.12.1...b4919ec9d9149f6add7e1ef57e4e4367f86224c5
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.12.1...54eee604c00ac4f04a31d5d7bc663124731a34d8
 
 
 ## 6.12.1 / 2024-05-17
