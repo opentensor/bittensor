@@ -43,8 +43,6 @@ class ProfileCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         config = cli.config.copy()
-        #Set the chain_endpoint to match the network unless user defined.
-
         for (key, attributes) in SAVED_ATTRIBUTES.items():
             #if attributes isn't a list then just raw values
             if not isinstance(attributes, list):
@@ -73,6 +71,7 @@ class ProfileCommand:
                         default=getattr(sub_attr, attribute, None),
                     ),
                 )
+                #Set the chain_endpoint to match the network unless user defined.
                 if attribute == "network" and config.subtensor.chain_endpoint is bittensor.__finney_entrypoint__:
                     (_, config.subtensor.chain_endpoint) = subtensor.determine_chain_endpoint_and_network(config.subtensor.network)
         ProfileCommand._write_profile(config)
