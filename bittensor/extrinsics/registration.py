@@ -17,7 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
-
+import os
 import time
 from rich.prompt import Confirm
 from typing import List, Union, Optional, Tuple
@@ -101,7 +101,7 @@ def register_extrinsic(
         ):
             return False
 
-    if not torch:
+    if not os.getenv("USE_TORCH"):
         return False
 
     # Attempt rolling registration.
@@ -381,7 +381,7 @@ def run_faucet_extrinsic(
         ):
             return False
 
-    if not torch:
+    if not os.getenv("USE_TORCH"):
         return False
 
     # Unlock coldkey

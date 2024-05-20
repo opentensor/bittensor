@@ -28,7 +28,9 @@ from bittensor.utils import torch
 U32_MAX = 4294967295
 U16_MAX = 65535
 
-USE_TORCH = True if os.getenv("USE_TORCH") == "1" else False
+
+def use_torch() -> bool:
+    return True if os.getenv("USE_TORCH") == "1" else False
 
 
 def normalize_max_weight(
@@ -46,13 +48,13 @@ def normalize_max_weight(
     """
     epsilon = 1e-7  # For numerical stability after normalization
 
-    weights = x.clone() if USE_TORCH else x.copy()
-    if USE_TORCH:
+    weights = x.clone() if use_torch() else x.copy()
+    if use_torch():
         values, _ = torch.sort(weights)
     else:
         values = np.sort(weights)
 
-    if USE_TORCH and x.sum() == 0 or len(x) * limit <= 1:
+    if use_torch() and x.sum() == 0 or len(x) * limit <= 1:
         return torch.ones_like(x) / x.size(0)
 
     if x.sum() == 0 or x.shape[0] * limit <= 1:
@@ -64,7 +66,7 @@ def normalize_max_weight(
             return weights / weights.sum()
 
         # Find the cumlative sum and sorted tensor
-        cumsum = torch.cumsum(estimation, 0) if USE_TORCH else np.cumsum(estimation, 0)
+        cumsum = torch.cumsum(estimation, 0) if use_torch() else np.cumsum(estimation, 0)
 
         # Determine the index of cutoff
         estimation_sum_data = [
@@ -72,7 +74,7 @@ def normalize_max_weight(
         ]
         estimation_sum = (
             torch.tensor(estimation_sum_data)
-            if USE_TORCH
+            if use_torch()
             else np.array(estimation_sum_data)
         )
         n_values = (estimation / (estimation_sum + cumsum + epsilon) < limit).sum()
@@ -108,7 +110,7 @@ def convert_weight_uids_and_vals_to_tensor(
     """
     row_weights = (
         torch.zeros([n], dtype=torch.float32)
-        if USE_TORCH
+        if use_torch()
         else np.zeros([n], dtype=np.float32)
     )
     for uid_j, wij in list(zip(uids, weights)):
@@ -141,7 +143,7 @@ def convert_root_weight_uids_and_vals_to_tensor(
 
     row_weights = (
         torch.zeros([n], dtype=torch.float32)
-        if USE_TORCH
+        if use_torch()
         else np.zeros([n], dtype=np.float32)
     )
     for uid_j, wij in list(zip(uids, weights)):
@@ -175,7 +177,7 @@ def convert_bond_uids_and_vals_to_tensor(
     """
     row_bonds = (
         torch.zeros([n], dtype=torch.int64)
-        if USE_TORCH
+        if use_torch()
         else np.zeros([n], dtype=np.int64)
     )
     for uid_j, bij in list(zip(uids, bonds)):
@@ -259,7 +261,7 @@ def process_weights_for_netuid(
         metagraph = subtensor.metagraph(netuid)
 
     # Cast weights to floats.
-    if not USE_TORCH:
+    if not use_torch():
         if not isinstance(weights, torch.FloatTensor):
             weights = weights.type(torch.float32)
     else:
@@ -278,28 +280,28 @@ def process_weights_for_netuid(
     # Find all non zero weights.
     non_zero_weight_idx = (
         torch.argwhere(weights > 0).squeeze(dim=1)
-        if USE_TORCH
+        if use_torch()
         else np.argwhere(weights > 0).squeeze(axis=1)
     )
     non_zero_weight_uids = uids[non_zero_weight_idx]
     non_zero_weights = weights[non_zero_weight_idx]
-    nzw_size = non_zero_weights.numel() if USE_TORCH else non_zero_weights.size
+    nzw_size = non_zero_weights.numel() if use_torch() else non_zero_weights.size
     if nzw_size == 0 or metagraph.n < min_allowed_weights:
         bittensor.logging.warning("No non-zero weights returning all ones.")
         final_weights = (
             torch.ones((metagraph.n)).to(metagraph.n) / metagraph.n
-            if USE_TORCH
+            if use_torch()
             else np.ones((metagraph.n), dtype=np.int64) / metagraph.n
         )
         bittensor.logging.debug("final_weights", final_weights)
         final_weights_count = (
             torch.tensor(list(range(len(final_weights))))
-            if USE_TORCH
+            if use_torch()
             else np.arange(len(final_weights))
         )
         return (
             (final_weights_count, final_weights)
-            if USE_TORCH
+            if use_torch()
             else (final_weights_count, final_weights)
         )
 
@@ -310,7 +312,7 @@ def process_weights_for_netuid(
         # ( const ): Should this be np.zeros( ( metagraph.n ) ) to reset everyone to build up weight?
         weights = (
             torch.ones((metagraph.n)).to(metagraph.n) * 1e-5
-            if USE_TORCH
+            if use_torch()
             else np.ones((metagraph.n), dtype=np.int64) * 1e-5
         )  # creating minimum even non-zero weights
         weights[non_zero_weight_idx] += non_zero_weights
@@ -320,7 +322,7 @@ def process_weights_for_netuid(
         )
         nw_arange = (
             torch.tensor(list(range(len(normalized_weights))))
-            if USE_TORCH
+            if use_torch()
             else np.arange(len(normalized_weights))
         )
         return nw_arange, normalized_weights
@@ -334,7 +336,7 @@ def process_weights_for_netuid(
     exclude_quantile = min([quantile, max_exclude])
     lowest_quantile = (
         non_zero_weights.quantile(exclude_quantile)
-        if USE_TORCH
+        if use_torch()
         else np.quantile(non_zero_weights, exclude_quantile)
     )
     bittensor.logging.debug("max_exclude", max_exclude)

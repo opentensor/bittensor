@@ -26,6 +26,10 @@ except ImportError:
 
 
 class Torch:
+
+    def __init__(self):
+        self._transformed = False
+
     @staticmethod
     def _error():
         bittensor.logging.warning(
@@ -33,14 +37,32 @@ class Torch:
         )
         raise ImportError
 
+    def _transform(self):
+        try:
+            import torch as real_torch
+            self.__dict__.update(real_torch.__dict__)
+            self._transformed = True
+        except ImportError:
+            self._error()
+
     def __bool__(self):
         return False
 
-    def __getattr__(self, *_):
-        self._error()
+    def __getattr__(self, name):
+        if not self._transformed and os.getenv("USE_TORCH"):
+            self._transform()
+        if self._transformed:
+            return getattr(self, name)
+        else:
+            self._error()
 
-    def __call__(self, *_):
-        self._error()
+    def __call__(self, *args, **kwargs):
+        if not self._transformed and os.getenv("USE_TORCH"):
+            self._transform()
+        if self._transformed:
+            return self(*args, **kwargs)
+        else:
+            self._error()
 
 
 if not torch or not os.getenv("USE_TORCH"):
