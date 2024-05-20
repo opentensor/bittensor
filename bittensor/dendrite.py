@@ -810,15 +810,17 @@ class DendriteMixin:
 
 
 if os.environ.get("USE_TORCH"):
+
     class dendrite(maybe_get_torch().nn.module, DendriteMixin):
         def __init__(self):
             maybe_get_torch().nn.module.__init__(self)
             DendriteMixin.__init__(self)
+
 else:
+
     class dendrite(DendriteMixin):
         def __init__(self):
             DendriteMixin.__init__(self)
 
         async def __call__(self, *args, **kwargs):
             return await self.forward(*args, **kwargs)
-
