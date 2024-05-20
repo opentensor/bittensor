@@ -28,6 +28,8 @@ import bittensor
 from typing import Union, Optional, List, Union, AsyncGenerator, Any
 from .utils import torch
 
+USE_TORCH = True if os.getenv("USE_TORCH") == "1" else False
+
 
 class DendriteMixin:
     """
@@ -106,7 +108,7 @@ class DendriteMixin:
                 The user's wallet or keypair used for signing messages. Defaults to ``None``, in which case a new :func:`bittensor.wallet().hotkey` is generated and used.
         """
         # Initialize the parent class
-        # super(DendriteMixin, self).__init__()
+        super(DendriteMixin, self).__init__()
 
         # Unique identifier for the instance
         self.uuid = str(uuid.uuid1())
@@ -809,18 +811,14 @@ class DendriteMixin:
         self.close_session()
 
 
-if os.environ.get("USE_TORCH"):
+BaseClass = torch.nn.Module if USE_TORCH else object
 
-    class dendrite(torch.nn.Module, DendriteMixin):
-        def __init__(self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None):
+
+class dendrite(DendriteMixin, BaseClass):
+    def __init__(self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None):
+        if USE_TORCH:
             torch.nn.Module.__init__(self)
-            DendriteMixin.__init__(self, wallet)
+        DendriteMixin.__init__(self, wallet)
 
-else:
-
-    class dendrite(DendriteMixin):
-        def __init__(self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None):
-            DendriteMixin.__init__(self, wallet)
-
-        async def __call__(self, *args, **kwargs):
-            return await self.forward(*args, **kwargs)
+    async def __call__(self, *args, **kwargs):
+        return await self.forward(*args, **kwargs)
