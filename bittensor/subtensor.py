@@ -50,7 +50,7 @@ from .chain_data import (
     IPInfo,
     custom_rpc_type_registry,
 )
-from .errors import IdentityError, NominationError, StakeError
+from .errors import IdentityError, NominationError, StakeError, TakeError
 from .extrinsics.network import (
     register_subnetwork_extrinsic,
     set_hyperparameter_extrinsic,
@@ -76,6 +76,8 @@ from .extrinsics.delegation import (
     delegate_extrinsic,
     nominate_extrinsic,
     undelegate_extrinsic,
+    increase_take_extrinsic,
+    decrease_take_extrinsic,
 )
 from .extrinsics.senate import (
     register_senate_extrinsic,
@@ -563,6 +565,71 @@ class subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
+
+    def set_take(
+        self,
+        wallet: "bittensor.wallet",
+        delegate_ss58: Optional[str] = None,
+        take: float = 0.0,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Set delegate hotkey take
+
+        Args:
+            wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
+            delegate_ss58 (str, optional): Hotkey
+            take (float): Delegate take on subnet ID
+            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the blockchain.
+            wait_for_inclusion (bool, optional): If ``True``, waits until the transaction is included in a block.
+
+        Returns:
+            bool: ``True`` if the process is successful, False otherwise.
+
+        This function is a key part of the decentralized governance mechanism of Bittensor, allowing for the
+        dynamic selection and participation of validators in the network's consensus process.
+        """
+        # Ensure delegate_ss58 is not None
+        if delegate_ss58 is None:
+            raise ValueError("delegate_ss58 cannot be None")
+
+        # Caulate u16 representation of the take
+        takeu16 = int(take * 0xFFFF)
+
+        # Check if the new take is greater or lower than existing take or if existing is set
+        delegate = self.get_delegate_by_hotkey(delegate_ss58)
+        current_take = None
+        if delegate is not None:
+            current_take = int(float(delegate.take) * 65535.0)
+
+        if takeu16 == current_take:
+            bittensor.__console__.print("Nothing to do, take hasn't changed")
+            return True
+        if current_take is None or current_take < takeu16:
+            bittensor.__console__.print(
+                "Current take is either not set or is lower than the new one. Will use increase_take"
+            )
+            return increase_take_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                hotkey_ss58=delegate_ss58,
+                take=takeu16,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+        else:
+            bittensor.__console__.print(
+                "Current take is higher than the new one. Will use decrease_take"
+            )
+            return decrease_take_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                hotkey_ss58=delegate_ss58,
+                take=takeu16,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
     def send_extrinsic(
         self,
@@ -1158,7 +1225,7 @@ class subtensor:
 
         call = self.substrate.compose_call(
             call_module="Balances",
-            call_function="transfer",
+            call_function="transfer_allow_death",
             call_params={"dest": dest, "value": transfer_balance.rao},
         )
 
@@ -1203,7 +1270,7 @@ class subtensor:
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="Balances",
-                call_function="transfer",
+                call_function="transfer_allow_death",
                 call_params={"dest": dest, "value": transfer_balance.rao},
             )
             extrinsic = self.substrate.create_signed_extrinsic(
@@ -3532,17 +3599,18 @@ class subtensor:
 
     def get_delegates_lite(self, block: Optional[int] = None) -> List[DelegateInfoLite]:
         """
-        Retrieves a list of all delegate neurons within the Bittensor network. This function provides an
-        overview of the neurons that are actively involved in the network's delegation system. Lite version.
+        Retrieves a lighter list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.
+
+        Analyzing the delegate population offers insights into the network's governance dynamics and the distribution of trust and responsibility among participating neurons.
+
+        This is a lighter version of :func:`get_delegates`.
 
         Args:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            List[DelegateInfoLite]: A list of DelegateInfoLite objects detailing each delegate's characteristics.
+            List[DelegateInfoLite]: A list of ``DelegateInfoLite`` objects detailing each delegate's characteristics.
 
-        Analyzing the delegate population offers insights into the network's governance dynamics and the
-        distribution of trust and responsibility among participating neurons.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logger)
@@ -3566,8 +3634,11 @@ class subtensor:
 
     def get_delegates(self, block: Optional[int] = None) -> List[DelegateInfo]:
         """
-        Retrieves a list of all delegate neurons within the Bittensor network. This function provides an
-        overview of the neurons that are actively involved in the network's delegation system.
+        Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.
+
+        Analyzing the delegate population offers insights into the network's governance dynamics and the distribution of trust and responsibility among participating neurons.
+
+        For a lighter version of this function, see :func:`get_delegates_lite`.
 
         Args:
             block (Optional[int], optional): The blockchain block number for the query.
@@ -3575,8 +3646,6 @@ class subtensor:
         Returns:
             List[DelegateInfo]: A list of DelegateInfo objects detailing each delegate's characteristics.
 
-        Analyzing the delegate population offers insights into the network's governance dynamics and the
-        distribution of trust and responsibility among participating neurons.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logger)
@@ -4380,6 +4449,82 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
+    def _do_increase_take(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        take: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="increase_take",
+                    call_params={
+                        "hotkey": hotkey_ss58,
+                        "take": take,
+                    },
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )  # sign with coldkey
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+                response.process_events()
+                if response.is_success:
+                    return True
+                else:
+                    raise TakeError(response.error_message)
+
+        return make_substrate_call_with_retry()
+
+    def _do_decrease_take(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58: str,
+        take: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            with self.substrate as substrate:
+                call = substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="decrease_take",
+                    call_params={
+                        "hotkey": hotkey_ss58,
+                        "take": take,
+                    },
+                )
+                extrinsic = substrate.create_signed_extrinsic(
+                    call=call, keypair=wallet.coldkey
+                )  # sign with coldkey
+                response = substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                # We only wait here if we expect finalization.
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True
+                response.process_events()
+                if response.is_success:
+                    return True
+                else:
+                    raise TakeError(response.error_message)
+
+        return make_substrate_call_with_retry()
+
     ################
     #### Legacy ####
     ################
@@ -4415,7 +4560,7 @@ class subtensor:
             result = make_substrate_call_with_retry()
         except scalecodec.exceptions.RemainingScaleBytesNotEmptyException:
             bittensor.logging.error(
-                "Your wallet it legacy formatted, you need to run btcli stake --ammount 0 to reformat it."
+                "Received a corrupted message. This likely points to an error with the network or subnet."
             )
             return Balance(1000)
         return Balance(result.value["data"]["free"])

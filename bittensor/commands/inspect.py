@@ -182,7 +182,7 @@ class InspectCommand:
         )
         for wallet in tqdm(wallets):
             delegates: List[
-                Tuple(bittensor.DelegateInfo, bittensor.Balance)
+                Tuple[bittensor.DelegateInfo, bittensor.Balance]
             ] = subtensor.get_delegated(coldkey_ss58=wallet.coldkeypub.ss58_address)
             if not wallet.coldkeypub_file.exists_on_device():
                 continue
