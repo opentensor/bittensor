@@ -41,25 +41,39 @@ def ss58_to_vec_u8(ss58_address: str) -> List[int]:
 
 
 def _unbiased_topk(
-    values: np.ndarray, k: int, dim=0, sorted=True, largest=True, axis=0
-) -> Tuple[np.ndarray, np.ndarray]:
-    if dim != 0 and axis == 0:
-        # Ensures a seamless transition for calls made to this function that specified args by keyword
-        axis = dim
+    values: Union[np.ndarray, "torch.Tensor"],
+    k: int,
+    dim=0,
+    sorted=True,
+    largest=True,
+    axis=0,
+    return_type: str = "numpy",
+) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
+    if return_type == "torch":
+        permutation = torch.randperm(values.shape[dim])
+        permuted_values = values[permutation]
+        topk, indices = torch.topk(
+            permuted_values, k, dim=dim, sorted=sorted, largest=largest
+        )
+        return topk, permutation[indices]
+    else:
+        if dim != 0 and axis == 0:
+            # Ensures a seamless transition for calls made to this function that specified args by keyword
+            axis = dim
 
-    permutation = np.random.permutation(values.shape[axis])
-    permuted_values = np.take(values, permutation, axis=axis)
-    indices = np.argpartition(permuted_values, -k, axis=axis)[-k:]
-    if not sorted:
-        indices = np.sort(indices, axis=axis)
-    if not largest:
-        indices = indices[::-1]
-    topk = np.take(permuted_values, indices, axis=axis)
-    return topk, permutation[indices]
+        permutation = np.random.permutation(values.shape[axis])
+        permuted_values = np.take(values, permutation, axis=axis)
+        indices = np.argpartition(permuted_values, -k, axis=axis)[-k:]
+        if not sorted:
+            indices = np.sort(indices, axis=axis)
+        if not largest:
+            indices = indices[::-1]
+        topk = np.take(permuted_values, indices, axis=axis)
+        return topk, permutation[indices]
 
 
 def unbiased_topk(
-    values: "torch.Tensor",
+    values: Union[np.ndarray, "torch.Tensor"],
     k: int,
     dim: int = 0,
     sorted: bool = True,
@@ -80,14 +94,13 @@ def unbiased_topk(
             indices of the topk values.
     """
     if os.getenv("USE_TORCH"):
-        permutation = torch.randperm(values.shape[dim])
-        permuted_values = values[permutation]
-        topk, indices = torch.topk(
-            permuted_values, k, dim=dim, sorted=sorted, largest=largest
+        return _unbiased_topk(
+            values, k, dim, sorted, largest, axis, return_type="torch"
         )
-        return topk, permutation[indices]
     else:
-        return _unbiased_topk(values, k, dim, sorted, largest, axis)
+        return _unbiased_topk(
+            values, k, dim, sorted, largest, axis, return_type="numpy"
+        )
 
 
 def strtobool_with_default(
