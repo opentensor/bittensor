@@ -174,7 +174,7 @@ class Tensor(BaseModel):
         title="buffer",
         description="Tensor buffer data. This field stores the serialized representation of the tensor data.",
         examples=["0x321e13edqwds231231231232131"],
-        allow_mutation=False,
+        frozen=True,
         repr=False,
     )
 
@@ -183,7 +183,7 @@ class Tensor(BaseModel):
         title="dtype",
         description="Tensor data type. This field specifies the data type of the tensor, such as numpy.float32 or numpy.int64.",
         examples=["np.float32"],
-        allow_mutation=False,
+        frozen=True,
         repr=True,
     )
 
@@ -192,7 +192,7 @@ class Tensor(BaseModel):
         title="shape",
         description="Tensor shape. This field defines the dimensions of the tensor as a list of integers, such as [10, 10] for a 2D tensor with shape (10, 10).",
         examples=[10, 10],
-        allow_mutation=False,
+        frozen=True,
         repr=True,
     )
 
