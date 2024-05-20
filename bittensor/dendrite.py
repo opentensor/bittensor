@@ -20,14 +20,16 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import uuid
 import time
 import aiohttp
 import bittensor
 from typing import Union, Optional, List, Union, AsyncGenerator, Any
+from .utils import maybe_get_torch
 
 
-class dendrite:
+class DendriteMixin:
     """
     The Dendrite class represents the abstracted implementation of a network client module.
 
@@ -120,9 +122,6 @@ class dendrite:
         self.synapse_history: list = []
 
         self._session: Optional[aiohttp.ClientSession] = None
-
-    async def __call__(self, *args, **kwargs):
-        return await self.forward(*args, **kwargs)
 
     @property
     async def session(self) -> aiohttp.ClientSession:
@@ -808,3 +807,18 @@ class dendrite:
             del dendrite  # This will implicitly invoke the __del__ method and close the session.
         """
         self.close_session()
+
+
+if os.environ.get("USE_TORCH"):
+    class dendrite(maybe_get_torch().nn.module, DendriteMixin):
+        def __init__(self):
+            maybe_get_torch().nn.module.__init__(self)
+            DendriteMixin.__init__(self)
+else:
+    class dendrite(DendriteMixin):
+        def __init__(self):
+            DendriteMixin.__init__(self)
+
+        async def __call__(self, *args, **kwargs):
+            return await self.forward(*args, **kwargs)
+
