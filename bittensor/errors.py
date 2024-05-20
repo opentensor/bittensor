@@ -70,6 +70,12 @@ class NominationError(ChainTransactionError):
     pass
 
 
+class TakeError(ChainTransactionError):
+    r"""Error raised when a increase / decrease take transaction fails."""
+
+    pass
+
+
 class TransferError(ChainTransactionError):
     r"""Error raised when a transfer transaction fails."""
 
