@@ -19,10 +19,9 @@
 import numpy as np
 import base64
 import msgpack
-import pydantic
 import msgpack_numpy
 from typing import Optional, Union, List
-from pydantic import ConfigDict
+from pydantic import ConfigDict, BaseModel, Field, field_validator
 
 NUMPY_DTYPES = {
     "float16": np.float16,
@@ -105,7 +104,7 @@ class tensor:
         return Tensor.serialize(tensor=tensor)
 
 
-class Tensor(pydantic.BaseModel):
+class Tensor(BaseModel):
     """
     Represents a Tensor object.
 
@@ -170,28 +169,35 @@ class Tensor(pydantic.BaseModel):
         ).decode("utf-8")
         return Tensor(buffer=data_buffer, shape=shape, dtype=dtype)
 
-    buffer: Optional[str] = pydantic.Field(
+    # Represents the tensor buffer data.
+    buffer: Optional[str] = Field(
         title="buffer",
         description="Tensor buffer data. This field stores the serialized representation of the tensor data.",
-        examples="0x321e13edqwds231231231232131",
+        examples=["0x321e13edqwds231231231232131"],
         allow_mutation=False,
         repr=False,
-    )  # Represents the tensor buffer data.
+    )
 
-    dtype: str = pydantic.Field(
+    # Represents the data type of the tensor.
+    dtype: str = Field(
         title="dtype",
         description="Tensor data type. This field specifies the data type of the tensor, such as numpy.float32 or numpy.int64.",
-        examples="np.float32",
+        examples=["np.float32"],
         allow_mutation=False,
         repr=True,
-    )  # Represents the data type of the tensor.
-    _extract_dtype = pydantic.validator("dtype", pre=True, allow_reuse=True)(cast_dtype)
+    )
 
-    shape: List[int] = pydantic.Field(
+    # Represents the shape of the tensor.
+    shape: List[int] = Field(
         title="shape",
         description="Tensor shape. This field defines the dimensions of the tensor as a list of integers, such as [10, 10] for a 2D tensor with shape (10, 10).",
-        examples="[10,10]",
+        examples=[10, 10],
         allow_mutation=False,
         repr=True,
-    )  # Represents the shape of the tensor.
-    _extract_shape = pydantic.validator("shape", pre=True, allow_reuse=True)(cast_shape)
+    )
+
+    # Extract the represented shape of the tensor.
+    _extract_shape = field_validator("shape", mode="before")(cast_shape)
+
+    # Extract the represented data type of the tensor.
+    _extract_dtype = field_validator("dtype", mode="before")(cast_dtype)

@@ -521,7 +521,7 @@ class dendrite:
             async with (await self.session).post(
                 url,
                 headers=synapse.to_headers(),
-                json=synapse.dict(),
+                json=synapse.model_dump(),
                 timeout=timeout,
             ) as response:
                 # Extract the JSON response from the server
@@ -603,7 +603,7 @@ class dendrite:
             async with (await self.session).post(
                 url,
                 headers=synapse.to_headers(),
-                json=synapse.dict(),
+                json=synapse.model_dump(),
                 timeout=timeout,
             ) as response:
                 # Use synapse subclass' process_streaming_response method to yield the response chunks
@@ -702,7 +702,7 @@ class dendrite:
             # server's state only if the protocol allows mutation. To prevent overwrites,
             # the protocol must set allow_mutation = False
             server_synapse = local_synapse.__class__(**json_response)
-            for key in local_synapse.dict().keys():
+            for key in local_synapse.model_dump().keys():
                 try:
                     # Set the attribute in the local synapse from the corresponding
                     # attribute in the server synapse
