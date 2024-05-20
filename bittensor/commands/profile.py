@@ -12,7 +12,7 @@ import bittensor
 from . import defaults
 
 SAVED_ATTRIBUTES = {
-    "profile": ["name", "path"],
+    "profile": ["name"],
     "subtensor": ["network", "chain_endpoint"],
     "wallet": ["name", "hotkey", "path"],
     "netuid": True,
@@ -44,8 +44,6 @@ class ProfileCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         config = cli.config.copy()
         #Set the chain_endpoint to match the network unless user defined.
-        if config.subtensor.network is not defaults.subtensor.network and config.subtensor.chain_endpoint is bittensor.__finney_entrypoint__:
-            (_, config.subtensor.chain_endpoint) = subtensor.determine_chain_endpoint_and_network(config.subtensor.network)
 
         for (key, attributes) in SAVED_ATTRIBUTES.items():
             #if attributes isn't a list then just raw values
@@ -112,6 +110,7 @@ class ProfileCommand:
                     setattr(profile[key], attribute, getattr(config[key], attribute))
             else:
                 setattr(profile, key, getattr(config, key))
+                
         try:
             with open(f"{path}{config.profile.name}", "w+") as f:
                 f.write(str(profile))
