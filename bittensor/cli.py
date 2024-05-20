@@ -36,6 +36,8 @@ from .commands import (
     NominateCommand,
     OverviewCommand,
     ProfileCommand,
+    ProfileListCommand,
+    ProfileShowCommand,
     PowRegisterCommand,
     ProposalsCommand,
     RegenColdkeyCommand,
@@ -197,7 +199,8 @@ COMMANDS = {
         "help": "Commands for creating and viewing profiles.",
         "commands": {
             "create": ProfileCommand,
-            # "list": ProfileList,
+            "list": ProfileListCommand,
+            "show": ProfileShowCommand,
             # "set": ProfileSet,
             # "delete": ProfileDelete,
         },
@@ -323,7 +326,6 @@ class cli:
         if len(args) == 0:
             parser.print_help()
             sys.exit()
-
         return bittensor.config(parser, args=args)
 
     @staticmethod

@@ -95,7 +95,12 @@ from .inspect import InspectCommand
 from .metagraph import MetagraphCommand
 from .list import ListCommand
 from .misc import UpdateCommand, AutocompleteCommand
-from .profile import ProfileCommand
+from .profile import (
+    ProfileCommand,
+    ProfileListCommand,
+    ProfileShowCommand
+)
+
 from .senate import (
     SenateCommand,
     ProposalsCommand,
