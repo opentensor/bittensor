@@ -369,7 +369,7 @@ def decrease_take_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: Optional[str] = None,
-    take: float = 0.0,
+    take: int = 0,
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True,
 ) -> bool:
@@ -429,7 +429,7 @@ def increase_take_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: Optional[str] = None,
-    take: float = 0.0,
+    take: int = 0,
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True,
 ) -> bool:
