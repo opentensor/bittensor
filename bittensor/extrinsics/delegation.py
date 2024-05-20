@@ -414,14 +414,7 @@ def decrease_take_extrinsic(
 
             return success
 
-        except Exception as e:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-            )
-            bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
-            )
-        except TakeError as e:
+        except (TakeError, Exception) as e:
             bittensor.__console__.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
