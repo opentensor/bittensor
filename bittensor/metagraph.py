@@ -27,7 +27,7 @@ from os.path import join
 from typing import List, Optional
 
 from bittensor.chain_data import AxonInfo
-from bittensor.utils.registration import maybe_get_torch
+from bittensor.utils.registration import torch
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "version",
@@ -873,22 +873,17 @@ class Metagraph:
             bittensor.__console__.print(
                 "Unable to load file. Attempting to restore metagraph using torch."
             )
-            if not (torch := maybe_get_torch()):
-                raise ImportError
-            else:
-                bittensor.__console__.print(
-                    ":warning:[yellow]Warning:[/yellow] This functionality exists to load "
-                    "metagraph state from legacy saves, but will not be supported in the future."
-                )
-                try:
-                    state_dict = torch.load(graph_filename)
-                    for key in METAGRAPH_STATE_DICT_NDARRAY_KEYS:
-                        state_dict[key] = state_dict[key].detach().numpy()
-                except RuntimeError:
-                    bittensor.__console__.print(
-                        "Unable to load file. It may be corrupted."
-                    )
-                    raise
+            bittensor.__console__.print(
+                ":warning:[yellow]Warning:[/yellow] This functionality exists to load "
+                "metagraph state from legacy saves, but will not be supported in the future."
+            )
+            try:
+                state_dict = torch.load(graph_filename)
+                for key in METAGRAPH_STATE_DICT_NDARRAY_KEYS:
+                    state_dict[key] = state_dict[key].detach().numpy()
+            except RuntimeError:
+                bittensor.__console__.print("Unable to load file. It may be corrupted.")
+                raise
 
         self.n = state_dict["n"]
         self.block = state_dict["block"]

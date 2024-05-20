@@ -26,7 +26,7 @@ import time
 import aiohttp
 import bittensor
 from typing import Union, Optional, List, Union, AsyncGenerator, Any
-from .utils import maybe_get_torch
+from .utils import torch
 
 
 class DendriteMixin:
@@ -811,9 +811,9 @@ class DendriteMixin:
 
 if os.environ.get("USE_TORCH"):
 
-    class dendrite(maybe_get_torch().nn.module, DendriteMixin):
+    class dendrite(torch.nn.Module, DendriteMixin):
         def __init__(self):
-            maybe_get_torch().nn.module.__init__(self)
+            torch.nn.Module.__init__(self)
             DendriteMixin.__init__(self)
 
 else:

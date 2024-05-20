@@ -25,12 +25,27 @@ except ImportError:
     torch = None
 
 
-def maybe_get_torch():
-    if torch is None:
+class Torch:
+    @staticmethod
+    def _error():
         bittensor.logging.warning(
             "This command requires torch. Please install torch package."
         )
-    return torch
+        raise ImportError
+
+    def __bool__(self):
+        self._error()
+        return False
+
+    def __getattr__(self, *_):
+        self._error()
+
+    def __call__(self, *_):
+        self._error()
+
+
+if not torch or not os.getenv("USE_TORCH"):
+    torch = Torch()
 
 
 class CUDAException(Exception):

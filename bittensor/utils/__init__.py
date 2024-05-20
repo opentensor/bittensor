@@ -1,6 +1,7 @@
 # The MIT License (MIT)
 # Copyright © 2022 Opentensor Foundation
 # Copyright © 2023 Opentensor Technologies Inc
+import os
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -20,14 +21,13 @@ from typing import Callable, List, Dict, Literal, Tuple
 
 import bittensor
 import hashlib
-import torch
 import requests
 import scalecodec
 import numpy as np
 
 from .wallet_utils import *  # noqa F401
 from .version import version_checking, check_version, VersionCheckError
-from .registration import maybe_get_torch
+from .registration import torch
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
@@ -40,22 +40,9 @@ def ss58_to_vec_u8(ss58_address: str) -> List[int]:
     return encoded_address
 
 
-def unbiased_topk(
+def _unbiased_topk(
     values: np.ndarray, k: int, dim=0, sorted=True, largest=True, axis=0
 ) -> Tuple[np.ndarray, np.ndarray]:
-    r"""Selects topk as in torch.topk but does not bias lower indices when values are equal.
-    Args:
-        values: (np.ndarray)
-            Values to index into.
-        k: (int):
-            Number to take.
-
-    Return:
-        topk: (np.ndarray):
-            topk k values.
-        indices: (np.ndarray)
-            indices of the topk values.
-    """
     if dim != 0 and axis == 0:
         # Ensures a seamless transition for calls made to this function that specified args by keyword
         axis = dim
@@ -69,6 +56,38 @@ def unbiased_topk(
         indices = indices[::-1]
     topk = np.take(permuted_values, indices, axis=axis)
     return topk, permutation[indices]
+
+
+def unbiased_topk(
+    values: "torch.Tensor",
+    k: int,
+    dim: int = 0,
+    sorted: bool = True,
+    largest: bool = True,
+    axis: int = 0,
+) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
+    r"""Selects topk as in torch.topk but does not bias lower indices when values are equal.
+    Args:
+        values: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
+            Values to index into.
+        k: (int):
+            Number to take.
+
+    Return:
+        topk: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
+            topk k values.
+        indices: (np.ndarray) if using numpy, (torch.LongTensor) if using torch:
+            indices of the topk values.
+    """
+    if os.getenv("USE_TORCH"):
+        permutation = torch.randperm(values.shape[dim])
+        permuted_values = values[permutation]
+        topk, indices = torch.topk(
+            permuted_values, k, dim=dim, sorted=sorted, largest=largest
+        )
+        return topk, permutation[indices]
+    else:
+        return _unbiased_topk(values, k, dim, sorted, largest, axis)
 
 
 def strtobool_with_default(
