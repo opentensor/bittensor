@@ -1,4 +1,4 @@
-""" Conversion for weight between chain representation and np.array
+""" Conversion for weight between chain representation and np.array or torch.Tensor
 """
 
 # The MIT License (MIT)
@@ -18,18 +18,22 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import numpy as np
 import bittensor
 from numpy.typing import NDArray
-from typing import Tuple, List
+from typing import Tuple, List, Union
+from bittensor.utils import torch
 
 U32_MAX = 4294967295
 U16_MAX = 65535
 
+USE_TORCH = True if os.getenv("USE_TORCH") == 1 else False
+
 
 def normalize_max_weight(
-    x: NDArray[np.float32], limit: float = 0.1
-) -> NDArray[np.float32]:
+    x: Union[NDArray[np.float32], "torch.FloatTensor"], limit: float = 0.1
+) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
     r"""Normalizes the tensor x so that sum(x) = 1 and the max value is not greater than the limit.
     Args:
         x (:obj:`np.float32`):
@@ -42,8 +46,14 @@ def normalize_max_weight(
     """
     epsilon = 1e-7  # For numerical stability after normalization
 
-    weights = x.copy()
-    values = np.sort(weights)
+    weights = x.clone() if USE_TORCH else x.copy()
+    if USE_TORCH:
+        values, _ = torch.sort(weights)
+    else:
+        values = np.sort(weights)
+
+    if USE_TORCH and x.sum() == 0 or len(x) * limit <= 1:
+        return torch.ones_like(x) / x.size(0)
 
     if x.sum() == 0 or x.shape[0] * limit <= 1:
         return np.ones_like(x) / x.shape[0]
@@ -54,11 +64,16 @@ def normalize_max_weight(
             return weights / weights.sum()
 
         # Find the cumlative sum and sorted tensor
-        cumsum = np.cumsum(estimation, 0)
+        cumsum = torch.cumsum(estimation, 0) if USE_TORCH else np.cumsum(estimation, 0)
 
         # Determine the index of cutoff
-        estimation_sum = np.array(
-            [(len(values) - i - 1) * estimation[i] for i in range(len(values))]
+        estimation_sum_data = [
+            (len(values) - i - 1) * estimation[i] for i in range(len(values))
+        ]
+        estimation_sum = (
+            torch.tensor(estimation_sum_data)
+            if USE_TORCH
+            else np.array(estimation_sum_data)
         )
         n_values = (estimation / (estimation_sum + cumsum + epsilon) < limit).sum()
 
@@ -78,7 +93,7 @@ def normalize_max_weight(
 
 def convert_weight_uids_and_vals_to_tensor(
     n: int, uids: List[int], weights: List[int]
-) -> NDArray[np.float32]:
+) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
     r"""Converts weights and uids from chain representation into a np.array (inverse operation from convert_weights_and_uids_for_emit)
     Args:
         n: int:
@@ -88,10 +103,14 @@ def convert_weight_uids_and_vals_to_tensor(
         weights (:obj:`List[int],`):
             Tensor of weights.
     Returns:
-        row_weights ( np.float32 ):
+        row_weights ( np.float32 or torch.FloatTensor ):
             Converted row weights.
     """
-    row_weights = np.zeros([n], dtype=np.float32)
+    row_weights = (
+        torch.zeros([n], dtype=torch.float32)
+        if USE_TORCH
+        else np.zeros([n], dtype=np.float32)
+    )
     for uid_j, wij in list(zip(uids, weights)):
         row_weights[uid_j] = float(
             wij
@@ -104,8 +123,8 @@ def convert_weight_uids_and_vals_to_tensor(
 
 def convert_root_weight_uids_and_vals_to_tensor(
     n: int, uids: List[int], weights: List[int], subnets: List[int]
-) -> NDArray[np.float32]:
-    r"""Converts root weights and uids from chain representation into a np.array (inverse operation from convert_weights_and_uids_for_emit)
+) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
+    r"""Converts root weights and uids from chain representation into a np.array or torch FloatTensor (inverse operation from convert_weights_and_uids_for_emit)
     Args:
         n: int:
             number of neurons on network.
@@ -120,7 +139,11 @@ def convert_root_weight_uids_and_vals_to_tensor(
             Converted row weights.
     """
 
-    row_weights = np.zeros([n], dtype=np.float32)
+    row_weights = (
+        torch.zeros([n], dtype=torch.float32)
+        if USE_TORCH
+        else np.zeros([n], dtype=np.float32)
+    )
     for uid_j, wij in list(zip(uids, weights)):
         if uid_j in subnets:
             index_s = subnets.index(uid_j)
@@ -137,7 +160,7 @@ def convert_root_weight_uids_and_vals_to_tensor(
 
 def convert_bond_uids_and_vals_to_tensor(
     n: int, uids: List[int], bonds: List[int]
-) -> NDArray[np.int64]:
+) -> Union[NDArray[np.int64], "torch.LongTensor"]:
     r"""Converts bond and uids from chain representation into a np.array.
     Args:
         n: int:
@@ -150,14 +173,19 @@ def convert_bond_uids_and_vals_to_tensor(
         row_bonds ( np.float32 ):
             Converted row bonds.
     """
-    row_bonds = np.zeros([n], dtype=np.int64)
+    row_bonds = (
+        torch.zeros([n], dtype=torch.int64)
+        if USE_TORCH
+        else np.zeros([n], dtype=np.int64)
+    )
     for uid_j, bij in list(zip(uids, bonds)):
         row_bonds[uid_j] = int(bij)
     return row_bonds
 
 
 def convert_weights_and_uids_for_emit(
-    uids: NDArray[np.int64], weights: NDArray[np.float32]
+    uids: Union[NDArray[np.int64], "torch.LongTensor"],
+    weights: Union[NDArray[np.float32], "torch.FloatTensor"],
 ) -> Tuple[List[int], List[int]]:
     r"""Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
     Args:
@@ -210,13 +238,16 @@ def convert_weights_and_uids_for_emit(
 
 
 def process_weights_for_netuid(
-    uids: NDArray[np.int64],
-    weights: NDArray[np.float32],
+    uids: Union[NDArray[np.int64], "torch.Tensor"],
+    weights: Union[NDArray[np.float32], "torch.Tensor"],
     netuid: int,
     subtensor: "bittensor.subtensor",
     metagraph: "bittensor.metagraph" = None,
     exclude_quantile: int = 0,
-) -> Tuple[NDArray[np.int64], NDArray[np.float32]]:
+) -> Union[
+    Tuple["torch.Tensor", "torch.FloatTensor"],
+    Tuple[NDArray[np.int64], NDArray[np.float32]],
+]:
     bittensor.logging.debug("process_weights_for_netuid()")
     bittensor.logging.debug("weights", weights)
     bittensor.logging.debug("netuid", netuid)
@@ -228,8 +259,12 @@ def process_weights_for_netuid(
         metagraph = subtensor.metagraph(netuid)
 
     # Cast weights to floats.
-    if not isinstance(weights, np.float32):
-        weights = weights.astype(np.float32)
+    if not USE_TORCH:
+        if not isinstance(weights, torch.FloatTensor):
+            weights = weights.type(torch.float32)
+    else:
+        if not isinstance(weights, np.float32):
+            weights = weights.astype(np.float32)
 
     # Network configuration parameters from an subtensor.
     # These parameters determine the range of acceptable weights for each neuron.
@@ -241,29 +276,54 @@ def process_weights_for_netuid(
     bittensor.logging.debug("max_weight_limit", max_weight_limit)
 
     # Find all non zero weights.
-    non_zero_weight_idx = np.argwhere(weights > 0).squeeze(axis=1)
+    non_zero_weight_idx = (
+        torch.argwhere(weights > 0).squeeze(dim=1)
+        if USE_TORCH
+        else np.argwhere(weights > 0).squeeze(axis=1)
+    )
     non_zero_weight_uids = uids[non_zero_weight_idx]
     non_zero_weights = weights[non_zero_weight_idx]
-    if non_zero_weights.size == 0 or metagraph.n < min_allowed_weights:
+    nzw_size = non_zero_weights.numel() if USE_TORCH else non_zero_weights.size
+    if nzw_size == 0 or metagraph.n < min_allowed_weights:
         bittensor.logging.warning("No non-zero weights returning all ones.")
-        final_weights = np.ones((metagraph.n), dtype=np.int64) / metagraph.n
+        final_weights = (
+            torch.ones((metagraph.n)).to(metagraph.n) / metagraph.n
+            if USE_TORCH
+            else np.ones((metagraph.n), dtype=np.int64) / metagraph.n
+        )
         bittensor.logging.debug("final_weights", final_weights)
-        return np.arange(len(final_weights)), final_weights
+        final_weights_count = (
+            torch.tensor(list(range(len(final_weights))))
+            if USE_TORCH
+            else np.arange(len(final_weights))
+        )
+        return (
+            (final_weights_count, final_weights)
+            if USE_TORCH
+            else (final_weights_count, final_weights)
+        )
 
-    elif non_zero_weights.size < min_allowed_weights:
+    elif nzw_size < min_allowed_weights:
         bittensor.logging.warning(
             "No non-zero weights less then min allowed weight, returning all ones."
         )
         # ( const ): Should this be np.zeros( ( metagraph.n ) ) to reset everyone to build up weight?
         weights = (
-            np.ones((metagraph.n), dtype=np.int64) * 1e-5
+            torch.ones((metagraph.n)).to(metagraph.n) * 1e-5
+            if USE_TORCH
+            else np.ones((metagraph.n), dtype=np.int64) * 1e-5
         )  # creating minimum even non-zero weights
         weights[non_zero_weight_idx] += non_zero_weights
         bittensor.logging.debug("final_weights", weights)
         normalized_weights = bittensor.utils.weight_utils.normalize_max_weight(
             x=weights, limit=max_weight_limit
         )
-        return np.arange(len(normalized_weights)), normalized_weights
+        nw_arange = (
+            torch.tensor(list(range(len(normalized_weights))))
+            if USE_TORCH
+            else np.arange(len(normalized_weights))
+        )
+        return nw_arange, normalized_weights
 
     bittensor.logging.debug("non_zero_weights", non_zero_weights)
 
@@ -272,7 +332,11 @@ def process_weights_for_netuid(
         non_zero_weights
     )
     exclude_quantile = min([quantile, max_exclude])
-    lowest_quantile = np.quantile(non_zero_weights, exclude_quantile)
+    lowest_quantile = (
+        non_zero_weights.quantile(exclude_quantile)
+        if USE_TORCH
+        else np.quantile(non_zero_weights, exclude_quantile)
+    )
     bittensor.logging.debug("max_exclude", max_exclude)
     bittensor.logging.debug("exclude_quantile", exclude_quantile)
     bittensor.logging.debug("lowest_quantile", lowest_quantile)

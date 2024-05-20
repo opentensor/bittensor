@@ -34,7 +34,6 @@ class Torch:
         raise ImportError
 
     def __bool__(self):
-        self._error()
         return False
 
     def __getattr__(self, *_):
