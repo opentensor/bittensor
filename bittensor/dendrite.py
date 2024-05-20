@@ -28,7 +28,9 @@ import bittensor
 from typing import Union, Optional, List, Union, AsyncGenerator, Any
 from .utils import torch
 
-USE_TORCH = True if os.getenv("USE_TORCH") == "1" else False
+
+def use_torch() -> bool:
+    return True if os.getenv("USE_TORCH") == "1" else False
 
 
 class DendriteMixin:
@@ -811,12 +813,12 @@ class DendriteMixin:
         self.close_session()
 
 
-BaseClass = torch.nn.Module if USE_TORCH else object
+BaseClass = torch.nn.Module if use_torch() else object
 
 
 class dendrite(DendriteMixin, BaseClass):
     def __init__(self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None):
-        if USE_TORCH:
+        if use_torch():
             torch.nn.Module.__init__(self)
         DendriteMixin.__init__(self, wallet)
 

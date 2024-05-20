@@ -58,6 +58,7 @@ class TestMetagraph:
         self.metagraph.save()
 
     def test_load_sync_save_from_torch(self):
+        os.environ["USE_TORCH"] = "1"
         self.metagraph.sync(lite=True, subtensor=self.sub)
 
         def deprecated_save_torch(metagraph):
@@ -73,6 +74,7 @@ class TestMetagraph:
 
         deprecated_save_torch(self.metagraph)
         self.metagraph.load()
+        os.unsetenv("USE_TORCH")
 
     def test_state_dict(self):
         self.metagraph.load()

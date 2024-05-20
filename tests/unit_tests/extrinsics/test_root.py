@@ -1,3 +1,4 @@
+import os
 import pytest
 from unittest.mock import MagicMock, patch
 from bittensor.subtensor import subtensor as Subtensor
@@ -19,6 +20,11 @@ def mock_wallet():
     mock = MagicMock()
     mock.hotkey.ss58_address = "fake_hotkey_address"
     return mock
+
+
+@pytest.fixture(autouse=True)
+def set_use_torch_env(monkeypatch):
+    monkeypatch.setenv("USE_TORCH", "1")
 
 
 @pytest.mark.parametrize(
@@ -70,6 +76,8 @@ def mock_wallet():
         "failure-prompt-declined",
     ],
 )
+
+
 def test_root_register_extrinsic(
     mock_subtensor,
     mock_wallet,
