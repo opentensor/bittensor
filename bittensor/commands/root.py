@@ -15,8 +15,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import re
-import numpy as np
 import typing
 import argparse
 import numpy as np
@@ -24,7 +24,7 @@ import bittensor
 from typing import List, Optional, Dict
 from rich.prompt import Prompt
 from rich.table import Table
-from .utils import get_delegates_details, DelegatesDetails
+from .utils import get_delegates_details, DelegatesDetails, maybe_get_torch
 
 from . import defaults
 
@@ -301,7 +301,11 @@ class RootSetBoostCommand:
             f"Boosting weight for netuid {cli.config.netuid} from {prev_weight} -> {new_weight}"
         )
         my_weights[cli.config.netuid] = new_weight
-        all_netuids = np.arange(len(my_weights))
+        all_netuids = (
+            maybe_get_torch().tensor(list(range(len(my_weights))))
+            if os.environ.get("USE_TORCH")
+            else np.arange(len(my_weights))
+        )
 
         bittensor.__console__.print("Setting root weights...")
         subtensor.root_set_weights(
@@ -419,7 +423,11 @@ class RootSetSlashCommand:
         my_weights = root.weights[my_uid]
         my_weights[cli.config.netuid] -= cli.config.amount
         my_weights[my_weights < 0] = 0  # Ensure weights don't go negative
-        all_netuids = np.arange(len(my_weights))
+        all_netuids = (
+            maybe_get_torch().tensor(list(range(len(my_weights))))
+            if os.environ.get("USE_TORCH")
+            else np.arange(len(my_weights))
+        )
 
         subtensor.root_set_weights(
             wallet=wallet,
@@ -520,12 +528,21 @@ class RootSetWeightsCommand:
             cli.config.weights = Prompt.ask(f"Enter weights (e.g. {example})")
 
         # Parse from string
-        netuids = np.array(
-            list(map(int, re.split(r"[ ,]+", cli.config.netuids))), dtype=np.int64
+        matched_netuids = list(map(int, re.split(r"[ ,]+", cli.config.netuids)))
+        netuids = (
+            maybe_get_torch().tensor(matched_netuids, dtype=maybe_get_torch().long)
+            if os.environ.get("USE_TORCH")
+            else np.array(matched_netuids, dtype=np.int64)
         )
-        weights = np.array(
-            list(map(float, re.split(r"[ ,]+", cli.config.weights))),
-            dtype=np.float32,
+
+        matched_weights = list(map(float, re.split(r"[ ,]+", cli.config.weights)))
+        weights = (
+            maybe_get_torch().tensor(matched_weights, dtype=maybe_get_torch().float32)
+            if os.environ.get("USE_TORCH")
+            else np.array(
+                matched_weights,
+                dtype=np.float32,
+            )
         )
 
         # Run the set weights operation.
