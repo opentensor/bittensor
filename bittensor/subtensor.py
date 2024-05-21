@@ -41,6 +41,7 @@ from .chain_data import (
     SubnetInfo,
     SubnetHyperparameters,
     StakeInfo,
+    SubnetStakeInfo,
     NeuronInfoLite,
     AxonInfo,
     ProposalVoteData,
@@ -3393,13 +3394,13 @@ class subtensor:
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
         """Returns the total stake held on a hotkey including delegative"""
-        return self.get_total_stake_for_key(ss58_address, "delegateInfo_getTotalStakeForColdkey", block)
+        return self.get_total_stake_for_key(ss58_address, "delegateInfo_getTotalStakeForHotkey", block)
 
     def get_total_stake_for_coldkey(
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
         """Returns the total stake held on a coldkey for all its hotkeys"""
-        return self.get_total_stake_for_key(ss58_address, "delegateInfo_getTotalStakeForHotkey", block)
+        return self.get_total_stake_for_key(ss58_address, "delegateInfo_getTotalStakeForColdkey", block)
 
     def get_stake_for_coldkey_and_hotkey(
         self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
@@ -4266,6 +4267,42 @@ class subtensor:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
         return StakeInfo.list_of_tuple_from_vec_u8(bytes_result)  # type: ignore
+
+    def get_subnet_stake_info_for_coldkey(
+        self, coldkey_ss58: str, netuid: int, block: Optional[int] = None
+    ) -> Optional[List[SubnetStakeInfo]]:
+        """
+        Retrieves stake information associated with a specific coldkey. This function provides details
+        about the stakes held by an account, including the staked amounts and associated delegates.
+
+        Args:
+            coldkey_ss58 (str): The ``SS58`` address of the account's coldkey.
+            netuid (int): The Subnet ID.
+            block (Optional[int], optional): The blockchain block number for the query.
+
+        Returns:
+            List[SubnetStakeInfo]: A list of SubnetStakeInfo objects detailing the stake allocations for the account.
+
+        Stake information is vital for account holders to assess their investment and participation
+        in the network's delegation and consensus processes.
+        """
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_subnet_stake_info_for_coldkey",
+            params=[encoded_coldkey, netuid],  # type: ignore
+            block=block,
+        )
+
+        if hex_bytes_result is None:
+            return None
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+        return SubnetStakeInfo.list_from_vec_u8(bytes_result)
 
     ########################################
     #### Neuron information per subnet ####

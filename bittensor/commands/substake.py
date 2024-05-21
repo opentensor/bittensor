@@ -150,7 +150,7 @@ class SubStakeCommand:
         final_hotkeys: List[Tuple[str, str]] = []
         final_amounts: List[Union[float, Balance]] = []
         for hotkey in tqdm(hotkeys_to_stake_to):
-            hotkey_balance = subtensor.get_balance(hotkey)
+            hotkey_balance = subtensor.get_balance(hotkey[1])
             print(f"Hotkey balance: {hotkey_balance}")
             hotkey: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
             if not subtensor.is_hotkey_registered_any(hotkey_ss58=hotkey[1]):

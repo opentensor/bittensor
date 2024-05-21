@@ -23,6 +23,20 @@ from typing import Union, Optional, List
 from bittensor.utils.balance import Balance
 from loguru import logger
 
+# Maximum slippage percentage
+# MAX_SLIPPAGE_PCT = 5.0
+MAX_SLIPPAGE_PCT = 0.01
+
+def get_total_coldkey_stake_for_netuid(
+    subtensor: "bittensor.subtensor",
+    coldkey_ss58: str, 
+    netuid: int,
+) -> bittensor.Balance:
+    stake_info = subtensor.get_subnet_stake_info_for_coldkey(coldkey_ss58=coldkey_ss58, netuid=netuid)
+    stake = 0
+    for info in stake_info:
+        stake += info.stake
+    return stake
 
 def add_substake_extrinsic(
     subtensor: "bittensor.subtensor",
@@ -61,8 +75,7 @@ def add_substake_extrinsic(
         bittensor.errors.NotDelegateError:
             If the hotkey is not a delegate on the chain.
     """
-    # Decrypt keys,
-    wallet.coldkey
+    # Get dynamic pool info for slippage calculation
     dynamic_info = subtensor.get_dynamic_info_for_netuid(netuid)
 
     # Default to wallet's own hotkey if the value is not passed.
@@ -92,11 +105,7 @@ def add_substake_extrinsic(
             hotkey_take = subtensor.get_delegate_take(hotkey_ss58)
 
         # Get current stake
-        old_stake = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
-            coldkey_ss58=wallet.coldkeypub.ss58_address,
-            hotkey_ss58=hotkey_ss58,
-            netuid=netuid,
-        )
+        old_stake = get_total_coldkey_stake_for_netuid(subtensor, coldkey_ss58=wallet.coldkeypub.ss58_address, netuid=netuid)
 
     # Convert to bittensor.Balance
     if amount == None:
@@ -122,41 +131,40 @@ def add_substake_extrinsic(
         )
         return False
 
-    # Set maximum slippage percentage
-    max_slippage_pct = 5.0
-
     # Calculate slippage
     subnet_stake_amount_tao = bittensor.Balance.from_tao(staking_balance.tao)
     alpha_returned, slippage = dynamic_info.tao_to_alpha_with_slippage(
         subnet_stake_amount_tao
     )
-    slippage_pct = 100 * (1 - float(alpha_returned) / float(subnet_stake_amount_tao))
+    slippage_pct = 0
+    if slippage + alpha_returned != 0:
+        slippage_pct = 100 * float(slippage) / float(slippage + alpha_returned)
+
     logger.debug(
         f"Slippage for subnet {netuid}: {slippage} TAO, Tao staked {subnet_stake_amount_tao}, Alpha returned {alpha_returned}, Slippage percent {slippage_pct:.2f}%"
     )
 
     # Check if slippage exceeds the maximum threshold
-    if slippage_pct > max_slippage_pct:
+    if slippage_pct > MAX_SLIPPAGE_PCT:
         bittensor.__console__.print(
-            f":warning: [yellow]Warning:[/yellow] Slippage exceeds {max_slippage_pct}% for subnet {netuid}: {bittensor.Balance.from_tao(slippage)} TAO ({slippage_pct:.2f}%)"
+            f":warning: [yellow]Warning:[/yellow]"
+        )
+        bittensor.__console__.print(
+            f"  Slippage exceeds {MAX_SLIPPAGE_PCT}% for subnet {netuid}: {bittensor.Balance.from_tao(slippage.tao).set_unit(netuid)} ({slippage_pct:.2f}%)"
+        )
+        estimated = bittensor.Balance.from_tao(alpha_returned.tao).set_unit(netuid)
+        expected = bittensor.Balance.from_tao(slippage.tao + alpha_returned.tao).set_unit(netuid)
+        bittensor.__console__.print(
+            f"  You will only receive {estimated} vs. expected {expected}"
         )
         if prompt:
             if not Confirm.ask(
                 "Do you want to proceed with staking despite the high slippage?"
             ):
                 return False
-        # else:
-        #     bittensor.logging.warning(
-        #         "Skipping high slippage warning and proceeding with staking."
-        #     )
 
-    # Check if any slippage exceeds the maximum threshold
-    if slippage_pct > max_slippage_pct:
-        bittensor.__console__.print(
-            f":warning: [yellow]Warning:[/yellow] Slippage exceeds {max_slippage_pct}% for subnet {netuid}: {bittensor.Balance.from_tao(slippage)} TAO ({slippage_pct:.2f}%)"
-        )
-        if not Confirm.ask("Do you want to proceed with staking?"):
-            return False
+    # Decrypt keys,
+    wallet.coldkey
 
     try:
         with bittensor.__console__.status(
@@ -205,14 +213,7 @@ def add_substake_extrinsic(
                 new_balance = subtensor.get_balance(
                     address=wallet.coldkeypub.ss58_address
                 )
-                block = subtensor.get_current_block()
-                new_stake = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
-                    coldkey_ss58=wallet.coldkeypub.ss58_address,
-                    hotkey_ss58=hotkey_ss58,
-                    block=block,
-                    netuid=netuid,
-                )  # Get current stake
-
+                new_stake = get_total_coldkey_stake_for_netuid(subtensor, coldkey_ss58=wallet.coldkeypub.ss58_address, netuid=netuid)
                 bittensor.__console__.print(
                     "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
                         old_balance, new_balance

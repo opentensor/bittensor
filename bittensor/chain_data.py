@@ -158,6 +158,14 @@ custom_rpc_type_registry = {
                 ["stake", "Compact<u64>"],
             ],
         },
+         "SubnetStakeInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["hotkey", "AccountId"],
+                ["netuid", "u16"],
+                ["stake", "Compact<u64>"],
+            ],
+        },       
         "SubstakeElements": {
             "type": "struct",
             "type_mapping": [
@@ -208,6 +216,7 @@ class ChainDataType(Enum):
     IPInfo = 7
     SubnetHyperparameters = 8
     SubstakeElements = 9
+    SubnetStakeInfo = 10
 
 
 def from_scale_encoding(
@@ -288,7 +297,10 @@ class DynamicPool:
         return self.__str__()
 
     def tao_to_alpha(self, tao: Union[float, Balance]) -> Balance:
-        return Balance.from_tao(tao / self.price.tao).set_unit(self.netuid)
+        if self.price.tao != 0:
+            return Balance.from_tao(tao / self.price.tao).set_unit(self.netuid)
+        else:
+            return Balance.from_tao(0)
 
     def alpha_to_tao(self, alpha: Union[float, Balance]) -> Balance:
         return Balance.from_tao(alpha * self.price.tao)
@@ -296,14 +308,31 @@ class DynamicPool:
     def tao_to_alpha_with_slippage(
         self, tao: Union[float, Balance]
     ) -> Tuple[Balance, Balance]:
-        if self.tao_reserve.rao == 0 or self.alpha_reserve.rao == 0:
+        """
+        Returns an estimate of how much Alpha would a staker receive if they stake their tao 
+        using the current pool state
+
+        Args:
+            tao: Amount of TAO to stake.
+
+        Returns:
+            Tuple of balances where the first part is the amount of Alpha received, and the 
+            second part (slippage) is the difference between the estimated amount and ideal 
+            amount as if there was no slippage
+        """
+        new_tao_in = self.tao_reserve + tao
+        if new_tao_in == 0:
             return Balance.from_tao(tao), Balance.from_rao(0)
+        new_alpha_in = self.k / new_tao_in
+
+        # Amount of alpha given to the staker
         alpha_returned = Balance.from_rao(
-            self.alpha_reserve.rao
-            - (self.k / (self.tao_reserve.rao + Balance.from_tao(tao).rao))
+            self.alpha_reserve.rao - new_alpha_in.rao
         ).set_unit(self.netuid)
-        to_alpha = self.tao_to_alpha(tao)
-        slippage = Balance.from_tao(to_alpha.tao - alpha_returned.tao).set_unit(
+
+        # Ideal conversion as if there is no slippage, just price
+        alpha_ideal = self.tao_to_alpha(tao.tao)
+        slippage = Balance.from_tao(alpha_ideal.tao - alpha_returned.tao).set_unit(
             self.netuid
         )
         return alpha_returned, slippage
@@ -954,6 +983,76 @@ class StakeInfo:
             return []
 
         decoded = [StakeInfo.fix_decoded_values(d) for d in decoded]
+
+        return decoded
+
+@dataclass
+class SubnetStakeInfo:
+    r"""
+    Dataclass for subnet stake info.
+    """
+
+    hotkey_ss58: str  # Hotkey address
+    netuid: int # Subnet ID
+    stake: Balance  # Stake for the hotkey-coldkey pair
+
+    @classmethod
+    def fix_decoded_values(cls, decoded: Any) -> "SubnetStakeInfo":
+        r"""Fixes the decoded values."""
+
+        return cls(
+            hotkey_ss58=ss58_encode(decoded["hotkey"], bittensor.__ss58_format__),
+            netuid=decoded["netuid"],
+            stake=Balance.from_rao(decoded["stake"]),
+        )
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetStakeInfo"]:
+        r"""Returns a SubnetStakeInfo object from a ``vec_u8``."""
+        if len(vec_u8) == 0:
+            return None
+
+        decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetStakeInfo)
+
+        if decoded is None:
+            return None
+
+        decoded = SubnetStakeInfo.fix_decoded_values(decoded)
+
+        return decoded
+
+    @classmethod
+    def list_of_tuple_from_vec_u8(
+        cls, vec_u8: List[int]
+    ) -> Dict[str, List["SubnetStakeInfo"]]:
+        r"""Returns a list of SubnetStakeInfo objects from a ``vec_u8``."""
+        decoded: Optional[List[Tuple(str, List[object])]] = (
+            from_scale_encoding_using_type_string(
+                input=vec_u8, type_string="Vec<(AccountId, Vec<SubnetStakeInfo>)>"
+            )
+        )
+
+        if decoded is None:
+            return {}
+
+        stake_map = {
+            ss58_encode(address=account_id, ss58_format=bittensor.__ss58_format__): [
+                SubnetStakeInfo.fix_decoded_values(d) for d in stake_info
+            ]
+            for account_id, stake_info in decoded
+        }
+
+        return stake_map
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetStakeInfo"]:
+        r"""Returns a list of SubnetStakeInfo objects from a ``vec_u8``."""
+        decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetStakeInfo, is_vec=True)
+
+        if decoded is None:
+            return []
+
+        decoded = [SubnetStakeInfo.fix_decoded_values(d) for d in decoded]
 
         return decoded
 
