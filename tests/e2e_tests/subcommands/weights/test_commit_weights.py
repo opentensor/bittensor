@@ -1,5 +1,6 @@
 from bittensor.commands.weights import CommitWeightCommand, RevealWeightCommand
 from bittensor.commands.network import RegisterSubnetworkCommand
+from bittensor.commands import RegisterCommand
 import bittensor
 from tests.e2e_tests.utils import setup_wallet
 import time
@@ -9,6 +10,9 @@ def test_commit_and_reveal_weights(local_chain):
     # Register root as Alice
     (alice_keypair, exec_command) = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
+
+    # Register a neuron to the subnet
+    exec_command(RegisterCommand, ["s", "register", "--neduid", "1"])
 
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
@@ -42,6 +46,18 @@ def test_commit_and_reveal_weights(local_chain):
         prompt=False,
     )
     assert result, "Failed to set commit/reveal interval"
+
+    result = subtensor.set_hyperparameter(
+        wallet=wallet,
+        netuid=1,
+        parameter="weights_rate_limit",
+        value=0,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+        prompt=False,
+    )
+    assert result, "Failed to set weights rate limit"
+
 
     # Configure the CLI arguments for the CommitWeightCommand
     exec_command(
