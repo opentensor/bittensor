@@ -2303,7 +2303,7 @@ class subtensor:
 
     def get_commitment(self, netuid: int, uid: int, block: Optional[int] = None) -> str:
         metagraph = self.metagraph(netuid)
-        hotkey = metagraph.hotkeys[uid]
+        hotkey = metagraph.hotkeys[uid]  # type: ignore
 
         metadata = get_metadata(self, netuid, hotkey, block)
         commitment = metadata["info"]["fields"][0]  # type: ignore
@@ -4110,7 +4110,7 @@ class subtensor:
         netuid: int,
         lite: bool = True,
         block: Optional[int] = None,
-    ) -> "bittensor.metagraph":
+    ) -> "bittensor.metagraph":  # type: ignore
         """
         Returns a synced metagraph for a specified subnet within the Bittensor network. The metagraph
         represents the network's structure, including neuron connections and interactions.

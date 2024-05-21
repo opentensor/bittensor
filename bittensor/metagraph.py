@@ -25,10 +25,10 @@ from numpy.typing import NDArray
 import bittensor
 from os import listdir
 from os.path import join
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple, Any
 
 from bittensor.chain_data import AxonInfo
-from bittensor.utils.registration import torch
+from bittensor.utils.registration import torch, Torch
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "version",
@@ -153,6 +153,28 @@ class MetagraphMixin(ABC):
 
             hotkeys = deepcopy(metagraph.hotkeys)
     """
+
+    netuid: int
+    network: str
+    version: Union["torch.nn.Parameter", Tuple[NDArray]]
+    n: Union["torch.nn.Parameter", NDArray]
+    block: Union["torch.nn.Parameter", NDArray]
+    stake: Union["torch.nn.Parameter", NDArray]
+    total_stake: Union["torch.nn.Parameter", NDArray]
+    ranks: Union["torch.nn.Parameter", NDArray]
+    trust: Union["torch.nn.Parameter", NDArray]
+    consensus: Union["torch.nn.Parameter", NDArray]
+    validator_trust: Union["torch.nn.Parameter", NDArray]
+    incentive: Union["torch.nn.Parameter", NDArray]
+    emission: Union["torch.nn.Parameter", NDArray]
+    dividends: Union["torch.nn.Parameter", NDArray]
+    active: Union["torch.nn.Parameter", NDArray]
+    last_update: Union["torch.nn.Parameter", NDArray]
+    validator_permit: Union["torch.nn.Parameter", NDArray]
+    weights: Union["torch.nn.Parameter", NDArray]
+    bonds: Union["torch.nn.Parameter", NDArray]
+    uids: Union["torch.nn.Parameter", NDArray]
+    axons: List[AxonInfo]
 
     @property
     def S(self) -> Union[NDArray, "torch.nn.Parameter"]:
@@ -348,7 +370,9 @@ class MetagraphMixin(ABC):
         return [axon.ip_str() for axon in self.axons]
 
     @abstractmethod
-    def __init__(self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True):
+    def __init__(
+        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
+    ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
         This method is the entry point for creating a metagraph object,
@@ -577,7 +601,11 @@ class MetagraphMixin(ABC):
                 self.stake = self._create_tensor(neuron_stakes, dtype=np.float32)
         """
         # TODO: Check and test the creation of tensor
-        return torch.nn.Parameter(torch.tensor(data, dtype=dtype), requires_grad=False) if use_torch() else  np.array(data, dtype=dtype)
+        return (
+            torch.nn.Parameter(torch.tensor(data, dtype=dtype), requires_grad=False)
+            if use_torch()
+            else np.array(data, dtype=dtype)
+        )
 
     def _set_weights_and_bonds(self, subtensor: Optional[bittensor.subtensor] = None):
         """
@@ -604,7 +632,9 @@ class MetagraphMixin(ABC):
                 [neuron.bonds for neuron in self.neurons], "bonds"
             )
 
-    def _process_weights_or_bonds(self, data, attribute: str) -> Union[NDArray, "torch.nn.Parameter"]:
+    def _process_weights_or_bonds(
+        self, data, attribute: str
+    ) -> Union[NDArray, "torch.nn.Parameter"]:
         """
         Processes the raw weights or bonds data and converts it into a structured tensor format. This method handles the transformation of neuron connection data (``weights`` or ``bonds``) from a list or other unstructured format into a tensor that can be utilized within the metagraph model.
 
@@ -624,32 +654,38 @@ class MetagraphMixin(ABC):
         for item in data:
             if len(item) == 0:
                 if use_torch():
-                    data_array.append(torch.zeros(len(self.neurons)))
+                    data_array.append(torch.zeros(len(self.neurons)))  # type: ignore
                 else:
-                    data_array.append(np.zeros(len(self.neurons), dtype=np.float32))
+                    data_array.append(np.zeros(len(self.neurons), dtype=np.float32))  # type: ignore
             else:
                 uids, values = zip(*item)
                 # TODO: Validate and test the conversion of uids and values to tensor
                 if attribute == "weights":
                     data_array.append(
                         bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor(
-                            len(self.neurons), list(uids), list(values)
+                            len(self.neurons), list(uids), list(values)  # type: ignore
                         )
                     )
                 else:
                     data_array.append(
-                        bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor(
+                        bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor(  # type: ignore
                             len(self.neurons), list(uids), list(values)
                         ).astype(
                             np.float32
                         )
                     )
-        tensor_param = (
-            torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
-            if len(data_array)
-            else torch.nn.Parameter()
-        ) if use_torch() else (
-            np.stack(data_array) if len(data_array) else np.array([], dtype=np.float32)
+        tensor_param: Union["torch.nn.Parameter", NDArray] = (
+            (
+                torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
+                if len(data_array)
+                else torch.nn.Parameter()
+            )
+            if use_torch()
+            else (
+                np.stack(data_array)
+                if len(data_array)
+                else np.array([], dtype=np.float32)
+            )
         )
         if len(data_array) == 0:
             bittensor.logging.warning(
@@ -691,22 +727,28 @@ class MetagraphMixin(ABC):
                 if use_torch():
                     data_array.append(torch.zeros(n_subnets))
                 else:
-                    data_array.append(np.zeros(n_subnets, dtype=np.float32))
+                    data_array.append(np.zeros(n_subnets, dtype=np.float32))  # type: ignore
             else:
                 uids, values = zip(*item)
                 # TODO: Validate and test the conversion of uids and values to tensor
                 data_array.append(
-                    bittensor.utils.weight_utils.convert_root_weight_uids_and_vals_to_tensor(
+                    bittensor.utils.weight_utils.convert_root_weight_uids_and_vals_to_tensor(  # type: ignore
                         n_subnets, list(uids), list(values), subnets
                     )
                 )
 
-        tensor_param = (
-            torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
-            if len(data_array)
-            else torch.nn.Parameter()
-        ) if use_torch() else (
-            np.stack(data_array) if len(data_array) else np.array([], dtype=np.float32)
+        tensor_param: Union[NDArray, "torch.nn.Parameter"] = (
+            (
+                torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
+                if len(data_array)
+                else torch.nn.Parameter()
+            )
+            if use_torch()
+            else (
+                np.stack(data_array)
+                if len(data_array)
+                else np.array([], dtype=np.float32)
+            )
         )
         if len(data_array) == 0:
             bittensor.logging.warning(
@@ -714,7 +756,7 @@ class MetagraphMixin(ABC):
             )
         return tensor_param
 
-    def save(self) -> "metagraph":
+    def save(self) -> "metagraph":  # type: ignore
         """
         Saves the current state of the metagraph to a file on disk. This function is crucial for persisting the current state of the network's metagraph, which can later be reloaded or analyzed. The save operation includes all neuron attributes and parameters, ensuring a complete snapshot of the metagraph's state.
 
@@ -739,13 +781,15 @@ class MetagraphMixin(ABC):
         save_directory = get_save_dir(self.network, self.netuid)
         os.makedirs(save_directory, exist_ok=True)
         if use_torch():
-            graph_file = save_directory + f"/block-{self.block.item()}.pt"
+            graph_filename = f"{save_directory}/block-{self.block.item()}.pt"
             state_dict = self.state_dict()
             state_dict["axons"] = self.axons
-            torch.save(state_dict, graph_file)
-            state_dict = torch.load(graph_file)  # verifies that the file can be loaded correctly
+            torch.save(state_dict, graph_filename)
+            state_dict = torch.load(
+                graph_filename
+            )  # verifies that the file can be loaded correctly
         else:
-            graph_filename = save_directory + f"/block-{self.block.item()}.pt"
+            graph_filename = f"{save_directory}/block-{self.block.item()}.pt"
             state_dict = self.state_dict()
             with open(graph_filename, "wb") as graph_file:
                 pickle.dump(state_dict, graph_file)
@@ -777,7 +821,7 @@ class MetagraphMixin(ABC):
         self.load_from_path(get_save_dir(self.network, self.netuid))
 
     @abstractmethod
-    def load_from_path(self, dir_path: str) -> "metagraph":
+    def load_from_path(self, dir_path: str) -> "metagraph":  # type: ignore
         """
         Loads the state of the metagraph from a specified directory path. This method is crucial for restoring the metagraph to a specific state based on saved data. It locates the latest block file in the given
         directory and loads all metagraph parameters from it. This is particularly useful for analyses that require historical states of the network or for restoring previous states of the metagraph in different
@@ -810,9 +854,9 @@ class MetagraphMixin(ABC):
 BaseClass = torch.nn.Module if use_torch() else object
 
 
-class TorchMetaGraph(MetagraphMixin, BaseClass):
+class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
     def __init__(
-                self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
+        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
@@ -953,7 +997,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         )
         self.axons = [n.axon_info for n in self.neurons]
 
-    def load_from_path(self, dir_path: str) -> "metagraph":
+    def load_from_path(self, dir_path: str) -> "metagraph":  # type: ignore
         graph_file = latest_block_path(dir_path)
         state_dict = torch.load(graph_file)
         self.n = torch.nn.Parameter(state_dict["n"], requires_grad=False)
@@ -998,7 +1042,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
 
 class NonTorchMetagraph(MetagraphMixin):
     def __init__(
-            self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
+        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
     ):
         # super(metagraph, self).__init__()
         MetagraphMixin.__init__(self, netuid, network, lite, sync)
@@ -1091,7 +1135,7 @@ class NonTorchMetagraph(MetagraphMixin):
         )
         self.axons = [n.axon_info for n in self.neurons]
 
-    def load_from_path(self, dir_path: str) -> "metagraph":
+    def load_from_path(self, dir_path: str) -> "metagraph":  # type: ignore
         graph_filename = latest_block_path(dir_path)
         try:
             with open(graph_filename, "rb") as graph_file:
@@ -1105,10 +1149,13 @@ class NonTorchMetagraph(MetagraphMixin):
                 "metagraph state from legacy saves, but will not be supported in the future."
             )
             try:
-                state_dict = torch.load(graph_filename)
+                import torch as real_torch
+
+                state_dict = real_torch.load(graph_filename)
                 for key in METAGRAPH_STATE_DICT_NDARRAY_KEYS:
                     state_dict[key] = state_dict[key].detach().numpy()
-            except RuntimeError:
+                del real_torch
+            except (RuntimeError, ImportError):
                 bittensor.__console__.print("Unable to load file. It may be corrupted.")
                 raise
 
@@ -1133,6 +1180,7 @@ class NonTorchMetagraph(MetagraphMixin):
         if "bonds" in state_dict:
             self.bonds = state_dict["bonds"]
         return self
+
 
 print("USE_TORCH", use_torch())
 metagraph = TorchMetaGraph if use_torch() else NonTorchMetagraph
