@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import json
 import base64
-import typing
+from typing import List, Optional
 
 import pydantic_core
 import pytest
@@ -25,7 +25,7 @@ import bittensor
 
 def test_parse_headers_to_inputs():
     class Test(bittensor.Synapse):
-        key1: typing.List[int]
+        key1: List[int]
 
     # Define a mock headers dictionary to use for testing
     headers = {
@@ -60,7 +60,7 @@ def test_parse_headers_to_inputs():
 
 def test_from_headers():
     class Test(bittensor.Synapse):
-        key1: typing.List[int]
+        key1: List[int]
 
     # Define a mock headers dictionary to use for testing
     headers = {
@@ -130,16 +130,14 @@ def test_custom_synapse():
     class Test(bittensor.Synapse):
         a: int  # Carried through because required.
         b: int = None  # Not carried through headers
-        c: typing.Optional[int]  # Required, carried through headers, cannot be None
-        d: typing.Optional[
-            typing.List[int]
-        ]  # Required, carried though headers, cannot be None
-        e: typing.List[int]  # Carried through headers
-        f: typing.Optional[
+        c: Optional[int]  # Required, carried through headers, cannot be None
+        d: Optional[List[int]]  # Required, carried though headers, cannot be None
+        e: List[int]  # Carried through headers
+        f: Optional[
             int
         ] = None  # Not Required, Not carried through headers, can be None
-        g: typing.Optional[
-            typing.List[int]
+        g: Optional[
+            List[int]
         ] = None  # Not Required, Not carried though headers, can be None
 
     # Create an instance of the custom Synapse subclass

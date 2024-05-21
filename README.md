@@ -273,7 +273,7 @@ Synapse: Responsible for defining the protocol definition between axon servers a
 ```python
 class Topk( bittensor.Synapse ):
     topk: int = 2  # Number of "top" elements to select
-    input: bittensor.Tensor = pydantic.Field(..., allow_mutation=False)  # Ensure that input cannot be set on the server side. 
+    input: bittensor.Tensor = pydantic.Field(..., frozen=True)  # Ensure that input cannot be set on the server side. 
     v: bittensor.Tensor = None
     i: bittensor.Tensor = None
 
