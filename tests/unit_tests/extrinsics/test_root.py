@@ -1,4 +1,3 @@
-import os
 import pytest
 from unittest.mock import MagicMock, patch
 from bittensor.subtensor import subtensor as Subtensor

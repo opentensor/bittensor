@@ -17,7 +17,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
-import os
 import time
 from rich.prompt import Confirm
 from typing import List, Union, Optional, Tuple

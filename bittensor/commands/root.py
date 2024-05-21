@@ -15,7 +15,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
 import re
 import typing
 import argparse
@@ -536,7 +535,9 @@ class RootSetWeightsCommand:
             else np.array(matched_netuids, dtype=np.int64)
         )
 
-        matched_weights = [float(weight) for weight in re.split(r"[ ,]+", cli.config.weights)]
+        matched_weights = [
+            float(weight) for weight in re.split(r"[ ,]+", cli.config.weights)
+        ]
         weights = (
             torch.tensor(matched_weights, dtype=torch.float32)
             if use_torch()

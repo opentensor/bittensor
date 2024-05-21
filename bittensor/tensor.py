@@ -1,7 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2022 Opentensor Foundation
-import os
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -124,9 +123,7 @@ def cast_shape(raw: Union[None, List[int], str]) -> str:
 class tensor:
     def __new__(cls, tensor: Union[list, np.ndarray, "torch.Tensor"]):
         if isinstance(tensor, list) or isinstance(tensor, np.ndarray):
-            tensor = (
-                torch.tensor(tensor) if use_torch() else np.array(tensor)
-            )
+            tensor = torch.tensor(tensor) if use_torch() else np.array(tensor)
         return Tensor.serialize(tensor=tensor)
 
 
@@ -151,9 +148,7 @@ class Tensor(pydantic.BaseModel):
 
     def numpy(self) -> "numpy.ndarray":
         return (
-            self.deserialize().detach().numpy()
-            if use_torch()
-            else self.deserialize()
+            self.deserialize().detach().numpy() if use_torch() else self.deserialize()
         )
 
     def deserialize(self) -> Union["np.ndarray", "torch.Tensor"]:

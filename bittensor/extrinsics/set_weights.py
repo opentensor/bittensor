@@ -19,7 +19,6 @@
 import bittensor
 
 import logging
-import os
 import numpy as np
 from numpy.typing import NDArray
 from rich.prompt import Confirm
