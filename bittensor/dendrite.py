@@ -813,22 +813,19 @@ class DendriteMixin:
         self.close_session()
 
 
-if use_torch():
+# For back-compatibility with torch
+BaseModel = torch.nn.Module if use_torch() else object
 
-    class dendrite(DendriteMixin, torch.nn.Module):
-        def __init__(
-            self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None
-        ):
+
+class dendrite(DendriteMixin, BaseModel):
+    def __init__(self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None):
+        if use_torch():
             torch.nn.Module.__init__(self)
-            DendriteMixin.__init__(self, wallet)
+        DendriteMixin.__init__(self, wallet)
 
-else:
 
-    class dendrite(DendriteMixin):
-        def __init__(
-            self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None
-        ):
-            DendriteMixin.__init__(self, wallet)
+if not use_torch():
+    async def call(self, *args, **kwargs):
+        return await self.forward(*args, **kwargs)
 
-        async def __call__(self, *args, **kwargs):
-            return await self.forward(*args, **kwargs)
+    dendrite.__call__ = call
