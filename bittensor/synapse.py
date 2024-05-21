@@ -623,7 +623,7 @@ class Synapse(BaseModel):
             headers.update(
                 {
                     f"bt_header_axon_{k}": str(v)
-                    for k, v in self.axon.dict().items()
+                    for k, v in self.axon.model_dump().items()
                     if v is not None
                 }
             )
@@ -631,13 +631,13 @@ class Synapse(BaseModel):
             headers.update(
                 {
                     f"bt_header_dendrite_{k}": str(v)
-                    for k, v in self.dendrite.dict().items()
+                    for k, v in self.dendrite.model_dump().items()
                     if v is not None
                 }
             )
 
         # Getting the fields of the instance
-        instance_fields = self.dict()
+        instance_fields = self.model_dump()
 
         # Iterating over the fields of the instance
         for field, value in instance_fields.items():
@@ -696,7 +696,7 @@ class Synapse(BaseModel):
         hashes = []
 
         # Getting the fields of the instance
-        instance_fields = self.dict()
+        instance_fields = self.model_dump()
 
         for field, value in instance_fields.items():
             # If the field is required in the subclass schema, hash and add it.

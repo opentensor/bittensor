@@ -446,7 +446,7 @@ class dendrite:
                     # If in streaming mode, return the async_generator
                     return self.call_stream(
                         target_axon=target_axon,
-                        synapse=synapse.copy(),  # type: ignore
+                        synapse=synapse.model_copy(),  # type: ignore
                         timeout=timeout,
                         deserialize=deserialize,
                     )
@@ -454,7 +454,7 @@ class dendrite:
                     # If not in streaming mode, simply call the axon and get the response.
                     return await self.call(
                         target_axon=target_axon,
-                        synapse=synapse.copy(),  # type: ignore
+                        synapse=synapse.model_copy(),  # type: ignore
                         timeout=timeout,
                         deserialize=deserialize,
                     )
@@ -717,16 +717,16 @@ class dendrite:
         # Merge dendrite headers
         local_synapse.dendrite.__dict__.update(
             {
-                **local_synapse.dendrite.dict(exclude_none=True),  # type: ignore
-                **server_headers.dendrite.dict(exclude_none=True),  # type: ignore
+                **local_synapse.dendrite.model_dump(exclude_none=True),  # type: ignore
+                **server_headers.dendrite.model_dump(exclude_none=True),  # type: ignore
             }
         )
 
         # Merge axon headers
         local_synapse.axon.__dict__.update(
             {
-                **local_synapse.axon.dict(exclude_none=True),  # type: ignore
-                **server_headers.axon.dict(exclude_none=True),  # type: ignore
+                **local_synapse.axon.model_dump(exclude_none=True),  # type: ignore
+                **server_headers.axon.model_dump(exclude_none=True),  # type: ignore
             }
         )
 
