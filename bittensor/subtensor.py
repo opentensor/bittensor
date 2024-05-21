@@ -853,8 +853,8 @@ class subtensor:
         commit_hash = weight_utils.generate_weight_hash(
             who=wallet.hotkey.ss58_address,
             netuid=netuid,
-            uids=uids.tolist(),
-            values=weights.tolist(),
+            uids=uids,
+            values=weights,
             version_key=version_key,
         )
 
@@ -985,8 +985,8 @@ class subtensor:
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
-                    uids=uids.tolist(),
-                    weights=weights.tolist(),
+                    uids=uids,
+                    weights=weights,
                     version_key=version_key,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,

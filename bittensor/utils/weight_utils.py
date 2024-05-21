@@ -23,6 +23,8 @@ import bittensor
 from numpy.typing import NDArray
 from typing import Tuple, List
 import hashlib
+from scalecodec import ScaleBytes, U16, Vec
+from substrateinterface import Keypair
 
 U32_MAX = 4294967295
 U16_MAX = 65535
@@ -297,7 +299,7 @@ def generate_weight_hash(
     who: str, netuid: int, uids: List[int], values: List[int], version_key: int
 ) -> str:
     """
-    Generate a valid commit hash from the provided weights.
+    Generate a valid commit hash from the provided weights using SCALE codec.
 
     Args:
         who (str): The account identifier.
@@ -309,13 +311,21 @@ def generate_weight_hash(
     Returns:
         str: The generated commit hash.
     """
-    # Create a tuple of the input parameters
-    data = (who, netuid, uids, values, version_key)
 
-    # Generate Blake2b hash of the data tuple
-    blake2b_hash = hashlib.blake2b(str(data).encode(), digest_size=32).digest()
+    # Encode data using SCALE codec
+    the_who = ScaleBytes(Keypair(ss58_address=who).public_key)
+    the_netuid = ScaleBytes(netuid.to_bytes(2, "little"))
 
-    # Convert the hash to hex string and add "0x" prefix
-    commit_hash = "0x" + blake2b_hash.hex()
+    vec_uids = Vec(data=None, sub_type='U16')
+    vec_uids.value = [U16(ScaleBytes(uid.to_bytes(2, 'little'))) for uid in uids]
+    the_uids = ScaleBytes(vec_uids.encode().data)
 
-    return commit_hash
+    vec_values = Vec(data=None, sub_type='U16')
+    vec_values.value = [U16(ScaleBytes(value.to_bytes(2, 'little'))) for value in values]
+    the_values = ScaleBytes(vec_values.encode().data)
+    
+    the_version_key = ScaleBytes(version_key.to_bytes(8, "little"))
+
+    the_data = the_who + the_netuid + the_uids + the_values + the_version_key
+
+    return "0x" + hashlib.blake2b(the_data.data, digest_size=32).hexdigest()

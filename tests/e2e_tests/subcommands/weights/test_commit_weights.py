@@ -71,18 +71,6 @@ def test_commit_and_reveal_weights(local_chain):
         params=[1, wallet.hotkey.ss58_address],
     )
 
-    # Generate the expected commit hash
-    uids = [1]
-    weights = [0.1]
-    version_key = bittensor.__version_as_int__
-    expected_commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
-        who=wallet.hotkey.ss58_address,
-        netuid=1,
-        uids=uids,
-        values=weights,
-        version_key=version_key,
-    )
-
     # Assert that the committed weights are set correctly
     assert weight_commits.value is not None, "Weight commit not found in storage"
     commit_hash, commit_block = weight_commits.value
