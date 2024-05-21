@@ -224,91 +224,8 @@ class OverviewCommand:
                     ] += neuron.stake_dict[neuron.coldkey]
                     checked_hotkeys.add(neuron.hotkey)
 
-            alerts_table = Table(show_header=True, header_style="bold magenta")
-            alerts_table.add_column("🥩 alert!")
-
-            coldkeys_to_check = []
-            for coldkey_wallet in all_coldkey_wallets:
-                # Check if we have any stake with hotkeys that are not registered.
-                total_coldkey_stake_from_chain = subtensor.get_total_stake_for_coldkey(
-                    ss58_address=coldkey_wallet.coldkeypub.ss58_address
-                )
-                difference = (
-                    total_coldkey_stake_from_chain
-                    - total_coldkey_stake_from_metagraph[
-                        coldkey_wallet.coldkeypub.ss58_address
-                    ]
-                )
-                if difference == 0:
-                    continue  # We have all our stake registered.
-
-                coldkeys_to_check.append(coldkey_wallet)
-                alerts_table.add_row(
-                    "Found {} stake with coldkey {} that is not registered.".format(
-                        difference, coldkey_wallet.coldkeypub.ss58_address
-                    )
-                )
-
-            if len(coldkeys_to_check) > 0:
-                # We have some stake that is not with a registered hotkey.
-                if "-1" not in neurons:
-                    neurons["-1"] = []
-
-            # Use process pool to check each coldkey wallet for de-registered stake.
-            with ProcessPoolExecutor(
-                max_workers=max(len(coldkeys_to_check), 5)
-            ) as executor:
-                results = executor.map(
-                    OverviewCommand._get_de_registered_stake_for_coldkey_wallet,
-                    [
-                        (cli.config, all_hotkey_addresses, coldkey_wallet)
-                        for coldkey_wallet in coldkeys_to_check
-                    ],
-                )
-                executor.shutdown(wait=True)  # wait for all complete
-
-            for result in results:
-                coldkey_wallet, de_registered_stake, err_msg = result
-                if err_msg is not None:
-                    console.print(err_msg)
-
-                if len(de_registered_stake) == 0:
-                    continue  # We have no de-registered stake with this coldkey.
-
-                de_registered_neurons = []
-                for hotkey_addr, our_stake in de_registered_stake:
-                    # Make a neuron info lite for this hotkey and coldkey.
-                    de_registered_neuron = bittensor.NeuronInfoLite._null_neuron()
-                    de_registered_neuron.hotkey = hotkey_addr
-                    de_registered_neuron.coldkey = (
-                        coldkey_wallet.coldkeypub.ss58_address
-                    )
-                    de_registered_neuron.total_stake = bittensor.Balance(our_stake)
-
-                    de_registered_neurons.append(de_registered_neuron)
-
-                    # Add this hotkey to the wallets dict
-                    wallet_ = bittensor.wallet(
-                        name=wallet,
-                    )
-                    wallet_.hotkey_ss58 = hotkey_addr
-                    wallet.hotkey_str = hotkey_addr[:5]  # Max length of 5 characters
-                    # Indicates a hotkey not on local machine but exists in stake_info obj on-chain
-                    if hotkey_coldkey_to_hotkey_wallet.get(hotkey_addr) == None:
-                        hotkey_coldkey_to_hotkey_wallet[hotkey_addr] = {}
-                    hotkey_coldkey_to_hotkey_wallet[hotkey_addr][
-                        coldkey_wallet.coldkeypub.ss58_address
-                    ] = wallet_
-
-                # Add neurons to overview.
-                neurons["-1"].extend(de_registered_neurons)
-
         # Setup outer table.
         grid = Table.grid(pad_edge=False)
-
-        # If there are any alerts, add them to the grid
-        if len(alerts_table.rows) > 0:
-            grid.add_row(alerts_table)
 
         title: str = ""
         if not cli.config.get("all", d=None):
@@ -601,55 +518,6 @@ class OverviewCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
         return netuid, result, None
-
-    @staticmethod
-    def _get_de_registered_stake_for_coldkey_wallet(
-        args_tuple,
-    ) -> Tuple[
-        "bittensor.Wallet", List[Tuple[str, "bittensor.Balance"]], Optional[str]
-    ]:
-        subtensor_config, all_hotkey_addresses, coldkey_wallet = args_tuple
-
-        # List of (hotkey_addr, our_stake) tuples.
-        result: List[Tuple[str, "bittensor.Balance"]] = []
-
-        try:
-            subtensor = bittensor.subtensor(config=subtensor_config, log_verbose=False)
-
-            # Pull all stake for our coldkey
-            all_stake_info_for_coldkey = subtensor.get_stake_info_for_coldkey(
-                coldkey_ss58=coldkey_wallet.coldkeypub.ss58_address
-            )
-
-            ## Filter out hotkeys that are in our wallets
-            ## Filter out hotkeys that are delegates.
-            def _filter_stake_info(stake_info: "bittensor.StakeInfo") -> bool:
-                if stake_info.stake == 0:
-                    return False  # Skip hotkeys that we have no stake with.
-                if stake_info.hotkey_ss58 in all_hotkey_addresses:
-                    return False  # Skip hotkeys that are in our wallets.
-                if subtensor.is_hotkey_delegate(hotkey_ss58=stake_info.hotkey_ss58):
-                    return False  # Skip hotkeys that are delegates, they show up in btcli my_delegates table.
-
-                return True
-
-            all_staked_hotkeys = filter(_filter_stake_info, all_stake_info_for_coldkey)
-            result = [
-                (
-                    stake_info.hotkey_ss58,
-                    stake_info.stake.tao,
-                )  # stake is a Balance object
-                for stake_info in all_staked_hotkeys
-            ]
-
-        except Exception as e:
-            return coldkey_wallet, [], "Error: {}".format(e)
-        finally:
-            if "subtensor" in locals():
-                subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
-
-        return coldkey_wallet, result, None
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):

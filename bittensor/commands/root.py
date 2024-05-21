@@ -30,7 +30,8 @@ from . import defaults
 
 console = bittensor.__console__
 
-
+# TODO the register command sets an identity on the chain. We should use this identity rather
+# than use the github project for the identities.
 class RootRegisterCommand:
     """
     Executes the ``register`` command to register a wallet to the root network of the Bittensor network.
@@ -92,7 +93,7 @@ class RootRegisterCommand:
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
-
+# TODO should show total stake across all subnets not just root.
 class RootList:
     """
     Executes the ``list`` command to display the members of the root network on the Bittensor network.
@@ -154,23 +155,16 @@ class RootList:
         )
 
         table = Table(show_footer=False)
-        table.title = "[white]Root Network"
         table.add_column(
-            "[overline white]UID",
+            "[overline white]Member",
             footer_style="overline white",
             style="rgb(50,163,219)",
             no_wrap=True,
         )
         table.add_column(
-            "[overline white]NAME",
+            "[overline white]SENATOR",
             footer_style="overline white",
-            style="rgb(50,163,219)",
-            no_wrap=True,
-        )
-        table.add_column(
-            "[overline white]ADDRESS",
-            footer_style="overline white",
-            style="yellow",
+            style="green",
             no_wrap=True,
         )
         table.add_column(
@@ -180,32 +174,41 @@ class RootList:
             style="green",
             no_wrap=True,
         )
-        table.add_column(
-            "[overline white]SENATOR",
-            footer_style="overline white",
-            style="green",
-            no_wrap=True,
-        )
+        netuids = subtensor.get_all_subnet_netuids()
+        for netuid in netuids:
+            table.add_column(
+                f"[overline white]{netuid}",
+                footer_style="overline white",
+                style="blue",
+                no_wrap=True,
+            )
         table.show_footer = True
-
+        
+        netuids = subtensor.get_all_subnet_netuids()
         for neuron_data in root_neurons:
-            table.add_row(
-                str(neuron_data.uid),
+            substake = subtensor.get_substake_for_hotkey( neuron_data.hotkey )
+            total_stake = 0
+            per_subnet_stake = { net: 0 for net in netuids }
+            for ss in substake: 
+                per_subnet_stake[ ss['netuid'] ] += ss['stake']
+                total_stake += ss['stake'].tao
+            row = [
                 (
                     delegate_info[neuron_data.hotkey].name
                     if neuron_data.hotkey in delegate_info
-                    else ""
-                ),
-                neuron_data.hotkey,
-                "{:.5f}".format(
-                    float(subtensor.get_total_stake_for_hotkey(neuron_data.hotkey))
+                    else neuron_data.hotkey[:10]
                 ),
                 "Yes" if neuron_data.hotkey in senate_members else "No",
-            )
+                "{:.5f}".format(float(total_stake)),
+            ]
+            for net in netuids:
+                row.append( str(per_subnet_stake[net]) )
+            table.add_row( *row )
 
         table.box = None
         table.pad_edge = False
         table.width = None
+        bittensor.__console__.print("[bold]Root Network[/bold]:\n\tShows all root network participants with corresponding stake ownership in each subnet.\n")
         bittensor.__console__.print(table)
 
     @staticmethod
@@ -217,7 +220,7 @@ class RootList:
     def check_config(config: "bittensor.config"):
         pass
 
-
+# TODO repurpose (or remove) for decreasing take.
 class RootSetBoostCommand:
     """
     Executes the ``boost`` command to boost the weights for a specific subnet within the root network on the Bittensor network.
@@ -338,7 +341,7 @@ class RootSetBoostCommand:
         if not config.is_set("amount") and not config.no_prompt:
             config.amount = float(Prompt.ask(f"Enter amount (e.g. 0.01)"))
 
-
+# TODO repurpose for increasing take.
 class RootSetSlashCommand:
     """
     Executes the ``slash`` command to decrease the weights for a specific subnet within the root network on the Bittensor network.
@@ -456,6 +459,7 @@ class RootSetSlashCommand:
             config.amount = float(Prompt.ask(f"Enter decrease amount (e.g. 0.01)"))
 
 
+# TODO: repurpose to set_takes since this no longer works.
 class RootSetWeightsCommand:
     """
     Executes the ``weights`` command to set the weights for the root network on the Bittensor network.

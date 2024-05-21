@@ -89,7 +89,7 @@ __ss58_format__ = 42
 # Wallet ss58 address length
 __ss58_address_length__ = 48
 
-__networks__ = ["local", "finney", "test", "archive"]
+__networks__ = ["local", "finney", "test", "archive", "dev"]
 
 __finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 
@@ -97,10 +97,12 @@ __finney_test_entrypoint__ = "wss://test.finney.opentensor.ai:443/"
 
 __archive_entrypoint__ = "wss://archive.chain.opentensor.ai:443/"
 
+__dev_entrypoint__ = "wss://dev.chain.opentensor.ai:443 "
+
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
-__local_entrypoint__ = "ws://127.0.0.1:9944"
+__local_entrypoint__ = "ws://127.0.0.1:9946"
 
 __tao_symbol__: str = chr(0x03C4)
 
@@ -204,6 +206,64 @@ __type_registry__ = {
         "SubnetRegistrationRuntimeApi": {
             "methods": {"get_network_registration_cost": {"params": [], "type": "u64"}}
         },
+        
+        "StakeInfoRuntimeApi": {
+            "methods": {
+                "get_stake_info_for_coldkey": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>"
+                        }
+                    ],
+                    "type": "Vec<u8>"
+                },
+                "get_stake_info_for_coldkeys": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vecs",
+                            "type": "Vec<Vec<u8>>"
+                        }
+                    ],
+                    "type": "Vec<u8>"
+                },
+                "get_subnet_stake_info_for_coldkeys": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vecs",
+                            "type": "Vec<Vec<u8>>"
+                        },
+                        {
+                            "name": "netuid",
+                            "type": "u16"
+                        }
+                    ],
+                    "type": "Vec<u8>"
+                },
+                "get_subnet_stake_info_for_coldkey": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>"
+                        },
+                        {
+                            "name": "netuid",
+                            "type": "u16"
+                        }
+                    ],
+                    "type": "Vec<u8>"
+                },
+                "get_total_subnet_stake": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16"
+                        }
+                    ],
+                    "type": "Vec<u8>"
+                }
+            }
+        }
     },
 }
 

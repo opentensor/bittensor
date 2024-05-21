@@ -62,7 +62,7 @@ defaults: Munch = munchify(
     }
 )
 
-from .stake import StakeCommand, StakeShow
+from .stake import StakeCommand, StakeWeightsCommand, StakeList
 from .unstake import UnStakeCommand
 from .overview import OverviewCommand
 from .register import (
@@ -77,6 +77,7 @@ from .delegates import (
     DelegateStakeCommand,
     DelegateUnstakeCommand,
     MyDelegatesCommand,
+    SetTakeCommand,
 )
 from .wallets import (
     NewColdkeyCommand,
@@ -119,3 +120,4 @@ from .root import (
     RootSetSlashCommand,
 )
 from .identity import GetIdentityCommand, SetIdentityCommand
+from .substake import SubStakeCommand, RemoveSubStakeCommand

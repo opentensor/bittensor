@@ -91,6 +91,8 @@ ALIAS_TO_COMMAND = {
     "sudos": "sudo",
     "i": "info",
     "info": "info",
+    "sub": "substake",
+    "substake": "substake",
 }
 COMMANDS = {
     "subnets": {
@@ -113,19 +115,22 @@ COMMANDS = {
         "help": "Commands for managing and viewing the root network.",
         "commands": {
             "list": RootList,
-            "weights": RootSetWeightsCommand,
-            "get_weights": RootGetWeightsCommand,
-            "boost": RootSetBoostCommand,
-            "slash": RootSetSlashCommand,
-            "senate_vote": VoteCommand,
+            # For root participants to vote on the root network.
+            "vote": VoteCommand,
+            # For root participants to vote on the root network.
             "senate": SenateCommand,
             "register": RootRegisterCommand,
             "proposals": ProposalsCommand,
-            "delegate": DelegateStakeCommand,
-            "undelegate": DelegateUnstakeCommand,
-            "my_delegates": MyDelegatesCommand,
+            # Sets yourself up to become a nominator.
+            # TODO deprecate this. Sets yourself up to become a nominator.
+            # "nominate": NominateCommand,
+            "set_take": SetTakeCommand,
+            # TODO write set_takes ...
+            # Deprecated.
+            # "get_weights": RootGetWeightsCommand,
+            # TODO implement this to show takes per subnet
+            # takes: show take values.
             "list_delegates": ListDelegatesCommand,
-            "nominate": NominateCommand,
         },
     },
     "wallet": {
@@ -157,9 +162,21 @@ COMMANDS = {
         "aliases": ["st", "stakes"],
         "help": "Commands for staking and removing stake from hotkey accounts.",
         "commands": {
-            "show": StakeShow,
-            "add": StakeCommand,
-            "remove": UnStakeCommand,
+            # TODO: Should Show all my stakes across subnets.
+            "list": StakeList,
+            # "add": StakeCommand,
+            # "remove": UnStakeCommand,
+            "add": SubStakeCommand,
+            "remove": RemoveSubStakeCommand,
+            # Allows a nominator to set weights for their stake across subnets.
+            "weights": StakeWeightsCommand,
+            # Delegate to a specific root member.
+            "delegate": DelegateStakeCommand,
+            # Remove stake from a root member
+            # TODO(greg): Should unstake from all associated subnets also.
+            "undelegate": DelegateUnstakeCommand,
+            # Lists all of my delegates on the root network.
+            "my_delegates": MyDelegatesCommand,
         },
     },
     "sudo": {
@@ -350,6 +367,7 @@ class cli:
         if self.config.print_completion:
             parser = cli.__create_parser__()
             shell = self.config.print_completion
+            # TODO Wat?
             print(shtab.complete(parser, shell))
             return
 

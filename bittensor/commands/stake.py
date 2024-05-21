@@ -14,18 +14,142 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
+import os
+import re
 import sys
+import torch
 import argparse
-import bittensor
 from tqdm import tqdm
+from rich.table import Table
 from rich.prompt import Confirm, Prompt
-from bittensor.utils.balance import Balance
-from typing import List, Union, Optional, Dict, Tuple
-from .utils import get_hotkey_wallets_for_wallet
+from typing import Dict, List, Optional, Tuple, Union
+
+import bittensor
 from . import defaults
+from .delegates import show_delegates
+from bittensor.utils.balance import Balance
+from .utils import get_delegates_details, get_hotkey_wallets_for_wallet, DelegatesDetails
+from substrateinterface.exceptions import SubstrateRequestException
 
 console = bittensor.__console__
+
+class StakeWeightsCommand:
+    @staticmethod
+    def run(cli: "bittensor.cli"):
+        r"""Set weights for root network."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            StakeWeightsCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        r"""Set weights for root network."""
+        wallet = bittensor.wallet(config=cli.config)
+        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
+
+        # Get values if not set.
+        if not cli.config.is_set("netuids"):
+            example = (
+                ", ".join(map(str, [subnet.netuid for subnet in subnets][:3])) + " ..."
+            )
+            cli.config.netuids = Prompt.ask(f"Enter netuids (e.g. {example})")
+
+        if not cli.config.is_set("weights"):
+            example = (
+                ", ".join(
+                    map(
+                        str,
+                        [
+                            "{:.2f}".format(float(1 / len(subnets)))
+                            for subnet in subnets
+                        ][:3],
+                    )
+                )
+                + " ..."
+            )
+            cli.config.weights = Prompt.ask(f"Enter weights (e.g. {example})")
+
+        # Parse from string
+        netuids = torch.tensor(
+            list(map(int, re.split(r"[ ,]+", cli.config.netuids))), dtype=torch.long
+        )
+        weights = torch.tensor(
+            list(map(float, re.split(r"[ ,]+", cli.config.weights))),
+            dtype=torch.float32,
+        )
+
+        # Run the set weights operation.
+        subtensor.stake_set_weights(
+            wallet=wallet,
+            hotkey = cli.config.delegate_ss58key,
+            netuids=netuids,
+            weights=weights,
+            prompt=not cli.config.no_prompt,
+            wait_for_finalization=True,
+            wait_for_inclusion=True,
+        )
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser = parser.add_parser("weights", help="""Distribute delegated stake across subnets based on weights.""")
+        parser.add_argument(
+            "--delegate_ss58key",
+            "--delegate_ss58",
+            dest="delegate_ss58key",
+            type=str,
+            required=False,
+            help="""The ss58 address of the chosen delegate""",
+        )
+        parser.add_argument("--netuids", dest="netuids", type=str, required=False)
+        parser.add_argument("--weights", dest="weights", type=str, required=False)
+        bittensor.wallet.add_args(parser)
+        bittensor.subtensor.add_args(parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+            
+        if not config.get("delegate_ss58key"):
+            # Check for delegates.
+            with bittensor.__console__.status(":satellite: Loading delegates..."):
+                subtensor = bittensor.subtensor(config=config, log_verbose=False)
+                delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+                try:
+                    prev_delegates = subtensor.get_delegates(
+                        max(0, subtensor.block - 1200)
+                    )
+                except SubstrateRequestException:
+                    prev_delegates = None
+
+            if prev_delegates is None:
+                bittensor.__console__.print(
+                    ":warning: [yellow]Could not fetch delegates history[/yellow]"
+                )
+
+            if len(delegates) == 0:
+                console.print(
+                    ":cross_mark: [red]There are no delegates on {}[/red]".format(
+                        subtensor.network
+                    )
+                )
+                sys.exit(1)
+
+            delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
+            show_delegates(delegates, prev_delegates=prev_delegates)
+            delegate_index = Prompt.ask("Enter delegate index")
+            config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
+            console.print(
+                "Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key)
+            )
+
 
 
 class StakeCommand:
@@ -291,22 +415,6 @@ class StakeCommand:
         bittensor.subtensor.add_args(stake_parser)
 
 
-### Stake list.
-import argparse
-import bittensor
-from tqdm import tqdm
-from rich.table import Table
-from rich.prompt import Prompt
-from typing import Dict, Union, List, Tuple
-from .utils import get_delegates_details, DelegatesDetails
-from . import defaults
-
-console = bittensor.__console__
-
-import os
-import bittensor
-from typing import List, Tuple, Optional, Dict
-
 
 def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     try:
@@ -338,6 +446,75 @@ def _get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
         except Exception:
             pass
     return hotkey_wallets
+
+
+class StakeList:
+    @staticmethod
+    def run(cli: "bittensor.cli"):
+        r"""Show all stake accounts."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            StakeList._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        wallet = bittensor.wallet(config=cli.config)
+        substakes = subtensor.get_substake_for_coldkey( coldkey_ss58 = wallet.coldkeypub.ss58_address )
+        netuids = subtensor.get_all_subnet_netuids()
+        
+        # Get registered delegates details.
+        registered_delegate_info: Optional[ DelegatesDetails ] = get_delegates_details(url = bittensor.__delegates_details_url__)
+
+        # Build map of hotkeys to netuids to stake
+        hot_totals = {}
+        netuid_totals = {}
+        hot_netuid_pairs = {}
+        for substake in substakes:
+            if substake['hotkey'] not in hot_netuid_pairs:
+                hot_netuid_pairs[substake['hotkey']] = {}
+                hot_totals[substake['hotkey']] = 0.0
+            if substake['netuid'] not in netuid_totals:
+                netuid_totals[substake['netuid']] = 0.0
+            hot_netuid_pairs[substake['hotkey']][substake['netuid']] = substake['stake']
+            hot_totals[substake['hotkey']] +=  substake['stake'] 
+            netuid_totals[substake['netuid']] += substake['stake'] 
+            
+        table = Table(show_footer=True, pad_edge=False, box=None, expand=False)
+        table.add_column( "[overline white]Hotkey", footer_style="overline white", style="blue" )
+        table.add_column( f"[overline white]Stake", footer_style="overline white", style="blue" )
+        for netuid in netuids:
+            table.add_column( f"[overline white]S{netuid}", str(netuid_totals[netuid]) if netuid in netuid_totals else "", footer_style="overline white", style="blue" )
+
+        # Fill rows 
+        for hotkey in hot_netuid_pairs.keys():
+            # Switch on named hotkeys
+            if hotkey in registered_delegate_info: row_name = registered_delegate_info[ hotkey ].name
+            else: row_name = hotkey
+            row = [hotkey, hot_totals[hotkey] ]
+            for netuid in netuids:
+                row.append( str( hot_netuid_pairs[hotkey].get(netuid, 0) ) )
+            table.add_row(*row)
+        bittensor.__console__.print(table)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        list_parser = parser.add_parser(
+            "list", help="""List all stake accounts for wallet."""
+        )
+        bittensor.wallet.add_args(list_parser)
+        bittensor.subtensor.add_args(list_parser)
 
 
 class StakeShow:

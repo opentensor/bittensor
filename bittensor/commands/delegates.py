@@ -21,7 +21,7 @@ import argparse
 import bittensor
 from typing import List, Optional
 from rich.table import Table
-from rich.prompt import Prompt
+from rich.prompt import Prompt, IntPrompt, FloatPrompt
 from rich.prompt import Confirm
 from rich.console import Text
 from tqdm import tqdm
@@ -204,7 +204,7 @@ def show_delegates(
             f"{delegate.total_stake!s:13.13}",
             rate_change_in_stake_str,
             str(delegate.registrations),
-            f"{delegate.take * 100:.1f}%",
+            str([f"({t[0]}-{t[1] * 100:.1f}%" +")" for t in delegate.take]),
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (1000/ ( 0.001 + delegate.total_stake.tao ) ))!s:6.6}",
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (0.18) ) !s:6.6}",
             str(delegate_description),
@@ -232,8 +232,8 @@ class DelegateStakeCommand:
 
     Example usage::
 
-        btcli delegate --delegate_ss58key <SS58_ADDRESS> --amount <AMOUNT>
-        btcli delegate --delegate_ss58key <SS58_ADDRESS> --all
+        btcli stake delegate --delegate_ss58key <SS58_ADDRESS> --amount <AMOUNT>
+        btcli stake delegate --delegate_ss58key <SS58_ADDRESS> --all
 
     Note:
         This command modifies the blockchain state and may incur transaction fees. It requires user confirmation and interaction, and is designed to be used within the Bittensor CLI environment. The user should ensure the delegate's address and the amount to be staked are correct before executing the command.
@@ -263,7 +263,7 @@ class DelegateStakeCommand:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         delegate_stake_parser = parser.add_parser(
-            "delegate", help="""Delegate Stake to an account."""
+            "delegate", help="""Delegate stake to a delegate."""
         )
         delegate_stake_parser.add_argument(
             "--delegate_ss58key",
@@ -271,7 +271,7 @@ class DelegateStakeCommand:
             dest="delegate_ss58key",
             type=str,
             required=False,
-            help="""The ss58 address of the choosen delegate""",
+            help="""The ss58 address of the chosen delegate""",
         )
         delegate_stake_parser.add_argument(
             "--all", dest="stake_all", action="store_true"
@@ -361,8 +361,8 @@ class DelegateUnstakeCommand:
 
     Example usage::
 
-        btcli undelegate --delegate_ss58key <SS58_ADDRESS> --amount <AMOUNT>
-        btcli undelegate --delegate_ss58key <SS58_ADDRESS> --all
+        btcli stake undelegate --delegate_ss58key <SS58_ADDRESS> --amount <AMOUNT>
+        btcli stake undelegate --delegate_ss58key <SS58_ADDRESS> --all
 
     Note:
         This command can result in a change to the blockchain state and may incur transaction fees. It is interactive and requires confirmation from the user before proceeding. It should be used with care as undelegating can affect the delegate's total stake and
@@ -398,7 +398,7 @@ class DelegateUnstakeCommand:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         undelegate_stake_parser = parser.add_parser(
-            "undelegate", help="""Undelegate Stake from an account."""
+            "undelegate", help="""Undelegate stake from a delegate."""
         )
         undelegate_stake_parser.add_argument(
             "--delegate_ss58key",
@@ -891,3 +891,143 @@ class MyDelegatesCommand:
         ):
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
+
+class SetTakeCommand:
+    """
+    Executes the ``set_take`` command, which sets the delegate take for a specified subnet.
+
+    The command performs several checks:
+
+        1. Hotkey is already a delegate
+        2. netid matches one of the existing subnets
+        3. New take value is within 0-18% range
+
+    Optional Arguments:
+        - ``netuid``: The ID of subnet to update the take for
+        - ``take``: The new take value
+        - ``wallet.name``: The name of the wallet to use for the command.
+        - ``wallet.hotkey``: The name of the hotkey to use for the command.
+
+    Usage:
+        To run the command, the user must have a configured wallet with both hotkey and coldkey. Also, the hotkey should already be a delegate.
+
+    Example usage::
+        btcli root set_takes
+        btcli root set_take --wallet.name my_wallet --wallet.hotkey my_hotkey
+
+    Note:
+        This function can be used to update the takes individually for every subnet
+    """
+
+    @staticmethod
+    def run(cli: "bittensor.cli"):
+        r"""Set take for a subnet."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            SetTakeCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        r"""Set take for a subnet."""
+        config = cli.config.copy()
+        wallet = bittensor.wallet(config=cli.config)
+
+        # Unlock the wallet.
+        wallet.hotkey
+        wallet.coldkey
+
+        # Check if the hotkey is not a delegate.
+        if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
+            bittensor.__console__.print(
+                "Aborting: Hotkey {} is NOT a delegate.".format(
+                    wallet.hotkey.ss58_address
+                )
+            )
+            return
+
+        # Get available netuids
+        netuids = subtensor.get_all_subnet_netuids()
+
+        # Prompt user for netuid and take value.
+        netuid = int(config.get("netuid"))
+        if netuid == None:
+            netuid = IntPrompt.ask(f"Enter subnet ID")
+        # Check if netuid exists
+        if not netuid in netuids:
+            bittensor.__console__.print(
+                "ERROR: This netuid ({}) doesn't exist on the network".format(
+                    netuid
+                )
+            )
+            return
+
+        new_take = float(config.get("take"))
+        if new_take == None:
+            new_take = FloatPrompt.ask(f"Enter take value (0.18 for 18%)")
+        if new_take > 0.18:
+            bittensor.__console__.print("ERROR: Take value should be in the range of 0 to 18%")
+            return
+
+        result: bool = subtensor.set_take(
+            wallet = wallet,
+            delegate_ss58 = wallet.hotkey.ss58_address,
+            netuid = netuid,
+            take = new_take
+        )
+        if not result:
+            bittensor.__console__.print(
+                "Could not set the take"
+            )
+        else:
+            # Check if we are a delegate.
+            is_delegate: bool = subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address)
+            if not is_delegate:
+                bittensor.__console__.print(
+                    "Could not set the take [white]{}[/white]".format(
+                        subtensor.network
+                    )
+                )
+                return
+            bittensor.__console__.print(
+                "Successfully set the take on [white]{}[/white]".format(
+                    subtensor.network
+                )
+            )
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        set_take_parser = parser.add_parser(
+            "set_take", help="""Set take for delegate on a subnet"""
+        )
+        set_take_parser.add_argument(
+            "--netuid",
+            dest="netuid",
+            type=int,
+            required=False,
+            help="""Id of subnet to set take for""",
+        )
+        set_take_parser.add_argument(
+            "--take",
+            dest="take",
+            type=float,
+            required=False,
+            help="""Take as a float number""",
+        )
+        bittensor.wallet.add_args(set_take_parser)
+        bittensor.subtensor.add_args(set_take_parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
