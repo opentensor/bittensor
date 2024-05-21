@@ -25,6 +25,10 @@ except ImportError:
     torch = None
 
 
+def use_torch() -> bool:
+    return True if os.getenv("USE_TORCH") == "1" else False
+
+
 class Torch:
     def __init__(self):
         self._transformed = False
@@ -49,7 +53,7 @@ class Torch:
         return False
 
     def __getattr__(self, name):
-        if not self._transformed and os.getenv("USE_TORCH"):
+        if not self._transformed and use_torch():
             self._transform()
         if self._transformed:
             return getattr(self, name)
@@ -57,7 +61,7 @@ class Torch:
             self._error()
 
     def __call__(self, *args, **kwargs):
-        if not self._transformed and os.getenv("USE_TORCH"):
+        if not self._transformed and use_torch():
             self._transform()
         if self._transformed:
             return self(*args, **kwargs)
@@ -65,7 +69,7 @@ class Torch:
             self._error()
 
 
-if not torch or not os.getenv("USE_TORCH"):
+if not torch or not use_torch():
     torch = Torch()
 
 

@@ -26,7 +26,7 @@ from rich.prompt import Confirm
 from typing import Union, Tuple
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
-from bittensor.utils import torch
+from bittensor.utils.registration import torch, use_torch
 
 logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
@@ -68,7 +68,7 @@ def set_weights_extrinsic(
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # First convert types.
-    if os.getenv("USE_TORCH"):
+    if use_torch():
         if isinstance(uids, list):
             uids = torch.tensor(uids, dtype=torch.int64)
         if isinstance(weights, list):
