@@ -263,13 +263,11 @@ class subtensor:
             )
         except ConnectionRefusedError as e:
             _logger.error(
-                f"Could not connect to %s network with %s chain endpoint. Exiting...",
-                self.network,
-                self.chain_endpoint,
+                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting...",
             )
             _logger.info(
-                "You can check if you have connectivity by running this command: nc -vz localhost %s",
-                self.chain_endpoint.split(":")[2],
+                "You can check if you have connectivity by running this command: nc -vz localhost "
+                f"{self.chain_endpoint.split(':')[2]}"
             )
             exit(1)
             # TODO (edu/phil): Advise to run local subtensor and point to dev docs.
