@@ -171,6 +171,7 @@ class Tensor(BaseModel):
 
     # Represents the tensor buffer data.
     buffer: Optional[str] = Field(
+        default=None,
         title="buffer",
         description="Tensor buffer data. This field stores the serialized representation of the tensor data.",
         examples=["0x321e13edqwds231231231232131"],

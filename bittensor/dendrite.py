@@ -700,7 +700,7 @@ class dendrite:
         if server_response.status == 200:
             # If the response is successful, overwrite local synapse state with
             # server's state only if the protocol allows mutation. To prevent overwrites,
-            # the protocol must set allow_mutation = False
+            # the protocol must set Frozen = True
             server_synapse = local_synapse.__class__(**json_response)
             for key in local_synapse.model_dump().keys():
                 try:
