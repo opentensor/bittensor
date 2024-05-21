@@ -25,7 +25,7 @@ import pytest
 
 # Application
 import bittensor
-from bittensor.subtensor import subtensor as Subtensor, logger
+from bittensor.subtensor import subtensor as Subtensor, _logger
 from bittensor import subtensor_module
 
 
@@ -303,7 +303,7 @@ def test_get_error_info_by_index_known_error(subtensor):
 
 
 def test_get_error_info_by_index_unknown_error(subtensor):
-    mock_logger = mock.patch.object(logger, "warning").start()
+    mock_logger = mock.patch.object(_logger, "warning").start()
     fake_index = 999
     name, description = subtensor.get_error_info_by_index(fake_index)
     assert name == "Unknown Error"
