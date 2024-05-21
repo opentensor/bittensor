@@ -16,26 +16,30 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import functools
-import os
-import copy
-import time
-import logging
-import numpy as np
-from numpy.typing import NDArray
+"""
+The ``bittensor.subtensor`` module in Bittensor serves as a crucial interface for interacting with the Bittensor
+blockchain, facilitating a range of operations essential for the decentralized machine learning network.
+"""
 import argparse
-import bittensor
-import scalecodec
-
-from retry import retry
+import copy
+import functools
+import socket
+import time
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any, TypeVar
-from substrateinterface.base import QueryMapResult, SubstrateInterface, ExtrinsicReceipt
-from substrateinterface.exceptions import SubstrateRequestException
+
+import numpy as np
+import scalecodec
+from numpy.typing import NDArray
+from retry import retry
 from scalecodec.base import RuntimeConfiguration
+from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall
+from substrateinterface.base import QueryMapResult, SubstrateInterface, ExtrinsicReceipt
+from substrateinterface.exceptions import SubstrateRequestException
 
-# Local imports.
+import bittensor
+from bittensor.btlogging import logging as _logger
 from .chain_data import (
     NeuronInfo,
     DelegateInfo,
@@ -51,27 +55,6 @@ from .chain_data import (
     custom_rpc_type_registry,
 )
 from .errors import IdentityError, NominationError, StakeError, TakeError
-from .extrinsics.network import (
-    register_subnetwork_extrinsic,
-    set_hyperparameter_extrinsic,
-)
-from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
-from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
-from .extrinsics.serving import (
-    serve_extrinsic,
-    serve_axon_extrinsic,
-    publish_metadata,
-    get_metadata,
-)
-from .extrinsics.registration import (
-    register_extrinsic,
-    burned_register_extrinsic,
-    run_faucet_extrinsic,
-    swap_hotkey_extrinsic,
-)
-from .extrinsics.transfer import transfer_extrinsic
-from .extrinsics.set_weights import set_weights_extrinsic
-from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.delegation import (
     delegate_extrinsic,
     nominate_extrinsic,
@@ -79,20 +62,44 @@ from .extrinsics.delegation import (
     increase_take_extrinsic,
     decrease_take_extrinsic,
 )
+from .extrinsics.network import (
+    register_subnetwork_extrinsic,
+    set_hyperparameter_extrinsic,
+)
+from .extrinsics.prometheus import prometheus_extrinsic
+from .extrinsics.registration import (
+    register_extrinsic,
+    burned_register_extrinsic,
+    run_faucet_extrinsic,
+    swap_hotkey_extrinsic,
+)
+from .extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
 from .extrinsics.senate import (
     register_senate_extrinsic,
     leave_senate_extrinsic,
     vote_senate_extrinsic,
 )
-from .extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
+from .extrinsics.serving import (
+    serve_extrinsic,
+    serve_axon_extrinsic,
+    publish_metadata,
+    get_metadata,
+)
+from .extrinsics.set_weights import set_weights_extrinsic
+from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
+from .extrinsics.transfer import transfer_extrinsic
+from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .types import AxonServeCallParams, PrometheusServeCallParams
-from .utils import U16_NORMALIZED_FLOAT, ss58_to_vec_u8, U64_NORMALIZED_FLOAT
-from .utils.subtensor import get_subtensor_errors
+from .utils import (
+    U16_NORMALIZED_FLOAT,
+    ss58_to_vec_u8,
+    U64_NORMALIZED_FLOAT,
+    networking,
+)
 from .utils.balance import Balance
 from .utils.registration import POWSolution
+from .utils.subtensor import get_subtensor_errors
 
-
-logger = logging.getLogger("subtensor")
 
 KEY_NONCE: Dict[str, int] = {}
 
@@ -109,8 +116,6 @@ if hasattr(RuntimeConfiguration, "convert_type_string"):
         return original_convert_type_string(name)
 
     RuntimeConfiguration.convert_type_string = convert_type_string
-
-
 #######
 
 
@@ -121,10 +126,11 @@ class ParamWithTypes(TypedDict):
 
 class subtensor:
     """
-    The Subtensor class in Bittensor serves as a crucial interface for interacting with the Bittensor blockchain, facilitating a range of operations essential for the decentralized machine learning network.
+    The Subtensor class in Bittensor serves as a crucial interface for interacting with the Bittensor blockchain,
+    facilitating a range of operations essential for the decentralized machine learning network.
 
-    This class enables neurons (network participants) to engage in activities such as registering on the network, managing
-    staked weights, setting inter-neuronal weights, and participating in consensus mechanisms.
+    This class enables neurons (network participants) to engage in activities such as registering on the network,
+    managing staked weights, setting inter-neuronal weights, and participating in consensus mechanisms.
 
     The Bittensor network operates on a digital ledger where each neuron holds stakes (S) and learns a set
     of inter-peer weights (W). These weights, set by the neurons themselves, play a critical role in determining
@@ -142,8 +148,10 @@ class subtensor:
     investments.
 
     Args:
-        network (str): The name of the Bittensor network (e.g., 'finney', 'test', 'archive', 'local') the instance is connected to, determining the blockchain interaction context.
-        chain_endpoint (str): The blockchain node endpoint URL, enabling direct communication with the Bittensor blockchain for transaction processing and data retrieval.
+        network (str): The name of the Bittensor network (e.g., 'finney', 'test', 'archive', 'local') the instance is
+            connected to, determining the blockchain interaction context.
+        chain_endpoint (str): The blockchain node endpoint URL, enabling direct communication with the Bittensor
+            blockchain for transaction processing and data retrieval.
 
     Example Usage::
 
@@ -171,7 +179,8 @@ class subtensor:
 
     By facilitating these operations, the Subtensor class is instrumental in maintaining the decentralized
     intelligence and dynamic learning environment of the Bittensor network, as envisioned in its foundational
-    principles and mechanisms described in the `NeurIPS paper <https://bittensor.com/pdfs/academia/NeurIPS_DAO_Workshop_2022_3_3.pdf>`_. paper.
+    principles and mechanisms described in the `NeurIPS paper
+    <https://bittensor.com/pdfs/academia/NeurIPS_DAO_Workshop_2022_3_3.pdf>`_. paper.
     """
 
     def __init__(
@@ -193,8 +202,11 @@ class subtensor:
         instructions on how to run a local subtensor node in the documentation in a subsequent release.
 
         Args:
-            network (str, optional): The network name to connect to (e.g., ``finney``, ``local``). This can also be the chain endpoint (e.g., ``wss://entrypoint-finney.opentensor.ai:443``) and will be correctly parsed into the network and chain endpoint. If not specified, defaults to the main Bittensor network.
-            config (bittensor.config, optional): Configuration object for the subtensor. If not provided, a default configuration is used.
+            network (str, optional): The network name to connect to (e.g., ``finney``, ``local``). This can also be the
+                chain endpoint (e.g., ``wss://entrypoint-finney.opentensor.ai:443``) and will be correctly parsed into
+                the network and chain endpoint. If not specified, defaults to the main Bittensor network.
+            config (bittensor.config, optional): Configuration object for the subtensor. If not provided, a default
+                configuration is used.
             _mock (bool, optional): If set to ``True``, uses a mocked connection for testing purposes.
 
         This initialization sets up the connection to the specified Bittensor network, allowing for various
@@ -202,13 +214,14 @@ class subtensor:
 
         """
         # Determine config.subtensor.chain_endpoint and config.subtensor.network config.
-        # If chain_endpoint is set, we override the network flag, otherwise, the chain_endpoint is assigned by the network.
+        # If chain_endpoint is set, we override the network flag, otherwise, the chain_endpoint is assigned by the
+        # network.
         # Argument importance: network > chain_endpoint > config.subtensor.chain_endpoint > config.subtensor.network
 
         # Check if network is a config object. (Single argument passed as first positional)
         if isinstance(network, bittensor.config):
             if network.subtensor is None:
-                bittensor.logging.warning(
+                _logger.warning(
                     "If passing a bittensor config object, it must not be empty. Using default subtensor config."
                 )
                 config = None
@@ -227,29 +240,17 @@ class subtensor:
             self.network == "finney"
             or self.chain_endpoint == bittensor.__finney_entrypoint__
         ) and log_verbose:
-            bittensor.logging.info(
+            _logger.info(
                 f"You are connecting to {self.network} network with endpoint {self.chain_endpoint}."
             )
-            bittensor.logging.warning(
+            _logger.warning(
                 "We strongly encourage running a local subtensor node whenever possible. "
                 "This increases decentralization and resilience of the network."
             )
-            bittensor.logging.warning(
+            _logger.warning(
                 "In a future release, local subtensor will become the default endpoint. "
                 "To get ahead of this change, please run a local subtensor node and point to it."
             )
-
-        # Returns a mocked connection with a background chain connection.
-        self.config.subtensor._mock = (
-            _mock
-            if _mock != None
-            else self.config.subtensor.get("_mock", bittensor.defaults.subtensor._mock)
-        )
-        if (
-            self.config.subtensor._mock
-        ):  # TODO: review this doesn't appear to be used anywhere.
-            config.subtensor._mock = True
-            return bittensor.MockSubtensor()  # type: ignore
 
         # Attempt to connect to chosen endpoint. Fallback to finney if local unavailable.
         try:
@@ -261,22 +262,29 @@ class subtensor:
                 type_registry=bittensor.__type_registry__,
             )
         except ConnectionRefusedError as e:
-            bittensor.logging.error(
-                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting..."
+            _logger.error(
+                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting...",
             )
-            bittensor.logging.info(
-                f"You can check if you have connectivity by runing this command: nc -vz localhost {self.chain_endpoint.split(':')[2]}"
+            _logger.info(
+                "You can check if you have connectivity by running this command: nc -vz localhost "
+                f"{self.chain_endpoint.split(':')[2]}"
             )
             exit(1)
             # TODO (edu/phil): Advise to run local subtensor and point to dev docs.
 
         try:
             self.substrate.websocket.settimeout(600)
-        except:
-            bittensor.logging.warning("Could not set websocket timeout.")
+        # except:
+        #     bittensor.logging.warning("Could not set websocket timeout.")
+        except AttributeError as e:
+            _logger.warning(f"AttributeError: {e}")
+        except TypeError as e:
+            _logger.warning(f"TypeError: {e}")
+        except (socket.error, OSError) as e:
+            _logger.warning(f"Socket error: {e}")
 
         if log_verbose:
-            bittensor.logging.info(
+            _logger.info(
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
 
@@ -294,14 +302,21 @@ class subtensor:
         return self.__str__()
 
     @staticmethod
-    def config() -> "bittensor.config":
+    def config() -> bittensor.config:
+        """
+        Creates and returns a Bittensor configuration object.
+
+        Returns:
+            config (bittensor.config): A Bittensor configuration object configured with arguments added by the
+                `subtensor.add_args` method.
+        """
         parser = argparse.ArgumentParser()
         subtensor.add_args(parser)
         return bittensor.config(parser, args=[])
 
     @classmethod
     def help(cls):
-        """Print help to stdout"""
+        """Print help to stdout."""
         parser = argparse.ArgumentParser()
         cls.add_args(parser)
         print(cls.__new__.__doc__)
@@ -309,15 +324,31 @@ class subtensor:
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: Optional[str] = None):
+        """
+        Adds command-line arguments to the provided ArgumentParser for configuring the Subtensor settings.
+
+        Args:
+            parser (argparse.ArgumentParser): The ArgumentParser object to which the Subtensor arguments will be added.
+            prefix (Optional[str]): An optional prefix for the argument names. If provided, the prefix is prepended to
+                each argument name.
+
+        Arguments added:
+            --subtensor.network: The Subtensor network flag. Possible values are 'finney', 'test', 'archive', and
+                'local'. Overrides the chain endpoint if set.
+            --subtensor.chain_endpoint: The Subtensor chain endpoint flag. If set, it overrides the network flag.
+            --subtensor._mock: If true, uses a mocked connection to the chain.
+
+        Example:
+            parser = argparse.ArgumentParser()
+            Subtensor.add_args(parser)
+        """
         prefix_str = "" if prefix is None else f"{prefix}."
         try:
-            default_network = os.getenv("BT_SUBTENSOR_NETWORK") or "finney"
-            default_chain_endpoint = (
-                os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
-                or bittensor.__finney_entrypoint__
-            )
+            default_network = bittensor.__networks__[1]
+            default_chain_endpoint = bittensor.__finney_entrypoint__
+
             parser.add_argument(
-                "--" + prefix_str + "subtensor.network",
+                f"--{prefix_str}subtensor.network",
                 default=default_network,
                 type=str,
                 help="""The subtensor network flag. The likely choices are:
@@ -330,18 +361,16 @@ class subtensor:
                                     """,
             )
             parser.add_argument(
-                "--" + prefix_str + "subtensor.chain_endpoint",
+                f"--{prefix_str}subtensor.chain_endpoint",
                 default=default_chain_endpoint,
                 type=str,
-                help="""The subtensor endpoint flag. If set, overrides the --network flag.
-                                    """,
+                help="""The subtensor endpoint flag. If set, overrides the --network flag.""",
             )
             parser.add_argument(
-                "--" + prefix_str + "subtensor._mock",
+                f"--{prefix_str}subtensor._mock",
                 default=False,
                 type=bool,
-                help="""If true, uses a mocked connection to the chain.
-                                    """,
+                help="""If true, uses a mocked connection to the chain.""",
             )
 
         except argparse.ArgumentError:
@@ -353,8 +382,8 @@ class subtensor:
         """Determines the chain endpoint and network from the passed network or chain_endpoint.
 
         Args:
-            network (str): The network flag. The choices are: ``-- finney`` (main network), ``-- archive`` (archive network +300 blocks), ``-- local`` (local running network), ``-- test`` (test network).
-            chain_endpoint (str): The chain endpoint flag. If set, overrides the network argument.
+            network (str): The network flag. The choices are: ``-- finney`` (main network), ``-- archive``
+                (archive network +300 blocks), ``-- local`` (local running network), ``-- test`` (test network).
         Returns:
             network (str): The network flag.
             chain_endpoint (str): The chain endpoint flag. If set, overrides the ``network`` argument.
@@ -363,7 +392,7 @@ class subtensor:
             return None, None
         if network in ["finney", "local", "test", "archive"]:
             if network == "finney":
-                # Kiru Finney stagin network.
+                # Kiru Finney staging network.
                 return network, bittensor.__finney_entrypoint__
             elif network == "local":
                 return network, bittensor.__local_entrypoint__
@@ -394,7 +423,26 @@ class subtensor:
 
     @staticmethod
     def setup_config(network: str, config: bittensor.config):
-        if network != None:
+        """
+        Sets up and returns the configuration for the Subtensor network and endpoint.
+
+        This method determines the appropriate network and chain endpoint based on the provided network string or
+        configuration object. It evaluates the network and endpoint in the following order of precedence:
+        1. Provided network string.
+        2. Configured chain endpoint in the `config` object.
+        3. Configured network in the `config` object.
+        4. Default chain endpoint.
+        5. Default network.
+
+        Args:
+            network (str): The name of the Subtensor network. If None, the network and endpoint will be determined from
+                the `config` object.
+            config (bittensor.config): The configuration object containing the network and chain endpoint settings.
+
+        Returns:
+            tuple: A tuple containing the formatted WebSocket endpoint URL and the evaluated network name.
+        """
+        if network is not None:
             (
                 evaluated_network,
                 evaluated_endpoint,
@@ -441,33 +489,20 @@ class subtensor:
                 )
 
         return (
-            bittensor.utils.networking.get_formatted_ws_endpoint_url(
-                evaluated_endpoint
-            ),
+            networking.get_formatted_ws_endpoint_url(evaluated_endpoint),
             evaluated_network,
         )
 
-    ####################
-    #### SubstrateInterface related
-    ####################
-    def connect_websocket(self):
-        """
-        (Re)creates the websocket connection, if the URL contains a 'ws' or 'wss' scheme
-        """
-        self.subtensor.connect_websocket
-
     def close(self):
-        """
-        Cleans up resources for this subtensor instance like active websocket connection and active extensions
-        """
+        """Cleans up resources for this subtensor instance like active websocket connection and active extensions."""
         self.substrate.close()
 
-    #####################
-    #### Delegation #####
-    #####################
+    ##############
+    # Delegation #
+    ##############
     def nominate(
         self,
-        wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
         wait_for_finalization: bool = False,
         wait_for_inclusion: bool = True,
     ) -> bool:
@@ -478,7 +513,8 @@ class subtensor:
 
         Args:
             wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
-            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the blockchain.
+            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the
+                blockchain.
             wait_for_inclusion (bool, optional): If ``True``, waits until the transaction is included in a block.
 
         Returns:
@@ -496,7 +532,7 @@ class subtensor:
 
     def delegate(
         self,
-        wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
         delegate_ss58: Optional[str] = None,
         amount: Optional[Union[Balance, float]] = None,
         wait_for_inclusion: bool = True,
@@ -510,8 +546,12 @@ class subtensor:
 
         Args:
             wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
-            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the blockchain.
+            delegate_ss58 (Optional[str]): The ``SS58`` address of the delegate neuron.
+            amount (Union[Balance, float]): The amount of TAO to undelegate.
+            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the
+                blockchain.
             wait_for_inclusion (bool, optional): If ``True``, waits until the transaction is included in a block.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
             bool: ``True`` if the nomination process is successful, False otherwise.
@@ -531,7 +571,7 @@ class subtensor:
 
     def undelegate(
         self,
-        wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
         delegate_ss58: Optional[str] = None,
         amount: Optional[Union[Balance, float]] = None,
         wait_for_inclusion: bool = True,
@@ -568,7 +608,7 @@ class subtensor:
 
     def set_take(
         self,
-        wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
         delegate_ss58: Optional[str] = None,
         take: float = 0.0,
         wait_for_inclusion: bool = True,
@@ -581,7 +621,8 @@ class subtensor:
             wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
             delegate_ss58 (str, optional): Hotkey
             take (float): Delegate take on subnet ID
-            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the blockchain.
+            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the
+                blockchain.
             wait_for_inclusion (bool, optional): If ``True``, waits until the transaction is included in a block.
 
         Returns:
@@ -594,7 +635,7 @@ class subtensor:
         if delegate_ss58 is None:
             raise ValueError("delegate_ss58 cannot be None")
 
-        # Caulate u16 representation of the take
+        # Calculate u16 representation of the take
         takeu16 = int(take * 0xFFFF)
 
         # Check if the new take is greater or lower than existing take or if existing is set
@@ -633,7 +674,7 @@ class subtensor:
 
     def send_extrinsic(
         self,
-        wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
         module: str,
         function: str,
         params: dict,
@@ -680,6 +721,7 @@ class subtensor:
         old_init_runtime = self.substrate.init_runtime
         self.substrate.init_runtime = lambda: None
         self.substrate.init_runtime = old_init_runtime
+        response = None
 
         for attempt in range(1, max_retries + 1):
             try:
@@ -719,29 +761,28 @@ class subtensor:
             except SubstrateRequestException as e:
                 if "Priority is too low" in e.args[0]["message"]:
                     wait = min(wait_time * attempt, max_wait)
-                    bittensor.logging.warning(
+                    _logger.warning(
                         f"Priority is too low, retrying with new nonce: {nonce} in {wait} seconds."
                     )
                     nonce = nonce + 1
                     time.sleep(wait)
                     continue
                 else:
-                    bittensor.logging.error(f"Error sending extrinsic: {e}")
+                    _logger.error(f"Error sending extrinsic: {e}")
                     response = None
 
         return response
 
-    #####################
-    #### Set Weights ####
-    #####################
+    ###############
+    # Set Weights #
+    ###############
     def set_weights(
         self,
-        wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
         netuid: int,
         uids: Union[NDArray[np.int64], list],
         weights: Union[NDArray[np.float32], list],
         version_key: int = bittensor.__version_as_int__,
-        uid: Optional[int] = None,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -755,7 +796,6 @@ class subtensor:
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron setting the weights.
             netuid (int): The unique identifier of the subnet.
-            uid (int): Unique identifier for the caller on the subnet specified by `netuid`.
             uids (Union[NDArray[np.int64], list]): The list of neuron UIDs that the weights are being set for.
             weights (Union[NDArray[np.float32], list]): The corresponding weights to be set for each UID.
             version_key (int, optional): Version key for compatibility with the network.
@@ -792,7 +832,7 @@ class subtensor:
                     prompt=prompt,
                 )
             except Exception as e:
-                bittensor.logging.error(f"Error setting weights: {e}")
+                _logger.error(f"Error setting weights: {e}")
             finally:
                 retries += 1
 
@@ -800,7 +840,7 @@ class subtensor:
 
     def _do_set_weights(
         self,
-        wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
         uids: List[int],
         vals: List[int],
         netuid: int,
@@ -829,7 +869,7 @@ class subtensor:
         trust in other neurons based on observed performance and contributions.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -854,7 +894,7 @@ class subtensor:
             )
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                return True, "Not waiting for finalziation or inclusion."
+                return True, "Not waiting for finalization or inclusion."
 
             response.process_events()
             if response.is_success:
@@ -864,12 +904,12 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
-    ######################
-    #### Registration ####
-    ######################
+    ################
+    # Registration #
+    ################
     def register(
         self,
-        wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
         netuid: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
@@ -892,8 +932,19 @@ class subtensor:
             wallet (bittensor.wallet): The wallet associated with the neuron to be registered.
             netuid (int): The unique identifier of the subnet.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+                Defaults to `False`.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            Other arguments: Various optional parameters to customize the registration process.
+                 Defaults to `True`.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+            max_allowed_attempts (int): Maximum number of attempts to register the wallet.
+            output_in_place (bool): If true, prints the progress of the proof of work to the console in-place. Meaning
+                the progress is printed on the same lines. Defaults to `True`.
+            cuda (bool): If ``true``, the wallet should be registered using CUDA device(s). Defaults to `False`.
+            dev_id (Union[List[int], int]): The CUDA device id to use, or a list of device ids. Defaults to `0` (zero).
+            tpb (int): The number of threads per block (CUDA). Default to `256`.
+            num_processes (Optional[int]): The number of processes to use to register. Default to `None`.
+            update_interval (Optional[int]): The number of nonces to solve between updates.  Default to `None`.
+            log_verbose (bool): If ``true``, the registration process will log more information.  Default to `False`.
 
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
@@ -920,13 +971,29 @@ class subtensor:
 
     def swap_hotkey(
         self,
-        wallet: "bittensor.wallet",
-        new_wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
+        new_wallet: bittensor.wallet,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False,
     ) -> bool:
-        """Swaps an old hotkey to a new hotkey."""
+        """
+        Swaps an old hotkey with a new hotkey for the specified wallet.
+
+        This method initiates an extrinsic to change the hotkey associated with a wallet to a new hotkey. It provides
+        options to wait for inclusion and finalization of the transaction, and to prompt the user for confirmation.
+
+        Args:
+            wallet (bittensor.wallet): The wallet whose hotkey is to be swapped.
+            new_wallet (bittensor.wallet): The new wallet with the hotkey to be set.
+            wait_for_inclusion (bool): Whether to wait for the transaction to be included in a block.
+                Default is `False`.
+            wait_for_finalization (bool): Whether to wait for the transaction to be finalized. Default is `True`.
+            prompt (bool): Whether to prompt the user for confirmation before proceeding. Default is `False`.
+
+        Returns:
+            bool: True if the hotkey swap was successful, False otherwise.
+        """
         return swap_hotkey_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -938,7 +1005,7 @@ class subtensor:
 
     def run_faucet(
         self,
-        wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
         prompt: bool = False,
@@ -958,7 +1025,20 @@ class subtensor:
 
         Args:
             wallet (bittensor.wallet): The wallet for which the faucet transaction is to be run.
-            Other arguments: Various optional parameters to customize the faucet transaction process.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+                Defaults to `False`.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+                 Defaults to `True`.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+            max_allowed_attempts (int): Maximum number of attempts to register the wallet.
+            output_in_place (bool): If true, prints the progress of the proof of work to the console in-place. Meaning
+                the progress is printed on the same lines. Defaults to `True`.
+            cuda (bool): If ``true``, the wallet should be registered using CUDA device(s). Defaults to `False`.
+            dev_id (Union[List[int], int]): The CUDA device id to use, or a list of device ids. Defaults to `0` (zero).
+            tpb (int): The number of threads per block (CUDA). Default to `256`.
+            num_processes (Optional[int]): The number of processes to use to register. Default to `None`.
+            update_interval (Optional[int]): The number of nonces to solve between updates.  Default to `None`.
+            log_verbose (bool): If ``true``, the registration process will log more information.  Default to `False`.
 
         Returns:
             bool: ``True`` if the faucet transaction is successful, False otherwise.
@@ -967,7 +1047,8 @@ class subtensor:
         the necessary resources to begin their journey in the decentralized AI network.
 
         Note:
-            This is for testnet ONLY and is disabled currently. You must build your own staging subtensor chain with the ``--features pow-faucet`` argument to enable this.
+            This is for testnet ONLY and is disabled currently. You must build your own staging subtensor chain with the
+            ``--features pow-faucet`` argument to enable this.
         """
         return run_faucet_extrinsic(
             subtensor=self,
@@ -987,7 +1068,7 @@ class subtensor:
 
     def burned_register(
         self,
-        wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
         netuid: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
@@ -1001,8 +1082,10 @@ class subtensor:
             wallet (bittensor.wallet): The wallet associated with the neuron to be registered.
             netuid (int): The unique identifier of the subnet.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+                Defaults to `False`.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+                Defaults to `True`.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding. Defaults to `False`.
 
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
@@ -1019,7 +1102,7 @@ class subtensor:
     def _do_pow_register(
         self,
         netuid: int,
-        wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
         pow_result: POWSolution,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
@@ -1030,14 +1113,17 @@ class subtensor:
             netuid (int): The subnet to register on.
             wallet (bittensor.wallet): The wallet to register.
             pow_result (POWSolution): The PoW result to register.
-            wait_for_inclusion (bool): If ``true``, waits for the extrinsic to be included in a block.
-            wait_for_finalization (bool): If ``true``, waits for the extrinsic to be finalized.
+            wait_for_inclusion (bool): If ``True``, waits for the extrinsic to be included in a block.
+                Default to `False`.
+            wait_for_finalization (bool): If ``True``, waits for the extrinsic to be finalized. Default to `True`.
+
         Returns:
             success (bool): ``True`` if the extrinsic was included in a block.
-            error (Optional[str]): ``None`` on success or not waiting for inclusion/finalization, otherwise the error message.
+            error (Optional[str]): ``None`` on success or not waiting for inclusion/finalization, otherwise the error
+                message.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             # create extrinsic call
             call = self.substrate.compose_call(
@@ -1078,11 +1164,28 @@ class subtensor:
     def _do_burned_register(
         self,
         netuid: int,
-        wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        """
+        Performs a burned register extrinsic call to the Subtensor chain.
+
+        This method sends a registration transaction to the Subtensor blockchain using the burned register mechanism. It
+        retries the call up to three times with exponential backoff in case of failures.
+
+        Args:
+            netuid (int): The network unique identifier to register on.
+            wallet (bittensor.wallet): The wallet to be registered.
+            wait_for_inclusion (bool): Whether to wait for the transaction to be included in a block. Default is False.
+            wait_for_finalization (bool): Whether to wait for the transaction to be finalized. Default is True.
+
+        Returns:
+            Tuple[bool, Optional[str]]: A tuple containing a boolean indicating success or failure, and an optional
+                error message.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             # create extrinsic call
             call = self.substrate.compose_call(
@@ -1118,12 +1221,27 @@ class subtensor:
 
     def _do_swap_hotkey(
         self,
-        wallet: "bittensor.wallet",
-        new_wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
+        new_wallet: bittensor.wallet,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        """
+        Performs a hotkey swap extrinsic call to the Subtensor chain.
+
+        Args:
+            wallet (bittensor.wallet): The wallet whose hotkey is to be swapped.
+            new_wallet (bittensor.wallet): The wallet with the new hotkey to be set.
+            wait_for_inclusion (bool): Whether to wait for the transaction to be included in a block. Default is
+            `False`.
+            wait_for_finalization (bool): Whether to wait for the transaction to be finalized. Default is `True`.
+
+        Returns:
+            Tuple[bool, Optional[str]]: A tuple containing a boolean indicating success or failure, and an optional
+                error message.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             # create extrinsic call
             call = self.substrate.compose_call(
@@ -1157,12 +1275,12 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
-    ##################
-    #### Transfer ####
-    ##################
+    ############
+    # Transfer #
+    ############
     def transfer(
         self,
-        wallet: "bittensor.wallet",
+        wallet: bittensor.wallet,
         dest: str,
         amount: Union[Balance, float],
         wait_for_inclusion: bool = True,
@@ -1183,7 +1301,7 @@ class subtensor:
             prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
-            bool: ``True`` if the transfer is successful, False otherwise.
+            transfer_extrinsic (bool): ``True`` if the transfer is successful, False otherwise.
 
         This function is essential for the fluid movement of tokens in the network, supporting
         various economic activities such as staking, delegation, and reward distribution.
@@ -1199,7 +1317,7 @@ class subtensor:
         )
 
     def get_transfer_fee(
-        self, wallet: "bittensor.wallet", dest: str, value: Union[Balance, float, int]
+        self, wallet: bittensor.wallet, dest: str, value: Union[Balance, float, int]
     ) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address.
@@ -1209,7 +1327,8 @@ class subtensor:
         Args:
             wallet (bittensor.wallet): The wallet from which the transfer is initiated.
             dest (str): The ``SS58`` address of the destination account.
-            value (Union[Balance, float, int]): The amount of tokens to be transferred, specified as a Balance object, or in Tao (float) or Rao (int) units.
+            value (Union[Balance, float, int]): The amount of tokens to be transferred, specified as a Balance object,
+                or in Tao (float) or Rao (int) units.
 
         Returns:
             Balance: The estimated transaction fee for the transfer, represented as a Balance object.
@@ -1219,30 +1338,40 @@ class subtensor:
         provides a crucial tool for managing financial operations within the Bittensor network.
         """
         if isinstance(value, float):
-            transfer_balance = Balance.from_tao(value)
+            value = Balance.from_tao(value)
         elif isinstance(value, int):
-            transfer_balance = Balance.from_rao(value)
+            value = Balance.from_rao(value)
 
-        call = self.substrate.compose_call(
-            call_module="Balances",
-            call_function="transfer_allow_death",
-            call_params={"dest": dest, "value": transfer_balance.rao},
-        )
-
-        try:
-            payment_info = self.substrate.get_payment_info(
-                call=call, keypair=wallet.coldkeypub
+        if isinstance(value, Balance):
+            call = self.substrate.compose_call(
+                call_module="Balances",
+                call_function="transfer_allow_death",
+                call_params={"dest": dest, "value": value.rao},
             )
-        except Exception as e:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {}[/bold white]".format(
-                    e
+
+            try:
+                payment_info = self.substrate.get_payment_info(
+                    call=call, keypair=wallet.coldkeypub
                 )
-            )
-            payment_info = {"partialFee": 2e7}  # assume  0.02 Tao
+            except Exception as e:
+                bittensor.__console__.print(
+                    ":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {}[/bold white]".format(
+                        e
+                    )
+                )
+                payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
 
-        fee = Balance.from_rao(payment_info["partialFee"])
-        return fee
+            fee = Balance.from_rao(payment_info["partialFee"])
+            return fee
+        else:
+            fee = Balance.from_rao(int(2e7))
+            _logger.error(
+                "To calculate the transaction fee, the value must be Balance, float, or int. Received type: %s. Fee "
+                "is %s",
+                type(value),
+                2e7,
+            )
+            return fee
 
     def _do_transfer(
         self,
@@ -1266,7 +1395,7 @@ class subtensor:
             error (str): Error message if transfer failed.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="Balances",
@@ -1500,7 +1629,7 @@ class subtensor:
         enhancing the decentralized computation capabilities of Bittensor.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -1562,7 +1691,7 @@ class subtensor:
             error (:func:`Optional[str]`): Error message if serve prometheus failed, ``None`` otherwise.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -1611,7 +1740,7 @@ class subtensor:
             error (:func:`Optional[str]`): Error message if associate IPs failed, None otherwise.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -1740,7 +1869,7 @@ class subtensor:
             StakeError: If the extrinsic failed.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -1866,7 +1995,7 @@ class subtensor:
             StakeError: If the extrinsic failed.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -2184,7 +2313,7 @@ class subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             # create extrinsic call
             call = self.substrate.compose_call(
@@ -2285,7 +2414,7 @@ class subtensor:
         network-specific details, providing insights into the neuron's role and status within the Bittensor network.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             return self.substrate.query(
                 module="Registry",
@@ -2335,7 +2464,7 @@ class subtensor:
         call_params = bittensor.utils.wallet_utils.create_identity_dict(**params)
         call_params["identified"] = identified
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="Registry",
@@ -2404,7 +2533,7 @@ class subtensor:
         providing valuable insights into the state and dynamics of the Bittensor ecosystem.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             return self.substrate.query(
                 module="SubtensorModule",
@@ -2441,7 +2570,7 @@ class subtensor:
         relationships within the Bittensor ecosystem, such as inter-neuronal connections and stake distributions.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             return self.substrate.query_map(
                 module="SubtensorModule",
@@ -2475,7 +2604,7 @@ class subtensor:
         operational parameters.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             return self.substrate.get_constant(
                 module_name=module_name,
@@ -2514,7 +2643,7 @@ class subtensor:
         parts of the Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             return self.substrate.query(
                 module=module,
@@ -2553,7 +2682,7 @@ class subtensor:
         modules, offering insights into the network's state and the relationships between its different components.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             return self.substrate.query_map(
                 module=module,
@@ -2588,7 +2717,7 @@ class subtensor:
         useful for specific use cases where standard queries are insufficient.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             block_hash = None if block is None else self.substrate.get_block_hash(block)
             params = [method, data]
@@ -3091,7 +3220,7 @@ class subtensor:
         result = self.query_subtensor("Axons", block, [netuid, hotkey_ss58])
         if result is not None and hasattr(result, "value"):
             return AxonInfo(
-                ip=bittensor.utils.networking.int_to_ip(result.value["ip"]),
+                ip=networking.int_to_ip(result.value["ip"]),
                 ip_type=result.value["ip_type"],
                 port=result.value["port"],
                 protocol=result.value["protocol"],
@@ -3111,7 +3240,7 @@ class subtensor:
         result = self.query_subtensor("Prometheus", block, [netuid, hotkey_ss58])
         if result is not None:
             return PrometheusInfo(
-                ip=bittensor.utils.networking.int_to_ip(result.value["ip"]),
+                ip=networking.int_to_ip(result.value["ip"]),
                 ip_type=result.value["ip_type"],
                 port=result.value["port"],
                 version=result.value["version"],
@@ -3120,9 +3249,9 @@ class subtensor:
         else:
             return None
 
-    ###########################
-    #### Global Parameters ####
-    ###########################
+    #####################
+    # Global Parameters #
+    #####################
 
     @property
     def block(self) -> int:
@@ -3380,7 +3509,7 @@ class subtensor:
         the roles of different subnets, and their unique features.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             block_hash = None if block is None else self.substrate.get_block_hash(block)
             params = []
@@ -3417,7 +3546,7 @@ class subtensor:
         subnet, including its governance, performance, and role within the broader network.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             block_hash = None if block is None else self.substrate.get_block_hash(block)
             params = [netuid]
@@ -3577,7 +3706,7 @@ class subtensor:
         the Bittensor network's consensus and governance structures.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry(encoded_hotkey: List[int]):
             block_hash = None if block == None else self.substrate.get_block_hash(block)
             params = [encoded_hotkey]
@@ -3613,7 +3742,7 @@ class subtensor:
 
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             block_hash = None if block is None else self.substrate.get_block_hash(block)
             params = []
@@ -3648,7 +3777,7 @@ class subtensor:
 
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             block_hash = None if block is None else self.substrate.get_block_hash(block)
             params = []
@@ -3685,7 +3814,7 @@ class subtensor:
         involvement in the network's delegation and consensus mechanisms.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry(encoded_coldkey: List[int]):
             block_hash = None if block == None else self.substrate.get_block_hash(block)
             params = [encoded_coldkey]
@@ -3787,7 +3916,7 @@ class subtensor:
     def get_minimum_required_stake(
         self,
     ):
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             return self.substrate.query(
                 module="SubtensorModule", storage_function="NominatorMinRequiredStake"
@@ -4044,7 +4173,7 @@ class subtensor:
         if uid is None:
             return NeuronInfo._null_neuron()
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             block_hash = None if block == None else self.substrate.get_block_hash(block)
             params = [netuid, uid]
@@ -4354,7 +4483,7 @@ class subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -4388,7 +4517,7 @@ class subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -4423,7 +4552,7 @@ class subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -4546,7 +4675,7 @@ class subtensor:
         """
         try:
 
-            @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+            @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
             def make_substrate_call_with_retry():
                 return self.substrate.query(
                     module="System",
@@ -4558,8 +4687,8 @@ class subtensor:
                 )
 
             result = make_substrate_call_with_retry()
-        except scalecodec.exceptions.RemainingScaleBytesNotEmptyException:
-            bittensor.logging.error(
+        except RemainingScaleBytesNotEmptyException:
+            _logger.error(
                 "Received a corrupted message. This likely points to an error with the network or subnet."
             )
             return Balance(1000)
@@ -4577,7 +4706,7 @@ class subtensor:
         operations on the blockchain. It serves as a reference point for network activities and data synchronization.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             return self.substrate.get_block_number(None)
 
@@ -4598,7 +4727,7 @@ class subtensor:
         including the distribution of financial resources and the financial status of network participants.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             return self.substrate.query_map(
                 module="System",
@@ -4670,7 +4799,7 @@ class subtensor:
         name, description = self._subtensor_errors.get(str(error_index), unknown_error)
 
         if name == unknown_error[0]:
-            logger.warning(
+            _logger.warning(
                 f"Subtensor returned an error with an unknown index: {error_index}"
             )
 
