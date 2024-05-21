@@ -817,14 +817,17 @@ class DendriteMixin:
 BaseModel = torch.nn.Module if use_torch() else object
 
 
-class dendrite(DendriteMixin, BaseModel):
-    def __init__(self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None):
+class dendrite(DendriteMixin, BaseModel):  # type: ignore
+    def __init__(
+        self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None
+    ):
         if use_torch():
             torch.nn.Module.__init__(self)
         DendriteMixin.__init__(self, wallet)
 
 
 if not use_torch():
+
     async def call(self, *args, **kwargs):
         return await self.forward(*args, **kwargs)
 
