@@ -1426,8 +1426,8 @@ class subtensor:
         balances below this threshold can be reaped to conserve network resources.
 
         Args:
-            block (Optional[int], optional): Block number at which to query the deposit amount. If ``None``, the
-                current block is used.
+            block (Optional[int]): Block number at which to query the deposit amount. If ``None``, the current block is
+                used.
 
         Returns:
             Optional[Balance]: The existential deposit amount, or ``None`` if the query fails.
@@ -1449,7 +1449,7 @@ class subtensor:
     ###########
     def register_subnetwork(
         self,
-        wallet: bittensor.wallet,
+        wallet: "bittensor.wallet",
         wait_for_inclusion: bool = False,
         wait_for_finalization=True,
         prompt: bool = False,
@@ -1546,12 +1546,12 @@ class subtensor:
             port (int): The port number on which the neuron is serving.
             protocol (int): The protocol type used by the neuron (e.g., GRPC, HTTP).
             netuid (int): The unique identifier of the subnetwork.
-            placeholder1 (int, optional): Placeholder parameter for future extensions. Default is `0`.
-            placeholder2 (int, optional): Placeholder parameter for future extensions. Default is `0`.
+            placeholder1 (int, optional): Placeholder parameter for future extensions. Default is ``0``.
+            placeholder2 (int, optional): Placeholder parameter for future extensions. Default is ``0``.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block. Default is
-                `False`.
+                ``False``.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain. Default
-                is `True`.
+                is ``True``.
 
         Returns:
             bool: ``True`` if the serve registration is successful, False otherwise.
@@ -2124,7 +2124,7 @@ class subtensor:
 
         Args:
             hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
-            block (Optional[int], optional): The blockchain block number at which to check senate membership.
+            block (Optional[int]): The blockchain block number at which to check senate membership.
 
         Returns:
             bool: ``True`` if the neuron is a senate member at the given block, False otherwise.
@@ -2153,7 +2153,7 @@ class subtensor:
 
         Args:
             proposal_hash (str): The hash of the proposal for which voting data is requested.
-            block (Optional[int], optional): The blockchain block number to query the voting data.
+            block (Optional[int]): The blockchain block number to query the voting data.
 
         Returns:
             Optional[ProposalVoteData]: An object containing the proposal's voting data, or ``None`` if not found.
@@ -2176,7 +2176,7 @@ class subtensor:
         responsible for governance and decision-making within the network.
 
         Args:
-            block (Optional[int], optional): The blockchain block number at which to retrieve the senate members.
+            block (Optional[int]): The blockchain block number at which to retrieve the senate members.
 
         Returns:
             Optional[List[str]]: A list of ``SS58`` addresses of current senate members, or ``None`` if not available.
@@ -2198,7 +2198,7 @@ class subtensor:
 
         Args:
             proposal_hash (str): The hash of the proposal.
-            block (Optional[int], optional): The blockchain block number at which to query the proposal call data.
+            block (Optional[int]): The blockchain block number at which to query the proposal call data.
 
         Returns:
             Optional[GenericCall]: An object containing the proposal's call data, or ``None`` if not found.
@@ -2220,7 +2220,7 @@ class subtensor:
         uniquely identifies a proposal made within the network.
 
         Args:
-            block (Optional[int], optional): The blockchain block number to query the proposal hashes.
+            block (Optional[int]): The blockchain block number to query the proposal hashes.
 
         Returns:
             Optional[List[str]]: A list of proposal hashes, or ``None`` if not available.
@@ -2245,7 +2245,7 @@ class subtensor:
         by the senate.
 
         Args:
-            block (Optional[int], optional): The blockchain block number to query the proposals.
+            block (Optional[int]): The blockchain block number to query the proposals.
 
         Returns:
             Optional[Dict[str, Tuple[bittensor.ProposalCallData, bittensor.ProposalVoteData]]]: A dictionary mapping
@@ -2398,7 +2398,7 @@ class subtensor:
 
         Args:
             key (str): The key used to query the neuron's identity, typically the neuron's ``SS58`` address.
-            block (Optional[int], optional): The blockchain block number at which to perform the query.
+            block (Optional[int]): The blockchain block number at which to perform the query.
 
         Returns:
             Optional[object]: An object containing the identity information of the neuron if found, ``None`` otherwise.
@@ -2506,8 +2506,8 @@ class subtensor:
         Args:
             netuid (int): The unique identifier of the subnetwork.
             uid (int): The unique identifier of the neuron.
-            block (Optional[int], optional): The block number to retrieve the commitment from. If None, the latest block
-                is used. Default is None.
+            block (Optional[int]): The block number to retrieve the commitment from. If None, the latest block
+                is used. Default is ``None``.
 
         Returns:
             str: The commitment data as a string.
@@ -2538,7 +2538,7 @@ class subtensor:
 
         Args:
             name (str): The name of the storage function to query.
-            block (Optional[int], optional): The blockchain block number at which to perform the query.
+            block (Optional[int]): The blockchain block number at which to perform the query.
             params (Optional[List[object]], optional): A list of parameters to pass to the query function.
 
         Returns:
@@ -2575,7 +2575,7 @@ class subtensor:
 
         Args:
             name (str): The name of the map storage function to query.
-            block (Optional[int], optional): The blockchain block number at which to perform the query.
+            block (Optional[int]): The blockchain block number at which to perform the query.
             params (Optional[List[object]], optional): A list of parameters to pass to the query function.
 
         Returns:
@@ -2609,7 +2609,7 @@ class subtensor:
         Args:
             module_name (str): The name of the module containing the constant.
             constant_name (str): The name of the constant to retrieve.
-            block (Optional[int], optional): The blockchain block number at which to query the constant.
+            block (Optional[int]): The blockchain block number at which to query the constant.
 
         Returns:
             Optional[object]: The value of the constant if found, ``None`` otherwise.
@@ -2619,8 +2619,8 @@ class subtensor:
         operational parameters.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry() -> Optional["ScaleType"]:
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
+        def make_substrate_call_with_retry():
             return self.substrate.get_constant(
                 module_name=module_name,
                 constant_name=constant_name,
@@ -2647,7 +2647,7 @@ class subtensor:
         Args:
             module (str): The name of the module from which to query data.
             name (str): The name of the storage function within the module.
-            block (Optional[int], optional): The blockchain block number at which to perform the query.
+            block (Optional[int]): The blockchain block number at which to perform the query.
             params (Optional[List[object]], optional): A list of parameters to pass to the query function.
 
         Returns:
@@ -2686,7 +2686,7 @@ class subtensor:
         Args:
             module (str): The name of the module from which to query the map storage.
             name (str): The specific storage function within the module to query.
-            block (Optional[int], optional): The blockchain block number at which to perform the query.
+            block (Optional[int]): The blockchain block number at which to perform the query.
             params (Optional[List[object]], optional): Parameters to be passed to the query.
 
         Returns:
@@ -2722,7 +2722,7 @@ class subtensor:
         Args:
             method (str): The method name for the state call.
             data (str): The data to be passed to the method.
-            block (Optional[int], optional): The blockchain block number at which to perform the state call.
+            block (Optional[int]): The blockchain block number at which to perform the state call.
 
         Returns:
             result (Dict[Any, Any]): The result of the rpc call.
@@ -2757,7 +2757,7 @@ class subtensor:
             runtime_api (str): The name of the runtime API to query.
             method (str): The specific method within the runtime API to call.
             params (Optional[List[ParamWithTypes]], optional): The parameters to pass to the method call.
-            block (Optional[int], optional): The blockchain block number at which to perform the query.
+            block (Optional[int]): The blockchain block number at which to perform the query.
 
         Returns:
             Optional[bytes]: The Scale Bytes encoded result from the runtime API call, or ``None`` if the call fails.
@@ -2832,7 +2832,7 @@ class subtensor:
 
         Args:
             netuid (int): The unique identifier of the subnet.
-            block (Optional[int], optional): The blockchain block number at which to query the parameter.
+            block (Optional[int]): The blockchain block number at which to query the parameter.
 
         Returns:
             Optional[int]: The value of the 'Rho' hyperparameter if the subnet exists, ``None`` otherwise.
@@ -2862,7 +2862,7 @@ class subtensor:
 
         Args:
             netuid (int): The unique identifier of the subnet.
-            block (Optional[int], optional): The blockchain block number for the query.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[float]: The value of the 'Kappa' hyperparameter if the subnet exists, None otherwise.
@@ -2893,7 +2893,7 @@ class subtensor:
 
         Args:
             netuid (int): The unique identifier of the subnet.
-            block (Optional[int], optional): The blockchain block number for the query.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[int]: The value of the 'Difficulty' hyperparameter if the subnet exists, ``None`` otherwise.
@@ -2916,7 +2916,7 @@ class subtensor:
 
         Args:
             netuid (int): The unique identifier of the subnet.
-            block (Optional[int], optional): The blockchain block number for the query.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[Balance]: The value of the 'Burn' hyperparameter if the subnet exists, None otherwise.
@@ -2941,7 +2941,7 @@ class subtensor:
 
         Args:
             netuid (int): The unique identifier of the subnet.
-            block (Optional[int], optional): The blockchain block number for the query.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[int]: The value of the 'ImmunityPeriod' hyperparameter if the subnet exists, ``None`` otherwise.
@@ -2965,8 +2965,8 @@ class subtensor:
 
         Args:
             netuid (int): The unique identifier of the subnetwork.
-            block (Optional[int], optional): The block number to retrieve the parameter from. If None, the latest block
-                is used. Default is `None`.
+            block (Optional[int]): The block number to retrieve the parameter from. If None, the latest block
+                is used. Default is ``None``.
 
         Returns:
             Optional[int]: The value of the ValidatorBatchSize hyperparameter, or None if the subnetwork does not exist
@@ -2987,8 +2987,8 @@ class subtensor:
 
         Args:
             netuid (int): The unique identifier of the subnetwork.
-            block (Optional[int], optional): The block number to retrieve the parameter from. If None, the latest block
-            is used. Default is `None`.
+            block (Optional[int]): The block number to retrieve the parameter from. If None, the latest block
+            is used. Default is ``None``.
 
         Returns:
             Optional[int]: The value of the ValidatorPruneLen hyperparameter, or None if the subnetwork does not exist
@@ -3009,8 +3009,8 @@ class subtensor:
 
         Args:
             netuid (int): The unique identifier of the subnetwork.
-            block (Optional[int], optional): The block number to retrieve the parameter from. If None, the latest block
-            is used. Default is `None`.
+            block (Optional[int]): The block number to retrieve the parameter from. If None, the latest block
+            is used. Default is ``None``.
 
         Returns:
             Optional[float]: The value of the ValidatorLogitsDivergence hyperparameter, or None if the subnetwork does
@@ -3983,7 +3983,7 @@ class subtensor:
 
         Args:
             hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
-            block (Optional[int], optional): The blockchain block number at which to perform the check.
+            block (Optional[int]): The blockchain block number at which to perform the check.
 
         Returns:
             bool: ``True`` if the hotkey is registered on any subnet, False otherwise.
@@ -4001,7 +4001,7 @@ class subtensor:
         Args:
             hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             netuid (int): The unique identifier of the subnet.
-            block (Optional[int], optional): The blockchain block number at which to perform the check.
+            block (Optional[int]): The blockchain block number at which to perform the check.
 
         Returns:
             bool: ``True`` if the hotkey is registered on the specified subnet, False otherwise.
@@ -4025,8 +4025,8 @@ class subtensor:
 
         Args:
             hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
-            netuid (Optional[int], optional): The unique identifier of the subnet to check the registration. If ``None``, the registration is checked across all subnets.
-            block (Optional[int], optional): The blockchain block number at which to perform the query.
+            netuid (Optional[int]): The unique identifier of the subnet to check the registration. If ``None``, the registration is checked across all subnets.
+            block (Optional[int]): The blockchain block number at which to perform the query.
 
         Returns:
             bool: ``True`` if the hotkey is registered in the specified context (either any subnet or a specific subnet), ``False`` otherwise.
@@ -4049,7 +4049,7 @@ class subtensor:
         Args:
             hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             netuid (int): The unique identifier of the subnet.
-            block (Optional[int], optional): The blockchain block number for the query.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[int]: The UID of the neuron if it is registered on the subnet, ``None`` otherwise.
@@ -4072,7 +4072,7 @@ class subtensor:
 
         Args:
             hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
-            block (Optional[int], optional): The blockchain block number at which to perform the query.
+            block (Optional[int]): The blockchain block number at which to perform the query.
 
         Returns:
             List[int]: A list of UIDs associated with the given hotkey across various subnets.
@@ -4095,7 +4095,7 @@ class subtensor:
 
         Args:
             hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
-            block (Optional[int], optional): The blockchain block number at which to perform the query.
+            block (Optional[int]): The blockchain block number at which to perform the query.
 
         Returns:
             List[int]: A list of netuids where the neuron is a member.
@@ -4114,7 +4114,7 @@ class subtensor:
         Args:
             hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             netuid (int): The unique identifier of the subnet.
-            block (Optional[int], optional): The blockchain block number at which to perform the query.
+            block (Optional[int]): The blockchain block number at which to perform the query.
 
         Returns:
             Optional[NeuronInfo]: Detailed information about the neuron if found, ``None`` otherwise.
@@ -4138,7 +4138,7 @@ class subtensor:
 
         Args:
             hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
-            block (Optional[int], optional): The blockchain block number for the query.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             List[NeuronInfo]: A list of NeuronInfo objects detailing the neuron's presence across various subnets.
@@ -4161,7 +4161,7 @@ class subtensor:
         Args:
             uid (int): The unique identifier of the neuron.
             netuid (int): The unique identifier of the subnet.
-            block (Optional[int], optional): The blockchain block number for the query.
+            block (Optional[int]): The blockchain block number for the query.
 
         Returns:
             Optional[bool]: ``True`` if the neuron has a validator permit, False otherwise.
@@ -4185,7 +4185,7 @@ class subtensor:
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron.
             netuid (int): The unique identifier of the subnet.
-            block (Optional[int], optional): The blockchain block number at which to perform the query.
+            block (Optional[int]): The blockchain block number at which to perform the query.
 
         Returns:
             Optional[NeuronInfo]: Detailed information about the neuron if found, ``None`` otherwise.
