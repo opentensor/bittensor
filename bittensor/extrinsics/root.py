@@ -23,9 +23,10 @@ import logging
 import numpy as np
 from numpy.typing import NDArray
 from rich.prompt import Confirm
-from typing import Union
+from typing import Union, List
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
+from bittensor.utils.registration import torch, use_torch
 
 logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
@@ -102,8 +103,8 @@ def root_register_extrinsic(
 def set_root_weights_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
-    netuids: Union[NDArray[np.int64], list],
-    weights: Union[NDArray[np.float32], list],
+    netuids: Union[NDArray[np.int64], "torch.LongTensor", List[int]],
+    weights: Union[NDArray[np.float32], "torch.FloatTensor", List[float]],
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
@@ -114,9 +115,9 @@ def set_root_weights_extrinsic(
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
-        netuids (List[int]):
+        netuids (Union[NDArray[np.int64], torch.LongTensor, List[int]]):
             The ``netuid`` of the subnet to set weights for.
-        weights (Union[NDArray[np.float32], list]):
+        weights (Union[NDArray[np.float32], torch.FloatTensor, list]):
             Weights to set. These must be ``float`` s and must correspond to the passed ``netuid`` s.
         version_key (int):
             The version key of the validator.
@@ -132,22 +133,36 @@ def set_root_weights_extrinsic(
     """
     # First convert types.
     if isinstance(netuids, list):
-        netuids = np.array(netuids, dtype=np.int64)
+        netuids = (
+            torch.tensor(netuids, dtype=torch.int64)
+            if use_torch()
+            else np.array(netuids, dtype=np.int64)
+        )
     if isinstance(weights, list):
-        weights = np.array(weights, dtype=np.float32)
+        weights = (
+            torch.tensor(weights, dtype=torch.float32)
+            if use_torch()
+            else np.array(weights, dtype=np.float32)
+        )
 
     # Get weight restrictions.
     min_allowed_weights = subtensor.min_allowed_weights(netuid=0)
     max_weight_limit = subtensor.max_weight_limit(netuid=0)
 
     # Get non zero values.
-    non_zero_weight_idx = np.argwhere(weights > 0).squeeze(axis=1)
-    non_zero_weight_uids = netuids[non_zero_weight_idx]
+    non_zero_weight_idx = (
+        torch.argwhere(weights > 0).squeeze(dim=1)
+        if use_torch()
+        else np.argwhere(weights > 0).squeeze(axis=1)
+    )
     non_zero_weights = weights[non_zero_weight_idx]
-    if non_zero_weights.size < min_allowed_weights:
+    non_zero_weights_size = (
+        non_zero_weights.numel() if use_torch() else non_zero_weights.size
+    )
+    if non_zero_weights_size < min_allowed_weights:
         raise ValueError(
             "The minimum number of weights required to set weights is {}, got {}".format(
-                min_allowed_weights, non_zero_weights.size
+                min_allowed_weights, non_zero_weights_size
             )
         )
 
@@ -192,7 +207,7 @@ def set_root_weights_extrinsic(
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
 
-            if success == True:
+            if success is True:
                 bittensor.__console__.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )
