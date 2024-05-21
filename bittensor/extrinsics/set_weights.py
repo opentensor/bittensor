@@ -19,12 +19,14 @@
 import bittensor
 
 import logging
+import os
 import numpy as np
 from numpy.typing import NDArray
 from rich.prompt import Confirm
 from typing import Union, Tuple
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
+from bittensor.utils import torch
 
 logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
@@ -33,8 +35,8 @@ def set_weights_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
-    uids: Union[NDArray[np.int64], list],
-    weights: Union[NDArray[np.float32], list],
+    uids: Union[NDArray[np.int64], "torch.LongTensor", list],
+    weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
@@ -49,9 +51,9 @@ def set_weights_extrinsic(
             Bittensor wallet object.
         netuid (int):
             The ``netuid`` of the subnet to set weights for.
-        uids (Union[NDArray[np.int64], list]):
+        uids (Union[NDArray[np.int64], torch.LongTensor, list]):
             The ``uint64`` uids of destination neurons.
-        weights (Union[NDArray[np.float32], list]):
+        weights (Union[NDArray[np.float32], torch.FloatTensor, list]):
             The weights to set. These must be ``float`` s and correspond to the passed ``uid`` s.
         version_key (int):
             The version key of the validator.
@@ -65,12 +67,17 @@ def set_weights_extrinsic(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
-
     # First convert types.
-    if isinstance(uids, list):
-        uids = np.array(uids, dtype=np.int64)
-    if isinstance(weights, list):
-        weights = np.array(weights, dtype=np.float32)
+    if os.getenv("USE_TORCH"):
+        if isinstance(uids, list):
+            uids = torch.tensor(uids, dtype=torch.int64)
+        if isinstance(weights, list):
+            weights = torch.tensor(weights, dtype=torch.float32)
+    else:
+        if isinstance(uids, list):
+            uids = np.array(uids, dtype=np.int64)
+        if isinstance(weights, list):
+            weights = np.array(weights, dtype=np.float32)
 
     # Reformat and normalize.
     weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
