@@ -1361,12 +1361,12 @@ class subtensor:
                         e
                     )
                 )
-                payment_info = {"partialFee": 2e7}  # assume  0.02 Tao
+                payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
 
             fee = Balance.from_rao(payment_info["partialFee"])
             return fee
         else:
-            fee = Balance.from_rao(2e7)
+            fee = Balance.from_rao(int(2e7))
             _logger.error(
                 "To calculate the transaction fee, the value must be Balance, float, or int. Received type: %s. Fee "
                 "is %s",
