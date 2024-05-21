@@ -25,10 +25,10 @@ from numpy.typing import NDArray
 import bittensor
 from os import listdir
 from os.path import join
-from typing import List, Optional, Union, Tuple, Any
+from typing import List, Optional, Union, Tuple
 
 from bittensor.chain_data import AxonInfo
-from bittensor.utils.registration import torch, Torch
+from bittensor.utils.registration import torch
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "version",
