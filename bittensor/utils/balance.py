@@ -258,9 +258,9 @@ class Balance:
         return Balance(rao)
 
     @staticmethod
-    def from_tao(amount: float):
+    def from_tao(amount: Union[int, float]):
         """
-        Given tao (float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
+        Given tao (int | float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
 
         Args:
             amount: The amount in tao.
@@ -272,9 +272,9 @@ class Balance:
         return Balance(rao)
 
     @staticmethod
-    def from_rao(amount: int | float):
+    def from_rao(amount: Union[int, float]):
         """
-        Given rao (int), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
+        Given rao (int | float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
 
         Args:
             amount: The amount in rao.
