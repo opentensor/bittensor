@@ -1052,7 +1052,7 @@ class subtensor:
             This is for testnet ONLY and is disabled currently. You must build your own staging subtensor chain with the
             ``--features pow-faucet`` argument to enable this.
         """
-        return run_faucet_extrinsic(
+        result, _ = run_faucet_extrinsic(
             subtensor=self,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -1067,6 +1067,7 @@ class subtensor:
             update_interval=update_interval,
             log_verbose=log_verbose,
         )
+        return result
 
     def burned_register(
         self,

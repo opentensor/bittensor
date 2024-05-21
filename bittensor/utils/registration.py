@@ -36,9 +36,13 @@ class Torch:
     @staticmethod
     def _error():
         bittensor.logging.warning(
-            "This command requires torch. Please install torch package."
+            "This command requires torch. You can install torch for bittensor"
+            ' with `pip install bittensor[torch]` or `pip install ".[torch]"`'
+            " if installing from source, and then run the command with USE_TORCH=1 {command}"
         )
-        raise ImportError
+
+    def error(self):
+        self._error()
 
     def _transform(self):
         try:
