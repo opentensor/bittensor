@@ -107,8 +107,6 @@ class SubStakeCommand:
             all_hotkeys: List[bittensor.wallet] = get_hotkey_wallets_for_wallet(
                 wallet=wallet
             )
-            print(f"All hotkeys 1: {all_hotkeys}")
-            print(f"Mock wallets in _run: {wallet}")
             # Get the hotkeys to exclude. (d)efault to no exclusions.
             hotkeys_to_exclude: List[str] = cli.config.get("hotkeys", d=[])
             # Exclude hotkeys that are specified.
@@ -117,7 +115,6 @@ class SubStakeCommand:
                 for wallet in all_hotkeys
                 if wallet.hotkey_str not in hotkeys_to_exclude
             ]  # definitely wallets
-            print(f"Hotkeys to stake to 1: {hotkeys_to_stake_to}")
         elif config.get("hotkeys"):
             # Stake to specific hotkeys.
             for hotkey_ss58_or_hotkey_name in config.get("hotkeys"):
@@ -133,7 +130,6 @@ class SubStakeCommand:
                     hotkeys_to_stake_to.append(
                         (wallet_.hotkey_str, wallet_.hotkey.ss58_address)
                     )
-            print(f"Hotkeys to stake to 2: {hotkeys_to_stake_to}")
         else:
             # Only config.wallet.hotkey is specified.
             #  so we stake to that single hotkey.
@@ -141,17 +137,13 @@ class SubStakeCommand:
             hotkeys_to_stake_to = [
                 (None, bittensor.wallet(config=config).hotkey.ss58_address)
             ]
-            print(f"Hotkeys to stake to 3: {hotkeys_to_stake_to}")
 
         # Get coldkey balance
         wallet_balance: Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-        print(f"Hotkeys to stake to: {hotkeys_to_stake_to}")
-        print(f"Wallet balance: {wallet_balance}")
         final_hotkeys: List[Tuple[str, str]] = []
         final_amounts: List[Union[float, Balance]] = []
         for hotkey in tqdm(hotkeys_to_stake_to):
             hotkey_balance = subtensor.get_balance(hotkey[1])
-            print(f"Hotkey balance: {hotkey_balance}")
             hotkey: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
             if not subtensor.is_hotkey_registered_any(hotkey_ss58=hotkey[1]):
                 # Hotkey is not registered.
