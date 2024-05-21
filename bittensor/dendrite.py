@@ -24,10 +24,11 @@ import uuid
 import time
 import aiohttp
 import bittensor
-from typing import Union, Optional, List, Union, AsyncGenerator, Any
+from typing import Optional, List, Union, AsyncGenerator, Any
+from bittensor.utils.registration import torch, use_torch
 
 
-class dendrite:
+class DendriteMixin:
     """
     The Dendrite class represents the abstracted implementation of a network client module.
 
@@ -104,7 +105,7 @@ class dendrite:
                 The user's wallet or keypair used for signing messages. Defaults to ``None``, in which case a new :func:`bittensor.wallet().hotkey` is generated and used.
         """
         # Initialize the parent class
-        super(dendrite, self).__init__()
+        super(DendriteMixin, self).__init__()
 
         # Unique identifier for the instance
         self.uuid = str(uuid.uuid1())
@@ -120,9 +121,6 @@ class dendrite:
         self.synapse_history: list = []
 
         self._session: Optional[aiohttp.ClientSession] = None
-
-    async def __call__(self, *args, **kwargs):
-        return await self.forward(*args, **kwargs)
 
     @property
     async def session(self) -> aiohttp.ClientSession:
@@ -808,3 +806,24 @@ class dendrite:
             del dendrite  # This will implicitly invoke the __del__ method and close the session.
         """
         self.close_session()
+
+
+# For back-compatibility with torch
+BaseModel: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() else object
+
+
+class dendrite(DendriteMixin, BaseModel):  # type: ignore
+    def __init__(
+        self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None
+    ):
+        if use_torch():
+            torch.nn.Module.__init__(self)
+        DendriteMixin.__init__(self, wallet)
+
+
+if not use_torch():
+
+    async def call(self, *args, **kwargs):
+        return await self.forward(*args, **kwargs)
+
+    dendrite.__call__ = call

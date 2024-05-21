@@ -17,11 +17,10 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
-
 import time
 from rich.prompt import Confirm
 from typing import List, Union, Optional, Tuple
-from bittensor.utils.registration import POWSolution, create_pow, maybe_get_torch
+from bittensor.utils.registration import POWSolution, create_pow, torch, use_torch
 
 
 def register_extrinsic(
@@ -101,8 +100,7 @@ def register_extrinsic(
         ):
             return False
 
-    torch = maybe_get_torch()
-    if torch is None:
+    if not use_torch():
         return False
 
     # Attempt rolling registration.
@@ -343,7 +341,7 @@ def run_faucet_extrinsic(
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
-) -> bool:
+) -> Tuple[bool, str]:
     r"""Runs a continual POW to get a faucet of TAO on the test net.
 
     Args:
@@ -380,11 +378,11 @@ def run_faucet_extrinsic(
                 subtensor.network,
             )
         ):
-            return False
+            return False, ""
 
-    torch = maybe_get_torch()
-    if torch is None:
-        return False
+    if not use_torch():
+        torch.error()
+        return False, "Requires torch"
 
     # Unlock coldkey
     wallet.coldkey
@@ -404,7 +402,7 @@ def run_faucet_extrinsic(
                     if not torch.cuda.is_available():
                         if prompt:
                             bittensor.__console__.print("CUDA is not available.")
-                        return False
+                        return False, "CUDA is not available."
                     pow_result: Optional[POWSolution] = create_pow(
                         subtensor,
                         wallet,
