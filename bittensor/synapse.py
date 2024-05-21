@@ -394,7 +394,7 @@ class Synapse(BaseModel):
                     return self
 
             serialized_data = '{"additional_data": "SGVsbG8gV29ybGQ="}'  # Base64 for 'Hello World'
-            custom_synapse = CustomSynapse.parse_raw(serialized_data)
+            custom_synapse = CustomSynapse.model_validate_json(serialized_data)
             deserialized_synapse = custom_synapse.deserialize()
 
             # deserialized_synapse.additional_data would now be 'Hello World'
