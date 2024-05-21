@@ -446,7 +446,7 @@ class dendrite:
                     # If in streaming mode, return the async_generator
                     return self.call_stream(
                         target_axon=target_axon,
-                        synapse=synapse.copy(),  # type: ignore
+                        synapse=synapse.model_copy(),  # type: ignore
                         timeout=timeout,
                         deserialize=deserialize,
                     )
@@ -454,7 +454,7 @@ class dendrite:
                     # If not in streaming mode, simply call the axon and get the response.
                     return await self.call(
                         target_axon=target_axon,
-                        synapse=synapse.copy(),  # type: ignore
+                        synapse=synapse.model_copy(),  # type: ignore
                         timeout=timeout,
                         deserialize=deserialize,
                     )
@@ -521,7 +521,7 @@ class dendrite:
             async with (await self.session).post(
                 url,
                 headers=synapse.to_headers(),
-                json=synapse.dict(),
+                json=synapse.model_dump(),
                 timeout=timeout,
             ) as response:
                 # Extract the JSON response from the server
@@ -603,7 +603,7 @@ class dendrite:
             async with (await self.session).post(
                 url,
                 headers=synapse.to_headers(),
-                json=synapse.dict(),
+                json=synapse.model_dump(),
                 timeout=timeout,
             ) as response:
                 # Use synapse subclass' process_streaming_response method to yield the response chunks
@@ -700,9 +700,9 @@ class dendrite:
         if server_response.status == 200:
             # If the response is successful, overwrite local synapse state with
             # server's state only if the protocol allows mutation. To prevent overwrites,
-            # the protocol must set allow_mutation = False
+            # the protocol must set Frozen = True
             server_synapse = local_synapse.__class__(**json_response)
-            for key in local_synapse.dict().keys():
+            for key in local_synapse.model_dump().keys():
                 try:
                     # Set the attribute in the local synapse from the corresponding
                     # attribute in the server synapse
@@ -717,16 +717,16 @@ class dendrite:
         # Merge dendrite headers
         local_synapse.dendrite.__dict__.update(
             {
-                **local_synapse.dendrite.dict(exclude_none=True),  # type: ignore
-                **server_headers.dendrite.dict(exclude_none=True),  # type: ignore
+                **local_synapse.dendrite.model_dump(exclude_none=True),  # type: ignore
+                **server_headers.dendrite.model_dump(exclude_none=True),  # type: ignore
             }
         )
 
         # Merge axon headers
         local_synapse.axon.__dict__.update(
             {
-                **local_synapse.axon.dict(exclude_none=True),  # type: ignore
-                **server_headers.axon.dict(exclude_none=True),  # type: ignore
+                **local_synapse.axon.model_dump(exclude_none=True),  # type: ignore
+                **server_headers.axon.model_dump(exclude_none=True),  # type: ignore
             }
         )
 
