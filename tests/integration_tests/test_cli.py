@@ -2090,7 +2090,6 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
     def test_pow_register(self, _):
         # Not the best way to do this, but I need to finish these tests, and unittest doesn't make this
         # as simple as pytest
-        import os
         os.environ["USE_TORCH"] = "1"
         config = self.config
         config.command = "subnets"
@@ -2115,7 +2114,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     mock_create_wallet.assert_called_once()
 
                 self.assertEqual(mock_is_stale.call_count, 1)
-        os.unsetenv("USE_TORCH")
+        del os.environ["USE_TORCH"]
 
     def test_stake(self, _):
         amount_to_stake: Balance = Balance.from_tao(0.5)

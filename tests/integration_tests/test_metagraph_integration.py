@@ -74,7 +74,7 @@ class TestMetagraph:
 
         deprecated_save_torch(self.metagraph)
         self.metagraph.load()
-        os.unsetenv("USE_TORCH")
+        del os.environ["USE_TORCH"]
 
     def test_state_dict(self):
         self.metagraph.load()

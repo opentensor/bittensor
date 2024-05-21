@@ -26,7 +26,6 @@ except ImportError:
 
 
 class Torch:
-
     def __init__(self):
         self._transformed = False
 
@@ -40,6 +39,7 @@ class Torch:
     def _transform(self):
         try:
             import torch as real_torch
+
             self.__dict__.update(real_torch.__dict__)
             self._transformed = True
         except ImportError:

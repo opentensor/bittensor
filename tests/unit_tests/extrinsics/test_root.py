@@ -76,8 +76,6 @@ def set_use_torch_env(monkeypatch):
         "failure-prompt-declined",
     ],
 )
-
-
 def test_root_register_extrinsic(
     mock_subtensor,
     mock_wallet,

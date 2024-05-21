@@ -66,7 +66,9 @@ def normalize_max_weight(
             return weights / weights.sum()
 
         # Find the cumlative sum and sorted tensor
-        cumsum = torch.cumsum(estimation, 0) if use_torch() else np.cumsum(estimation, 0)
+        cumsum = (
+            torch.cumsum(estimation, 0) if use_torch() else np.cumsum(estimation, 0)
+        )
 
         # Determine the index of cutoff
         estimation_sum_data = [
