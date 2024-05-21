@@ -196,7 +196,6 @@ def serve_axon_extrinsic(
         protocol=4,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
-        prompt=prompt,
     )
     return serve_success
 
