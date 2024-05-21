@@ -109,7 +109,7 @@ def set_weights_extrinsic(
                 )
                 bittensor.logging.success(
                     prefix="Set weights",
-                    sufix="<green>Finalized: </green>" + str(success),
+                    suffix="<green>Finalized: </green>" + str(success),
                 )
                 return True, "Successfully set weights and Finalized."
             else:
@@ -118,7 +118,7 @@ def set_weights_extrinsic(
                 )
                 bittensor.logging.warning(
                     prefix="Set weights",
-                    sufix="<red>Failed: </red>" + str(error_message),
+                    suffix="<red>Failed: </red>" + str(error_message),
                 )
                 return False, error_message
 
@@ -128,6 +128,6 @@ def set_weights_extrinsic(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
             return False, str(e)
