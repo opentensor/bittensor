@@ -23,7 +23,7 @@ import msgpack
 import pydantic
 import msgpack_numpy
 from typing import Optional, Union, List
-from bittensor.utils import torch
+from bittensor.utils.registration import torch, use_torch
 
 NUMPY_DTYPES = {
     "float16": np.float16,
@@ -37,7 +37,7 @@ NUMPY_DTYPES = {
     "bool": bool,
 }
 
-if os.getenv("USE_TORCH"):
+if use_torch():
     TORCH_DTYPES = {
         "torch.float16": torch.float16,
         "torch.float32": torch.float32,
@@ -70,11 +70,11 @@ def cast_dtype(raw: Union[None, np.dtype, "torch.dtype", str]) -> str:
         return None
     if isinstance(raw, np.dtype):
         return NUMPY_DTYPES[raw]
-    elif os.getenv("USE_TORCH"):
+    elif use_torch():
         if isinstance(raw, torch.dtype):
             return TORCH_DTYPES[raw]
     elif isinstance(raw, str):
-        if os.getenv("USE_TORCH"):
+        if use_torch():
             assert (
                 raw in TORCH_DTYPES
             ), f"{raw} not a valid torch type in dict {TORCH_DTYPES}"
@@ -125,7 +125,7 @@ class tensor:
     def __new__(cls, tensor: Union[list, np.ndarray, "torch.Tensor"]):
         if isinstance(tensor, list) or isinstance(tensor, np.ndarray):
             tensor = (
-                torch.tensor(tensor) if os.getenv("USE_TORCH") else np.array(tensor)
+                torch.tensor(tensor) if use_torch() else np.array(tensor)
             )
         return Tensor.serialize(tensor=tensor)
 
@@ -152,7 +152,7 @@ class Tensor(pydantic.BaseModel):
     def numpy(self) -> "numpy.ndarray":
         return (
             self.deserialize().detach().numpy()
-            if os.getenv("USE_TORCH")
+            if use_torch()
             else self.deserialize()
         )
 
@@ -171,7 +171,7 @@ class Tensor(pydantic.BaseModel):
         numpy_object = msgpack.unpackb(
             buffer_bytes, object_hook=msgpack_numpy.decode
         ).copy()
-        if os.getenv("USE_TORCH"):
+        if use_torch():
             torch_object = torch.as_tensor(numpy_object)
             # Reshape does not work for (0) or [0]
             if not (len(shape) == 1 and shape[0] == 0):
@@ -201,7 +201,7 @@ class Tensor(pydantic.BaseModel):
         shape = list(tensor.shape)
         if len(shape) == 0:
             shape = [0]
-        if os.getenv("USE_TORCH"):
+        if use_torch():
             torch_numpy = tensor.cpu().detach().numpy().copy()
             data_buffer = base64.b64encode(
                 msgpack.packb(torch_numpy, default=msgpack_numpy.encode)

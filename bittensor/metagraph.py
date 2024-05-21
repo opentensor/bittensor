@@ -28,7 +28,7 @@ from os.path import join
 from typing import List, Optional, Union, Tuple
 
 from bittensor.chain_data import AxonInfo
-from bittensor.utils.registration import torch
+from bittensor.utils.registration import torch, use_torch
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "version",
@@ -48,10 +48,6 @@ METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "validator_permit",
     "uids",
 ]
-
-
-def use_torch() -> bool:
-    return bool(os.getenv("USE_TORCH") == "1")
 
 
 def get_save_dir(network: str, netuid: int) -> str:
@@ -851,7 +847,7 @@ class MetagraphMixin(ABC):
         pass
 
 
-BaseClass = torch.nn.Module if use_torch() else object
+BaseClass: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() else object
 
 
 class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
@@ -1182,5 +1178,4 @@ class NonTorchMetagraph(MetagraphMixin):
         return self
 
 
-print("USE_TORCH", use_torch())
 metagraph = TorchMetaGraph if use_torch() else NonTorchMetagraph

@@ -23,14 +23,10 @@ import numpy as np
 import bittensor
 from numpy.typing import NDArray
 from typing import Tuple, List, Union
-from bittensor.utils import torch
+from bittensor.utils.registration import torch, use_torch
 
 U32_MAX = 4294967295
 U16_MAX = 65535
-
-
-def use_torch() -> bool:
-    return True if os.getenv("USE_TORCH") == "1" else False
 
 
 def normalize_max_weight(

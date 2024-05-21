@@ -20,17 +20,12 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import uuid
 import time
 import aiohttp
 import bittensor
-from typing import Union, Optional, List, Union, AsyncGenerator, Any
-from .utils import torch
-
-
-def use_torch() -> bool:
-    return True if os.getenv("USE_TORCH") == "1" else False
+from typing import Optional, List, Union, AsyncGenerator, Any
+from bittensor.utils.registration import torch, use_torch
 
 
 class DendriteMixin:
@@ -814,7 +809,7 @@ class DendriteMixin:
 
 
 # For back-compatibility with torch
-BaseModel = torch.nn.Module if use_torch() else object
+BaseModel: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() else object
 
 
 class dendrite(DendriteMixin, BaseModel):  # type: ignore

@@ -27,7 +27,7 @@ import numpy as np
 
 from .wallet_utils import *  # noqa F401
 from .version import version_checking, check_version, VersionCheckError
-from .registration import torch
+from .registration import torch, use_torch
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
@@ -49,6 +49,29 @@ def _unbiased_topk(
     axis=0,
     return_type: str = "numpy",
 ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
+    """Selects topk as in torch.topk but does not bias lower indices when values are equal.
+    Args:
+        values: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
+            Values to index into.
+        k: (int):
+            Number to take.
+        dim: (int):
+            Dimension to index into (used by Torch)
+        sorted: (bool):
+            Whether to sort indices.
+        largest: (bool):
+            Whether to take the largest value.
+        axis: (int):
+            Axis along which to index into (used by Numpy)
+        return_type: (str):
+            Whether or use torch or numpy approach
+
+    Return:
+        topk: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
+            topk k values.
+        indices: (np.ndarray) if using numpy, (torch.LongTensor) if using torch:
+            indices of the topk values.
+    """
     if return_type == "torch":
         permutation = torch.randperm(values.shape[dim])
         permuted_values = values[permutation]
@@ -80,12 +103,20 @@ def unbiased_topk(
     largest: bool = True,
     axis: int = 0,
 ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
-    r"""Selects topk as in torch.topk but does not bias lower indices when values are equal.
+    """Selects topk as in torch.topk but does not bias lower indices when values are equal.
     Args:
         values: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
             Values to index into.
         k: (int):
             Number to take.
+        dim: (int):
+            Dimension to index into (used by Torch)
+        sorted: (bool):
+            Whether to sort indices.
+        largest: (bool):
+            Whether to take the largest value.
+        axis: (int):
+            Axis along which to index into (used by Numpy)
 
     Return:
         topk: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
@@ -93,7 +124,7 @@ def unbiased_topk(
         indices: (np.ndarray) if using numpy, (torch.LongTensor) if using torch:
             indices of the topk values.
     """
-    if os.getenv("USE_TORCH"):
+    if use_torch():
         return _unbiased_topk(
             values, k, dim, sorted, largest, axis, return_type="torch"
         )

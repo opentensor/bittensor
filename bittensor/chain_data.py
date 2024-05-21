@@ -25,8 +25,9 @@ from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.utils.ss58 import ss58_encode
 
-from .utils import networking as net, U16_MAX, U16_NORMALIZED_FLOAT, torch
+from .utils import networking as net, U16_MAX, U16_NORMALIZED_FLOAT
 from .utils.balance import Balance
+from .utils.registration import torch, use_torch
 
 custom_rpc_type_registry = {
     "types": {
@@ -276,7 +277,7 @@ class AxonInfo:
         self,
     ) -> Union[dict[str, Union[int, str]], "torch.nn.ParameterDict"]:
         """Returns a torch tensor or dict of the subnet info, depending on the USE_TORCH flag set"""
-        if os.environ.get("USE_TORCH"):
+        if use_torch():
             return self._to_parameter_dict("torch")
         else:
             return self._to_parameter_dict("numpy")
@@ -297,7 +298,7 @@ class AxonInfo:
         cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]
     ) -> "AxonInfo":
         """Returns an axon_info object from a torch parameter_dict or a parameter dict."""
-        if os.environ.get("USE_TORCH"):
+        if use_torch():
             return cls._from_parameter_dict(parameter_dict, "torch")
         else:
             return cls._from_parameter_dict(parameter_dict, "numpy")
@@ -1019,7 +1020,7 @@ class SubnetInfo:
 
     def to_parameter_dict(self) -> Union[dict[str, Any], "torch.nn.ParameterDict"]:
         """Returns a torch tensor or dict of the subnet info."""
-        if os.environ.get("USE_TORCH"):
+        if use_torch():
             return self._to_parameter_dict("torch")
         else:
             return self._to_parameter_dict("numpy")
@@ -1040,7 +1041,7 @@ class SubnetInfo:
     def from_parameter_dict(
         cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]
     ) -> "SubnetInfo":
-        if os.environ.get("USE_TORCH"):
+        if use_torch():
             return cls._from_parameter_dict_torch(parameter_dict)
         else:
             return cls._from_parameter_dict_numpy(parameter_dict)
@@ -1142,7 +1143,7 @@ class SubnetHyperparameters:
         self,
     ) -> Union[dict[str, Union[int, float, bool]], "torch.nn.ParameterDict"]:
         """Returns a torch tensor or dict of the subnet hyperparameters."""
-        if os.environ.get("USE_TORCH"):
+        if use_torch():
             return self._to_parameter_dict_torch("torch")
         else:
             return self._to_parameter_dict_torch("numpy")
@@ -1165,7 +1166,7 @@ class SubnetHyperparameters:
     def from_parameter_dict(
         cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]
     ) -> "SubnetHyperparameters":
-        if os.environ.get("USE_TORCH"):
+        if use_torch():
             return cls._from_parameter_dict_torch(parameter_dict)
         else:
             return cls._from_parameter_dict_numpy(parameter_dict)
@@ -1237,7 +1238,7 @@ class IPInfo:
         self,
     ) -> Union[dict[str, Union[str, int]], "torch.nn.ParameterDict"]:
         """Returns a torch tensor or dict of the subnet IP info."""
-        if os.environ.get("USE_TORCH"):
+        if use_torch():
             return self._to_parameter_dict("torch")
         else:
             return self._to_parameter_dict("numpy")
@@ -1258,7 +1259,7 @@ class IPInfo:
     def from_parameter_dict(
         cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]
     ) -> "IPInfo":
-        if os.environ.get("USE_TORCH"):
+        if use_torch():
             return cls._from_parameter_dict_torch(parameter_dict)
         else:
             return cls._from_parameter_dict_numpy(parameter_dict)
