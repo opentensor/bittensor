@@ -21,7 +21,7 @@ from pydantic import ValidationError
 import pytest
 import typing
 import bittensor
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock
 from tests.helpers import _get_mock_wallet
 
 from bittensor.synapse import TerminalInfo
