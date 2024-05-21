@@ -119,7 +119,7 @@ class OverviewCommand:
                 )
             if not coldkey_wallet.coldkeypub_file.exists_on_device():
                 console.print("[bold red]No wallets found.")
-                return
+                return [], None
             all_hotkeys = get_hotkey_wallets_for_wallet(coldkey_wallet)
 
         return all_hotkeys, total_balance
@@ -158,6 +158,26 @@ class OverviewCommand:
         all_hotkey_addresses = list(hotkey_coldkey_to_hotkey_wallet.keys())
 
         return all_hotkey_addresses, hotkey_coldkey_to_hotkey_wallet
+
+    @staticmethod
+    def _process_neuron_results(
+        results: List[Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]],
+        neurons: Dict[str, List["bittensor.NeuronInfoLite"]],
+        netuids: List[int],
+    ) -> Dict[str, List["bittensor.NeuronInfoLite"]]:
+        for result in results:
+            netuid, neurons_result, err_msg = result
+            if err_msg is not None:
+                console.print(f"netuid '{netuid}': {err_msg}")
+
+            if len(neurons_result) == 0:
+                # Remove netuid from overview if no neurons are found.
+                netuids.remove(netuid)
+                del neurons[str(netuid)]
+            else:
+                # Add neurons to overview.
+                neurons[str(netuid)] = neurons_result
+        return neurons
 
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an overview for the wallet's colkey."""
@@ -226,18 +246,9 @@ class OverviewCommand:
                 )
                 executor.shutdown(wait=True)  # wait for all complete
 
-                for result in results:
-                    netuid, neurons_result, err_msg = result
-                    if err_msg is not None:
-                        console.print(f"netuid '{netuid}': {err_msg}")
-
-                    if len(neurons_result) == 0:
-                        # Remove netuid from overview if no neurons are found.
-                        netuids.remove(netuid)
-                        del neurons[str(netuid)]
-                    else:
-                        # Add neurons to overview.
-                        neurons[str(netuid)] = neurons_result
+                neurons = OverviewCommand._process_neuron_results(
+                    results, neurons, netuids
+                )
 
             total_coldkey_stake_from_metagraph = defaultdict(
                 lambda: bittensor.Balance(0.0)
