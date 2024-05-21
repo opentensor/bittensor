@@ -1,17 +1,39 @@
+# The MIT License (MIT)
+# Copyright © 2023 OpenTensor Foundation
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+"""
+Module provides a logging framework for Bittensor, managing both Bittensor-specific and third-party logging states.
+It leverages the StateMachine from the statemachine package to transition between different logging states such as
+Default, Debug, Trace, and Disabled.
+"""
+
+import argparse
+import atexit
+import copy
+import logging as stdlogging
+import multiprocessing as mp
 import os
 import sys
-import copy
-import atexit
-import argparse
-import multiprocessing as mp
-import logging as stdlogging
-from typing import NamedTuple
-from statemachine import StateMachine, State
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
+from typing import NamedTuple
+
+from statemachine import StateMachine, State
 
 import bittensor.config
-from bittensor.btlogging.format import BtStreamFormatter, BtFileFormatter
-from bittensor.btlogging.helpers import all_loggers
 from bittensor.btlogging.defines import (
     TRACE_LOG_FORMAT,
     DATE_FORMAT,
@@ -20,9 +42,13 @@ from bittensor.btlogging.defines import (
     DEFAULT_MAX_ROTATING_LOG_FILE_SIZE,
     DEFAULT_LOG_BACKUP_COUNT,
 )
+from bittensor.btlogging.format import BtStreamFormatter, BtFileFormatter
+from bittensor.btlogging.helpers import all_loggers
 
 
 class LoggingConfig(NamedTuple):
+    """Named tuple to hold the logging configuration."""
+
     debug: bool
     trace: bool
     record_log: bool
@@ -30,9 +56,7 @@ class LoggingConfig(NamedTuple):
 
 
 class LoggingMachine(StateMachine):
-    """
-    Handles logger states for bittensor and 3rd party libraries
-    """
+    """Handles logger states for bittensor and 3rd party libraries."""
 
     Default = State(initial=True)
     Debug = State()
@@ -46,19 +70,19 @@ class LoggingMachine(StateMachine):
         | Default.to(Default)
     )
 
-    enable_trace = (
+    enable_trace: Trace = (
         Default.to(Trace) | Debug.to(Trace) | Disabled.to(Trace) | Trace.to(Trace)
     )
 
-    enable_debug = (
+    enable_debug: Debug = (
         Default.to(Debug) | Trace.to(Debug) | Disabled.to(Debug) | Debug.to(Debug)
     )
 
-    disable_trace = Trace.to(Default)
+    disable_trace: Default = Trace.to(Default)
 
-    disable_debug = Debug.to(Default)
+    disable_debug: Default = Debug.to(Default)
 
-    disable_logging = (
+    disable_logging: Disabled = (
         Trace.to(Disabled)
         | Debug.to(Disabled)
         | Default.to(Disabled)
@@ -113,9 +137,7 @@ class LoggingMachine(StateMachine):
         return self._config
 
     def set_config(self, config):
-        """
-        Set config after initialization, if desired.
-        """
+        """Set config after initialization, if desired."""
         self._config = config
         if config.logging_dir and config.record_log:
             expanded_dir = os.path.expanduser(config.logging_dir)
@@ -130,8 +152,7 @@ class LoggingMachine(StateMachine):
         """
         A listener to receive and publish log records.
 
-        This listener receives records from a queue populated by the main bittensor
-        logger, as well as 3rd party loggers.
+        This listener receives records from a queue populated by the main bittensor logger, as well as 3rd party loggers
         """
 
         listener = QueueListener(self._queue, *handlers, respect_handler_level=True)
@@ -143,8 +164,7 @@ class LoggingMachine(StateMachine):
         """
         Get the queue the QueueListener is publishing from.
 
-        To set up logging in a separate process, a QueueHandler must
-        be added to all the desired loggers.
+        To set up logging in a separate process, a QueueHandler must be added to all the desired loggers.
         """
         return self._queue
 
@@ -152,9 +172,8 @@ class LoggingMachine(StateMachine):
         """
         Initialize logging for bittensor.
 
-        Since the initial state is Default, logging level for the module logger
-        is INFO, and all third-party loggers are silenced. Subsequent state
-        transitions will handle all logger outputs.
+        Since the initial state is Default, logging level for the module logger is INFO, and all third-party loggers are
+        silenced. Subsequent state transitions will handle all logger outputs.
         """
         logger = stdlogging.getLogger(name)
         queue_handler = QueueHandler(self._queue)
@@ -162,10 +181,7 @@ class LoggingMachine(StateMachine):
         return logger
 
     def _deinitialize_bt_logger(self, name):
-        """
-        Find the logger by name and remove the
-        queue handler associated with it.
-        """
+        """Find the logger by name and remove the queue handler associated with it."""
         logger = stdlogging.getLogger(name)
         for handler in list(logger.handlers):
             if isinstance(handler, QueueHandler):
@@ -204,6 +220,7 @@ class LoggingMachine(StateMachine):
         self._deinitialize_bt_logger(name)
 
     def enable_third_party_loggers(self):
+        """Enables logging for third-party loggers by adding a queue handler to each."""
         for logger in all_loggers():
             if logger.name in self._primary_loggers:
                 continue
@@ -212,6 +229,7 @@ class LoggingMachine(StateMachine):
             logger.setLevel(self._logger.level)
 
     def disable_third_party_loggers(self):
+        """Disables logging for third-party loggers by removing all their handlers."""
         # remove all handlers
         for logger in all_loggers():
             if logger.name in self._primary_loggers:
@@ -232,13 +250,16 @@ class LoggingMachine(StateMachine):
 
     # state transitions
     def before_transition(self, event, state):
+        """Stops listener after transition."""
         self._listener.stop()
 
     def after_transition(self, event, state):
+        """Starts listener after transition."""
         self._listener.start()
 
     # Default Logging
     def before_enable_default(self):
+        """Logs status before enable Default."""
         self._logger.info(f"Enabling default logging.")
         self._logger.setLevel(stdlogging.INFO)
         for logger in all_loggers():
@@ -251,94 +272,128 @@ class LoggingMachine(StateMachine):
 
     # Trace
     def before_enable_trace(self):
+        """Logs status before enable Trace."""
         self._logger.info("Enabling trace.")
         self._stream_formatter.set_trace(True)
         for logger in all_loggers():
             logger.setLevel(stdlogging.TRACE)
 
     def after_enable_trace(self):
+        """Logs status after enable Trace."""
         self._logger.info("Trace enabled.")
 
     def before_disable_trace(self):
+        """Logs status before disable Trace."""
         self._logger.info(f"Disabling trace.")
         self._stream_formatter.set_trace(False)
         self.enable_default()
 
     def after_disable_trace(self):
+        """Logs status after disable Trace."""
         self._logger.info("Trace disabled.")
 
     # Debug
     def before_enable_debug(self):
+        """Logs status before enable Debug."""
         self._logger.info("Enabling debug.")
         self._stream_formatter.set_trace(True)
         for logger in all_loggers():
             logger.setLevel(stdlogging.DEBUG)
 
     def after_enable_debug(self):
+        """Logs status after enable Debug."""
         self._logger.info("Debug enabled.")
 
     def before_disable_debug(self):
+        """Logs status before disable Debug."""
         self._logger.info("Disabling debug.")
         self._stream_formatter.set_trace(False)
         self.enable_default()
 
     def after_disable_debug(self):
+        """Logs status after disable Debug."""
         self._logger.info("Debug disabled.")
 
     # Disable Logging
     def before_disable_logging(self):
+        """
+        Prepares the logging system for disabling.
+
+        This method performs the following actions:
+        1. Logs an informational message indicating that logging is being disabled.
+        2. Disables trace mode in the stream formatter.
+        3. Sets the logging level to CRITICAL for all loggers.
+
+        This ensures that only critical messages will be logged after this method is called.
+        """
         self._logger.info("Disabling logging.")
         self._stream_formatter.set_trace(False)
 
         for logger in all_loggers():
             logger.setLevel(stdlogging.CRITICAL)
 
-    # Required API
-    # support log commands for API backwards compatibility
+    # Required API support log commands for API backwards compatibility.
     @property
-    def __trace_on__(self):
+    def __trace_on__(self) -> bool:
+        """
+        Checks if the current state is in "Trace" mode.
+
+        Returns:
+            bool: True if the current state is "Trace", otherwise False.
+        """
         return self.current_state_value == "Trace"
 
-    def trace(self, msg="", prefix="", sufix="", *args, **kwargs):
-        msg = f"{prefix} - {msg} - {sufix}"
+    def trace(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps trace message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.trace(msg, *args, **kwargs)
 
-    def debug(self, msg="", prefix="", sufix="", *args, **kwargs):
-        msg = f"{prefix} - {msg} - {sufix}"
+    def debug(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps debug message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.debug(msg, *args, **kwargs)
 
-    def info(self, msg="", prefix="", sufix="", *args, **kwargs):
-        msg = f"{prefix} - {msg} - {sufix}"
+    def info(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps info message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.info(msg, *args, **kwargs)
 
-    def success(self, msg="", prefix="", sufix="", *args, **kwargs):
-        msg = f"{prefix} - {msg} - {sufix}"
+    def success(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps success message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.success(msg, *args, **kwargs)
 
-    def warning(self, msg="", prefix="", sufix="", *args, **kwargs):
-        msg = f"{prefix} - {msg} - {sufix}"
+    def warning(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps warning message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.warning(msg, *args, **kwargs)
 
-    def error(self, msg="", prefix="", sufix="", *args, **kwargs):
-        msg = f"{prefix} - {msg} - {sufix}"
+    def error(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps error message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.error(msg, *args, **kwargs)
 
-    def critical(self, msg="", prefix="", sufix="", *args, **kwargs):
-        msg = f"{prefix} - {msg} - {sufix}"
+    def critical(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps critical message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.critical(msg, *args, **kwargs)
 
-    def exception(self, msg="", prefix="", sufix="", *args, **kwargs):
-        msg = f"{prefix} - {msg} - {sufix}"
+    def exception(self, msg="", prefix="", suffix="", *args, **kwargs):
+        """Wraps exception message with prefix and suffix."""
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.exception(msg, *args, **kwargs)
 
     def on(self):
+        """Enable default state."""
         self._logger.info("Logging enabled.")
         self.enable_default()
 
     def off(self):
+        """Disables all states."""
         self.disable_logging()
 
     def set_debug(self, on: bool = True):
+        """Sets Debug state."""
         if on and not self.current_state_value == "Debug":
             self.enable_debug()
         elif not on:
@@ -346,13 +401,15 @@ class LoggingMachine(StateMachine):
                 self.disable_debug()
 
     def set_trace(self, on: bool = True):
+        """Sets Trace state."""
         if on and not self.current_state_value == "Trace":
             self.enable_trace()
         elif not on:
             if self.current_state_value == "Trace":
                 self.disable_trace()
 
-    def get_level(self):
+    def get_level(self) -> int:
+        """Returns Logging level."""
         return self._logger.level
 
     def check_config(self, config: bittensor.config):
@@ -364,7 +421,7 @@ class LoggingMachine(StateMachine):
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         """Accept specific arguments fro parser"""
-        prefix_str = "" if prefix == None else prefix + "."
+        prefix_str = "" if prefix is None else prefix + "."
         try:
             default_logging_debug = os.getenv("BT_LOGGING_DEBUG") or False
             default_logging_trace = os.getenv("BT_LOGGING_TRACE") or False
@@ -401,11 +458,11 @@ class LoggingMachine(StateMachine):
             pass
 
     @classmethod
-    def config(cls):
+    def config(cls) -> bittensor.config:
         """Get config from the argument parser.
 
         Return:
-            bittensor.config object
+            config (bittensor.config): config object
         """
         parser = argparse.ArgumentParser()
         cls.add_args(parser)
