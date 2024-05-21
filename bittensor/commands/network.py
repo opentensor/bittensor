@@ -247,6 +247,8 @@ class SubnetListCommand:
         total_registered = 0
         total_price = 0
         total_emission = 0
+        n_dtao = 0
+        n_stao = 0
         delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
             url=bittensor.__delegates_details_url__
         )
@@ -255,6 +257,12 @@ class SubnetListCommand:
         dynamic_info = subtensor.get_dynamic_info()
 
         for subnet in subnets:
+            if dynamic_info[subnet.netuid]["tao_reserve"] > 0:
+                is_dtao = True
+                n_dtao += 1
+            else:
+                is_dtao = False
+                n_stao += 1
             total_neurons += subnet.max_n
             total_registered += subnet.subnetwork_n
             total_price += (
@@ -268,6 +276,7 @@ class SubnetListCommand:
                     str(subnet.netuid),
                     bittensor.Balance.get_unit(subnet.netuid),
                     f"{subnet.subnetwork_n}/{subnet.max_n}",
+                    "[red]D[/red]" if is_dtao else "[blue]S[/blue]",
                     "{:.8}".format(
                         str(bittensor.Balance.from_rao(subnet.emission_value))
                     ),
@@ -279,8 +288,7 @@ class SubnetListCommand:
                                 )
                             )
                         )
-                        if dynamic_info[subnet.netuid]["tao_reserve"] > 0
-                        else "-"
+                        if is_dtao else "-"
                     ),
                     str(
                         bittensor.Balance.from_rao(
@@ -346,10 +354,17 @@ class SubnetListCommand:
             justify="right",
         )
         table.add_column(
+            "[white]type",
+            f"D:{n_dtao}/S:{n_stao}",
+            footer_style="white",
+            style="white",
+            justify="center",
+        )
+        table.add_column(
             "[white]emission",
             f"{bittensor.Balance.from_rao(total_emission)!s:8.8}",
             footer_style="white",
-            style="green3",
+            style="green",
             justify="center",
         )
         table.add_column(
@@ -406,6 +421,7 @@ class SubnetListCommand:
                 "n",
                 "The number of currently registered neurons out of allowed.",
             ),
+            ("[white]2.[/white]", "Type", "The subnet type, either STAO or DTAO."),
             (
                 "[chartreuse1]4.[/chartreuse1]",
                 "emission",

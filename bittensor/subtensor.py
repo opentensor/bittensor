@@ -3365,23 +3365,41 @@ class subtensor:
     #### Account functions ###
     ##########################
 
+    def get_total_stake_for_key(
+        self, ss58_address: str, method: str, block: Optional[int] = None
+    ) -> Optional["Balance"]:
+        @retry(delay=2, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry(encoded_hotkey: List[int]):
+            with self.substrate as substrate:
+                block_hash = None if block == None else substrate.get_block_hash(block)
+                params = [encoded_hotkey]
+                if block_hash:
+                    params = params + [block_hash]
+                return substrate.rpc_request(
+                    method,
+                    params=params,
+                )
+
+        encoded_key = ss58_to_vec_u8(ss58_address)
+        json_body = make_substrate_call_with_retry(encoded_key)
+        result = json_body["result"]
+
+        if result in (None, []):
+            return None
+        else:
+            return Balance.from_rao(result)
+
     def get_total_stake_for_hotkey(
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
         """Returns the total stake held on a hotkey including delegative"""
-        _result = self.query_subtensor("TotalHotkeyStake", block, [ss58_address])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        return self.get_total_stake_for_key(ss58_address, "delegateInfo_getTotalStakeForColdkey", block)
 
     def get_total_stake_for_coldkey(
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
-        """Returns the total stake held on a coldkey across all hotkeys including delegates"""
-        _result = self.query_subtensor("TotalColdkeyStake", block, [ss58_address])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        """Returns the total stake held on a coldkey for all its hotkeys"""
+        return self.get_total_stake_for_key(ss58_address, "delegateInfo_getTotalStakeForHotkey", block)
 
     def get_stake_for_coldkey_and_hotkey(
         self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
