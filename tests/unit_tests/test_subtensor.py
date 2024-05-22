@@ -25,7 +25,7 @@ import pytest
 
 # Application
 import bittensor
-from bittensor.subtensor import subtensor as Subtensor, _logger
+from bittensor.subtensor import subtensor as Subtensor, _logger, Balance
 from bittensor import subtensor_module
 
 
@@ -275,6 +275,7 @@ def test_determine_chain_endpoint_and_network(
     assert result_endpoint == expected_endpoint
 
 
+# Subtensor().get_error_info_by_index tests
 @pytest.fixture
 def substrate():
     class MockSubstrate:
@@ -311,3 +312,140 @@ def test_get_error_info_by_index_unknown_error(subtensor):
     mock_logger.assert_called_once_with(
         f"Subtensor returned an error with an unknown index: {fake_index}"
     )
+
+
+# Subtensor()._get_hyperparameter tests
+def test_hyperparameter_subnet_does_not_exist(subtensor, mocker):
+    """Tests when the subnet does not exist."""
+    subtensor.subnet_exists = mocker.MagicMock(return_value=False)
+    assert subtensor._get_hyperparameter("Difficulty", 1, None) is None
+    subtensor.subnet_exists.assert_called_once_with(1, None)
+
+
+def test_hyperparameter_result_is_none(subtensor, mocker):
+    """Tests when query_subtensor returns None."""
+    subtensor.subnet_exists = mocker.MagicMock(return_value=True)
+    subtensor.query_subtensor = mocker.MagicMock(return_value=None)
+    assert subtensor._get_hyperparameter("Difficulty", 1, None) is None
+    subtensor.subnet_exists.assert_called_once_with(1, None)
+    subtensor.query_subtensor.assert_called_once_with("Difficulty", None, [1])
+
+
+def test_hyperparameter_result_has_no_value(subtensor, mocker):
+    """Test when the result has no 'value' attribute."""
+
+    subtensor.subnet_exists = mocker.MagicMock(return_value=True)
+    subtensor.query_subtensor = mocker.MagicMock(return_value=None)
+    assert subtensor._get_hyperparameter("Difficulty", 1, None) is None
+    subtensor.subnet_exists.assert_called_once_with(1, None)
+    subtensor.query_subtensor.assert_called_once_with("Difficulty", None, [1])
+
+
+def test_hyperparameter_success_int(subtensor, mocker):
+    """Test when query_subtensor returns an integer value."""
+    subtensor.subnet_exists = mocker.MagicMock(return_value=True)
+    subtensor.query_subtensor = mocker.MagicMock(
+        return_value=mocker.MagicMock(value=100)
+    )
+    assert subtensor._get_hyperparameter("Difficulty", 1, None) == 100
+    subtensor.subnet_exists.assert_called_once_with(1, None)
+    subtensor.query_subtensor.assert_called_once_with("Difficulty", None, [1])
+
+
+def test_hyperparameter_success_float(subtensor, mocker):
+    """Test when query_subtensor returns a float value."""
+    subtensor.subnet_exists = mocker.MagicMock(return_value=True)
+    subtensor.query_subtensor = mocker.MagicMock(
+        return_value=mocker.MagicMock(value=0.5)
+    )
+    assert subtensor._get_hyperparameter("Difficulty", 1, None) == 0.5
+    subtensor.subnet_exists.assert_called_once_with(1, None)
+    subtensor.query_subtensor.assert_called_once_with("Difficulty", None, [1])
+
+
+# Tests Hyper parameter calls
+@pytest.mark.parametrize(
+    "method, param_name, value, expected_result_type",
+    [
+        ("rho", "Rho", 1, int),
+        ("kappa", "Kappa", 1.0, float),
+        ("difficulty", "Difficulty", 1, int),
+        ("recycle", "Burn", 1, Balance),
+        ("immunity_period", "ImmunityPeriod", 1, int),
+        ("validator_batch_size", "ValidatorBatchSize", 1, int),
+        ("validator_prune_len", "ValidatorPruneLen", 1, int),
+        ("validator_logits_divergence", "ValidatorLogitsDivergence", 1.0, float),
+        ("validator_sequence_length", "ValidatorSequenceLength", 1, int),
+        ("validator_epochs_per_reset", "ValidatorEpochsPerReset", 1, int),
+        ("validator_epoch_length", "ValidatorEpochLen", 1, int),
+        ("validator_exclude_quantile", "ValidatorExcludeQuantile", 1.0, float),
+        ("max_allowed_validators", "MaxAllowedValidators", 1, int),
+        ("min_allowed_weights", "MinAllowedWeights", 1, int),
+        ("max_weight_limit", "MaxWeightsLimit", 1, float),
+        ("adjustment_alpha", "AdjustmentAlpha", 1, float),
+        ("bonds_moving_avg", "BondsMovingAverage", 1, float),
+        ("scaling_law_power", "ScalingLawPower", 1, float),
+        ("synergy_scaling_law_power", "SynergyScalingLawPower", 1, float),
+        ("subnetwork_n", "SubnetworkN", 1, int),
+        ("max_n", "MaxAllowedUids", 1, int),
+        ("blocks_since_epoch", "BlocksSinceEpoch", 1, int),
+        ("tempo", "Tempo", 1, int),
+    ],
+)
+def test_hyper_parameter_success_calls(
+    subtensor, mocker, method, param_name, value, expected_result_type
+):
+    """
+    Tests various hyperparameter methods to ensure they correctly fetch their respective hyperparameters and return the
+    expected values.
+    """
+    # Prep
+    subtensor._get_hyperparameter = mocker.MagicMock(return_value=value)
+
+    # Call
+    subtensor_method = getattr(subtensor, method)
+    result = subtensor_method(netuid=7, block=707)
+
+    # Assertions
+    subtensor._get_hyperparameter.assert_called_once_with(
+        block=707, netuid=7, param_name=param_name
+    )
+    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    assert isinstance(result, expected_result_type)
+
+
+def test_blocks_since_last_update_success_calls(subtensor, mocker):
+    """Tests the weights_rate_limit method to ensure it correctly fetches the LastUpdate hyperparameter."""
+    # Prep
+    uid = 7
+    mocked_current_block = 2
+    mocked_result = {uid: 1}
+    subtensor._get_hyperparameter = mocker.MagicMock(return_value=mocked_result)
+    subtensor.get_current_block = mocker.MagicMock(return_value=mocked_current_block)
+
+    # Call
+    result = subtensor.blocks_since_last_update(netuid=7, uid=uid)
+
+    # Assertions
+    subtensor._get_hyperparameter.assert_called_once_with(
+        param_name="LastUpdate", netuid=7
+    )
+    assert result == 1
+    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    assert isinstance(result, int)
+
+
+def test_weights_rate_limit_success_calls(subtensor, mocker):
+    """Tests the weights_rate_limit method to ensure it correctly fetches the WeightsSetRateLimit hyperparameter."""
+    # Prep
+    subtensor._get_hyperparameter = mocker.MagicMock(return_value=5)
+
+    # Call
+    result = subtensor.weights_rate_limit(netuid=7)
+
+    # Assertions
+    subtensor._get_hyperparameter.assert_called_once_with(
+        param_name="WeightsSetRateLimit", netuid=7
+    )
+    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    assert isinstance(result, int)
