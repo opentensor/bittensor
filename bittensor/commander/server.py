@@ -158,7 +158,7 @@ async def wallet_regen_key(
 
 @app.get("/wallet/hotkey/swap", dependencies=[Depends(check_config)])
 async def wallet_hotkey_swap():
-    return await run_fn(register.SwapHotkeyCommand)
+    return await run_fn(register.SwapHotkeyCommand)  # TODO
 
 
 @app.get("/wallet/coldkey/regen_coldkey_pub", dependencies=[Depends(check_config)])
@@ -202,26 +202,32 @@ async def wallet_transfer(dest: str, amount: float):
     )
 
 
-@app.get("/wallet/balance", dependencies=[Depends(check_config)])
-async def wallet_balance(all_wallets: bool = False):
-    return await run_fn(wallets.WalletBalanceCommand, params={"all_wallets": all_wallets})
-
-
-@app.get("/wallet/inspect", dependencies=[Depends(check_config)])
-async def wallet_inspect(all_wallets: bool = False):
-    return await run_fn(inspect.InspectCommand, params={"all_wallets": all_wallets})
-
-
 @app.get("/wallet/{sub_cmd}", dependencies=[Depends(check_config)])
-async def wallet(sub_cmd: str):
+async def wallet(
+    sub_cmd: str,
+    n_words: int = 12,
+    use_password: bool = False,
+    overwrite: bool = False,
+    all_wallets: bool = False,
+):
     routing_list = {
         "list": list_commands.ListCommand,
+        "balance": wallets.WalletBalanceCommand,
+        "inspect": inspect.InspectCommand,
         "create": wallets.WalletCreateCommand,
         "faucet": register.RunFaucetCommand,
         "update": wallets.UpdateWalletCommand,
         "history": wallets.GetWalletHistoryCommand,
     }
-    return await run_fn(routing_list[sub_cmd])
+    return await run_fn(
+        routing_list[sub_cmd],
+        params={
+            "n_words": n_words,
+            "use_password": use_password,
+            "overwrite": overwrite,
+            "all_wallets": all_wallets,
+        },
+    )
 
 
 # Root

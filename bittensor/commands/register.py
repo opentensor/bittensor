@@ -464,6 +464,27 @@ class RunFaucetCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        # TODO make this work — maybe websockets?
+        success = subtensor.run_faucet(
+            wallet=config.wallet,
+            prompt=False,
+            tpb=cli.config.pow_register.cuda.get("tpb", None),
+            update_interval=cli.config.pow_register.get("update_interval", None),
+            num_processes=cli.config.pow_register.get("num_processes", None),
+            cuda=cli.config.pow_register.cuda.get(
+                "use_cuda", defaults.pow_register.cuda.use_cuda
+            ),
+            dev_id=cli.config.pow_register.cuda.get("dev_id", None),
+            output_in_place=cli.config.pow_register.get(
+                "output_in_place", defaults.pow_register.output_in_place
+            ),
+            log_verbose=cli.config.pow_register.get(
+                "verbose", defaults.pow_register.verbose
+            ),
+        )
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Register neuron."""
         wallet = bittensor.wallet(config=cli.config)

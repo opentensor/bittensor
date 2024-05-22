@@ -516,7 +516,7 @@ class keyfile:
 
     def check_and_update_encryption(
         self, print_result: bool = True, no_prompt: bool = False
-    ):
+    ) -> bool:
         """Check the version of keyfile and update if needed.
 
         Args:
