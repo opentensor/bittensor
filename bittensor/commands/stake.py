@@ -529,8 +529,8 @@ class StakeList:
             for netuid in netuids:
                 # Hotkey and subnet
                 row = [
-                    row_name, 
-                    "{} ({})".format(bittensor.Balance.get_unit(netuid), netuid), 
+                    row_name,
+                    "{} ({})".format(bittensor.Balance.get_unit(netuid), netuid),
                 ]
                 # Stake
                 row.append(
@@ -545,9 +545,7 @@ class StakeList:
                     f"[blue]{hot_netuid_pairs[hotkey].get(netuid, 0) * dynamic_info[ netuid ]['price'] }[/blue]"
                 )
                 # Price
-                row.append(
-                    f"[white]{dynamic_info[ netuid ]['price']:.4f}[/white]"
-                )
+                row.append(f"[white]{dynamic_info[ netuid ]['price']:.4f}[/white]")
 
                 table.add_row(*row)
 
@@ -556,9 +554,7 @@ class StakeList:
         # Stake
         row_totals.append("[green]{:,.4f}[/green]".format(hot_alpha_totals[hotkey].tao))
         # Stake in TAO
-        row_totals.append(
-            "[blue]{:,.4f}[/blue]".format(hot_tao_totals[hotkey].tao)
-        )
+        row_totals.append("[blue]{:,.4f}[/blue]".format(hot_tao_totals[hotkey].tao))
         table.add_row(*row_totals)
 
         table.box = None
