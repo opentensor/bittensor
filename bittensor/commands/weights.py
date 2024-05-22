@@ -6,6 +6,7 @@ from rich.prompt import Prompt
 from . import defaults
 import bittensor.utils.weight_utils as weight_utils
 
+
 class CommitWeightCommand:
     """
     Executes the ``commit`` command to commit weights for a specific subnet on the Bittensor network.

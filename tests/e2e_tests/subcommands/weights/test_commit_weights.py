@@ -1,11 +1,17 @@
-from bittensor.commands import (RegisterCommand, StakeCommand, 
-RegisterSubnetworkCommand, CommitWeightCommand, RevealWeightCommand)
+from bittensor.commands import (
+    RegisterCommand,
+    StakeCommand,
+    RegisterSubnetworkCommand,
+    CommitWeightCommand,
+    RevealWeightCommand,
+)
 import bittensor
 from tests.e2e_tests.utils import setup_wallet
 import time
 import bittensor.utils.weight_utils as weight_utils
 import re
 import numpy as np
+
 
 def test_commit_and_reveal_weights(local_chain):
     # Register root as Alice
@@ -20,7 +26,10 @@ def test_commit_and_reveal_weights(local_chain):
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     # Register a neuron to the subnet
-    exec_command(RegisterCommand, ["s", "register", "--netuid", "1", "--wallet.path", "/tmp/btcli-wallet"])
+    exec_command(
+        RegisterCommand,
+        ["s", "register", "--netuid", "1", "--wallet.path", "/tmp/btcli-wallet"],
+    )
 
     # Create a test wallet and set the coldkey, coldkeypub, and hotkey
     wallet = bittensor.wallet(path="/tmp/btcli-wallet")
@@ -29,8 +38,18 @@ def test_commit_and_reveal_weights(local_chain):
     wallet.set_hotkey(keypair=alice_keypair, encrypt=False, overwrite=True)
 
     # Stake to become to top neuron after the first epoch
-    exec_command(StakeCommand, ["stake", "add", "--wallet.path", "/tmp/btcli-wallet2", "--amount", "999998998"])
-    
+    exec_command(
+        StakeCommand,
+        [
+            "stake",
+            "add",
+            "--wallet.path",
+            "/tmp/btcli-wallet2",
+            "--amount",
+            "999998998",
+        ],
+    )
+
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # Enable Commit Reveal
@@ -116,7 +135,7 @@ def test_commit_and_reveal_weights(local_chain):
         time.sleep(1)  # Wait for 1 second before checking the block number again
         current_block = subtensor.get_current_block()
         if current_block % 10 == 0:
-            print(f'Current Block: {current_block}  Revealing at: {reveal_block_start}')
+            print(f"Current Block: {current_block}  Revealing at: {reveal_block_start}")
 
     # Configure the CLI arguments for the RevealWeightCommand
     exec_command(
@@ -147,7 +166,7 @@ def test_commit_and_reveal_weights(local_chain):
 
     # Assert that the revealed weights are set correctly
     assert revealed_weights.value is not None, "Weight reveal not found in storage"
-    
+
     uid_list = list(map(int, re.split(r"[ ,]+", str(uid))))
     uids = np.array(uid_list, dtype=np.int64)
     weight_list = list(map(float, re.split(r"[ ,]+", str(weights))))

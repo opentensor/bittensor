@@ -316,14 +316,16 @@ def generate_weight_hash(
     the_who = ScaleBytes(Keypair(ss58_address=who).public_key)
     the_netuid = ScaleBytes(netuid.to_bytes(2, "little"))
 
-    vec_uids = Vec(data=None, sub_type='U16')
-    vec_uids.value = [U16(ScaleBytes(uid.to_bytes(2, 'little'))) for uid in uids]
+    vec_uids = Vec(data=None, sub_type="U16")
+    vec_uids.value = [U16(ScaleBytes(uid.to_bytes(2, "little"))) for uid in uids]
     the_uids = ScaleBytes(vec_uids.encode().data)
 
-    vec_values = Vec(data=None, sub_type='U16')
-    vec_values.value = [U16(ScaleBytes(value.to_bytes(2, 'little'))) for value in values]
+    vec_values = Vec(data=None, sub_type="U16")
+    vec_values.value = [
+        U16(ScaleBytes(value.to_bytes(2, "little"))) for value in values
+    ]
     the_values = ScaleBytes(vec_values.encode().data)
-    
+
     the_version_key = ScaleBytes(version_key.to_bytes(8, "little"))
 
     the_data = the_who + the_netuid + the_uids + the_values + the_version_key
