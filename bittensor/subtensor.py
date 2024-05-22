@@ -3429,7 +3429,7 @@ class subtensor:
     ) -> Optional["Balance"]:
         """Returns the stake under a coldkey - hotkey - netuid pairing"""
         _result = self.query_subtensor(
-            "SubStake", block, [hotkey_ss58, coldkey_ss58, netuid]
+            "SubStake", block, [coldkey_ss58, hotkey_ss58, netuid]
         )
         if not hasattr(_result, "value") or _result is None:
             return None

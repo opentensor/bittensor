@@ -21,6 +21,10 @@ from time import sleep
 from rich.prompt import Confirm
 from typing import Union, Optional, List
 from bittensor.utils.balance import Balance
+from bittensor.utils.user_io import (
+    user_input_confirmation,
+    print_summary_header, print_summary_footer, print_summary_message
+)
 from loguru import logger
 
 # Maximum slippage percentage
@@ -146,24 +150,23 @@ def add_substake_extrinsic(
 
     # Check if slippage exceeds the maximum threshold
     if slippage_pct > MAX_SLIPPAGE_PCT:
-        bittensor.__console__.print(
-            f":warning: [yellow]Warning:[/yellow]"
+        print_summary_header(f":warning: [yellow]Slippage Warning:[/yellow]")
+        print_summary_message(
+            f"Slippage exceeds {MAX_SLIPPAGE_PCT}% for subnet {netuid}: {bittensor.Balance.from_tao(slippage.tao).set_unit(netuid)} ({slippage_pct:.2f}%)"
         )
-        bittensor.__console__.print(
-            f"  Slippage exceeds {MAX_SLIPPAGE_PCT}% for subnet {netuid}: {bittensor.Balance.from_tao(slippage.tao).set_unit(netuid)} ({slippage_pct:.2f}%)"
+        estimated = bittensor.Balance.from_tao(alpha_returned.tao).set_unit(netuid).__str__()
+        expected = bittensor.Balance.from_tao(slippage.tao + alpha_returned.tao).set_unit(netuid).__str__()
+        print_summary_message(
+            f"You will only receive [green][bold]{estimated}[/bold][/green] vs. expected [green][bold]{expected}[/bold][/green]"
         )
-        estimated = bittensor.Balance.from_tao(alpha_returned.tao).set_unit(netuid)
-        expected = bittensor.Balance.from_tao(slippage.tao + alpha_returned.tao).set_unit(netuid)
-        bittensor.__console__.print(
-            f"  You will only receive {estimated} vs. expected {expected}"
-        )
+        print_summary_footer()
         if prompt:
-            if not Confirm.ask(
-                "Do you want to proceed with staking despite the high slippage?"
+            if not user_input_confirmation(
+                "proceed despite the high slippage"
             ):
                 return False
 
-    # Decrypt keys,
+    # Decrypt keys
     wallet.coldkey
 
     try:
@@ -172,9 +175,6 @@ def add_substake_extrinsic(
                 netuid, subtensor.network
             )
         ):
-            # Decrypt keys,
-            wallet.coldkey
-
             hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
             own_hotkey = wallet.coldkeypub.ss58_address == hotkey_owner
             if not own_hotkey:
@@ -569,8 +569,8 @@ def remove_substake_extrinsic(
         bittensor.errors.NotDelegateError:
             If the hotkey is not a delegate on the chain.
     """
-    # Decrypt keys,
-    wallet.coldkey
+    # Get dynamic pool info for slippage calculation
+    dynamic_info = subtensor.get_dynamic_info_for_netuid(netuid)
 
     # Default to wallet's own hotkey if the value is not passed.
     if hotkey_ss58 is None:
@@ -590,8 +590,6 @@ def remove_substake_extrinsic(
             hotkey_ss58=hotkey_ss58,
             coldkey_ss58=wallet.coldkeypub.ss58_address,
         )
-
-        print(f"Currently Staked: {currently_staked}")
 
         old_balance = subtensor.get_balance(address=wallet.coldkeypub.ss58_address)
 
@@ -637,59 +635,43 @@ def remove_substake_extrinsic(
         )
         return False
 
-    # Set maximum slippage percentage
-    max_slippage_pct = 5.0
-    dynamic_info = subtensor.get_dynamic_info_for_netuid(netuid)
-
     # Calculate slippage
     subnet_stake_amount_alpha = bittensor.Balance.from_tao(unstaking_balance.tao)
-    alpha_returned, slippage = dynamic_info.alpha_to_tao_with_slippage(
+    tao_returned, slippage = dynamic_info.alpha_to_tao_with_slippage(
         subnet_stake_amount_alpha
     )
-    slippage_pct = 100 * (1 - float(alpha_returned) / float(subnet_stake_amount_alpha))
+    slippage_pct = 0
+    if slippage + tao_returned != 0:
+        slippage_pct = 100 * float(slippage) / float(slippage + tao_returned)
     logger.debug(
-        f"Slippage for subnet {netuid}: {slippage} TAO, Tao staked {subnet_stake_amount_alpha}, Alpha returned {alpha_returned}, Slippage percent {slippage_pct:.2f}%"
+        f"Slippage for subnet {netuid}: {slippage} TAO, Tao staked {subnet_stake_amount_alpha}, TAO returned {tao_returned}, Slippage percent {slippage_pct:.2f}%"
     )
 
     # Check if slippage exceeds the maximum threshold
-    if prompt and slippage_pct > max_slippage_pct:
-        bittensor.__console__.print(
-            f":warning: [yellow]Warning:[/yellow] Slippage exceeds {max_slippage_pct}% for subnet {netuid}: {bittensor.Balance.from_tao(slippage)} TAO ({slippage_pct:.2f}%)"
+    if prompt and slippage_pct > MAX_SLIPPAGE_PCT:
+        print_summary_header(f":warning: [yellow]Slippage Warning:[/yellow]")
+        print_summary_message(
+            f"Slippage exceeds {MAX_SLIPPAGE_PCT}% for subnet {netuid}: {bittensor.Balance.from_tao(slippage.tao)} TAO ({slippage_pct:.2f}%)"
         )
-        if not Confirm.ask(
-            "Do you want to proceed with staking despite the high slippage?"
-        ):
-            return False
+        estimated = bittensor.Balance.from_tao(tao_returned.tao).__str__()
+        expected = bittensor.Balance.from_tao(slippage.tao + tao_returned.tao).__str__()
+        print_summary_message(
+            f"You will only receive [green][bold]{estimated}[/bold][/green] vs. expected [green][bold]{expected}[/bold][/green]"
+        )
+        print_summary_footer()
+        if prompt:
+            if not user_input_confirmation(
+                "proceed despite the high slippage"
+            ):
+                return False
 
-    # Ask before moving on.
-    if prompt:
-        if not own_hotkey:
-            # We are delegating.
-            if not Confirm.ask(
-                "Do you want to undelegate:[bold white]\n  amount:{}\n  from: {}\n  take: {}\n  owner: {}\n  on subnet: {}[/bold white]".format(
-                    unstaking_balance,
-                    wallet.hotkey_str,
-                    hotkey_take,
-                    hotkey_owner,
-                    netuid,
-                )
-            ):
-                return False
-        else:
-            if not Confirm.ask(
-                "Do you want to unstake:[bold white]\n  amount: {}\n  from  : {}\n  netuid: {}[/bold white]\n".format(
-                    unstaking_balance, wallet.hotkey_str, netuid
-                )
-            ):
-                return False
+    # Decrypt keys
+    wallet.coldkey
 
     try:
         with bittensor.__console__.status(
-            f":satellite: Unstaking [bold white]{unstaking_balance}[/bold white] from: [bold white]{hotkey_ss58}[/bold white] on [bold white]{subtensor.network}[/bold white]..."
+            f":satellite: Unstaking [bold white]{unstaking_balance.set_unit(netuid)}[/bold white] from: [bold white]{hotkey_ss58}[/bold white] on [bold white]{subtensor.network}[/bold white]..."
         ):
-            # Decrypt keys,
-            wallet.coldkey
-
             hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
             own_hotkey = wallet.coldkeypub.ss58_address == hotkey_owner
             if not own_hotkey:
@@ -709,7 +691,7 @@ def remove_substake_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-        if staking_response == True:  # If we successfully staked.
+        if staking_response == True:  # If we successfully unstaked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 return True

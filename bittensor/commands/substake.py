@@ -21,6 +21,10 @@ import bittensor
 from rich.prompt import Confirm, Prompt
 from bittensor.commands.utils import get_hotkey_wallets_for_wallet
 from bittensor.utils.balance import Balance
+from bittensor.utils.user_io import (
+    user_input_float, user_input_int, user_input_str, user_input_confirmation,
+    print_summary_header, print_summary_footer, print_summary_item
+)
 from typing import Optional, Tuple, List, Union
 from tqdm import tqdm
 from . import defaults
@@ -181,8 +185,6 @@ class SubStakeCommand:
                     continue
 
                 wallet_balance = Balance.from_tao(wallet_balance.tao - stake_amount_tao)
-                print(f"Wallet balance: {wallet_balance}")
-
                 if wallet_balance.tao < 0:
                     # No more balance to stake.
                     break
@@ -197,17 +199,17 @@ class SubStakeCommand:
             )
             return None
 
+        # Print summary
+        print_summary_header("Add Subnet Stake")
+        print_summary_item("wallet", wallet.name)
+        print_summary_item("netuid", config.netuid)
+        for hotkey, amount in zip(final_hotkeys, final_amounts):
+            print_summary_item("hotkey/amount", f"[bold white]{hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'{amount} {bittensor.__tao_symbol__}' if amount else 'All'}[/bold white]")
+        print_summary_footer()
+
         # Ask to stake
         if not config.no_prompt:
-            if not Confirm.ask(
-                f"Do you want to stake to the following keys from {wallet.name} on netuid {config.netuid}:\n"
-                + "".join(
-                    [
-                        f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'{amount} {bittensor.__tao_symbol__}' if amount else 'All'}[/bold white]\n"
-                        for hotkey, amount in zip(final_hotkeys, final_amounts)
-                    ]
-                )
-            ):
+            if not user_input_confirmation("continue"):
                 return None
 
         if len(final_hotkeys) == 1:
@@ -233,8 +235,7 @@ class SubStakeCommand:
     @classmethod
     def check_config(cls, config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
-            config.wallet.name = str(wallet_name)
+            config.wallet.name = user_input_str("wallet name", defaults.wallet.name)
 
         if (
             not config.is_set("hotkey")
@@ -242,9 +243,9 @@ class SubStakeCommand:
             and not config.wallet.get("hotkey")
             and not config.no_prompt
         ):
-            hotkey = Prompt.ask(
-                "Enter hotkey name or ss58_address to stake to",
-                default=defaults.wallet.hotkey,
+            hotkey = user_input_str(
+                "hotkey name or ss58_address to stake to",
+                defaults.wallet.hotkey,
             )
             if bittensor.is_valid_ss58_address(hotkey):
                 config.hotkey = str(hotkey)
@@ -252,28 +253,15 @@ class SubStakeCommand:
                 config.wallet.hotkey = str(hotkey)
 
         if not config.is_set("netuid") and not config.no_prompt:
-            netuid = Prompt.ask("Enter netuid", default="0")
-            config.netuid = int(netuid)
+            config.netuid = user_input_int("netuid", 0)
 
         # Get amount.
         if not config.get("amount") and not config.get("max_stake"):
-            if not Confirm.ask(
-                "Stake all Tao from account: [bold]'{}'[/bold]?".format(
-                    config.wallet.get("name", defaults.wallet.name)
-                )
-            ):
-                amount = Prompt.ask("Enter Tao amount to stake")
-                try:
-                    config.amount = float(amount)
-                except ValueError:
-                    console.print(
-                        ":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
-                    )
-                    sys.exit()
-            else:
+            amount = user_input_float("Tao amount", "stake all")
+            if amount == "stake all":
                 config.stake_all = True
+            else:
+                config.amount = amount
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
@@ -438,6 +426,30 @@ class RemoveSubStakeCommand:
             )
             unstake_amount_tao = hotkey_subnet_balance.tao
 
+        # Get currently staked on hotkey provided
+        currently_staked = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
+            netuid=config.netuid,
+            hotkey_ss58=hotkey_tup[1],
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+        )
+
+        # Print summary
+        print_summary_header("Remove Subnet Stake")
+        print_summary_item("wallet", wallet.name)
+        print_summary_item("netuid", config.netuid)
+        amount = "unstake all"
+        if not config.get("unstake_all"):
+            amount = bittensor.Balance.from_tao(unstake_amount_tao).set_unit(config.netuid).__str__()
+        print_summary_item("hotkey", f"[bold white]{hotkey_tup[0]}[/bold white]")
+        print_summary_item("amount", f"[bold white]{amount}[/bold white]")
+        print_summary_item("currently staked", currently_staked)
+        print_summary_footer()
+
+        # Ask to stake
+        if not config.no_prompt:
+            if not user_input_confirmation("continue"):
+                return None
+
         return subtensor.remove_substake(
             wallet=wallet,
             hotkey_ss58=hotkey_tup[1],
@@ -450,8 +462,7 @@ class RemoveSubStakeCommand:
     @classmethod
     def check_config(cls, config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
-            config.wallet.name = str(wallet_name)
+            config.wallet.name = user_input_str("wallet name", defaults.wallet.name)
 
         if (
             not config.is_set("hotkey")
@@ -459,9 +470,9 @@ class RemoveSubStakeCommand:
             and not config.wallet.get("hotkey")
             and not config.no_prompt
         ):
-            hotkey = Prompt.ask(
-                "Enter hotkey name or ss58_address to unstake from",
-                default=defaults.wallet.hotkey,
+            hotkey = user_input_str(
+                "hotkey name or ss58_address to unstake from",
+                defaults.wallet.hotkey,
             )
             if bittensor.is_valid_ss58_address(hotkey):
                 config.hotkey = str(hotkey)
@@ -470,31 +481,15 @@ class RemoveSubStakeCommand:
                 config.wallet.hotkey = str(hotkey)
 
         if not config.is_set("netuid") and not config.no_prompt:
-            netuid = Prompt.ask("Enter netuid", default="0")
-            config.netuid = int(netuid)
+            config.netuid = user_input_int("netuid", 0)
 
         # Get amount.
         if not config.get("amount") and not config.get("unstake_all"):
-            if not Confirm.ask(
-                "Unstake all {}ao \n  [bold white]from account: '{}'[/bold white] \n  [bold white]and hotkey  : '{}'[/bold white] \n  [bold white]from subnet : '{}'[/bold white]\n".format(
-                    bittensor.__tao_symbol__,
-                    config.wallet.get("name", defaults.wallet.name),
-                    config.get("hotkey"),
-                    config.netuid,
-                )
-            ):
-                amount = Prompt.ask("Enter Tao amount to unstake")
-                try:
-                    config.amount = float(amount)
-                except ValueError:
-                    console.print(
-                        ":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
-                    )
-                    sys.exit()
-            else:
+            amount = user_input_float("Alpha amount", "unstake all")
+            if amount == "unstake all":
                 config.unstake_all = True
+            else:
+                config.amount = amount
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
