@@ -21,11 +21,6 @@ def mock_wallet():
     return mock
 
 
-@pytest.fixture(autouse=True)
-def set_use_torch_env(monkeypatch):
-    monkeypatch.setenv("USE_TORCH", "1")
-
-
 @pytest.mark.parametrize(
     "wait_for_inclusion, wait_for_finalization, hotkey_registered, registration_success, prompt, user_response, expected_result",
     [

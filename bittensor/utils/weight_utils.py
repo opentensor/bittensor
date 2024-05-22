@@ -22,12 +22,13 @@ import numpy as np
 import bittensor
 from numpy.typing import NDArray
 from typing import Tuple, List, Union
-from bittensor.utils.registration import torch, use_torch
+from bittensor.utils.registration import torch, use_torch, legacy_torch_api_compat
 
 U32_MAX = 4294967295
 U16_MAX = 65535
 
 
+@legacy_torch_api_compat
 def normalize_max_weight(
     x: Union[NDArray[np.float32], "torch.FloatTensor"], limit: float = 0.1
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
@@ -43,14 +44,8 @@ def normalize_max_weight(
     """
     epsilon = 1e-7  # For numerical stability after normalization
 
-    weights = x.clone() if use_torch() else x.copy()
-    if use_torch():
-        values, _ = torch.sort(weights)
-    else:
-        values = np.sort(weights)
-
-    if use_torch() and x.sum() == 0 or len(x) * limit <= 1:
-        return torch.ones_like(x) / x.size(0)
+    weights = x.copy()
+    values = np.sort(weights)
 
     if x.sum() == 0 or x.shape[0] * limit <= 1:
         return np.ones_like(x) / x.shape[0]
@@ -61,18 +56,11 @@ def normalize_max_weight(
             return weights / weights.sum()
 
         # Find the cumlative sum and sorted tensor
-        cumsum = (
-            torch.cumsum(estimation, 0) if use_torch() else np.cumsum(estimation, 0)
-        )
+        cumsum = np.cumsum(estimation, 0)
 
         # Determine the index of cutoff
-        estimation_sum_data = [
-            (len(values) - i - 1) * estimation[i] for i in range(len(values))
-        ]
-        estimation_sum = (
-            torch.tensor(estimation_sum_data)
-            if use_torch()
-            else np.array(estimation_sum_data)
+        estimation_sum = np.array(
+            [(len(values) - i - 1) * estimation[i] for i in range(len(values))]
         )
         n_values = (estimation / (estimation_sum + cumsum + epsilon) < limit).sum()
 
