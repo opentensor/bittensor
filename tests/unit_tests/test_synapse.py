@@ -17,7 +17,7 @@
 import json
 import base64
 import typing
-from typing import List, Optional
+from typing import Optional
 
 import pytest
 import bittensor
@@ -130,13 +130,15 @@ def test_custom_synapse():
     class Test(bittensor.Synapse):
         a: int  # Carried through because required.
         b: int = None  # Not carried through headers
-        c: int | None  # Required, carried through headers, cannot be None
-        d: list[int] | None  # Required, carried though headers, cannot be None
+        c: Optional[int]  # Required, carried through headers, cannot be None
+        d: Optional[list[int]]  # Required, carried though headers, cannot be None
         e: list[int]  # Carried through headers
-        f: int | None = None  # Not Required, Not carried through headers, can be None
-        g: list[
+        f: Optional[
             int
-        ] | None = None  # Not Required, Not carried though headers, can be None
+        ] = None  # Not Required, Not carried through headers, can be None
+        g: Optional[
+            list[int]
+        ] = None  # Not Required, Not carried though headers, can be None
 
     # Create an instance of the custom Synapse subclass
     synapse = Test(
@@ -227,16 +229,16 @@ class LegacyHashedSynapse(bittensor.Synapse):
 
     a: int
     b: int
-    c: int | None = None
-    d: list[str] | None = None
-    required_hash_fields: list[str] | None = ["b", "a", "d"]
+    c: Optional[int] = None
+    d: Optional[list[str]] = None
+    required_hash_fields: Optional[list[str]] = ["b", "a", "d"]
 
 
 class HashedSynapse(bittensor.Synapse):
     a: int
     b: int
-    c: int | None = None
-    d: list[str] | None = None
+    c: Optional[int] = None
+    d: Optional[list[str]] = None
     required_hash_fields: typing.ClassVar[tuple[str, ...]] = ("a", "b", "d")
 
 
