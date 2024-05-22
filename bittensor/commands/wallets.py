@@ -860,8 +860,8 @@ class WalletBalanceCommand:
                 "total_free_balance": total_free_balance.to_dict(),
                 "total_staked_balance": total_staked_balance.to_dict()
             }
-        except ValueError:
-            raise  # TODO make this raise something special
+        except bittensor.KeyFileError:
+            raise
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -1281,8 +1281,7 @@ async def get_balances(
             )
 
         if not coldkey_wallet.coldkeypub_file.exists_on_device():
-            bittensor.__console__.print("[bold red]No wallets found.")
-            raise ValueError
+            raise bittensor.KeyFileError("File does not exist on device.")
 
     if params.get("all_wallets"):
         balances, total_free_balance, total_staked_balance = handle_all_wallets()
