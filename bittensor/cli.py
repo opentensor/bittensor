@@ -123,8 +123,6 @@ COMMANDS = {
             # "remove": UnStakeCommand,
             "add": SubStakeCommand,
             "remove": RemoveSubStakeCommand,
-            # Allows a nominator to set weights for their stake across subnets.
-            "weights": StakeWeightsCommand,
             # Delegate to a specific root member.
             "delegate": DelegateStakeCommand,
             # Remove stake from a root member

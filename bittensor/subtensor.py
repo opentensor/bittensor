@@ -62,7 +62,6 @@ from .extrinsics.delegation import (
 from .extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
-    add_stake_weight_extrinsic,
 )
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .extrinsics.substaking import add_substake_extrinsic, remove_substake_extrinsic
@@ -2428,70 +2427,70 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
-    def stake_set_weights(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey: str,
-        netuids: List[int],
-        weights: List[int],
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = False,
-        prompt: bool = False,
-    ) -> bool:
-        return add_stake_weight_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            hotkey=hotkey,
-            netuids=netuids,
-            weights=weights,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
-        )
+    # def stake_set_weights(
+    #     self,
+    #     wallet: "bittensor.wallet",
+    #     hotkey: str,
+    #     netuids: List[int],
+    #     weights: List[int],
+    #     wait_for_inclusion: bool = False,
+    #     wait_for_finalization: bool = False,
+    #     prompt: bool = False,
+    # ) -> bool:
+    #     return add_stake_weight_extrinsic(
+    #         subtensor=self,
+    #         wallet=wallet,
+    #         hotkey=hotkey,
+    #         netuids=netuids,
+    #         weights=weights,
+    #         wait_for_inclusion=wait_for_inclusion,
+    #         wait_for_finalization=wait_for_finalization,
+    #         prompt=prompt,
+    #     )
 
-    def _do_set_stake_weights(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey: str,
-        netuids: int,
-        weights: List[int],
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="add_weighted_stake",
-                    call_params={
-                        "hotkey": hotkey,
-                        "values": weights,
-                        "netuids": netuids,
-                    },
-                )
-                # Period dictates how long the extrinsic will stay as part of waiting pool
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call,
-                    keypair=wallet.coldkey,
-                    era={"period": 5},
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True, "Not waiting for finalziation or inclusion."
+    # def _do_set_stake_weights(
+    #     self,
+    #     wallet: "bittensor.wallet",
+    #     hotkey: str,
+    #     netuids: int,
+    #     weights: List[int],
+    #     wait_for_inclusion: bool = False,
+    #     wait_for_finalization: bool = False,
+    # ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
+    #     @retry(delay=2, tries=3, backoff=2, max_delay=4)
+    #     def make_substrate_call_with_retry():
+    #         with self.substrate as substrate:
+    #             call = substrate.compose_call(
+    #                 call_module="SubtensorModule",
+    #                 call_function="add_weighted_stake",
+    #                 call_params={
+    #                     "hotkey": hotkey,
+    #                     "values": weights,
+    #                     "netuids": netuids,
+    #                 },
+    #             )
+    #             # Period dictates how long the extrinsic will stay as part of waiting pool
+    #             extrinsic = substrate.create_signed_extrinsic(
+    #                 call=call,
+    #                 keypair=wallet.coldkey,
+    #                 era={"period": 5},
+    #             )
+    #             response = substrate.submit_extrinsic(
+    #                 extrinsic,
+    #                 wait_for_inclusion=wait_for_inclusion,
+    #                 wait_for_finalization=wait_for_finalization,
+    #             )
+    #             # We only wait here if we expect finalization.
+    #             if not wait_for_finalization and not wait_for_inclusion:
+    #                 return True, "Not waiting for finalziation or inclusion."
 
-                response.process_events()
-                if response.is_success:
-                    return True, "Successfully set stake weights."
-                else:
-                    return False, response.error_message
+    #             response.process_events()
+    #             if response.is_success:
+    #                 return True, "Successfully set stake weights."
+    #             else:
+    #                 return False, response.error_message
 
-        return make_substrate_call_with_retry()
+    #     return make_substrate_call_with_retry()
 
     def root_set_weights(
         self,
