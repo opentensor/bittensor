@@ -21,6 +21,8 @@ import numpy as np
 import bittensor.utils.weight_utils as weight_utils
 import pytest
 
+from bittensor.utils import torch
+
 
 def test_convert_weight_and_uids():
     uids = np.arange(10)
@@ -108,6 +110,64 @@ def test_normalize_with_max_weight():
     y = weight_utils.normalize_max_weight(x, limit=limit - change)
     z = weight_utils.normalize_max_weight(x, limit=limit + change)
     assert np.abs(y - z).sum() < epsilon
+
+
+def test_normalize_with_max_weight__legacy_torch_api_compat(
+    force_legacy_torch_compat_api,
+):
+    weights = torch.rand(1000)
+    wn = weight_utils.normalize_max_weight(weights, limit=0.01)
+    assert wn.max() <= 0.01
+
+    weights = torch.zeros(1000)
+    wn = weight_utils.normalize_max_weight(weights, limit=0.01)
+    assert wn.max() <= 0.01
+
+    weights = torch.rand(1000)
+    wn = weight_utils.normalize_max_weight(weights, limit=0.02)
+    assert wn.max() <= 0.02
+
+    weights = torch.zeros(1000)
+    wn = weight_utils.normalize_max_weight(weights, limit=0.02)
+    assert wn.max() <= 0.02
+
+    weights = torch.rand(1000)
+    wn = weight_utils.normalize_max_weight(weights, limit=0.03)
+    assert wn.max() <= 0.03
+
+    weights = torch.zeros(1000)
+    wn = weight_utils.normalize_max_weight(weights, limit=0.03)
+    assert wn.max() <= 0.03
+
+    # Check for Limit
+    limit = 0.001
+    weights = torch.rand(2000)
+    w = weights / weights.sum()
+    wn = weight_utils.normalize_max_weight(weights, limit=limit)
+    assert (w.max() >= limit and (limit - wn.max()).abs() < 0.001) or (
+        w.max() < limit and wn.max() < limit
+    )
+
+    # Check for Zeros
+    limit = 0.01
+    weights = torch.zeros(2000)
+    wn = weight_utils.normalize_max_weight(weights, limit=limit)
+    assert wn.max() == 1 / 2000
+
+    # Check for Ordering after normalization
+    weights = torch.rand(100)
+    wn = weight_utils.normalize_max_weight(weights, limit=1)
+    assert torch.isclose(wn, weights / weights.sum(), atol=1e-08, rtol=0).all()
+
+    # Check for epsilon changes
+    epsilon = 0.01
+    weights, _ = torch.sort(torch.rand(100))
+    x = weights / weights.sum()
+    limit = x[-10]
+    change = epsilon * limit
+    y = weight_utils.normalize_max_weight(x, limit=limit - change)
+    z = weight_utils.normalize_max_weight(x, limit=limit + change)
+    assert (y - z).abs().sum() < epsilon
 
 
 @pytest.mark.parametrize(
