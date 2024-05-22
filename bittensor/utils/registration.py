@@ -30,10 +30,12 @@ def use_torch() -> bool:
 
 
 def legacy_torch_api_compat(func):
-    """Decorator to convert numpy arrays to torch tensors before passing them to the function.
+    """
+    Convert function operating on numpy Input&Output to legacy torch Input&Output API if `use_torch()` is True.
+
     Args:
         func (function):
-            Function to be decorated.
+            Function with numpy Input/Output to be decorated.
     Returns:
         decorated (function):
             Decorated function.
