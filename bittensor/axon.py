@@ -364,7 +364,6 @@ class axon:
         self.priority_fns: Dict[str, Optional[Callable]] = {}
         self.forward_fns: Dict[str, Optional[Callable]] = {}
         self.verify_fns: Dict[str, Optional[Callable]] = {}
-        self.required_hash_fields: Dict[str, str] = {}
 
         # Instantiate FastAPI
         self.app = FastAPI()
@@ -566,12 +565,6 @@ class axon:
         )  # Use 'default_verify' if 'verify_fn' is None
         self.forward_fns[request_name] = forward_fn
 
-        # Parse required hash fields from the forward function protocol defaults
-        required_hash_fields = request_class.__dict__["model_fields"][
-            "required_hash_fields"
-        ].default
-        self.required_hash_fields[request_name] = required_hash_fields
-
         return self
 
     @classmethod
@@ -696,9 +689,7 @@ class axon:
         body = await request.body()
         request_body = body.decode() if isinstance(body, bytes) else body
 
-        # Gather the required field names from the axon's required_hash_fields dict
         request_name = request.url.path.split("/")[1]
-        required_hash_fields = self.required_hash_fields[request_name]
 
         # Load the body dict and check if all required field hashes match
         body_dict = json.loads(request_body)
