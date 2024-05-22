@@ -252,6 +252,7 @@ class SubnetListCommand:
         delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
             url=bittensor.__delegates_details_url__
         )
+        total_tao_locked = 0
 
         # Get reserves.
         dynamic_info = subtensor.get_dynamic_info()
@@ -271,12 +272,19 @@ class SubnetListCommand:
                 else 0
             )
             total_emission += subnet.emission_value
+            tao_locked = bittensor.Balance(0)
+            if is_dtao:
+                tao_locked = bittensor.Balance(dynamic_info[subnet.netuid]["tao_reserve"])
+            else:
+                tao_locked = subtensor.get_total_subnet_stake(subnet.netuid)
+            total_tao_locked += tao_locked
             rows.append(
                 (
                     str(subnet.netuid),
                     bittensor.Balance.get_unit(subnet.netuid),
                     f"{subnet.subnetwork_n}/{subnet.max_n}",
                     "[red]D[/red]" if is_dtao else "[blue]S[/blue]",
+                    "{:,.2f}".format(tao_locked.tao),
                     "{:.8}".format(
                         str(bittensor.Balance.from_rao(subnet.emission_value))
                     ),
@@ -356,6 +364,13 @@ class SubnetListCommand:
         table.add_column(
             "[white]type",
             f"D:{n_dtao}/S:{n_stao}",
+            footer_style="white",
+            style="white",
+            justify="center",
+        )
+        table.add_column(
+            "[white]Total TAO",
+            "{:,.4f}".format(total_tao_locked.tao),
             footer_style="white",
             style="white",
             justify="center",

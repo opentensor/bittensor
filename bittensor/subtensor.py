@@ -47,7 +47,8 @@ from .chain_data import (
     IPInfo,
     SubstakeElements,
     DynamicPool,
-    custom_rpc_type_registry,
+    from_scale_encoding_using_type_string,
+    custom_rpc_type_registry,    
 )
 from .errors import *
 from .extrinsics.network import (
@@ -4208,6 +4209,40 @@ class subtensor:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
         return StakeInfo.list_of_tuple_from_vec_u8(bytes_result)  # type: ignore
+
+    def get_total_subnet_stake(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Balance:
+        """
+        Retrieves total stake for subnet.
+
+        Args:
+            netuid (int): Subnet ID.
+            block (Optional[int], optional): The blockchain block number for the query.
+
+        Returns:
+            bittensor.Balance - total subnet stake
+
+        This function is useful for analyzing the stake distribution and delegation patterns of multiple
+        accounts simultaneously, offering a broader perspective on network participation and investment strategies.
+        """
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_total_subnet_stake",
+            params=[netuid],  # type: ignore
+            block=block,
+        )
+
+        if hex_bytes_result is None:
+            return Balance(0)
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        result = from_scale_encoding_using_type_string(bytes_result, "u64")
+        return Balance(result)
 
     ########################################
     #### Neuron information per subnet ####
