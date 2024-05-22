@@ -20,6 +20,8 @@
 import base64
 import json
 import sys
+import typing
+import warnings
 
 from pydantic import (
     BaseModel,
@@ -29,7 +31,7 @@ from pydantic import (
     model_validator,
 )
 import bittensor
-from typing import Optional, List, Any, Dict
+from typing import Optional, Any, Dict
 
 
 def get_size(obj, seen=None) -> int:
@@ -301,6 +303,8 @@ class Synapse(BaseModel):
     5. Body Hash Computation (``computed_body_hash``, ``required_hash_fields``):
         Ensures data integrity and security by computing hashes of transmitted data. Provides users with a
         mechanism to verify data integrity and detect any tampering during transmission.
+        It is recommended that names of fields in `required_hash_fields` are listed in the order they are
+        defined in the class.
 
     6. Serialization and Deserialization Methods:
         Facilitates the conversion of Synapse objects to and from a format suitable for network transmission.
@@ -478,14 +482,7 @@ class Synapse(BaseModel):
         repr=False,
     )
 
-    required_hash_fields: Optional[List[str]] = Field(
-        title="required_hash_fields",
-        description="The list of required fields to compute the body hash.",
-        examples=["roles", "messages"],
-        default=[],
-        frozen=True,
-        repr=False,
-    )
+    required_hash_fields: typing.ClassVar[typing.Tuple[str, ...]] = ()
 
     _extract_total_size = field_validator("total_size", mode="before")(cast_int)
 
@@ -692,21 +689,37 @@ class Synapse(BaseModel):
         Returns:
             str: The SHA3-256 hash as a hexadecimal string, providing a fingerprint of the Synapse instance's data for integrity checks.
         """
-        # Hash the body for verification
         hashes = []
 
-        # Getting the fields of the instance
-        instance_fields = self.model_dump()
+        hash_fields_field = self.model_fields.get("required_hash_fields")
+        instance_fields = None
+        if hash_fields_field:
+            warnings.warn(
+                "The 'required_hash_fields' field handling deprecated and will be removed. "
+                "Please update Synapse class definition to use 'required_hash_fields' class variable instead.",
+                DeprecationWarning,
+            )
+            required_hash_fields = hash_fields_field.default
 
-        for field, value in instance_fields.items():
-            # If the field is required in the subclass schema, hash and add it.
-            if (
-                self.required_hash_fields is not None
-                and field in self.required_hash_fields
-            ):
-                hashes.append(bittensor.utils.hash(str(value)))
+            if required_hash_fields:
+                instance_fields = self.model_dump()
+                # Preserve backward compatibility in which fields will added in .dict() order
+                # instead of the order one from `self.required_hash_fields`
+                required_hash_fields = [
+                    field for field in instance_fields if field in required_hash_fields
+                ]
 
-        # Hash and return the hashes that have been concatenated
+                # Hack to cache the required hash fields names
+                if len(required_hash_fields) == len(required_hash_fields):
+                    self.__class__.required_hash_fields = tuple(required_hash_fields)
+        else:
+            required_hash_fields = self.__class__.required_hash_fields
+
+        if required_hash_fields:
+            instance_fields = instance_fields or self.dict()
+            for field in required_hash_fields:
+                hashes.append(bittensor.utils.hash(str(instance_fields[field])))
+
         return bittensor.utils.hash("".join(hashes))
 
     @classmethod
