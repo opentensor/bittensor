@@ -15,16 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import json
-import torch
 import base64
 import typing
+from typing import List, Optional
+
 import pytest
 import bittensor
 
 
 def test_parse_headers_to_inputs():
     class Test(bittensor.Synapse):
-        key1: typing.List[int]
+        key1: list[int]
 
     # Define a mock headers dictionary to use for testing
     headers = {
@@ -59,7 +60,7 @@ def test_parse_headers_to_inputs():
 
 def test_from_headers():
     class Test(bittensor.Synapse):
-        key1: typing.List[int]
+        key1: list[int]
 
     # Define a mock headers dictionary to use for testing
     headers = {
@@ -129,9 +130,13 @@ def test_custom_synapse():
     class Test(bittensor.Synapse):
         a: int  # Carried through because required.
         b: int = None  # Not carried through headers
-        c: typing.Optional[int]  # Not carried through headers
-        d: typing.Optional[typing.List[int]]  # Not carried through headers
-        e: typing.List[int]  # Carried through headers
+        c: int | None  # Required, carried through headers, cannot be None
+        d: list[int] | None  # Required, carried though headers, cannot be None
+        e: list[int]  # Carried through headers
+        f: int | None = None  # Not Required, Not carried through headers, can be None
+        g: list[
+            int
+        ] | None = None  # Not Required, Not carried though headers, can be None
 
     # Create an instance of the custom Synapse subclass
     synapse = Test(
@@ -145,10 +150,12 @@ def test_custom_synapse():
     assert isinstance(synapse, Test)
     assert synapse.name == "Test"
     assert synapse.a == 1
-    assert synapse.b == None
+    assert synapse.b is None
     assert synapse.c == 3
     assert synapse.d == [1, 2, 3, 4]
     assert synapse.e == [1, 2, 3, 4]
+    assert synapse.f is None
+    assert synapse.g is None
 
     # Convert the Test instance to a headers dictionary
     headers = synapse.to_headers()
@@ -160,10 +167,12 @@ def test_custom_synapse():
     # Create a new Test from the headers and check its properties
     next_synapse = synapse.from_headers(synapse.to_headers())
     assert next_synapse.a == 0  # Default value is 0
-    assert next_synapse.b == None
-    assert next_synapse.c == None
-    assert next_synapse.d == None
+    assert next_synapse.b is None
+    assert next_synapse.c == 0  # Default is 0
+    assert next_synapse.d == []  # Default is []
     assert next_synapse.e == []  # Empty list is default for list types
+    assert next_synapse.f is None
+    assert next_synapse.g is None
 
 
 def test_body_hash_override():
@@ -218,17 +227,17 @@ class LegacyHashedSynapse(bittensor.Synapse):
 
     a: int
     b: int
-    c: typing.Optional[int]
-    d: typing.Optional[typing.List[str]]
-    required_hash_fields: typing.Optional[typing.List[str]] = ["b", "a", "d"]
+    c: int | None = None
+    d: list[str] | None = None
+    required_hash_fields: list[str] | None = ["b", "a", "d"]
 
 
 class HashedSynapse(bittensor.Synapse):
     a: int
     b: int
-    c: typing.Optional[int]
-    d: typing.Optional[typing.List[str]]
-    required_hash_fields: typing.ClassVar[typing.Tuple[str]] = ("a", "b", "d")
+    c: int | None = None
+    d: list[str] | None = None
+    required_hash_fields: typing.ClassVar[tuple[str, ...]] = ("a", "b", "d")
 
 
 @pytest.mark.parametrize("synapse_cls", [LegacyHashedSynapse, HashedSynapse])

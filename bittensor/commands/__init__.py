@@ -74,9 +74,11 @@ from .register import (
 from .delegates import (
     NominateCommand,
     ListDelegatesCommand,
+    ListDelegatesLiteCommand,
     DelegateStakeCommand,
     DelegateUnstakeCommand,
     MyDelegatesCommand,
+    SetTakeCommand,
 )
 from .wallets import (
     NewColdkeyCommand,

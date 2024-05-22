@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel
+FROM python:3.11.8-bookworm
 
 LABEL bittensor.image.authors="bittensor.com" \
 	bittensor.image.vendor="Bittensor" \
@@ -9,19 +9,13 @@ LABEL bittensor.image.authors="bittensor.com" \
 	bittensor.image.revision="${VCS_REF}" \
 	bittensor.image.created="${BUILD_DATE}" \
 	bittensor.image.documentation="https://app.gitbook.com/@opentensor/s/bittensor/"
-LABEL bittensor.dependencies.versions.torch="2.0.1"
-LABEL bittensor.dependencies.versions.cuda="11.7"
 ARG DEBIAN_FRONTEND=noninteractive
 
-#nvidia key migration
-RUN apt-key del 7fa2af80
-RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub
-RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu2004/x86_64/7fa2af80.pub
 # Update the base image
 RUN apt update && apt upgrade -y
 # Install bittensor
 ## Install dependencies
-RUN apt install -y curl sudo nano git htop netcat wget unzip tmux apt-utils cmake build-essential
+RUN apt install -y curl sudo nano git htop netcat-openbsd wget unzip tmux apt-utils cmake build-essential
 ## Upgrade pip
 RUN pip3 install --upgrade pip
 

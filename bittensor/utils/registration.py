@@ -12,13 +12,69 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import backoff
 import bittensor
-import torch
 from Crypto.Hash import keccak
 from rich import console as rich_console
 from rich import status as rich_status
 
 from .formatting import get_human_readable, millify
 from ._register_cuda import solve_cuda
+
+try:
+    import torch
+except ImportError:
+    torch = None
+
+
+def use_torch() -> bool:
+    return True if os.getenv("USE_TORCH") == "1" else False
+
+
+class Torch:
+    def __init__(self):
+        self._transformed = False
+
+    @staticmethod
+    def _error():
+        bittensor.logging.warning(
+            "This command requires torch. You can install torch for bittensor"
+            ' with `pip install bittensor[torch]` or `pip install ".[torch]"`'
+            " if installing from source, and then run the command with USE_TORCH=1 {command}"
+        )
+
+    def error(self):
+        self._error()
+
+    def _transform(self):
+        try:
+            import torch as real_torch
+
+            self.__dict__.update(real_torch.__dict__)
+            self._transformed = True
+        except ImportError:
+            self._error()
+
+    def __bool__(self):
+        return False
+
+    def __getattr__(self, name):
+        if not self._transformed and use_torch():
+            self._transform()
+        if self._transformed:
+            return getattr(self, name)
+        else:
+            self._error()
+
+    def __call__(self, *args, **kwargs):
+        if not self._transformed and use_torch():
+            self._transform()
+        if self._transformed:
+            return self(*args, **kwargs)
+        else:
+            self._error()
+
+
+if not torch or not use_torch():
+    torch = Torch()
 
 
 class CUDAException(Exception):
