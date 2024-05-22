@@ -30,7 +30,7 @@ def use_torch() -> bool:
 
 
 def legacy_torch_api_compat(func):
-    """Decorator to convert numpy arrays to torch tensors before passing them to the function.
+    """Decorator to convert between numpy arrays and torch tensors before/after passing them to the function.
     Args:
         func (function):
             Function to be decorated.
