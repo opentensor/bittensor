@@ -4,7 +4,7 @@
 
 ## What's Changed
 * Add setting delegate take
-
+* fix: deprecated transfer method usage
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.12.1...54eee604c00ac4f04a31d5d7bc663124731a34d8
 
