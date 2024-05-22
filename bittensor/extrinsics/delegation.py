@@ -75,7 +75,7 @@ def nominate_extrinsic(
                 )
                 bittensor.logging.success(
                     prefix="Become Delegate",
-                    sufix="<green>Finalized: </green>" + str(success),
+                    suffix="<green>Finalized: </green>" + str(success),
                 )
 
             # Raises NominationError if False
@@ -86,14 +86,14 @@ def nominate_extrinsic(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
         except NominationError as e:
             bittensor.__console__.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
 
     return False
@@ -369,7 +369,7 @@ def decrease_take_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: Optional[str] = None,
-    take: float = 0.0,
+    take: int = 0,
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True,
 ) -> bool:
@@ -409,7 +409,7 @@ def decrease_take_extrinsic(
                 )
                 bittensor.logging.success(
                     prefix="Decrease Delegate Take",
-                    sufix="<green>Finalized: </green>" + str(success),
+                    suffix="<green>Finalized: </green>" + str(success),
                 )
 
             return success
@@ -419,7 +419,7 @@ def decrease_take_extrinsic(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
 
     return False
@@ -429,7 +429,7 @@ def increase_take_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: Optional[str] = None,
-    take: float = 0.0,
+    take: int = 0,
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True,
 ) -> bool:
@@ -469,7 +469,7 @@ def increase_take_extrinsic(
                 )
                 bittensor.logging.success(
                     prefix="Increase Delegate Take",
-                    sufix="<green>Finalized: </green>" + str(success),
+                    suffix="<green>Finalized: </green>" + str(success),
                 )
 
             return success
@@ -479,14 +479,14 @@ def increase_take_extrinsic(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
         except TakeError as e:
             bittensor.__console__.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
 
     return False
