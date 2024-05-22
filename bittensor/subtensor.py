@@ -100,6 +100,7 @@ from .utils import (
 from .utils.balance import Balance
 from .utils.registration import POWSolution
 from .utils.subtensor import get_subtensor_errors
+from .utils.registration import legacy_torch_api_compat
 
 KEY_NONCE: Dict[str, int] = {}
 
@@ -2340,6 +2341,7 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
+    @legacy_torch_api_compat
     def root_set_weights(
         self,
         wallet: "bittensor.wallet",
