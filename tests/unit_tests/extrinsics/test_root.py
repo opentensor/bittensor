@@ -212,3 +212,97 @@ def test_set_root_weights_extrinsic(
             mock_confirm.assert_called_once()
         else:
             mock_confirm.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "wait_for_inclusion, wait_for_finalization, netuids, weights, prompt, user_response, expected_success",
+    [
+        (True, False, [1, 2], [0.5, 0.5], True, True, True),  # Success - weights set
+        (
+            False,
+            False,
+            [1, 2],
+            [0.5, 0.5],
+            False,
+            None,
+            True,
+        ),  # Success - weights set no wait
+        (
+            True,
+            False,
+            [1, 2],
+            [2000, 20],
+            True,
+            True,
+            True,
+        ),  # Success - large value to be normalized
+        (
+            True,
+            False,
+            [1, 2],
+            [2000, 0],
+            True,
+            True,
+            True,
+        ),  # Success - single large value
+        (
+            True,
+            False,
+            [1, 2],
+            [0.5, 0.5],
+            True,
+            False,
+            False,
+        ),  # Failure - prompt declined
+        (
+            True,
+            False,
+            [1, 2],
+            [0.5, 0.5],
+            False,
+            None,
+            False,
+        ),  # Failure - setting weights failed
+        (
+            True,
+            False,
+            [],
+            [],
+            None,
+            False,
+            False,
+        ),  # Exception catched - ValueError 'min() arg is an empty sequence'
+    ],
+    ids=[
+        "success-weights-set",
+        "success-not-wait",
+        "success-large-value",
+        "success-single-value",
+        "failure-user-declines",
+        "failure-setting-weights",
+        "failure-value-error-exception",
+    ],
+)
+def test_set_root_weights_extrinsic_torch(
+    mock_subtensor,
+    mock_wallet,
+    wait_for_inclusion,
+    wait_for_finalization,
+    netuids,
+    weights,
+    prompt,
+    user_response,
+    expected_success,
+    force_legacy_torch_compat_api,
+):
+    test_set_root_weights_extrinsic(
+        mock_subtensor,
+        mock_wallet,
+        wait_for_inclusion,
+        wait_for_finalization,
+        netuids,
+        weights,
+        prompt,
+        user_response,
+        expected_success,
+    )
