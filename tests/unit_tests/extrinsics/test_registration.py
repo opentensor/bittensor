@@ -50,11 +50,6 @@ def mock_new_wallet():
     return mock
 
 
-@pytest.fixture(autouse=True)
-def set_use_torch_env(monkeypatch):
-    monkeypatch.setenv("USE_TORCH", "1")
-
-
 @pytest.mark.parametrize(
     "wait_for_inclusion,wait_for_finalization,prompt,cuda,dev_id,tpb,num_processes,update_interval,log_verbose,expected",
     [
