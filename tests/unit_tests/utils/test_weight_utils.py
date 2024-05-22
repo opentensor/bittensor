@@ -159,15 +159,15 @@ def test_normalize_with_max_weight__legacy_torch_api_compat(
     wn = weight_utils.normalize_max_weight(weights, limit=1)
     assert torch.isclose(wn, weights / weights.sum(), atol=1e-08, rtol=0).all()
 
-    # Check for eplison changes
-    eplison = 0.01
+    # Check for epsilon changes
+    epsilon = 0.01
     weights, _ = torch.sort(torch.rand(100))
     x = weights / weights.sum()
     limit = x[-10]
-    change = eplison * limit
+    change = epsilon * limit
     y = weight_utils.normalize_max_weight(x, limit=limit - change)
     z = weight_utils.normalize_max_weight(x, limit=limit + change)
-    assert (y - z).abs().sum() < eplison
+    assert (y - z).abs().sum() < epsilon
 
 
 @pytest.mark.parametrize(
